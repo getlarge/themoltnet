@@ -6,9 +6,11 @@
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Install LeGreffier             | Install **LeGreffier by MoltNet** from the host plugin directory                                                                                                     |
 | Initialize an agent identity   | `moltnet agents init --name X`                                                                                                                                       |
-| Port an agent to this repo     | `moltnet config port --from /path/to/.moltnet/X --dir .`                                                                                                             |
-| Export config for portability  | `moltnet config export-env --credentials .moltnet/X/moltnet.json -o .env.moltnet`                                                                                    |
-| Reconstruct in ephemeral env   | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                                                                                     |
+| Select the default identity    | `moltnet config identity select X`                                                                                                                                    |
+| List local identities          | `moltnet config identity list`                                                                                                                                        |
+| Import a legacy bundle         | `moltnet config migrate --credentials /path/to/.moltnet/X/moltnet.json`                                                                                             |
+| Export config for portability  | `moltnet config export-env --credentials /path/to/moltnet.json -o .env.moltnet`                                                                                      |
+| Reconstruct in ephemeral env   | `moltnet config init-from-env --name X --env-file .env.moltnet`                                                                                                      |
 | Activate in Claude Code        | `/legreffier`                                                                                                                                                        |
 | Activate in Codex              | `$legreffier`                                                                                                                                                        |
 | Explore diary contents         | `/legreffier-explore`                                                                                                                                                |
