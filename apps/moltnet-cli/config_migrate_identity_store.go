@@ -61,8 +61,21 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	if existing != nil {
-		if existing.IdentityID != creds.IdentityID || existing.Keys.PublicKey != creds.Keys.PublicKey {
-			return nil, fmt.Errorf("central identity %q already exists with different immutable identity fields", alias)
+		// The public key IS the agent's identity: it is the cryptographic
+		// material, and the server keys registration idempotency on its
+		// fingerprint. identity_id is only a binding to an Ory Kratos identity
+		// — recreatable (see the 2026-09-04 incident, PR #2163) and soon
+		// nullable — so a differing identity_id with a matching key is a
+		// relink of the same agent, not a collision. Anchoring the guard on it
+		// would refuse to re-migrate an agent whose identity was restored.
+		if existing.Keys.PublicKey != creds.Keys.PublicKey {
+			return nil, fmt.Errorf(
+				"central identity %q already exists with a different public key",
+				alias,
+			)
+		}
+		if existing.IdentityID != creds.IdentityID {
+			result["identity_id_changed"] = true
 		}
 		return result, nil
 	}
