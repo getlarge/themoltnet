@@ -87,7 +87,8 @@ export const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
   subjectType: 'agent',
-  identityId: OWNER_ID,
+  agentId: OWNER_ID,
+  identityId: OWNER_IDENTITY_ID,
   publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
@@ -108,7 +109,9 @@ export const KEY_AUTH_CONTEXT: AuthContext = {
 /** Human principal (e.g. Kratos session / OAuth2 auth-code). */
 export const HUMAN_AUTH_CONTEXT: AuthContext = {
   subjectType: 'human',
-  identityId: OWNER_ID,
+  // humanId is the Keto subject and FK target; identityId is the Kratos
+  // binding. Distinct on purpose — see OWNER_IDENTITY_ID.
+  identityId: OWNER_IDENTITY_ID,
   clientId: null,
   humanId: OWNER_ID,
   scopes: [...HUMAN_SESSION_SCOPES],
@@ -151,7 +154,8 @@ export function createMockEntry(
 
 export function createMockAgent(overrides: Partial<Agent> = {}): Agent {
   return {
-    identityId: OWNER_ID,
+    id: OWNER_ID,
+    identityId: OWNER_IDENTITY_ID,
     publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
     fingerprint: 'C212-DAFA-27C5-6C57',
     createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -415,6 +419,16 @@ export function createMockServices(): MockServices {
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
+      // Registration creates the agent row before the Kratos identity, keyed
+      // on fingerprint since identity_id is still NULL at that point.
+      upsertByFingerprint: vi.fn().mockResolvedValue({
+        id: OWNER_ID,
+        identityId: OWNER_IDENTITY_ID,
+        publicKey: 'ed25519:mockkeypayload',
+        fingerprint: 'A1B2-C3D4-E5F6-1234',
+      }),
+      deleteById: vi.fn().mockResolvedValue(true),
+      relinkIdentity: vi.fn().mockResolvedValue(undefined),
       // Creator inflation resolves by internal id since the decoupling.
       findById: vi.fn().mockResolvedValue({
         id: OWNER_ID,

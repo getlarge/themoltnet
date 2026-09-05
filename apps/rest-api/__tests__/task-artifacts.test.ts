@@ -35,7 +35,7 @@ function mockArtifact(overrides: Partial<TaskArtifact> = {}): TaskArtifact {
     sizeBytes: 11,
     sha256: 'a'.repeat(64),
     cid: 'bafkreicid',
-    createdByAgentId: VALID_AUTH_CONTEXT.identityId,
+    createdByAgentId: VALID_AUTH_CONTEXT.agentId,
     expiresAt: null,
     createdAt: new Date('2026-06-27T00:00:00.000Z'),
     updatedAt: new Date('2026-06-27T00:00:00.000Z'),
@@ -62,14 +62,14 @@ describe('task artifact routes', () => {
     mocks.permissionChecker.canReportTask.mockResolvedValue(true);
     mocks.permissionChecker.canViewTask.mockResolvedValue(true);
     mocks.taskRepository.findById.mockResolvedValue({
-      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimAgentId: VALID_AUTH_CONTEXT.agentId,
       claimExpiresAt: ACTIVE_CLAIM_EXPIRES_AT,
       id: TASK_ID,
       teamId: TEAM_ID,
     });
     mocks.taskRepository.findAttempt.mockResolvedValue({
       attemptN: 1,
-      claimedByAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimedByAgentId: VALID_AUTH_CONTEXT.agentId,
       status: 'running',
       taskId: TASK_ID,
     });
@@ -154,7 +154,7 @@ describe('task artifact routes', () => {
     expect(json.artifacts[0]).not.toHaveProperty('sha256');
     expect(mocks.permissionChecker.canViewTask).toHaveBeenCalledWith(
       TASK_ID,
-      VALID_AUTH_CONTEXT.identityId,
+      VALID_AUTH_CONTEXT.agentId,
       expect.any(String),
     );
   });

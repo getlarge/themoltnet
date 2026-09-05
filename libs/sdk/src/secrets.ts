@@ -325,8 +325,10 @@ export function identitySeedKey(fingerprint: string): string {
   return `identity/${fingerprint}/seed`;
 }
 
-export function agentKeyKey(identityId: string): string {
-  return `agent-key/${identityId}`;
+export function agentKeyKey(agentId: string): string {
+  // Derivation string unchanged — renaming the parameter must not re-key
+  // secrets already stored under this prefix.
+  return `agent-key/${agentId}`;
 }
 
 const PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;

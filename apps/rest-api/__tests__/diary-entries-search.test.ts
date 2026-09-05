@@ -60,7 +60,7 @@ describe('Diary entry routes - search', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json().results).toHaveLength(1);
       expect(response.json().results[0].creator).toEqual(
-        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+        expect.objectContaining({ kind: 'agent', agentId: OWNER_ID }),
       );
     });
 

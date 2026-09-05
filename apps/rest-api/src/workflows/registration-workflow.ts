@@ -217,7 +217,7 @@ export async function issueRegistrationCredential(
     credential = { type: 'oauth2', clientId, clientSecret };
   } else {
     const subject: AgentKeySubject = {
-      identityId: registration.agentId,
+      agentId: registration.agentId,
       scopes: [...AGENT_OAUTH_SCOPES],
       subjectNs: KetoNamespace.Agent,
       subjectType: 'agent',

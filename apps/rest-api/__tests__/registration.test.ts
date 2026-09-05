@@ -49,6 +49,9 @@ const IDEMPOTENCY_KEY = 'a'.repeat(43);
 const TOKEN = `mlt_inv_${'b'.repeat(22)}`;
 const TOKEN_HASH = 'f'.repeat(64);
 const SUCCESS = {
+  // Deliberately different from identityId: registration mints the agent row
+  // first and the Kratos identity second, so the two ids never coincide.
+  agentId: '550e8400-e29b-41d4-a716-4466554400aa',
   identityId: '550e8400-e29b-41d4-a716-446655440000',
   fingerprint: FINGERPRINT,
   publicKey: PUBLIC_KEY,
@@ -79,6 +82,7 @@ describe('registration routes', () => {
       id: 'invite-1',
     });
     mockWorkflowResult.mockResolvedValue({
+      agentId: SUCCESS.agentId,
       identityId: SUCCESS.identityId,
       identityOwnedForCompensation: true,
       fingerprint: SUCCESS.fingerprint,

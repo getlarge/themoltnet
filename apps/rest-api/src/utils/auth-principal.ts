@@ -47,6 +47,8 @@ interface RequestWithAuthContext {
     | {
         identityId: string;
         subjectType: 'agent';
+        /** Internal agents.id — the write-side FK target. */
+        agentId: string;
       }
     | {
         identityId: string;
@@ -78,7 +80,11 @@ export function authContextToCreator(
     );
   }
   if (ctx.subjectType === 'agent') {
-    return { kind: 'agent', id: ctx.identityId };
+    // agents.id, not the Kratos identity: every *_agent_id column FKs to
+    // agents.id since the decoupling, so writing identityId here would
+    // violate the constraint for any agent whose identity has moved — which,
+    // with fresh internal ids, is every agent.
+    return { kind: 'agent', id: ctx.agentId };
   }
   // Human: humans.id is on the auth context (sourced from Kratos
   // metadata_public.human_id). No DB lookup, no race with onboarding.

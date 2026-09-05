@@ -27,6 +27,7 @@ import {
 } from '../../src/workflows/registration-workflow.js';
 
 const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
+const AGENT_ID = '550e8400-e29b-41d4-a716-4466554400aa';
 const TEAM_ID = '660e8400-e29b-41d4-a716-446655440000';
 const PUBLIC_KEY = 'ed25519:dGVzdA==';
 const FINGERPRINT = 'AAAA-BBBB-CCCC-DDDD';
@@ -60,8 +61,16 @@ function createDeps() {
       setOAuth2Client: vi.fn(),
     },
     agentRepository: {
+      upsertByFingerprint: vi.fn().mockResolvedValue({
+        id: AGENT_ID,
+        identityId: null,
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+      }),
+      relinkIdentity: vi.fn().mockResolvedValue(undefined),
       upsert: vi.fn(),
       delete: vi.fn(),
+      deleteById: vi.fn().mockResolvedValue(true),
     },
     diaryRepository: {
       listByCreator: vi.fn().mockResolvedValue([]),
@@ -108,7 +117,7 @@ function createDeps() {
     issueAgentKey: vi.fn().mockResolvedValue({
       key: {
         id: 'key-id',
-        agentId: IDENTITY_ID,
+        agentId: AGENT_ID,
         teamId: TEAM_ID,
         name: 'Bootstrap credential',
         scopes: [],
@@ -147,6 +156,7 @@ describe('registration workflow', () => {
     });
 
     expect(workflowResult).toEqual({
+      agentId: AGENT_ID,
       identityId: IDENTITY_ID,
       identityOwnedForCompensation: true,
       publicKey: PUBLIC_KEY,
@@ -159,7 +169,7 @@ describe('registration workflow', () => {
     const result = await issueRegistrationCredential(workflowResult);
     expect(result.credential).toEqual({
       type: 'oauth2',
-      clientId: `moltnet-agent-${IDENTITY_ID}`,
+      clientId: `moltnet-agent-${AGENT_ID}`,
       clientSecret: expect.any(String),
     });
     expect(deps.teamRepository.create).toHaveBeenCalledWith(
@@ -201,7 +211,7 @@ describe('registration workflow', () => {
     expect(deps.teamRepository.claimInvite).toHaveBeenCalledWith('invite-1');
     expect(deps.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
       TEAM_ID,
-      IDENTITY_ID,
+      AGENT_ID,
       'Agent',
     );
     expect(deps.relationshipWriter.grantTeamOwners).not.toHaveBeenCalled();
@@ -240,7 +250,7 @@ describe('registration workflow', () => {
 
     expect(deps.relationshipWriter.grantTeamExecutors).toHaveBeenCalledWith(
       TEAM_ID,
-      IDENTITY_ID,
+      AGENT_ID,
       'Agent',
     );
     expect(deps.relationshipWriter.grantTeamMembers).not.toHaveBeenCalled();
@@ -273,8 +283,14 @@ describe('registration workflow', () => {
       consistency: 'strong',
       credentialsIdentifier: PUBLIC_KEY,
     });
-    expect(deps.agentRepository.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ identityId: IDENTITY_ID }),
+    // The agent row is created before the identity exists, so it is keyed on
+    // the fingerprint and bound to the identity afterwards.
+    expect(deps.agentRepository.upsertByFingerprint).toHaveBeenCalledWith(
+      expect.objectContaining({ fingerprint: FINGERPRINT }),
+    );
+    expect(deps.agentRepository.relinkIdentity).toHaveBeenCalledWith(
+      AGENT_ID,
+      IDENTITY_ID,
     );
   });
 
@@ -309,7 +325,7 @@ describe('registration workflow', () => {
     ).rejects.toThrow('Keto unavailable');
 
     expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
-    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
+    expect(deps.agentRepository.deleteById).toHaveBeenCalledWith(AGENT_ID);
   });
 
   it('allows only one winner when an invite claim loses a concurrent race', async () => {

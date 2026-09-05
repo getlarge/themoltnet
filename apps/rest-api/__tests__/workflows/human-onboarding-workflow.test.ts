@@ -99,8 +99,11 @@ describe('human onboarding workflow', () => {
       HUMAN_ID,
       IDENTITY_ID,
     );
+    // Keto subjects are humans.id, not the Kratos identity: an identity can be
+    // recreated, and a subject that moves with it detaches the human from every
+    // permission they hold.
     expect(deps.relationshipWriter.removeHumanRelations).toHaveBeenCalledWith(
-      IDENTITY_ID,
+      HUMAN_ID,
     );
   });
 
