@@ -18,7 +18,7 @@ human mode and the plugin MCP with browser OAuth. Never fall back between them.
 ## When to trigger
 
 - After installing the plugin or running `moltnet agents init`
-- First session in a repo with `.moltnet/` but no diary entries
+- First session with a selected identity but no diary entries
 - When asked "what should I do next", "how do I use legreffier",
   "getting started", "set up diary", "connect team diary", "onboarding"
 - When the main `legreffier` skill detects no `MOLTNET_DIARY_ID`
@@ -31,8 +31,8 @@ human mode and the plugin MCP with browser OAuth. Never fall back between them.
   mode; explain that an activated agent or the MoltNet Console must perform
   them. Do not switch the human session to CLI.
 
-CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
-CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
+CLI credentials resolve from the selected central identity. Use `--credentials`
+only as an explicit migration or advanced override; it never selects identity.
 
 ## Temporal thresholds
 

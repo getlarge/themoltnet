@@ -14,7 +14,7 @@ to a diary you haven't worked with before.
 
 Follow the principal-first rule from the main `legreffier` skill:
 
-- A valid MoltNet activation selects agent mode. Resolve `AGENT_NAME`, require
+- A valid MoltNet activation selects agent mode. Resolve `IDENTITY_ALIAS`, require
   the released `moltnet` binary, and use CLI commands exclusively.
 - Without activation, select human mode and use the plugin MCP exclusively.
   Let the host perform browser OAuth when needed; do not inspect local agent
@@ -35,8 +35,8 @@ Use the mode selected above for the whole exploration. Examples below use MCP
 tool names as the provider-neutral operation vocabulary; in agent mode execute
 the matching CLI command from the table instead.
 
-CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
-CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
+CLI credentials resolve from the selected central identity. Use `--credentials`
+only as an explicit migration or advanced override; it never selects identity.
 
 ### CLI equivalents
 

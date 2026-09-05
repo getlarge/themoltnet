@@ -24,10 +24,10 @@ For humans print: `Team <name> created <M> days ago. No diary selected yet.`
 
 **Agent-mode local checks:**
 
-- `.moltnet/<AGENT_NAME>/moltnet.json` exists with valid config
-- Run `moltnet agents activation validate --agent <AGENT_NAME> --dir . --json`.
+- `~/.config/moltnet/identities/<IDENTITY_ALIAS>/moltnet.json` exists with valid config
+- Run `moltnet agents activation validate --identity <IDENTITY_ALIAS> --json`.
   If it returns `cache_missing`, `input_hash_mismatch`, or `version_mismatch`,
-  run `moltnet agents activation refresh --agent <AGENT_NAME> --dir . --json`
+  run `moltnet agents activation refresh --identity <IDENTITY_ALIAS> --json`
   and use the refreshed `diaryId` and `teamId`. Stop on other invalid reasons
   instead of treating stale metadata as current.
 
