@@ -712,7 +712,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       ]);
       if (!agent || identity.state !== 'active') return null;
       return {
-        identityId: agent.identityId,
+        // agent.identityId is nullable since the Kratos decoupling, but this
+        // agent was found *by* identityId, so echo the argument rather than
+        // re-narrowing a value we already know is set.
+        identityId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
       };
