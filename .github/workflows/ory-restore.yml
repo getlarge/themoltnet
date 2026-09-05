@@ -85,7 +85,7 @@ jobs:
           echo "project_url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Download backup bundle
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: ory-backup-${{ inputs.source_run_id }}
           run-id: ${{ inputs.source_run_id }}
