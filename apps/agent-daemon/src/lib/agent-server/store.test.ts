@@ -18,6 +18,7 @@ import {
   AgentServerStore,
   AgentServerStoreError,
   assertStoreName,
+  legacyXdgAgentServerRoot,
   resolveAgentServerRoot,
 } from './store.js';
 
@@ -35,12 +36,106 @@ afterEach(() => {
 });
 
 describe('resolveAgentServerRoot', () => {
-  it('prefers the explicit root, then XDG, then ~/.config', () => {
+  it('uses the explicit root, else ~/.config/moltnet', () => {
     expect(resolveAgentServerRoot({ root: '/explicit' })).toBe('/explicit');
-    expect(resolveAgentServerRoot({ xdgConfigHome: '/xdg' })).toBe(
-      '/xdg/moltnet',
-    );
     expect(resolveAgentServerRoot({})).toMatch(/\.config\/moltnet$/);
+  });
+
+  it('still reports the legacy XDG root so it can be adopted', () => {
+    expect(legacyXdgAgentServerRoot('/xdg')).toBe(join('/xdg', 'moltnet'));
+    expect(legacyXdgAgentServerRoot('')).toBeNull();
+  });
+
+  // The parameter is gone entirely rather than ignored, so XDG cannot reach
+  // root resolution at all — a structural guarantee, not a runtime assertion.
+  it('takes no XDG input', () => {
+    expect(resolveAgentServerRoot({})).toMatch(/\.config\/moltnet$/);
+  });
+});
+
+describe('legacy layout migration', () => {
+  function stagedRoots(): { legacy: string; current: string } {
+    const base = mkdtempSync(join(tmpdir(), 'agent-server-migrate-'));
+    roots.push(base);
+    return {
+      legacy: join(base, 'xdg', 'moltnet'),
+      current: join(base, 'home'),
+    };
+  }
+
+  it('adopts state left at the pre-1834 XDG root', () => {
+    const { legacy, current } = stagedRoots();
+    mkdirSync(join(legacy, 'identities', 'alpha'), { recursive: true });
+    writeFileSync(
+      join(legacy, 'identities', 'alpha', 'moltnet.json'),
+      JSON.stringify({ identity_id: 'a' }),
+    );
+    const store = new AgentServerStore(current).ensure({
+      legacyXdgConfigHome: join(legacy, '..'),
+    });
+
+    // Aligning the root without adopting would leave an upgraded daemon
+    // reporting zero managed agents while its state sat untouched elsewhere.
+    expect(store.readAgentConfig('alpha')).toMatchObject({ identity_id: 'a' });
+    expect(existsSync(legacy)).toBe(false);
+  });
+
+  it('refuses to guess when both roots hold state', () => {
+    const { legacy, current } = stagedRoots();
+    for (const root of [legacy, current]) {
+      mkdirSync(join(root, 'identities', 'alpha'), { recursive: true });
+      writeFileSync(
+        join(root, 'identities', 'alpha', 'moltnet.json'),
+        JSON.stringify({ identity_id: root }),
+      );
+    }
+    expect(() =>
+      new AgentServerStore(current).ensure({
+        legacyXdgConfigHome: join(legacy, '..'),
+      }),
+    ).toThrow(/state exists at both/);
+  });
+
+  it('migrates agents/<alias>.json to identities/<alias>/moltnet.json', () => {
+    const base = mkdtempSync(join(tmpdir(), 'agent-server-agents-'));
+    roots.push(base);
+    const root = join(base, 'moltnet');
+    mkdirSync(join(root, 'agents'), { recursive: true });
+    writeFileSync(
+      join(root, 'agents', 'alpha.json'),
+      JSON.stringify({ identity_id: 'alpha-id' }),
+    );
+
+    const store = new AgentServerStore(root).ensure();
+
+    expect(store.readAgentConfig('alpha')).toMatchObject({
+      identity_id: 'alpha-id',
+    });
+    expect(existsSync(join(root, 'agents', 'alpha.json'))).toBe(false);
+  });
+
+  it('never clobbers an existing managed document', () => {
+    const base = mkdtempSync(join(tmpdir(), 'agent-server-agents-'));
+    roots.push(base);
+    const root = join(base, 'moltnet');
+    mkdirSync(join(root, 'agents'), { recursive: true });
+    writeFileSync(
+      join(root, 'agents', 'alpha.json'),
+      JSON.stringify({ identity_id: 'stale' }),
+    );
+    mkdirSync(join(root, 'identities', 'alpha'), { recursive: true });
+    writeFileSync(
+      join(root, 'identities', 'alpha', 'moltnet.json'),
+      JSON.stringify({ identity_id: 'authoritative' }),
+    );
+
+    const store = new AgentServerStore(root).ensure();
+
+    expect(store.readAgentConfig('alpha')).toMatchObject({
+      identity_id: 'authoritative',
+    });
+    // Left in place for inspection rather than silently discarded.
+    expect(existsSync(join(root, 'agents', 'alpha.json'))).toBe(true);
   });
 });
 

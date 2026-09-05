@@ -76,15 +76,49 @@ export class AgentServerStoreError extends Error {
   }
 }
 
-/** `MOLTNET_AGENT_SERVER_ROOT` override, else `$XDG_CONFIG_HOME/moltnet`, else `~/.config/moltnet`. */
+/**
+ * `MOLTNET_AGENT_SERVER_ROOT` override, else `~/.config/moltnet`.
+ *
+ * Deliberately does NOT consult `XDG_CONFIG_HOME`. The Go CLI's GetConfigDir
+ * and @moltnet/agent-config's getConfigDir both resolve `~/.config/moltnet`,
+ * so honouring XDG here gave one application two config roots: on a machine
+ * with the variable set, the daemon wrote identities the CLI and SDK could not
+ * read. `MOLTNET_AGENT_SERVER_ROOT` remains the explicit escape hatch for a
+ * genuinely custom location. `xdgConfigHome` is still accepted so callers can
+ * report a legacy root; see adoptLegacyXdgRoot.
+ */
 export function resolveAgentServerRoot(input: {
   root?: string;
   xdgConfigHome?: string;
 }): string {
   const override = input.root?.trim();
   if (override) return override;
-  const xdg = input.xdgConfigHome?.trim();
-  return join(xdg || join(homedir(), '.config'), 'moltnet');
+  return join(homedir(), '.config', 'moltnet');
+}
+
+/** The pre-#1834 root that honoured XDG_CONFIG_HOME, if it differs. */
+export function legacyXdgAgentServerRoot(xdgConfigHome: string): string | null {
+  const xdg = xdgConfigHome.trim();
+  if (!xdg) return null;
+  const legacy = join(xdg, 'moltnet');
+  return legacy === resolveAgentServerRoot({}) ? null : legacy;
+}
+
+/** True when a root holds agent-server state worth preserving. */
+function hasAgentServerState(root: string): boolean {
+  for (const child of ['agent-server.json', 'identities', 'agents']) {
+    try {
+      if (readdirSync(join(root, child)).length > 0) return true;
+    } catch {
+      try {
+        readFileSync(join(root, child));
+        return true;
+      } catch {
+        // absent
+      }
+    }
+  }
+  return false;
 }
 
 export interface AgentServerState {
@@ -250,7 +284,8 @@ export class AgentServerStore {
   }
 
   /** Create the directory layout (0700) if missing. Idempotent. */
-  ensure(): this {
+  ensure(options: { legacyXdgConfigHome?: string } = {}): this {
+    this.adoptLegacyXdgRoot(options.legacyXdgConfigHome ?? '');
     for (const dir of [
       this.root,
       this.identitiesDir,
@@ -259,7 +294,77 @@ export class AgentServerStore {
     ]) {
       mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
+    this.migrateLegacyAgentDocuments();
     return this;
+  }
+
+  /**
+   * Adopt state left at the pre-#1834 XDG root.
+   *
+   * The daemon used to resolve `$XDG_CONFIG_HOME/moltnet` while the CLI and SDK
+   * resolved `~/.config/moltnet`. Aligning the root without this would silently
+   * orphan an existing daemon's entire state — it would come up reporting zero
+   * managed agents.
+   */
+  private adoptLegacyXdgRoot(xdgConfigHome: string): void {
+    const legacyRoot = legacyXdgAgentServerRoot(xdgConfigHome);
+    if (!legacyRoot || legacyRoot === this.root) return;
+    if (!hasAgentServerState(legacyRoot)) return;
+
+    if (hasAgentServerState(this.root)) {
+      throw new AgentServerStoreError(
+        'invalid_state',
+        `agent server state exists at both ${legacyRoot} (the pre-1834 ` +
+          `XDG_CONFIG_HOME location) and ${this.root}. The daemon now shares ` +
+          `${this.root} with the CLI and SDK. Merge or remove one of them, or ` +
+          `set MOLTNET_AGENT_SERVER_ROOT to choose explicitly.`,
+      );
+    }
+
+    mkdirSync(resolve(this.root, '..'), { recursive: true, mode: 0o700 });
+    renameSync(legacyRoot, this.root);
+  }
+
+  /**
+   * Migrate managed documents from the pre-#1834 `agents/<alias>.json` layout
+   * to `identities/<alias>/moltnet.json`. Without this an upgraded daemon sees
+   * zero managed agents and reports a plain "not found".
+   */
+  private migrateLegacyAgentDocuments(): void {
+    const legacyDir = join(this.root, 'agents');
+    let entries: string[];
+    try {
+      entries = readdirSync(legacyDir);
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith('.json')) continue;
+      const alias = entry.slice(0, -'.json'.length);
+      if (!NAME_RE.test(alias)) continue;
+
+      const legacyPath = join(legacyDir, entry);
+      const target = this.agentPath(alias);
+      const existing = readJson<MoltNetConfig>(target);
+      if (existing) {
+        // Already migrated (or a genuine conflict). Never clobber the
+        // authoritative document; leave the legacy file for inspection.
+        continue;
+      }
+      const config = readJson<MoltNetConfig>(legacyPath);
+      if (!config) continue;
+      mkdirSync(join(this.identitiesDir, alias), {
+        recursive: true,
+        mode: 0o700,
+      });
+      writeJsonAtomic(target, config);
+      rmSync(legacyPath, { force: true });
+    }
+
+    if (readdirSync(legacyDir).length === 0) {
+      rmSync(legacyDir, { recursive: true, force: true });
+    }
   }
 
   // ── agent-server.json ─────────────────────────────────────────────────────────
