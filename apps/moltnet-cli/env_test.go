@@ -503,7 +503,6 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 
 	err := runStartCmdWithRegistryAndExec(
 		NewRootCmd("test", ""),
-		"",
 		"test-agent",
 		"echo",
 		[]string{"hello"},

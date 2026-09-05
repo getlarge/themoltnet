@@ -53,16 +53,24 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	result := map[string]interface{}{"alias": alias, "source": path, "destination": target, "changed": !regularFileExists(target)}
-	if dryRun {
-		return result, nil
-	}
-	if existing, err := ReadConfigFrom(target); err != nil {
+	// The conflict check runs before the dry-run return: a dry run that reports
+	// success for a migration which will hard-fail on the real run is worse
+	// than no dry run at all.
+	existing, err := ReadConfigFrom(target)
+	if err != nil {
 		return nil, err
-	} else if existing != nil {
+	}
+	if existing != nil {
 		if existing.IdentityID != creds.IdentityID || existing.Keys.PublicKey != creds.Keys.PublicKey {
 			return nil, fmt.Errorf("central identity %q already exists with different immutable identity fields", alias)
 		}
 		return result, nil
+	}
+	if dryRun {
+		return result, nil
+	}
+	if err := assertPublishableIdentityDir(filepath.Dir(target), alias); err != nil {
+		return nil, err
 	}
 	identitiesDir := filepath.Dir(filepath.Dir(target))
 	if err := os.MkdirAll(identitiesDir, 0o700); err != nil {
@@ -121,7 +129,10 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	if err := os.Rename(stagingDir, filepath.Dir(target)); err != nil {
-		return nil, fmt.Errorf("publish central identity: %w", err)
+		return nil, fmt.Errorf(
+			"publish central identity %q to %s: %w",
+			alias, filepath.Dir(target), err,
+		)
 	}
 	if selector, err := readIdentitySelector(); err != nil {
 		return nil, err
@@ -131,6 +142,34 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		}
 	}
 	return result, nil
+}
+
+// assertPublishableIdentityDir rejects a target directory that exists but holds
+// no moltnet.json — the residue of an earlier run that failed after creating
+// the directory. os.Rename onto it fails with a bare ENOTEMPTY that names
+// neither the cause nor the remedy, leaving the alias permanently unmigratable.
+func assertPublishableIdentityDir(dir, alias string) error {
+	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("inspect central identity directory %s: %w", dir, err)
+	}
+	if len(entries) == 0 {
+		return os.Remove(dir)
+	}
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	return fmt.Errorf(
+		"central identity directory %s already exists without %s "+
+			"(contains: %s); it is likely the residue of an interrupted "+
+			"migration — inspect it and remove it before retrying "+
+			"'moltnet config migrate --credentials <path> --name %s'",
+		dir, identityConfigFileName, strings.Join(names, ", "), alias,
+	)
 }
 
 // rewriteStagedIdentityPaths keeps a staged migration atomic while ensuring

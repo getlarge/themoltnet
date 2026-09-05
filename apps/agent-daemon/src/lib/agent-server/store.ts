@@ -32,7 +32,12 @@ import type { MoltNetConfig } from '@themoltnet/sdk';
 export const AGENT_SERVER_STATE_VERSION = 1;
 export const IDENTITY_SELECTOR_VERSION = 1;
 
-const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+// Must stay identical to the Go CLI's agentNamePattern (agents_init.go) and to
+// identityAliasPattern in @moltnet/agent-config: an alias is a directory name in
+// a store all three write. The previous grammar rejected `.` and allowed 64
+// characters, so a CLI-created `agent.v2` was unreadable by the daemon and a
+// 64-character daemon alias was rejected by the CLI.
+const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
 const PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function assertStoreName(kind: string, value: string): string {
@@ -240,11 +245,6 @@ export class AgentServerStore {
     this.piDir = join(root, 'pi');
   }
 
-  /** @deprecated Use identitiesDir. Kept source-compatible for adapters. */
-  get agentsDir(): string {
-    return this.identitiesDir;
-  }
-
   get piAuthJsonPath(): string {
     return join(this.piDir, 'auth.json');
   }
@@ -402,6 +402,24 @@ export class AgentServerStore {
 
   removeAgentConfig(alias: string): void {
     rmSync(this.agentPath(alias), { force: true });
+    // Leaving the selector pointing at a removed alias makes resolution
+    // succeed on a dangling identity and surface as a generic "not found";
+    // the next writeAgentConfig would also decline to claim the default.
+    this.clearIdentitySelectorIfDefault(alias);
+  }
+
+  /** Clears the persisted default when it names `alias`. */
+  private clearIdentitySelectorIfDefault(alias: string): void {
+    let selector: IdentitySelector | null = null;
+    try {
+      selector = this.readIdentitySelector();
+    } catch {
+      return;
+    }
+    if (!selector || selector.default_identity !== alias) return;
+    writeJsonAtomic(this.identitySelectorPath, {
+      version: IDENTITY_SELECTOR_VERSION,
+    } satisfies IdentitySelector);
   }
 
   readActivation(alias: string): AgentActivation | null {

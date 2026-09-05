@@ -69,8 +69,13 @@ func newSecretGuardPathContext(cwd, currentRoot, mainRoot string) secretGuardPat
 }
 
 func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
-	_, active, err := currentMoltnetGitConfigPath()
-	if !active {
+	// Deliberately uses the activation signal directly rather than
+	// currentMoltnetGitConfigPath: credential material is worth protecting
+	// whether or not the active identity has a gitconfig yet. Identities
+	// created by `moltnet register` have none, and requiring one here denied
+	// every tool call in such a session.
+	activation, err := currentMoltnetActivation()
+	if !activation.Active {
 		return nil
 	}
 	if err != nil {
@@ -370,10 +375,8 @@ func classifyProtectedPathWithContext(value string, pathContext secretGuardPathC
 	// legacy .moltnet bundles, an absolute central identity path must therefore
 	// be protected even when the hook is running from an unrelated checkout.
 	normalized := normalizePolicyPath(value)
-	if strings.Contains(normalized, ".config/moltnet/identities/") {
-		if class := classifyCredentialPath(normalized); class != pathNone {
-			return class
-		}
+	if class := classifyCentralStorePath(normalized); class != pathNone {
+		return class
 	}
 	if strings.ContainsAny(value, "*?[") {
 		pattern := value
@@ -393,6 +396,19 @@ func classifyProtectedPathWithContext(value string, pathContext secretGuardPathC
 		absolute = filepath.Join(pathContext.cwd, absolute)
 	}
 	candidates := []string{filepath.Clean(absolute), canonicalizeGuardTarget(absolute)}
+
+	// The central store lives outside every repository root, so the
+	// root-relative loop below can never classify it. The raw-value check
+	// above only sees the spelling the caller typed, which misses
+	// `cd <identity dir> && cat moltnet.json` (argument carries no marker)
+	// and symlink aliases. Re-check the resolved spellings — cwd-joined and
+	// symlink-canonicalized — before falling through.
+	for _, candidate := range candidates {
+		if class := classifyCentralStorePath(normalizePolicyPath(candidate)); class != pathNone {
+			return class
+		}
+	}
+
 	for _, candidate := range candidates {
 		for _, root := range pathContext.roots() {
 			relative, ok := relativePathWithinRoot(root, candidate)
@@ -453,6 +469,33 @@ func relativePathWithinRoot(root, target string) (string, bool) {
 
 func normalizePolicyPath(value string) string {
 	return strings.ToLower(filepath.ToSlash(filepath.Clean(value)))
+}
+
+// classifyCentralStorePath protects the central identity store as a whole.
+// Beyond the per-identity material, the selector and the store root are
+// integrity-sensitive: whoever can write identity-selector.json silently
+// repoints every later credential resolution — signing, GitHub token minting —
+// at a different local identity.
+//
+// value must already be normalized by normalizePolicyPath.
+func classifyCentralStorePath(value string) pathClass {
+	const storeMarker = ".config/moltnet"
+	index := strings.Index(value, storeMarker)
+	if index < 0 {
+		return pathNone
+	}
+	rest := strings.TrimPrefix(value[index+len(storeMarker):], "/")
+	switch {
+	case rest == "":
+		// The store root itself.
+		return pathCredential
+	case rest == identitySelectorFile:
+		return pathCredential
+	case rest == identitiesDirName ||
+		strings.HasPrefix(rest, identitiesDirName+"/"):
+		return classifyCredentialPath(value)
+	}
+	return pathNone
 }
 
 func classifyRepoRelativePath(value string) pathClass {

@@ -29,11 +29,13 @@ Common targets: claude, codex.`,
 				identity = agent
 			}
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
-			return runStartCmd(cmd, "", identity, args[0], args[1:], dryRun)
+			return runStartCmd(cmd, identity, args[0], args[1:], dryRun)
 		},
 	}
 	cmd.Flags().String("identity", "", "Central identity alias (overrides active/default identity)")
 	cmd.Flags().String("agent", "", "Compatibility alias for --identity")
+	_ = cmd.Flags().MarkDeprecated("agent", "use --identity instead")
+	_ = cmd.Flags().MarkHidden("agent")
 	cmd.Flags().Bool("dry-run", false, "Print environment and command without executing")
 	return cmd
 }

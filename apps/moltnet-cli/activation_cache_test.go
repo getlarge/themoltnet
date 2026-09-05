@@ -242,7 +242,7 @@ func TestAgentsActivationValidateHashMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatalf("context: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestAgentsActivationValidateHashMismatch(t *testing.T) {
 func TestAgentsActivationValidateAgentMismatch(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
@@ -277,7 +277,7 @@ func TestAgentsActivationValidateAgentMismatch(t *testing.T) {
 		t.Fatalf("write cache: %v", err)
 	}
 
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatalf("context: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestAgentsActivationValidateAgentMismatch(t *testing.T) {
 func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
@@ -306,7 +306,7 @@ func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 		t.Fatalf("write cache: %v", err)
 	}
 
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatalf("context: %v", err)
 	}
@@ -324,7 +324,7 @@ func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 
 func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	credentialsPath := filepath.Join(dir, ".moltnet", "test-agent", "moltnet.json")
@@ -348,7 +348,7 @@ func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T
 
 func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
@@ -364,7 +364,7 @@ func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -383,14 +383,14 @@ func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 func TestAgentsActivationClear(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
 	if _, err := os.Stat(cachePath); err != nil {
 		t.Fatalf("cache missing before clear: %v", err)
 	}
-	if err := runAgentsActivationClearCmd(io.Discard, dir, "test-agent"); err != nil {
+	if err := runAgentsActivationClearCmd(io.Discard, "test-agent"); err != nil {
 		t.Fatalf("clear: %v", err)
 	}
 	if _, err := os.Stat(cachePath); !os.IsNotExist(err) {
@@ -495,7 +495,7 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	})
 
 	var out bytes.Buffer
-	if err := runAgentsActivationRefreshCmd(&out, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	var result activationValidationResult
@@ -513,9 +513,9 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 		t.Fatal("activation output must not echo secret reference keys")
 	}
 
-	legacy := setupActivationCacheFixture(t)
+	setupActivationCacheFixture(t)
 	out.Reset()
-	if err := runAgentsActivationRefreshCmd(&out, legacy, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
 		t.Fatalf("refresh legacy: %v", err)
 	}
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
@@ -529,7 +529,7 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 
 func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
@@ -542,7 +542,7 @@ func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
 	if err := writeActivationCache(cachePath, cache); err != nil {
 		t.Fatal(err)
 	}
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -557,7 +557,7 @@ func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
 
 func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
@@ -569,7 +569,7 @@ func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
 	if err := writeActivationCache(cachePath, cache); err != nil {
 		t.Fatal(err)
 	}
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -587,7 +587,7 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.AgentKeyRef = &SecretReference{Provider: "os-keyring", Key: AgentKeyKey("test-agent")}
 	})
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	root := NewRootCmd("test", "")

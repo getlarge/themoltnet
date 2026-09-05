@@ -91,18 +91,7 @@ func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) 
 	return printActivationValidationResult(w, result, jsonOut)
 }
 
-func runAgentsActivationRefreshCmd(w io.Writer, identity string, args ...any) error {
-	jsonOut, err := activationJSONOutput(args)
-	if err != nil {
-		return err
-	}
-	if len(args) == 2 {
-		legacyIdentity, ok := args[0].(string)
-		if !ok {
-			return fmt.Errorf("invalid activation identity")
-		}
-		identity = legacyIdentity
-	}
+func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) error {
 	ctx, err := resolveActivationContext(identity)
 	if err != nil {
 		return err
@@ -118,10 +107,7 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, args ...any) er
 	return printActivationValidationResult(w, &result, jsonOut)
 }
 
-func runAgentsActivationClearCmd(w io.Writer, identity string, ignoredLegacySelector ...string) error {
-	if len(ignoredLegacySelector) > 0 {
-		identity = ignoredLegacySelector[len(ignoredLegacySelector)-1]
-	}
+func runAgentsActivationClearCmd(w io.Writer, identity string) error {
 	ctx, err := resolveActivationContext(identity)
 	if err != nil {
 		return err
@@ -133,10 +119,7 @@ func runAgentsActivationClearCmd(w io.Writer, identity string, ignoredLegacySele
 	return nil
 }
 
-func resolveActivationContext(identity string, ignoredLegacySelector ...string) (*activationContext, error) {
-	if len(ignoredLegacySelector) > 0 {
-		identity = ignoredLegacySelector[len(ignoredLegacySelector)-1]
-	}
+func resolveActivationContext(identity string) (*activationContext, error) {
 	agentName, err := resolveIdentityAlias(identity)
 	if err != nil {
 		return nil, err
@@ -161,25 +144,6 @@ func resolveActivationContext(identity string, ignoredLegacySelector ...string) 
 		EnvVars:   envVars,
 		CachePath: filepath.Join(agentDir, "activation-cache.json"),
 	}, nil
-}
-
-func activationJSONOutput(args []any) (bool, error) {
-	switch len(args) {
-	case 1:
-		jsonOut, ok := args[0].(bool)
-		if !ok {
-			return false, fmt.Errorf("invalid activation JSON option")
-		}
-		return jsonOut, nil
-	case 2:
-		jsonOut, ok := args[1].(bool)
-		if !ok {
-			return false, fmt.Errorf("invalid activation JSON option")
-		}
-		return jsonOut, nil
-	default:
-		return false, fmt.Errorf("invalid activation options")
-	}
 }
 
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {

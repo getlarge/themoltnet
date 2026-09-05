@@ -10,7 +10,7 @@ func newUseCmd() *cobra.Command {
   moltnet use my-agent`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUseCmd(cmd, "", args[0])
+			return runUseCmd(cmd, args[0])
 		},
 	}
 	return cmd

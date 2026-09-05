@@ -12,18 +12,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool) error {
-	return runStartCmdWithRegistry(cmd, dir, agentFlag, target, targetArgs, dryRun, NewSecretProviderRegistry())
+func runStartCmd(cmd *cobra.Command, agentFlag, target string, targetArgs []string, dryRun bool) error {
+	return runStartCmdWithRegistry(cmd, agentFlag, target, targetArgs, dryRun, NewSecretProviderRegistry())
 }
 
-func runStartCmdWithRegistry(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry) error {
-	return runStartCmdWithRegistryAndExec(cmd, dir, agentFlag, target, targetArgs, dryRun, registry, launchProcess)
+func runStartCmdWithRegistry(cmd *cobra.Command, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry) error {
+	return runStartCmdWithRegistryAndExec(cmd, agentFlag, target, targetArgs, dryRun, registry, launchProcess)
 }
 
 type execProcess func(targetPath string, argv, env []string) error
 
-func runStartCmdWithRegistryAndExec(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry, execFn execProcess) error {
-	_ = dir
+func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry, execFn execProcess) error {
 	agentName, err := resolveIdentityAlias(agentFlag)
 	if err != nil {
 		return err

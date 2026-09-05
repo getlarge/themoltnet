@@ -84,11 +84,25 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 		if pathErr != nil {
 			return pathErr
 		}
-		if migrated, migrateErr := migrateLegacyIdentityStore(credentialsPath, name, dryRun); migrateErr != nil || migrated != nil {
-			if migrateErr != nil {
-				return migrateErr
+		migrated, migrateErr := migrateLegacyIdentityStore(credentialsPath, name, dryRun)
+		if migrateErr != nil {
+			return migrateErr
+		}
+		if migrated != nil {
+			if err := printJSONTo(w, migrated); err != nil {
+				return err
 			}
-			return printJSONTo(w, migrated)
+			// Relocation and secret hardening are orthogonal, and an operator
+			// following the documented upgrade path wants both. Returning here
+			// silently skipped the plaintext->keyring migration, leaving the
+			// legacy client_secret and seed copied verbatim into the new
+			// location. Continue against the relocated document instead.
+			if dryRun {
+				return nil
+			}
+			if destPath, ok := migrated["destination"].(string); ok && destPath != "" {
+				credPath = destPath
+			}
 		}
 	}
 	return runConfigMigrateCmdWithRegistry(
@@ -109,7 +123,6 @@ func runConfigMigrateCmdWithRegistry(
 	dryRun bool,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
-	names ...string,
 ) error {
 	if dryRun && (generatePath != "" || runPath != "") {
 		return fmt.Errorf("--dry-run cannot be combined with --generate or --run")
