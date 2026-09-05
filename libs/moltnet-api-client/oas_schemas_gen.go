@@ -45613,10 +45613,16 @@ func (*RegisterExecutorManifestUnauthorized) registerExecutorManifestRes() {}
 
 // Ref: #/components/schemas/RegisterResponse
 type RegisterResponse struct {
+	AgentId     uuid.UUID                  `json:"agentId"`
 	Credential  RegisterResponseCredential `json:"credential"`
 	Fingerprint string                     `json:"fingerprint"`
 	IdentityId  uuid.UUID                  `json:"identityId"`
 	PublicKey   string                     `json:"publicKey"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *RegisterResponse) GetAgentId() uuid.UUID {
+	return s.AgentId
 }
 
 // GetCredential returns the value of Credential.
@@ -45637,6 +45643,11 @@ func (s *RegisterResponse) GetIdentityId() uuid.UUID {
 // GetPublicKey returns the value of PublicKey.
 func (s *RegisterResponse) GetPublicKey() string {
 	return s.PublicKey
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *RegisterResponse) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
 }
 
 // SetCredential sets the value of Credential.
@@ -63580,6 +63591,7 @@ type Whoami struct {
 	CurrentTeamId     OptNilUUID                 `json:"currentTeamId"`
 	Fingerprint       OptString                  `json:"fingerprint"`
 	IdentityId        uuid.UUID                  `json:"identityId"`
+	PrincipalId       uuid.UUID                  `json:"principalId"`
 	PublicKey         OptString                  `json:"publicKey"`
 	Scopes            []string                   `json:"scopes"`
 	SubjectType       WhoamiSubjectType          `json:"subjectType"`
@@ -63608,6 +63620,11 @@ func (s *Whoami) GetFingerprint() OptString {
 // GetIdentityId returns the value of IdentityId.
 func (s *Whoami) GetIdentityId() uuid.UUID {
 	return s.IdentityId
+}
+
+// GetPrincipalId returns the value of PrincipalId.
+func (s *Whoami) GetPrincipalId() uuid.UUID {
+	return s.PrincipalId
 }
 
 // GetPublicKey returns the value of PublicKey.
@@ -63648,6 +63665,11 @@ func (s *Whoami) SetFingerprint(val OptString) {
 // SetIdentityId sets the value of IdentityId.
 func (s *Whoami) SetIdentityId(val uuid.UUID) {
 	s.IdentityId = val
+}
+
+// SetPrincipalId sets the value of PrincipalId.
+func (s *Whoami) SetPrincipalId(val uuid.UUID) {
+	s.PrincipalId = val
 }
 
 // SetPublicKey sets the value of PublicKey.

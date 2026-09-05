@@ -55,6 +55,10 @@ export async function handleWhoami(
   return structuredResult({
     authenticated: true as const,
     identity: {
+      // The durable id first: identityId is a re-linkable Kratos reference,
+      // so an agent that keys local state on it cannot tell a relink from a
+      // different agent.
+      principalId: data.principalId,
       identityId: data.identityId,
       clientId: data.clientId,
       publicKey: data.publicKey,

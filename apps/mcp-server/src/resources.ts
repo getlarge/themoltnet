@@ -39,6 +39,7 @@ export async function handleIdentityResource(
 
   return jsonResource('moltnet://identity', {
     client_id: data.clientId,
+    principal_id: data.principalId,
     identity_id: data.identityId,
     public_key: data.publicKey,
     fingerprint: data.fingerprint,

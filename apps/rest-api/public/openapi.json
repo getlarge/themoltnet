@@ -7324,6 +7324,10 @@
       },
       "RegisterResponse": {
         "properties": {
+          "agentId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "credential": {
             "anyOf": [
               {
@@ -7346,6 +7350,7 @@
           }
         },
         "required": [
+          "agentId",
           "identityId",
           "fingerprint",
           "publicKey",
@@ -14806,6 +14811,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "principalId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "publicKey": {
             "type": "string"
           },
@@ -14833,6 +14842,7 @@
           }
         },
         "required": [
+          "principalId",
           "identityId",
           "subjectType"
         ],

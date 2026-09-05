@@ -97,6 +97,18 @@ export async function agentRoutes(fastify: FastifyInstance) {
         );
       }
 
+      // `signing_requests.agent_id` still stores a Kratos identity, not
+      // `agents.id`: the column carries no foreign key, so migration 0041's
+      // FK-driven rewrite never reached it, and the actor there may be a human
+      // as well as an agent. Retargeting it needs its own migration.
+      //
+      // Until then, an agent with no live identity can own no signing request.
+      // Say so explicitly rather than letting `null !== <uuid>` decide it as a
+      // side effect of identityId having become nullable.
+      if (!agent.identityId) {
+        return { valid: false };
+      }
+
       const signingRequest =
         await fastify.signingRequestRepository.findBySignature(signature);
       if (!signingRequest || signingRequest.agentId !== agent.identityId) {
@@ -155,6 +167,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
       if (authContext.subjectType === 'human') {
         request.log.debug({ subjectType: 'human' }, 'whoami resolved');
         return {
+          principalId: authContext.humanId,
           identityId: authContext.identityId,
           subjectType: 'human' as const,
           currentTeamId: authContext.currentTeamId,
@@ -162,9 +175,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
         };
       }
 
-      const agent = await fastify.agentRepository.findByIdentityId(
-        authContext.identityId,
-      );
+      // Resolve by the internal id: identityId is nullable since the
+      // decoupling, so an agent whose Kratos identity was re-linked must still
+      // resolve to the row its foreign keys point at.
+      const agent = await fastify.agentRepository.findById(authContext.agentId);
 
       if (!agent) {
         throw createProblem('not-found', 'Agent profile not found');
@@ -183,7 +197,11 @@ export async function agentRoutes(fastify: FastifyInstance) {
       );
 
       return {
-        identityId: agent.identityId,
+        principalId: agent.id,
+        // The identity this request authenticated as, not `agent.identityId`:
+        // the caller asked who it is right now, and the auth context is the
+        // only source that cannot be null here.
+        identityId: authContext.identityId,
         subjectType: 'agent' as const,
         currentTeamId: authContext.currentTeamId,
         scopes: authContext.scopes,
