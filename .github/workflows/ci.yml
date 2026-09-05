@@ -872,11 +872,17 @@ jobs:
                 'Detected drift:',
                 message,
                 '',
+                `[**Open a go.mod sync PR**](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/sync-cli-go-mod.yml) \u2014 run it with blank inputs to pin the versions listed above.`,
+                '',
+                '<details><summary>Or fix locally</summary>',
+                '',
                 'Run these commands from `apps/moltnet-cli`:',
                 '',
                 '```bash',
                 commands,
                 '```',
+                '',
+                '</details>',
               ].join('\n');
             } else {
               body = [
