@@ -66,11 +66,44 @@ func newConfigMigrationEngine(migrations []configMigration, destination string) 
 	}
 }
 
-func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destination string, dryRun bool) error {
+func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destination string, dryRun bool, names ...string) error {
+	name := ""
+	if len(names) > 0 {
+		name = names[0]
+	}
 	registry := NewSecretProviderRegistry()
 	destination, err := validateMigrationDestination(registry, destination)
 	if err != nil {
 		return err
+	}
+	// Store migration is deliberately opt-in through an explicit path. Its alias
+	// is inferred from .moltnet/<alias>/moltnet.json when possible; --name is
+	// only needed for a credentials document outside that legacy layout.
+	if strings.TrimSpace(credPath) != "" && destination == defaultMigrationDestination && generatePath == "" && runPath == "" {
+		credentialsPath, pathErr := absolutePath(credPath)
+		if pathErr != nil {
+			return pathErr
+		}
+		migrated, migrateErr := migrateLegacyIdentityStore(credentialsPath, name, dryRun)
+		if migrateErr != nil {
+			return migrateErr
+		}
+		if migrated != nil {
+			if err := printJSONTo(w, migrated); err != nil {
+				return err
+			}
+			// Relocation and secret hardening are orthogonal, and an operator
+			// following the documented upgrade path wants both. Returning here
+			// silently skipped the plaintext->keyring migration, leaving the
+			// legacy client_secret and seed copied verbatim into the new
+			// location. Continue against the relocated document instead.
+			if dryRun {
+				return nil
+			}
+			if destPath, ok := migrated["destination"].(string); ok && destPath != "" {
+				credPath = destPath
+			}
+		}
 	}
 	return runConfigMigrateCmdWithRegistry(
 		w,

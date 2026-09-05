@@ -168,7 +168,19 @@ func DoRegister(apiURL, credentialType, enrollmentToken string) (*RegisterResult
 }
 
 func runRegisterCmd(apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool) error {
+	return runRegisterCmdWithName(apiURL, credentialType, enrollmentToken, jsonOut, noMCP, "default")
+}
+
+func runRegisterCmdWithName(apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool, name string) error {
 	url := strings.TrimRight(apiURL, "/")
+	if !jsonOut {
+		if strings.TrimSpace(name) == "" {
+			return fmt.Errorf("--name is required unless --json is used")
+		}
+		if err := validateAgentName(name); err != nil {
+			return err
+		}
+	}
 	if credentialType == credentialTypeAgentKey && !jsonOut {
 		return fmt.Errorf("agent_key bootstrap credentials are one-time secrets; use --json and store the result securely")
 	}
@@ -201,7 +213,7 @@ func runRegisterCmd(apiURL, credentialType, enrollmentToken string, jsonOut, noM
 	if err := (OSKeyringSecretProvider{}).Set(secretRef.Key, credential.ClientSecret); err != nil {
 		return fmt.Errorf("store OAuth2 secret in the OS keyring: %w", err)
 	}
-	credPath, err := WriteConfig(&CredentialsFile{
+	credPath, err := writeCentralIdentityConfig(name, &CredentialsFile{
 		IdentityID:   result.Response.IdentityID,
 		OAuth2:       CredentialsOAuth2{ClientID: credential.ClientID, ClientSecretRef: &secretRef},
 		Keys:         CredentialsKeys{PublicKey: result.KeyPair.PublicKey, PrivateKey: result.KeyPair.PrivateKey, Fingerprint: result.KeyPair.Fingerprint},

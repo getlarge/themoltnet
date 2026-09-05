@@ -30,7 +30,7 @@ type pathClass int
 
 const (
 	pathNone          pathClass = iota
-	pathCredential              // .moltnet/<agent>/moltnet.json, env, pem, …
+	pathCredential              // central identity or legacy bundle secret material
 	pathManagedConfig           // .claude/settings.json, .codex/hooks.json, …
 )
 
@@ -69,8 +69,13 @@ func newSecretGuardPathContext(cwd, currentRoot, mainRoot string) secretGuardPat
 }
 
 func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
-	_, active, err := currentMoltnetGitConfigPath()
-	if !active {
+	// Deliberately uses the activation signal directly rather than
+	// currentMoltnetGitConfigPath: credential material is worth protecting
+	// whether or not the active identity has a gitconfig yet. Identities
+	// created by `moltnet register` have none, and requiring one here denied
+	// every tool call in such a session.
+	activation, err := currentMoltnetActivation()
+	if !activation.Active {
 		return nil
 	}
 	if err != nil {
@@ -366,6 +371,13 @@ func classifyProtectedPathWithContext(value string, pathContext secretGuardPathC
 	if class := classifySecretRootPath(value, pathContext.cwd, os.LookupEnv); class != pathNone {
 		return class
 	}
+	// Central identities are deliberately independent of a repository. Unlike
+	// legacy .moltnet bundles, an absolute central identity path must therefore
+	// be protected even when the hook is running from an unrelated checkout.
+	normalized := normalizePolicyPath(value)
+	if class := classifyCentralStorePath(normalized); class != pathNone {
+		return class
+	}
 	if strings.ContainsAny(value, "*?[") {
 		pattern := value
 		if !filepath.IsAbs(pattern) {
@@ -384,6 +396,19 @@ func classifyProtectedPathWithContext(value string, pathContext secretGuardPathC
 		absolute = filepath.Join(pathContext.cwd, absolute)
 	}
 	candidates := []string{filepath.Clean(absolute), canonicalizeGuardTarget(absolute)}
+
+	// The central store lives outside every repository root, so the
+	// root-relative loop below can never classify it. The raw-value check
+	// above only sees the spelling the caller typed, which misses
+	// `cd <identity dir> && cat moltnet.json` (argument carries no marker)
+	// and symlink aliases. Re-check the resolved spellings — cwd-joined and
+	// symlink-canonicalized — before falling through.
+	for _, candidate := range candidates {
+		if class := classifyCentralStorePath(normalizePolicyPath(candidate)); class != pathNone {
+			return class
+		}
+	}
+
 	for _, candidate := range candidates {
 		for _, root := range pathContext.roots() {
 			relative, ok := relativePathWithinRoot(root, candidate)
@@ -446,6 +471,33 @@ func normalizePolicyPath(value string) string {
 	return strings.ToLower(filepath.ToSlash(filepath.Clean(value)))
 }
 
+// classifyCentralStorePath protects the central identity store as a whole.
+// Beyond the per-identity material, the selector and the store root are
+// integrity-sensitive: whoever can write identity-selector.json silently
+// repoints every later credential resolution — signing, GitHub token minting —
+// at a different local identity.
+//
+// value must already be normalized by normalizePolicyPath.
+func classifyCentralStorePath(value string) pathClass {
+	const storeMarker = ".config/moltnet"
+	index := strings.Index(value, storeMarker)
+	if index < 0 {
+		return pathNone
+	}
+	rest := strings.TrimPrefix(value[index+len(storeMarker):], "/")
+	switch {
+	case rest == "":
+		// The store root itself.
+		return pathCredential
+	case rest == identitySelectorFile:
+		return pathCredential
+	case rest == identitiesDirName ||
+		strings.HasPrefix(rest, identitiesDirName+"/"):
+		return classifyCredentialPath(value)
+	}
+	return pathNone
+}
+
 func classifyRepoRelativePath(value string) pathClass {
 	value = normalizePolicyPath(value)
 	if value == "." || value == "" {
@@ -472,7 +524,7 @@ func classifyPathLexical(value string) pathClass {
 		return pathNone
 	}
 
-	// Credential paths: .moltnet/<agent>/...
+	// Credential paths: central identities and explicit legacy bundles.
 	if class := classifyCredentialPath(value); class != pathNone {
 		return class
 	}
@@ -560,20 +612,27 @@ func wordExpandsSecretRoot(word *syntax.Word) bool {
 	return found
 }
 
-// classifyCredentialPath checks whether a path is inside .moltnet/ credential
-// material. Returns pathCredential for confidential files, pathNone otherwise.
+// classifyCredentialPath checks legacy repository bundles and central identity
+// directories. Public Git and SSH exports remain readable; all secret-bearing
+// identity material is protected.
 func classifyCredentialPath(value string) pathClass {
 	marker := ".moltnet/"
 	index := strings.Index(value, marker)
-	if index < 0 {
-		if value == ".moltnet" || strings.HasSuffix(value, "/.moltnet") {
-			return pathCredential
+	legacy := index >= 0
+	if !legacy {
+		marker = ".config/moltnet/identities/"
+		index = strings.Index(value, marker)
+		if index < 0 {
+			if value == ".moltnet" || strings.HasSuffix(value, "/.moltnet") ||
+				strings.HasSuffix(value, "/.config/moltnet/identities") {
+				return pathCredential
+			}
+			return pathNone
 		}
-		return pathNone
 	}
 	rel := strings.TrimPrefix(value[index+len(marker):], "/")
 	parts := strings.Split(rel, "/")
-	if len(parts) == 1 && parts[0] == "default-agent" {
+	if legacy && len(parts) == 1 && parts[0] == "default-agent" {
 		return pathNone
 	}
 	if len(parts) < 2 {

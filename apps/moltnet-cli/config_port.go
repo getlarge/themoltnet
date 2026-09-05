@@ -51,8 +51,8 @@ var defaultConfigPortOperations = configPortOperations{
 		return ensureGitHubCredentialConfig(creds.Git.ConfigPath, configPath)
 	},
 	writeEnv: copyPortableAgentEnv,
-	refresh: func(targetRoot, agentName string) error {
-		return runAgentsActivationRefreshCmd(io.Discard, targetRoot, agentName, false)
+	refresh: func(_ string, agentName string) error {
+		return runAgentsActivationRefreshCmd(io.Discard, agentName, false)
 	},
 }
 

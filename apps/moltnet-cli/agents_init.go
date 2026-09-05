@@ -31,7 +31,6 @@ type agentsInitOpts struct {
 	apiURLExplicit bool
 	name           string
 	org            string
-	dir            string
 	noOpen         bool
 	timeout        time.Duration
 	out            io.Writer
@@ -71,11 +70,9 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		opts.errOut = os.Stderr
 	}
 
-	repoRoot, err := filepath.Abs(opts.dir)
-	if err != nil {
-		return fmt.Errorf("resolve repository root: %w", err)
-	}
-	agentDir, err := prepareAgentDirectory(repoRoot, opts.name)
+	// Identity material is user/deployment-local. A repository is no longer an
+	// input to identity creation; future activation bindings are separate.
+	agentDir, err := prepareIdentityDirectory(opts.name)
 	if err != nil {
 		return err
 	}
@@ -103,7 +100,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		return err
 	}
 	if state == nil && agentInitRemoteComplete(creds) {
-		if err := completeLocalAgentInit(opts, repoRoot, agentDir, configPath, creds); err != nil {
+		if err := completeCentralIdentityInit(opts, agentDir, configPath, creds); err != nil {
 			return err
 		}
 		fmt.Fprintf(opts.out, "Agent %s is already initialized at %s\n", opts.name, configPath)
@@ -249,7 +246,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		return err
 	}
 
-	if err := completeLocalAgentInit(opts, repoRoot, agentDir, configPath, creds); err != nil {
+	if err := completeCentralIdentityInit(opts, agentDir, configPath, creds); err != nil {
 		return err
 	}
 	if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
@@ -259,6 +256,25 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	fmt.Fprintf(opts.out, "Credentials: %s\n", configPath)
 	fmt.Fprintln(opts.out, "Install the LeGreffier plugin in your agent host to add skills, hooks, and MCP access.")
 	return nil
+}
+
+func prepareIdentityDirectory(alias string) (string, error) {
+	dir, err := identityDir(alias)
+	if err != nil {
+		return "", err
+	}
+	if info, statErr := os.Lstat(dir); statErr == nil && info.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("identity directory must not be a symbolic link: %s", dir)
+	} else if statErr != nil && !os.IsNotExist(statErr) {
+		return "", fmt.Errorf("inspect identity directory: %w", statErr)
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", fmt.Errorf("create identity directory: %w", err)
+	}
+	if err := rejectAgentPathSymlinks(dir); err != nil {
+		return "", err
+	}
+	return dir, nil
 }
 
 func startAgentsInit(ctx context.Context, apiURL string, opts agentsInitOpts, configPath, statePath string, provider OSKeyringSecretProvider) (*CredentialsFile, *agentsInitState, error) {
@@ -451,31 +467,48 @@ func rejectAgentPathSymlinks(agentDir string) error {
 	return nil
 }
 
-func completeLocalAgentInit(opts agentsInitOpts, repoRoot, agentDir, configPath string, creds *CredentialsFile) error {
+func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath string, creds *CredentialsFile) error {
 	if !agentInitRemoteComplete(creds) {
 		return fmt.Errorf("cannot complete local setup before remote credentials are complete")
 	}
-	if err := rejectAgentPathSymlinks(agentDir); err != nil {
+	if err := rejectAgentPathSymlinks(identityDir); err != nil {
 		return err
 	}
-	if err := runSSHKeyExportCmd(configPath, filepath.Join(agentDir, "ssh")); err != nil {
+	if err := runSSHKeyExportCmd(configPath, filepath.Join(identityDir, "ssh")); err != nil {
 		return err
 	}
 	if err := runGitHubSetupCmd(configPath, opts.name, creds.GitHub.AppSlug); err != nil {
 		return err
 	}
-	if err := writeAgentEnv(
-		agentDir,
-		opts.name,
-		creds.OAuth2.ClientID,
-		creds.GitHub.AppID,
-		creds.GitHub.InstallationID,
-		creds.Keys.Fingerprint,
-	); err != nil {
+	if err := writeIdentityEnv(identityDir, opts.name, creds); err != nil {
 		return err
 	}
-	if err := runAgentsActivationRefreshCmd(io.Discard, repoRoot, opts.name, false); err != nil {
-		return fmt.Errorf("refresh activation cache: %w", err)
+	// Seed the selector when none exists, as register / init-from-env /
+	// migrate all do. Without this the primary onboarding path left no default
+	// identity, so every later command failed with "no active identity
+	// selected" unless MOLTNET_ACTIVE_IDENTITY was exported by hand.
+	if selector, err := readIdentitySelector(); err != nil {
+		return err
+	} else if selector == nil || selector.DefaultIdentity == "" {
+		if err := writeIdentitySelector(opts.name); err != nil {
+			return err
+		}
+	}
+	// Warm the activation cache so `agents activation validate` does not
+	// report invalid immediately after a successful init.
+	return runAgentsActivationRefreshCmd(io.Discard, opts.name, false)
+}
+
+func writeIdentityEnv(identityDir, alias string, creds *CredentialsFile) error {
+	prefix := toEnvPrefix(alias)
+	gitconfig := filepath.Join(identityDir, "gitconfig")
+	content := fmt.Sprintf(
+		"%s_CLIENT_ID='%s'\n%s_GITHUB_APP_ID='%s'\n%s_GITHUB_APP_INSTALLATION_ID='%s'\nGIT_CONFIG_GLOBAL='%s'\nMOLTNET_ACTIVE_IDENTITY='%s'\nMOLTNET_FINGERPRINT='%s'\n",
+		prefix, shellQuote(creds.OAuth2.ClientID), prefix, shellQuote(creds.GitHub.AppID), prefix, shellQuote(creds.GitHub.InstallationID),
+		shellQuote(gitconfig), shellQuote(alias), shellQuote(creds.Keys.Fingerprint),
+	)
+	if err := writeFileAtomic(filepath.Join(identityDir, "env"), []byte(content)); err != nil {
+		return fmt.Errorf("write identity env: %w", err)
 	}
 	return nil
 }
@@ -563,20 +596,6 @@ func writeAgentsInitState(path string, state *agentsInitState) error {
 	data = append(data, '\n')
 	if err := writeFileAtomic(path, data); err != nil {
 		return fmt.Errorf("write initialization state: %w", err)
-	}
-	return nil
-}
-
-func writeAgentEnv(agentDir, agentName, clientID, appID, installationID, fingerprint string) error {
-	prefix := toEnvPrefix(agentName)
-	content := fmt.Sprintf(
-		"%s_CLIENT_ID='%s'\n%s_GITHUB_APP_ID='%s'\n%s_GITHUB_APP_INSTALLATION_ID='%s'\nGIT_CONFIG_GLOBAL='.moltnet/%s/gitconfig'\nMOLTNET_AGENT_NAME='%s'\nMOLTNET_FINGERPRINT='%s'\n",
-		prefix, shellQuote(clientID), prefix, shellQuote(appID), prefix, shellQuote(installationID),
-		shellQuote(agentName), shellQuote(agentName), shellQuote(fingerprint),
-	)
-	path := filepath.Join(agentDir, "env")
-	if err := writeFileAtomic(path, []byte(content)); err != nil {
-		return fmt.Errorf("write agent env: %w", err)
 	}
 	return nil
 }

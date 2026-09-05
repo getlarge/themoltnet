@@ -42,6 +42,11 @@ type githubGuardContext struct {
 	CredentialsPath string
 	AuthorshipMode  string
 	Strict          bool
+	// Failure is set when this session IS an activated agent session but its
+	// identity could not be resolved. The guard must deny in that state: an
+	// activated session that silently degrades to "ordinary contributor"
+	// attributes agent writes to the human account.
+	Failure string
 }
 
 type guardPermissionLoader func(context.Context, string) (map[string]string, error)
@@ -97,7 +102,10 @@ func runGitHubGuard(
 		return nil
 	}
 
-	reason := evaluateGitHubGuard(input.ToolInput.Command, guardCtx, permissions)
+	reason := guardCtx.Failure
+	if reason == "" {
+		reason = evaluateGitHubGuard(input.ToolInput.Command, guardCtx, permissions)
+	}
 	if reason == "" {
 		return nil
 	}
@@ -111,8 +119,15 @@ func runGitHubGuard(
 
 func currentGitHubGuardContext() (githubGuardContext, bool) {
 	gitConfigPath, active, err := currentMoltnetGitConfigPath()
-	if !active || err != nil {
+	if !active {
 		return githubGuardContext{}, false
+	}
+	if err != nil {
+		return githubGuardContext{Failure: fmt.Sprintf(
+			"MoltNet GitHub guard cannot resolve the active identity (%v); "+
+				"refusing to attribute this write to the human account.",
+			err,
+		)}, true
 	}
 
 	authorshipMode := strings.TrimSpace(os.Getenv("MOLTNET_COMMIT_AUTHORSHIP"))
@@ -132,28 +147,80 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 	}, true
 }
 
-// currentMoltnetGitConfigPath resolves the active agent gitconfig selected by
-// this process. Repository-level hooks are shared with ordinary contributors,
-// so the configured path shape is the runtime activation boundary for every
-// guard. A true active result is preserved when resolution fails so security
-// callers can fail closed instead of treating a broken activated session as an
-// ordinary contributor session.
-func currentMoltnetGitConfigPath() (path string, active bool, err error) {
-	configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
-	if !isMoltnetGitConfig(configured) {
-		return "", false, nil
+// moltnetActivation describes whether THIS session is running as an activated
+// MoltNet agent, and which identity directory it resolves to.
+//
+// Activation is deliberately session-scoped. A persisted default in
+// identity-selector.json answers "which identity", not "is this shell an
+// agent". Deriving activation from it would mark every ordinary human shell on
+// a machine that has ever created an identity as activated, and would leave a
+// legacy session — GIT_CONFIG_GLOBAL set, no selector — looking like an
+// ordinary contributor, so its `gh` writes would be attributed to the human.
+type moltnetActivation struct {
+	IdentityDir   string
+	GitConfigPath string
+	Active        bool
+}
+
+// currentMoltnetActivation reports the session activation signal. An Active
+// result with a non-nil error means the session IS activated but unresolvable;
+// security callers must fail closed rather than treat it as a human session.
+func currentMoltnetActivation() (moltnetActivation, error) {
+	if configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL")); configured != "" {
+		resolved, err := resolveGitConfigGlobalPath(configured)
+		if err != nil {
+			if isMoltnetGitConfig(configured) {
+				return moltnetActivation{Active: true}, fmt.Errorf(
+					"resolve GIT_CONFIG_GLOBAL %q: %w", configured, err)
+			}
+			return moltnetActivation{}, nil
+		}
+		if isMoltnetGitConfig(resolved) {
+			return moltnetActivation{
+				IdentityDir:   filepath.Dir(resolved),
+				GitConfigPath: resolved,
+				Active:        true,
+			}, nil
+		}
+		return moltnetActivation{}, nil
 	}
 
-	gitConfigPath, err := resolveGitConfigGlobalPath(configured)
-	if err != nil {
-		return "", true, fmt.Errorf("resolve activated GIT_CONFIG_GLOBAL: %w", err)
+	alias := strings.TrimSpace(os.Getenv(activeIdentityEnv))
+	if alias == "" {
+		return moltnetActivation{}, nil
 	}
-	if !isMoltnetGitConfig(gitConfigPath) {
+	dir, err := identityDir(alias)
+	if err != nil {
+		return moltnetActivation{Active: true}, fmt.Errorf(
+			"resolve active identity %q: %w", alias, err)
+	}
+	return moltnetActivation{
+		IdentityDir:   dir,
+		GitConfigPath: filepath.Join(dir, "gitconfig"),
+		Active:        true,
+	}, nil
+}
+
+// currentMoltnetGitConfigPath resolves the gitconfig of the activated session.
+// It is the GitHub guard's view of activation: attribution needs a gitconfig,
+// so a missing one is an error rather than a non-activated session. The
+// secrets guard deliberately does not use this — credential material is worth
+// protecting whether or not the identity has a gitconfig yet.
+func currentMoltnetGitConfigPath() (path string, active bool, err error) {
+	activation, err := currentMoltnetActivation()
+	if !activation.Active {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", true, err
+	}
+	if !regularFileExists(activation.GitConfigPath) {
 		return "", true, fmt.Errorf(
-			"resolved activated GIT_CONFIG_GLOBAL has an invalid path shape",
+			"active identity gitconfig is unavailable at %s",
+			activation.GitConfigPath,
 		)
 	}
-	return gitConfigPath, true, nil
+	return activation.GitConfigPath, true, nil
 }
 
 func resolveGitConfigGlobalPath(configured string) (string, error) {
@@ -224,15 +291,22 @@ func envEnabled(name string) bool {
 	}
 }
 
+// isMoltnetGitConfig recognises both activation layouts: the legacy in-repo
+// bundle (<repo>/.moltnet/<alias>/gitconfig) and the central identity store
+// (<config>/moltnet/identities/<alias>/gitconfig). The plugin PreToolUse
+// pre-gate in hooks.json matches the same two shapes; they must stay in sync.
 func isMoltnetGitConfig(path string) bool {
 	path = strings.ReplaceAll(filepath.ToSlash(strings.TrimSpace(path)), `\`, "/")
 	path = strings.TrimSuffix(path, "/")
 	parts := strings.Split(path, "/")
-	if len(parts) < 3 {
+	n := len(parts)
+	if n < 3 || parts[n-1] != "gitconfig" || parts[n-2] == "" {
 		return false
 	}
-	n := len(parts)
-	return parts[n-3] == ".moltnet" && parts[n-2] != "" && parts[n-1] == "gitconfig"
+	if parts[n-3] == ".moltnet" {
+		return true
+	}
+	return n >= 4 && parts[n-3] == identitiesDirName && parts[n-4] == "moltnet"
 }
 
 func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (map[string]string, error) {

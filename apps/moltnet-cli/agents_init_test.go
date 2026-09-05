@@ -23,59 +23,16 @@ func TestAgentsInitCommandIsAgentScoped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("agents init --help: %v", err)
 	}
-	for _, expected := range []string{"--name", "--org", "--dir", "--no-open"} {
+	for _, expected := range []string{"--name", "--org", "--no-open"} {
 		if !strings.Contains(stdout, expected) {
 			t.Errorf("help missing %s:\n%s", expected, stdout)
 		}
 	}
+	if strings.Contains(stdout, "--dir") {
+		t.Fatalf("agents init must not accept repository-target flags:\n%s", stdout)
+	}
 	if strings.Contains(stdout, "claude") || strings.Contains(stdout, "codex") {
 		t.Fatalf("agents init must not configure agent hosts:\n%s", stdout)
-	}
-}
-
-func TestWriteAgentEnvContainsOnlyNonSecretActivationValues(t *testing.T) {
-	dir := t.TempDir()
-	if err := writeAgentEnv(dir, "test-agent", "client-id", "app-id", "install-id", "A-B-C-D"); err != nil {
-		t.Fatal(err)
-	}
-	data, err := os.ReadFile(filepath.Join(dir, "env"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	content := string(data)
-	for _, expected := range []string{
-		"TEST_AGENT_CLIENT_ID='client-id'",
-		"GIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'",
-		"MOLTNET_AGENT_NAME='test-agent'",
-		"MOLTNET_FINGERPRINT='A-B-C-D'",
-	} {
-		if !strings.Contains(content, expected) {
-			t.Errorf("env missing %q:\n%s", expected, content)
-		}
-	}
-	if strings.Contains(strings.ToLower(content), "secret") || strings.Contains(content, "PRIVATE_KEY") {
-		t.Fatalf("env contains a secret-bearing field:\n%s", content)
-	}
-}
-
-func TestWriteAgentEnvUsesCanonicalShellQuoting(t *testing.T) {
-	dir := t.TempDir()
-	if err := writeAgentEnv(dir, "test-agent", "client'id", "app'id", "install'id", "A'B"); err != nil {
-		t.Fatal(err)
-	}
-	data, err := os.ReadFile(filepath.Join(dir, "env"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	content := string(data)
-	for _, expected := range []string{
-		`TEST_AGENT_CLIENT_ID='client'\''id'`,
-		`TEST_AGENT_GITHUB_APP_ID='app'\''id'`,
-		`MOLTNET_FINGERPRINT='A'\''B'`,
-	} {
-		if !strings.Contains(content, expected) {
-			t.Errorf("env missing safely quoted %q:\n%s", expected, content)
-		}
 	}
 }
 

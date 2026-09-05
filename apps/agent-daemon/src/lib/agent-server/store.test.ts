@@ -17,6 +17,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   AgentServerStore,
   AgentServerStoreError,
+  assertStoreName,
+  legacyXdgAgentServerRoot,
   resolveAgentServerRoot,
 } from './store.js';
 
@@ -34,12 +36,106 @@ afterEach(() => {
 });
 
 describe('resolveAgentServerRoot', () => {
-  it('prefers the explicit root, then XDG, then ~/.config', () => {
+  it('uses the explicit root, else ~/.config/moltnet', () => {
     expect(resolveAgentServerRoot({ root: '/explicit' })).toBe('/explicit');
-    expect(resolveAgentServerRoot({ xdgConfigHome: '/xdg' })).toBe(
-      '/xdg/moltnet',
-    );
     expect(resolveAgentServerRoot({})).toMatch(/\.config\/moltnet$/);
+  });
+
+  it('still reports the legacy XDG root so it can be adopted', () => {
+    expect(legacyXdgAgentServerRoot('/xdg')).toBe(join('/xdg', 'moltnet'));
+    expect(legacyXdgAgentServerRoot('')).toBeNull();
+  });
+
+  // The parameter is gone entirely rather than ignored, so XDG cannot reach
+  // root resolution at all — a structural guarantee, not a runtime assertion.
+  it('takes no XDG input', () => {
+    expect(resolveAgentServerRoot({})).toMatch(/\.config\/moltnet$/);
+  });
+});
+
+describe('legacy layout migration', () => {
+  function stagedRoots(): { legacy: string; current: string } {
+    const base = mkdtempSync(join(tmpdir(), 'agent-server-migrate-'));
+    roots.push(base);
+    return {
+      legacy: join(base, 'xdg', 'moltnet'),
+      current: join(base, 'home'),
+    };
+  }
+
+  it('adopts state left at the pre-1834 XDG root', () => {
+    const { legacy, current } = stagedRoots();
+    mkdirSync(join(legacy, 'identities', 'alpha'), { recursive: true });
+    writeFileSync(
+      join(legacy, 'identities', 'alpha', 'moltnet.json'),
+      JSON.stringify({ identity_id: 'a' }),
+    );
+    const store = new AgentServerStore(current).ensure({
+      legacyXdgConfigHome: join(legacy, '..'),
+    });
+
+    // Aligning the root without adopting would leave an upgraded daemon
+    // reporting zero managed agents while its state sat untouched elsewhere.
+    expect(store.readAgentConfig('alpha')).toMatchObject({ identity_id: 'a' });
+    expect(existsSync(legacy)).toBe(false);
+  });
+
+  it('refuses to guess when both roots hold state', () => {
+    const { legacy, current } = stagedRoots();
+    for (const root of [legacy, current]) {
+      mkdirSync(join(root, 'identities', 'alpha'), { recursive: true });
+      writeFileSync(
+        join(root, 'identities', 'alpha', 'moltnet.json'),
+        JSON.stringify({ identity_id: root }),
+      );
+    }
+    expect(() =>
+      new AgentServerStore(current).ensure({
+        legacyXdgConfigHome: join(legacy, '..'),
+      }),
+    ).toThrow(/state exists at both/);
+  });
+
+  it('migrates agents/<alias>.json to identities/<alias>/moltnet.json', () => {
+    const base = mkdtempSync(join(tmpdir(), 'agent-server-agents-'));
+    roots.push(base);
+    const root = join(base, 'moltnet');
+    mkdirSync(join(root, 'agents'), { recursive: true });
+    writeFileSync(
+      join(root, 'agents', 'alpha.json'),
+      JSON.stringify({ identity_id: 'alpha-id' }),
+    );
+
+    const store = new AgentServerStore(root).ensure();
+
+    expect(store.readAgentConfig('alpha')).toMatchObject({
+      identity_id: 'alpha-id',
+    });
+    expect(existsSync(join(root, 'agents', 'alpha.json'))).toBe(false);
+  });
+
+  it('never clobbers an existing managed document', () => {
+    const base = mkdtempSync(join(tmpdir(), 'agent-server-agents-'));
+    roots.push(base);
+    const root = join(base, 'moltnet');
+    mkdirSync(join(root, 'agents'), { recursive: true });
+    writeFileSync(
+      join(root, 'agents', 'alpha.json'),
+      JSON.stringify({ identity_id: 'stale' }),
+    );
+    mkdirSync(join(root, 'identities', 'alpha'), { recursive: true });
+    writeFileSync(
+      join(root, 'identities', 'alpha', 'moltnet.json'),
+      JSON.stringify({ identity_id: 'authoritative' }),
+    );
+
+    const store = new AgentServerStore(root).ensure();
+
+    expect(store.readAgentConfig('alpha')).toMatchObject({
+      identity_id: 'authoritative',
+    });
+    // Left in place for inspection rather than silently discarded.
+    expect(existsSync(join(root, 'agents', 'alpha.json'))).toBe(true);
   });
 });
 
@@ -48,7 +144,7 @@ describe('AgentServerStore', () => {
     const store = freshStore();
     for (const dir of [
       store.root,
-      store.agentsDir,
+      store.identitiesDir,
       store.runsDir,
       store.secretsDir,
     ]) {
@@ -168,10 +264,52 @@ describe('AgentServerStore', () => {
     });
 
     const raw = readFileSync(store.agentPath('zeta'), 'utf8');
+    expect(store.agentPath('zeta')).toBe(
+      join(store.root, 'identities', 'zeta', 'moltnet.json'),
+    );
     expect(raw).not.toContain('agentName');
     expect(raw).not.toContain('agentKeyRef');
     expect(raw).not.toContain('privateKeyRef');
     expect(raw).not.toContain('secret-value');
+  });
+
+  it('uses the shared versioned selector without consulting repository state', () => {
+    const store = freshStore();
+    store.writeAgentConfig('first', {
+      identity_id: 'id-first',
+      registered_at: 't',
+      oauth2: {
+        client_id: 'client-first',
+        client_secret_ref: { provider: 'file', key: 'oauth2/id-first' },
+      },
+      keys: {
+        public_key: 'pk',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'file', key: 'identity/fp/seed' },
+      },
+      endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
+    });
+    store.writeAgentConfig('second', {
+      identity_id: 'id-second',
+      registered_at: 't',
+      oauth2: {
+        client_id: 'client-second',
+        client_secret_ref: { provider: 'file', key: 'oauth2/id-second' },
+      },
+      keys: {
+        public_key: 'pk',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'file', key: 'identity/fp/seed' },
+      },
+      endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
+    });
+
+    expect(store.readIdentitySelector()).toEqual({
+      version: 1,
+      default_identity: 'first',
+    });
+    expect(store.resolveIdentityAlias(undefined, 'second')).toBe('second');
+    expect(store.resolveIdentityAlias()).toBe('first');
   });
 
   it('keeps external paths only in activation metadata', () => {
@@ -395,5 +533,45 @@ describe('AgentServerStore', () => {
     expect(removed.sort()).toEqual(['large', 'old']);
     expect(existsSync(store.runDir('recent'))).toBe(true);
     expect(existsSync(store.runDir('active'))).toBe(true);
+  });
+
+  it('clears the persisted default when the identity it names is removed', () => {
+    const store = freshStore();
+    store.ensure();
+    store.writeAgentConfig('alpha', { identity_id: 'a' } as never);
+    store.writeAgentConfig('beta', { identity_id: 'b' } as never);
+    store.writeIdentitySelector('alpha');
+    expect(store.readIdentitySelector()?.default_identity).toBe('alpha');
+
+    // Removing a non-default identity must leave the selector alone.
+    store.removeAgentConfig('beta');
+    expect(store.readIdentitySelector()?.default_identity).toBe('alpha');
+
+    // Removing the default must clear it: a selector naming a deleted alias
+    // makes resolution succeed on a dangling identity and surface as a
+    // generic "not found".
+    store.removeAgentConfig('alpha');
+    expect(store.readIdentitySelector()?.default_identity).toBeUndefined();
+  });
+});
+
+describe('identity alias grammar', () => {
+  // The alias is a directory name in a store the Go CLI, the daemon and
+  // @moltnet/agent-config all write, so the three grammars must accept exactly
+  // the same strings. Mirrors agentNamePattern in apps/moltnet-cli.
+  it('matches the Go CLI grammar', () => {
+    for (const valid of ['agent', 'agent.v2', 'Agent_1', 'a', 'a'.repeat(63)]) {
+      expect(() => assertStoreName('identity alias', valid)).not.toThrow();
+    }
+    for (const invalid of [
+      '',
+      '.hidden',
+      '-leading',
+      'a'.repeat(64),
+      'has/slash',
+      'has space',
+    ]) {
+      expect(() => assertStoreName('identity alias', invalid)).toThrow();
+    }
   });
 });

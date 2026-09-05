@@ -16,15 +16,16 @@ import (
 	"time"
 )
 
-const activationCacheVersion = 4
+// Version 5 moves activation state into the selected central identity. Older
+// repository-bound cache files deliberately fail validation rather than being
+// discovered or reused.
+const activationCacheVersion = 5
 
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
 type activationCache struct {
 	Version              int                             `json:"version"`
 	AgentName            string                          `json:"agentName"`
-	RepoRoot             string                          `json:"repoRoot"`
-	RepoName             string                          `json:"repoName"`
 	Fingerprint          string                          `json:"fingerprint"`
 	DiaryID              string                          `json:"diaryId,omitempty"`
 	TeamID               string                          `json:"teamId,omitempty"`
@@ -71,18 +72,15 @@ type activationValidationResult struct {
 }
 
 type activationContext struct {
-	MoltnetDir string
-	AgentDir   string
-	AgentName  string
-	RepoRoot   string
-	RepoName   string
-	EnvPath    string
-	EnvVars    map[string]string
-	CachePath  string
+	AgentDir  string
+	AgentName string
+	EnvPath   string
+	EnvVars   map[string]string
+	CachePath string
 }
 
-func runAgentsActivationValidateCmd(w io.Writer, dir, agent string, jsonOut bool) error {
-	ctx, err := resolveActivationContext(dir, agent)
+func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) error {
+	ctx, err := resolveActivationContext(identity)
 	if err != nil {
 		return err
 	}
@@ -93,8 +91,8 @@ func runAgentsActivationValidateCmd(w io.Writer, dir, agent string, jsonOut bool
 	return printActivationValidationResult(w, result, jsonOut)
 }
 
-func runAgentsActivationRefreshCmd(w io.Writer, dir, agent string, jsonOut bool) error {
-	ctx, err := resolveActivationContext(dir, agent)
+func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) error {
+	ctx, err := resolveActivationContext(identity)
 	if err != nil {
 		return err
 	}
@@ -109,8 +107,8 @@ func runAgentsActivationRefreshCmd(w io.Writer, dir, agent string, jsonOut bool)
 	return printActivationValidationResult(w, &result, jsonOut)
 }
 
-func runAgentsActivationClearCmd(w io.Writer, dir, agent string) error {
-	ctx, err := resolveActivationContext(dir, agent)
+func runAgentsActivationClearCmd(w io.Writer, identity string) error {
+	ctx, err := resolveActivationContext(identity)
 	if err != nil {
 		return err
 	}
@@ -121,20 +119,15 @@ func runAgentsActivationClearCmd(w io.Writer, dir, agent string) error {
 	return nil
 }
 
-func resolveActivationContext(dir, agentFlag string) (*activationContext, error) {
-	absDir, err := filepath.Abs(dir)
-	if err != nil {
-		return nil, fmt.Errorf("resolve dir: %w", err)
-	}
-	moltnetDir, repoRoot, err := resolveMoltnetDirAndRoot(absDir)
+func resolveActivationContext(identity string) (*activationContext, error) {
+	agentName, err := resolveIdentityAlias(identity)
 	if err != nil {
 		return nil, err
 	}
-	agentName, err := resolveActivationAgentName(moltnetDir, agentFlag)
+	agentDir, err := identityDir(agentName)
 	if err != nil {
 		return nil, err
 	}
-	agentDir := filepath.Join(moltnetDir, agentName)
 	envPath := filepath.Join(agentDir, "env")
 	envVars, err := parseEnvFile(envPath)
 	if err != nil {
@@ -145,40 +138,12 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 		}
 	}
 	return &activationContext{
-		MoltnetDir: moltnetDir,
-		AgentDir:   agentDir,
-		AgentName:  agentName,
-		RepoRoot:   repoRoot,
-		RepoName:   filepath.Base(repoRoot),
-		EnvPath:    envPath,
-		EnvVars:    envVars,
-		CachePath:  filepath.Join(agentDir, "activation-cache.json"),
+		AgentDir:  agentDir,
+		AgentName: agentName,
+		EnvPath:   envPath,
+		EnvVars:   envVars,
+		CachePath: filepath.Join(agentDir, "activation-cache.json"),
 	}, nil
-}
-
-func resolveActivationAgentName(moltnetDir, agentFlag string) (string, error) {
-	agentName, resolveErr := resolveAgentName(moltnetDir, agentFlag)
-	if resolveErr == nil {
-		return agentName, nil
-	}
-
-	// Validation and clearing must still find a warm cache after credentials
-	// disappear; that disappearance is itself the invalidation being reported.
-	candidates := []string{}
-	if agentFlag != "" {
-		candidates = append(candidates, agentFlag)
-	} else if data, err := os.ReadFile(filepath.Join(moltnetDir, "default-agent")); err == nil {
-		if name := strings.TrimSpace(string(data)); name != "" {
-			candidates = append(candidates, name)
-		}
-	}
-	for _, candidate := range candidates {
-		cachePath := filepath.Join(moltnetDir, candidate, "activation-cache.json")
-		if info, err := os.Stat(cachePath); err == nil && !info.IsDir() {
-			return candidate, nil
-		}
-	}
-	return "", resolveErr
 }
 
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {
@@ -193,8 +158,8 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 
 	gitConfigGlobal := firstNonEmpty(ctx.EnvVars["GIT_CONFIG_GLOBAL"], valueOrEmpty(creds.Git, func(g *GitSection) string {
 		return g.ConfigPath
-	}), filepath.Join(".moltnet", ctx.AgentName, "gitconfig"))
-	paths := newAgentPathResolver(ctx.RepoRoot, ctx.AgentDir, ctx.AgentName)
+	}), "gitconfig")
+	paths := newAgentPathResolver(ctx.AgentDir, ctx.AgentDir, ctx.AgentName)
 	gitconfigPath := paths.resolveFile(gitConfigGlobal, "gitconfig")
 
 	gitIdentity, err := readActivationGitIdentity(gitconfigPath)
@@ -234,7 +199,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		"credentials":  credentialsPath,
 		"sshPublicKey": sshPublicKeyPath,
 	} {
-		input, err := hashActivationInput(ctx.RepoRoot, path)
+		input, err := hashActivationInput(ctx.AgentDir, path)
 		if err != nil {
 			return nil, err
 		}
@@ -245,13 +210,11 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	return &activationCache{
 		Version:              activationCacheVersion,
 		AgentName:            ctx.AgentName,
-		RepoRoot:             ctx.RepoRoot,
-		RepoName:             ctx.RepoName,
 		Fingerprint:          fingerprint,
 		DiaryID:              ctx.EnvVars["MOLTNET_DIARY_ID"],
 		TeamID:               ctx.EnvVars["MOLTNET_TEAM_ID"],
-		GitConfigGlobal:      relativeToRepo(ctx.RepoRoot, gitconfigPath),
-		CredentialsPath:      relativeToRepo(ctx.RepoRoot, credentialsPath),
+		GitConfigGlobal:      relativeToRepo(ctx.AgentDir, gitconfigPath),
+		CredentialsPath:      relativeToRepo(ctx.AgentDir, credentialsPath),
 		AuthorshipMode:       authorshipMode,
 		AuthorshipConfigured: authorshipConfigured,
 		HumanGitIdentity:     ctx.EnvVars["MOLTNET_HUMAN_GIT_IDENTITY"],
@@ -285,9 +248,6 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	if cache.AgentName != ctx.AgentName {
 		return invalidActivation("agent_mismatch", nil), nil
 	}
-	if filepath.Clean(cache.RepoRoot) != ctx.RepoRoot {
-		return invalidActivation("repo_mismatch", nil), nil
-	}
 	current, err := buildActivationCache(ctx)
 	if err != nil {
 		// A vanished or unreadable cache input is an expected invalidation, not
@@ -313,7 +273,7 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 		return invalidActivation("input_hash_mismatch", uniqueStrings(changed)), nil
 	}
 	if !activationMetadataEqual(cache, current) {
-		return invalidActivation("cache_metadata_mismatch", []string{relativeToRepo(ctx.RepoRoot, ctx.CachePath)}), nil
+		return invalidActivation("cache_metadata_mismatch", []string{relativeToRepo(ctx.AgentDir, ctx.CachePath)}), nil
 	}
 
 	result := activationResultFromCache(current)
@@ -370,8 +330,6 @@ func activationCredentialProviders(creds *CredentialsFile) map[string]string {
 func activationMetadataEqual(cached, current *activationCache) bool {
 	return cached.Version == current.Version &&
 		cached.AgentName == current.AgentName &&
-		filepath.Clean(cached.RepoRoot) == filepath.Clean(current.RepoRoot) &&
-		cached.RepoName == current.RepoName &&
 		cached.Fingerprint == current.Fingerprint &&
 		cached.DiaryID == current.DiaryID &&
 		cached.TeamID == current.TeamID &&
@@ -428,7 +386,7 @@ func writeActivationCache(path string, cache *activationCache) error {
 		return fmt.Errorf("marshal activation cache: %w", err)
 	}
 	data = append(data, '\n')
-	if err := os.WriteFile(path, data, 0o600); err != nil {
+	if err := writeFileAtomic(path, data); err != nil {
 		return fmt.Errorf("write activation cache: %w", err)
 	}
 	return nil
@@ -455,37 +413,19 @@ type activationGitIdentity struct {
 }
 
 func readActivationGitIdentity(gitconfigPath string) (activationGitIdentity, error) {
-	name, err := readGitConfigValue(gitconfigPath, "user.name")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	email, err := readGitConfigValue(gitconfigPath, "user.email")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	signingKey, err := readGitConfigValue(gitconfigPath, "user.signingkey")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	gpgFormat, err := readGitConfigValue(gitconfigPath, "gpg.format")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	return activationGitIdentity{
-		Name:       name,
-		Email:      email,
-		SigningKey: signingKey,
-		GPGFormat:  gpgFormat,
-	}, nil
-}
-
-func readGitConfigValue(gitconfigPath, key string) (string, error) {
-	cmd := exec.Command("git", "config", "--file", gitconfigPath, "--get", key)
+	cmd := exec.Command("git", "config", "--file", gitconfigPath, "--list")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("git config %s: %w", key, err)
+		return activationGitIdentity{}, fmt.Errorf("read git config: %w", err)
 	}
-	return strings.TrimSpace(string(out)), nil
+	values := map[string]string{}
+	for _, line := range strings.Split(string(out), "\n") {
+		key, value, ok := strings.Cut(line, "=")
+		if ok {
+			values[strings.ToLower(key)] = value
+		}
+	}
+	return activationGitIdentity{Name: values["user.name"], Email: values["user.email"], SigningKey: values["user.signingkey"], GPGFormat: values["gpg.format"]}, nil
 }
 
 func printActivationValidationResult(w io.Writer, result *activationValidationResult, jsonOut bool) error {
