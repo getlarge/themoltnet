@@ -10,6 +10,35 @@ import (
 	"time"
 )
 
+// agentOAuthScopes mirrors AGENT_OAUTH_SCOPES in
+// libs/models/src/credential-scopes.ts: every credential scope except
+// `human:profile`, which belongs to human sessions.
+//
+// Hydra runs with `default_grant_allowed_scope=false`, so a client_credentials
+// request that omits `scope` is granted *nothing* — the token authenticates but
+// carries no authority. That was invisible while the API ran
+// AUTH_SCOPE_ENFORCEMENT=measure and became a 403 on every scoped route the
+// moment enforcement went live.
+var agentOAuthScopes = []string{
+	"agent:profile",
+	"connector:invoke",
+	"crypto:sign",
+	"diary:manage",
+	"diary:read",
+	"diary:write",
+	"key:manage",
+	"pack:read",
+	"pack:write",
+	"runtime:manage",
+	"runtime:read",
+	"task:claim",
+	"task:execute",
+	"task:manage",
+	"task:read",
+	"team:manage",
+	"team:read",
+}
+
 // TokenManager obtains and caches an OAuth2 client_credentials token.
 type TokenManager struct {
 	apiURL             string
@@ -71,6 +100,7 @@ func (t *TokenManager) fetchToken() (string, error) {
 	form.Set("grant_type", "client_credentials")
 	form.Set("client_id", t.clientID)
 	form.Set("client_secret", t.clientSecret)
+	form.Set("scope", strings.Join(agentOAuthScopes, " "))
 
 	resp, err := t.httpClient.Post( //nolint:gosec
 		t.apiURL+"/oauth2/token",
