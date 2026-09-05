@@ -1,7 +1,7 @@
 export type ResponseStyle = 'data' | 'fields';
 export type ClientMeta = Record<string, never>;
 
-export interface TransportRequest {
+export interface ApiRequest {
   body?: unknown;
   headers: Record<string, string>;
   method: string;
@@ -9,7 +9,7 @@ export interface TransportRequest {
   url: string;
 }
 
-export type Transport = <TData>(request: TransportRequest) => Promise<TData>;
+export type RequestExecutor = <TData>(request: ApiRequest) => Promise<TData>;
 
 export interface ClientOptions {
   baseUrl?: string;
@@ -27,7 +27,7 @@ export interface Config<
   responseStyle?: T['responseStyle'];
   signal?: T['signal'];
   throwOnError?: T['throwOnError'];
-  transport?: Transport;
+  requestExecutor?: RequestExecutor;
 }
 
 export interface RequestOptions<

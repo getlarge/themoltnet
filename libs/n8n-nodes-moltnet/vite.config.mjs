@@ -24,9 +24,13 @@ export default defineConfig({
     rollupOptions: {
       external: ['n8n-workflow'],
       input: {
-        'credentials/MoltNetApi.credentials': resolve(
+        'credentials/MoltNetAgentApi.credentials': resolve(
           here,
-          'credentials/MoltNetApi.credentials.ts',
+          'credentials/MoltNetAgentApi.credentials.ts',
+        ),
+        'credentials/MoltNetOAuth2Api.credentials': resolve(
+          here,
+          'credentials/MoltNetOAuth2Api.credentials.ts',
         ),
         'nodes/MoltNet/MoltNet.node': resolve(
           here,
@@ -42,7 +46,9 @@ export default defineConfig({
   },
   ssr: {
     external: ['n8n-workflow'],
-    noExternal: true,
+    // The private generated client is a build input and must not leak into the
+    // published runtime manifest.
+    noExternal: [/@moltnet\//],
   },
   plugins: [
     {

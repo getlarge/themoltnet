@@ -1,7 +1,7 @@
 {
   "name": "@themoltnet/n8n-nodes-moltnet",
   "version": "0.3.6",
-  "description": "n8n community nodes for creating, finding, cancelling, and waiting on MoltNet tasks",
+  "description": "n8n community nodes for creating, finding, inspecting, and cancelling MoltNet tasks",
   "keywords": [
     "n8n-community-node-package",
     "moltnet",
@@ -27,7 +27,6 @@
     "build": "vite build",
     "check:pack": "node scripts/check-pack.mjs",
     "dev": "node scripts/dev.mjs",
-    "generate": "openapi-ts",
     "lint:n8n": "n8n-node lint",
     "test": "vitest run"
   },
@@ -41,7 +40,8 @@
     "n8nNodesApiVersion": 1,
     "strict": false,
     "credentials": [
-      "dist/credentials/MoltNetApi.credentials.js"
+      "dist/credentials/MoltNetAgentApi.credentials.js",
+      "dist/credentials/MoltNetOAuth2Api.credentials.js"
     ],
     "nodes": [
       "dist/nodes/MoltNet/MoltNet.node.js"
@@ -51,7 +51,7 @@
     "n8n-workflow": "*"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "catalog:",
+    "@moltnet/api-client": "workspace:*",
     "@n8n/node-cli": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
@@ -73,7 +73,8 @@
     "targets": {
       "build": {
         "dependsOn": [
-          "generate"
+          "^build",
+          "^typecheck"
         ]
       },
       "dev": {
@@ -82,22 +83,6 @@
         "options": {
           "cwd": "libs/n8n-nodes-moltnet",
           "command": "node scripts/dev.mjs"
-        }
-      },
-      "generate": {
-        "executor": "nx:run-commands",
-        "cache": true,
-        "inputs": [
-          "{projectRoot}/openapi-ts.config.ts",
-          "{projectRoot}/src/hey-api-n8n/**/*",
-          "{workspaceRoot}/apps/rest-api/public/openapi.json"
-        ],
-        "outputs": [
-          "{projectRoot}/src/generated"
-        ],
-        "options": {
-          "cwd": "libs/n8n-nodes-moltnet",
-          "command": "openapi-ts"
         }
       },
       "check:pack": {

@@ -25,6 +25,9 @@ describe('MoltNet node', () => {
     const operation = description.properties.find(
       ({ name }) => name === 'operation',
     );
+    const authentication = description.properties.find(
+      ({ name }) => name === 'authentication',
+    );
     const taskLocator = description.properties.find(
       ({ name, type }) => name === 'taskId' && type === 'resourceLocator',
     );
@@ -33,13 +36,33 @@ describe('MoltNet node', () => {
     );
 
     expect(description.version).toBe(1);
+    expect(authentication).toMatchObject({
+      default: 'agentKey',
+      options: [
+        expect.objectContaining({
+          name: 'Agent Key (Recommended)',
+          value: 'agentKey',
+        }),
+        expect.objectContaining({
+          name: 'OAuth2 Client Credentials',
+          value: 'oauth2',
+        }),
+      ],
+    });
+    expect(description.credentials).toEqual([
+      expect.objectContaining({ name: 'moltNetAgentApi' }),
+      expect.objectContaining({ name: 'moltNetOAuth2Api' }),
+    ]);
     expect(operation?.options).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ action: 'Cancel task', name: 'Cancel' }),
         expect.objectContaining({ action: 'Create task', name: 'Create' }),
         expect.objectContaining({ action: 'Get task', name: 'Get' }),
         expect.objectContaining({ action: 'Get many tasks', name: 'Get Many' }),
-        expect.objectContaining({ action: 'Wait for task', name: 'Wait' }),
+        expect.objectContaining({
+          action: 'Get task result',
+          name: 'Get Result',
+        }),
       ]),
     );
     expect(taskLocator?.modes?.[0]).toMatchObject({
@@ -88,7 +111,15 @@ describe('MoltNet node', () => {
 
     const [output] = await new MoltNet().execute.call(
       createExecuteContext({
+        credentials: {
+          apiUrl: defaultCredentials.apiUrl,
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+          teamId: defaultCredentials.teamId,
+          diaryId: defaultCredentials.diaryId,
+        },
         parameters: {
+          authentication: 'oauth2',
           operation: 'create',
           taskType: 'freeform',
           input: '{"brief":"Select output"}',
@@ -105,6 +136,9 @@ describe('MoltNet node', () => {
       status: 'queued',
       title: 'Selected output',
     });
+    expect(
+      api.requests.filter(({ url }) => url.endsWith('/oauth2/token')),
+    ).toHaveLength(1);
   });
 
   it('gets, lists, and cancels tasks with item linking', async () => {
@@ -260,7 +294,7 @@ describe('MoltNet node', () => {
     );
   });
 
-  it('uses the explicitly configured Wait team context', async () => {
+  it('uses the explicitly configured Get Result team context', async () => {
     const overrideTeamId = '77777777-7777-4777-8777-777777777777';
     const api = new FakeMoltNetApi();
     vi.stubGlobal('fetch', api.fetch);
@@ -279,23 +313,23 @@ describe('MoltNet node', () => {
       createExecuteContext({
         items: created,
         parameters: {
-          operation: 'wait',
+          operation: 'getResult',
           taskId: api.taskId,
           teamId: overrideTeamId,
-          pollInterval: 5,
-          timeout: 30,
         },
       }),
     );
 
-    const waitRequest = api.requests.find(({ url }) =>
+    const resultRequest = api.requests.find(({ url }) =>
       url.endsWith(`/tasks/${api.taskId}`),
     );
     expect(created[0].json.teamId).toBe(overrideTeamId);
-    expect(waitRequest?.headers.get('x-moltnet-team-id')).toBe(overrideTeamId);
+    expect(resultRequest?.headers.get('x-moltnet-team-id')).toBe(
+      overrideTeamId,
+    );
   });
 
-  it('does not infer Wait team context from untrusted input JSON', async () => {
+  it('does not infer Get Result team context from untrusted input JSON', async () => {
     const untrustedTeamId = '77777777-7777-4777-8777-777777777777';
     const api = new FakeMoltNetApi();
     vi.stubGlobal('fetch', api.fetch);
@@ -304,18 +338,16 @@ describe('MoltNet node', () => {
       createExecuteContext({
         items: [{ json: { id: api.taskId, teamId: untrustedTeamId } }],
         parameters: {
-          operation: 'wait',
+          operation: 'getResult',
           taskId: api.taskId,
-          pollInterval: 5,
-          timeout: 30,
         },
       }),
     );
 
-    const waitRequest = api.requests.find(({ url }) =>
+    const resultRequest = api.requests.find(({ url }) =>
       url.endsWith(`/tasks/${api.taskId}`),
     );
-    expect(waitRequest?.headers.get('x-moltnet-team-id')).toBe(
+    expect(resultRequest?.headers.get('x-moltnet-team-id')).toBe(
       defaultCredentials.teamId,
     );
   });
@@ -441,12 +473,9 @@ describe('MoltNet node', () => {
       },
     },
   ])(
-    'waits through transitions and returns the $terminalStatus snapshot',
+    'returns the latest $terminalStatus task result snapshot',
     async ({ terminalStatus, acceptedAttemptN, attempts, expected }) => {
-      vi.useFakeTimers();
-      vi.spyOn(Math, 'random').mockReturnValue(0);
       const api = new FakeMoltNetApi({
-        statuses: ['queued', 'running', terminalStatus],
         terminalStatus,
         acceptedAttemptN,
         attempts,
@@ -454,16 +483,12 @@ describe('MoltNet node', () => {
       vi.stubGlobal('fetch', api.fetch);
       const context = createExecuteContext({
         parameters: {
-          operation: 'wait',
+          operation: 'getResult',
           taskId: api.taskId,
-          pollInterval: 5,
-          timeout: 30,
         },
       });
 
-      const execution = new MoltNet().execute.call(context);
-      await vi.runAllTimersAsync();
-      const [output] = await execution;
+      const [output] = await new MoltNet().execute.call(context);
 
       expect(output[0].json).toMatchObject({
         taskId: api.taskId,
@@ -476,156 +501,7 @@ describe('MoltNet node', () => {
     },
   );
 
-  it('times out a non-terminal task', async () => {
-    vi.useFakeTimers();
-    vi.spyOn(Math, 'random').mockReturnValue(0);
-    const api = new FakeMoltNetApi({ terminalStatus: 'running' });
-    vi.stubGlobal('fetch', api.fetch);
-    const context = createExecuteContext({
-      parameters: {
-        operation: 'wait',
-        taskId: api.taskId,
-        pollInterval: 5,
-        timeout: 1,
-      },
-    });
-
-    const execution = new MoltNet().execute.call(context);
-    const rejection = execution.catch((error: unknown) => error);
-    await vi.runAllTimersAsync();
-    const error = await rejection;
-
-    expect(error).toMatchObject({
-      message: expect.stringMatching(
-        /Task.*did not finish within 1\.0 seconds/,
-      ),
-      description:
-        "Increase 'Timeout (Seconds)' or run Wait again. Configured timeout: 1 seconds; checks: 1; last status: running.",
-    });
-  });
-
-  it.each([
-    { name: 'task read', taskReadResponses: ['hang' as const] },
-    { name: 'attempt read', attemptReadResponses: ['hang' as const] },
-  ])('aborts a hung $name at the configured deadline', async (apiOptions) => {
-    vi.useFakeTimers();
-    const api = new FakeMoltNetApi(apiOptions);
-    vi.stubGlobal('fetch', api.fetch);
-    const execution = new MoltNet().execute.call(
-      createExecuteContext({
-        parameters: {
-          operation: 'wait',
-          taskId: api.taskId,
-          pollInterval: 5,
-          timeout: 1,
-        },
-      }),
-    );
-    const rejection = execution.catch((error: unknown) => error);
-
-    await vi.advanceTimersByTimeAsync(1_000);
-
-    await expect(rejection).resolves.toMatchObject({
-      message: expect.stringMatching(/Task.*did not finish within/),
-    });
-  });
-
-  it('rejects unsafe polling intervals', async () => {
-    const context = createExecuteContext({
-      parameters: {
-        operation: 'wait',
-        taskId: '33333333-3333-4333-8333-333333333333',
-        pollInterval: 0.01,
-        timeout: 30,
-      },
-    });
-
-    await expect(new MoltNet().execute.call(context)).rejects.toThrow(
-      /Polling Interval \(Seconds\).*at least 5/,
-    );
-  });
-
-  it.each([0, 1_801])(
-    'rejects an invalid timeout of %s seconds',
-    async (timeout) => {
-      const context = createExecuteContext({
-        parameters: {
-          operation: 'wait',
-          taskId: '33333333-3333-4333-8333-333333333333',
-          pollInterval: 5,
-          timeout,
-        },
-      });
-
-      await expect(new MoltNet().execute.call(context)).rejects.toThrow(
-        /Timeout \(Seconds\).*between 1 and 1800/,
-      );
-    },
-  );
-
-  it.each([
-    { name: 'network failure', response: 'network' as const },
-    { name: 'rate limit', response: 429 },
-    { name: 'server failure', response: 503 },
-  ])('retries a transient $name while waiting', async ({ response }) => {
-    vi.useFakeTimers();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const api = new FakeMoltNetApi({
-      taskReadResponses: [response],
-      terminalStatus: 'completed',
-    });
-    vi.stubGlobal('fetch', api.fetch);
-    const execution = new MoltNet().execute.call(
-      createExecuteContext({
-        parameters: {
-          operation: 'wait',
-          taskId: api.taskId,
-          pollInterval: 5,
-          timeout: 30,
-        },
-      }),
-    );
-
-    await vi.runAllTimersAsync();
-    const [output] = await execution;
-
-    expect(output[0].json).toMatchObject({
-      taskId: api.taskId,
-      status: 'completed',
-    });
-    expect(
-      api.requests.filter(({ url }) => url.endsWith(`/tasks/${api.taskId}`)),
-    ).toHaveLength(2);
-  });
-
-  it('retries transient attempt reads after the task becomes terminal', async () => {
-    vi.useFakeTimers();
-    vi.spyOn(Math, 'random').mockReturnValue(0.5);
-    const api = new FakeMoltNetApi({ attemptReadResponses: [503] });
-    vi.stubGlobal('fetch', api.fetch);
-    const execution = new MoltNet().execute.call(
-      createExecuteContext({
-        parameters: {
-          operation: 'wait',
-          taskId: api.taskId,
-          pollInterval: 5,
-          timeout: 30,
-        },
-      }),
-    );
-
-    await vi.runAllTimersAsync();
-    const [output] = await execution;
-
-    expect(output[0].json.status).toBe('completed');
-    expect(
-      api.requests.filter(({ url }) =>
-        url.endsWith(`/tasks/${api.taskId}/attempts`),
-      ),
-    ).toHaveLength(2);
-  });
-
-  it('fails immediately on a permanent task read error', async () => {
+  it('returns task read errors without internal polling', async () => {
     const api = new FakeMoltNetApi({ taskReadResponses: [403] });
     vi.stubGlobal('fetch', api.fetch);
 
@@ -633,10 +509,8 @@ describe('MoltNet node', () => {
       new MoltNet().execute.call(
         createExecuteContext({
           parameters: {
-            operation: 'wait',
+            operation: 'getResult',
             taskId: api.taskId,
-            pollInterval: 5,
-            timeout: 30,
           },
         }),
       ),
@@ -650,63 +524,55 @@ describe('MoltNet node', () => {
     ).toHaveLength(1);
   });
 
-  it('stops waiting when n8n cancels the execution', async () => {
-    vi.useFakeTimers();
+  it('aborts Get Result when n8n cancels the execution', async () => {
     const controller = new AbortController();
     const api = new FakeMoltNetApi({ terminalStatus: 'running' });
     vi.stubGlobal('fetch', api.fetch);
-    const execution = new MoltNet().execute.call(
-      createExecuteContext({
-        cancelSignal: controller.signal,
-        parameters: {
-          operation: 'wait',
-          taskId: api.taskId,
-          pollInterval: 5,
-          timeout: 30,
-        },
-      }),
-    );
-    await vi.advanceTimersByTimeAsync(0);
-
     controller.abort();
 
-    await expect(execution).rejects.toThrow(/Execution was cancelled/);
+    await expect(
+      new MoltNet().execute.call(
+        createExecuteContext({
+          cancelSignal: controller.signal,
+          parameters: {
+            operation: 'getResult',
+            taskId: api.taskId,
+          },
+        }),
+      ),
+    ).rejects.toThrow(/Execution was cancelled/);
     expect(
       api.requests.filter(({ url }) => url.endsWith(`/tasks/${api.taskId}`)),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it('treats cancellation as terminal when Continue On Fail is enabled', async () => {
-    vi.useFakeTimers();
     const controller = new AbortController();
     const api = new FakeMoltNetApi({ terminalStatus: 'running' });
     vi.stubGlobal('fetch', api.fetch);
-    const execution = new MoltNet().execute.call(
-      createExecuteContext({
-        cancelSignal: controller.signal,
-        continueOnFail: true,
-        items: [{ json: {} }, { json: {} }],
-        parameters: [
-          {
-            operation: 'wait',
-            taskId: api.taskId,
-            pollInterval: 5,
-            timeout: 30,
-          },
-          {
-            operation: 'create',
-            taskType: 'freeform',
-            input: '{"brief":"Must not be created"}',
-            options: {},
-          },
-        ],
-      }),
-    );
-    await vi.advanceTimersByTimeAsync(0);
-
     controller.abort();
 
-    await expect(execution).rejects.toThrow(/Execution was cancelled/);
+    await expect(
+      new MoltNet().execute.call(
+        createExecuteContext({
+          cancelSignal: controller.signal,
+          continueOnFail: true,
+          items: [{ json: {} }, { json: {} }],
+          parameters: [
+            {
+              operation: 'getResult',
+              taskId: api.taskId,
+            },
+            {
+              operation: 'create',
+              taskType: 'freeform',
+              input: '{"brief":"Must not be created"}',
+              options: {},
+            },
+          ],
+        }),
+      ),
+    ).rejects.toThrow(/Execution was cancelled/);
     expect(api.createdBodies).toHaveLength(0);
   });
 
@@ -736,7 +602,7 @@ describe('MoltNet node', () => {
     ).toHaveLength(2);
     expect(
       api.requests.filter(({ url }) => url.endsWith('/oauth2/token')),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it('processes every item and preserves paired item links', async () => {
@@ -769,7 +635,7 @@ describe('MoltNet node', () => {
     expect(api.createdBodies).toHaveLength(2);
     expect(
       api.requests.filter(({ url }) => url.endsWith('/oauth2/token')),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
   });
 
   it('uses separately resolved credentials for each input item', async () => {

@@ -11,21 +11,24 @@ export interface Config extends Client.Config {
   name: string;
 }
 
-type N8nClientPlugin = Plugin.Types<Config>;
-type ResolvedN8nClientPlugin = Omit<Plugin.Config<N8nClientPlugin>, 'name'> & {
+type ApiBindingsPlugin = Plugin.Types<Config>;
+type ResolvedApiBindingsPlugin = Omit<
+  Plugin.Config<ApiBindingsPlugin>,
+  'name'
+> & {
   name: string;
 };
 
-const defaultConfig: Plugin.Config<N8nClientPlugin> = {
+const defaultConfig: Plugin.Config<ApiBindingsPlugin> = {
   ...clientDefaultMeta,
   config: {
     ...clientDefaultConfig,
     bundle: true,
   },
   handler: clientPluginHandler,
-  // Overridden with the absolute source path by openapi-ts.config.ts.
+  // Overridden with the absolute source path by the generator config.
   name: '',
 };
 
-export const n8nClientPlugin = (name: string): ResolvedN8nClientPlugin =>
+export const apiBindingsPlugin = (name: string): ResolvedApiBindingsPlugin =>
   definePluginConfig({ ...defaultConfig, name })();

@@ -18,6 +18,10 @@
     "./retry": {
       "import": "./src/retry-fetch.ts",
       "types": "./src/retry-fetch.ts"
+    },
+    "./api-bindings": {
+      "import": "./src/api-bindings.ts",
+      "types": "./src/api-bindings.ts"
     }
   },
   "peerDependencies": {
@@ -26,6 +30,7 @@
   "scripts": {
     "build": "tsc -b",
     "generate": "openapi-ts",
+    "generate:api-bindings": "openapi-ts --file openapi-bindings.config.ts",
     "dev": "tsc --watch"
   },
   "devDependencies": {
@@ -41,6 +46,22 @@
       "platform:isomorphic"
     ],
     "targets": {
+      "generate:api-bindings": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/openapi-bindings.config.ts",
+          "{projectRoot}/generator/api-bindings/**/*",
+          "{workspaceRoot}/apps/rest-api/public/openapi.json"
+        ],
+        "outputs": [
+          "{projectRoot}/src/generated-api-bindings"
+        ],
+        "options": {
+          "cwd": "libs/api-client",
+          "command": "openapi-ts --file openapi-bindings.config.ts"
+        }
+      },
       "typecheck": {
         "executor": "nx:noop",
         "dependsOn": [
