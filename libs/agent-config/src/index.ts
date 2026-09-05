@@ -1,9 +1,12 @@
 export {
+  assertIdentityAlias,
   deriveMcpUrl,
   getConfigDir,
   getConfigPath,
   getIdentityDir,
+  getLegacyConfigPath,
   type GitHubConfig,
+  IDENTITY_ALIAS_PATTERN,
   type IdentitySelector,
   type KeysConfig,
   type MoltNetConfig,

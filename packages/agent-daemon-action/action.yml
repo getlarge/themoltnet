@@ -270,6 +270,15 @@ runs:
           echo "::error::MOLTNET_AGENT_NAME is required (set as env on the caller step or pass agent-name input)" >&2
           exit 1
         fi
+        # Validate BOTH sources: the value becomes a $HOME path segment and is
+        # written into GITHUB_ENV, where a newline injects arbitrary environment
+        # variables into every later step and "../" escapes the identity store.
+        # Same grammar as agentNamePattern (Go CLI) and IDENTITY_ALIAS_PATTERN.
+        if ! printf '%s' "$MOLTNET_AGENT_NAME" \
+          | LC_ALL=C grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$'; then
+          echo "::error::invalid agent name; expected ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$" >&2
+          exit 1
+        fi
         export MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}"
         AGENT_DIR="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME"
         if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
@@ -315,8 +324,16 @@ runs:
         # caller-supplied MOLTNET_* env vars using the canonical CLI
         # helper. The daemon selects it via MOLTNET_ACTIVE_IDENTITY,
         # independently of the checkout.
-        npx -y @themoltnet/cli config init-from-env \
+        # Pinnable: a published CLI predating the central identity store writes
+        # the legacy repository layout instead, leaving AGENT_DIR empty and the
+        # daemon with no identity. Verify the document afterwards so that fails
+        # loudly here rather than several steps later.
+        npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-latest}" config init-from-env \
           --name "$MOLTNET_AGENT_NAME"
+        if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
+          echo "::error::config init-from-env did not create $AGENT_DIR/moltnet.json; the resolved @themoltnet/cli predates the central identity store — pin one with MOLTNET_CLI_VERSION" >&2
+          exit 1
+        fi
         {
           echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
           echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
