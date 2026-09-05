@@ -167,7 +167,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
       if (authContext.subjectType === 'human') {
         request.log.debug({ subjectType: 'human' }, 'whoami resolved');
         return {
-          principalId: authContext.humanId,
+          subjectId: authContext.humanId,
           identityId: authContext.identityId,
           subjectType: 'human' as const,
           currentTeamId: authContext.currentTeamId,
@@ -197,7 +197,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
       );
 
       return {
-        principalId: agent.id,
+        subjectId: agent.id,
         // The identity this request authenticated as, not `agent.identityId`:
         // the caller asked who it is right now, and the auth context is the
         // only source that cannot be null here.

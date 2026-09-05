@@ -58,7 +58,7 @@ export async function handleWhoami(
       // The durable id first: identityId is a re-linkable Kratos reference,
       // so an agent that keys local state on it cannot tell a relink from a
       // different agent.
-      principalId: data.principalId,
+      subjectId: data.subjectId,
       identityId: data.identityId,
       clientId: data.clientId,
       publicKey: data.publicKey,

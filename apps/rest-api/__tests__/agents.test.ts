@@ -183,9 +183,9 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      // principalId is agents.id — the durable one. identityId is the Kratos
+      // subjectId is agents.id — the durable one. identityId is the Kratos
       // binding this request authenticated as.
-      expect(body.principalId).toBe(OWNER_ID);
+      expect(body.subjectId).toBe(OWNER_ID);
       expect(body.identityId).toBe(OWNER_IDENTITY_ID);
       expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
       expect(body.subjectType).toBe('agent');
@@ -248,9 +248,9 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      // principalId is humans.id (the FK target and Keto subject);
+      // subjectId is humans.id (the FK target and Keto subject);
       // identityId is the Kratos binding. Distinct values on purpose.
-      expect(body.principalId).toBe(OWNER_ID);
+      expect(body.subjectId).toBe(OWNER_ID);
       expect(body.identityId).toBe(OWNER_IDENTITY_ID);
       expect(body.subjectType).toBe('human');
       expect(body.scopes).toEqual(HUMAN_AUTH_CONTEXT.scopes);

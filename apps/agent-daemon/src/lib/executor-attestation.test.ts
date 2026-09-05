@@ -36,6 +36,7 @@ import {
 
 function agentWhoami(overrides: Partial<Whoami> = {}): Whoami {
   return {
+    subjectId: 'agent-1',
     identityId: 'identity-1',
     scopes: [...DAEMON_REQUIRED_SCOPES],
     subjectType: 'agent',

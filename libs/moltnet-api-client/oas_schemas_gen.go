@@ -63799,9 +63799,9 @@ type Whoami struct {
 	CurrentTeamId     OptNilUUID                 `json:"currentTeamId"`
 	Fingerprint       OptString                  `json:"fingerprint"`
 	IdentityId        uuid.UUID                  `json:"identityId"`
-	PrincipalId       uuid.UUID                  `json:"principalId"`
 	PublicKey         OptString                  `json:"publicKey"`
 	Scopes            []string                   `json:"scopes"`
+	SubjectId         uuid.UUID                  `json:"subjectId"`
 	SubjectType       WhoamiSubjectType          `json:"subjectType"`
 }
 
@@ -63830,11 +63830,6 @@ func (s *Whoami) GetIdentityId() uuid.UUID {
 	return s.IdentityId
 }
 
-// GetPrincipalId returns the value of PrincipalId.
-func (s *Whoami) GetPrincipalId() uuid.UUID {
-	return s.PrincipalId
-}
-
 // GetPublicKey returns the value of PublicKey.
 func (s *Whoami) GetPublicKey() OptString {
 	return s.PublicKey
@@ -63843,6 +63838,11 @@ func (s *Whoami) GetPublicKey() OptString {
 // GetScopes returns the value of Scopes.
 func (s *Whoami) GetScopes() []string {
 	return s.Scopes
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *Whoami) GetSubjectId() uuid.UUID {
+	return s.SubjectId
 }
 
 // GetSubjectType returns the value of SubjectType.
@@ -63875,11 +63875,6 @@ func (s *Whoami) SetIdentityId(val uuid.UUID) {
 	s.IdentityId = val
 }
 
-// SetPrincipalId sets the value of PrincipalId.
-func (s *Whoami) SetPrincipalId(val uuid.UUID) {
-	s.PrincipalId = val
-}
-
 // SetPublicKey sets the value of PublicKey.
 func (s *Whoami) SetPublicKey(val OptString) {
 	s.PublicKey = val
@@ -63888,6 +63883,11 @@ func (s *Whoami) SetPublicKey(val OptString) {
 // SetScopes sets the value of Scopes.
 func (s *Whoami) SetScopes(val []string) {
 	s.Scopes = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *Whoami) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
 }
 
 // SetSubjectType sets the value of SubjectType.

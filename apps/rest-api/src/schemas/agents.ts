@@ -16,7 +16,10 @@ export const AgentProfileSchema = Type.Object(
 export const WhoamiSchema = Type.Object(
   {
     /**
-     * Internal MoltNet principal ID — `agents.id` or `humans.id`.
+     * Internal MoltNet subject ID — `agents.id` or `humans.id`, discriminated
+     * by `subjectType` below. Named to pair with it, and with the
+     * `{ subjectId, subjectNs }` that `requireKetoSubject` returns: this is
+     * the same value those permission checks are made against.
      *
      * This is the only way an already-registered agent can discover its own
      * durable identifier: `agents.id` values are minted independently of Ory,
@@ -24,7 +27,7 @@ export const WhoamiSchema = Type.Object(
      * otherwise is mutable — the Kratos identity is re-linkable and the keypair
      * is rotatable.
      */
-    principalId: Type.String({ format: 'uuid' }),
+    subjectId: Type.String({ format: 'uuid' }),
     /**
      * Kratos identity this request authenticated as.
      *

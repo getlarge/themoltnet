@@ -127024,10 +127024,6 @@ func (s *Whoami) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.IdentityId)
 	}
 	{
-		e.FieldStart("principalId")
-		json.EncodeUUID(e, s.PrincipalId)
-	}
-	{
 		if s.PublicKey.Set {
 			e.FieldStart("publicKey")
 			s.PublicKey.Encode(e)
@@ -127044,6 +127040,10 @@ func (s *Whoami) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		e.FieldStart("subjectId")
+		json.EncodeUUID(e, s.SubjectId)
+	}
+	{
 		e.FieldStart("subjectType")
 		s.SubjectType.Encode(e)
 	}
@@ -127055,9 +127055,9 @@ var jsonFieldsNameOfWhoami = [9]string{
 	2: "currentTeamId",
 	3: "fingerprint",
 	4: "identityId",
-	5: "principalId",
-	6: "publicKey",
-	7: "scopes",
+	5: "publicKey",
+	6: "scopes",
+	7: "subjectId",
 	8: "subjectType",
 }
 
@@ -127122,18 +127122,6 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
-		case "principalId":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.PrincipalId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"principalId\"")
-			}
 		case "publicKey":
 			if err := func() error {
 				s.PublicKey.Reset()
@@ -127163,6 +127151,18 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"scopes\"")
 			}
+		case "subjectId":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.SubjectId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subjectId\"")
+			}
 		case "subjectType":
 			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
@@ -127183,7 +127183,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
-		0b00110000,
+		0b10010000,
 		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {

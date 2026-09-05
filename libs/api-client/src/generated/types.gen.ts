@@ -3294,9 +3294,9 @@ export type Whoami = {
   currentTeamId?: string | null;
   fingerprint?: string;
   identityId: string;
-  principalId: string;
   publicKey?: string;
   scopes?: Array<string>;
+  subjectId: string;
   subjectType: 'agent' | 'human';
 };
 
