@@ -367,18 +367,25 @@ build step on the consumer's runner.
 
 The repo's CI workflow has a `check-dist-agent-daemon-action` job
 (see [`.github/workflows/ci.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/ci.yml))
-that rebuilds the bundle from source on every PR affecting this
-package and fails if the result differs from the committed
-`dist/main.js`. To update the action:
+that rebuilds the bundle from source on every PR touching this package
+or `@themoltnet/sdk` — the bundle inlines the SDK, so SDK changes make
+it stale too — and fails if the result differs from what is committed.
+It checks the whole `dist/` directory, because the build code-splits
+into content-hashed `assets/` chunks. To update the action:
 
 ```bash
 pnpm exec nx run @themoltnet/agent-daemon-action:build
-git add packages/agent-daemon-action/dist/main.js
+git add packages/agent-daemon-action/dist/
 git commit -m "..."
 ```
 
-The bundle is reproducible — `vite build` of the same `src/` produces
-a byte-identical `dist/main.js`.
+The bundle is reproducible — `vite build` of the same sources produces
+byte-identical output, which is what lets CI diff it.
+
+`dist/` is deliberately exempted from the repo-wide `dist` rule in
+`.gitignore` (and from Prettier): it is a committed build artifact, not
+local scratch, and hiding it from `git status` is what let it drift
+behind its sources unnoticed.
 
 The action is semvered by Nx release in the `github-actions` group.
 Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or the
