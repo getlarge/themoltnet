@@ -74,6 +74,13 @@ export const TEST_SECURITY_OPTIONS = {
   apiBaseUrl: 'http://localhost:8000',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
+/**
+ * The owning agent's Kratos identity — deliberately DIFFERENT from OWNER_ID
+ * (its agents.id). They were the same column before the decoupling, and every
+ * fixture reusing one value for both is why 16 broken JOINs and a broken batch
+ * lookup passed a green test suite. Keep them distinct.
+ */
+export const OWNER_IDENTITY_ID = '550e8400-e29b-41d4-a716-4466554400ff';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 export const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
@@ -408,13 +415,34 @@ export function createMockServices(): MockServices {
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
+      // Creator inflation resolves by internal id since the decoupling.
+      findById: vi.fn().mockResolvedValue({
+        id: OWNER_ID,
+        identityId: OWNER_IDENTITY_ID,
+        publicKey: 'ed25519:mockkeypayload',
+        fingerprint: 'A1B2-C3D4-E5F6-1234',
+      }),
+      findByIds: vi.fn().mockImplementation((ids: readonly string[]) => {
+        const unique = Array.from(new Set(ids.filter(Boolean)));
+        const map = new Map();
+        for (const id of unique) {
+          map.set(id, {
+            id,
+            identityId: OWNER_IDENTITY_ID,
+            publicKey: 'ed25519:mockkeypayload',
+            fingerprint: 'A1B2-C3D4-E5F6-1234',
+          });
+        }
+        return Promise.resolve(map);
+      }),
       findByIdentityId: vi
         .fn()
         // Default agent so inflateCreator resolves to a valid PrincipalIdentity
         // in routes that echo back the just-created principal. Tests that need
         // a different identity / null can override.
         .mockResolvedValue({
-          identityId: OWNER_ID,
+          id: OWNER_ID,
+          identityId: OWNER_IDENTITY_ID,
           // PublicKeySchema pattern: ^ed25519:[A-Za-z0-9+/=]+$
           publicKey: 'ed25519:mockkeypayload',
           // FingerprintSchema pattern: ^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$
@@ -430,7 +458,8 @@ export function createMockServices(): MockServices {
           const map = new Map();
           for (const id of unique) {
             map.set(id, {
-              identityId: id,
+              id,
+              identityId: OWNER_IDENTITY_ID,
               publicKey: 'ed25519:mockkeypayload',
               fingerprint: 'A1B2-C3D4-E5F6-1234',
             });

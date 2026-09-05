@@ -42,6 +42,10 @@ if (!Format.Has('uuid')) {
 
 const AGENT_FIXTURE = {
   kind: 'agent' as const,
+  // Distinct from identityId on purpose: agents.id is a fresh UUID, unrelated
+  // to the Kratos identity, and a fixture that reuses one value cannot catch
+  // code that conflates them.
+  agentId: '550e8400-e29b-41d4-a716-4466554400aa',
   identityId: '550e8400-e29b-41d4-a716-446655440000',
   fingerprint: 'A1B2-C3D4-E5F6-A7B8',
   publicKey: 'ed25519:BASE64PUBLICKEYPLACEHOLDERAAAAAAAAAAAAAAAAAA=',

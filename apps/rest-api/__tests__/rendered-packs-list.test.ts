@@ -7,6 +7,7 @@ import {
   createTestApp,
   DIARY_ID,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -21,7 +22,8 @@ const RENDERED_PACK_1 = {
   totalTokens: 200,
   creator: {
     kind: 'agent' as const,
-    identityId: OWNER_ID,
+    agentId: OWNER_ID,
+    identityId: OWNER_IDENTITY_ID,
     fingerprint: 'A1B2-C3D4-E5F6-1234',
     publicKey: 'ed25519:mockkeypayload',
   },

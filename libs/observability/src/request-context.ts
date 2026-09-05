@@ -2,6 +2,14 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface RequestContext {
   requestId?: string;
+  /**
+   * Internal MoltNet principal IDs. Logged alongside identityId because they
+   * are the Keto subject and FK target: after an Ory identity is recreated,
+   * identityId alone resolves to nothing, which is what made the 2026-09-04
+   * incident hard to diagnose from logs.
+   */
+  agentId?: string;
+  humanId?: string;
   identityId?: string;
   clientId?: string;
   subjectType?: 'agent' | 'human';
