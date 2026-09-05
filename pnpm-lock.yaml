@@ -776,6 +776,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/shell-command-analyzer
     devDependencies:
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
       '@themoltnet/pi-runtime':
         specifier: workspace:*
         version: link:../../libs/pi-runtime
