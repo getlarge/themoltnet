@@ -290,9 +290,12 @@ describe('agent keys', () => {
     });
   });
 
-  it('claims and heartbeats on the five-scope grant while staying a ceiling', async () => {
+  it('claims and heartbeats on the canonical daemon grant while staying a ceiling', async () => {
     // AGENT_CREDENTIAL_SCOPES covers the claim/heartbeat path and is a real
     // ceiling: it cannot cancel work or mint credentials.
+    //
+    // Named for the constant rather than its current size, so widening the
+    // canonical grant does not leave this contract describing something else.
     //
     // Deliberately NOT "the daemon hot path": host-capability diary signing
     // also runs on the daemon's own credential (libs/agent-runtime/src/
@@ -323,6 +326,12 @@ describe('agent keys', () => {
     }
     const daemonSecret = daemonKey.secret;
     const teamHeaders = { 'x-moltnet-team-id': agent.personalTeamId };
+
+    // Bind the assertion to the constant: if the canonical grant changes, the
+    // issued key must change with it rather than this test quietly drifting.
+    expect(new Set(daemonKey.key.scopes)).toEqual(
+      new Set(AGENT_CREDENTIAL_SCOPES),
+    );
 
     const task = await createTask({
       client,

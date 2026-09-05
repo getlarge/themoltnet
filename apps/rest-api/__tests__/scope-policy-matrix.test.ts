@@ -11,14 +11,10 @@ import {
 } from './helpers.js';
 
 /**
- * One probe per scope family that a request can reach without a body: Fastify
- * validates the body before the preHandler chain, so a POST probe with a stub
- * payload would assert schema validation rather than the scope gate.
+ * One probe per scope family declared by at least one route.
  *
- * `pack:write` and `task:claim` are therefore NOT covered here and, as of this
- * writing, are not covered by their route suites either — those suites run on
- * the full-grant VALID_AUTH_CONTEXT, so their 403s are Keto denials, not scope
- * denials. Adding them needs a minimal valid payload per route.
+ * Write families are reached either through a body-less DELETE or with the
+ * smallest schema-valid `body` the route accepts.
  *
  * `connector:invoke` and `human:profile` are in the vocabulary but declared by
  * no route — connector issuance was never built, and `human:profile` is carried
@@ -29,6 +25,12 @@ interface ScopeProbe {
   request: Pick<InjectOptions, 'method' | 'url'>;
   scope: CredentialScope;
   teamBound?: boolean;
+  /**
+   * Minimal schema-valid payload. Fastify validates the body before the
+   * preHandler chain, so a write probe without one would assert schema
+   * validation rather than the scope gate.
+   */
+  body?: Record<string, unknown>;
 }
 
 const PROBES: readonly ScopeProbe[] = [
@@ -104,7 +106,30 @@ const PROBES: readonly ScopeProbe[] = [
     scope: 'runtime:manage',
     teamBound: true,
   },
+  {
+    family: 'task claim',
+    request: { method: 'POST', url: `/tasks/${DIARY_ID}/claim` },
+    scope: 'task:claim',
+    teamBound: true,
+    body: { leaseTtlSec: 60 },
+  },
+  {
+    family: 'pack write',
+    request: { method: 'PATCH', url: `/packs/${DIARY_ID}` },
+    scope: 'pack:write',
+    teamBound: true,
+    body: { pinned: true },
+  },
 ];
+
+/** Scope-denial detail, or '' when the response carries no JSON body. */
+function scopeDenialDetail(response: { json: () => unknown }): string {
+  try {
+    return (response.json() as { detail?: string }).detail ?? '';
+  } catch {
+    return '';
+  }
+}
 
 describe('credential scope policy matrix', () => {
   let app: FastifyInstance;
@@ -128,9 +153,10 @@ describe('credential scope policy matrix', () => {
 
   it.each(PROBES)(
     'allows a minimally scoped credential through the $family scope gate',
-    async ({ request, scope, teamBound }) => {
+    async ({ request, scope, teamBound, body }) => {
       const response = await app.inject({
         ...request,
+        ...(body ? { body } : {}),
         headers: {
           authorization: `Bearer ${scope}`,
           ...(teamBound ? { 'x-moltnet-team-id': OWNER_ID } : {}),
@@ -143,9 +169,9 @@ describe('credential scope policy matrix', () => {
       // silently retiring the minimality guarantee this probe exists for.
       // A plain `statusCode !== 403` is too strong — team-bound probes are
       // legitimately Keto-denied by the mocks, which is not a scope failure.
-      expect(response.json()).not.toMatchObject({
-        detail: expect.stringMatching(/^Missing required scope:/),
-      });
+      expect(scopeDenialDetail(response)).not.toMatch(
+        /^Missing required scope:/,
+      );
     },
   );
 
@@ -171,7 +197,7 @@ describe('credential scope policy matrix', () => {
 
   it.each(PROBES)(
     'rejects a credential holding only an unrelated scope on the $family gate',
-    async ({ request, scope, teamBound }) => {
+    async ({ request, scope, teamBound, body }) => {
       // The strongest regression guard: a credential that carries a real scope,
       // just not this route's. Proves the gate is per-scope rather than
       // "authenticated and holding something".
@@ -179,6 +205,7 @@ describe('credential scope policy matrix', () => {
         scope === 'team:read' ? 'agent:profile' : 'team:read';
       const response = await app.inject({
         ...request,
+        ...(body ? { body } : {}),
         headers: {
           authorization: `Bearer ${unrelated}`,
           ...(teamBound ? { 'x-moltnet-team-id': OWNER_ID } : {}),
@@ -194,9 +221,10 @@ describe('credential scope policy matrix', () => {
 
   it.each(PROBES)(
     'rejects a credential without the $family scope',
-    async ({ request, scope, teamBound }) => {
+    async ({ request, scope, teamBound, body }) => {
       const response = await app.inject({
         ...request,
+        ...(body ? { body } : {}),
         headers: {
           authorization: 'Bearer no-scopes',
           ...(teamBound ? { 'x-moltnet-team-id': OWNER_ID } : {}),
