@@ -12,7 +12,7 @@ import (
 )
 
 type envConfigureOptions struct {
-	Dir, Agent                  string
+	Identity                    string
 	TeamID, DiaryID, Authorship string
 	HumanGitIdentity            string
 	ClearTeamID, ClearDiaryID   bool
@@ -38,15 +38,15 @@ func runEnvConfigureCmd(cmd *cobra.Command, opts envConfigureOptions, changed fu
 		return fmt.Errorf("--human-git-identity must use Name <email> format")
 	}
 
-	moltnetDir, err := resolveMoltnetDir(opts.Dir)
+	agentName, err := resolveIdentityAlias(opts.Identity)
 	if err != nil {
 		return err
 	}
-	agentName, err := resolveAgentName(moltnetDir, opts.Agent)
+	agentDir, err := identityDir(agentName)
 	if err != nil {
 		return err
 	}
-	envPath := filepath.Join(moltnetDir, agentName, "env")
+	envPath := filepath.Join(agentDir, "env")
 
 	updates := map[string]*string{}
 	set := func(flag, key, value string, clear bool) {

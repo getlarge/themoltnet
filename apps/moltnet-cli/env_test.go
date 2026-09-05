@@ -9,6 +9,15 @@ import (
 	"testing"
 )
 
+func mustGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
 func TestToEnvPrefix(t *testing.T) {
 	t.Parallel()
 	tests := []struct{ input, want string }{
@@ -267,16 +276,15 @@ func TestResolveAgentName_FlagNotFound(t *testing.T) {
 // --- use command tests ---
 
 func TestUseCommand(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("X=1\n"), 0o644)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "use", "test-agent", "--dir", dir)
+	stdout, _, err := executeCommand(root, "use", "test-agent")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -284,12 +292,9 @@ func TestUseCommand(t *testing.T) {
 		t.Errorf("expected agent name in output, got: %s", stdout)
 	}
 
-	data, err := os.ReadFile(filepath.Join(moltnetDir, "default-agent"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.TrimSpace(string(data)) != "test-agent" {
-		t.Errorf("default-agent = %q, want %q", string(data), "test-agent")
+	selector, err := readIdentitySelector()
+	if err != nil || selector.DefaultIdentity != "test-agent" {
+		t.Fatalf("identity selector = %#v, %v", selector, err)
 	}
 }
 
@@ -308,10 +313,9 @@ func TestUseCommandMissingAgent(t *testing.T) {
 // --- env check command tests ---
 
 func TestEnvCheckPass(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		IdentityID: "test-identity",
@@ -327,7 +331,7 @@ func TestEnvCheckPass(t *testing.T) {
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte(envContent), 0o644)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", dir)
+	stdout, _, err := executeCommand(root, "env", "check", "--identity", "test-agent")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -336,17 +340,49 @@ func TestEnvCheckPass(t *testing.T) {
 	}
 }
 
-func TestEnvCheckMissingVars(t *testing.T) {
-	t.Parallel()
+func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "test-identity", OAuth2: CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"}}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	gitconfigPath := filepath.Join(agentDir, "gitconfig")
+	if err := os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pemPath := filepath.Join(agentDir, "test-agent.pem")
+	if err := os.WriteFile(pemPath, []byte("---PEM---"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", ".")
+	if err != nil {
+		t.Fatalf("env check legacy aliases: %v", err)
+	}
+	if !strings.Contains(stdout, "All required checks passed") {
+		t.Fatalf("unexpected output: %s", stdout)
+	}
+}
+
+func TestEnvCheckMissingVars(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("TEST_AGENT_CLIENT_ID='cid'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", dir)
+	_, _, err := executeCommand(root, "env", "check", "--identity", "test-agent")
 	if err == nil {
 		t.Fatal("expected error for missing required vars")
 	}
@@ -355,34 +391,26 @@ func TestEnvCheckMissingVars(t *testing.T) {
 // --- start command tests ---
 
 func TestStartDryRun(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		IdentityID: "test-identity",
 		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
 	}, filepath.Join(agentDir, "moltnet.json"))
-	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644)
+	gitconfig := filepath.Join(agentDir, "gitconfig")
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='"+gitconfig+"'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "start", "echo", "--agent", "test-agent", "--dir", dir, "--dry-run")
+	stdout, _, err := executeCommand(root, "start", "echo", "--identity", "test-agent", "--dry-run")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(stdout, "MY_VAR=hello") {
 		t.Errorf("expected MY_VAR in dry-run output, got: %s", stdout)
 	}
-	// GIT_CONFIG_GLOBAL should be resolved to an absolute path. dir is
-	// canonicalized so the expectation matches the canonical form returned
-	// by resolveMoltnetDir (e.g. /var → /private/var on macOS).
-	canonicalDir, err := filepath.EvalSymlinks(dir)
-	if err != nil {
-		t.Fatalf("eval symlinks: %v", err)
-	}
-	absGitconfig := filepath.Join(canonicalDir, ".moltnet", "test-agent", "gitconfig")
-	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL="+absGitconfig) {
+	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL="+gitconfig) {
 		t.Errorf("expected absolute GIT_CONFIG_GLOBAL path, got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "echo") {
@@ -398,10 +426,9 @@ func TestStartDryRun(t *testing.T) {
 }
 
 func TestStartDryRunForwardsTargetArgs(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		IdentityID: "test-identity",
@@ -414,10 +441,8 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 		root,
 		"start",
 		"echo",
-		"--agent",
+		"--identity",
 		"test-agent",
-		"--dir",
-		dir,
 		"--dry-run",
 		"--",
 		"--model",
@@ -440,15 +465,8 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 
 func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	dir := t.TempDir()
-	workingDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	relativeDir, err := filepath.Rel(workingDir, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -483,9 +501,8 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 		return nil
 	}
 
-	err = runStartCmdWithRegistryAndExec(
+	err := runStartCmdWithRegistryAndExec(
 		NewRootCmd("test", ""),
-		relativeDir,
 		"test-agent",
 		"echo",
 		[]string{"hello"},
@@ -520,7 +537,7 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if got := childEnv["MOLTNET_CLIENT_SECRET"]; got != "launch-only-secret" {
 		t.Fatalf("generic child client secret = %q, want launch-time keyring value", got)
 	}
-	wantCredentialsPath, err := filepath.Abs(filepath.Join(relativeDir, ".moltnet", "test-agent", "moltnet.json"))
+	wantCredentialsPath, err := filepath.Abs(filepath.Join(agentDir, "moltnet.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -557,14 +574,14 @@ func TestStartMissingAgent(t *testing.T) {
 }
 
 func TestStartMissingEnvFile(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
 
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "start", "claude", "--agent", "test-agent", "--dir", dir)
+	_, _, err := executeCommand(root, "start", "claude", "--identity", "test-agent")
 	if err == nil {
 		t.Fatal("expected error for missing env file")
 	}

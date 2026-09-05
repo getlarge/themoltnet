@@ -75,16 +75,13 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     values['allowed-origins'] ??
       (envConfig.allowedOrigins || DEFAULT_ALLOWED_ORIGINS),
   );
-  const root =
-    values.root ??
-    resolveAgentServerRoot({
-      root: envConfig.root,
-      xdgConfigHome: envConfig.xdgConfigHome,
-    });
+  const root = values.root ?? resolveAgentServerRoot({ root: envConfig.root });
   const defaultApiUrl =
     values['api-url'] ?? (envConfig.apiUrl || DEFAULT_API_URL);
 
-  const store = new AgentServerStore(root).ensure();
+  const store = new AgentServerStore(root).ensure({
+    legacyXdgConfigHome: envConfig.xdgConfigHome,
+  });
   if (trustRequested) return runTrustCommand(commandArgs, root);
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.server',

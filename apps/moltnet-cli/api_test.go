@@ -361,6 +361,7 @@ func TestNewAuthenticatedClientRejectsInsecureRemoteAgentKeyEndpoint(t *testing.
 }
 
 func TestNewAuthenticatedClientMissingOAuthCredentialsNamesAgentKeyOption(t *testing.T) {
+	isolateIdentityEnv(t)
 	t.Setenv(agentKeyEnv, "")
 	isolateCredentialDiscovery(t)
 
@@ -368,9 +369,12 @@ func TestNewAuthenticatedClientMissingOAuthCredentialsNamesAgentKeyOption(t *tes
 	if err == nil {
 		t.Fatal("expected missing credentials error")
 	}
+	// With an empty central store the remedy is to create or migrate an
+	// identity — NOT `config identity select`, which would also fail.
 	if !strings.Contains(err.Error(), agentKeyEnv) ||
-		!strings.Contains(err.Error(), "moltnet register") {
-		t.Errorf("error = %q, want both authentication options", err)
+		!strings.Contains(err.Error(), "moltnet register") ||
+		!strings.Contains(err.Error(), "config migrate") {
+		t.Errorf("error = %q, want the agent-key option and an empty-store remedy", err)
 	}
 }
 

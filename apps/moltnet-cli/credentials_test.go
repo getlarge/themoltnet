@@ -11,11 +11,6 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
-	dir := filepath.Join(tmpDir, ".config", "moltnet")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-
 	config := CredentialsFile{
 		IdentityID:   "uuid-from-moltnet",
 		RegisteredAt: "2026-01-01T00:00:00Z",
@@ -23,8 +18,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
 		Endpoints:    CredentialsEndpoints{API: "https://api.test", MCP: "https://api.test/mcp"},
 	}
-	data, _ := json.Marshal(config)
-	if err := os.WriteFile(filepath.Join(dir, "moltnet.json"), data, 0o600); err != nil {
+	if _, err := writeCentralIdentityConfig("primary", &config); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,7 +34,8 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	}
 }
 
-func TestReadConfig_IgnoresCredentialsJSON(t *testing.T) {
+func TestReadConfigDoesNotDiscoverLegacyGlobalDocument(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -61,12 +56,8 @@ func TestReadConfig_IgnoresCredentialsJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	read, err := ReadConfig()
-	if err != nil {
-		t.Fatalf("ReadConfig: %v", err)
-	}
-	if read != nil {
-		t.Fatalf("expected credentials.json to be ignored, got identity %q", read.IdentityID)
+	if _, err := ReadConfig(); err == nil {
+		t.Fatal("legacy global document unexpectedly selected")
 	}
 }
 
@@ -95,9 +86,10 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 	}
 
 	legacyData, _ := json.Marshal(legacy)
-	modernData, _ := json.Marshal(modern)
-	os.WriteFile(filepath.Join(dir, "credentials.json"), legacyData, 0o600)
-	os.WriteFile(filepath.Join(dir, "moltnet.json"), modernData, 0o600)
+	os.WriteFile(filepath.Join(dir, "moltnet.json"), legacyData, 0o600)
+	if _, err := writeCentralIdentityConfig("modern", &modern); err != nil {
+		t.Fatal(err)
+	}
 
 	read, err := ReadConfig()
 	if err != nil {
@@ -107,11 +99,12 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 		t.Fatal("expected non-nil")
 	}
 	if read.IdentityID != "uuid-new" {
-		t.Errorf("should prefer moltnet.json: got %s, want uuid-new", read.IdentityID)
+		t.Errorf("should select central identity: got %s, want uuid-new", read.IdentityID)
 	}
 }
 
 func TestWriteConfig(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -123,12 +116,25 @@ func TestWriteConfig(t *testing.T) {
 		Endpoints:    CredentialsEndpoints{API: "https://api.test", MCP: "https://api.test/mcp"},
 	}
 
+	// With no identity selected the write must fail rather than invent a
+	// "default" alias and promote it to the persisted default.
+	if _, err := WriteConfig(config); err == nil {
+		t.Fatal("WriteConfig must not invent an identity when none is selected")
+	}
+	if entries, err := os.ReadDir(filepath.Join(tmpDir, ".config", "moltnet", "identities")); err == nil && len(entries) > 0 {
+		t.Fatalf("no identity directory may be created on failure, got %d", len(entries))
+	}
+
+	if err := writeIdentitySelector("chosen"); err != nil {
+		t.Fatalf("writeIdentitySelector: %v", err)
+	}
+
 	path, err := WriteConfig(config)
 	if err != nil {
 		t.Fatalf("WriteConfig: %v", err)
 	}
 
-	expectedPath := filepath.Join(tmpDir, ".config", "moltnet", "moltnet.json")
+	expectedPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "chosen", "moltnet.json")
 	if path != expectedPath {
 		t.Errorf("path: got %s, want %s", path, expectedPath)
 	}
@@ -137,22 +143,26 @@ func TestWriteConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
-		t.Errorf("permissions: got %o, want 600", perm)
+	if mode := info.Mode().Perm(); mode != 0o600 {
+		t.Errorf("mode: got %o, want 600", mode)
 	}
-
-	read, err := ReadConfigFrom(path)
-	if err != nil {
-		t.Fatalf("ReadConfigFrom: %v", err)
-	}
-	if read.IdentityID != "uuid-write-test" {
-		t.Errorf("identity_id: got %s", read.IdentityID)
+	if dirInfo, err := os.Stat(filepath.Dir(path)); err != nil {
+		t.Fatalf("stat identity dir: %v", err)
+	} else if mode := dirInfo.Mode().Perm(); mode != 0o700 {
+		t.Errorf("identity dir mode: got %o, want 700", mode)
 	}
 }
 
 func TestOptionalSections(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
+	// WriteConfig writes to the SELECTED identity and now refuses to invent
+	// one, so the test must name it rather than relying on an ambient
+	// MOLTNET_AGENT_NAME leaking in from the developer's shell.
+	if err := writeIdentitySelector("optional-sections"); err != nil {
+		t.Fatal(err)
+	}
 
 	config := &CredentialsFile{
 		IdentityID:   "uuid-sections",
@@ -216,8 +226,15 @@ func TestOptionalSections(t *testing.T) {
 }
 
 func TestOptionalSections_OmitEmpty(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
+	// WriteConfig writes to the SELECTED identity and now refuses to invent
+	// one, so the test must name it rather than relying on an ambient
+	// MOLTNET_AGENT_NAME leaking in from the developer's shell.
+	if err := writeIdentitySelector("optional-sections"); err != nil {
+		t.Fatal(err)
+	}
 
 	config := &CredentialsFile{
 		IdentityID:   "uuid-no-sections",

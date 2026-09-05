@@ -5,7 +5,8 @@
  * the OS keyring under the same canonical keys). Shaped as an embryo of the
  * #1834 portable agent profile store:
  *
- *   - managed `agents/<alias>.json` files are exact `MoltNetConfig` documents;
+ *   - managed `identities/<alias>/moltnet.json` files are exact
+ *     `MoltNetConfig` documents shared with the released Go CLI;
  *   - `agent-server.json` activations keep aliases and external paths separate;
  *   - secret keys follow the canonical `libs/sdk` naming
  *     (`agent-key/<identityId>`, `identity/<fingerprint>/seed`);
@@ -29,8 +30,14 @@ import { join, resolve, sep } from 'node:path';
 import type { MoltNetConfig } from '@themoltnet/sdk';
 
 export const AGENT_SERVER_STATE_VERSION = 1;
+export const IDENTITY_SELECTOR_VERSION = 1;
 
-const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+// Must stay identical to the Go CLI's agentNamePattern (agents_init.go) and to
+// identityAliasPattern in @moltnet/agent-config: an alias is a directory name in
+// a store all three write. The previous grammar rejected `.` and allowed 64
+// characters, so a CLI-created `agent.v2` was unreadable by the daemon and a
+// 64-character daemon alias was rejected by the CLI.
+const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
 const PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function assertStoreName(kind: string, value: string): string {
@@ -69,15 +76,49 @@ export class AgentServerStoreError extends Error {
   }
 }
 
-/** `MOLTNET_AGENT_SERVER_ROOT` override, else `$XDG_CONFIG_HOME/moltnet`, else `~/.config/moltnet`. */
+/**
+ * `MOLTNET_AGENT_SERVER_ROOT` override, else `~/.config/moltnet`.
+ *
+ * Deliberately does NOT consult `XDG_CONFIG_HOME`. The Go CLI's GetConfigDir
+ * and @moltnet/agent-config's getConfigDir both resolve `~/.config/moltnet`,
+ * so honouring XDG here gave one application two config roots: on a machine
+ * with the variable set, the daemon wrote identities the CLI and SDK could not
+ * read. `MOLTNET_AGENT_SERVER_ROOT` remains the explicit escape hatch for a
+ * genuinely custom location. `xdgConfigHome` is still accepted so callers can
+ * report a legacy root; see adoptLegacyXdgRoot.
+ */
 export function resolveAgentServerRoot(input: {
   root?: string;
   xdgConfigHome?: string;
 }): string {
   const override = input.root?.trim();
   if (override) return override;
-  const xdg = input.xdgConfigHome?.trim();
-  return join(xdg || join(homedir(), '.config'), 'moltnet');
+  return join(homedir(), '.config', 'moltnet');
+}
+
+/** The pre-#1834 root that honoured XDG_CONFIG_HOME, if it differs. */
+export function legacyXdgAgentServerRoot(xdgConfigHome: string): string | null {
+  const xdg = xdgConfigHome.trim();
+  if (!xdg) return null;
+  const legacy = join(xdg, 'moltnet');
+  return legacy === resolveAgentServerRoot({}) ? null : legacy;
+}
+
+/** True when a root holds agent-server state worth preserving. */
+function hasAgentServerState(root: string): boolean {
+  for (const child of ['agent-server.json', 'identities', 'agents']) {
+    try {
+      if (readdirSync(join(root, child)).length > 0) return true;
+    } catch {
+      try {
+        readFileSync(join(root, child));
+        return true;
+      } catch {
+        // absent
+      }
+    }
+  }
+  return false;
 }
 
 export interface AgentServerState {
@@ -86,6 +127,12 @@ export interface AgentServerState {
   pendingRegistrations: Record<string, PendingRegistration>;
   /** Alias/profile activations; external configs remain at `configPath`. */
   activations: Record<string, AgentActivation>;
+}
+
+/** Same versioned, value-free selector contract as the Go CLI. */
+export interface IdentitySelector {
+  version: typeof IDENTITY_SELECTOR_VERSION;
+  default_identity?: string;
 }
 
 export interface PendingRegistration {
@@ -218,7 +265,7 @@ function writeJsonAtomic(path: string, value: unknown): void {
 
 export class AgentServerStore {
   readonly root: string;
-  readonly agentsDir: string;
+  readonly identitiesDir: string;
   readonly runsDir: string;
   readonly secretsDir: string;
   /** Shared Pi credential dir; `auth.json` inside is pi-managed (lockfiled). */
@@ -226,7 +273,7 @@ export class AgentServerStore {
 
   constructor(root: string) {
     this.root = root;
-    this.agentsDir = join(root, 'agents');
+    this.identitiesDir = join(root, 'identities');
     this.runsDir = join(root, 'runs');
     this.secretsDir = join(root, 'secrets');
     this.piDir = join(root, 'pi');
@@ -237,16 +284,87 @@ export class AgentServerStore {
   }
 
   /** Create the directory layout (0700) if missing. Idempotent. */
-  ensure(): this {
+  ensure(options: { legacyXdgConfigHome?: string } = {}): this {
+    this.adoptLegacyXdgRoot(options.legacyXdgConfigHome ?? '');
     for (const dir of [
       this.root,
-      this.agentsDir,
+      this.identitiesDir,
       this.runsDir,
       this.secretsDir,
     ]) {
       mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
+    this.migrateLegacyAgentDocuments();
     return this;
+  }
+
+  /**
+   * Adopt state left at the pre-#1834 XDG root.
+   *
+   * The daemon used to resolve `$XDG_CONFIG_HOME/moltnet` while the CLI and SDK
+   * resolved `~/.config/moltnet`. Aligning the root without this would silently
+   * orphan an existing daemon's entire state — it would come up reporting zero
+   * managed agents.
+   */
+  private adoptLegacyXdgRoot(xdgConfigHome: string): void {
+    const legacyRoot = legacyXdgAgentServerRoot(xdgConfigHome);
+    if (!legacyRoot || legacyRoot === this.root) return;
+    if (!hasAgentServerState(legacyRoot)) return;
+
+    if (hasAgentServerState(this.root)) {
+      throw new AgentServerStoreError(
+        'invalid_state',
+        `agent server state exists at both ${legacyRoot} (the pre-1834 ` +
+          `XDG_CONFIG_HOME location) and ${this.root}. The daemon now shares ` +
+          `${this.root} with the CLI and SDK. Merge or remove one of them, or ` +
+          `set MOLTNET_AGENT_SERVER_ROOT to choose explicitly.`,
+      );
+    }
+
+    mkdirSync(resolve(this.root, '..'), { recursive: true, mode: 0o700 });
+    renameSync(legacyRoot, this.root);
+  }
+
+  /**
+   * Migrate managed documents from the pre-#1834 `agents/<alias>.json` layout
+   * to `identities/<alias>/moltnet.json`. Without this an upgraded daemon sees
+   * zero managed agents and reports a plain "not found".
+   */
+  private migrateLegacyAgentDocuments(): void {
+    const legacyDir = join(this.root, 'agents');
+    let entries: string[];
+    try {
+      entries = readdirSync(legacyDir);
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith('.json')) continue;
+      const alias = entry.slice(0, -'.json'.length);
+      if (!NAME_RE.test(alias)) continue;
+
+      const legacyPath = join(legacyDir, entry);
+      const target = this.agentPath(alias);
+      const existing = readJson<MoltNetConfig>(target);
+      if (existing) {
+        // Already migrated (or a genuine conflict). Never clobber the
+        // authoritative document; leave the legacy file for inspection.
+        continue;
+      }
+      const config = readJson<MoltNetConfig>(legacyPath);
+      if (!config) continue;
+      mkdirSync(join(this.identitiesDir, alias), {
+        recursive: true,
+        mode: 0o700,
+      });
+      writeJsonAtomic(target, config);
+      rmSync(legacyPath, { force: true });
+    }
+
+    if (readdirSync(legacyDir).length === 0) {
+      rmSync(legacyDir, { recursive: true, force: true });
+    }
   }
 
   // ── agent-server.json ─────────────────────────────────────────────────────────
@@ -316,10 +434,63 @@ export class AgentServerStore {
     writeJsonAtomic(this.statePath, state);
   }
 
-  // ── agents ─────────────────────────────────────────────────────────────
+  // ── identities ─────────────────────────────────────────────────────────
 
   agentPath(name: string): string {
-    return storeChildPath(this.agentsDir, 'agent name', name, '.json');
+    return join(
+      storeChildPath(this.identitiesDir, 'identity alias', name),
+      'moltnet.json',
+    );
+  }
+
+  /** Central identity directory, shared with the Go CLI layout. */
+  identityDir(name: string): string {
+    return storeChildPath(this.identitiesDir, 'identity alias', name);
+  }
+
+  private get identitySelectorPath(): string {
+    return join(this.root, 'identity-selector.json');
+  }
+
+  readIdentitySelector(): IdentitySelector | null {
+    const selector = readJson<unknown>(this.identitySelectorPath);
+    if (!selector) return null;
+    if (
+      !isRecord(selector) ||
+      selector.version !== IDENTITY_SELECTOR_VERSION ||
+      (selector.default_identity !== undefined &&
+        typeof selector.default_identity !== 'string')
+    ) {
+      throw new AgentServerStoreError(
+        'invalid_state',
+        'identity-selector.json is not a supported selector document',
+      );
+    }
+    if (selector.default_identity) {
+      assertStoreName('identity alias', selector.default_identity);
+    }
+    return selector as unknown as IdentitySelector;
+  }
+
+  writeIdentitySelector(alias: string): void {
+    writeJsonAtomic(this.identitySelectorPath, {
+      version: IDENTITY_SELECTOR_VERSION,
+      default_identity: assertStoreName('identity alias', alias),
+    } satisfies IdentitySelector);
+  }
+
+  resolveIdentityAlias(explicit?: string, active?: string): string {
+    const alias =
+      explicit?.trim() ||
+      active?.trim() ||
+      this.readIdentitySelector()?.default_identity;
+    if (!alias) {
+      throw new AgentServerStoreError(
+        'not_found',
+        'no active identity selected',
+      );
+    }
+    return assertStoreName('identity alias', alias);
   }
 
   readAgentConfig(alias: string): MoltNetConfig | null {
@@ -327,11 +498,33 @@ export class AgentServerStore {
   }
 
   writeAgentConfig(alias: string, config: MoltNetConfig): void {
+    mkdirSync(this.identityDir(alias), { recursive: true, mode: 0o700 });
     writeJsonAtomic(this.agentPath(alias), config);
+    if (!this.readIdentitySelector()?.default_identity) {
+      this.writeIdentitySelector(alias);
+    }
   }
 
   removeAgentConfig(alias: string): void {
     rmSync(this.agentPath(alias), { force: true });
+    // Leaving the selector pointing at a removed alias makes resolution
+    // succeed on a dangling identity and surface as a generic "not found";
+    // the next writeAgentConfig would also decline to claim the default.
+    this.clearIdentitySelectorIfDefault(alias);
+  }
+
+  /** Clears the persisted default when it names `alias`. */
+  private clearIdentitySelectorIfDefault(alias: string): void {
+    let selector: IdentitySelector | null = null;
+    try {
+      selector = this.readIdentitySelector();
+    } catch {
+      return;
+    }
+    if (!selector || selector.default_identity !== alias) return;
+    writeJsonAtomic(this.identitySelectorPath, {
+      version: IDENTITY_SELECTOR_VERSION,
+    } satisfies IdentitySelector);
   }
 
   readActivation(alias: string): AgentActivation | null {
