@@ -227,10 +227,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     ) === 'off'
       ? null
       : loadRuntimeCredentialConfig(credentialSources);
-  const agentRootDir = resolve(
-    process.cwd(),
-    values['agent-root'] ?? process.cwd(),
-  );
+  // Credential resolution follows --agent-root only when it was actually
+  // passed. The old cwd default meant "search the current checkout", which is
+  // exactly the repository auto-discovery the central-store cutover removed.
+  const explicitAgentRootDir = values['agent-root']
+    ? resolve(process.cwd(), values['agent-root'])
+    : undefined;
   const {
     ctx,
     signingPrivateKey,
@@ -241,7 +243,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     let gate = 'resolve_agent_context';
     try {
       const resolvedContext = await resolveAgentContext(baseCommon.agent, {
-        agentRootDir,
+        agentRootDir: explicitAgentRootDir,
         authMode: cfg.authMode,
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.

@@ -58,7 +58,14 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const ctx = await resolveAgentContext(opts.agent, { agentRootDir });
+  // Credential resolution only follows --agent-root when it was actually
+  // passed; the cwd default seeds daemon state dirs, not identity discovery.
+  const explicitAgentRootDir = values['agent-root']
+    ? resolve(process.cwd(), values['agent-root'])
+    : undefined;
+  const ctx = await resolveAgentContext(opts.agent, {
+    agentRootDir: explicitAgentRootDir,
+  });
   // Fail fast on a rejected or wrong-team credential before touching sessions.
   await validateStartupBinding({ agent: ctx.agent, teamId: values.team });
   const stateDirs = ensureDaemonStateDirs(agentRootDir);

@@ -101,6 +101,48 @@ describe('resolveAgentContext', () => {
     }
   });
 
+  // `--agent-root` is a documented flag ("Directory that owns .moltnet/<agent>")
+  // still accepted by once, poll and sync-sessions. The central-store cutover
+  // stopped honouring it while keeping the flag, so every caller that passed
+  // one — sandboxed runs, the e2e harness — was silently sent to a central
+  // store it had never populated and failed with "No credentials found".
+  it('honours an explicit --agent-root that owns a bundle', async () => {
+    const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-explicit-root-'));
+    const bundle = join(agentRoot, '.moltnet', 'legreffier');
+    mkdirSync(bundle, { recursive: true });
+    writeFileSync(join(bundle, 'moltnet.json'), JSON.stringify({ oauth2: {} }));
+
+    try {
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: agentRoot,
+      });
+
+      expect(ctx.agentDir).toBe(bundle);
+      expect(connectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ configDir: bundle }),
+      );
+    } finally {
+      rmSync(agentRoot, { recursive: true, force: true });
+    }
+  });
+
+  // Explicit override, not rediscovery: without the flag nothing is searched.
+  it('ignores a bundle when no --agent-root was passed', async () => {
+    const cwdBundle = mkdtempSync(join(tmpdir(), 'daemon-implicit-root-'));
+    mkdirSync(join(cwdBundle, '.moltnet', 'legreffier'), { recursive: true });
+    writeFileSync(
+      join(cwdBundle, '.moltnet', 'legreffier', 'moltnet.json'),
+      JSON.stringify({ oauth2: {} }),
+    );
+
+    try {
+      const ctx = await resolveAgentContext('legreffier');
+      expect(ctx.agentDir).toBe('/central/identities/legreffier');
+    } finally {
+      rmSync(cwdBundle, { recursive: true, force: true });
+    }
+  });
+
   it('does not fall back to the Git root', async () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-sandbox-root-'));
     const gitRoot = mkdtempSync(join(tmpdir(), 'daemon-git-root-'));

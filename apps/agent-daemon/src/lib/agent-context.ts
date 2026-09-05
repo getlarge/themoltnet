@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import {
   type Agent,
   assertIdentityAlias,
@@ -164,6 +167,13 @@ export async function validateStartupBinding(options: {
 export async function resolveAgentContext(
   agentName: string,
   options: {
+    /**
+     * Explicit `--agent-root`. Honoured only when the operator actually passed
+     * it: `<root>/.moltnet/<agent>/moltnet.json` is then used instead of the
+     * central store. This is an explicit override, not the repository
+     * auto-discovery the central-store cutover removed — nothing is searched
+     * unless a path was named. Undefined means "central store only".
+     */
     agentRootDir?: string;
     authMode?: DaemonAuthMode;
   } = {},
@@ -173,8 +183,7 @@ export async function resolveAgentContext(
   // aliases the CLI creates and accepted names getIdentityDir then rejected
   // with a raw "invalid identity alias".
   assertIdentityAlias(agentName);
-  void options.agentRootDir; // retained for source compatibility; no discovery.
-  const agentDir = getIdentityDir(agentName);
+  const agentDir = resolveIdentityDirectory(agentName, options.agentRootDir);
   if (options.authMode === 'agent-key') {
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
@@ -208,6 +217,28 @@ export async function resolveAgentContext(
     credentialSource: 'config',
     authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
   };
+}
+
+/**
+ * The central identity directory, unless an explicit `--agent-root` names a
+ * legacy bundle that actually exists.
+ *
+ * The flag is documented as "Directory that owns .moltnet/<agent>" and is still
+ * accepted by `once`, `poll` and `sync-sessions`. Ignoring it silently sent
+ * every caller that passes one — sandboxed runs, the e2e harness — to a
+ * central store they never populated, and failed with a bare "No credentials
+ * found".
+ */
+function resolveIdentityDirectory(
+  agentName: string,
+  explicitRootDir?: string,
+): string {
+  const root = explicitRootDir?.trim();
+  if (root) {
+    const bundle = join(root, '.moltnet', agentName);
+    if (existsSync(join(bundle, 'moltnet.json'))) return bundle;
+  }
+  return getIdentityDir(agentName);
 }
 
 function isTransientWhoamiError(error: unknown): boolean {
