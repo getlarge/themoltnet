@@ -44,6 +44,10 @@ describe('ContextPackRepository (integration)', () => {
   const DIARY_ID = '110e8400-e29b-41d4-a716-446655440011';
   const OTHER_DIARY_ID = '110e8400-e29b-41d4-a716-446655440013';
   const OWNER_ID = '120e8400-e29b-41d4-a716-446655440012';
+  // The Kratos identity is deliberately NOT the agent id: since the
+  // decoupling they are independent values, and a fixture that reuses one
+  // for both cannot catch a lookup that resolves the wrong one.
+  const OWNER_IDENTITY_ID = '120e8400-e29b-41d4-a716-4466554400f2';
   const ENTRY_ID = '130e8400-e29b-41d4-a716-446655440014';
   const OTHER_ENTRY_ID = '130e8400-e29b-41d4-a716-446655440015';
   const createPack = (
@@ -78,7 +82,8 @@ describe('ContextPackRepository (integration)', () => {
     await db
       .insert(agents)
       .values({
-        identityId: OWNER_ID,
+        id: OWNER_ID,
+        identityId: OWNER_IDENTITY_ID,
         publicKey: 'ed25519:integration-test',
         fingerprint: 'TEST-PACK-Y001-0001',
       })
