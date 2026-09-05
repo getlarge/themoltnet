@@ -287,16 +287,17 @@ func TestMigrateLegacyIdentityStoreDryRunReportsCollision(t *testing.T) {
 	}
 }
 
-// identity_id is a binding to an Ory Kratos identity, not the agent's identity:
-// it can be recreated (2026-09-04 incident) and is becoming nullable. Migrating
-// the same keypair whose identity was restored under a new UUID must succeed.
-func TestMigrateLegacyIdentityStoreAllowsRelinkedIdentity(t *testing.T) {
+// Neither identity_id nor the keypair is stable: the Kratos identity can be
+// re-linked and keys can be rotated. With no durable agent identifier available
+// locally (agents.id is not returned by registration), a mismatch is
+// undecidable — so it must refuse loudly and say how to proceed, never
+// overwrite another identity's credentials on a guess.
+func TestMigrateLegacyIdentityStoreRefusesUndecidableAliasReuse(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	identity := newIdentityFixture(t, "relink", "https://relink.example.test")
-	bundle := func(identityID string) string {
+	write := func(identityID string, id identityFixture) string {
 		dir := filepath.Join(t.TempDir(), ".moltnet", "shared")
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			t.Fatal(err)
@@ -304,46 +305,41 @@ func TestMigrateLegacyIdentityStoreAllowsRelinkedIdentity(t *testing.T) {
 		path := filepath.Join(dir, "moltnet.json")
 		if _, err := WriteConfigTo(&CredentialsFile{
 			IdentityID: identityID,
-			OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "s"},
-			Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-			Endpoints:  CredentialsEndpoints{API: identity.api},
-			Git:        &GitSection{Name: "Bot", Email: "relink@example.test"},
+			OAuth2:     CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "s"},
+			Keys:       CredentialsKeys{PublicKey: id.publicKey, PrivateKey: id.seed, Fingerprint: id.fingerprint},
+			Endpoints:  CredentialsEndpoints{API: id.api},
+			Git:        &GitSection{Name: "Bot", Email: "a@example.test"},
 		}, path); err != nil {
 			t.Fatal(err)
 		}
 		return path
 	}
 
-	if _, err := migrateLegacyIdentityStore(bundle("kratos-identity-before"), "", false); err != nil {
+	original := newIdentityFixture(t, "original", "https://original.example.test")
+	if _, err := migrateLegacyIdentityStore(write("kratos-a", original), "", false); err != nil {
 		t.Fatalf("first migration: %v", err)
 	}
 
-	// Same keypair, new Kratos identity: a relink, not a collision.
-	result, err := migrateLegacyIdentityStore(bundle("kratos-identity-after"), "", false)
-	if err != nil {
-		t.Fatalf("relinked identity must migrate, got: %v", err)
-	}
-	if result["identity_id_changed"] != true {
-		t.Errorf("relink should be reported, got %v", result)
+	// Identical bundle re-migrates as a no-op.
+	if _, err := migrateLegacyIdentityStore(write("kratos-a", original), "", false); err != nil {
+		t.Fatalf("identical re-migration must succeed: %v", err)
 	}
 
-	// A genuinely different agent still collides.
-	other := newIdentityFixture(t, "other", "https://other.example.test")
-	dir := filepath.Join(t.TempDir(), ".moltnet", "shared")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	otherPath := filepath.Join(dir, "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "kratos-identity-before",
-		OAuth2:     CredentialsOAuth2{ClientID: other.clientID, ClientSecret: "s"},
-		Keys:       CredentialsKeys{PublicKey: other.publicKey, PrivateKey: other.seed, Fingerprint: other.fingerprint},
-		Endpoints:  CredentialsEndpoints{API: other.api},
-		Git:        &GitSection{Name: "Bot", Email: "other@example.test"},
-	}, otherPath); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := migrateLegacyIdentityStore(otherPath, "", false); err == nil {
-		t.Fatal("a different public key must still be rejected")
+	// Re-linked Kratos identity, rotated keypair, and a different agent are all
+	// indistinguishable locally — every one must be refused with guidance.
+	rotated := newIdentityFixture(t, "rotated", "https://original.example.test")
+	for name, path := range map[string]string{
+		"relinked identity": write("kratos-b", original),
+		"rotated keypair":   write("kratos-a", rotated),
+	} {
+		_, err := migrateLegacyIdentityStore(path, "", false)
+		if err == nil {
+			t.Fatalf("%s: expected refusal", name)
+		}
+		for _, want := range []string{"--name", "no stable agent identifier"} {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("%s: error %q should mention %q", name, err, want)
+			}
+		}
 	}
 }
