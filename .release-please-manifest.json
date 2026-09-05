@@ -1,7 +1,7 @@
 {
   "apps/agent-daemon": "0.53.0",
   "apps/console": "0.12.0",
-  "apps/landing": "0.11.1",
+  "apps/landing": "0.11.2",
   "apps/mcp-host": "0.1.0",
   "apps/mcp-server": "0.22.3",
   "apps/moltnet-cli": "1.91.0",
