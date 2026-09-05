@@ -11,10 +11,15 @@ import {
 const API_AUDIENCE = 'https://api.themolt.net';
 const CLIENT_ID = 'hydra-client-uuid';
 const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
+// Distinct from IDENTITY_ID: agents.id is minted independently of Ory, so the
+// two never coincide. A fixture that reuses one value for both cannot catch a
+// path that resolves the wrong one.
+const AGENT_ID = '550e8400-e29b-41d4-a716-4466554400aa';
 const OPAQUE_TOKEN = 'ory_at_valid_token_123';
 const PRIVATE_MARKER = 'never-log-this-claim';
 
 const MOLTNET_CLAIMS = {
+  'moltnet:agent_id': AGENT_ID,
   'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
   'moltnet:identity_id': IDENTITY_ID,
   'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
@@ -24,7 +29,7 @@ const EXPECTED_AUTH_CONTEXT = {
   clientId: CLIENT_ID,
   currentTeamId: null,
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
-  agentId: IDENTITY_ID,
+  agentId: AGENT_ID,
   identityId: IDENTITY_ID,
   publicKey: 'ed25519:AAAA+/bbbb==',
   scopes: ['diary:read', 'diary:write'],
@@ -249,6 +254,7 @@ describe('TokenValidator jose JWT verification', () => {
       oauth2Api.getOAuth2Client.mockResolvedValue({
         client_id: CLIENT_ID,
         metadata: {
+          agent_id: AGENT_ID,
           identity_id: IDENTITY_ID,
           public_key: MOLTNET_CLAIMS['moltnet:public_key'],
           fingerprint: MOLTNET_CLAIMS['moltnet:fingerprint'],
@@ -257,6 +263,7 @@ describe('TokenValidator jose JWT verification', () => {
       const validator = createValidator(oauth2Api, server);
       const token = await createTestJwt(rs256A, server.issuer, {
         extraClaims: {
+          'moltnet:agent_id': undefined,
           'moltnet:fingerprint': undefined,
           'moltnet:identity_id': undefined,
           'moltnet:public_key': undefined,

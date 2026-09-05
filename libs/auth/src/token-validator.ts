@@ -340,13 +340,20 @@ function extractAuthContextFromClaims(
     return null;
   }
 
-  // Tokens minted before the webhook emitted moltnet:agent_id stay valid for
-  // their full 24h life (and are served from the grant cache for it), so fall
-  // back to the identity. That is correct rather than an alias: migration 0041
-  // seeds agents.id from identity_id, so for every agent predating this change
-  // the two values are equal. Remove once no pre-change token can be live.
-  const agentId =
-    (claims['moltnet:agent_id'] as string | undefined) ?? identityId;
+  // agents.id is a fresh UUID, unrelated to the Kratos identity, so there is
+  // no way to derive it here — libs/auth has no database access. A token
+  // minted before the webhook emitted moltnet:agent_id therefore cannot be
+  // resolved to a Keto subject, and falling back to identityId would authorize
+  // the request against a subject the Keto rewrite has just retired: the agent
+  // authenticates and matches nothing.
+  //
+  // Fail closed instead. The deployment already requires a maintenance window
+  // (migration + Keto rewrite); flushing the OAuth2 grant cache during it is
+  // what guarantees no pre-change token outlives the change.
+  const agentId = claims['moltnet:agent_id'] as string | undefined;
+  if (!agentId) {
+    return null;
+  }
 
   return {
     subjectType: 'agent',
@@ -405,6 +412,14 @@ async function fetchClientMetadata(
 
     const metaPublicKey = metadata.public_key;
     const metaFingerprint = metadata.fingerprint;
+    // Same reasoning as the JWT path: agents.id cannot be derived from the
+    // identity, so a client that predates the agent_id backfill is not
+    // resolvable. The backfill is a required deployment step.
+    const metaAgentId = metadata.agent_id;
+    if (!metaAgentId) {
+      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
+      return null;
+    }
 
     if (!metaPublicKey || !metaFingerprint) {
       metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
@@ -414,9 +429,7 @@ async function fetchClientMetadata(
     metrics?.recordUpstreamRequest('oauth2.client_metadata', 'success');
     return {
       subjectType: 'agent',
-      // agent_id is backfilled on every MoltNet client; identity_id remains a
-      // correct fallback for any client created before that backfill.
-      agentId: metadata.agent_id ?? metaIdentityId,
+      agentId: metaAgentId,
       identityId: metaIdentityId,
       publicKey: metaPublicKey,
       fingerprint: metaFingerprint,
