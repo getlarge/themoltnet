@@ -1081,6 +1081,19 @@ jobs:
             echo "::error::Go API client is out of date. Run 'go generate ./libs/moltnet-api-client/...' and commit the changes."
             exit 1
           fi
+      # The composite action runs the committed bundle, not the source, and it
+      # inlines libs/sdk. A stale bundle silently ships old SDK behaviour into
+      # every workflow that uses the action, which is how an auth-retry bug
+      # kept reaching CI weeks after the source was correct. The build is
+      # deterministic, so diffing it is a safe staleness gate.
+      - name: Rebuild the agent-daemon action bundle
+        run: pnpm exec nx run @themoltnet/agent-daemon-action:build
+      - name: Check for uncommitted changes (action bundle)
+        run: |
+          if ! git diff --exit-code -- packages/agent-daemon-action/dist/; then
+            echo "::error::packages/agent-daemon-action/dist/ is out of date. Run 'pnpm exec nx run @themoltnet/agent-daemon-action:build' and commit the changes."
+            exit 1
+          fi
 
   # E2E jobs gate on the docker images they consume, but do not wait for
   # `orchestrator` (lint+typecheck+test+build via Nx Cloud DTE). They manage
