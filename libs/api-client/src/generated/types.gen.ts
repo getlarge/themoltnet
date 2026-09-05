@@ -78,13 +78,14 @@ export type AgentKeyWithSecret = {
 
 export type AgentPrincipal = {
   /**
+   * UUID v4 identifier
+   */
+  agentId: string;
+  /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
    */
   fingerprint: string;
-  /**
-   * UUID v4 identifier
-   */
-  identityId: string;
+  identityId: string | null;
   kind: 'agent';
   /**
    * Ed25519 public key with prefix
@@ -334,13 +335,14 @@ export type ContextPack = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -372,13 +374,14 @@ export type ContextPackExpanded = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -428,13 +431,14 @@ export type ContextPackResponse = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -673,13 +677,14 @@ export type DiaryCatalog = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -715,13 +720,14 @@ export type DiaryEntry = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -756,13 +762,14 @@ export type DiaryEntryWithCreator = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -797,13 +804,14 @@ export type DiaryEntryWithRelations = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -1413,13 +1421,14 @@ export type PreviewSignSha256Base64Url = string;
 export type PrincipalIdentity =
   | {
       /**
+       * UUID v4 identifier
+       */
+      agentId: string;
+      /**
        * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
        */
       fingerprint: string;
-      /**
-       * UUID v4 identifier
-       */
-      identityId: string;
+      identityId: string | null;
       kind: 'agent';
       /**
        * Ed25519 public key with prefix
@@ -1563,13 +1572,14 @@ export type ProvenanceGraph = {
           creator?:
             | {
                 /**
+                 * UUID v4 identifier
+                 */
+                agentId: string;
+                /**
                  * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                  */
                 fingerprint: string;
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
+                identityId: string | null;
                 kind: 'agent';
                 /**
                  * Ed25519 public key with prefix
@@ -1600,13 +1610,14 @@ export type ProvenanceGraph = {
           creator?:
             | {
                 /**
+                 * UUID v4 identifier
+                 */
+                agentId: string;
+                /**
                  * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                  */
                 fingerprint: string;
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
+                identityId: string | null;
                 kind: 'agent';
                 /**
                  * Ed25519 public key with prefix
@@ -1655,13 +1666,14 @@ export type ProvenanceGraph = {
           creator?:
             | {
                 /**
+                 * UUID v4 identifier
+                 */
+                agentId: string;
+                /**
                  * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                  */
                 fingerprint: string;
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
+                identityId: string | null;
                 kind: 'agent';
                 /**
                  * Ed25519 public key with prefix
@@ -1833,13 +1845,14 @@ export type RenderedPack = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -1888,13 +1901,14 @@ export type RenderedPackResult = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -1927,13 +1941,14 @@ export type RenderedPackWithContent = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -2378,13 +2393,14 @@ export type SigningCredential = {
   owner:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -7179,13 +7195,14 @@ export type GetContextPackProvenanceByCidResponses = {
             creator?:
               | {
                   /**
+                   * UUID v4 identifier
+                   */
+                  agentId: string;
+                  /**
                    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                    */
                   fingerprint: string;
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
+                  identityId: string | null;
                   kind: 'agent';
                   /**
                    * Ed25519 public key with prefix
@@ -7216,13 +7233,14 @@ export type GetContextPackProvenanceByCidResponses = {
             creator?:
               | {
                   /**
+                   * UUID v4 identifier
+                   */
+                  agentId: string;
+                  /**
                    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                    */
                   fingerprint: string;
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
+                  identityId: string | null;
                   kind: 'agent';
                   /**
                    * Ed25519 public key with prefix
@@ -7271,13 +7289,14 @@ export type GetContextPackProvenanceByCidResponses = {
             creator?:
               | {
                   /**
+                   * UUID v4 identifier
+                   */
+                  agentId: string;
+                  /**
                    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                    */
                   fingerprint: string;
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
+                  identityId: string | null;
                   kind: 'agent';
                   /**
                    * Ed25519 public key with prefix

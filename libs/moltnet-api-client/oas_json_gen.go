@@ -2357,12 +2357,16 @@ func (s *AgentPrincipal) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *AgentPrincipal) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("agentId")
+		json.EncodeUUID(e, s.AgentId)
+	}
+	{
 		e.FieldStart("fingerprint")
 		e.Str(s.Fingerprint)
 	}
 	{
 		e.FieldStart("identityId")
-		json.EncodeUUID(e, s.IdentityId)
+		s.IdentityId.Encode(e)
 	}
 	{
 		e.FieldStart("kind")
@@ -2374,11 +2378,12 @@ func (s *AgentPrincipal) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfAgentPrincipal = [4]string{
-	0: "fingerprint",
-	1: "identityId",
-	2: "kind",
-	3: "publicKey",
+var jsonFieldsNameOfAgentPrincipal = [5]string{
+	0: "agentId",
+	1: "fingerprint",
+	2: "identityId",
+	3: "kind",
+	4: "publicKey",
 }
 
 // Decode decodes AgentPrincipal from json.
@@ -2390,8 +2395,20 @@ func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "fingerprint":
+		case "agentId":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.AgentId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentId\"")
+			}
+		case "fingerprint":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Fingerprint = string(v)
@@ -2403,11 +2420,9 @@ func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"fingerprint\"")
 			}
 		case "identityId":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.IdentityId = v
-				if err != nil {
+				if err := s.IdentityId.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -2415,7 +2430,7 @@ func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
 		case "kind":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Kind.Decode(d); err != nil {
 					return err
@@ -2425,7 +2440,7 @@ func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"kind\"")
 			}
 		case "publicKey":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.PublicKey = string(v)
@@ -2446,7 +2461,7 @@ func (s *AgentPrincipal) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -12164,12 +12179,16 @@ func (s ContextPackResponseCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -25966,12 +25985,16 @@ func (s DiaryCatalogCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -26574,12 +26597,16 @@ func (s DiaryEntryCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -27078,12 +27105,16 @@ func (s DiaryEntryWithCreatorCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -27599,12 +27630,16 @@ func (s DiaryEntryWithRelationsCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -84457,12 +84492,16 @@ func (s ProvenanceGraphEntryNodeMetaCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -85991,12 +86030,16 @@ func (s ProvenanceGraphPackNodeMetaCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -86698,12 +86741,16 @@ func (s ProvenanceGraphRenderedPackNodeMetaCreator) encodeFields(e *jx.Encoder) 
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -92819,12 +92866,16 @@ func (s RenderedPackCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -93519,12 +93570,16 @@ func (s RenderedPackResultCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -93945,12 +94000,16 @@ func (s RenderedPackWithContentCreator) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
@@ -103349,12 +103408,16 @@ func (s SigningCredentialOwner) encodeFields(e *jx.Encoder) {
 		{
 			s := s.AgentPrincipal
 			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
 				e.FieldStart("fingerprint")
 				e.Str(s.Fingerprint)
 			}
 			{
 				e.FieldStart("identityId")
-				json.EncodeUUID(e, s.IdentityId)
+				s.IdentityId.Encode(e)
 			}
 			{
 				e.FieldStart("publicKey")
