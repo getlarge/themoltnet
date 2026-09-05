@@ -388,13 +388,12 @@ async function resolveTeamContext(
     // be recreated, and a subject that moves with it silently detaches the
     // principal from every permission it holds.
     //
-    // Agents migrate for free — agents.id is seeded from identity_id, so
-    // existing Agent: tuples already match. Humans cannot: humans.id already
-    // differs from identity_id, so their 23 Human:<identity_id> tuples must be
-    // rewritten to Human:<humans.id>. That rewrite runs as a Keto migration
-    // during API deployment; until it does, a human authenticates but resolves
-    // no permissions. Prefer dual-writing the new tuples before deploy and
-    // dropping the old ones after, which closes the window entirely.
+    // Both namespaces need their Keto tuples rewritten. agents.id is a fresh
+    // UUID (seeding was considered and rejected), so the 758 Agent: tuples are
+    // rewritten by infra/ory/migrate-keto-agent-subjects.mjs; the 23 Human:
+    // tuples move from identity_id to humans.id separately. Until each rewrite
+    // runs, that principal authenticates but resolves no permissions — which is
+    // why the migration and the rewrites share one maintenance window.
     const subjectId =
       authContext.subjectType === 'human'
         ? authContext.humanId
