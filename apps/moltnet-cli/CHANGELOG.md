@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.91.0](https://github.com/getlarge/themoltnet/compare/cli-v1.90.0...cli-v1.91.0) (2026-09-05)
+
+
+### Features
+
+* **auth:** always enforce credential scopes ([fd35de4](https://github.com/getlarge/themoltnet/commit/fd35de451899fb28c72865491bc3a1f5348d14f9))
+* **cli:** add --scopes to agents keys create ([d1334bb](https://github.com/getlarge/themoltnet/commit/d1334bbf882cc6233b879cf892a720cd3876bc15))
+
+
+### Bug Fixes
+
+* **cli:** request OAuth2 scopes in the client_credentials grant ([babecc1](https://github.com/getlarge/themoltnet/commit/babecc1a9323779f5951d3ef6633b9407397cde3))
+* **cli:** validate --scopes before authenticating ([979503c](https://github.com/getlarge/themoltnet/commit/979503cbf8825ae9ba244f4aa71e43fd85698cf0))
+* **sdk:** keep request headers on auth retry; warn when the daemon cannot sign ([5b28b4a](https://github.com/getlarge/themoltnet/commit/5b28b4a0505c17ce912c92dfacd68bb4dd8819db))
+
 ## [1.90.0](https://github.com/getlarge/themoltnet/compare/cli-v1.89.0...cli-v1.90.0) (2026-09-03)
 
 

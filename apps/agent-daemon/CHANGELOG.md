@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.53.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.52.0...agent-daemon-v0.53.0) (2026-09-05)
+
+
+### Features
+
+* **credentials:** add crypto:sign to the canonical daemon grant ([a540bac](https://github.com/getlarge/themoltnet/commit/a540bac32c6f9fc3edfc35b3ed1908d64143ae1c))
+
+
+### Bug Fixes
+
+* **agent-daemon:** warn at boot when the credential cannot sign ([b619951](https://github.com/getlarge/themoltnet/commit/b6199517d41e21c2c07e64dcd3c29da0daae6dcd))
+* **sdk:** keep request headers on auth retry; warn when the daemon cannot sign ([5b28b4a](https://github.com/getlarge/themoltnet/commit/5b28b4a0505c17ce912c92dfacd68bb4dd8819db))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.45.3
+    * @themoltnet/pi-runtime bumped to 0.14.2
+    * @themoltnet/sdk bumped to 0.140.1
+
 ## [0.52.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.51.0...agent-daemon-v0.52.0) (2026-09-04)
 
 
