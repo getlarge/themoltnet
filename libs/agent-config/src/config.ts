@@ -91,11 +91,12 @@ export type MoltNetConfig = MoltNetConfigBase &
   );
 
 export function getConfigDir(): string {
-  // Honour XDG_CONFIG_HOME like the daemon's AgentServerStore does. Without
-  // this, `moltnet-agent server` wrote to $XDG_CONFIG_HOME/moltnet while every
-  // reader looked under ~/.config/moltnet — two roots inside one application.
-  const xdg = process.env.XDG_CONFIG_HOME?.trim();
-  if (xdg) return join(xdg, 'moltnet');
+  // Deliberately does NOT honour XDG_CONFIG_HOME, matching the Go CLI's
+  // GetConfigDir. The daemon's AgentServerStore does honour it, which is a real
+  // divergence — but making this function follow XDG silently relocates the
+  // store for every existing install that has the variable set (common on
+  // Linux), which is a breaking change dressed up as a bug fix. Converging the
+  // two needs a deliberate migration, not a flip here.
   return join(homedir(), '.config', 'moltnet');
 }
 
