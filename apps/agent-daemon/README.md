@@ -140,7 +140,16 @@ agent:profile runtime:read task:read task:claim task:execute
 
 The Console selects these five scopes by default. Knowledge-enabled workers
 must add `diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key
-is issued. Runtime policy can narrow key authority but cannot add missing
+is issued.
+
+**Signing workers need `crypto:sign` as well.** Host-capability signing runs on
+the daemon's own credential — the signer calls the signing-request endpoints,
+which require that scope — so a worker whose runtime policy grants
+`capability:agent-signing` fails mid-task without it. The five scopes above are
+sufficient only for a worker that never signs. The daemon logs a startup
+warning (`agent-daemon.startup_warning`) when the credential lacks it, rather
+than refusing to start, because whether signing is reachable is a per-task
+policy decision. Runtime policy can narrow key authority but cannot add missing
 scopes, and existing keys are never widened automatically; issue a replacement
 credential when broader authority is required.
 

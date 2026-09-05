@@ -39,7 +39,7 @@ import {
 import {
   attestPreparedRuntime,
   resolveExecutorSigningPrivateKey,
-  validateDaemonScopes,
+  validateDaemonScopesLogged,
   validateExecutorSigningIdentity,
 } from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
@@ -172,7 +172,12 @@ export async function runOnce(
           configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
         });
         gate = 'validate_scopes';
-        validateDaemonScopes(whoami);
+        await validateDaemonScopesLogged(whoami, {
+          serviceName: 'agent-daemon.once',
+          level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
+          agent: initialOpts.agent,
+          authMode: cfg.authMode,
+        });
         gate = 'validate_signing_identity';
         await validateExecutorSigningIdentity({
           whoami,

@@ -1,5 +1,5 @@
 import { cryptoService } from '@moltnet/crypto-service';
-import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
+import { AGENT_CREDENTIAL_SCOPES, CREDENTIAL_SCOPES } from '@moltnet/models';
 import {
   createExecutorAttestor,
   type ExecutorAttestor,
@@ -12,8 +12,22 @@ import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import type { PreparedDaemonRuntime } from '../runtime.js';
 import type { DaemonAuthMode } from './agent-context.js';
+import { logDaemonStartupWarning } from './logger.js';
 
 export const DAEMON_REQUIRED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+
+/**
+ * Needed by host-capability signing, which runs on the daemon's own
+ * credential: `createLocalSeedSigner` calls `crypto.signingRequests`
+ * get/submit, and both routes require `crypto:sign`.
+ *
+ * Not in {@link DAEMON_REQUIRED_SCOPES}: the signer is wired unconditionally,
+ * but whether guest code may actually invoke it is a per-task runtime policy
+ * decision (`capability:agent-signing`). A worker whose policy never grants it
+ * runs fine without this scope, so a missing `crypto:sign` is a warning rather
+ * than a startup failure.
+ */
+export const DAEMON_SIGNING_SCOPE = CREDENTIAL_SCOPES.CryptoSign;
 
 export interface AttestedDaemonRuntime extends PreparedDaemonRuntime {
   readonly attestor: ExecutorAttestor;
@@ -74,7 +88,10 @@ export async function resolveExecutorSigningPrivateKey(input: {
   }
 }
 
-export function validateDaemonScopes(whoami: Whoami): void {
+export function validateDaemonScopes(
+  whoami: Whoami,
+  onWarn?: (message: string) => void,
+): void {
   const available = new Set(whoami.scopes ?? []);
   const missing = DAEMON_REQUIRED_SCOPES.filter(
     (scope) => !available.has(scope),
@@ -84,6 +101,16 @@ export function validateDaemonScopes(whoami: Whoami): void {
       'Daemon startup credential is missing required scopes: ' +
         `${missing.join(' ')}. Issue a replacement credential with ` +
         `${DAEMON_REQUIRED_SCOPES.join(' ')}.`,
+    );
+  }
+  if (!available.has(DAEMON_SIGNING_SCOPE)) {
+    onWarn?.(
+      `Daemon startup credential lacks ${DAEMON_SIGNING_SCOPE}. The daemon ` +
+        'still starts, but any task whose runtime policy grants ' +
+        'capability:agent-signing will fail when guest code signs a diary ' +
+        'entry or a commit. Reissue the credential with ' +
+        `${[...DAEMON_REQUIRED_SCOPES, DAEMON_SIGNING_SCOPE].join(' ')} if ` +
+        'this worker signs.',
     );
   }
 }
@@ -150,4 +177,24 @@ export function attestPreparedRuntime(
     signingPrivateKey,
   });
   return Object.assign(prepared, { attestor });
+}
+
+/**
+ * {@link validateDaemonScopes} plus structured delivery of its warning. Kept
+ * separate so the check itself stays pure and unit-testable.
+ */
+export async function validateDaemonScopesLogged(
+  whoami: Whoami,
+  context: {
+    serviceName: string;
+    level: string;
+    agent: string;
+    authMode: string;
+  },
+): Promise<void> {
+  const warnings: string[] = [];
+  validateDaemonScopes(whoami, (message) => warnings.push(message));
+  for (const message of warnings) {
+    await logDaemonStartupWarning({ ...context, message });
+  }
 }
