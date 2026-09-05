@@ -2363,6 +2363,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # release-please's "go" release type tags the lib but never edits go.mod in
+  # dependent modules, and goreleaser builds the CLI with GOWORK=off — so a pin
+  # left behind here silently ships an old client. This opens the bump as a
+  # reviewable PR once the libs/<name>/vX.Y.Z tags the Go proxy resolves exist.
+  propose-cli-go-mod-sync:
+    name: Propose CLI go.mod sync
+    needs: [resolve-publish, release-api-client, release-dspy-adapters]
+    if: >-
+      always() && !cancelled() &&
+      (needs.resolve-publish.outputs.api-client == 'true' || needs.resolve-publish.outputs.dspy-adapters == 'true') &&
+      (needs.resolve-publish.outputs.api-client != 'true' || needs.release-api-client.result == 'success') &&
+      (needs.resolve-publish.outputs.dspy-adapters != 'true' || needs.release-dspy-adapters.result == 'success')
+    uses: ./.github/workflows/sync-cli-go-mod.yml
+    with:
+      api_client_version: ${{ needs.resolve-publish.outputs.api-client == 'true' && needs.resolve-publish.outputs.api-client-version || '' }}
+      dspy_adapters_version: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' && needs.resolve-publish.outputs.dspy-adapters-version || '' }}
+    secrets: inherit
+
   # The binary-release jobs own artifact publication; this separate PR owns
   # the stable public pin. A reviewer can verify the release before merging,
   # while the normal landing release/deploy path remains unchanged.

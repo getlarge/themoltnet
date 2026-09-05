@@ -1,0 +1,80 @@
+name: Sync CLI go.mod
+
+on:
+  workflow_call:
+    inputs:
+      api_client_version:
+        description: moltnet-api-client version or release tag to pin.
+        required: false
+        type: string
+      dspy_adapters_version:
+        description: dspy-adapters version or release tag to pin.
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      api_client_version:
+        description: Optional moltnet-api-client version; blank selects the version in the release manifest.
+        required: false
+        type: string
+      dspy_adapters_version:
+        description: Optional dspy-adapters version; blank selects the version in the release manifest.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
+
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
+
+      - name: Advance the CLI go.mod pins
+        id: pins
+        env:
+          API_CLIENT_VERSION: ${{ inputs.api_client_version }}
+          DSPY_ADAPTERS_VERSION: ${{ inputs.dspy_adapters_version }}
+        run: |
+          bash tools/release/sync-cli-go-mod.sh
+          if git diff --quiet -- apps/moltnet-cli/go.mod apps/moltnet-cli/go.sum; then
+            echo changed=false >> "$GITHUB_OUTPUT"
+          else
+            echo changed=true >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open go.mod sync PR
+        if: steps.pins.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          branch="automation/cli-go-mod-sync-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "MoltNet Release[bot]"
+          git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add apps/moltnet-cli/go.mod apps/moltnet-cli/go.sum
+          git commit -m "chore(cli): sync go.mod to released Go modules"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:$branch"
+          gh pr create --base main --head "$branch" --title "chore(cli): sync go.mod to released Go modules" --body "The CLI release resolves its internal Go deps with \`GOWORK=off\`, so these pins must match the released module tags before \`moltnet-cli\` is built."
