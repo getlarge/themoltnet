@@ -42,7 +42,7 @@ export interface RuntimeSessionLogger {
 }
 
 export interface RuntimeSessionSubject {
-  identityId: string;
+  subjectId: string;
   subjectNs: KetoNamespace;
 }
 
@@ -94,10 +94,10 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
     async upload(input: UploadRuntimeSessionInput): Promise<RuntimeSession> {
       await requireTeamAccess(deps, input);
       const attempt = await assertTaskAttemptInTeam(deps, input);
-      assertAttemptUploader(attempt, input.identityId);
+      assertAttemptUploader(attempt, input.subjectId);
       if (!ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
         const task = await assertTaskInTeam(deps, input);
-        assertActiveTaskLease(task, input.identityId);
+        assertActiveTaskLease(task, input.subjectId);
       }
       await requireTerminalRepairUploadAccess(deps, input, attempt);
       const sourceSlot = await assertSourceSlotInTeam(
@@ -113,7 +113,7 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
         input.teamId,
       );
       await assertParentSessionInTeam(deps, {
-        identityId: input.identityId,
+        subjectId: input.subjectId,
         parentSessionId: input.query.parentSessionId,
         subjectNs: input.subjectNs,
         teamId: input.teamId,
@@ -141,10 +141,10 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
           teamId: input.teamId,
         });
         const latestAttempt = await assertTaskAttemptInTeam(deps, input);
-        assertAttemptUploader(latestAttempt, input.identityId);
+        assertAttemptUploader(latestAttempt, input.subjectId);
         if (!ATTEMPT_TERMINAL_STATUSES.has(latestAttempt.status)) {
           const latestTask = await assertTaskInTeam(deps, input);
-          assertActiveTaskLease(latestTask, input.identityId);
+          assertActiveTaskLease(latestTask, input.subjectId);
         }
         await deps.runtimeSessionStorage.putObject({
           body: createReadStream(staged.path),
@@ -253,7 +253,7 @@ async function requireTeamAccess(
 ) {
   const canAccess = await deps.permissionChecker.canAccessTeam(
     input.teamId,
-    input.identityId,
+    input.subjectId,
     input.subjectNs,
   );
   if (!canAccess) throw createProblem('not-found');
@@ -265,7 +265,7 @@ async function requireTaskReadAccess(
 ) {
   const canView = await deps.permissionChecker.canViewTask(
     input.taskId,
-    input.identityId,
+    input.subjectId,
     input.subjectNs,
   );
   if (!canView) throw createProblem('not-found');
@@ -301,8 +301,8 @@ async function requireTerminalRepairUploadAccess(
   }
 }
 
-function assertActiveTaskLease(task: Task, identityId: string): void {
-  if (task.claimAgentId !== identityId) {
+function assertActiveTaskLease(task: Task, subjectId: string): void {
+  if (task.claimAgentId !== subjectId) {
     throw createProblem(
       'forbidden',
       'Only the active claiming agent may upload this runtime session',
@@ -336,8 +336,8 @@ async function assertTaskAttemptInTeam(
   return attempt;
 }
 
-function assertAttemptUploader(attempt: TaskAttempt, identityId: string) {
-  if (attempt.claimedByAgentId !== identityId) {
+function assertAttemptUploader(attempt: TaskAttempt, subjectId: string) {
+  if (attempt.claimedByAgentId !== subjectId) {
     throw createProblem(
       'forbidden',
       'Only the claiming agent may upload this runtime session',
@@ -419,7 +419,7 @@ async function assertParentSessionInTeam(
     );
   }
   await requireTaskReadAccess(deps, {
-    identityId: input.identityId,
+    subjectId: input.subjectId,
     subjectNs: input.subjectNs,
     taskId: parent.taskId,
   });

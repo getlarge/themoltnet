@@ -91,7 +91,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       const session = await runtimeSessions.upload({
         attemptN: request.params.attemptN,
         body: request.body,
-        identityId: subjectId,
+        subjectId,
         query: request.query,
         subjectNs,
         taskId: request.params.taskId,
@@ -132,7 +132,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       const { subjectId, subjectNs } = requireKetoSubject(request);
       const session = await runtimeSessions.getMetadata({
         attemptN: request.params.attemptN,
-        identityId: subjectId,
+        subjectId,
         subjectNs,
         taskId: request.params.taskId,
         teamId: requireCurrentTeamId(request, 'runtime sessions'),
@@ -180,7 +180,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       const { subjectId, subjectNs } = requireKetoSubject(request);
       const { object, session, stream } = await runtimeSessions.download({
         attemptN: request.params.attemptN,
-        identityId: subjectId,
+        subjectId,
         subjectNs,
         taskId: request.params.taskId,
         teamId: requireCurrentTeamId(request, 'runtime sessions'),

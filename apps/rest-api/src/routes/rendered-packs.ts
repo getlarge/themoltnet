@@ -229,7 +229,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       try {
         return await fastify.contextPackService.getLatestRenderedPack({
           sourcePackId: request.params.id,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -282,7 +282,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       try {
         return await fastify.contextPackService.listRenderedPacksByDiary({
           diaryId: request.params.id,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
           limit: request.query.limit ?? 20,
           offset: request.query.offset ?? 0,
           sourcePackId: request.query.sourcePackId,
@@ -326,7 +326,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       try {
         return await fastify.contextPackService.getRenderedPackById({
           renderedPackId: request.params.id,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)

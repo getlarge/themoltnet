@@ -124,7 +124,7 @@ describe('createTaskArtifactService', () => {
       attemptN: 1,
       body: Readable.from([body]),
       contentType: 'application/json',
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       kind: 'json',
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -164,7 +164,7 @@ describe('createTaskArtifactService', () => {
       attemptN: 1,
       body: Readable.from(['{"ok":true}']),
       contentType: 'application/json',
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       kind: 'json',
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -183,7 +183,7 @@ describe('createTaskArtifactService', () => {
       attemptN: 1,
       body: Readable.from(['{"ok":true}']),
       contentType: 'application/json',
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       kind: 'json',
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -208,7 +208,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from(['{"ok":true}']),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -231,7 +231,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from(['{"ok":true}']),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -258,7 +258,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from(['{"ok":true}']),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -279,7 +279,7 @@ describe('createTaskArtifactService', () => {
     });
 
     const result = await subject.listForTask({
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       limit: 25,
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -321,7 +321,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from([body]),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -356,7 +356,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from(['{"ok":true}']),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -393,7 +393,7 @@ describe('createTaskArtifactService', () => {
       attemptN: 1,
       body: Readable.from([body]),
       contentType: 'application/json',
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       kind: 'json',
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -430,7 +430,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from([body]),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -459,7 +459,7 @@ describe('createTaskArtifactService', () => {
       attemptN: 1,
       body: Readable.from([body]),
       contentType: 'application/json',
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       kind: 'json',
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -490,7 +490,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from([body]),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -515,7 +515,7 @@ describe('createTaskArtifactService', () => {
         attemptN: 1,
         body: Readable.from([body]),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         kind: 'json',
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -558,7 +558,7 @@ describe('createTaskArtifactService', () => {
     const result = await subject.download({
       attemptN: 1,
       cid: artifact.cid,
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
       teamId: TEAM_ID,
@@ -580,7 +580,7 @@ describe('createTaskArtifactService', () => {
       const result = await subject.stageUpload({
         body: Readable.from([body]),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         subjectNs: KetoNamespace.Agent,
         teamId: TEAM_ID,
       });
@@ -602,7 +602,7 @@ describe('createTaskArtifactService', () => {
       await subject.stageUpload({
         body: Readable.from(['{"staged":true}']),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         subjectNs: KetoNamespace.Agent,
         teamId: TEAM_ID,
       });
@@ -630,7 +630,7 @@ describe('createTaskArtifactService', () => {
       const result = await subject.stageUpload({
         body: Readable.from(['{"staged":true}']),
         contentType: 'application/json',
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         subjectNs: KetoNamespace.Agent,
         teamId: TEAM_ID,
       });
@@ -646,7 +646,7 @@ describe('createTaskArtifactService', () => {
         subject.stageUpload({
           body: Readable.from(['{"staged":true}']),
           contentType: 'application/json',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           teamId: TEAM_ID,
         }),
@@ -662,7 +662,7 @@ describe('createTaskArtifactService', () => {
         subject.stageUpload({
           body: { not: 'a stream' },
           contentType: 'application/json',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           teamId: TEAM_ID,
         }),
@@ -680,7 +680,7 @@ describe('createTaskArtifactService', () => {
         subject.stageUpload({
           body: Readable.from([Buffer.from('this payload is too large')]),
           contentType: 'application/json',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           teamId: TEAM_ID,
         }),
@@ -697,7 +697,7 @@ describe('createTaskArtifactService', () => {
         subject.stageUpload({
           body: Readable.from(['{"staged":true}']),
           contentType: 'application/json',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           teamId: TEAM_ID,
         }),
@@ -723,7 +723,7 @@ describe('createTaskArtifactService', () => {
 
       const result = await subject.downloadForTask({
         cid: artifact.cid,
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
         teamId: TEAM_ID,
@@ -751,7 +751,7 @@ describe('createTaskArtifactService', () => {
       await expect(
         subject.downloadForTask({
           cid: 'bafkreimissing',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           taskId: TASK_ID,
           teamId: TEAM_ID,
@@ -768,7 +768,7 @@ describe('createTaskArtifactService', () => {
       await expect(
         subject.downloadForTask({
           cid: 'bafkreiinput',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           taskId: TASK_ID,
           teamId: TEAM_ID,
@@ -793,7 +793,7 @@ describe('createTaskArtifactService', () => {
       await expect(
         subject.downloadForTask({
           cid: 'bafkreiinput',
-          identityId: AGENT_ID,
+          subjectId: AGENT_ID,
           subjectNs: KetoNamespace.Agent,
           taskId: TASK_ID,
           teamId: TEAM_ID,

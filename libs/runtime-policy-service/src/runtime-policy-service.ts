@@ -30,8 +30,8 @@ const TOOL_NAME_RE = /^[a-zA-Z0-9_.:-]{1,128}$/;
 const MAX_DESCRIPTION_LENGTH = 4096;
 
 export interface RuntimePolicySubject {
-  /** Kratos identity id used for Keto authorization checks. */
-  identityId: string;
+  /** Internal principal id (agents.id / humans.id) — the Keto subject. */
+  subjectId: string;
   /** Repository FK id (`humans.id` for humans, identity id for agents). */
   creatorId: string;
   subjectNs: KetoNamespace;
@@ -250,7 +250,7 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
   ): Promise<void> {
     const allowed = await deps.permissionChecker.canManageTeamRuntime(
       teamId,
-      subject.identityId,
+      subject.subjectId,
       subject.subjectNs,
     );
     if (!allowed) throw createProblem('forbidden');

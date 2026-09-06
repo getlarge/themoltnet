@@ -272,7 +272,7 @@ describe('Pack routes', () => {
     expect(response.json().items).toHaveLength(2);
     expect(mocks.contextPackService.listPacksByEntry).toHaveBeenCalledWith({
       entryId: createMockEntry().id,
-      actor: { identityId: OWNER_ID, subjectNs: 'Agent' },
+      actor: { subjectId: OWNER_ID, subjectNs: 'Agent' },
       limit: 20,
       offset: 0,
       includeRendered: undefined,

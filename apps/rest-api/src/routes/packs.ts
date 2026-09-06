@@ -418,7 +418,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         await fastify.contextPackService.validateSupersession({
           diaryId: diary.id,
           supersedesPackId: request.body.supersedesPackId,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError) translatePackServiceError(err);
@@ -575,7 +575,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         pack = await fastify.contextPackService.getPackForProvenance({
           packId: request.params.id,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -588,7 +588,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           fastify,
           rootPack: pack,
           depth: request.query.depth ?? 2,
-          identityId: subjectId,
+          subjectId,
           subjectNs,
         });
       } catch (error) {
@@ -636,7 +636,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         pack = await fastify.contextPackService.getPackForProvenance({
           packCid: request.params.cid,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -649,7 +649,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           fastify,
           rootPack: pack,
           depth: request.query.depth ?? 2,
-          identityId: subjectId,
+          subjectId,
           subjectNs,
         });
       } catch (error) {
@@ -696,7 +696,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         return await fastify.contextPackService.diffPacks({
           packAId: request.params.id,
           packBId: request.params.otherId,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -737,7 +737,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         return await fastify.contextPackService.diffPacks({
           packACid: request.params.cid,
           packBCid: request.params.otherCid,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -799,7 +799,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         try {
           const catalog = await fastify.contextPackService.listPacksByTeam({
             teamId,
-            actor: { identityId: subjectId, subjectNs },
+            actor: { subjectId, subjectNs },
             limit,
             offset,
             includeRendered: request.query.includeRendered,
@@ -828,7 +828,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         packs = await fastify.contextPackService.listPacksByEntry({
           entryId: request.query.containsEntry,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
           limit,
           offset,
           includeRendered: request.query.includeRendered,
@@ -912,7 +912,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         return await fastify.contextPackService.getPackById({
           packId: request.params.id,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
           expandEntries: wantsExpandedEntries(request.query.expand),
         });
       } catch (err) {
@@ -1037,7 +1037,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         return await fastify.contextPackService.listPacksByDiary({
           diaryId: request.params.id,
-          actor: { identityId: subjectId, subjectNs },
+          actor: { subjectId, subjectNs },
           limit: request.query.limit ?? 20,
           offset: request.query.offset ?? 0,
           expandEntries: wantsExpandedEntries(request.query.expand),

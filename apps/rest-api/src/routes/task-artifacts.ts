@@ -152,7 +152,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
             request.query.contentType ??
             normalizeContentType(request.headers['content-type']) ??
             'application/octet-stream',
-          identityId: subjectId,
+          subjectId,
           kind: request.query.kind,
           subjectNs,
           taskId: request.params.taskId,
@@ -224,7 +224,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
             request.query.contentType ??
             normalizeContentType(request.headers['content-type']) ??
             'application/octet-stream',
-          identityId: subjectId,
+          subjectId,
           subjectNs,
           teamId: requireCurrentTeamId(request, 'task artifacts'),
         });
@@ -272,7 +272,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       try {
         const result = await taskArtifacts.listForTask({
           cursor: request.query.cursor,
-          identityId: subjectId,
+          subjectId,
           limit: request.query.limit,
           subjectNs,
           taskId: request.params.taskId,
@@ -355,7 +355,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       try {
         const { artifact, stream } = await taskArtifacts.downloadForTask({
           cid: request.params.cid,
-          identityId: subjectId,
+          subjectId,
           subjectNs,
           taskId: request.params.taskId,
           teamId: requireCurrentTeamId(request, 'task artifacts'),
@@ -441,7 +441,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         const { artifact, stream } = await taskArtifacts.download({
           attemptN: request.params.attemptN,
           cid: request.params.cid,
-          identityId: subjectId,
+          subjectId,
           subjectNs,
           taskId: request.params.taskId,
           teamId: requireCurrentTeamId(request, 'task artifacts'),

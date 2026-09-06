@@ -50,7 +50,7 @@ function runtimePolicySubject(request: FastifyRequest): RuntimePolicySubject {
   return {
     // `identityId` on this contract is the Keto subject, now the internal
     // principal id. Mapped explicitly pending the contract rename.
-    identityId: subjectId,
+    subjectId,
     ...subject,
     creatorId: creator.id,
   };

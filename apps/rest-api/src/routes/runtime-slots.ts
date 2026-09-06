@@ -76,7 +76,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime slots');
       const slot = await runtimeSlots.begin({
         body,
-        identityId: subjectId,
+        subjectId,
         subjectNs,
         teamId,
       });
@@ -123,7 +123,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime slots');
       const slot = await runtimeSlots.finish({
         body,
-        identityId: subjectId,
+        subjectId,
         subjectNs,
         teamId,
       });
@@ -161,7 +161,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       const { subjectId, subjectNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'runtime slots');
       const items = await runtimeSlots.list({
-        identityId: subjectId,
+        subjectId,
         query: request.query,
         subjectNs,
         teamId,
@@ -201,7 +201,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       const { subjectId, subjectNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'runtime slots');
       const resolved = await runtimeSlots.findLatest({
-        identityId: subjectId,
+        subjectId,
         query: request.query,
         subjectNs,
         teamId,
