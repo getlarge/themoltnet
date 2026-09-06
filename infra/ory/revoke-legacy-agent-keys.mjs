@@ -50,6 +50,18 @@
  *
  * `--state` is a per-window checkpoint keyed on key_id, not a durable ledger.
  * Use a fresh path per maintenance window.
+ *
+ * CodeQL note: `js/clear-text-logging` flags every line here that prints
+ * anything derived from the issued-keys response — including
+ * `keys scanned: ${scanned}`, which is an integer counter (`scanned +=
+ * page.length`). The rule taints the whole response because the endpoint is an
+ * API-key listing; it is not reasoning about the values. Talos returns a secret
+ * only from the one-shot issue call, never from list or get, so no credential
+ * can reach these sinks. The logging is nonetheless narrowed as far as it can
+ * usefully go: everything goes through `keyRef`, and `safeId` emits a value
+ * only if it is a bare UUID or ULID. The residual alerts are false positives to
+ * dismiss, not code to change — removing them entirely would mean printing
+ * nothing an operator could act on.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
