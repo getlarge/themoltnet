@@ -21,7 +21,7 @@ local hashes only"]
     B0 -->|valid| B8(["Identity confirmed
 → pick a flow"])
     B0 -->|missing / stale| B2["moltnet_whoami
-→ identityId · clientId
+→ subjectId · identityId · clientId
 pubkey · fingerprint"]
     B2 --> B5["cache: fingerprint · pubkey"]
     B5 --> B6["git config check

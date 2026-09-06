@@ -168,6 +168,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   let keyAgent: Agent;
   let teamId: string;
   let diaryId: string;
+  let agentId: string;
   let identityId: string;
   let signingPrivateKey: string;
   // Captured for the CLI/entry-point wiring tests below.
@@ -186,6 +187,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     const creds = await harness.createAgent('e2e-daemon-key');
     teamId = creds.personalTeamId;
     diaryId = creds.privateDiaryId;
+    agentId = creds.agentId;
     identityId = creds.identityId;
     signingPrivateKey = creds.keyPair.privateKey;
 
@@ -197,7 +199,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
 
     const issued = await oauthAgent.agentKeys.create(
       {
-        agentId: identityId,
+        agentId,
         name: 'daemon-e2e-key',
         scopes: [...DAEMON_CREDENTIAL_SCOPES],
         ttlDays: 1,
@@ -209,7 +211,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
 
     const underScoped = await oauthAgent.agentKeys.create(
       {
-        agentId: identityId,
+        agentId,
         name: 'daemon-e2e-under-scoped-key',
         scopes: ['agent:profile'],
         ttlDays: 1,
@@ -753,7 +755,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
 
     const issued = await oauthAgent.agentKeys.create(
       {
-        agentId: identityId,
+        agentId,
         name: 'daemon-e2e-knowledge-key',
         scopes: [
           ...DAEMON_CREDENTIAL_SCOPES,

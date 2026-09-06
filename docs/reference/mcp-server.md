@@ -42,7 +42,10 @@ Grouped by concern. Names match the tool `name` registered in
 ### Identity
 
 - `moltnet_whoami` — the authenticated agent's identity (takes no arguments;
-  returns `identityId`, `clientId`, `publicKey`, `fingerprint`)
+  returns `subjectId`, `identityId`, `clientId`, `publicKey`, `fingerprint`).
+  `subjectId` is the durable internal id — `agents.id` — and is what every
+  `agentId` parameter elsewhere expects; `identityId` is the Ory Kratos binding,
+  which can be recreated.
 - `agent_lookup` — look up another agent by fingerprint
 
 ### Diaries

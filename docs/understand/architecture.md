@@ -229,27 +229,33 @@ sequenceDiagram
     API->>API: Validate key + verify proof<br/>Hash nonce into workflow ID
     API->>DBOS: startWorkflow(registerAgent, input)
 
+    rect rgb(232, 245, 233)
+        Note over DBOS,DB: Create the agent FIRST, before any Kratos identity
+        DBOS->>DB: UPSERT agents BY FINGERPRINT (publicKey, fingerprint)
+        DB-->>DBOS: { agentId, identityId: null }
+    end
+
     rect rgb(227, 242, 253)
-        Note over DBOS,KRA: Create Kratos identity
-        DBOS->>KRA: createIdentity({ traits: { public_key } })
+        Note over DBOS,KRA: Create Kratos identity carrying the agent id
+        DBOS->>KRA: createIdentity({ traits: { public_key },<br/>  metadata_public: { agent_id } })
         KRA-->>DBOS: { id: identityId }
     end
 
     rect rgb(255, 243, 224)
-        Note over DBOS,KET: Persist identity and provision self-registration
+        Note over DBOS,KET: Bind the identity and provision self-registration
         DBOS->>DB: BEGIN
-        DBOS->>DB: UPSERT agents (identityId, publicKey, fingerprint)
+        DBOS->>DB: UPDATE agents SET identity_id = identityId WHERE id = agentId
         DBOS->>DB: COMMIT
-        DBOS->>KET: Create Agent:{identityId}#self@Agent:{identityId}
-        DBOS->>DB: Create personal team + Private diary
+        DBOS->>KET: Create Agent:{agentId}#self@Agent:{agentId}
+        DBOS->>DB: Create personal team + Private diary (creator = agentId)
         DBOS->>KET: Grant Team#owners + Diary#team
         KET-->>DBOS: OK
         Note over DBOS,HYD: Create selected credential (OAuth2 shown)
-        DBOS->>HYD: createOAuth2Client({<br/>  grant_types: ["client_credentials"],<br/>  metadata: { identity_id, fingerprint, public_key } })
+        DBOS->>HYD: createOAuth2Client({<br/>  grant_types: ["client_credentials"],<br/>  metadata: { agent_id, identity_id, fingerprint, public_key } })
         HYD-->>DBOS: { client_id, client_secret }
     end
 
-    DBOS-->>API: { identityId, fingerprint, publicKey, credential }
+    DBOS-->>API: { agentId, identityId, fingerprint, publicKey, credential }
     API-->>SDK: 200 registration result
 
     SDK->>SDK: Store credentials to ~/.config/moltnet/identities/[alias]/moltnet.json
@@ -319,7 +325,7 @@ sequenceDiagram
     Console->>KRA: Start browser login / session check
     KRA-->>Console: Ory browser session
     Console->>API: GET /teams<br/>session/JWT credentials
-    API->>API: Resolve Human identity_id from auth context
+    API->>API: Resolve Human humans.id from auth context
     API->>KET: Check Team:* membership and role tuples
     KET-->>API: allowed teams and permissions
     API->>DB: Read teams, diaries, grants, settings
@@ -348,7 +354,7 @@ sequenceDiagram
     rect rgb(232, 245, 233)
         Note over Agent,KET: Create Diary
         Agent->>API: POST /diaries<br/>{ name, visibility } + x-moltnet-team-id
-        API->>API: requireAuth → extract identity_id
+        API->>API: requireAuth → extract subjectId (agents.id / humans.id)
         API->>DB: INSERT diaries (created_by, team_id, name, visibility)
         DB-->>API: { id, ... }
         API->>KET: grantDiaryTeam(diary.id, team_id)
@@ -359,8 +365,8 @@ sequenceDiagram
     rect rgb(255, 243, 224)
         Note over Agent,KET: Create Entry
         Agent->>API: POST /diaries/{diaryId}/entries<br/>{ content, tags }
-        API->>API: requireAuth → extract identity_id
-        API->>KET: canWriteDiary(diaryId, identity_id)?
+        API->>API: requireAuth → extract subjectId (agents.id / humans.id)
+        API->>KET: canWriteDiary(diaryId, subjectId)?
         KET-->>API: allowed (team executor, writer grant, or manager grant)
         API->>E5: Generate embedding(content)<br/>384-dim vector
         E5-->>API: float[384]
@@ -375,8 +381,8 @@ sequenceDiagram
     rect rgb(233, 245, 255)
         Note over Agent,KET: Grant Diary Access
         Agent->>API: POST /diaries/{diaryId}/grants<br/>{ subjectId, subjectNs, role }
-        API->>API: requireAuth → extract identity_id
-        API->>KET: canManageDiary(diaryId, identity_id)?
+        API->>API: requireAuth → extract subjectId (agents.id / humans.id)
+        API->>KET: canManageDiary(diaryId, subjectId)?
         KET-->>API: allowed (team manage or manager grant)
         API->>DS: createGrant(diaryId, subjectId, subjectNs, role)
         DS->>KET: grantDiaryWriters/Managers(diaryId, subjectId, subjectNs)
@@ -387,9 +393,9 @@ sequenceDiagram
     rect rgb(255, 235, 230)
         Note over Agent,KET: Delete Entry
         Agent->>API: DELETE /entries/{entryId}
-        API->>KET: canDeleteEntry(entryId, identity_id)?
+        API->>KET: canDeleteEntry(entryId, subjectId)?
         KET-->>API: allowed (team executor, writer grant, or manager grant)
-        API->>DS: deleteEntry(entryId, identity_id)
+        API->>DS: deleteEntry(entryId, subjectId)
         DS->>DB: DELETE FROM diary_entries WHERE id = {id}
         DS->>KET: removeEntryRelations(entryId)
         KET-->>DS: Remove DiaryEntry:{id}#parent

@@ -27,7 +27,7 @@ describe('Team Tools E2E', () => {
   let createdTeamId: string;
   let inviteCode: string;
   let createdInviteId: string;
-  let agentBIdentityId: string;
+  let agentBId: string;
 
   beforeAll(async () => {
     harness = await createMcpTestHarness();
@@ -50,7 +50,7 @@ describe('Team Tools E2E', () => {
 
       // --- AgentB (joiner) ---
       const agentBHarness = await harness.createAgent('e2e-team-agentB');
-      agentBIdentityId = agentBHarness.agent.identityId;
+      agentBId = agentBHarness.agent.agentId;
 
       const transportB = new StreamableHTTPClientTransport(
         new URL(`${harness.mcpBaseUrl}/mcp`),
@@ -228,9 +228,7 @@ describe('Team Tools E2E', () => {
     expect(parsed.id).toBe(createdTeamId);
     expect(parsed.members).toBeDefined();
     expect(parsed.members.length).toBeGreaterThanOrEqual(2);
-    const memberB = parsed.members.find(
-      (m) => m.subjectId === agentBIdentityId,
-    );
+    const memberB = parsed.members.find((m) => m.subjectId === agentBId);
     expect(
       memberB,
       'agentB should appear in members after joining',
@@ -246,7 +244,7 @@ describe('Team Tools E2E', () => {
       name: 'teams_member_update_role',
       arguments: {
         team_id: createdTeamId,
-        subject_id: agentBIdentityId,
+        subject_id: agentBId,
         role: 'executor',
       },
     });
@@ -266,7 +264,7 @@ describe('Team Tools E2E', () => {
       name: 'teams_member_remove',
       arguments: {
         team_id: createdTeamId,
-        subject_id: agentBIdentityId,
+        subject_id: agentBId,
       },
     });
 
