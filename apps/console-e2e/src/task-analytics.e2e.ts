@@ -83,7 +83,7 @@ test.describe.serial('Task analytics', () => {
         foundingMembers: [
           { subjectId: humanSubjectId, subjectNs: 'Human', role: 'owner' },
           {
-            subjectId: agentCtx.genesis.identityId,
+            subjectId: agentCtx.genesis.agentId,
             subjectNs: 'Agent',
             role: 'manager',
           },
@@ -120,7 +120,7 @@ test.describe.serial('Task analytics', () => {
       client: humanClient,
       path: { id: diaryId },
       body: {
-        subjectId: agentCtx.genesis.identityId,
+        subjectId: agentCtx.genesis.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },

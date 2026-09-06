@@ -46,7 +46,7 @@ type e2eAgentKeyList struct {
 func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 	h := newCLIHarness(t)
 	team := e2ePersonalTeamID.String()
-	agentID := e2eCreds.IdentityID
+	agentID := e2eAgentID
 	idem1 := "e2e-cli-keys-" + uuid.NewString()
 
 	// 1. Create — the secret is printed once in the result.

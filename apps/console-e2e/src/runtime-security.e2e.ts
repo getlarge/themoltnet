@@ -64,7 +64,7 @@ test.describe.serial('Runtime security console', () => {
         foundingMembers: [
           { subjectId: humanSubjectId, subjectNs: 'Human', role: 'owner' },
           {
-            subjectId: agentCtx.genesis.identityId,
+            subjectId: agentCtx.genesis.agentId,
             subjectNs: 'Agent',
             role: 'member',
           },

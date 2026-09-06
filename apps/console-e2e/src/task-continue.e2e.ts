@@ -101,7 +101,7 @@ test.describe.serial('Continue task from console', () => {
         foundingMembers: [
           { subjectId: humanSubjectId, subjectNs: 'Human', role: 'owner' },
           {
-            subjectId: agentCtx.genesis.identityId,
+            subjectId: agentCtx.genesis.agentId,
             subjectNs: 'Agent',
             role: 'manager',
           },
@@ -163,7 +163,7 @@ test.describe.serial('Continue task from console', () => {
       client: humanClient,
       path: { id: humanDiaryId },
       body: {
-        subjectId: agentCtx.genesis.identityId,
+        subjectId: agentCtx.genesis.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
