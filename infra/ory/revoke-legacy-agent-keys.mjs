@@ -169,6 +169,65 @@ function isUnlabelledMoltnetActor(key, agentIds, byIdentityId) {
   );
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Talos issues UUID key ids in the self-hosted build this was rehearsed
+// against, but its own API docs show ULIDs
+// (`01HQZX9VYQKJB8XQZQXQZQXQXQ`). Accept both, or production would redact
+// every id and the report would be useless exactly where it matters.
+const ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+
+/**
+ * The only shape in which a value off the Talos response may reach a log.
+ *
+ * Anything that is not a bare UUID is dropped rather than printed. That is a
+ * whitelist, not a redaction: no matter what Talos returns — today, or after a
+ * response-shape change nobody noticed — this function can emit only an opaque
+ * identifier, so no secret, name or free-text field can reach the operator's
+ * terminal or CI log through it.
+ */
+function safeId(value) {
+  if (typeof value !== 'string') return '<redacted>';
+  return UUID.test(value) || ULID.test(value) ? value : '<redacted>';
+}
+
+/**
+ * The ONLY fields of a Talos key this script may print.
+ *
+ * Talos never returns a key secret from list or get — only the one-shot issue
+ * response carries it — but the rest of the record is still not ours to spill
+ * into operator logs. `name` is free text an operator typed and may contain
+ * anything, including a credential someone pasted into a key name, and
+ * `metadata` is an arbitrary blob belonging — in the one bucket where it gets
+ * reported — to a key we have specifically concluded might NOT be MoltNet's.
+ *
+ * `key_id` and `actor_id` are opaque identifiers and are what an operator
+ * needs to look a key up. That is the whole budget, and `safeId` enforces it
+ * structurally rather than by convention.
+ */
+function keyRef(key) {
+  return `${safeId(key.key_id)} actor=${safeId(key.actor_id)}`;
+}
+
+/**
+ * Field NAMES present in a foreign key's metadata, never the values.
+ *
+ * The question the unlabelled bucket has to answer is "is my scope filter
+ * narrower than the corpus" — which the shape answers and the contents do not.
+ */
+function metadataShape(metadata) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return '<none>';
+  }
+  // Field NAMES on a key we may not own are still third-party input, so they
+  // are whitelisted to a conservative identifier charset and capped. The
+  // operator needs to know which fields exist, not to receive them verbatim.
+  const fields = Object.keys(metadata)
+    .filter((field) => /^[A-Za-z0-9_]{1,40}$/.test(field))
+    .sort()
+    .slice(0, 12);
+  return fields.length > 0 ? fields.join(',') : '<empty>';
+}
+
 /** Only an active key can be revoked; revoked and expired ones are already inert. */
 function isActive(key) {
   return key.status === 'KEY_STATUS_ACTIVE';
@@ -310,7 +369,7 @@ if (unlabelled.length > 0) {
   );
   for (const key of unlabelled.slice(0, 10)) {
     console.warn(
-      `  ${key.key_id} (${key.name}) actor=${key.actor_id} metadata=${JSON.stringify(key.metadata)}`,
+      `  ${keyRef(key)} metadata_fields=${metadataShape(key.metadata)}`,
     );
   }
 }
@@ -318,7 +377,7 @@ if (unlabelled.length > 0) {
 if (!APPLY) {
   for (const item of work.slice(0, 5)) {
     console.log(
-      `  would revoke ${item.key.key_id} (${item.key.name}) actor=${item.key.actor_id}` +
+      `  would revoke ${keyRef(item.key)}` +
         (item.agentId ? ` -> agent ${item.agentId}` : ' -> no agent row'),
     );
   }
@@ -362,7 +421,7 @@ for await (const page of pageKeys()) {
     if (typeof key.actor_id === 'string' && agentIds.has(key.actor_id))
       continue;
     stillActive += 1;
-    console.error(`  STILL ACTIVE ${key.key_id} actor=${key.actor_id}`);
+    console.error(`  STILL ACTIVE ${keyRef(key)}`);
   }
 }
 
