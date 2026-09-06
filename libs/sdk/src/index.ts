@@ -63,7 +63,6 @@ export {
   getConfigDir,
   getConfigPath,
   getIdentityDir,
-  getLegacyConfigPath,
   type GitHubConfig,
   IDENTITY_ALIAS_PATTERN,
   type IdentitySelector,

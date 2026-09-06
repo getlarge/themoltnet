@@ -99,11 +99,6 @@ export function getConfigDir(): string {
   return join(homedir(), '.config', 'moltnet');
 }
 
-/** Legacy pre-central-store location, still read so upgrades keep working. */
-export function getLegacyConfigPath(): string {
-  return join(getConfigDir(), 'moltnet.json');
-}
-
 export interface IdentitySelector {
   version: 1;
   default_identity?: string;
@@ -115,6 +110,8 @@ export interface IdentitySelector {
  * is a directory name in a store all three write, so a value one accepts and
  * another rejects makes an identity unreadable by half the system.
  */
+const identitiesDirName = 'identities';
+
 export const IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
 
 export function assertIdentityAlias(alias: string): string {
@@ -125,7 +122,7 @@ export function assertIdentityAlias(alias: string): string {
 }
 
 export function getIdentityDir(alias: string): string {
-  return join(getConfigDir(), 'identities', assertIdentityAlias(alias));
+  return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
 }
 
 /** Resolve an explicit credentials directory, active identity, or default. */
@@ -174,7 +171,11 @@ export function getConfigPath(configDir?: string): string {
     process.env.MOLTNET_ACTIVE_IDENTITY?.trim() ||
     readIdentitySelectorSync()?.default_identity?.trim();
   if (alias) return join(getIdentityDir(alias), 'moltnet.json');
-  return getLegacyConfigPath();
+  // No identity resolves, so there is no document path. Return the store root
+  // rather than the retired `<config>/moltnet.json`: this value is used in
+  // error messages, and naming a location the runtime no longer reads would
+  // send the reader to a file that cannot help them.
+  return join(getConfigDir(), identitiesDirName);
 }
 
 function readIdentitySelectorSync(): IdentitySelector | null {
@@ -191,17 +192,15 @@ function readIdentitySelectorSync(): IdentitySelector | null {
 export async function readConfig(
   configDir?: string,
 ): Promise<MoltNetConfig | null> {
+  // Deliberately no fallback to the pre-central-store `<config>/moltnet.json`.
+  // The Go CLI never reads it, so a fallback here gave one contract two
+  // behaviours: the CLI reported no identity while the SDK and daemon silently
+  // used the retired document. It also contradicts the cutover rule that legacy
+  // layouts are migrated explicitly, never auto-discovered. Operators relocate
+  // it with `moltnet config migrate --credentials <path> --name <alias>`.
   const dir = await resolveConfigDir(configDir);
-  if (dir) {
-    const config = await readConfigFile(join(dir, 'moltnet.json'));
-    if (config) return config;
-  }
-  if (configDir) return null;
-  // No active identity, or none resolved: fall back to the pre-central-store
-  // document. Without this, an existing install upgrading to a release that
-  // moved the store is told "no config found - run `moltnet register` first"
-  // while its credentials sit untouched one directory up.
-  return readConfigFile(getLegacyConfigPath());
+  if (!dir) return null;
+  return readConfigFile(join(dir, 'moltnet.json'));
 }
 
 async function readConfigFile(path: string): Promise<MoltNetConfig | null> {

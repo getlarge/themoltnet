@@ -5,7 +5,6 @@ import { toSSHPrivateKey, toSSHPublicKey } from '@moltnet/crypto-service/ssh';
 
 import {
   getConfigPath,
-  getLegacyConfigPath,
   readConfig,
   resolveConfigDir,
   updateConfigSection,
@@ -23,20 +22,21 @@ export async function exportSSHKey(opts?: {
   outputDir?: string;
   privateKey?: string;
 }): Promise<{ privatePath: string; publicPath: string }> {
+  // Resolve the directory first: without it there is nowhere to read from or
+  // write derived artifacts to, and the two failures need different remedies.
   const configDir = await resolveConfigDir(opts?.configDir);
-  const config = await readConfig(opts?.configDir);
-  if (!config) {
+  if (!configDir) {
     throw new Error(
-      `No config found at ${getConfigPath(opts?.configDir)} — run \`moltnet register\` first`,
+      'No active identity selected. Select one with `moltnet config identity ' +
+        'select <alias>`, set MOLTNET_ACTIVE_IDENTITY, or relocate a ' +
+        'pre-central-store document with `moltnet config migrate ' +
+        '--credentials <path> --name <alias>`.',
     );
   }
-  if (!configDir) {
-    // readConfig found the pre-central-store document but there is nowhere to
-    // write derived artifacts. Name the remedy rather than the symptom.
+  const config = await readConfig(configDir);
+  if (!config) {
     throw new Error(
-      `Found credentials at ${getLegacyConfigPath()} but no active identity is selected. ` +
-        'Migrate it with `moltnet config migrate --credentials <path>`, ' +
-        'or set MOLTNET_ACTIVE_IDENTITY.',
+      `No config found at ${getConfigPath(configDir)} — run \`moltnet register\` first`,
     );
   }
   const seed =

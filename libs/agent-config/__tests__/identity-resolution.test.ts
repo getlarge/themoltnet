@@ -26,7 +26,6 @@ import {
   getConfigDir,
   getConfigPath,
   getIdentityDir,
-  getLegacyConfigPath,
   type MoltNetConfig,
   readConfig,
   resolveConfigDir,
@@ -148,12 +147,16 @@ describe('identity resolution ladder', () => {
   });
 
   it('never throws from getConfigPath when nothing is selected', async () => {
-    await freshHome();
+    const home = await freshHome();
     // It is re-exported from @themoltnet/sdk with an unchanged signature and
     // is used inside error messages; throwing breaks callers at runtime with
-    // nothing for TypeScript to flag.
+    // nothing for TypeScript to flag. It names the store root, never the
+    // retired <config>/moltnet.json which nothing reads any more.
     expect(() => getConfigPath()).not.toThrow();
-    expect(getConfigPath()).toBe(getLegacyConfigPath());
+    expect(getConfigPath()).toBe(
+      join(home, '.config', 'moltnet', 'identities'),
+    );
+    expect(getConfigPath()).not.toContain('moltnet/moltnet.json');
   });
 
   it('rejects an unsupported selector version instead of guessing', async () => {
@@ -165,26 +168,24 @@ describe('identity resolution ladder', () => {
     await expect(resolveConfigDir()).rejects.toThrow(/not supported/);
   });
 
-  it('falls back to the pre-central-store document on upgrade', async () => {
-    await freshHome();
-    // An install that predates the central store: credentials sit at
-    // <config>/moltnet.json with no identities dir and no selector. Reporting
-    // "no config found - run moltnet register" would be wrong and destructive.
+  // The Go CLI never reads <config>/moltnet.json, so a fallback here gave one
+  // contract two behaviours: the CLI reporting no identity while the SDK and
+  // daemon silently used the retired document. Operators relocate it with
+  // `moltnet config migrate`.
+  it('does not auto-discover the pre-central-store document', async () => {
+    const home = await freshHome();
     await writeFile(
-      getLegacyConfigPath(),
+      join(getConfigDir(), 'moltnet.json'),
       JSON.stringify(credentials('legacy')),
     );
 
     expect(await resolveConfigDir()).toBeNull();
-    expect((await readConfig())?.identity_id).toBe('legacy');
+    expect(await readConfig()).toBeNull();
+    expect(home).toBeTruthy();
   });
 
-  it('does not fall back when an explicit dir was requested', async () => {
+  it('returns null for an explicit dir with no document', async () => {
     const home = await freshHome();
-    await writeFile(
-      getLegacyConfigPath(),
-      JSON.stringify(credentials('legacy')),
-    );
     expect(await readConfig(join(home, 'nowhere'))).toBeNull();
   });
 });
