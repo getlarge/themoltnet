@@ -359,18 +359,20 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       if (
         kind === 'managed' &&
         selectedTeam?.id &&
-        created.identityId &&
+        created.subjectId &&
         !canManage
       ) {
         setTokenNote(
           `${created.agentName} joined ${selectedTeam.name} as a member — ask a team owner or manager to assign the executor role so it can execute tasks.`,
         );
-      } else if (kind === 'managed' && selectedTeam?.id && created.identityId) {
+      } else if (kind === 'managed' && selectedTeam?.id && created.subjectId) {
         try {
           await updateTeamMemberRole({
             client: getApiClient(),
             headers: { 'x-moltnet-team-id': selectedTeam.id },
-            path: { id: selectedTeam.id, subjectId: created.identityId },
+            // Team members are addressed by Keto subject — agents.id — not by
+            // the Kratos identity, which no longer resolves to a member.
+            path: { id: selectedTeam.id, subjectId: created.subjectId },
             body: { role: 'executor' },
           });
           setTokenNote(

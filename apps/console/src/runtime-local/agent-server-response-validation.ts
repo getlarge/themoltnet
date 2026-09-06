@@ -8,6 +8,13 @@ const StringArraySchema = Type.Array(Type.String());
 export const AgentServerAgentViewSchema = Type.Object({
   kind: Type.Union([Type.Literal('managed'), Type.Literal('external')]),
   agentName: Type.String(),
+  /**
+   * Internal `agents.id` — the durable principal, and what every `agentId`
+   * parameter and Keto subject means. Mirrors AgentServerAgentSchema in the
+   * daemon; this schema validates that response, so omitting the field here
+   * silently drops it.
+   */
+  subjectId: Type.Optional(Type.String()),
   identityId: Type.Optional(Type.String()),
   fingerprint: Type.Optional(Type.String()),
   apiUrl: Type.Optional(Type.String()),
