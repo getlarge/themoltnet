@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -5,6 +9,9 @@ import {
   compareVersions,
   daemonUpdateCommand,
   detectDaemonInstallMethod,
+  resolveDaemonExecutable,
+  UPDATE_MANIFEST_URL,
+  UPDATE_NPM_REGISTRY_URL,
 } from './update.js';
 
 describe('daemon update discovery', () => {
@@ -41,5 +48,82 @@ describe('daemon update discovery', () => {
     });
     expect(result.latestVersion).toBe('0.50.0');
     expect(result.updateAvailable).toBe(true);
+  });
+});
+
+describe('resolveDaemonExecutable', () => {
+  it('detects a global npm install reached through its bin shim', () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-shim-'));
+    const pkg = join(root, 'node_modules', '@themoltnet', 'agent-daemon');
+    mkdirSync(pkg, { recursive: true });
+    mkdirSync(join(root, 'bin'), { recursive: true });
+    const target = join(pkg, 'main.js');
+    writeFileSync(target, '');
+    const shim = join(root, 'bin', 'moltnet-agent');
+    symlinkSync(target, shim);
+
+    // The shim path alone carries no node_modules segment - that is exactly
+    // why the unresolved check misreported every global npm install.
+    expect(shim).not.toContain('/node_modules/');
+    expect(detectDaemonInstallMethod(shim)).toBe('npm');
+    // realpath also resolves the platform's own links (/var -> /private/var on
+    // macOS), so compare the meaningful suffix rather than the absolute path.
+    expect(resolveDaemonExecutable(shim)).toContain(
+      '/node_modules/@themoltnet/agent-daemon/main.js',
+    );
+  });
+
+  it('falls back to the input when the path does not exist', () => {
+    expect(resolveDaemonExecutable('/nope/moltnet-agent')).toBe(
+      '/nope/moltnet-agent',
+    );
+    expect(resolveDaemonExecutable('')).toBe('');
+  });
+});
+
+describe('update source per install method', () => {
+  const npmShim = '/x/node_modules/@themoltnet/agent-daemon/dist/main.js';
+
+  it('asks the npm registry for an npm install', async () => {
+    const seen: string[] = [];
+    const fetchFn = (async (url: string) => {
+      seen.push(String(url));
+      return new Response(JSON.stringify({ version: '0.53.0' }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await checkDaemonUpdate({
+      currentVersion: '0.52.0',
+      force: true,
+      executable: npmShim,
+      fetchFn,
+    });
+
+    expect(result.installMethod).toBe('npm');
+    expect(result.latestVersion).toBe('0.53.0');
+    expect(result.updateAvailable).toBe(true);
+    expect(seen).toEqual([UPDATE_NPM_REGISTRY_URL]);
+  });
+
+  it('keeps bundle installs on the pinned manifest, which is their ceiling', async () => {
+    const seen: string[] = [];
+    const fetchFn = (async (url: string) => {
+      seen.push(String(url));
+      return new Response(JSON.stringify({ agent: { version: '0.53.0' } }), {
+        status: 200,
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await checkDaemonUpdate({
+      currentVersion: '0.52.0',
+      force: true,
+      executable: '/opt/moltnet/bin/moltnet-agent',
+      fetchFn,
+    });
+
+    expect(result.installMethod).toBe('bundle');
+    expect(result.latestVersion).toBe('0.53.0');
+    expect(seen).toEqual([UPDATE_MANIFEST_URL]);
   });
 });
