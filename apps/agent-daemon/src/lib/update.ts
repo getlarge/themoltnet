@@ -5,7 +5,6 @@ import { dirname, join } from 'node:path';
 
 import { loadUpdateEnvConfig } from '../config.js';
 
-export const UPDATE_MANIFEST_URL = 'https://themolt.net/download/manifest.json';
 /**
  * `npm install -g @themoltnet/agent-daemon@latest` resolves the registry's own
  * dist-tag, so for an npm install the registry is the precise answer — the
@@ -15,10 +14,16 @@ export const UPDATE_MANIFEST_URL = 'https://themolt.net/download/manifest.json';
  * daemon runs as `npx @themoltnet/agent-daemon` and would otherwise reach for
  * api.github.com from shared runner IPs.
  *
- * Bundle and direct installs stay on the manifest: `curl .../install/agent | sh`
- * installs the installer's own RELEASE_PINNED_VERSION, so the pin genuinely is
- * the newest version those paths can reach by default.
+ * Bundle and direct installs ask the release listing, and their upgrade command
+ * passes `MOLTNET_AGENT_VERSION=latest` so the installer resolves the same thing
+ * rather than falling back to its own pinned default. Reporting the pin here
+ * would hide releases that are already downloadable; reporting the release
+ * without the sentinel would advertise a version the command could not deliver.
+ * The pin still governs a fresh `curl .../install/agent | sh`.
  */
+export const UPDATE_RELEASES_URL =
+  'https://api.github.com/repos/getlarge/themoltnet/releases?per_page=100';
+const RELEASE_TAG_PREFIX = 'agent-daemon-v';
 export const UPDATE_NPM_REGISTRY_URL =
   'https://registry.npmjs.org/@themoltnet/agent-daemon/latest';
 export const UPDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -65,7 +70,11 @@ export function detectDaemonInstallMethod(
 }
 export function daemonUpdateCommand(method: DaemonInstallMethod): string {
   if (method === 'npm') return 'npm install -g @themoltnet/agent-daemon@latest';
-  return 'curl -fsSL https://themolt.net/install/agent | sh';
+  // Without the sentinel the installer would fall back to the version it was
+  // pinned with, reinstalling what the user already has while the check keeps
+  // reporting an update. `latest` re-resolves on every run, so the command
+  // stays a stable string rather than embedding a number that goes stale.
+  return 'curl -fsSL https://themolt.net/install/agent | MOLTNET_AGENT_VERSION=latest sh';
 }
 export async function checkDaemonUpdate(input: {
   currentVersion: string;
@@ -97,8 +106,8 @@ export async function checkDaemonUpdate(input: {
     }
   }
   const viaNpm = installMethod === 'npm';
-  const source = viaNpm ? UPDATE_NPM_REGISTRY_URL : UPDATE_MANIFEST_URL;
-  const label = viaNpm ? 'npm registry' : 'manifest';
+  const source = viaNpm ? UPDATE_NPM_REGISTRY_URL : UPDATE_RELEASES_URL;
+  const label = viaNpm ? 'npm registry' : 'release listing';
   try {
     const response = await (input.fetchFn ?? fetch)(source, {
       signal: AbortSignal.timeout(5000),
@@ -106,7 +115,7 @@ export async function checkDaemonUpdate(input: {
     if (!response.ok)
       throw new Error(`${label} returned HTTP ${response.status}`);
     const body: unknown = await response.json();
-    const latest = viaNpm ? distTagVersion(body) : manifestVersion(body);
+    const latest = viaNpm ? distTagVersion(body) : newestReleaseVersion(body);
     if (!latest) throw new Error(`${label} has no valid agent version`);
     await writeCache({ checkedAt: now.toISOString(), latest }).catch(
       () => undefined,
@@ -131,14 +140,31 @@ function distTagVersion(value: unknown): string | undefined {
     ? normalizeVersion(version)
     : undefined;
 }
-function manifestVersion(value: unknown): string | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const agent = (value as { agent?: unknown }).agent;
-  if (!agent || typeof agent !== 'object') return undefined;
-  const version = (agent as { version?: unknown }).version;
-  return typeof version === 'string' && validVersion(version)
-    ? normalizeVersion(version)
-    : undefined;
+/**
+ * The listing is ordered by creation date, not version, so compare every
+ * candidate rather than trusting position. Drafts are filtered explicitly:
+ * unauthenticated callers never see them, but a token would, and this
+ * repository carries stuck drafts that would otherwise look newest.
+ */
+function newestReleaseVersion(value: unknown): string | undefined {
+  if (!Array.isArray(value)) return undefined;
+  let newest: string | undefined;
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const {
+      tag_name: tag,
+      draft,
+      prerelease,
+    } = entry as Record<string, unknown>;
+    if (draft === true || prerelease === true) continue;
+    if (typeof tag !== 'string' || !tag.startsWith(RELEASE_TAG_PREFIX))
+      continue;
+    const candidate = tag.slice(RELEASE_TAG_PREFIX.length);
+    if (!validVersion(candidate)) continue;
+    if (!newest || compareVersions(candidate, newest) > 0)
+      newest = normalizeVersion(candidate);
+  }
+  return newest;
 }
 function normalizeVersion(value: string): string {
   return value.trim().replace(/^v/, '');
