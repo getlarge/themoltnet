@@ -7,7 +7,7 @@
 # everything it created. The Agent Server runs explicitly in the foreground.
 #
 # Environment overrides (mostly for CI and local testing):
-#   MOLTNET_AGENT_VERSION   version to install (default: latest release)
+#   MOLTNET_AGENT_VERSION   version to install, or `latest` (default: pinned release)
 #   MOLTNET_AGENT_BASE_URL  release asset base URL
 #   MOLTNET_AGENT_ARCHIVE   path to a local .tar.gz (skips download; .sha256 beside it)
 #   MOLTNET_AGENT_HOME      install root (default ~/.local/share/moltnet/agent)
@@ -160,8 +160,10 @@ sha256() {
 
 latest_version() {
   # Bundle releases are tagged `agent-daemon-v<semver>` by release-please.
+  # MOLTNET_AGENT_RELEASES_URL exists so the installer test suite can point this
+  # at a local fixture, mirroring MOLTNET_AGENT_BASE_URL.
   curl -fsSL --retry 3 --connect-timeout 15 --max-time 60 \
-    "https://api.github.com/repos/$REPO/releases?per_page=50" \
+    "${MOLTNET_AGENT_RELEASES_URL:-https://api.github.com/repos/$REPO/releases?per_page=100}" \
     | grep -o '"tag_name": *"agent-daemon-v[^"]*"' | head -1 | sed 's/.*agent-daemon-v//; s/"//'
 }
 
@@ -230,6 +232,11 @@ install() {
     version=$(tar -xzOf "$archive" "$name/manifest.json" | grep -o '"version": *"[^"]*"' | head -1 | sed 's/.*: *"//; s/"//')
   else
     version="${MOLTNET_AGENT_VERSION:-$RELEASE_PINNED_VERSION}"
+    # `latest` resolves against the release listing instead of naming a version,
+    # so an upgrade command can stay a stable string that re-resolves on every
+    # run rather than embedding a number that goes stale. An empty pin (dev
+    # copies) already resolved this way.
+    case "$version" in latest) version="" ;; esac
     [ -n "$version" ] || version=$(latest_version)
     [ -n "$version" ] || die "could not determine the latest version (set MOLTNET_AGENT_VERSION)"
     base="${MOLTNET_AGENT_BASE_URL:-https://github.com/$REPO/releases/download/agent-daemon-v$version}"
@@ -357,7 +364,7 @@ using the Console; Ctrl-C stops it. Re-running upgrades in place;
 --uninstall removes what the installer created.
 
 Environment overrides:
-  MOLTNET_AGENT_VERSION       version to install (default: latest release)
+  MOLTNET_AGENT_VERSION       version to install, or `latest` (default: pinned release)
   MOLTNET_AGENT_BASE_URL      release asset base URL
   MOLTNET_AGENT_ARCHIVE       local .tar.gz (skips download; .sha256 beside it)
   MOLTNET_AGENT_HOME          install root (default ~/.local/share/moltnet/agent)

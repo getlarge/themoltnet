@@ -488,6 +488,41 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     }
   });
 
+  it('resolves MOLTNET_AGENT_VERSION=latest from the release listing', async () => {
+    // The daemon's upgrade command passes `latest` rather than a number, so the
+    // installer must resolve it instead of falling back to the version it was
+    // pinned with at release time.
+    const fixture = createBundle({ version: '1.0.0' });
+    const context = createInstallContext(fixture);
+    const assets = await startAssetServer(fixture.root);
+    const listing = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify([
+          { tag_name: 'cli-v9.9.9' },
+          { tag_name: 'agent-daemon-v1.0.0' },
+        ]),
+      );
+    });
+    await new Promise((ready) => listing.listen(0, '127.0.0.1', ready));
+    const port = listing.address().port;
+
+    delete context.env.MOLTNET_AGENT_ARCHIVE;
+    context.env.MOLTNET_AGENT_BASE_URL = assets.url;
+    context.env.MOLTNET_AGENT_VERSION = 'latest';
+    context.env.MOLTNET_AGENT_RELEASES_URL = `http://127.0.0.1:${port}/releases`;
+    try {
+      const result = await runInstaller(context);
+      assert.equal(result.status, 0, result.stderr);
+      // Resolved to 1.0.0 from the listing, not to the empty pin.
+      assert.equal(existsSync(join(context.installRoot, '1.0.0')), true);
+      assert.equal(existsSync(join(context.installRoot, 'current')), true);
+    } finally {
+      await assets.close();
+      await new Promise((closed) => listing.close(closed));
+    }
+  });
+
   it('binds remote archives to the requested version and platform', async () => {
     const fixture = createBundle({ version: '1.0.0' });
     const context = createInstallContext(fixture);

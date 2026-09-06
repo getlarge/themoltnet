@@ -10,8 +10,8 @@ import {
   daemonUpdateCommand,
   detectDaemonInstallMethod,
   resolveDaemonExecutable,
-  UPDATE_MANIFEST_URL,
   UPDATE_NPM_REGISTRY_URL,
+  UPDATE_RELEASES_URL,
 } from './update.js';
 
 describe('daemon update discovery', () => {
@@ -34,17 +34,17 @@ describe('daemon update discovery', () => {
       'npm install -g @themoltnet/agent-daemon@latest',
     );
     expect(daemonUpdateCommand('direct')).toBe(
-      'curl -fsSL https://themolt.net/install/agent | sh',
+      'curl -fsSL https://themolt.net/install/agent | MOLTNET_AGENT_VERSION=latest sh',
     );
   });
 
-  it('reads the pinned stable version without credentials', async () => {
+  it('reads the latest published version without credentials', async () => {
     const result = await checkDaemonUpdate({
       currentVersion: '0.49.1',
       force: true,
       executable: '/tmp/moltnet-agent',
       fetchFn: async () =>
-        new Response(JSON.stringify({ agent: { version: '0.50.0' } })),
+        new Response(JSON.stringify([{ tag_name: 'agent-daemon-v0.50.0' }])),
     });
     expect(result.latestVersion).toBe('0.50.0');
     expect(result.updateAvailable).toBe(true);
@@ -106,13 +106,19 @@ describe('update source per install method', () => {
     expect(seen).toEqual([UPDATE_NPM_REGISTRY_URL]);
   });
 
-  it('keeps bundle installs on the pinned manifest, which is their ceiling', async () => {
+  it('asks the release listing for a bundle install and hands it an actionable command', async () => {
     const seen: string[] = [];
     const fetchFn = (async (url: string) => {
       seen.push(String(url));
-      return new Response(JSON.stringify({ agent: { version: '0.53.0' } }), {
-        status: 200,
-      });
+      return new Response(
+        JSON.stringify([
+          { tag_name: 'agent-daemon-v0.52.0' },
+          { tag_name: 'agent-daemon-v0.54.0', draft: true },
+          { tag_name: 'agent-daemon-v0.53.0' },
+          { tag_name: 'cli-v1.91.0' },
+        ]),
+        { status: 200 },
+      );
     }) as unknown as typeof fetch;
 
     const result = await checkDaemonUpdate({
@@ -123,7 +129,12 @@ describe('update source per install method', () => {
     });
 
     expect(result.installMethod).toBe('bundle');
+    // 0.54.0 is a draft and cli-v is another component; 0.53.0 wins despite
+    // appearing after 0.52.0 in the listing.
     expect(result.latestVersion).toBe('0.53.0');
-    expect(seen).toEqual([UPDATE_MANIFEST_URL]);
+    expect(seen).toEqual([UPDATE_RELEASES_URL]);
+    // The command must resolve the same version, or the check would keep
+    // reporting an update the installer never applies.
+    expect(result.command).toContain('MOLTNET_AGENT_VERSION=latest');
   });
 });
