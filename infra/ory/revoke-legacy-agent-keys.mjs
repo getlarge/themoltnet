@@ -1,0 +1,326 @@
+#!/usr/bin/env node
+/**
+ * Revoke Talos agent keys still bound to a Kratos identity as their actor.
+ *
+ * Runs inside the maintenance window, AFTER the migration. MoltNet issues
+ * agent keys with `actor_id: agents.id` and resolves them with
+ * `agentRepository.findById(actor_id)` (bootstrap.ts `resolveTalosAgent`), so
+ * once `agents.id` becomes a fresh UUID every key issued beforehand names an
+ * actor no agent row claims.
+ *
+ * Rewriting those keys in place is not possible: Talos rejects `actor_id` in
+ * the update mask outright —
+ *
+ *   400 unknown update_mask path: "actor_id"
+ *       (allowed: name, scopes, metadata, rate_limit_policy, ip_restriction)
+ *
+ * and re-issuing mints a new secret, which the agent holding the old one can
+ * never receive. Leaving them alone is the worst option of the three: the key
+ * would keep authenticating while `listAgentKeys` — which filters Talos by
+ * `actor_id="<agents.id>"` — could no longer see it, so its owner could
+ * neither list nor revoke their own live credential.
+ *
+ * So they are revoked. Affected agents re-issue a key through the normal
+ * `POST /agent-keys` flow; nothing else recovers them.
+ *
+ * Only MoltNet-issued agent keys are considered (`metadata.subject_type ===
+ * 'agent'`). Keys belonging to anything else are never touched, and keys
+ * already revoked or expired are skipped.
+ *
+ * Classification, from the post-migration tables:
+ *
+ *   actor_id ∈ agents.id          → current, issued after the cutover. Skip.
+ *   actor_id ∈ agents.identity_id → legacy. Revoke, naming the agent it maps to.
+ *   neither                       → orphan: an identity no agent row claims,
+ *                                   which after the 2026-09-04 deletion
+ *                                   incident means it can no longer resolve at
+ *                                   all. Revoke, counted separately.
+ *
+ * Usage:
+ *   DATABASE_URL=... ORY_PROJECT_URL=... ORY_PROJECT_API_KEY=... \
+ *     node infra/ory/revoke-legacy-agent-keys.mjs [--apply] [--concurrency N]
+ *       [--state <path>]
+ *
+ * Against self-hosted Talos (the e2e stack, for rehearsal), replace
+ * ORY_PROJECT_URL with TALOS_ADMIN_URL:
+ *
+ *   DATABASE_URL=postgres://moltnet:moltnet_secret@localhost:5433/moltnet \
+ *   TALOS_ADMIN_URL=http://localhost:4420 \
+ *     node infra/ory/revoke-legacy-agent-keys.mjs [--apply]
+ *
+ * `--state` is a per-window checkpoint keyed on key_id, not a durable ledger.
+ * Use a fresh path per maintenance window.
+ */
+import { execFileSync } from 'node:child_process';
+import { readFileSync, renameSync, writeFileSync } from 'node:fs';
+
+const argv = process.argv.slice(2);
+const APPLY = argv.includes('--apply');
+
+function flag(name, fallback) {
+  const index = argv.indexOf(name);
+  return index === -1 ? fallback : argv[index + 1];
+}
+
+const CONCURRENCY = Math.max(1, Number(flag('--concurrency', '8')));
+const STATE_PATH = flag('--state', '.talos-legacy-key-revocation-state.json');
+const PAGE_SIZE = 200;
+// PRIVILEGE_WITHDRAWN rather than the seemingly-apter AFFILIATION_CHANGED:
+// Talos rejects a `description` with any other reason —
+//   400 description is only allowed when reason is PRIVILEGE_WITHDRAWN
+// — and recording why each key died is worth more than the nuance. It is also
+// the admin-only reason the API documents for exactly this pairing.
+const REVOCATION_REASON = 'REVOCATION_REASON_PRIVILEGE_WITHDRAWN';
+
+const trim = (url) => url?.replace(/\/$/, '');
+const project = trim(process.env.ORY_PROJECT_URL);
+const base = trim(process.env.TALOS_ADMIN_URL) ?? project;
+const apiKey = process.env.ORY_PROJECT_API_KEY;
+if (!base) {
+  console.error('ORY_PROJECT_URL (or TALOS_ADMIN_URL) is required');
+  process.exit(1);
+}
+// Self-hosted Talos has no bearer auth; Ory Network requires it.
+if (project && !apiKey) {
+  console.error('ORY_PROJECT_API_KEY is required with ORY_PROJECT_URL');
+  process.exit(1);
+}
+const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
+const api = `${base}/v2alpha1/admin/issuedApiKeys`;
+
+/**
+ * Read the two id sets straight from the post-migration tables.
+ *
+ * Through `psql` rather than a driver, matching the other infra/ory scripts:
+ * `pg` belongs to libs/database and does not resolve from the repo root.
+ */
+function loadPrincipals() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('DATABASE_URL is required');
+
+  const query = (sql) =>
+    execFileSync('psql', [url, '-At', '-F', ',', '-c', sql], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => line.split(','));
+
+  return {
+    agentIds: new Set(query('SELECT id FROM agents').map(([id]) => id)),
+    byIdentityId: new Map(
+      query('SELECT identity_id, id FROM agents WHERE identity_id IS NOT NULL'),
+    ),
+  };
+}
+
+/** Yields one page of issued keys at a time; never holds the whole corpus. */
+async function* pageKeys() {
+  let pageToken;
+  for (;;) {
+    const query = new URLSearchParams({ page_size: String(PAGE_SIZE) });
+    if (pageToken) query.set('page_token', pageToken);
+
+    const response = await fetch(`${api}?${query}`, { headers });
+    if (!response.ok) {
+      throw new Error(`list keys: ${response.status} ${await response.text()}`);
+    }
+    const body = await response.json();
+    yield body.issued_api_keys ?? [];
+
+    if (!body.next_page_token || body.next_page_token === pageToken) return;
+    pageToken = body.next_page_token;
+  }
+}
+
+/** True for keys MoltNet issued for an agent. Anything else is out of scope. */
+function isMoltnetAgentKey(key) {
+  const metadata = key.metadata;
+  return (
+    !!metadata &&
+    !Array.isArray(metadata) &&
+    typeof metadata === 'object' &&
+    metadata.subject_type === 'agent'
+  );
+}
+
+/** Only an active key can be revoked; revoked and expired ones are already inert. */
+function isActive(key) {
+  return key.status === 'KEY_STATUS_ACTIVE';
+}
+
+function loadState() {
+  try {
+    const parsed = JSON.parse(readFileSync(STATE_PATH, 'utf8'));
+    return new Set(parsed.done ?? []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Atomic so an interrupt cannot leave a truncated checkpoint. */
+function saveState(done) {
+  const tmp = `${STATE_PATH}.tmp`;
+  writeFileSync(tmp, JSON.stringify({ done: [...done] }, null, 2));
+  renameSync(tmp, STATE_PATH);
+}
+
+async function revokeKey(key, description) {
+  const response = await fetch(`${api}/${key.key_id}:revoke`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: REVOCATION_REASON, description }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `revoke ${key.key_id}: ${response.status} ${await response.text()}`,
+    );
+  }
+}
+
+/** Runs `worker` over `items` with at most `limit` in flight. */
+async function pooled(items, limit, worker) {
+  let cursor = 0;
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      for (;;) {
+        const index = cursor++;
+        if (index >= items.length) return;
+        await worker(items[index], index);
+      }
+    },
+  );
+  await Promise.all(runners);
+}
+
+/**
+ * Refuse to revoke production keys from a local database.
+ *
+ * A rehearsal runs against a restored copy on 127.0.0.1 while the Talos URL
+ * still points at production. Dry-running that way is harmless, but `--apply`
+ * would revoke live agent credentials on the strength of ids that exist only
+ * in a throwaway container. The combination is never legitimate.
+ */
+function assertDatabaseAndTalosAgree() {
+  const dbHost = new URL(process.env.DATABASE_URL).hostname;
+  const talosHost = new URL(base).hostname;
+  const local = ['localhost', '127.0.0.1', '::1'];
+  const dbIsLocal = local.includes(dbHost);
+  const talosIsLocal =
+    local.includes(talosHost) || talosHost.endsWith('.local');
+
+  if (APPLY && dbIsLocal && !talosIsLocal) {
+    console.error(
+      `Refusing to apply: DATABASE_URL points at ${dbHost} (local) while ` +
+        `Talos points at ${talosHost} (remote). The agent ids read from a ` +
+        'local copy do not describe that deployment, so applying would ' +
+        'revoke live credentials on the strength of unrelated data.',
+    );
+    process.exit(1);
+  }
+}
+
+assertDatabaseAndTalosAgree();
+
+const { agentIds, byIdentityId } = loadPrincipals();
+
+// Stream the corpus, retaining ONLY the keys that need revoking.
+const legacy = [];
+const orphans = [];
+let scanned = 0;
+let moltnetKeys = 0;
+let current = 0;
+let inactive = 0;
+
+for await (const page of pageKeys()) {
+  scanned += page.length;
+  for (const key of page) {
+    if (!isMoltnetAgentKey(key)) continue;
+    moltnetKeys += 1;
+    if (!isActive(key)) {
+      inactive += 1;
+      continue;
+    }
+    const actorId = key.actor_id;
+    if (typeof actorId === 'string' && agentIds.has(actorId)) {
+      current += 1;
+      continue;
+    }
+    const mapped = byIdentityId.get(actorId);
+    if (mapped) legacy.push({ key, agentId: mapped });
+    else orphans.push({ key, agentId: null });
+  }
+}
+
+const work = [...legacy, ...orphans];
+
+console.log(`agents                   : ${agentIds.size}`);
+console.log(`keys scanned             : ${scanned}`);
+console.log(`moltnet agent keys       : ${moltnetKeys}`);
+console.log(`  already revoked/expired: ${inactive}`);
+console.log(`  current (agents.id)    : ${current}`);
+console.log(`  legacy (identity_id)   : ${legacy.length}`);
+console.log(`  orphaned (no agent row): ${orphans.length}`);
+console.log(`to revoke                : ${work.length}`);
+
+if (!APPLY) {
+  for (const item of work.slice(0, 5)) {
+    console.log(
+      `  would revoke ${item.key.key_id} (${item.key.name}) actor=${item.key.actor_id}` +
+        (item.agentId ? ` -> agent ${item.agentId}` : ' -> no agent row'),
+    );
+  }
+  console.log('\nDRY RUN — pass --apply to revoke.');
+  process.exit(0);
+}
+
+const done = loadState();
+const remaining = work.filter((item) => !done.has(item.key.key_id));
+if (done.size > 0) {
+  console.log(
+    `\nresuming: ${done.size} already revoked, ${remaining.length} remaining`,
+  );
+}
+
+let completed = 0;
+let checkpointAt = 0;
+await pooled(remaining, CONCURRENCY, async (item) => {
+  await revokeKey(
+    item.key,
+    item.agentId
+      ? `MoltNet principal decoupling: actor_id was Kratos identity ${item.key.actor_id}; agent is now ${item.agentId}. Talos cannot rewrite actor_id, so this key is revoked and must be re-issued.`
+      : `MoltNet principal decoupling: actor_id ${item.key.actor_id} resolves to no agent, so this key can no longer authenticate.`,
+  );
+
+  done.add(item.key.key_id);
+  completed += 1;
+  if (completed - checkpointAt >= 50 || completed === remaining.length) {
+    checkpointAt = completed;
+    saveState(done);
+    console.log(`  ${completed}/${remaining.length}`);
+  }
+});
+saveState(done);
+
+// Verify by re-reading, rather than trusting the writes we just made.
+let stillActive = 0;
+for await (const page of pageKeys()) {
+  for (const key of page) {
+    if (!isMoltnetAgentKey(key) || !isActive(key)) continue;
+    if (typeof key.actor_id === 'string' && agentIds.has(key.actor_id))
+      continue;
+    stillActive += 1;
+    console.error(`  STILL ACTIVE ${key.key_id} actor=${key.actor_id}`);
+  }
+}
+
+console.log(`\nRevoked ${completed} keys.`);
+console.log(`Active agent keys not bound to an agents.id: ${stillActive}`);
+if (stillActive > 0) {
+  console.error('FAIL: some legacy agent keys are still active');
+  process.exit(1);
+}
+console.log('PASS — every active MoltNet agent key resolves to an agents.id');
