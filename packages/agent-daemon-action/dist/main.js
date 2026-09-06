@@ -30756,7 +30756,8 @@ _Object_({ "x-moltnet-team-id": Optional(String$1({
 })) });
 _Object_({
 	kind: Literal("agent"),
-	identityId: UuidSchema,
+	agentId: UuidSchema,
+	identityId: Union([UuidSchema, Null()]),
 	fingerprint: FingerprintSchema,
 	publicKey: PublicKeySchema
 }, {
@@ -30773,7 +30774,8 @@ _Object_({
 });
 var principalUnionVariants = [_Object_({
 	kind: Literal("agent"),
-	identityId: UuidSchema,
+	agentId: UuidSchema,
+	identityId: Union([UuidSchema, Null()]),
 	fingerprint: FingerprintSchema,
 	publicKey: PublicKeySchema
 }, { additionalProperties: false }), _Object_({
@@ -39497,8 +39499,8 @@ function oauth2SecretKey(identityId, clientId) {
 function identitySeedKey(fingerprint) {
 	return `identity/${fingerprint}/seed`;
 }
-function agentKeyKey(identityId) {
-	return `agent-key/${identityId}`;
+function agentKeyKey(agentId) {
+	return `agent-key/${agentId}`;
 }
 var PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
 var SECRET_REFERENCE_MESSAGE = "Secret reference must be <provider>:<key> with a lowercase provider name";

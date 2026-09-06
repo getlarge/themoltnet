@@ -49,7 +49,7 @@ func newRecordingAPI(t *testing.T) *recordingAPI {
 		api.authHeaders = append(api.authHeaders, r.Header.Get("Authorization"))
 		api.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"identityId":"00000000-0000-0000-0000-000000000000","subjectType":"agent","scopes":[]}`))
+		_, _ = w.Write([]byte(`{"subjectId":"00000000-0000-4000-a000-0000000000aa","identityId":"00000000-0000-0000-0000-000000000000","subjectType":"agent","scopes":[]}`))
 	})
 	api.server = httptest.NewServer(mux)
 	t.Cleanup(api.server.Close)

@@ -36,7 +36,8 @@ func (h *stubRenderPackHandler) RenderContextPack(_ context.Context, req *moltne
 	creator := moltnetapi.RenderedPackResultCreator{Type: moltnetapi.AgentPrincipalRenderedPackResultCreator}
 	creator.SetAgentPrincipal(moltnetapi.AgentPrincipal{
 		Kind:        moltnetapi.AgentPrincipalKindAgent,
-		IdentityId:  uuid.MustParse("dd000000-0000-0000-0000-000000000001"),
+		AgentId:     uuid.MustParse("dd000000-0000-4000-a000-000000000001"),
+		IdentityId:  moltnetapi.NewNilUUID(uuid.MustParse("dd000000-0000-0000-0000-000000000001")),
 		Fingerprint: "A1B2-C3D4-E5F6-A7B8",
 		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	})
