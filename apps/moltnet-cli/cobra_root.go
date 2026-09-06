@@ -8,6 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // NewRootCmd creates a fresh root command for test isolation.
@@ -30,10 +31,9 @@ without human intervention.`,
 	)
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		if !isCLIWorkspaceInvocation() && cmd.Name() != "migrate" {
+		if shouldAnnouncePendingMigration(cmd) {
 			// A local file read, so it runs inline rather than racing command
-			// output from a goroutine. `migrate` is excluded because it is
-			// about to report the same thing far more precisely.
+			// output from a goroutine.
 			credPath, _ := cmd.Flags().GetString("credentials")
 			if notice := pendingConfigMigrationNotice(credPath); notice != "" {
 				fmt.Fprint(cmd.ErrOrStderr(), notice)
@@ -110,4 +110,24 @@ func Execute(version, commit string) {
 		}
 		os.Exit(1)
 	}
+}
+
+// shouldAnnouncePendingMigration gates the advisory notice to interactive use.
+//
+// The notice already goes to stderr, so it cannot corrupt a captured stdout —
+// but that is not sufficient. Scripts that redirect with 2>&1 would fold it
+// into the stream they parse, and some callers treat any stderr output as a
+// failure signal. Requiring a terminal makes the notice reach the only audience
+// that can act on it and keeps every pipeline, CI job and command substitution
+// byte-identical to before.
+//
+// `migrate` is excluded because it is about to report the same thing far more
+// precisely, and workspace invocations because a developer running from source
+// is not the person this is for.
+func shouldAnnouncePendingMigration(cmd *cobra.Command) bool {
+	if isCLIWorkspaceInvocation() || cmd.Name() == "migrate" {
+		return false
+	}
+	f, ok := cmd.ErrOrStderr().(*os.File)
+	return ok && term.IsTerminal(int(f.Fd()))
 }

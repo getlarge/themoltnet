@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func writeLegacyMigrationFixture(t *testing.T) (string, string) {
@@ -642,5 +644,34 @@ func TestPendingConfigMigrationNoticeIsSilentWithoutUsableCredentials(t *testing
 		if got := pendingConfigMigrationNotice(path); got != "" {
 			t.Errorf("%s: notice = %q, want silence", name, got)
 		}
+	}
+}
+
+// The notice must never reach a script. stderr alone is not enough: a caller
+// redirecting 2>&1 would fold it into the stream it parses.
+func TestPendingMigrationNoticeOnlyAnnouncesToATerminal(t *testing.T) {
+	cmd := &cobra.Command{Use: "version"}
+	cmd.SetErr(&bytes.Buffer{})
+	if shouldAnnouncePendingMigration(cmd) {
+		t.Fatal("announced to a non-terminal stderr; scripts would see it")
+	}
+
+	// A real file that is not a terminal — the shape of `2>logfile`.
+	logFile, err := os.CreateTemp(t.TempDir(), "stderr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logFile.Close()
+	redirected := &cobra.Command{Use: "version"}
+	redirected.SetErr(logFile)
+	if shouldAnnouncePendingMigration(redirected) {
+		t.Fatal("announced to a redirected stderr")
+	}
+
+	// `config migrate` is about to report the same thing more precisely.
+	migrate := &cobra.Command{Use: "migrate"}
+	migrate.SetErr(os.Stderr)
+	if shouldAnnouncePendingMigration(migrate) {
+		t.Fatal("announced on the migrate command itself")
 	}
 }
