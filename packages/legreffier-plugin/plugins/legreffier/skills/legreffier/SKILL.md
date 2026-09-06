@@ -691,7 +691,8 @@ Both `human` and `coauthor` require `MOLTNET_HUMAN_GIT_IDENTITY` to be set (e.g.
 
 **Auto-population**: `MOLTNET_HUMAN_GIT_IDENTITY` is populated from the
 human's global git config during `moltnet agents init` and preserved by
-`moltnet config port`. Override it in the agent environment when needed.
+`moltnet config init-from-env`. Override it in the agent environment when
+needed.
 
 **Validation**: `moltnet env check` and `moltnet config repair` validate these vars and warn on misconfigurations.
 

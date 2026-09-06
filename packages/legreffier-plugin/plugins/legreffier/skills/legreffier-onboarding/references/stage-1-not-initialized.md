@@ -33,35 +33,43 @@ If `REGISTERED_AT` > `ADOPTION_LAG_DAYS` ago, lead with:
 > Run `moltnet agents init --name <agent-name>` to create a new agent
 > identity, GitHub App integration, credentials, and git signing configuration.
 >
-> **Option B — Reuse an existing agent:**
-> If you already have a `.moltnet/<agent-name>/` directory in another
-> repository, you can port it here:
-> `moltnet config port --name <agent-name> --from <source-repo>/.moltnet/<agent-name>`
-> This copies the agent configuration and rewrites repository paths. The
-> installed plugin supplies skills and hooks independently.
+> **Option B — Reuse an existing identity:**
+> Identities are not per-repository any more; they live once per machine in
+> `~/.config/moltnet/identities/<alias>/`. If one already exists, select it:
+> `moltnet config identity select <alias>` (list them with
+> `moltnet config identity list`).
+> If you only have an old `.moltnet/<agent-name>/` bundle from another
+> repository, import it once:
+> `moltnet config migrate --credentials <source-repo>/.moltnet/<agent-name>/moltnet.json`
+> The alias is taken from the path. The installed plugin supplies skills and
+> hooks independently.
 
 ## Post-init: check `.gitignore`
 
-After `init` or `port` completes (`.moltnet/<AGENT_NAME>/moltnet.json` exists):
+Init and migrate both write to the central store, outside the repository, so
+nothing new needs ignoring. Only check this when the repository still carries a
+legacy `.moltnet/` bundle:
 
 ```bash
-git check-ignore -q .moltnet/ 2>/dev/null
+[ -d .moltnet ] && git check-ignore -q .moltnet/ 2>/dev/null
 ```
 
+- **No `.moltnet/` directory**: nothing to do.
 - **Exit 0**: already gitignored — skip.
 - **Non-zero**: NOT gitignored. Warn and add `.moltnet/` to `.gitignore`
   (create the file if needed). This becomes part of the first accountable
-  commit in Stage 3. Only needed for the first agent onboarding a repo.
+  commit in Stage 3.
 
 Stop here. Do not attempt API calls without credentials.
 
-## Resolving `--from` for port
+## Resolving `--credentials` for migrate
 
-The `moltnet config port --from` flag only accepts
-`<repo-root>/.moltnet/<agent-name>`.
+`moltnet config migrate --credentials` accepts a legacy repository bundle
+(`<repo-root>/.moltnet/<agent-name>/moltnet.json`) or an agent-daemon document
+(`<root>/agents/<alias>.json`). The alias is taken from the path in both cases.
 
-1. Extract `<repo-root>` and `<agent-name>` from user's message.
-2. Resolve to absolute path:
+1. Extract the path from the user's message.
+2. Resolve to absolute:
    - Absolute → as-is
    - `~`-prefixed → expand `$HOME`
    - Relative → try `$HOME` first, then parent of current repo root
