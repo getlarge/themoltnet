@@ -29,7 +29,10 @@ function runHook({
   if (withDocument) {
     const dir = join(home, '.config', 'moltnet', 'identities', identity);
     mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, 'moltnet.json'), JSON.stringify({ identity_id: 'x' }));
+    writeFileSync(
+      join(dir, 'moltnet.json'),
+      JSON.stringify({ identity_id: 'x' }),
+    );
     if (withGitconfig) writeFileSync(join(dir, 'gitconfig'), '[user]\n');
   }
 
@@ -78,13 +81,22 @@ test('exports the gitconfig too when the agent has one', () => {
   const { status, exported } = runHook({ withGitconfig: true });
   assert.equal(status, 0);
   assert.match(exported, /export MOLTNET_ACTIVE_IDENTITY='legreffier'/);
-  assert.match(exported, /export GIT_CONFIG_GLOBAL='.*\/identities\/legreffier\/gitconfig'/);
+  assert.match(
+    exported,
+    /export GIT_CONFIG_GLOBAL='.*\/identities\/legreffier\/gitconfig'/,
+  );
 });
 
 // The alias becomes a path segment and is written into a file that is later
 // sourced by the shell.
 test('refuses hostile aliases and writes nothing', () => {
-  for (const identity of ['../escape', '.hidden', '-leading', 'has space', 'a'.repeat(64)]) {
+  for (const identity of [
+    '../escape',
+    '.hidden',
+    '-leading',
+    'has space',
+    'a'.repeat(64),
+  ]) {
     const { status, exported } = runHook({ identity, withDocument: false });
     assert.equal(status, 1, `alias ${identity} must be refused`);
     assert.equal(exported, '', `alias ${identity} must not export anything`);
@@ -104,8 +116,14 @@ test('does nothing outside a remote session', () => {
 // environment, so it must not resolve a mutable npm tag by default.
 test('pins the CLI it installs rather than tracking latest', () => {
   const script = readFileSync(hook, 'utf8');
-  assert.doesNotMatch(script, /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/);
-  assert.match(script, /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-\d+\.\d+\.\d+\}/);
+  assert.doesNotMatch(
+    script,
+    /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/,
+  );
+  assert.match(
+    script,
+    /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-\d+\.\d+\.\d+\}/,
+  );
 });
 
 // The hook accepts the pre-cutover variable name so an environment configured
