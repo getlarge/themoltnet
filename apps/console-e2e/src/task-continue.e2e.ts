@@ -6,10 +6,10 @@ import {
   createRuntimeProfile,
   createTeam,
   getTask,
+  getWhoami,
   listTasks,
   listTeams,
 } from '@moltnet/api-client';
-import { Configuration, FrontendApi } from '@ory/client-fetch';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
@@ -23,7 +23,6 @@ import {
   createTestUser,
   createTokenSessionApiClient,
   expectConsoleOverview,
-  KRATOS_PUBLIC_URL,
   loginViaBrowser,
   registerViaBrowser,
 } from './helpers/index.js';
@@ -70,22 +69,18 @@ test.describe.serial('Continue task from console', () => {
     const humanClient = createTokenSessionApiClient(sessionToken);
 
     // Verify the human has a personal team (registration triggered the
-    // welcome flow), then resolve the human's Kratos identity id — that
-    // is the subjectId needed when listing them as a founding member of
-    // the shared team below.
+    // welcome flow), then resolve the human's MoltNet subject id from
+    // whoami — that is the subjectId needed when listing them as a
+    // founding member of the shared team below. It is NOT the Kratos
+    // identity id: Keto subjects are keyed on `humans.id` (#2163).
     const personal = (
       await listTeams({ client: humanClient })
     ).data?.items.find((t) => t.personal);
     if (!personal) throw new Error('expected a personal team');
-    const kratos = new FrontendApi(
-      new Configuration({ basePath: KRATOS_PUBLIC_URL }),
-    );
-    const session = await kratos.toSession({
-      xSessionToken: sessionToken,
-    });
-    const humanSubjectId = session.identity?.id;
+    const humanSubjectId = (await getWhoami({ client: humanClient })).data
+      ?.subjectId;
     if (!humanSubjectId) {
-      throw new Error('Kratos session missing identity id');
+      throw new Error('whoami did not return a subject id');
     }
 
     agentCtx = await provisionAgent('task-continue-e2e');

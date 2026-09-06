@@ -140,14 +140,51 @@ async function grantTeamRole(
   }
 }
 
+/**
+ * Resolve the Kratos identity behind each Keto subject.
+ *
+ * Keto subjects are INTERNAL ids (`agents.id` / `humans.id`), which Kratos has
+ * never heard of. Passing them straight to `listIdentities` matches nothing,
+ * so every member degrades to a truncated-UUID display name with no email —
+ * silently, because a miss is indistinguishable from a deleted identity. The
+ * mapping has to come from our own tables first.
+ *
+ * A subject whose `identity_id` is null (never bound, or unlinked by an
+ * identity-restore) has no Kratos record by definition and keeps the fallback.
+ */
 async function resolveMembers(
-  identityApi: IdentityApi,
+  deps: {
+    identityApi: IdentityApi;
+    agentRepository: FastifyInstance['agentRepository'];
+    humanRepository: FastifyInstance['humanRepository'];
+  },
   members: KetoMember[],
   log: FastifyInstance['log'],
 ): Promise<EnrichedMember[]> {
   if (members.length === 0) return [];
 
   const subjectIds = members.map((m) => m.subjectId);
+  const humanIds = members
+    .filter((m) => m.subjectNs === 'Human')
+    .map((m) => m.subjectId);
+  const agentIds = members
+    .filter((m) => m.subjectNs !== 'Human')
+    .map((m) => m.subjectId);
+
+  const identityIdBySubject = new Map<string, string>();
+  const [agents, humans] = await Promise.all([
+    agentIds.length > 0
+      ? deps.agentRepository.findByIds(agentIds)
+      : new Map<string, { identityId: string | null }>(),
+    humanIds.length > 0
+      ? deps.humanRepository.findByIds(humanIds)
+      : new Map<string, { identityId: string | null }>(),
+  ]);
+  for (const [subjectId, principal] of [...agents, ...humans]) {
+    if (principal.identityId) {
+      identityIdBySubject.set(subjectId, principal.identityId);
+    }
+  }
 
   const identityMap = new Map<
     string,
@@ -158,22 +195,28 @@ async function resolveMembers(
     }
   >();
 
-  try {
-    const identities = await identityApi.listIdentities({ ids: subjectIds });
-    for (const identity of identities) {
-      identityMap.set(identity.id, {
-        schemaId: identity.schema_id,
-        traits: (identity.traits as Record<string, unknown>) ?? {},
-        metadataPublic:
-          (identity.metadata_public as Record<string, unknown>) ?? null,
+  const identityIds = [...identityIdBySubject.values()];
+  if (identityIds.length > 0) {
+    try {
+      const identities = await deps.identityApi.listIdentities({
+        ids: identityIds,
       });
+      for (const identity of identities) {
+        identityMap.set(identity.id, {
+          schemaId: identity.schema_id,
+          traits: (identity.traits as Record<string, unknown>) ?? {},
+          metadataPublic:
+            (identity.metadata_public as Record<string, unknown>) ?? null,
+        });
+      }
+    } catch (err) {
+      log.warn({ err, subjectIds }, 'team.resolve_members_kratos_failed');
     }
-  } catch (err) {
-    log.warn({ err, subjectIds }, 'team.resolve_members_kratos_failed');
   }
 
   return members.map((m) => {
-    const identity = identityMap.get(m.subjectId);
+    const identityId = identityIdBySubject.get(m.subjectId);
+    const identity = identityId ? identityMap.get(identityId) : undefined;
     const subjectType = m.subjectNs === 'Human' ? 'human' : 'agent';
 
     if (!identity) {
@@ -461,7 +504,11 @@ export function teamRoutes(fastify: FastifyInstance) {
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
       const enrichedMembers = await resolveMembers(
-        fastify.identityApi,
+        {
+          identityApi: fastify.identityApi,
+          agentRepository: fastify.agentRepository,
+          humanRepository: fastify.humanRepository,
+        },
         members,
         request.log,
       );
@@ -584,7 +631,11 @@ export function teamRoutes(fastify: FastifyInstance) {
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
       const enrichedMembers = await resolveMembers(
-        fastify.identityApi,
+        {
+          identityApi: fastify.identityApi,
+          agentRepository: fastify.agentRepository,
+          humanRepository: fastify.humanRepository,
+        },
         members,
         request.log,
       );

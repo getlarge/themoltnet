@@ -4,9 +4,9 @@ import {
   createDiary,
   createDiaryGrant,
   createTeam,
+  getWhoami,
   listTeams,
 } from '@moltnet/api-client';
-import { Configuration, FrontendApi } from '@ory/client-fetch';
 import { expect, type Page, test } from '@playwright/test';
 
 import {
@@ -20,7 +20,6 @@ import {
   createTestUser,
   createTokenSessionApiClient,
   expectConsoleOverview,
-  KRATOS_PUBLIC_URL,
   loginViaBrowser,
   registerViaBrowser,
 } from './helpers/index.js';
@@ -67,12 +66,9 @@ test.describe.serial('Task analytics', () => {
     if (!personal) throw new Error('expected a personal team');
     personalTeamName = personal.name;
 
-    const kratos = new FrontendApi(
-      new Configuration({ basePath: KRATOS_PUBLIC_URL }),
-    );
-    const session = await kratos.toSession({ xSessionToken: sessionToken });
-    const humanSubjectId = session.identity?.id;
-    if (!humanSubjectId) throw new Error('Kratos session missing identity id');
+    const humanSubjectId = (await getWhoami({ client: humanClient })).data
+      ?.subjectId;
+    if (!humanSubjectId) throw new Error('whoami did not return a subject id');
 
     agentCtx = await provisionAgent('task-analytics-e2e');
 

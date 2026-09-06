@@ -791,21 +791,19 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     tokenValidator,
     sessionResolver,
     teamResolver: {
-      // subjectId is the Kratos identity_id from the JWT/session. For agents
-      // it IS the FK target on teams.creator_agent_id. For humans it is
-      // NOT the FK target — teams.creator_human_id references humans.id,
-      // which we have to look up via humans.identityId.
+      // subjectId is the Keto subject, which since #2163 is the INTERNAL id
+      // (`agents.id` / `humans.id`) — not the Kratos identity. Both are direct
+      // FK targets (teams.creator_agent_id, teams.creator_human_id), so no
+      // identity lookup is involved on either side.
       findPersonalTeamId: async (subjectId: string) => {
         const agentTeam = await teamRepository.findPersonalByCreator({
           kind: 'agent',
           id: subjectId,
         });
         if (agentTeam) return agentTeam.id;
-        const human = await humanRepository.findByIdentityId(subjectId);
-        if (!human) return null;
         const humanTeam = await teamRepository.findPersonalByCreator({
           kind: 'human',
-          id: human.id,
+          id: subjectId,
         });
         return humanTeam?.id ?? null;
       },

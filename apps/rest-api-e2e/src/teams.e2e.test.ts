@@ -459,6 +459,25 @@ describe('Teams', () => {
       });
       expect(humanJoin.response.status).toBe(200);
 
+      // Enrichment, not just membership. The Keto subject is `humans.id`,
+      // which Kratos has never heard of, so the route must translate it
+      // through `humans.identity_id` before reading traits. Without that
+      // translation the lookup misses and the member degrades silently to a
+      // truncated-UUID display name with no email — indistinguishable from a
+      // deleted identity, and invisible to any assertion on role alone
+      // (#2163). `humanId` and `identityId` differ, so a lookup on the wrong
+      // one cannot accidentally pass.
+      const enriched = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+      const humanMember = enriched.data?.items.find(
+        (member) => member.subjectId === human.humanId,
+      );
+      expect(humanMember?.email).toBe(human.email);
+      expect(humanMember?.displayName).toBe(human.username);
+
       const assignment = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
