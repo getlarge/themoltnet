@@ -49,7 +49,12 @@ function runHook({
 
   const envFile = join(home, 'claude-env');
   writeFileSync(envFile, '');
-  const result = spawnSync('/bin/sh', [hook], {
+  // Execute the hook directly so its own shebang picks the interpreter, which
+  // is how Claude Code runs it. Spawning `/bin/sh` instead passes on macOS,
+  // where that is bash in POSIX mode, and fails on Linux CI, where it is dash:
+  // the hook opens with `set -euo pipefail` and dash has no pipefail, so every
+  // case died with exit 2 before running any of the logic under test.
+  const result = spawnSync(hook, [], {
     encoding: 'utf8',
     env: {
       PATH: path,
