@@ -666,9 +666,26 @@ func TestGitHubGuardCobraPath(t *testing.T) {
 // the developer's own identity instead of their fixture.
 func isolateIdentityEnv(t *testing.T) {
 	t.Helper()
+	// Activation signals.
 	t.Setenv("GIT_CONFIG_GLOBAL", "")
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
 	t.Setenv("MOLTNET_AGENT_NAME", "")
+	// Credential material. An activated developer shell exports these, and a
+	// bare-name variable silently changes behaviour rather than failing: a
+	// present MOLTNET_CLIENT_SECRET makes an env-file secret resolve to the
+	// environment provider instead of being persisted, so a test can take a
+	// completely different path locally than it does on a clean CI runner.
+	for _, key := range []string{
+		"MOLTNET_CLIENT_SECRET",
+		"MOLTNET_CLIENT_ID",
+		"MOLTNET_IDENTITY_ID",
+		"MOLTNET_PRIVATE_KEY",
+		"MOLTNET_PUBLIC_KEY",
+		"MOLTNET_FINGERPRINT",
+		"MOLTNET_AGENT_KEY",
+	} {
+		t.Setenv(key, "")
+	}
 }
 
 func setupGitHubGuardIdentity(t *testing.T) string {

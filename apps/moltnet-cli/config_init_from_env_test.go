@@ -224,6 +224,7 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 		envFilePath,
 		false,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -354,6 +355,7 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 		envFilePath,
 		true,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -429,6 +431,7 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 		envFilePath,
 		false,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

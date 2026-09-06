@@ -56,7 +56,7 @@ func normalizePEMEnvValue(raw string) string {
 // runConfigInitFromEnvCmd reconstructs an identity's central local directory
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where moltnet agents init cannot run interactively.
-func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
+func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool, destination string) error {
 	return runConfigInitFromEnvCmdWithRegistry(
 		dir,
 		agentName,
@@ -64,6 +64,7 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 		envFile,
 		override,
 		NewSecretProviderRegistry(),
+		destination,
 	)
 }
 
@@ -73,6 +74,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	envFile string,
 	override bool,
 	secretProviders *SecretProviderRegistry,
+	destination string,
 ) error {
 	// Read env file without mutating the process environment.
 	var fileVars map[string]string
@@ -160,17 +162,30 @@ func runConfigInitFromEnvCmdWithRegistry(
 		return fmt.Errorf("create agent dir: %w", err)
 	}
 
+	// A secret arriving through the process environment is only referenced, so
+	// nothing is written. One arriving from --env-file has to be persisted
+	// somewhere, and that destination must be selectable: the OS keyring does
+	// not exist on a headless host — CI runners, containers, servers — where
+	// this command is precisely what runs.
 	secretReference := &SecretReference{
 		Provider: environmentProviderName,
 		Key:      environmentSecretKey,
 	}
 	if valueComesFromFile(environmentSecretKey, fileVars, override) {
+		resolved, err := validateMigrationDestination(secretProviders, destination)
+		if err != nil {
+			return err
+		}
 		secretReference = &SecretReference{
-			Provider: osKeyringProviderName,
+			Provider: resolved,
 			Key:      OAuth2SecretKey(identityID, clientID),
 		}
 		if err := secretProviders.Store(*secretReference, clientSecret); err != nil {
-			return fmt.Errorf("persist env-file OAuth2 client secret: %w", err)
+			return fmt.Errorf(
+				"persist env-file OAuth2 client secret to %q: %w\n"+
+					"On a host without an OS keyring, pass --destination file with %s and %s=1.",
+				resolved, err, secretRootEnv, secretRootWritableEnv,
+			)
 		}
 	}
 

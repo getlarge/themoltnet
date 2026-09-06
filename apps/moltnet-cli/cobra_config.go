@@ -63,7 +63,8 @@ Optional env vars:
 			skipGit, _ := cmd.Flags().GetBool("skip-git")
 			envFile, _ := cmd.Flags().GetString("env-file")
 			override, _ := cmd.Flags().GetBool("override")
-			return runConfigInitFromEnvCmd("", name, skipGit, envFile, override)
+			destination, _ := cmd.Flags().GetString("destination")
+			return runConfigInitFromEnvCmd("", name, skipGit, envFile, override, destination)
 		},
 	}
 	initFromEnvCmd.Flags().String("name", "", "Identity alias (or set MOLTNET_ACTIVE_IDENTITY)")
@@ -71,6 +72,7 @@ Optional env vars:
 	initFromEnvCmd.Flags().Bool("skip-git", false, "Skip git signing setup")
 	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
 	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")
+	initFromEnvCmd.Flags().String("destination", defaultMigrationDestination, "Secret provider that receives an --env-file secret (os-keyring, or file with MOLTNET_SECRET_ROOT_WRITABLE=1)")
 
 	exportEnvCmd := &cobra.Command{
 		Use:   "export-env",

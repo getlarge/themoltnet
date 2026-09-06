@@ -370,6 +370,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 		envFile,
 		false,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("init-from-env failed: %v", err)

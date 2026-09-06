@@ -472,8 +472,19 @@ func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
 	// Re-import into a clean HOME with no --name: the bundle must be
 	// self-describing.
 	t.Setenv("HOME", t.TempDir())
+	// An env-file-sourced secret is PERSISTED to a provider, unlike one passed
+	// through the process environment, which is only referenced. Point that at
+	// the file provider: a headless CI runner has no OS keyring, and the round
+	// trip under test is about which identity is selected, not where the secret
+	// physically lands.
+	secretRoot := t.TempDir()
+	t.Setenv(secretRootEnv, secretRoot)
+	t.Setenv(secretRootWritableEnv, "1")
+	// --destination file: a headless runner has no OS keyring, and this round
+	// trip is about which identity is selected, not where the secret lands.
 	if _, _, err := executeCommand(NewRootCmd("test", ""),
-		"config", "init-from-env", "--env-file", envPath); err != nil {
+		"config", "init-from-env", "--env-file", envPath,
+		"--destination", fileProviderName); err != nil {
 		t.Fatalf("init-from-env without --name: %v", err)
 	}
 	imported, err := identityCredentialsPath("exported")
@@ -482,5 +493,14 @@ func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
 	}
 	if !regularFileExists(imported) {
 		t.Fatalf("import did not create %s", imported)
+	}
+
+	// Proves the secret went to the file provider rather than an OS keyring:
+	// without this the test passes on a developer machine that has a keychain
+	// and fails on a headless runner that does not.
+	entries, err := os.ReadDir(secretRoot)
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("expected the client secret in the file provider at %s, got %v (%v)",
+			secretRoot, entries, err)
 	}
 }
