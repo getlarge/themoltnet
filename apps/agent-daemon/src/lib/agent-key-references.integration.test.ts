@@ -12,9 +12,9 @@ import { resolveExecutorSigningPrivateKey } from './executor-attestation.js';
 /**
  * No mocks: exercises the daemon's startup material resolution through the
  * real Node secret-provider registry and the real `file` provider, for both
- * references the configless agent-key mode requires.
+ * references a configless daemon requires.
  */
-describe('agent-key mode with file references (integration)', () => {
+describe('configless agent key with file references (integration)', () => {
   const dirs: string[] = [];
   afterEach(async () => {
     vi.unstubAllEnvs();
@@ -46,11 +46,11 @@ describe('agent-key mode with file references (integration)', () => {
     vi.stubEnv('MOLTNET_PRIVATE_KEY_REF', 'file:identity/fp.seed');
 
     const cfg = loadConfig();
-    expect(cfg.authMode).toBe('agent-key');
+    expect(cfg.credentialSource).toBe('environment');
 
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: cfg.authMode,
+        credentialSource: cfg.credentialSource,
         agentDir: '/nonexistent/agent',
         configuredPrivateKey: cfg.signingPrivateKey,
         configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
@@ -74,7 +74,7 @@ describe('agent-key mode with file references (integration)', () => {
     vi.stubEnv('MOLTNET_SECRET_ROOT', root);
     const resolve = (ref: string) =>
       resolveExecutorSigningPrivateKey({
-        authMode: 'agent-key',
+        credentialSource: 'environment',
         agentDir: '/nonexistent/agent',
         configuredPrivateKey: '',
         configuredPrivateKeyRef: ref,

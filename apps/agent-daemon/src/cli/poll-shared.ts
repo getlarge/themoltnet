@@ -244,7 +244,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     try {
       const resolvedContext = await resolveAgentContext(baseCommon.agent, {
         agentRootDir: explicitAgentRootDir,
-        authMode: cfg.authMode,
+        credentialSource: cfg.credentialSource,
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
       gate = 'authenticate_and_bind';
@@ -255,7 +255,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       });
       gate = 'resolve_signing_material';
       const privateKey = await resolveExecutorSigningPrivateKey({
-        authMode: cfg.authMode,
+        credentialSource: cfg.credentialSource,
         agentDir: resolvedContext.agentDir,
         configuredPrivateKey: cfg.signingPrivateKey,
         configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
@@ -271,7 +271,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       const agentIdentity = await resolveDaemonAgentIdentity({
         agentName: baseCommon.agent,
         whoami,
-        authMode: cfg.authMode,
+        credentialSource: cfg.credentialSource,
         agentDir: resolvedContext.agentDir,
         gitAuthor: values['git-author'] ?? (cfg.gitAuthor || undefined),
       });
@@ -293,7 +293,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         level: cfg.logLevel || (baseCommon.debug ? 'debug' : 'info'),
         gate,
         agent: baseCommon.agent,
-        authMode: cfg.authMode,
+        credentialSource: cfg.credentialSource,
         error,
       });
       throw error;
@@ -414,7 +414,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     resourceAttributes: {
       'moltnet.team.id': teamId,
       'moltnet.agent.name': baseCommon.agent,
-      'moltnet.auth.mode': ctx.authMechanism,
+      'moltnet.credential.source': ctx.credentialSource,
       'moltnet.runtime_profile.count': String(profiles.length),
       'moltnet.runtime_profile.ids': profiles.map((p) => p.id).join(','),
     },
@@ -483,7 +483,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   rootLogger.info(
     {
-      authMode: cfg.authMode,
+      credentialSource: cfg.credentialSource,
       subjectType: startupWhoami.subjectType,
       bindingScope: startupWhoami.credentialBinding?.bindingScope ?? null,
       credentialKeyId: startupWhoami.credentialBinding?.keyId ?? null,

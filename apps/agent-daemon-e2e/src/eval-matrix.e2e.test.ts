@@ -30,14 +30,16 @@ import {
   type ScoreMatrix,
   summarizeMatrix,
 } from '@moltnet/agent-eval';
-import { writeAgentCredentials } from '@moltnet/agent-eval/agent-credentials';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createScenarioProducerTask } from './fixtures.js';
+import {
+  createScenarioProducerTask,
+  provisionDaemonCredentials,
+} from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
@@ -171,12 +173,13 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
 
     agentRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-agent-'));
     tempRoots.push(agentRoot);
-    writeAgentCredentials({
+    await provisionDaemonCredentials({
+      agent,
       agentRoot,
       agentName,
+      identityId: creds.identityId,
+      teamId,
       apiUrl: harness.restApiUrl,
-      clientId: creds.clientId,
-      clientSecret: creds.clientSecret,
       publicKey: creds.keyPair.publicKey,
       privateKey: creds.keyPair.privateKey,
       fingerprint: creds.keyPair.fingerprint,

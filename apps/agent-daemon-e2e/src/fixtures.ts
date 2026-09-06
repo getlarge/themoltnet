@@ -7,6 +7,11 @@ import {
   seedScenarioWorkspace,
   stageScenarioInputArtifacts,
 } from '@moltnet/agent-eval';
+import {
+  writeAgentCredentials,
+  type WrittenAgentCredentials,
+} from '@moltnet/agent-eval/agent-credentials';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import type { Agent } from '@themoltnet/sdk';
 
 /**
@@ -86,4 +91,56 @@ export async function createScenarioProducerTask(args: {
     builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
   }
   return agent.tasks.create(builder.build());
+}
+
+/**
+ * Provision the daemon credentials a live eval needs: mint a team-bound agent
+ * key through the suite's OAuth2 agent, then write the `agent_key_ref` config
+ * and the provider-held secret.
+ *
+ * This is the production path — `moltnet agents keys create --store` does the
+ * same two steps — and it is now the only one the daemon accepts, since #2160
+ * retired OAuth2 client_credentials there. The OAuth2 `agent` passed in is the
+ * *issuer*, mirroring an operator running the CLI; it is never what the daemon
+ * authenticates with.
+ *
+ * Sets `MOLTNET_SECRET_ROOT` on the current process because the daemon runs
+ * in-process in these suites (`runOnce(...)`), so it reads the same env.
+ */
+export async function provisionDaemonCredentials(input: {
+  agent: Agent;
+  agentRoot: string;
+  agentName: string;
+  identityId: string;
+  teamId: string;
+  publicKey: string;
+  privateKey: string;
+  fingerprint: string;
+  apiUrl: string;
+}): Promise<WrittenAgentCredentials> {
+  const issued = await input.agent.agentKeys.create(
+    {
+      agentId: input.identityId,
+      name: `${input.agentName}-daemon-${randomUUID().slice(0, 8)}`,
+      scopes: [...AGENT_CREDENTIAL_SCOPES],
+      ttlDays: 1,
+    },
+    { teamId: input.teamId, idempotencyKey: randomUUID() },
+  );
+  const written = writeAgentCredentials({
+    agentRoot: input.agentRoot,
+    agentName: input.agentName,
+    identityId: input.identityId,
+    agentKeySecret: issued.secret,
+    publicKey: input.publicKey,
+    privateKey: input.privateKey,
+    fingerprint: input.fingerprint,
+    apiUrl: input.apiUrl,
+  });
+  // The daemon runs in-process in these suites (`runOnce(...)`), so it reads
+  // this process's env — there is no child to pass it to. Centralised here so
+  // a suite cannot forget it and fail with an opaque agent_key_ref error.
+
+  process.env.MOLTNET_SECRET_ROOT = written.secretRoot;
+  return written;
 }

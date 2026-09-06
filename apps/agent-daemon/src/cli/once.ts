@@ -156,7 +156,7 @@ export async function runOnce(
       try {
         const resolvedContext = await resolveAgentContext(initialOpts.agent, {
           agentRootDir: explicitAgentRootDir,
-          authMode: cfg.authMode,
+          credentialSource: cfg.credentialSource,
         });
         // Authenticate and validate team binding before resolving signing
         // material, consistently with poll/drain.
@@ -168,7 +168,7 @@ export async function runOnce(
         });
         gate = 'resolve_signing_material';
         const privateKey = await resolveExecutorSigningPrivateKey({
-          authMode: cfg.authMode,
+          credentialSource: cfg.credentialSource,
           agentDir: resolvedContext.agentDir,
           configuredPrivateKey: cfg.signingPrivateKey,
           configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
@@ -184,7 +184,7 @@ export async function runOnce(
         const agentIdentity = await resolveDaemonAgentIdentity({
           agentName: initialOpts.agent,
           whoami,
-          authMode: cfg.authMode,
+          credentialSource: cfg.credentialSource,
           agentDir: resolvedContext.agentDir,
           gitAuthor: values['git-author'] ?? (cfg.gitAuthor || undefined),
         });
@@ -205,7 +205,7 @@ export async function runOnce(
           level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
           gate,
           agent: initialOpts.agent,
-          authMode: cfg.authMode,
+          credentialSource: cfg.credentialSource,
           error,
         });
         throw error;
@@ -286,7 +286,7 @@ export async function runOnce(
     resourceAttributes: {
       'moltnet.task.id': taskId,
       'moltnet.agent.name': opts.agent,
-      'moltnet.auth.mode': ctx.authMechanism,
+      'moltnet.credential.source': ctx.credentialSource,
       'moltnet.llm.provider': profile.provider,
       'moltnet.llm.model': profile.model,
       ...(profile.thinkingLevel

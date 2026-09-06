@@ -11,7 +11,7 @@ import {
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import type { PreparedDaemonRuntime } from '../runtime.js';
-import type { DaemonAuthMode } from './agent-context.js';
+import type { DaemonCredentialSource } from './agent-context.js';
 
 export const DAEMON_REQUIRED_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
@@ -20,19 +20,19 @@ export interface AttestedDaemonRuntime extends PreparedDaemonRuntime {
 }
 
 export async function resolveExecutorSigningPrivateKey(input: {
-  authMode: DaemonAuthMode;
+  credentialSource: DaemonCredentialSource;
   agentDir: string;
   configuredPrivateKey: string;
   /** `<provider>:<key>` from MOLTNET_PRIVATE_KEY_REF; empty when unset. */
   configuredPrivateKeyRef?: string;
 }): Promise<string> {
-  if (input.authMode === 'agent-key') {
+  if (input.credentialSource === 'environment') {
     const privateKey = input.configuredPrivateKey.trim();
     if (privateKey) return privateKey;
     const reference = input.configuredPrivateKeyRef?.trim();
     if (!reference) {
       throw new Error(
-        'Agent-key daemon startup requires MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF) containing the base64-encoded Ed25519 private key seed.',
+        'Configless daemon startup requires MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF) containing the base64-encoded Ed25519 private key seed.',
       );
     }
     let resolved: string;
@@ -43,7 +43,7 @@ export async function resolveExecutorSigningPrivateKey(input: {
       );
     } catch (cause) {
       throw new Error(
-        `Agent-key daemon startup could not resolve MOLTNET_PRIVATE_KEY_REF: ${(cause as Error).message}`,
+        `Configless daemon startup could not resolve MOLTNET_PRIVATE_KEY_REF: ${(cause as Error).message}`,
         { cause },
       );
     }
@@ -58,7 +58,7 @@ export async function resolveExecutorSigningPrivateKey(input: {
   const config = await readConfig(input.agentDir);
   if (!config) {
     throw new Error(
-      `OAuth2 daemon startup requires ${input.agentDir}/moltnet.json.`,
+      `Config-based daemon startup requires ${input.agentDir}/moltnet.json.`,
     );
   }
   try {
@@ -68,7 +68,7 @@ export async function resolveExecutorSigningPrivateKey(input: {
     );
   } catch (cause) {
     throw new Error(
-      `OAuth2 daemon startup could not resolve the signing seed from ${input.agentDir}/moltnet.json (keys.private_key or keys.private_key_ref): ${(cause as Error).message}`,
+      `Config-based daemon startup could not resolve the signing seed from ${input.agentDir}/moltnet.json (keys.private_key or keys.private_key_ref): ${(cause as Error).message}`,
       { cause },
     );
   }

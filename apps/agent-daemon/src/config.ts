@@ -5,7 +5,10 @@
  * here, so the rest of the daemon imports typed values rather than
  * sprinkling string lookups across the codebase.
  */
-import { type DaemonAuthMode, detectAuthMode } from './lib/agent-context.js';
+import {
+  type DaemonCredentialSource,
+  detectCredentialSource,
+} from './lib/agent-context.js';
 import type { IdentityPin } from './lib/identity-pin.js';
 
 export interface DaemonConfig {
@@ -24,8 +27,8 @@ export interface DaemonConfig {
    * is set, otherwise the default `oauth2` client-credentials flow. The secret
    * itself is never surfaced here.
    */
-  authMode: DaemonAuthMode;
-  /** Base64 Ed25519 seed used for executor attestation in agent-key mode. */
+  credentialSource: DaemonCredentialSource;
+  /** Base64 Ed25519 seed used for executor attestation when configless. */
   signingPrivateKey: string;
   /**
    * `<provider>:<key>` reference to that seed (`MOLTNET_PRIVATE_KEY_REF`),
@@ -61,7 +64,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
-    authMode: detectAuthMode(process.env),
+    credentialSource: detectCredentialSource(process.env),
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
     signingPrivateKeyRef: process.env['MOLTNET_PRIVATE_KEY_REF'] ?? '',
     gitAuthor: process.env['MOLTNET_GIT_AUTHOR'] ?? '',

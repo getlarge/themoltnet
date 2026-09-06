@@ -30,7 +30,7 @@ describe('loadConfig observability settings', () => {
     vi.stubEnv('MOLTNET_PRIVATE_KEY_REF', 'file:identity.fp.seed');
     vi.stubEnv('MOLTNET_AGENT_KEY_REF', 'file:agent-key.id');
     expect(loadConfig().signingPrivateKeyRef).toBe('file:identity.fp.seed');
-    expect(loadConfig().authMode).toBe('agent-key');
+    expect(loadConfig().credentialSource).toBe('environment');
 
     vi.stubEnv('MOLTNET_PRIVATE_KEY', 'base64-seed');
     expect(() => loadConfig()).toThrow(

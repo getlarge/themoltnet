@@ -4,7 +4,6 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { writeAgentCredentials } from '@moltnet/agent-eval/agent-credentials';
 import { computeJsonCid } from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
@@ -22,7 +21,10 @@ import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildProducerVerification } from './fixtures.js';
+import {
+  buildProducerVerification,
+  provisionDaemonCredentials,
+} from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -55,6 +57,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
   let diaryId: string;
   let agentName: string;
   let clientId: string;
+  let identityId: string;
   let clientSecret: string;
   let publicKey: string;
   let privateKey: string;
@@ -72,6 +75,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     const creds = await harness.createAgent('e2e-live-ollama-daemon');
     agentName = creds.name;
     clientId = creds.clientId;
+    identityId = creds.identityId;
     clientSecret = creds.clientSecret;
     publicKey = creds.keyPair.publicKey;
     privateKey = creds.keyPair.privateKey;
@@ -97,12 +101,13 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-live-agent-'));
     const piDir = mkdtempSync(join(tmpdir(), 'daemon-live-pi-'));
     tempRoots.push(sandboxRoot, agentRoot, piDir);
-    writeAgentCredentials({
+    await provisionDaemonCredentials({
+      agent,
       agentRoot,
       agentName,
+      identityId,
+      teamId,
       apiUrl: harness.restApiUrl,
-      clientId,
-      clientSecret,
       publicKey,
       privateKey,
       fingerprint,

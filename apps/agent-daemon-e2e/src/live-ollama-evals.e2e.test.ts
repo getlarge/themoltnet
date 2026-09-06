@@ -16,14 +16,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { checkGates, readScenario, type Scenario } from '@moltnet/agent-eval';
-import { writeAgentCredentials } from '@moltnet/agent-eval/agent-credentials';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createScenarioProducerTask } from './fixtures.js';
+import {
+  createScenarioProducerTask,
+  provisionDaemonCredentials,
+} from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -57,6 +59,7 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
   let diaryId: string;
   let agentName: string;
   let clientId: string;
+  let identityId: string;
   let clientSecret: string;
   let publicKey: string;
   let privateKey: string;
@@ -76,6 +79,7 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
     const creds = await harness.createAgent('e2e-evals-v2-daemon');
     agentName = creds.name;
     clientId = creds.clientId;
+    identityId = creds.identityId;
     clientSecret = creds.clientSecret;
     publicKey = creds.keyPair.publicKey;
     privateKey = creds.keyPair.privateKey;
@@ -136,12 +140,13 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
       const agentRoot = mkdtempSync(join(tmpdir(), 'evals-v2-agent-'));
       const piDir = mkdtempSync(join(tmpdir(), 'evals-v2-pi-'));
       tempRoots.push(agentRoot, piDir);
-      writeAgentCredentials({
+      await provisionDaemonCredentials({
+        agent,
         agentRoot,
         agentName,
+        identityId,
+        teamId,
         apiUrl: harness.restApiUrl,
-        clientId,
-        clientSecret,
         publicKey,
         privateKey,
         fingerprint,

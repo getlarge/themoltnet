@@ -27,7 +27,6 @@ import {
   checkGates,
   readScenario,
 } from '@moltnet/agent-eval';
-import { writeAgentCredentials } from '@moltnet/agent-eval/agent-credentials';
 import {
   resolveRuntimeProfileContextRecipe,
   type TaskContext,
@@ -38,6 +37,7 @@ import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { provisionDaemonCredentials } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const AB_FLAG = 'MOLTNET_AB';
@@ -136,12 +136,13 @@ describeAb(
       agentRoot = mkdtempSync(join(tmpdir(), 'ab-agent-'));
       piDir = mkdtempSync(join(tmpdir(), 'ab-pi-'));
       tempRoots.push(agentRoot, piDir);
-      writeAgentCredentials({
+      await provisionDaemonCredentials({
+        agent,
         agentRoot,
         agentName,
+        identityId: creds.identityId,
+        teamId,
         apiUrl: harness.restApiUrl,
-        clientId: creds.clientId,
-        clientSecret: creds.clientSecret,
         publicKey: creds.keyPair.publicKey,
         privateKey: creds.keyPair.privateKey,
         fingerprint: creds.keyPair.fingerprint,

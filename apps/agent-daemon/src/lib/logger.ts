@@ -99,7 +99,7 @@ export async function logDaemonStartupFailure(input: {
   level: string;
   gate: string;
   agent: string;
-  authMode: string;
+  credentialSource: string;
   error: unknown;
 }): Promise<void> {
   const { logger, shutdown } = createRootLogger({
@@ -112,7 +112,7 @@ export async function logDaemonStartupFailure(input: {
       event: 'agent-daemon.startup_failed',
       gate: input.gate,
       agent: input.agent,
-      authMode: input.authMode,
+      credentialSource: input.credentialSource,
     },
     'Agent daemon startup validation failed',
   );

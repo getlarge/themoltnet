@@ -48,10 +48,10 @@ describe('resolveExecutorSigningPrivateKey', () => {
     vi.clearAllMocks();
   });
 
-  it('uses MOLTNET_PRIVATE_KEY directly in agent-key mode', async () => {
+  it('uses MOLTNET_PRIVATE_KEY directly when configless', async () => {
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'agent-key',
+        credentialSource: 'environment',
         agentDir: '/missing/.moltnet/agent',
         configuredPrivateKey: ' direct-seed ',
       }),
@@ -59,10 +59,10 @@ describe('resolveExecutorSigningPrivateKey', () => {
     expect(readConfigMock).not.toHaveBeenCalled();
   });
 
-  it('fails agent-key mode without consulting config or a provider', async () => {
+  it('fails a configless start without consulting config or a provider', async () => {
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'agent-key',
+        credentialSource: 'environment',
         agentDir: '/missing/.moltnet/agent',
         configuredPrivateKey: '',
       }),
@@ -71,13 +71,13 @@ describe('resolveExecutorSigningPrivateKey', () => {
     expect(resolveEnvSecretReferenceMock).not.toHaveBeenCalled();
   });
 
-  it('resolves MOLTNET_PRIVATE_KEY_REF through the Node registry in agent-key mode', async () => {
+  it('resolves MOLTNET_PRIVATE_KEY_REF through the Node registry when configless', async () => {
     const seed = Buffer.alloc(32, 7).toString('base64');
     resolveEnvSecretReferenceMock.mockResolvedValue(seed);
 
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'agent-key',
+        credentialSource: 'environment',
         agentDir: '/missing/.moltnet/agent',
         configuredPrivateKey: '',
         configuredPrivateKeyRef: 'file:identity.fp.seed',
@@ -95,7 +95,7 @@ describe('resolveExecutorSigningPrivateKey', () => {
 
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'agent-key',
+        credentialSource: 'environment',
         agentDir: '/missing/.moltnet/agent',
         configuredPrivateKey: '',
         configuredPrivateKeyRef: 'env:MOLTNET_SEED',
@@ -116,7 +116,7 @@ describe('resolveExecutorSigningPrivateKey', () => {
 
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'oauth2',
+        credentialSource: 'config',
         agentDir: '/repo/.moltnet/agent',
         configuredPrivateKey: 'ignored-env-seed',
       }),
@@ -129,7 +129,7 @@ describe('resolveExecutorSigningPrivateKey', () => {
     readConfigMock.mockResolvedValueOnce(null);
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'oauth2',
+        credentialSource: 'config',
         agentDir: '/repo/.moltnet/agent',
         configuredPrivateKey: '',
       }),
@@ -143,7 +143,7 @@ describe('resolveExecutorSigningPrivateKey', () => {
     );
     await expect(
       resolveExecutorSigningPrivateKey({
-        authMode: 'oauth2',
+        credentialSource: 'config',
         agentDir: '/repo/.moltnet/agent',
         configuredPrivateKey: '',
       }),
