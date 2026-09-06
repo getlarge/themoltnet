@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import type * as NodeOS from 'node:os';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -29,6 +29,8 @@ import {
   type MoltNetConfig,
   readConfig,
   resolveConfigDir,
+  resolveConfigPath,
+  writeConfig,
 } from '../src/config.js';
 
 const savedEnv = { ...process.env };
@@ -146,17 +148,19 @@ describe('identity resolution ladder', () => {
     expect(await resolveConfigDir()).toBe(getIdentityDir('picked'));
   });
 
-  it('never throws from getConfigPath when nothing is selected', async () => {
+  it('never throws from getConfigPath, and keeps returning a file path', async () => {
     const home = await freshHome();
-    // It is re-exported from @themoltnet/sdk with an unchanged signature and
-    // is used inside error messages; throwing breaks callers at runtime with
-    // nothing for TypeScript to flag. It names the store root, never the
-    // retired <config>/moltnet.json which nothing reads any more.
+    // Re-exported from @themoltnet/sdk with an unchanged `string` signature, so
+    // throwing would break callers at runtime with nothing for TypeScript to
+    // flag — and returning a DIRECTORY would surface as EISDIR for anyone who
+    // hands it to readFile. It stays a file path that simply does not exist.
     expect(() => getConfigPath()).not.toThrow();
-    expect(getConfigPath()).toBe(
-      join(home, '.config', 'moltnet', 'identities'),
-    );
-    expect(getConfigPath()).not.toContain('moltnet/moltnet.json');
+    const p = getConfigPath();
+    expect(p.endsWith('moltnet.json')).toBe(true);
+    expect(p.startsWith(join(home, '.config', 'moltnet'))).toBe(true);
+
+    // resolveConfigPath is the honest form: it can say "none".
+    expect(await resolveConfigPath()).toBeNull();
   });
 
   it('rejects an unsupported selector version instead of guessing', async () => {
@@ -187,5 +191,82 @@ describe('identity resolution ladder', () => {
   it('returns null for an explicit dir with no document', async () => {
     const home = await freshHome();
     expect(await readConfig(join(home, 'nowhere'))).toBeNull();
+  });
+});
+
+// Traversal must be rejected through the paths an attacker can actually reach —
+// the environment variable and the on-disk selector — not only via the helper.
+// These are the two places an untrusted alias becomes a credential path.
+describe('untrusted aliases through the real resolution ladder', () => {
+  const hostile = [
+    '../escape',
+    '../../etc',
+    '/absolute',
+    'has/slash',
+    '.hidden',
+  ];
+
+  it('rejects a hostile MOLTNET_ACTIVE_IDENTITY', async () => {
+    await freshHome();
+    for (const alias of hostile) {
+      process.env.MOLTNET_ACTIVE_IDENTITY = alias;
+      await expect(resolveConfigDir()).rejects.toThrow(
+        /invalid identity alias/,
+      );
+      await expect(readConfig()).rejects.toThrow(/invalid identity alias/);
+    }
+  });
+
+  it('rejects a hostile default in identity-selector.json', async () => {
+    for (const alias of hostile) {
+      await freshHome();
+      delete process.env.MOLTNET_ACTIVE_IDENTITY;
+      await writeFile(
+        join(getConfigDir(), 'identity-selector.json'),
+        JSON.stringify({ version: 1, default_identity: alias }),
+      );
+      await expect(resolveConfigDir()).rejects.toThrow(
+        /invalid identity alias/,
+      );
+    }
+  });
+});
+
+describe('writeConfig boundaries', () => {
+  it('seeds the selector so a JS-created identity is reachable', async () => {
+    await freshHome();
+    process.env.MOLTNET_ACTIVE_IDENTITY = 'first';
+    await writeConfig(credentials('first'), getIdentityDir('first'));
+
+    // The selector is what every other consumer reads; without it the identity
+    // exists but only this process can find it.
+    delete process.env.MOLTNET_ACTIVE_IDENTITY;
+    expect(await resolveConfigDir()).toBe(getIdentityDir('first'));
+    expect((await readConfig())?.identity_id).toBe('first');
+  });
+
+  it('never overwrites an existing default', async () => {
+    await freshHome();
+    await writeFile(
+      join(getConfigDir(), 'identity-selector.json'),
+      JSON.stringify({ version: 1, default_identity: 'chosen' }),
+    );
+    await writeConfig(credentials('other'), getIdentityDir('other'));
+
+    const selector = JSON.parse(
+      await readFile(join(getConfigDir(), 'identity-selector.json'), 'utf-8'),
+    );
+    expect(selector.default_identity).toBe('chosen');
+  });
+
+  it('refuses to write when no identity is selected, touching nothing', async () => {
+    const home = await freshHome();
+    await expect(writeConfig(credentials('nobody'))).rejects.toThrow();
+
+    // The rejection must not leave a partial store behind.
+    const { readdir } = await import('node:fs/promises');
+    const entries = await readdir(getConfigDir());
+    expect(entries).toEqual([]);
+    expect(home).toBeTruthy();
   });
 });

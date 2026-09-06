@@ -15,6 +15,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import {
+  cpSync,
   lstatSync,
   mkdirSync,
   readdirSync,
@@ -335,7 +336,34 @@ export class AgentServerStore {
     }
 
     mkdirSync(resolve(this.root, '..'), { recursive: true, mode: 0o700 });
-    renameSync(legacyRoot, this.root);
+
+    // An existing-but-empty target is common (a bare `mkdir -p` from packaging
+    // or a previous partial start) and would make rename fail with ENOTEMPTY
+    // even though there is nothing to lose.
+    try {
+      if (readdirSync(this.root).length === 0)
+        rmSync(this.root, { recursive: true });
+    } catch {
+      // Absent, which is the normal case.
+    }
+
+    try {
+      renameSync(legacyRoot, this.root);
+    } catch (error) {
+      // XDG_CONFIG_HOME frequently points at another filesystem (a tmpfs, a
+      // mounted volume), where rename cannot work at all. Copy then remove, so
+      // adoption does not fail with a raw EXDEV on a perfectly ordinary layout.
+      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') {
+        throw new AgentServerStoreError(
+          'io_error',
+          `could not adopt the pre-1834 agent server state at ${legacyRoot}: ` +
+            `${String((error as Error).message)}. Move it to ${this.root} ` +
+            `manually, or set MOLTNET_AGENT_SERVER_ROOT to choose a root explicitly.`,
+        );
+      }
+      cpSync(legacyRoot, this.root, { recursive: true });
+      rmSync(legacyRoot, { recursive: true, force: true });
+    }
   }
 
   /**

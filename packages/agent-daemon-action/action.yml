@@ -324,11 +324,14 @@ runs:
         # caller-supplied MOLTNET_* env vars using the canonical CLI
         # helper. The daemon selects it via MOLTNET_ACTIVE_IDENTITY,
         # independently of the checkout.
-        # Pinnable: a published CLI predating the central identity store writes
-        # the legacy repository layout instead, leaving AGENT_DIR empty and the
-        # daemon with no identity. Verify the document afterwards so that fails
-        # loudly here rather than several steps later.
-        npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-latest}" config init-from-env \
+        # Pinned by default. This step runs with OAuth, signing-key and
+        # optional GitHub App secrets in its environment, so resolving a
+        # mutable `latest` would let any future npm release read them.
+        # MOLTNET_CLI_VERSION overrides it deliberately; it is never `latest`
+        # implicitly. A CLI predating the central identity store also writes the
+        # legacy layout, leaving AGENT_DIR empty, so the document is verified
+        # immediately rather than failing several steps later.
+        npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-1.91.0}" config init-from-env \
           --name "$MOLTNET_AGENT_NAME"
         if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
           echo "::error::config init-from-env did not create $AGENT_DIR/moltnet.json; the resolved @themoltnet/cli predates the central identity store — pin one with MOLTNET_CLI_VERSION" >&2

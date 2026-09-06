@@ -167,6 +167,15 @@ describe('workspace daemon action contract', () => {
     // repository layout, leaving AGENT_DIR empty; that must fail loudly here.
     expect(run).toContain('MOLTNET_CLI_VERSION');
     expect(run).toContain('$AGENT_DIR/moltnet.json');
+
+    // The step runs with OAuth, signing-key and GitHub App secrets in its
+    // environment, so it must not resolve a mutable tag by default.
+    expect(run).not.toMatch(
+      /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/,
+    );
+    expect(run).toMatch(
+      /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-\d+\.\d+\.\d+\}/,
+    );
   });
 
   it('keeps multi-lens workers on the minimal configless secret set', () => {

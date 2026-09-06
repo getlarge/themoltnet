@@ -8,7 +8,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
@@ -171,11 +171,48 @@ export function getConfigPath(configDir?: string): string {
     process.env.MOLTNET_ACTIVE_IDENTITY?.trim() ||
     readIdentitySelectorSync()?.default_identity?.trim();
   if (alias) return join(getIdentityDir(alias), 'moltnet.json');
-  // No identity resolves, so there is no document path. Return the store root
-  // rather than the retired `<config>/moltnet.json`: this value is used in
-  // error messages, and naming a location the runtime no longer reads would
-  // send the reader to a file that cannot help them.
-  return join(getConfigDir(), identitiesDirName);
+  // No identity resolves, so there is no real document. The contract is still a
+  // FILE path — it is publicly re-exported and a caller may hand it to
+  // readFile, where a directory would surface as a baffling EISDIR instead of
+  // a plain "not found". The runtime never reads this location; it exists so
+  // diagnostics have something concrete to name. Callers that need the truth
+  // should use resolveConfigPath, which can say "none".
+  return join(getConfigDir(), 'moltnet.json');
+}
+
+/**
+ * The active identity's document, or null when no identity resolves.
+ *
+ * The honest counterpart to getConfigPath: a `string` return cannot express
+ * "there is no active identity", which is why that function has to invent a
+ * path. Prefer this wherever the absence matters.
+ */
+/** Idempotent: an existing default is never overwritten. */
+async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
+  const alias = identityDir.split(sep).pop();
+  if (!alias || !IDENTITY_ALIAS_PATTERN.test(alias)) return;
+  const selectorPath = join(getConfigDir(), 'identity-selector.json');
+  try {
+    const existing = JSON.parse(
+      await readFile(selectorPath, 'utf-8'),
+    ) as IdentitySelector;
+    if (existing.default_identity?.trim()) return;
+  } catch {
+    // Absent or unreadable: write a fresh one below.
+  }
+  await mkdir(getConfigDir(), { recursive: true, mode: 0o700 });
+  await writeFile(
+    selectorPath,
+    JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
+    { mode: 0o600 },
+  );
+}
+
+export async function resolveConfigPath(
+  configDir?: string,
+): Promise<string | null> {
+  const dir = await resolveConfigDir(configDir);
+  return dir ? join(dir, 'moltnet.json') : null;
 }
 
 function readIdentitySelectorSync(): IdentitySelector | null {
@@ -222,6 +259,10 @@ export async function writeConfig(
   }
   await mkdir(dir, { recursive: true, mode: 0o700 });
   const filePath = join(dir, 'moltnet.json');
+  // Seed the selector when none is set, as the Go CLI and the daemon store both
+  // do. Without it a first identity created from JS is unreachable by every
+  // other consumer unless the operator exports MOLTNET_ACTIVE_IDENTITY by hand.
+  await seedIdentitySelectorIfUnset(dir);
   // Write to a sibling temp file and rename so the config is either fully
   // committed or untouched; callers rely on this when rolling back secrets.
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;

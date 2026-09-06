@@ -12,6 +12,7 @@ export {
   type OAuth2Config,
   readConfig,
   resolveConfigDir,
+  resolveConfigPath,
   type SecretReference,
   updateConfigSection,
   updateGitHubConfig,
