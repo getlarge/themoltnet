@@ -289,7 +289,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   let tagsStub: { server: Server; url: string };
   const agentName = `agent-server-e2e-${Date.now().toString(36)}`;
   const profileName = `agent-server-e2e-profile-${Date.now().toString(36)}`;
-  let managedIdentityId: string;
+  let managedSubjectId: string;
   let runId: string;
 
   function agentServerClient(origin = ALLOWED_ORIGIN, paired = true) {
@@ -721,7 +721,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         'privateKey',
       ]),
     );
-    managedIdentityId = view.identityId!;
+    // The team-member path parameter is a Keto subject, so pin the durable
+    // agents.id rather than the Ory identity.
+    managedSubjectId = view.subjectId!;
 
     const listed = await listAgentServerAgents({
       client: agentServerClient(),
@@ -761,7 +763,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   it('starts a daemon run that polls the API, streams its logs, and stops on request', async () => {
     // Arrange: the agent must be an executor to claim tasks; profile pins
     // the provider/model pair configured above.
-    await agent.teams.updateMemberRole(teamId, managedIdentityId, 'executor');
+    await agent.teams.updateMemberRole(teamId, managedSubjectId, 'executor');
     await agent.runtimeProfiles.create(
       {
         name: profileName,

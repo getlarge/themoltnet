@@ -25,6 +25,12 @@ export const AgentServerAgentSchema = Type.Object(
   {
     kind: Type.Union([Type.Literal('managed'), Type.Literal('external')]),
     agentName: Type.String(),
+    /**
+     * Internal `agents.id` — the durable principal, and what every `agentId`
+     * parameter and Keto subject means. Optional only because activations
+     * written before the decoupling do not carry it.
+     */
+    subjectId: Type.Optional(Type.String()),
     identityId: Type.Optional(Type.String()),
     fingerprint: Type.Optional(Type.String()),
     apiUrl: Type.Optional(Type.String()),

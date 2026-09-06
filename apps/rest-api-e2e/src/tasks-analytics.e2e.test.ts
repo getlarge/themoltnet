@@ -488,7 +488,7 @@ describe('Task Analytics API', () => {
             auth: () => proposer.accessToken,
             headers: { 'x-moltnet-team-id': teamId },
             query: {
-              claimedByAgentIds: [claimer.identityId],
+              claimedByAgentIds: [claimer.agentId],
               completedAfter,
               completedBefore,
               diaryIds: [diaryId, diaryId, otherDiary!.id],

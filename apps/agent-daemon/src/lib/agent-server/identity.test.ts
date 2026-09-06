@@ -107,6 +107,7 @@ beforeEach(() => {
   });
   registerMock.mockResolvedValue({
     identity: {
+      subjectId: 'agent-1',
       identityId: 'identity-1',
       publicKey: 'ed25519:public',
       privateKey: 'private-seed',
@@ -162,6 +163,7 @@ describe('managed agent server agents', () => {
       await finish;
       return {
         identity: {
+          subjectId: 'agent-1',
           identityId: 'identity-1',
           publicKey: 'ed25519:public',
           privateKey: 'private-seed',
@@ -229,6 +231,7 @@ describe('managed agent server agents', () => {
     expect(store.readActivation('course-bot')).toMatchObject({
       alias: 'course-bot',
       source: 'managed',
+      subjectId: 'agent-1',
       identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
@@ -462,6 +465,7 @@ describe('managed agent server agents', () => {
     store.writeActivation({
       alias: 'managed',
       source: 'managed',
+      subjectId: 'agent-1',
       identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
@@ -564,6 +568,7 @@ describe('external agent server agents', () => {
       source: 'external',
       configPath: join(configDir, 'moltnet.json'),
       apiUrl: 'https://api.themolt.net',
+      subjectId: 'agent-1',
       identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',

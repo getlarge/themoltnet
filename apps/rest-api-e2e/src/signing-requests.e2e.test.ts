@@ -77,6 +77,10 @@ describe('Signing requests', () => {
     expect(data!.message).toBe('Hello from e2e');
     expect(data!.nonce).toBeDefined();
     expect(data!.status).toBe('pending');
+    // Correct as written: signing_requests.agent_id still stores the Kratos
+    // identity. It carries no foreign key, so migration 0041's FK-driven
+    // rewrite never reached it, and its actor may be a human as well as an
+    // agent. Do not "fix" this to agentId until that column is migrated.
     expect(data!.agentId).toBe(agent.identityId);
     expect(data!.expiresAt).toBeDefined();
     await completeRequest(data!, agent);

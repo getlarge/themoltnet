@@ -194,6 +194,7 @@ export async function createManagedAgent(
     const activation: AgentActivation = {
       alias,
       source: 'managed',
+      subjectId: whoami.subjectId,
       identityId,
       publicKey,
       fingerprint,
@@ -316,6 +317,7 @@ export async function reconcileManagedRegistration(
   const recovered: ManagedAgentActivation = {
     alias,
     source: 'managed',
+    subjectId: whoami.subjectId,
     ...identity,
     ...(boundTeamId ? { boundTeamId } : {}),
     createdAt: config.registered_at,
@@ -380,6 +382,9 @@ export async function attachExternalAgent(
     const activation: AgentActivation = {
       alias,
       source: 'external',
+      // From whoami, not the config: an external moltnet.json predating the
+      // decoupling carries no subject at all.
+      subjectId: whoami.subjectId,
       ...identity,
       ...(boundTeamId ? { boundTeamId } : {}),
       createdAt: new Date().toISOString(),
@@ -744,6 +749,7 @@ export function publicAgentView(
     return {
       kind: 'managed',
       agentName: activation.alias,
+      subjectId: activation.subjectId,
       identityId: activation.identityId,
       fingerprint: activation.fingerprint,
       ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
@@ -758,6 +764,7 @@ export function publicAgentView(
     agentName: activation.alias,
     configDir: dirname(activation.configPath),
     ...(activation.apiUrl ? { apiUrl: activation.apiUrl } : {}),
+    subjectId: activation.subjectId,
     identityId: activation.identityId,
     fingerprint: activation.fingerprint,
     ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),

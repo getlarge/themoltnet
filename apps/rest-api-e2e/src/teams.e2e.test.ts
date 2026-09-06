@@ -234,7 +234,7 @@ describe('Teams', () => {
 
       expect(response.status).toBe(200);
       const memberB = data!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB).toBeDefined();
       expect(memberB!.role).toBe('member');
@@ -313,7 +313,7 @@ describe('Teams', () => {
       });
 
       const memberB = members!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB).toBeDefined();
       expect(memberB!.role).toBe('manager');
@@ -338,7 +338,7 @@ describe('Teams', () => {
       });
 
       const memberB = members!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB!.role).toBe('member');
     });
@@ -376,7 +376,7 @@ describe('Teams', () => {
         path: { id: teamId },
       });
       expect(
-        members!.items.find((member) => member.subjectId === agentB.identityId)
+        members!.items.find((member) => member.subjectId === agentB.agentId)
           ?.role,
       ).toBe('executor');
     });
@@ -420,7 +420,7 @@ describe('Teams', () => {
       });
 
       const memberB = members!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB).toBeDefined();
       expect(memberB!.role).toBe('member');

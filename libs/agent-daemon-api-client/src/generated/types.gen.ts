@@ -14,6 +14,7 @@ export type AgentServerAgent = {
   hasPrivateKey?: boolean;
   identityId?: string;
   kind: 'managed' | 'external';
+  subjectId?: string;
   teamId?: string;
 };
 

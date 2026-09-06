@@ -1744,7 +1744,7 @@ describe('Tasks API', () => {
       expect(error).toBeUndefined();
       expect(data!.status).toBe('cancelled');
       expect(data!.cancelReason).toBe('walking away from this one');
-      expect(data!.cancelledByAgentId).toBe(claimer.identityId);
+      expect(data!.cancelledByAgentId).toBe(claimer.agentId);
     });
   });
 
