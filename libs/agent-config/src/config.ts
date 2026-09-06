@@ -195,9 +195,8 @@ export async function readConfig(
   // Deliberately no fallback to the pre-central-store `<config>/moltnet.json`.
   // The Go CLI never reads it, so a fallback here gave one contract two
   // behaviours: the CLI reported no identity while the SDK and daemon silently
-  // used the retired document. It also contradicts the cutover rule that legacy
-  // layouts are migrated explicitly, never auto-discovered. Operators relocate
-  // it with `moltnet config migrate --credentials <path> --name <alias>`.
+  // used the retired document. Support for that shape is being retired, not
+  // migrated, so nothing here should look for it.
   const dir = await resolveConfigDir(configDir);
   if (!dir) return null;
   return readConfigFile(join(dir, 'moltnet.json'));

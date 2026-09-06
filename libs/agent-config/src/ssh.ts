@@ -28,9 +28,8 @@ export async function exportSSHKey(opts?: {
   if (!configDir) {
     throw new Error(
       'No active identity selected. Select one with `moltnet config identity ' +
-        'select <alias>`, set MOLTNET_ACTIVE_IDENTITY, or relocate a ' +
-        'pre-central-store document with `moltnet config migrate ' +
-        '--credentials <path> --name <alias>`.',
+        'select <alias>`, set MOLTNET_ACTIVE_IDENTITY, or register with ' +
+        '`moltnet register`.',
     );
   }
   const config = await readConfig(configDir);
