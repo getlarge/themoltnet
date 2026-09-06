@@ -82,6 +82,17 @@ type activationContext struct {
 func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) error {
 	ctx, err := resolveActivationContext(identity)
 	if err != nil {
+		// "no identity resolves" is a validation answer, not a crash. Under
+		// --json a consumer parses stdout, so it must find a document here
+		// rather than have to infer the state from an empty stream. The error
+		// is still returned: stderr carries the human message and the exit
+		// code stays non-zero.
+		if jsonOut {
+			result := &activationValidationResult{Valid: false, Reason: err.Error()}
+			if printErr := printActivationValidationResult(w, result, true); printErr != nil {
+				return printErr
+			}
+		}
 		return err
 	}
 	result, err := validateActivationCache(ctx)
@@ -159,7 +170,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	gitConfigGlobal := firstNonEmpty(ctx.EnvVars["GIT_CONFIG_GLOBAL"], valueOrEmpty(creds.Git, func(g *GitSection) string {
 		return g.ConfigPath
 	}), "gitconfig")
-	paths := newAgentPathResolver(ctx.AgentDir, ctx.AgentDir, ctx.AgentName)
+	paths := newIdentityPathResolver(ctx.AgentDir, ctx.AgentName)
 	gitconfigPath := paths.resolveFile(gitConfigGlobal, "gitconfig")
 
 	gitIdentity, err := readActivationGitIdentity(gitconfigPath)

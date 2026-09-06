@@ -20,6 +20,14 @@ func newAgentPathResolver(repoRoot, agentDir, agentName string) agentPathResolve
 	}
 }
 
+// newIdentityPathResolver builds a resolver for an identity in the central
+// store, where there is no repository root: a relative path configured in the
+// env file (`GIT_CONFIG_GLOBAL=gitconfig`) is meant to resolve against the
+// identity directory itself, so both roots collapse onto it.
+func newIdentityPathResolver(identityDir, alias string) agentPathResolver {
+	return newAgentPathResolver(identityDir, identityDir, alias)
+}
+
 func (r agentPathResolver) resolveFile(configured, defaultRelative string) string {
 	candidates := r.candidatePaths(configured, defaultRelative)
 	for _, candidate := range candidates {
@@ -97,8 +105,16 @@ func uniqueCleanPaths(paths []string) []string {
 	return out
 }
 
+// portableAgentEnvPath rewrites an absolute path that lives inside a repository
+// agent bundle into the repo-relative `.moltnet/<agent>/…` form, so the env file
+// survives the bundle being checked out at a different location. Identities in
+// the central store sit at a fixed absolute path and have no `.moltnet` parent,
+// so the rewrite would fabricate a path that exists nowhere: leave those alone.
 func portableAgentEnvPath(agentDir, agentName, path string) string {
 	if path == "" || !filepath.IsAbs(path) {
+		return path
+	}
+	if filepath.Base(filepath.Dir(filepath.Clean(agentDir))) != ".moltnet" {
 		return path
 	}
 	rel, err := filepath.Rel(agentDir, path)

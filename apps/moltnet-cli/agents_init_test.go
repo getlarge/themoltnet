@@ -202,3 +202,58 @@ func TestAgentInitComplete(t *testing.T) {
 		t.Fatal("incomplete credentials were accepted")
 	}
 }
+
+func TestAssertIdentityDirContainedRejectsEscape(t *testing.T) {
+	// Arrange: the identity leaf resolves outside the store, which is what a
+	// symlink planted between prepareIdentityDirectory's Lstat and its MkdirAll
+	// produces — MkdirAll succeeds through the link, so only this check sees it.
+	root := t.TempDir()
+	outside := t.TempDir()
+	store := filepath.Join(root, "identities")
+	if err := os.MkdirAll(store, 0o700); err != nil {
+		t.Fatalf("create store: %v", err)
+	}
+	leaf := filepath.Join(store, "agent")
+	if err := os.Symlink(outside, leaf); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	// Act.
+	err := assertIdentityDirContained(store, leaf)
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected an escaping identity directory to be rejected")
+	}
+	if !strings.Contains(err.Error(), "escapes the central identity store") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestAssertIdentityDirContainedAcceptsSymlinkedAncestor(t *testing.T) {
+	// Arrange: ~/.config symlinked elsewhere is a normal dotfile-manager setup
+	// and must normalize, not fail. The caller resolves the root first, so the
+	// containment check sees the real directory on both sides.
+	real := t.TempDir()
+	store := filepath.Join(real, "identities")
+	leaf := filepath.Join(store, "agent")
+	if err := os.MkdirAll(leaf, 0o700); err != nil {
+		t.Fatalf("create leaf: %v", err)
+	}
+	linkedRoot := filepath.Join(t.TempDir(), "config")
+	if err := os.Symlink(real, linkedRoot); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	resolvedStore, err := filepath.EvalSymlinks(filepath.Join(linkedRoot, "identities"))
+	if err != nil {
+		t.Fatalf("resolve store: %v", err)
+	}
+
+	// Act.
+	err = assertIdentityDirContained(resolvedStore, filepath.Join(linkedRoot, "identities", "agent"))
+
+	// Assert.
+	if err != nil {
+		t.Fatalf("expected a symlinked ancestor to be accepted, got %v", err)
+	}
+}

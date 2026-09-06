@@ -86,3 +86,21 @@ func TestPortableAgentEnvPathKeepsRelativePath(t *testing.T) {
 		t.Fatalf("portable path = %q, want %q", got, relativePath)
 	}
 }
+
+func TestPortableAgentEnvPathKeepsCentralIdentityPathAbsolute(t *testing.T) {
+	t.Parallel()
+
+	// Arrange: an identity in the central store has no `.moltnet` parent, so
+	// the repo-portability rewrite would emit `.moltnet/<alias>/…` — a path
+	// that exists nowhere in that layout.
+	identityDir := filepath.Join(string(filepath.Separator), "home", "dev", ".config", "moltnet", "identities", "legreffier")
+	pemPath := filepath.Join(identityDir, "legreffier.pem")
+
+	// Act.
+	got := portableAgentEnvPath(identityDir, "legreffier", pemPath)
+
+	// Assert.
+	if got != pemPath {
+		t.Fatalf("portable path = %q, want the absolute path %q", got, pemPath)
+	}
+}

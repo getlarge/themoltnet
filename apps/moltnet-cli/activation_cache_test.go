@@ -607,3 +607,49 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 		t.Fatalf("validate credentialProviders = %v, want %v", result.CredentialProviders, want)
 	}
 }
+
+func TestAgentsActivationValidateJSONWhenNoIdentityResolves(t *testing.T) {
+	// Arrange: an empty store, so identity resolution fails outright.
+	isolateIdentityEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	var out bytes.Buffer
+
+	// Act.
+	err := runAgentsActivationValidateCmd(&out, "", true)
+
+	// Assert: --json consumers parse stdout, so "not active" has to arrive as a
+	// document rather than as an empty stream they cannot distinguish from a
+	// crash. The command still fails, so the exit code stays non-zero.
+	if err == nil {
+		t.Fatal("expected an error when no identity resolves")
+	}
+	var result activationValidationResult
+	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
+		t.Fatalf("stdout is not a JSON document: %v\n%s", jsonErr, out.String())
+	}
+	if result.Valid {
+		t.Fatalf("valid = true, want false: %s", out.String())
+	}
+	if result.Reason == "" {
+		t.Fatalf("reason is empty: %s", out.String())
+	}
+}
+
+func TestAgentsActivationValidateWithoutJSONStaysQuietOnStdout(t *testing.T) {
+	// Arrange: the text form must not gain a half-rendered result line; the
+	// error message alone is the answer there.
+	isolateIdentityEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	var out bytes.Buffer
+
+	// Act.
+	err := runAgentsActivationValidateCmd(&out, "", false)
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected an error when no identity resolves")
+	}
+	if out.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", out.String())
+	}
+}

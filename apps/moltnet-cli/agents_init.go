@@ -18,7 +18,12 @@ import (
 )
 
 const (
-	agentsInitStateFile           = "init-state.json"
+	agentsInitStateFile = "init-state.json"
+	// configPortStateFile is the recovery file the retired `config port`
+	// command left in an agent bundle. The command is gone, but a stale
+	// port-state.json can still sit in a legacy bundle being migrated, so the
+	// symlink hardening below keeps covering the name.
+	configPortStateFile           = "port-state.json"
 	agentsInitPhaseStarted        = "started"
 	agentsInitPhaseGitHubApp      = "github_app_ready"
 	agentsInitPhaseRemoteComplete = "remote_complete"
@@ -263,6 +268,17 @@ func prepareIdentityDirectory(alias string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	identitiesDir := filepath.Dir(dir)
+	if err := os.MkdirAll(identitiesDir, 0o700); err != nil {
+		return "", fmt.Errorf("create identity store: %w", err)
+	}
+	// Resolve the store root before the leaf so containment is asserted against
+	// the real directory. A symlinked ancestor is legitimate — dotfile managers
+	// routinely symlink ~/.config — and must normalize here, not fail.
+	resolvedIdentitiesDir, err := filepath.EvalSymlinks(identitiesDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve identity store: %w", err)
+	}
 	if info, statErr := os.Lstat(dir); statErr == nil && info.Mode()&os.ModeSymlink != 0 {
 		return "", fmt.Errorf("identity directory must not be a symbolic link: %s", dir)
 	} else if statErr != nil && !os.IsNotExist(statErr) {
@@ -270,6 +286,9 @@ func prepareIdentityDirectory(alias string) (string, error) {
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("create identity directory: %w", err)
+	}
+	if err := assertIdentityDirContained(resolvedIdentitiesDir, dir); err != nil {
+		return "", err
 	}
 	if err := rejectAgentPathSymlinks(dir); err != nil {
 		return "", err
@@ -444,6 +463,28 @@ func prepareAgentDirectory(repoRoot, agentName string) (string, error) {
 	return agentDir, nil
 }
 
+// assertIdentityDirContained re-verifies, after creation, that dir still
+// resolves inside resolvedRoot.
+//
+// The Lstat check in prepareIdentityDirectory runs before MkdirAll, and
+// MkdirAll succeeds through a symlink planted in between: the path exists, as a
+// directory, via the link. Everything written afterwards — the SSH private key,
+// gitconfig, moltnet.json — lands at the link target, outside the 0700 tree.
+// resolvedRoot is already symlink-resolved by the caller so that a legitimately
+// symlinked ancestor (dotfile managers routinely symlink ~/.config) normalizes
+// instead of failing.
+func assertIdentityDirContained(resolvedRoot, dir string) error {
+	resolvedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return fmt.Errorf("resolve identity directory: %w", err)
+	}
+	rel, err := filepath.Rel(resolvedRoot, resolvedDir)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("identity directory escapes the central identity store: %s", dir)
+	}
+	return nil
+}
+
 func rejectAgentPathSymlinks(agentDir string) error {
 	for _, relativePath := range []string{
 		"moltnet.json",
@@ -480,7 +521,7 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	if err := runGitHubSetupCmd(configPath, opts.name, creds.GitHub.AppSlug); err != nil {
 		return err
 	}
-	if err := writeIdentityEnv(identityDir, opts.name, creds); err != nil {
+	if err := writeAgentEnvFile(identityDir, opts.name, creds); err != nil {
 		return err
 	}
 	// Seed the selector when none exists, as register / init-from-env /
@@ -497,20 +538,6 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	// Warm the activation cache so `agents activation validate` does not
 	// report invalid immediately after a successful init.
 	return runAgentsActivationRefreshCmd(io.Discard, opts.name, false)
-}
-
-func writeIdentityEnv(identityDir, alias string, creds *CredentialsFile) error {
-	prefix := toEnvPrefix(alias)
-	gitconfig := filepath.Join(identityDir, "gitconfig")
-	content := fmt.Sprintf(
-		"%s_CLIENT_ID='%s'\n%s_GITHUB_APP_ID='%s'\n%s_GITHUB_APP_INSTALLATION_ID='%s'\nGIT_CONFIG_GLOBAL='%s'\nMOLTNET_ACTIVE_IDENTITY='%s'\nMOLTNET_FINGERPRINT='%s'\n",
-		prefix, shellQuote(creds.OAuth2.ClientID), prefix, shellQuote(creds.GitHub.AppID), prefix, shellQuote(creds.GitHub.InstallationID),
-		shellQuote(gitconfig), shellQuote(alias), shellQuote(creds.Keys.Fingerprint),
-	)
-	if err := writeFileAtomic(filepath.Join(identityDir, "env"), []byte(content)); err != nil {
-		return fmt.Errorf("write identity env: %w", err)
-	}
-	return nil
 }
 
 func openBrowser(url string) error {
