@@ -30,6 +30,24 @@
  *   DATABASE_URL=... ORY_PROJECT_URL=... ORY_PROJECT_API_KEY=... \
  *     node infra/ory/migrate-keto-subjects.mjs [--apply] [--concurrency N]
  *       [--state <path>] [--namespace Agent|Human]
+ *
+ * Against self-hosted Keto (the e2e stack, for rehearsal), replace
+ * ORY_PROJECT_URL with ORY_KETO_READ_URL + ORY_KETO_ADMIN_URL:
+ *
+ *   DATABASE_URL=postgres://moltnet:moltnet_secret@localhost:5433/moltnet \
+ *   ORY_KETO_READ_URL=http://localhost:4466 \
+ *   ORY_KETO_ADMIN_URL=http://localhost:4467 \
+ *     node infra/ory/migrate-keto-subjects.mjs [--apply]
+ *
+ * The e2e stack's own tuples are already keyed on internal ids, so a bare
+ * rehearsal only exercises the no-op path. To rehearse the REWRITE path,
+ * first seed tuples whose object/subject_set.object are `identity_id`s read
+ * from the local agents/humans tables, then run the script and confirm the
+ * verification pass reports zero residual.
+ *
+ * `--state` is a per-window checkpoint, not a durable ledger: it is keyed on
+ * the SOURCE tuple, so pointing a second run at a previous window's state
+ * file silently skips work. Use a fresh path per maintenance window.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -47,13 +65,30 @@ const STATE_PATH = flag('--state', '.keto-subject-migration-state.json');
 const ONLY_NAMESPACE = flag('--namespace', null);
 const PAGE_SIZE = 500;
 
-const base = process.env.ORY_PROJECT_URL?.replace(/\/$/, '');
+/**
+ * Ory Network serves the read and write APIs from one host, so
+ * `ORY_PROJECT_URL` covers both. Self-hosted Keto splits them across two
+ * ports (read 4466, write 4467), which is why this script could not be
+ * rehearsed against the e2e stack until these overrides existed. Production
+ * still needs only ORY_PROJECT_URL.
+ */
+const trim = (url) => url?.replace(/\/$/, '');
+const project = trim(process.env.ORY_PROJECT_URL);
+const readBase = trim(process.env.ORY_KETO_READ_URL) ?? project;
+const writeBase = trim(process.env.ORY_KETO_ADMIN_URL) ?? project;
 const apiKey = process.env.ORY_PROJECT_API_KEY;
-if (!base || !apiKey) {
-  console.error('ORY_PROJECT_URL and ORY_PROJECT_API_KEY are required');
+if (!readBase || !writeBase) {
+  console.error(
+    'ORY_PROJECT_URL (or ORY_KETO_READ_URL + ORY_KETO_ADMIN_URL) is required',
+  );
   process.exit(1);
 }
-const headers = { Authorization: `Bearer ${apiKey}` };
+// Self-hosted Keto has no bearer auth; Ory Network requires it.
+if (project && !apiKey) {
+  console.error('ORY_PROJECT_API_KEY is required with ORY_PROJECT_URL');
+  process.exit(1);
+}
+const headers = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
 
 const NAMESPACES = ONLY_NAMESPACE ? [ONLY_NAMESPACE] : ['Agent', 'Human'];
 for (const ns of NAMESPACES) {
@@ -103,7 +138,7 @@ async function* pageTuples() {
     const query = new URLSearchParams({ page_size: String(PAGE_SIZE) });
     if (pageToken) query.set('page_token', pageToken);
 
-    const response = await fetch(`${base}/relation-tuples?${query}`, {
+    const response = await fetch(`${readBase}/relation-tuples?${query}`, {
       headers,
     });
     if (!response.ok) {
@@ -173,7 +208,7 @@ function saveState(done) {
 }
 
 async function createTuple(tuple) {
-  const response = await fetch(`${base}/admin/relation-tuples`, {
+  const response = await fetch(`${writeBase}/admin/relation-tuples`, {
     method: 'PUT',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify(tuple),
@@ -199,7 +234,7 @@ async function deleteTuple(tuple) {
     query.set('subject_id', tuple.subject_id);
   }
 
-  const response = await fetch(`${base}/admin/relation-tuples?${query}`, {
+  const response = await fetch(`${writeBase}/admin/relation-tuples?${query}`, {
     method: 'DELETE',
     headers,
   });
@@ -237,7 +272,7 @@ async function pooled(items, limit, worker) {
  */
 function assertDatabaseAndOryAgree() {
   const dbHost = new URL(process.env.DATABASE_URL).hostname;
-  const oryHost = new URL(base).hostname;
+  const oryHost = new URL(writeBase).hostname;
   const dbIsLocal = ['localhost', '127.0.0.1', '::1'].includes(dbHost);
   const oryIsLocal =
     ['localhost', '127.0.0.1', '::1'].includes(oryHost) ||
