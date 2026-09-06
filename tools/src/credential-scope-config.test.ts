@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 
-import { AGENT_OAUTH_SCOPES, MCP_CLIENT_SCOPES } from '@moltnet/models';
+import {
+  DCR_MAX_SCOPES,
+  MCP_CLIENT_SCOPES,
+  OIDC_PROTOCOL_SCOPES,
+} from '@moltnet/models';
 import { describe, expect, it } from 'vitest';
 
 function readJson(relativePath: string): unknown {
@@ -17,7 +21,7 @@ function readHydraDefaultScopes(relativePath: string): string[] {
 }
 
 describe('credential scope configuration', () => {
-  it('keeps Ory dynamic-client defaults aligned with the agent grant', () => {
+  it('caps Ory dynamic-client defaults at the MCP tool surface', () => {
     const project = readJson('../../infra/ory/project.json') as {
       services: {
         oauth2: {
@@ -33,19 +37,31 @@ describe('credential scope configuration', () => {
       project.services.oauth2.config.oidc.dynamic_client_registration
         .default_scope;
 
-    expect(configured).toEqual([
-      'openid',
-      'offline',
-      'offline_access',
-      ...AGENT_OAUTH_SCOPES,
-    ]);
+    expect(configured).toEqual([...DCR_MAX_SCOPES]);
     expect(new Set(configured).size).toBe(configured.length);
 
     const localConfigured = readHydraDefaultScopes(
       '../../infra/ory/hydra/hydra.yaml',
     );
-    expect(localConfigured).toEqual(AGENT_OAUTH_SCOPES);
+    // The local file lists capability scopes only; Hydra adds the OIDC
+    // protocol scopes itself, which is why prod carries them and this does not.
+    expect(localConfigured).toEqual([...MCP_CLIENT_SCOPES]);
     expect(new Set(localConfigured).size).toBe(localConfigured.length);
+
+    // The point of the cap: self-registration cannot reach privileged scopes.
+    for (const denied of [
+      'key:manage',
+      'runtime:manage',
+      'connector:invoke',
+      'runtime:read',
+      'task:claim',
+    ]) {
+      expect(configured).not.toContain(denied);
+      expect(localConfigured).not.toContain(denied);
+    }
+    expect(OIDC_PROTOCOL_SCOPES.every((s) => configured.includes(s))).toBe(
+      true,
+    );
   });
 
   it('keeps the OpenClaw MCP grant aligned with the canonical MCP grant', () => {

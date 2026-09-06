@@ -12,6 +12,7 @@ import crypto from 'node:crypto';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { OryClients } from '@moltnet/auth';
 import { DBOS, type HumanRepository } from '@moltnet/database';
+import { DCR_MAX_SCOPES } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
@@ -537,6 +538,37 @@ export async function hookRoutes(fastify: FastifyInstance) {
           });
         }
 
+        // ── Self-registered (DCR) client cap ─────────────────────
+        // Anything reaching this point registered through open Dynamic
+        // Client Registration: both first-party creation sites stamp
+        // `metadata.identity_id`, so they returned above. DCR is open by
+        // design — chat agents have no other way to reach the MCP server —
+        // which means registration proves nothing about the registrant and
+        // the grant is the only thing limiting them.
+        //
+        // Hydra's token hook can add session claims or deny with 403; it
+        // cannot narrow `granted_scopes`. So an over-broad grant cannot be
+        // trimmed down to the cap, only refused.
+        const overGrantedScopes = (tokenRequest.granted_scopes ?? []).filter(
+          (scope) => !DCR_MAX_SCOPES.includes(scope),
+        );
+        if (overGrantedScopes.length > 0) {
+          fastify.log.warn(
+            {
+              client_id: tokenRequest.client_id,
+              over_granted_scopes: overGrantedScopes,
+            },
+            'Token exchange: self-registered client exceeded the DCR scope cap',
+          );
+          return await reply.status(403).send({
+            error: 'scope_not_allowed',
+            error_description:
+              `A self-registered client may not be granted ` +
+              `${overGrantedScopes.join(', ')}. Re-register requesting only ` +
+              `the MCP tool scopes.`,
+          });
+        }
+
         // ── Human path ───────────────────────────────────────────
         // For authorization_code grants, the session id_token contains
         // the subject set during login acceptance (Kratos identity ID)
@@ -563,8 +595,15 @@ export async function hookRoutes(fastify: FastifyInstance) {
         }
 
         // ── Neither agent nor human ──────────────────────────────
+        // No agent metadata and no authenticated human subject. A
+        // self-registered client using client_credentials lands here: it has
+        // no user to act for and is not a registered agent, so there is no
+        // MoltNet principal the token could represent.
         fastify.log.warn(
-          { client_id: tokenRequest.client_id },
+          {
+            client_id: tokenRequest.client_id,
+            grant_types: tokenRequest.grant_types,
+          },
           'Token exchange: no MoltNet identity found',
         );
         return await reply.status(403).send({
