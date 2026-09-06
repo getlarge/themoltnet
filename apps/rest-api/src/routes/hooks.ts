@@ -549,6 +549,14 @@ export async function hookRoutes(fastify: FastifyInstance) {
         // Hydra's token hook can add session claims or deny with 403; it
         // cannot narrow `granted_scopes`. So an over-broad grant cannot be
         // trimmed down to the cap, only refused.
+        //
+        // `default_grant_allowed_scope` is `true` (#2162), so a client that
+        // requests no `scope` is granted everything it registered for. That
+        // makes the registration-time cap in Ory's `default_scope` the thing
+        // that actually limits tokens, and it means a client registered under
+        // the old 17-scope default is refused here on *every* request, not
+        // only when it explicitly asks for a privileged scope. Existing DCR
+        // clients must be narrowed before this deploys.
         const overGrantedScopes = (tokenRequest.granted_scopes ?? []).filter(
           (scope) => !DCR_MAX_SCOPES.includes(scope),
         );
