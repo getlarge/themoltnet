@@ -360,11 +360,21 @@ runs:
           fi
           export MOLTNET_GITHUB_APP_PRIVATE_KEY="$pem_normalized"
         fi
-        # OAuth mode reconstructs a central identity directory (moltnet.json,
-        # SSH keys, gitconfig, optional GitHub App PEM) from the
-        # caller-supplied MOLTNET_* env vars using the canonical CLI
-        # helper. The daemon selects it via MOLTNET_ACTIVE_IDENTITY,
-        # independently of the checkout.
+        # Reconstruct a central identity directory (moltnet.json, SSH keys,
+        # gitconfig, optional GitHub App PEM) from the caller-supplied
+        # MOLTNET_* env vars using the canonical CLI helper. The daemon selects
+        # it via MOLTNET_ACTIVE_IDENTITY, independently of the checkout.
+        #
+        # These assets are what the agent commits and calls gh with; they are
+        # never the daemon's credential, which is the agent key asserted above
+        # and resolved explicitly rather than inherited from this file.
+        #
+        # The central store also puts them outside $GITHUB_WORKSPACE, so guest
+        # task code cannot reach the signing seed or App PEM through a shared
+        # mount at all — the sandbox mounts the workspace, not $HOME. (Before
+        # the central store this relied on vm-manager.ts shadowing any
+        # `.moltnet` path segment; that shadow still exists as a second layer
+        # for repository-local bundles.)
         # Pinned by default. This step runs with OAuth, signing-key and
         # optional GitHub App secrets in its environment, so resolving a
         # mutable `latest` would let any future npm release read them.
