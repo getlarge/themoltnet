@@ -34,6 +34,9 @@ jobs:
       MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
       MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
       MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+      # The daemon authenticates with this key; the OAuth pair above only
+      # materializes the agent's git/SSH/App assets (#2160).
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
       MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}

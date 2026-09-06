@@ -3,11 +3,12 @@ description: 'Run a single MoltNet task via @themoltnet/agent-daemon, or dispatc
 inputs:
   agent-name:
     description: >
-      MoltNet agent name. OAuth mode materialises
+      MoltNet agent name. An agent key is always required; supplying the
+      OAuth2 pair additionally materialises
       ~/.config/moltnet/identities/<agent-name>/ from MOLTNET_* env vars via
-      `moltnet config init-from-env`; agent-key mode remains configless. When
-      empty, the action falls back to the MOLTNET_AGENT_NAME env var the
-      caller set on the step.
+      `moltnet config init-from-env` for git and GitHub App assets. Omit that
+      pair for a configless run. When empty, the action falls back to the
+      MOLTNET_AGENT_NAME env var the caller set on the step.
     required: false
     default: ''
   task-id:
@@ -283,14 +284,51 @@ runs:
         fi
         export MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}"
         AGENT_DIR="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME"
-        if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
-          if [ -z "${MOLTNET_PRIVATE_KEY:-}" ]; then
-            echo "::error::MOLTNET_PRIVATE_KEY is required with MOLTNET_AGENT_KEY for executor attestation" >&2
-            exit 1
-          fi
-          # The daemon authenticates with the bearer key and validates the
-          # base64 Ed25519 seed directly against whoami. No OAuth or identity
-          # files are needed, and no agent credentials are injected into the VM.
+        # The daemon authenticates with an agent key and nothing else (#2160).
+        # OAuth2 client credentials can still materialize the agent's git, SSH
+        # and GitHub App assets below, but they cannot authenticate it:
+        # `config init-from-env` writes no agent_key_ref, and the daemon refuses
+        # a config without one. Fail here with the fix rather than letting that
+        # surface as a daemon startup error.
+        if [ -z "${MOLTNET_AGENT_KEY:-}" ] && [ -z "${MOLTNET_AGENT_KEY_REF:-}" ]; then
+          echo "::error::MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) is required. The daemon no longer accepts OAuth2 client credentials; mint a key with 'moltnet agents keys create --agent-id <uuid> --team-id <uuid> --name <agent>-daemon' and add it as a secret. MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET alone materialize git and App assets but cannot authenticate the daemon." >&2
+          exit 1
+        fi
+        # The daemon treats a value and a reference together as a
+        # misconfiguration, never a precedence question (connect-ambient.ts,
+        # config.ts). Enforce the same rule here: this step runs before the task
+        # is created, so accepting it would queue work the daemon then dies
+        # without ever claiming.
+        if [ -n "${MOLTNET_AGENT_KEY:-}" ] && [ -n "${MOLTNET_AGENT_KEY_REF:-}" ]; then
+          echo "::error::Set only one of MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF." >&2
+          exit 1
+        fi
+        # The daemon and `config init-from-env` both resolve the attestation
+        # seed from either form, so accepting only the literal would reject a
+        # reference-only deployment and push it toward exposing the seed.
+        if [ -z "${MOLTNET_PRIVATE_KEY:-}" ] && [ -z "${MOLTNET_PRIVATE_KEY_REF:-}" ]; then
+          echo "::error::MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF) is required with MOLTNET_AGENT_KEY for executor attestation" >&2
+          exit 1
+        fi
+        if [ -n "${MOLTNET_PRIVATE_KEY:-}" ] && [ -n "${MOLTNET_PRIVATE_KEY_REF:-}" ]; then
+          echo "::error::Set only one of MOLTNET_PRIVATE_KEY or MOLTNET_PRIVATE_KEY_REF." >&2
+          exit 1
+        fi
+        # A half-supplied OAuth pair cannot materialize anything —
+        # `config init-from-env` requires both — so name the missing half here
+        # rather than failing inside the CLI.
+        if [ -n "${MOLTNET_CLIENT_ID:-}" ] && [ -z "${MOLTNET_CLIENT_SECRET:-}" ]; then
+          echo "::error::MOLTNET_CLIENT_SECRET is required alongside MOLTNET_CLIENT_ID." >&2
+          exit 1
+        fi
+        if [ -z "${MOLTNET_CLIENT_ID:-}" ] && [ -n "${MOLTNET_CLIENT_SECRET:-}" ]; then
+          echo "::error::MOLTNET_CLIENT_ID is required alongside MOLTNET_CLIENT_SECRET." >&2
+          exit 1
+        fi
+        if [ -z "${MOLTNET_CLIENT_ID:-}" ]; then
+          # Configless: the key comes from the environment and there are no
+          # OAuth vars to rebuild an agent tree from. No agent credentials are
+          # injected into the VM.
           mkdir -p "$AGENT_DIR"
           {
             echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
@@ -301,6 +339,7 @@ runs:
           echo "::notice::Using configless MoltNet agent-key authentication"
           exit 0
         fi
+        echo "::notice::Agent-key authentication with a materialized agent tree (git, SSH, GitHub App assets)"
         if [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ]; then
           pem_normalized="${MOLTNET_GITHUB_APP_PRIVATE_KEY#"${MOLTNET_GITHUB_APP_PRIVATE_KEY%%[![:space:]]*}"}"
           pem_normalized="${pem_normalized%"${pem_normalized##*[![:space:]]}"}"
@@ -583,7 +622,9 @@ runs:
 
         CREDS="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME/moltnet.json"
         credential_args=()
-        if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
+        if [ -n "${MOLTNET_AGENT_KEY:-}" ] || [ -n "${MOLTNET_AGENT_KEY_REF:-}" ]; then
+          # Either form authenticates the CLI without a credentials file; a
+          # reference-only run materializes no moltnet.json to point at.
           echo "::notice::Creating task with configless agent-key authentication"
         elif [ -f "$CREDS" ]; then
           credential_args+=(--credentials "$CREDS")
