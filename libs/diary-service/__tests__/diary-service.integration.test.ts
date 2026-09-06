@@ -122,6 +122,9 @@ describe('DiaryService (integration)', () => {
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000001';
   const OTHER_AGENT = '00000000-0000-4000-b000-000000000002';
+  // Kratos identities, deliberately different from the agent ids above.
+  const OWNER_IDENTITY_ID = '00000000-0000-4000-b001-000000000001';
+  const OTHER_AGENT_IDENTITY_ID = '00000000-0000-4000-b001-000000000002';
 
   beforeAll(async () => {
     const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
@@ -228,18 +231,22 @@ describe('DiaryService (integration)', () => {
       } as never,
     });
 
-    // Seed agent rows first — teams/diaries.creator_agent_id has a FK to
-    // agents.identity_id.
+    // Seed agent rows first — teams/diaries.creator_agent_id is a FK to
+    // agents.id, so the id must be set explicitly. identity_id is a separate,
+    // distinct value: reusing one for both is what let creator lookups resolve
+    // the wrong column while the suite stayed green.
     await db
       .insert(setup.agents)
       .values([
         {
-          identityId: OWNER_ID,
+          id: OWNER_ID,
+          identityId: OWNER_IDENTITY_ID,
           publicKey: 'ed25519:integrationtestkey',
           fingerprint: 'A1B2-C3D4-E5F6-1234',
         },
         {
-          identityId: OTHER_AGENT,
+          id: OTHER_AGENT,
+          identityId: OTHER_AGENT_IDENTITY_ID,
           publicKey: 'ed25519:integrationtestkey2',
           fingerprint: 'A1B2-C3D4-E5F6-5678',
         },
