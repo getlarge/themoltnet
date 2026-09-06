@@ -569,14 +569,14 @@ func storeFixtureFileSecret(t *testing.T, key, value string) {
 
 func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	// The OAuth2 secret is file-backed rather than keyring-backed so that
-	// refresh can authenticate here without an OS keyring. os-keyring is still
-	// covered as a recorded provider name by
-	// TestAgentsActivationValidateReportsCredentialProviders.
-	storeFixtureFileSecret(t, OAuth2SecretKey(fixtureIdentityID, "cid"), "fixture-oauth2-secret")
+	// Refresh authenticates with the agent key in preference to OAuth2, so that
+	// is the reference that has to resolve. The OAuth2 secret stays keyring-
+	// backed and is only recorded, which keeps os-keyring covered as a provider
+	// name without needing a keyring on CI.
+	storeFixtureFileSecret(t, AgentKeyKey(fixtureIdentityID), "fixture-agent-key")
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2.ClientSecret = ""
-		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "file", Key: OAuth2SecretKey(fixtureIdentityID, "cid")}
+		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "os-keyring", Key: OAuth2SecretKey(fixtureIdentityID, "cid")}
 		creds.Keys.PrivateKey = ""
 		creds.Keys.PrivateKeyRef = &SecretReference{Provider: "file", Key: IdentitySeedKey("SHA256:testfingerprint")}
 		creds.GitHub = &GitHubSection{AppID: "123", InstallationID: "456", PrivateKeyPath: filepath.Join(dir, "app.pem")}
@@ -591,11 +591,11 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"oauth2": "file", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "file"}
+	want := map[string]string{"oauth2": "os-keyring", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "file"}
 	if !maps.Equal(result.CredentialProviders, want) {
 		t.Fatalf("credentialProviders = %v, want %v", result.CredentialProviders, want)
 	}
-	if result.CredentialProvider != "file" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
+	if result.CredentialProvider != "os-keyring" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
 		t.Fatalf("legacy summary fields drifted: %+v", result)
 	}
 	if strings.Contains(out.String(), "identity/SHA256") || strings.Contains(out.String(), "agent-key/") {
@@ -673,8 +673,12 @@ func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
 
 func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
+	// File-backed so refresh can authenticate with it without a keyring;
+	// os-keyring recording stays covered by
+	// TestAgentsActivationRecordsPerKindCredentialProviders.
+	storeFixtureFileSecret(t, AgentKeyKey(fixtureIdentityID), "fixture-agent-key")
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
-		creds.AgentKeyRef = &SecretReference{Provider: "os-keyring", Key: AgentKeyKey(fixtureIdentityID)}
+		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureIdentityID)}
 	})
 	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
@@ -691,7 +695,7 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 	if !result.Valid {
 		t.Fatalf("validate invalid: %+v", result)
 	}
-	want := map[string]string{"oauth2": "legacy-plaintext", "identitySeed": "legacy-plaintext", "githubApp": "absent", "agentKey": "os-keyring"}
+	want := map[string]string{"oauth2": "legacy-plaintext", "identitySeed": "legacy-plaintext", "githubApp": "absent", "agentKey": "file"}
 	if !maps.Equal(result.CredentialProviders, want) {
 		t.Fatalf("validate credentialProviders = %v, want %v", result.CredentialProviders, want)
 	}

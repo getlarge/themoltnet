@@ -27,13 +27,20 @@ type identityVerification struct {
 //
 // One nuance the issue's wording glosses over: this cannot run "before any
 // secret resolution", because asking the server who we are requires
-// authenticating, which resolves the OAuth secret. The circularity is
-// unavoidable. What it does buy is that the *identity* metadata — the
-// fingerprint that gets pinned into the activation cache, and the public key a
-// signature is later checked against — is confirmed against the server before
-// any of it is trusted or any seed material is used to sign.
+// authenticating, which resolves a credential. The circularity is unavoidable.
+// What it does buy is that the *identity* metadata — the fingerprint that gets
+// pinned into the activation cache, and the public key a signature is later
+// checked against — is confirmed against the server before any of it is trusted
+// or any seed material is used to sign.
+//
+// It authenticates through newAuthenticatedClient, so it uses whichever
+// credential the agent actually uses for API calls: an agent_key_ref in
+// preference to the OAuth2 client credentials. Verifying through a different
+// credential than the one the agent works with would check the wrong binding,
+// and #2160/#2171 move the daemon to an agent key only. The cost is that a
+// keyring-backed agent_key_ref must be resolvable for a refresh to succeed.
 func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile) (*identityVerification, error) {
-	client, err := newIdentityVerificationClient(apiURL, credentialsPath, creds)
+	client, err := newAuthenticatedClient(apiURL, credentialsPath)
 	if err != nil {
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
@@ -94,39 +101,4 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		PublicKey:   serverPublicKey,
 		Fingerprint: serverFingerprint,
 	}, nil
-}
-
-// newIdentityVerificationClient authenticates for the identity check.
-//
-// It prefers the OAuth2 client credentials over an agent_key_ref, which is the
-// opposite of newAuthenticatedClient's order, and deliberately so. Activation
-// is verifying the *identity* binding, and the OAuth2 client is the credential
-// issued to that identity. An agent key is a bearer token that may be
-// team-scoped and is meant for task work.
-//
-// The order also keeps activation from touching the OS keyring merely to record
-// that an agent key lives there: resolving an agent_key_ref during every
-// refresh would make activation require an unlocked keyring on hosts where the
-// identity's own OAuth2 secret is already available.
-//
-// Configless setups have no OAuth2 client at all — the daemon and the GitHub
-// Action authenticate with an agent key alone — so those fall through to the
-// normal resolution order.
-func newIdentityVerificationClient(
-	apiURL, credentialsPath string,
-	creds *CredentialsFile,
-) (*moltnetapi.Client, error) {
-	if creds == nil || creds.OAuth2.ClientID == "" {
-		return newAuthenticatedClient(apiURL, credentialsPath)
-	}
-	clientSecret, err := resolveOAuth2Secret(creds, NewSecretProviderRegistry())
-	if err != nil {
-		return nil, fmt.Errorf("resolve OAuth2 client secret: %w", err)
-	}
-	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, clientSecret)
-	return newBearerClient(
-		apiURL,
-		func(_ context.Context) (string, error) { return tm.GetToken() },
-		tm.httpClient,
-	)
 }
