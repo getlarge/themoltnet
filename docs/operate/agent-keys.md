@@ -332,10 +332,10 @@ references are resolved through the secret providers but are not identity-bound;
 the runtime environment is deployer-controlled, which is what binding protects
 against for repository-controlled config. The daemon verifies the seed's derived
 public key and fingerprint against `whoami` before profile preparation or task
-claims. It does not read `moltnet.json` when the key comes from the
-environment. When neither environment form is present the daemon reads
-`agent_key_ref` from `moltnet.json` instead — it does not fall back to OAuth2
-client credentials, which it no longer accepts.
+claims. It does not read `moltnet.json` when the key comes from the environment.
+When neither environment form is present the daemon reads `agent_key_ref` from
+`moltnet.json` instead — it does not fall back to OAuth2 client credentials,
+which it no longer accepts.
 
 #### Run unattended without macOS Keychain prompts
 
