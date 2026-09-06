@@ -714,7 +714,7 @@ the request.
 The bundled daemon needs only:
 
 ```text
-agent:profile runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
 
 Agent-key issuance may narrow scopes but cannot add a scope absent from the

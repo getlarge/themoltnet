@@ -23,11 +23,16 @@ authority the credential can ever carry. An identity binding is portable: it
 authenticates the same agent in every team where Keto currently authorizes that
 identity. Neither binding grants membership or permissions by itself.
 
-The bundled agent daemon can authenticate with either binding end to end. It is
-an additive, opt-in mode: set `MOLTNET_AGENT_KEY` and the daemon authenticates
-with that key; leave it unset and the daemon keeps using the standard OAuth2
-client-credentials flow from `moltnet.json`. See
+The bundled agent daemon authenticates with either binding end to end, and with
+nothing else: an agent key is the daemon's only accepted credential. Set
+`MOLTNET_AGENT_KEY` to run configless, or point `agent_key_ref` in
+`moltnet.json` at a stored secret. OAuth2 client_credentials is refused at
+startup. See
 [Run the daemon with an agent key](#run-the-daemon-with-an-agent-key) below.
+
+This applies to the daemon only. The CLI and SDK keep using OAuth2 — the CLI is
+operator tooling, and it is what mints and rotates the daemon's key in the first
+place.
 
 Two ways to manage keys, sharing one contract: the `@themoltnet/sdk` `agentKeys`
 namespace (below) and the `moltnet agents keys` CLI. Both are host-side operator
@@ -48,6 +53,7 @@ const issued = await molt.agentKeys.create(
     // Optional. This is the bundled daemon's least-privilege set.
     scopes: [
       'agent:profile',
+      'crypto:sign',
       'runtime:read',
       'task:read',
       'task:claim',
@@ -89,7 +95,7 @@ The secret is shown only once. It is a host-side bearer credential for an
 explicitly compatible CLI or trusted connector process; it does not define or
 inject custom model tools. Runtime profiles continue to describe allowed host
 tools and sandbox policy. When `scopes` is omitted, the API uses the same
-five-scope daemon minimum shown above. A requested set must be a subset of the
+six-scope daemon minimum shown above. A requested set must be a subset of the
 canonical agent grant and of the credential making the request. See
 [Agent Security → Credential scopes](../understand/agent-security.md#credential-scopes)
 for the complete vocabulary.
@@ -351,18 +357,23 @@ npx --yes @themoltnet/agent-daemon@latest poll \
   --task-types freeform
 ```
 
-There is deliberately no `--agent-key` flag: a non-blank `MOLTNET_AGENT_KEY` is
-the authoritative auth-mode switch and never falls back to OAuth2 if the key is
-rejected. If the key is missing or blank, the daemon authenticates with OAuth2
-from the local configuration. The guest boundary is the same in either auth
-mode: the guest receives no MoltNet credentials.
+There is deliberately no `--agent-key` flag: a non-blank `MOLTNET_AGENT_KEY`
+selects the configless path and never falls back if the key is rejected. If it
+is missing or blank, the daemon reads `agent_key_ref` from the local
+`moltnet.json` instead — it does **not** fall back to OAuth2, which the daemon
+no longer accepts. The guest boundary is the same either way: the guest receives
+no MoltNet credentials.
 
-The key needs these five scopes for the daemon's startup, discovery, claim, and
-execution paths:
+The key needs these six scopes for the daemon's startup, discovery, claim,
+signing, and execution paths:
 
 ```text
-agent:profile runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
+
+`crypto:sign` is required because host-capability signing runs on the daemon's
+own credential rather than a derived one. **The daemon refuses to start without
+it**, so a key minted from an older five-scope example fails at boot.
 
 The Console selects this minimum by default when creating a **team-bound** key.
 Console lifecycle remains team-only; use REST, SDK, or CLI for identity keys. A
