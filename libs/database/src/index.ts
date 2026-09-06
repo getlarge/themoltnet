@@ -50,6 +50,8 @@ export {
   resolvePrincipal,
 } from './principal-resolver.js';
 export {
+  AgentFingerprintConflictError,
+  AgentFingerprintRaceError,
   type AgentRepository,
   createAgentRepository,
 } from './repositories/agent.repository.js';
