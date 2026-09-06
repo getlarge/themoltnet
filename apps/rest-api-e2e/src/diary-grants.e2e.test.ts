@@ -109,7 +109,7 @@ describe('Diary Grants E2E', () => {
       client,
       auth: () => agentA.accessToken,
       path: { groupId },
-      body: { subjectId: agentB.identityId },
+      body: { subjectId: agentB.agentId },
     });
   });
 
@@ -127,7 +127,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -135,7 +135,7 @@ describe('Diary Grants E2E', () => {
 
       expect(error).toBeUndefined();
       expect(response.status).toBe(201);
-      expect(data!.subjectId).toBe(agentC.identityId);
+      expect(data!.subjectId).toBe(agentC.agentId);
       expect(data!.role).toBe('writer');
 
       // agentC should now be able to create entries
@@ -161,7 +161,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentB.identityId,
+          subjectId: agentB.agentId,
           subjectNs: 'Agent',
           role: 'manager',
         },
@@ -215,7 +215,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -228,7 +228,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -243,7 +243,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'manager',
         },
@@ -270,7 +270,7 @@ describe('Diary Grants E2E', () => {
           auth: () => agentA.accessToken,
           path: { id: freshDiaryId },
           body: {
-            subjectId: agentC.identityId,
+            subjectId: agentC.agentId,
             subjectNs: 'Agent',
             role: 'writer',
           },
@@ -280,7 +280,7 @@ describe('Diary Grants E2E', () => {
           auth: () => agentA.accessToken,
           path: { id: freshDiaryId },
           body: {
-            subjectId: agentC.identityId,
+            subjectId: agentC.agentId,
             subjectNs: 'Agent',
             role: 'manager',
           },
@@ -303,7 +303,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentC.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -322,7 +322,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: fakeDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -350,10 +350,10 @@ describe('Diary Grants E2E', () => {
 
       // Should contain agentC as writer and agentB as manager
       const writerGrant = data!.grants.find(
-        (g) => g.subjectId === agentC.identityId && g.role === 'writer',
+        (g) => g.subjectId === agentC.agentId && g.role === 'writer',
       );
       const managerGrant = data!.grants.find(
-        (g) => g.subjectId === agentB.identityId && g.role === 'manager',
+        (g) => g.subjectId === agentB.agentId && g.role === 'manager',
       );
 
       expect(writerGrant).toBeDefined();
@@ -404,7 +404,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: diary3Id },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -425,7 +425,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: diary3Id },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -455,7 +455,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentB.identityId,
+          subjectId: agentB.agentId,
           subjectNs: 'Agent',
           role: 'manager',
         },
@@ -478,7 +478,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentC.accessToken,
         path: { id: teamDiaryId },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -508,7 +508,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentA.accessToken,
         path: { id: diary4Id },
         body: {
-          subjectId: agentB.identityId,
+          subjectId: agentB.agentId,
           subjectNs: 'Agent',
           role: 'manager',
         },
@@ -520,7 +520,7 @@ describe('Diary Grants E2E', () => {
         auth: () => agentB.accessToken,
         path: { id: diary4Id },
         body: {
-          subjectId: agentC.identityId,
+          subjectId: agentC.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -578,7 +578,7 @@ describe('Diary Grants E2E', () => {
         client,
         auth: () => agentA.accessToken,
         path: { groupId: group2Id },
-        body: { subjectId: agentC.identityId },
+        body: { subjectId: agentC.agentId },
       });
 
       // Grant writer to the group on diary5
@@ -606,7 +606,7 @@ describe('Diary Grants E2E', () => {
       await removeGroupMember({
         client,
         auth: () => agentA.accessToken,
-        path: { groupId: group2Id, subjectId: agentC.identityId },
+        path: { groupId: group2Id, subjectId: agentC.agentId },
       });
 
       // agentC still has team membership (joined above), so they retain

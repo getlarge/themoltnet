@@ -126,7 +126,7 @@ describe('Tasks API', () => {
       auth: () => proposer.accessToken,
       path: { id: proposer.privateDiaryId },
       body: {
-        subjectId: claimer.identityId,
+        subjectId: claimer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
@@ -214,7 +214,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': teamId },
         path: { id: grantTask.id },
         body: {
-          subjectId: taskWriter.identityId,
+          subjectId: taskWriter.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -231,7 +231,7 @@ describe('Tasks API', () => {
       await updateTeamMemberRole({
         client,
         auth: () => proposer.accessToken,
-        path: { id: teamId, subjectId: claimer.identityId },
+        path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'manager' },
       });
       const continuityTask = await createPendingTask('claimant continuity');
@@ -246,7 +246,7 @@ describe('Tasks API', () => {
       await updateTeamMemberRole({
         client,
         auth: () => proposer.accessToken,
-        path: { id: teamId, subjectId: claimer.identityId },
+        path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'member' },
       });
       const postDowngradeTask = await createPendingTask(
@@ -282,7 +282,7 @@ describe('Tasks API', () => {
       headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: taskId },
       body: {
-        subjectId: writer.identityId,
+        subjectId: writer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
@@ -693,7 +693,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: proposer.privateDiaryId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: claimer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -704,7 +704,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: proposer.privateDiaryId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: claimer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -756,7 +756,7 @@ describe('Tasks API', () => {
       });
       expect(grants.error).toBeUndefined();
       expect(grants.data!.grants).toContainEqual({
-        subjectId: taskWriter.identityId,
+        subjectId: taskWriter.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       });
@@ -775,7 +775,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: taskId },
         body: {
-          subjectId: taskWriter.identityId,
+          subjectId: taskWriter.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -806,7 +806,7 @@ describe('Tasks API', () => {
         retry: false,
       });
       const body = {
-        subjectId: taskWriter.identityId,
+        subjectId: taskWriter.agentId,
         subjectNs: 'Agent' as const,
         role: 'writer' as const,
       };
@@ -2779,7 +2779,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: taskId },
         body: {
-          subjectId: taskWriter.identityId,
+          subjectId: taskWriter.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },

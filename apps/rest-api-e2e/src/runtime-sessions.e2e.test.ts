@@ -119,7 +119,7 @@ describe('Runtime sessions API', () => {
       path: { id: diaryId },
       body: {
         role: 'writer',
-        subjectId: teammate.identityId,
+        subjectId: teammate.agentId,
         subjectNs: 'Agent',
       },
     });
@@ -146,7 +146,7 @@ describe('Runtime sessions API', () => {
     await grantAgentTaskWriter({
       accessToken: owner.accessToken,
       client,
-      subjectId: teammate.identityId,
+      subjectId: teammate.agentId,
       taskId: data!.id,
       teamId,
     });

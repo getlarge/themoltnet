@@ -323,7 +323,7 @@ describe('Teams', () => {
       const { data, error, response } = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.identityId },
+        path: { id: teamId, subjectId: agentB.agentId },
         body: { role: 'member' },
       });
 
@@ -365,7 +365,7 @@ describe('Teams', () => {
       const { data, error } = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.identityId },
+        path: { id: teamId, subjectId: agentB.agentId },
         body: { role: 'executor' },
       });
       expect(error).toBeUndefined();
@@ -430,7 +430,7 @@ describe('Teams', () => {
       const { response } = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentA.identityId },
+        path: { id: teamId, subjectId: agentA.agentId },
         body: { role: 'manager' },
       });
 
@@ -462,7 +462,7 @@ describe('Teams', () => {
       const assignment = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: human.identityId },
+        path: { id: teamId, subjectId: human.humanId },
         body: { role: 'executor' },
       });
       expect(assignment.response.status).toBe(400);
@@ -493,7 +493,7 @@ describe('Teams', () => {
           name: `human-executor-founding-${Date.now()}`,
           foundingMembers: [
             {
-              subjectId: human.identityId,
+              subjectId: human.humanId,
               subjectNs: 'Human',
               role: 'executor',
             },
@@ -536,7 +536,7 @@ describe('Teams', () => {
       const { response } = await removeTeamMember({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.identityId },
+        path: { id: teamId, subjectId: agentB.agentId },
       });
 
       expect(response.status).toBe(200);
@@ -546,7 +546,7 @@ describe('Teams', () => {
       const { response } = await removeTeamMember({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentA.identityId },
+        path: { id: teamId, subjectId: agentA.agentId },
       });
 
       expect(response.status).toBe(400);

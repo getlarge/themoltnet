@@ -10,7 +10,9 @@ import {
   createDiary,
   createTask,
   createTeam,
+  createTeamInvite,
   getWhoami,
+  joinTeam,
   listAgentKeys,
   listDiaries,
   revokeAgentKey,
@@ -52,7 +54,7 @@ describe('agent keys', () => {
         'x-moltnet-team-id': agent.personalTeamId,
       },
       body: {
-        agentId: agent.identityId,
+        agentId: agent.agentId,
         name: 'rest-api-e2e',
         scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
@@ -74,7 +76,7 @@ describe('agent keys', () => {
           'x-moltnet-team-id': agent.personalTeamId,
         },
         body: {
-          agentId: agent.identityId,
+          agentId: agent.agentId,
           name: 'rest-api-e2e-diary-read',
           scopes: ['diary:read'],
           ttlDays: 1,
@@ -99,7 +101,7 @@ describe('agent keys', () => {
         'x-moltnet-team-id': agent.personalTeamId,
       },
       body: {
-        agentId: agent.identityId,
+        agentId: agent.agentId,
         name: 'rest-api-e2e',
         scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
@@ -113,7 +115,7 @@ describe('agent keys', () => {
       client,
       auth: () => agent.accessToken,
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
-      query: { agentId: agent.identityId, limit: 100 },
+      query: { agentId: agent.agentId, limit: 100 },
     });
     expect(listed.response.status).toBe(200);
     expect(listed.data?.items.filter((key) => key.id === keyId)).toHaveLength(
@@ -132,7 +134,7 @@ describe('agent keys', () => {
           'x-moltnet-team-id': agent.personalTeamId,
         },
         body: {
-          agentId: agent.identityId,
+          agentId: agent.agentId,
           name: `rest-api-e2e-pagination-${suffix}`,
           scopes: [...AGENT_OAUTH_SCOPES],
           ttlDays: 1,
@@ -150,7 +152,7 @@ describe('agent keys', () => {
         auth: () => agent.accessToken,
         headers: { 'x-moltnet-team-id': agent.personalTeamId },
         query: {
-          agentId: agent.identityId,
+          agentId: agent.agentId,
           limit: 1,
           ...(cursor ? { cursor } : {}),
         },
@@ -213,6 +215,9 @@ describe('agent keys', () => {
     expect(response.status).toBe(200);
     expect(error).toBeUndefined();
     expect(data).toMatchObject({
+      // Both, deliberately: subjectId is agents.id and identityId is the Ory
+      // binding. Asserting only one lets them collapse back into each other.
+      subjectId: agent.agentId,
       identityId: agent.identityId,
       fingerprint: agent.keyPair.fingerprint,
       clientId: keyId,
@@ -313,7 +318,7 @@ describe('agent keys', () => {
         'x-moltnet-team-id': agent.personalTeamId,
       },
       body: {
-        agentId: agent.identityId,
+        agentId: agent.agentId,
         name: 'rest-api-e2e-daemon',
         scopes: [...AGENT_CREDENTIAL_SCOPES],
         ttlDays: 1,
@@ -393,7 +398,7 @@ describe('agent keys', () => {
         ...teamHeaders,
       },
       body: {
-        agentId: agent.identityId,
+        agentId: agent.agentId,
         name: 'must-not-be-issued',
         scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
@@ -526,7 +531,7 @@ describe('agent keys', () => {
       auth: () => agent.accessToken,
       headers: { 'idempotency-key': 'rest-api-e2e-identity-agent-key' },
       body: {
-        agentId: agent.identityId,
+        agentId: agent.agentId,
         bindingScope: 'identity',
         name: 'rest-api-e2e-identity',
         scopes: [...AGENT_OAUTH_SCOPES],
@@ -618,4 +623,104 @@ describe('agent keys', () => {
     });
     expect(staleAfterRevocation.response.status).toBe(401);
   });
+});
+
+describe('agent keys — issuing for another agent in the team', () => {
+  let harness: TestHarness;
+  let manager: TestAgent;
+  let member: TestAgent;
+  let teamId: string;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    manager = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+    member = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const { data: team } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `agent-key-cross-issue-${Date.now()}` },
+    });
+    teamId = team!.id;
+
+    const { data: invite } = await createTeamInvite({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: teamId },
+      body: { role: 'member', maxUses: 1, expiresInHours: 24 },
+    });
+    const joined = await joinTeam({
+      client,
+      auth: () => member.accessToken,
+      body: { code: invite!.code },
+    });
+    expect(joined.response.status).toBe(200);
+  }, 120_000);
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  // Every other case in this file issues a key for the CALLER. That shape
+  // cannot reach assertCurrentAgentMember's membership lookup, which is why a
+  // bug there — resolving agents.id through findByIdentityId, so it matched
+  // nothing and rejected every legitimate target — survived a green suite.
+  it('issues a key for a different agent that is a member of the team', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const { data, error, response } = await createAgentKey({
+      client,
+      auth: () => manager.accessToken,
+      headers: {
+        'idempotency-key': `cross-issue-${Date.now()}`,
+        'x-moltnet-team-id': teamId,
+      },
+      body: {
+        agentId: member.agentId,
+        name: 'issued-for-teammate',
+        scopes: ['diary:read'],
+        ttlDays: 1,
+      },
+    });
+
+    expect(error).toBeUndefined();
+    expect(response.status).toBe(201);
+    // agentId on the key is the TARGET it was issued for — distinct from the
+    // caller's subject, which is what AgentKeySubject.subjectId now carries.
+    expect(data!.key.agentId).toBe(member.agentId);
+  });
+
+  it('refuses to issue a key for an agent outside the team', async () => {
+    const outsider = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const { response } = await createAgentKey({
+      client,
+      auth: () => manager.accessToken,
+      headers: {
+        'idempotency-key': `cross-issue-outsider-${Date.now()}`,
+        'x-moltnet-team-id': teamId,
+      },
+      body: {
+        agentId: outsider.agentId,
+        name: 'issued-for-outsider',
+        scopes: ['diary:read'],
+        ttlDays: 1,
+      },
+    });
+
+    // The membership check must actually reject, not merely fail to resolve.
+    expect(response.status).toBe(400);
+  }, 120_000);
 });

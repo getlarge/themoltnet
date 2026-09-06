@@ -101,6 +101,7 @@ describe('proof-based registration', () => {
     });
     expect(response.status).toBe(200);
     const result = (await response.json()) as {
+      agentId: string;
       identityId: string;
       fingerprint: string;
       publicKey: string;
@@ -143,6 +144,7 @@ describe('proof-based registration', () => {
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     const firstResult = (await first.json()) as {
+      agentId: string;
       identityId: string;
       fingerprint: string;
       publicKey: string;
@@ -154,6 +156,10 @@ describe('proof-based registration', () => {
     };
     const secondResult = (await second.json()) as typeof firstResult;
     expect(secondResult).toMatchObject({
+      // The durable id must be stable across a retry: a second agents row for
+      // the same key would fork the principal, and the Kratos identity alone
+      // cannot prove it did not happen.
+      agentId: firstResult.agentId,
       identityId: firstResult.identityId,
       fingerprint: firstResult.fingerprint,
       publicKey: firstResult.publicKey,
@@ -355,7 +361,7 @@ describe('proof-based registration', () => {
     expect(members.response.status).toBe(200);
     expect(
       members.data?.items.find(
-        (member) => member.subjectId === enrolled.data?.identityId,
+        (member) => member.subjectId === enrolled.data?.agentId,
       )?.role,
     ).toBe('executor');
   });
