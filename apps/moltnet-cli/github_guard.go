@@ -102,7 +102,16 @@ func runGitHubGuard(
 		return nil
 	}
 
-	reason := guardCtx.Failure
+	// An unresolvable activated session must not attribute a GitHub write to the
+	// human account — but it also must not deny everything else. Applying the
+	// failure to every command turned a missing gitconfig into a hard-deny loop
+	// for the whole session, which matters because Git is optional: an identity
+	// created by `moltnet register` has none, and an agent doing non-coding work
+	// never needs one. Gate the failure on commands that actually invoke gh.
+	reason := ""
+	if guardCtx.Failure != "" && commandInvokesGitHubCLI(input.ToolInput.Command) {
+		reason = guardCtx.Failure
+	}
 	if reason == "" {
 		reason = evaluateGitHubGuard(input.ToolInput.Command, guardCtx, permissions)
 	}
@@ -334,6 +343,46 @@ func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (ma
 		return nil, err
 	}
 	return details.Permissions, nil
+}
+
+// commandInvokesGitHubCLI reports whether the script calls `gh` anywhere,
+// including through a nested shell. Parse failures answer true: an
+// unparseable command in a session we cannot attribute is exactly when to be
+// conservative.
+func commandInvokesGitHubCLI(command string) bool {
+	file, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(command), "hook")
+	if err != nil {
+		return true
+	}
+	found := false
+	syntax.Walk(file, func(node syntax.Node) bool {
+		if found || node == nil {
+			return !found
+		}
+		call, ok := node.(*syntax.CallExpr)
+		if !ok {
+			return true
+		}
+		for _, word := range call.Args {
+			if word == nil || len(word.Parts) == 0 {
+				continue
+			}
+			lit, ok := word.Parts[0].(*syntax.Lit)
+			if !ok {
+				continue
+			}
+			base := lit.Value
+			if idx := strings.LastIndex(base, "/"); idx >= 0 {
+				base = base[idx+1:]
+			}
+			if base == "gh" {
+				found = true
+				return false
+			}
+		}
+		return true
+	})
+	return found
 }
 
 func evaluateGitHubGuard(command string, guardCtx githubGuardContext, permissions guardPermissionLoader) string {

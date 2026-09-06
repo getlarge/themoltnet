@@ -613,6 +613,30 @@ func TestGitHubGuardActivatedSessionWithoutGitConfigFailsClosed(t *testing.T) {
 	if !strings.Contains(out.String(), "\"permissionDecision\":\"deny\"") {
 		t.Fatalf("expected deny, got %q", out.String())
 	}
+
+	// ...but it must not deny everything else. Git is optional: an identity
+	// created by `moltnet register` has no gitconfig, and an agent doing
+	// non-coding work never needs one. Applying the failure to every command
+	// turned that into a hard-deny loop for the whole session.
+	for _, command := range []string{
+		"ls -la",
+		"pnpm test",
+		"git status",
+		"echo gherkin",
+	} {
+		var allowed strings.Builder
+		if err := runGitHubGuard(
+			strings.NewReader(`{"tool_input":{"command":"`+command+`"}}`),
+			&allowed,
+			func() (githubGuardContext, bool) { return guardCtx, true },
+			func(context.Context, string) (map[string]string, error) { return nil, nil },
+		); err != nil {
+			t.Fatalf("runGitHubGuard(%q): %v", command, err)
+		}
+		if allowed.Len() != 0 {
+			t.Errorf("non-gh command %q must be allowed, got %q", command, allowed.String())
+		}
+	}
 }
 
 func TestGitHubGuardCobraPath(t *testing.T) {
