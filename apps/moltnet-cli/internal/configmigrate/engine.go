@@ -43,6 +43,12 @@ type RunOutput struct {
 	Changed                bool     `json:"changed"`
 	Failure                *Failure `json:"failure,omitempty"`
 	ManualRecoveryRequired bool     `json:"manualRecoveryRequired"`
+	// NextMigration is the transition that becomes applicable once this run's
+	// change has landed. A plan carries at most one transition because a later
+	// migration's Applies predicate can only be evaluated against the rewritten
+	// document, so a chain is knowable exactly one step at a time — which is
+	// why the caller has to be told rather than shown the whole remainder.
+	NextMigration *PlannedMigration `json:"nextMigration,omitempty"`
 }
 
 type Context struct {

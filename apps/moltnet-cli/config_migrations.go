@@ -142,6 +142,9 @@ func runAndPrintConfigMigrationPlan(
 		Applied: applied,
 		Changed: len(applied) > 0,
 	}
+	if err == nil && len(applied) > 0 {
+		output.NextMigration = nextPendingMigration(plan.CredentialsPath, destination, migrations)
+	}
 	if err != nil {
 		output.Failure = configmigrate.FailureFromError(plan, err)
 		output.ManualRecoveryRequired = output.Failure.ManualRecoveryRequired
@@ -169,4 +172,51 @@ func applyConfigMigrationPlan(
 
 func writeConfigMigrationPlan(path string, plan configMigrationPlan) error {
 	return configmigrate.WritePlan(path, plan)
+}
+
+// nextPendingMigration re-plans against the document this run just rewrote, so
+// a caller learns immediately that the configuration is still behind instead of
+// discovering it on some later command. Detection is advisory: any failure here
+// must not turn a successful migration into a reported one.
+func nextPendingMigration(credentialsPath, destination string, migrations []configMigration) *configmigrate.PlannedMigration {
+	plan, err := buildConfigMigrationPlan(credentialsPath, destination, migrations)
+	if err != nil || len(plan.Migrations) == 0 {
+		return nil
+	}
+	next := plan.Migrations[0]
+	return &next
+}
+
+// pendingConfigMigrationNotice returns the advisory line to show before a
+// command runs, or "" when nothing is pending.
+//
+// Deliberately detect-only. A migration relocates secrets into a provider and
+// the plan format exists to be inspected before it is applied, so applying one
+// as a side effect of an unrelated command would move credentials without
+// consent — on macOS that can raise a keychain prompt mid-command. Telling the
+// user is the useful half; deciding stays theirs.
+//
+// Every failure path is silent: most invocations have no credentials at all,
+// and a configuration check must never become the reason a command complains.
+func pendingConfigMigrationNotice(explicitCredentialsPath string) string {
+	credentialsPath, err := resolveCredentialsPath(explicitCredentialsPath)
+	if err != nil {
+		return ""
+	}
+	destination := defaultMigrationDestination
+	// Applies() reads only the credentials document, never the engine
+	// parameters, so detection does not depend on where secrets would land.
+	next := nextPendingMigration(credentialsPath, destination, defaultConfigMigrations(destination))
+	if next == nil {
+		return ""
+	}
+	// Both commands, not just the plan: a pending migration usually means
+	// credentials are still sitting in a weaker place than they should be, so
+	// the notice has to make acting on it as easy as reading about it.
+	return fmt.Sprintf(
+		"warning: a MoltNet configuration migration is pending (%s).\n  inspect: moltnet config migrate --credentials %s --dry-run\n  apply:   moltnet config migrate --credentials %s\n",
+		next.ID,
+		credentialsPath,
+		credentialsPath,
+	)
 }
