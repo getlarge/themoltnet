@@ -18,6 +18,29 @@ export function namespace(actor: AuthContext): KetoNamespace {
     : KetoNamespace.Agent;
 }
 
+/**
+ * The actor's Keto subject: `agents.id` or `humans.id`, per `subjectType`.
+ *
+ * The counterpart to {@link namespace} — every permission check takes the two
+ * together, and they must be derived from the same discriminant. Never the
+ * Kratos identity: identities are recreatable, so a subject that moves with
+ * one silently detaches the principal from every permission it holds.
+ */
+export function subjectId(actor: AuthContext): string {
+  return actor.subjectType === 'human' ? actor.humanId : actor.agentId;
+}
+
+/**
+ * The actor as a principal record for creator/owner/actor columns, whose
+ * foreign keys target `agents.id` / `humans.id`.
+ */
+export function actorPrincipal(actor: AuthContext): {
+  readonly kind: 'agent' | 'human';
+  readonly id: string;
+} {
+  return { kind: actor.subjectType, id: subjectId(actor) } as const;
+}
+
 export function requireHuman(
   actor: AuthContext,
   message = 'A human session is required',

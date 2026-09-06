@@ -22,6 +22,7 @@ import {
   mapWorkflowError,
   namespace,
   requireHuman,
+  subjectId,
 } from './signing-service.shared.js';
 import type { SigningServiceDeps } from './signing-service.types.js';
 import { SigningServiceError } from './signing-service-error.js';
@@ -44,10 +45,7 @@ function signingPayload(row: SigningRequest): string {
 }
 
 function requester(actor: AuthContext) {
-  return {
-    id: actor.subjectType === 'human' ? actor.humanId : actor.identityId,
-    type: actor.subjectType,
-  } as const;
+  return { id: subjectId(actor), type: actor.subjectType } as const;
 }
 
 async function startAgentSigningWorkflow(input: {
@@ -76,8 +74,8 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
   ): Promise<EligibilityContext | null> {
     if (actor.subjectType !== 'human') return null;
     const [roles, groupIds] = await Promise.all([
-      deps.relationshipReader.listTeamIdsAndRolesBySubject(actor.identityId),
-      deps.relationshipReader.listGroupIdsBySubject(actor.identityId),
+      deps.relationshipReader.listTeamIdsAndRolesBySubject(subjectId(actor)),
+      deps.relationshipReader.listGroupIdsBySubject(subjectId(actor)),
     ]);
     const groups = await deps.groupRepository.findByIds(groupIds);
     return {
@@ -143,7 +141,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         if (
           !(await deps.permissionChecker.canAccessTeam(
             input.teamId,
-            input.actor.identityId,
+            subjectId(input.actor),
             namespace(input.actor),
           ))
         ) {
