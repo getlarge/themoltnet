@@ -39,6 +39,8 @@ func clearMoltnetEnv(t *testing.T) {
 		"MOLTNET_GIT_NAME",
 		"MOLTNET_GIT_EMAIL",
 		agentKeyRefEnv,
+		"MOLTNET_PRIVATE_KEY_REF",
+		"MOLTNET_SECRET_ROOT",
 	} {
 		t.Setenv(key, "")
 	}
@@ -906,5 +908,100 @@ func TestConfigInitFromEnvStillRequiresOAuthWithoutAgentKeyRef(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), agentKeyRefEnv) {
 		t.Errorf("error should offer %s as the alternative, got: %v", agentKeyRefEnv, err)
+	}
+}
+
+func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
+	// Arrange: a reference-only deployment — neither secret is a literal.
+	tmpDir := t.TempDir()
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
+
+	// The seed must actually resolve: SSH key export reads it back through the
+	// provider (ssh.go -> resolveIdentitySeed), which is precisely the step
+	// that a literal-only implementation would have skipped.
+	secretRoot := t.TempDir()
+	seedDir := filepath.Join(secretRoot, "identity", "FP1")
+	if err := os.MkdirAll(seedDir, 0o700); err != nil {
+		t.Fatalf("seed dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(seedDir, "seed"), []byte(testPrivateKey), 0o600); err != nil {
+		t.Fatalf("seed file: %v", err)
+	}
+	t.Setenv("MOLTNET_SECRET_ROOT", secretRoot)
+	t.Setenv("MOLTNET_PRIVATE_KEY_REF", "file:"+IdentitySeedKey("FP1"))
+
+	// Act
+	root := NewRootCmd("test", "")
+	if _, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "ref-agent", "--dir", tmpDir, "--skip-git"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Assert
+	var config CredentialsFile
+	data, err := os.ReadFile(filepath.Join(tmpDir, ".moltnet", "ref-agent", "moltnet.json"))
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("parse config: %v", err)
+	}
+	if config.Keys.PrivateKey != "" {
+		t.Error("the seed value must not be written when a reference is supplied")
+	}
+	if config.Keys.PrivateKeyRef == nil ||
+		config.Keys.PrivateKeyRef.Provider != fileProviderName ||
+		config.Keys.PrivateKeyRef.Key != IdentitySeedKey("FP1") {
+		t.Errorf("expected private_key_ref, got %#v", config.Keys.PrivateKeyRef)
+	}
+}
+
+func TestConfigInitFromEnvRejectsSeedValueAndReferenceTogether(t *testing.T) {
+	// Arrange
+	tmpDir := t.TempDir()
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
+	t.Setenv("MOLTNET_PRIVATE_KEY_REF", "os-keyring:"+IdentitySeedKey("FP1"))
+
+	// Act
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "ref-agent", "--dir", tmpDir, "--skip-git")
+
+	// Assert: a value and its reference is a misconfiguration everywhere else
+	// in the toolchain; it must not be a precedence question here either.
+	if err == nil || !strings.Contains(err.Error(), "only one of MOLTNET_PRIVATE_KEY") {
+		t.Fatalf("expected exactly-one error, got: %v", err)
+	}
+}
+
+func TestConfigInitFromEnvRejectsPartialOAuthPairWithAgentKeyRef(t *testing.T) {
+	// Arrange: with a key ref the OAuth pair is optional, but half of it would
+	// write a client_id pointing at an unset secret.
+	tmpDir := t.TempDir()
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
+	t.Setenv("MOLTNET_CLIENT_ID", "client-1")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
+
+	// Act
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--agent", "ref-agent", "--dir", tmpDir, "--skip-git")
+
+	// Assert
+	if err == nil || !strings.Contains(err.Error(), "MOLTNET_CLIENT_SECRET") {
+		t.Fatalf("expected the missing half to be named, got: %v", err)
 	}
 }

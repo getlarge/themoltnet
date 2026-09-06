@@ -51,6 +51,11 @@ export interface DaemonAgentContext {
  * `moltnet.json`. This mirrors the SDK precedence, where an environment key
  * wins over the config file.
  *
+ * It reports the *source*, not what `connect()` would pick on its own: the
+ * config path resolves the key and passes it explicitly, because ambient
+ * resolution ranks environment OAuth2 credentials above a configured
+ * `agent_key_ref` (see `resolveAgentContext`).
+ *
  * Pure: `env` is passed in (the config module owns the `process.env` read).
  */
 export function detectCredentialSource(

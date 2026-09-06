@@ -157,8 +157,16 @@ func runConfigInitFromEnvCmdWithRegistry(
 	if publicKey == "" {
 		missing = append(missing, "MOLTNET_PUBLIC_KEY")
 	}
-	if privateKey == "" {
+	// The seed may be a literal or a reference; SSH export resolves either
+	// (ssh.go -> resolveIdentitySeed), so requiring the literal would reject a
+	// reference-only deployment that the rest of the toolchain supports.
+	privateKeyRef := getenv("MOLTNET_PRIVATE_KEY_REF", fileVars, override)
+	havePrivateKeyRef := strings.TrimSpace(privateKeyRef) != ""
+	if privateKey == "" && !havePrivateKeyRef {
 		missing = append(missing, "MOLTNET_PRIVATE_KEY")
+	}
+	if privateKey != "" && havePrivateKeyRef {
+		return fmt.Errorf("set only one of MOLTNET_PRIVATE_KEY or MOLTNET_PRIVATE_KEY_REF")
 	}
 	if fingerprint == "" {
 		missing = append(missing, "MOLTNET_FINGERPRINT")
@@ -173,6 +181,22 @@ func runConfigInitFromEnvCmdWithRegistry(
 
 	// Parse and bind-check the reference before anything is written, so a
 	// malformed or foreign reference fails without leaving a partial agent dir.
+	var privateKeyReference *SecretReference
+	if havePrivateKeyRef {
+		parsed, err := parseSecretReferenceString(privateKeyRef)
+		if err != nil {
+			return fmt.Errorf("MOLTNET_PRIVATE_KEY_REF: %w", err)
+		}
+		if err := validateSecretReferenceBinding(
+			credentialIdentitySeed,
+			parsed,
+			credentialBindingIDs{Fingerprint: fingerprint},
+		); err != nil {
+			return fmt.Errorf("MOLTNET_PRIVATE_KEY_REF: %w", err)
+		}
+		privateKeyReference = &parsed
+	}
+
 	var agentKeyReference *SecretReference
 	if haveAgentKeyRef {
 		parsed, err := parseSecretReferenceString(agentKeyRef)
@@ -247,9 +271,10 @@ func runConfigInitFromEnvCmdWithRegistry(
 		AgentKeyRef: agentKeyReference,
 		OAuth2:      oauth2Section,
 		Keys: CredentialsKeys{
-			PublicKey:   publicKey,
-			PrivateKey:  privateKey,
-			Fingerprint: fingerprint,
+			PublicKey:     publicKey,
+			PrivateKey:    privateKey,
+			PrivateKeyRef: privateKeyReference,
+			Fingerprint:   fingerprint,
 		},
 		Endpoints: CredentialsEndpoints{
 			API: apiURL,
