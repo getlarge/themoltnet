@@ -388,12 +388,16 @@ async function resolveTeamContext(
     // be recreated, and a subject that moves with it silently detaches the
     // principal from every permission it holds.
     //
-    // Both namespaces need their Keto tuples rewritten. agents.id is a fresh
-    // UUID (seeding was considered and rejected), so the 758 Agent: tuples are
-    // rewritten by infra/ory/migrate-keto-agent-subjects.mjs; the 23 Human:
-    // tuples move from identity_id to humans.id separately. Until each rewrite
-    // runs, that principal authenticates but resolves no permissions — which is
-    // why the migration and the rewrites share one maintenance window.
+    // Both namespaces need their Keto tuples rewritten, and
+    // infra/ory/migrate-keto-subjects.mjs does both in one pass: agents.id is
+    // a fresh UUID (seeding was considered and rejected), so the Agent: tuples
+    // move off the identity, and the Human: tuples move from identity_id to
+    // humans.id. Neither half is optional — this line reads humans.id for a
+    // human caller, so shipping it without the Human rewrite leaves existing
+    // humans authenticated and 403 on every team-scoped check. Until both
+    // rewrites run, the principal authenticates but resolves no permissions,
+    // which is why the migration and the rewrites share one maintenance
+    // window.
     const subjectId =
       authContext.subjectType === 'human'
         ? authContext.humanId
