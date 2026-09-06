@@ -5,9 +5,12 @@ import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import {
   type Agent,
   assertIdentityAlias,
+  assertTrustedConfigApiUrl,
   AuthenticationError,
   getIdentityDir,
   readConfig,
+  requireSecureCredentialApiUrl,
+  resolveAgentKey,
   type Whoami,
 } from '@themoltnet/sdk';
 import {
@@ -170,6 +173,11 @@ export async function resolveAgentContext(
      */
     agentRootDir?: string;
     credentialSource?: DaemonCredentialSource;
+    /**
+     * `MOLTNET_API_URL` as the config module already read it. Supplied rather
+     * than read here so this stays the daemon's single `process.env` owner.
+     */
+    envApiUrl?: string;
   } = {},
 ): Promise<DaemonAgentContext> {
   // One grammar, shared with the Go CLI and the daemon store. The previous
@@ -207,9 +215,25 @@ export async function resolveAgentContext(
   if (!config?.agent_key_ref) {
     throw new Error(agentKeyRequiredMessage(agentDir, agentName));
   }
+  const secretProviders = createNodeSecretProviderRegistry();
+  // Resolve the key here and hand it to connect() explicitly rather than
+  // letting ambient resolution pick. Ambient order puts environment OAuth2
+  // client credentials *ahead* of a configured agent_key_ref
+  // (connect-ambient.ts step 4 vs step 5), and `moltnet start` injects
+  // MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET into the daemon's environment
+  // (start.go). Checking that agent_key_ref exists and then calling ambient
+  // connect() would therefore still authenticate with the over-scoped OAuth2
+  // token on the launcher path — the exact outcome #2160 exists to prevent.
+  // An explicit agentKey is step 1 and beats every environment variable.
+  const agentKey = await resolveAgentKey(config, secretProviders);
+  if (!agentKey) {
+    throw new Error(agentKeyRequiredMessage(agentDir, agentName));
+  }
   const agent = await connect({
     configDir: agentDir,
-    secretProviders: createNodeSecretProviderRegistry(),
+    secretProviders,
+    agentKey,
+    apiUrl: resolveConfigApiUrl(config, options.envApiUrl),
   });
   return {
     agentDir,
@@ -271,6 +295,24 @@ function resolveIdentityLocation(
   }
   const central = getIdentityDir(agentName);
   return { agentDir: central, agentRootDir: central };
+}
+
+/**
+ * Pick the API URL for an explicitly-keyed connect, preserving the checks
+ * ambient config resolution would have applied. An explicit `apiUrl` skips
+ * ambient's own normalisation, so a URL taken from `moltnet.json` still has to
+ * clear the config-trust and transport checks before it is used.
+ */
+function resolveConfigApiUrl(
+  config: { endpoints?: { api?: string } },
+  envApiUrl?: string,
+): string | undefined {
+  if (envApiUrl?.trim()) return undefined; // connect() reads it from the env
+  const fromConfig = config.endpoints?.api?.trim();
+  if (!fromConfig) return undefined;
+  assertTrustedConfigApiUrl(fromConfig);
+  requireSecureCredentialApiUrl(fromConfig);
+  return fromConfig;
 }
 
 function isTransientWhoamiError(error: unknown): boolean {

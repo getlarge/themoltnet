@@ -23,11 +23,18 @@ export interface DaemonConfig {
   /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
   piCodingAgentDir: string;
   /**
-   * Which credential `connect()` will use: `agent-key` when `MOLTNET_AGENT_KEY`
-   * is set, otherwise the default `oauth2` client-credentials flow. The secret
-   * itself is never surfaced here.
+   * Where the agent key comes from: `environment` when `MOLTNET_AGENT_KEY`
+   * (or `_REF`) is set, otherwise `config` — an `agent_key_ref` in
+   * `moltnet.json`. The daemon accepts no other credential. The secret itself
+   * is never surfaced here.
    */
   credentialSource: DaemonCredentialSource;
+  /**
+   * `MOLTNET_API_URL`, forwarded to credential resolution so `agent-context`
+   * never reads `process.env` itself — this module is the daemon's single
+   * environment entry point.
+   */
+  apiUrl: string;
   /** Base64 Ed25519 seed used for executor attestation when configless. */
   signingPrivateKey: string;
   /**
@@ -65,6 +72,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
     credentialSource: detectCredentialSource(process.env),
+    apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
     signingPrivateKeyRef: process.env['MOLTNET_PRIVATE_KEY_REF'] ?? '',
     gitAuthor: process.env['MOLTNET_GIT_AUTHOR'] ?? '',

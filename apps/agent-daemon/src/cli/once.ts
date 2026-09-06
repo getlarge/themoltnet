@@ -157,6 +157,7 @@ export async function runOnce(
         const resolvedContext = await resolveAgentContext(initialOpts.agent, {
           agentRootDir: explicitAgentRootDir,
           credentialSource: cfg.credentialSource,
+          envApiUrl: cfg.apiUrl,
         });
         // Authenticate and validate team binding before resolving signing
         // material, consistently with poll/drain.

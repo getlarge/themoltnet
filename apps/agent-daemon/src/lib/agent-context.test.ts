@@ -10,6 +10,9 @@ const {
   execFileSyncMock,
   getIdentityDirMock,
   readConfigMock,
+  resolveAgentKeyMock,
+  assertTrustedConfigApiUrlMock,
+  requireSecureCredentialApiUrlMock,
   AuthenticationErrorMock,
 } = vi.hoisted(() => {
   class AuthenticationErrorMock extends Error {
@@ -25,6 +28,9 @@ const {
       join('/central/identities', name),
     ),
     readConfigMock: vi.fn(),
+    resolveAgentKeyMock: vi.fn(),
+    assertTrustedConfigApiUrlMock: vi.fn(),
+    requireSecureCredentialApiUrlMock: vi.fn(),
     AuthenticationErrorMock,
   };
 });
@@ -32,6 +38,9 @@ const {
 vi.mock('@themoltnet/sdk', () => ({
   readConfig: readConfigMock,
   getIdentityDir: getIdentityDirMock,
+  resolveAgentKey: resolveAgentKeyMock,
+  assertTrustedConfigApiUrl: assertTrustedConfigApiUrlMock,
+  requireSecureCredentialApiUrl: requireSecureCredentialApiUrlMock,
   AuthenticationError: AuthenticationErrorMock,
   // Not mocked away: the alias grammar is shared with the Go CLI and the
   // daemon store, and mocking it would hide a divergence between them.
@@ -66,6 +75,10 @@ describe('resolveAgentContext', () => {
     connectMock.mockReset();
     readConfigMock.mockReset();
     readConfigMock.mockResolvedValue(null);
+    resolveAgentKeyMock.mockReset();
+    resolveAgentKeyMock.mockResolvedValue('ak_live_resolved');
+    assertTrustedConfigApiUrlMock.mockReset();
+    requireSecureCredentialApiUrlMock.mockReset();
     connectMock.mockResolvedValue({ agent: 'connected' });
     getIdentityDirMock.mockClear();
     execFileSyncMock.mockReset();
@@ -488,7 +501,145 @@ function writeCredentials(root: string, agentName: string): void {
   writeFileSync(join(agentDir, 'env'), '', 'utf8');
 }
 
+describe('config API URL trust', () => {
+  // Passing an explicit agentKey skips ambient's own URL normalisation, so the
+  // two checks the config path used to run have to be reapplied. Mocking them
+  // without asserting them would let a future edit drop both silently.
+  const configWithKey = {
+    agent_key_ref: { provider: 'file', key: 'agent-key.id-1' },
+    endpoints: { api: 'https://api.themolt.net' },
+  };
+
+  it('vets a URL taken from moltnet.json before trusting it', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-url-config-'));
+    try {
+      writeCredentials(root, 'legreffier');
+      readConfigMock.mockResolvedValue(configWithKey);
+      resolveAgentKeyMock.mockResolvedValue('ak_live');
+      assertTrustedConfigApiUrlMock.mockClear();
+      requireSecureCredentialApiUrlMock.mockClear();
+
+      await resolveAgentContext('legreffier', { agentRootDir: root });
+
+      expect(assertTrustedConfigApiUrlMock).toHaveBeenCalledWith(
+        'https://api.themolt.net',
+      );
+      expect(requireSecureCredentialApiUrlMock).toHaveBeenCalledWith(
+        'https://api.themolt.net',
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('propagates a rejection instead of connecting to an untrusted URL', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-url-untrusted-'));
+    try {
+      writeCredentials(root, 'legreffier');
+      readConfigMock.mockResolvedValue({
+        ...configWithKey,
+        endpoints: { api: 'https://evil.example.test' },
+      });
+      resolveAgentKeyMock.mockResolvedValue('ak_live');
+      assertTrustedConfigApiUrlMock.mockImplementation(() => {
+        throw new Error('untrusted API URL');
+      });
+      connectMock.mockClear();
+
+      await expect(
+        resolveAgentContext('legreffier', { agentRootDir: root }),
+      ).rejects.toThrow(/untrusted API URL/u);
+      expect(connectMock).not.toHaveBeenCalled();
+    } finally {
+      assertTrustedConfigApiUrlMock.mockReset();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('defers to the environment URL without vetting the config one', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-url-env-'));
+    try {
+      writeCredentials(root, 'legreffier');
+      readConfigMock.mockResolvedValue(configWithKey);
+      resolveAgentKeyMock.mockResolvedValue('ak_live');
+      assertTrustedConfigApiUrlMock.mockClear();
+      connectMock.mockClear();
+
+      await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        envApiUrl: 'https://api.staging.example',
+      });
+
+      // connect() reads MOLTNET_API_URL itself; the config URL is unused, so
+      // vetting it would reject a run that never depends on it.
+      expect(assertTrustedConfigApiUrlMock).not.toHaveBeenCalled();
+      expect(
+        (connectMock.mock.calls[0][0] as { apiUrl?: string }).apiUrl,
+      ).toBeUndefined();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('agent-key requirement', () => {
+  it('uses the configured agent key even when OAuth2 env credentials are set', async () => {
+    // `moltnet start` injects MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET
+    // (start.go). Ambient resolution ranks environment OAuth2 *above* a
+    // configured agent_key_ref, so merely checking that the ref exists and then
+    // calling ambient connect() would still authenticate with the over-scoped
+    // OAuth2 token. Resolving the key and passing it explicitly is what makes
+    // the key win, and this test is the thing that proves it.
+    const root = mkdtempSync(join(tmpdir(), 'daemon-oauth-env-root-'));
+    vi.stubEnv('MOLTNET_CLIENT_ID', 'oauth-client-id');
+    vi.stubEnv('MOLTNET_CLIENT_SECRET', 'oauth-client-secret');
+    try {
+      writeCredentials(root, 'legreffier');
+      readConfigMock.mockResolvedValue({
+        agent_key_ref: { provider: 'file', key: 'agent-key.id-1' },
+        oauth2: { client_id: 'oauth-client-id' },
+      });
+      resolveAgentKeyMock.mockResolvedValue('ak_live_from_config');
+      connectMock.mockClear();
+
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+      });
+
+      expect(ctx.credentialSource).toBe('config');
+      const passed = connectMock.mock.calls[0][0] as {
+        agentKey?: string;
+        clientId?: string;
+        clientSecret?: string;
+      };
+      expect(passed.agentKey).toBe('ak_live_from_config');
+      expect(passed.clientId).toBeUndefined();
+      expect(passed.clientSecret).toBeUndefined();
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses when agent_key_ref is present but resolves to nothing', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-empty-key-root-'));
+    try {
+      writeCredentials(root, 'legreffier');
+      readConfigMock.mockResolvedValue({
+        agent_key_ref: { provider: 'file', key: 'agent-key.id-1' },
+      });
+      resolveAgentKeyMock.mockResolvedValue(null);
+      connectMock.mockClear();
+
+      await expect(
+        resolveAgentContext('legreffier', { agentRootDir: root }),
+      ).rejects.toThrow(/agent_key_ref/u);
+      expect(connectMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('refuses an OAuth2-only config and points at the CLI that mints a key', async () => {
     // Arrange: the pre-#2160 shape — a moltnet.json with client credentials
     // and no agent_key_ref. connect() would authenticate it happily, which is
@@ -546,6 +697,8 @@ describe('agent-key requirement', () => {
       readConfigMock.mockResolvedValue({
         agent_key_ref: { provider: 'file', key: 'agent-key.id-1' },
       });
+      // This describe has no beforeEach, so state a resolvable key explicitly.
+      resolveAgentKeyMock.mockResolvedValue('ak_live_resolved');
 
       const keyed = await resolveAgentContext('legreffier', {
         agentRootDir: root,

@@ -245,6 +245,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       const resolvedContext = await resolveAgentContext(baseCommon.agent, {
         agentRootDir: explicitAgentRootDir,
         credentialSource: cfg.credentialSource,
+        envApiUrl: cfg.apiUrl,
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
       gate = 'authenticate_and_bind';
