@@ -146,6 +146,29 @@ function isMoltnetAgentKey(key) {
   );
 }
 
+/**
+ * A key whose actor is a MoltNet principal but whose metadata is not an agent
+ * binding.
+ *
+ * `subject_type: 'agent'` has been written by every MoltNet issuance since the
+ * first one (schema v1, `1609500b8`), so this should be empty. It is reported
+ * rather than assumed away because the scope filter above is the only thing
+ * standing between this script and someone else's keys.
+ *
+ * Such a key is NOT revoked, and that is not a fail-open: token validation
+ * runs the same `readAgentKeyMetadataBinding` check and returns null when it
+ * does not parse (token-validator.ts), so the key cannot authenticate as an
+ * agent to begin with. Revoking a key we cannot prove is ours would be the
+ * larger risk.
+ */
+function isUnlabelledMoltnetActor(key, agentIds, byIdentityId) {
+  const actorId = key.actor_id;
+  return (
+    typeof actorId === 'string' &&
+    (agentIds.has(actorId) || byIdentityId.has(actorId))
+  );
+}
+
 /** Only an active key can be revoked; revoked and expired ones are already inert. */
 function isActive(key) {
   return key.status === 'KEY_STATUS_ACTIVE';
@@ -230,6 +253,7 @@ const { agentIds, byIdentityId } = loadPrincipals();
 // Stream the corpus, retaining ONLY the keys that need revoking.
 const legacy = [];
 const orphans = [];
+const unlabelled = [];
 let scanned = 0;
 let moltnetKeys = 0;
 let current = 0;
@@ -238,7 +262,15 @@ let inactive = 0;
 for await (const page of pageKeys()) {
   scanned += page.length;
   for (const key of page) {
-    if (!isMoltnetAgentKey(key)) continue;
+    if (!isMoltnetAgentKey(key)) {
+      if (
+        isActive(key) &&
+        isUnlabelledMoltnetActor(key, agentIds, byIdentityId)
+      ) {
+        unlabelled.push(key);
+      }
+      continue;
+    }
     moltnetKeys += 1;
     if (!isActive(key)) {
       inactive += 1;
@@ -265,6 +297,23 @@ console.log(`  current (agents.id)    : ${current}`);
 console.log(`  legacy (identity_id)   : ${legacy.length}`);
 console.log(`  orphaned (no agent row): ${orphans.length}`);
 console.log(`to revoke                : ${work.length}`);
+
+// Expected to be zero. If it is not, the scope filter is narrower than the
+// real corpus and the assumption behind this script needs re-checking before
+// the window proceeds.
+if (unlabelled.length > 0) {
+  console.warn(
+    `\nWARNING: ${unlabelled.length} active key(s) name a MoltNet principal as ` +
+      'actor but carry no agent binding metadata. They are NOT revoked, and ' +
+      'they cannot authenticate as an agent either (token validation applies ' +
+      'the same metadata check). Investigate before proceeding:',
+  );
+  for (const key of unlabelled.slice(0, 10)) {
+    console.warn(
+      `  ${key.key_id} (${key.name}) actor=${key.actor_id} metadata=${JSON.stringify(key.metadata)}`,
+    );
+  }
+}
 
 if (!APPLY) {
   for (const item of work.slice(0, 5)) {
