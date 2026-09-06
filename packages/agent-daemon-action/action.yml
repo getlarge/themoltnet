@@ -262,6 +262,8 @@ runs:
         # inheritance handles the rest. When inputs.agent-name is unset,
         # the script falls through to the inherited MOLTNET_AGENT_NAME.
         AGENT_NAME_OVERRIDE: ${{ inputs.agent-name }}
+        # GitHub-controlled path, not caller input.
+        ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
         if [ -n "${AGENT_NAME_OVERRIDE:-}" ]; then
@@ -331,7 +333,22 @@ runs:
         # implicitly. A CLI predating the central identity store also writes the
         # legacy layout, leaving AGENT_DIR empty, so the document is verified
         # immediately rather than failing several steps later.
-        npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-1.91.0}" config init-from-env \
+        # Derived, never duplicated. The action is composite, so its own
+        # checkout sits at $ACTION_PATH and packages/cli/package.json in that
+        # same commit is the CLI this ref was built against. A hardcoded pin
+        # would need bumping on every CLI release and would rot when nobody
+        # did; release-please cannot bump one for us either, because
+        # extra-files paths are package-relative and ".." traversal is
+        # rejected outright (googleapis/release-please#2477).
+        MOLTNET_CLI_PIN="$(
+          sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+            "$ACTION_PATH/../../packages/cli/package.json" | head -n1
+        )"
+        if [ -z "$MOLTNET_CLI_PIN" ]; then
+          echo "::error::could not derive the CLI version from $ACTION_PATH/../../packages/cli/package.json" >&2
+          exit 1
+        fi
+        npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-$MOLTNET_CLI_PIN}" config init-from-env \
           --name "$MOLTNET_AGENT_NAME"
         if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
           echo "::error::config init-from-env did not create $AGENT_DIR/moltnet.json; the resolved @themoltnet/cli predates the central identity store — pin one with MOLTNET_CLI_VERSION" >&2

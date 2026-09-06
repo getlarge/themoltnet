@@ -26,10 +26,6 @@ const (
 	identitySelectorFile   = "identity-selector.json"
 
 	activeIdentityEnv = "MOLTNET_ACTIVE_IDENTITY"
-	// legacyActiveIdentityEnv is still honoured (and still written by
-	// `config export-env`) so an env bundle exported before the central-store
-	// cutover keeps resolving after upgrade.
-	legacyActiveIdentityEnv = "MOLTNET_AGENT_NAME"
 )
 
 func identityStoreDir() (string, error) { return GetConfigDir() }
@@ -127,13 +123,6 @@ func resolveIdentityAlias(explicit string) (string, error) {
 		}
 	}
 	if alias == "" {
-		// Last resort, deliberately below the selector: this variable predates
-		// the central store and is often still exported ambiently (CI images,
-		// shell profiles). Ranking it above an explicitly selected identity
-		// would let a stale value silently redirect credential resolution.
-		alias = strings.TrimSpace(os.Getenv(legacyActiveIdentityEnv))
-	}
-	if alias == "" {
 		return "", noActiveIdentityError()
 	}
 	if err := validateAgentName(alias); err != nil {
@@ -155,8 +144,6 @@ func noActiveIdentityError() error {
 	b.WriteString("no credentials found: no active identity selected.\n")
 	b.WriteString("Consulted: --credentials flag, $")
 	b.WriteString(activeIdentityEnv)
-	b.WriteString(", $")
-	b.WriteString(legacyActiveIdentityEnv)
 	b.WriteString(", and ")
 	b.WriteString(selectorPath)
 	b.WriteString("\n")

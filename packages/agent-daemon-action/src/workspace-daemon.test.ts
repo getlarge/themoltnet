@@ -173,9 +173,14 @@ describe('workspace daemon action contract', () => {
     expect(run).not.toMatch(
       /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/,
     );
-    expect(run).toMatch(
-      /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-\d+\.\d+\.\d+\}/,
-    );
+
+    // The version is derived from the action's own checkout rather than
+    // duplicated, so there is no pin to drift and nothing to remember to bump.
+    expect(run).toContain('ACTION_PATH');
+    expect(run).toContain('packages/cli/package.json');
+    expect(run).not.toMatch(/MOLTNET_CLI_PIN="\d+\.\d+\.\d+"/);
+    // A failed derivation must stop the step, not silently install nothing.
+    expect(run).toMatch(/if \[ -z "\$MOLTNET_CLI_PIN" \]/);
   });
 
   it('keeps multi-lens workers on the minimal configless secret set', () => {

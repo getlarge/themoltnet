@@ -85,21 +85,16 @@ func runConfigInitFromEnvCmdWithRegistry(
 		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
 	}
 
-	// Resolve identity alias: --name > MOLTNET_ACTIVE_IDENTITY > the legacy
-	// MOLTNET_AGENT_NAME. The legacy variable is still what `config export-env`
-	// writes for a pre-cutover bundle and what existing CI exports, so refusing
-	// it turned every such upgrade into "--name is required".
+	// Resolve identity alias: --name > MOLTNET_ACTIVE_IDENTITY. The pre-cutover
+	// MOLTNET_AGENT_NAME is deliberately not read here: the deployment
+	// boundaries that can still supply it (the GitHub Action, the session hook)
+	// normalise it to MOLTNET_ACTIVE_IDENTITY before invoking the CLI, so the
+	// core resolves exactly one variable.
 	if agentName == "" {
 		agentName = getenv(activeIdentityEnv, fileVars, override)
 	}
 	if agentName == "" {
-		agentName = getenv(legacyActiveIdentityEnv, fileVars, override)
-	}
-	if agentName == "" {
-		return fmt.Errorf(
-			"--name is required (or set %s; %s is also accepted)",
-			activeIdentityEnv, legacyActiveIdentityEnv,
-		)
+		return fmt.Errorf("--name is required (or set %s)", activeIdentityEnv)
 	}
 
 	// The environment reconstructs a central identity, never a repository tree.
