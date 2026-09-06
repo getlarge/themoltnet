@@ -597,8 +597,11 @@ func TestPendingConfigMigrationNoticeIsAdvisoryOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	notice := pendingConfigMigrationNotice(credentialsPath)
+	// Naming the migration is not enough: the notice must also carry the
+	// command that resolves it, or acting on it means going to look it up.
 	if !strings.Contains(notice, "2026-08-oauth2-secret-reference") ||
-		!strings.Contains(notice, "--dry-run") {
+		!strings.Contains(notice, "--dry-run") ||
+		!strings.Contains(notice, "apply:") {
 		t.Fatalf("notice = %q", notice)
 	}
 	after, err := os.ReadFile(credentialsPath)

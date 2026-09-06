@@ -210,9 +210,13 @@ func pendingConfigMigrationNotice(explicitCredentialsPath string) string {
 	if next == nil {
 		return ""
 	}
+	// Both commands, not just the plan: a pending migration usually means
+	// credentials are still sitting in a weaker place than they should be, so
+	// the notice has to make acting on it as easy as reading about it.
 	return fmt.Sprintf(
-		"A MoltNet configuration migration is pending (%s). Inspect it with:\n  moltnet config migrate --credentials %s --dry-run\n",
+		"warning: a MoltNet configuration migration is pending (%s).\n  inspect: moltnet config migrate --credentials %s --dry-run\n  apply:   moltnet config migrate --credentials %s\n",
 		next.ID,
+		credentialsPath,
 		credentialsPath,
 	)
 }
