@@ -761,3 +761,45 @@ func TestNormalizePEMEnvValue(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteAgentEnvFileKeepsCentralAppKeyPathAbsolute(t *testing.T) {
+	t.Parallel()
+
+	// Arrange: `config init-from-env` resolves its target through identityDir
+	// and writes the GitHub App key inside it, so the env file has to point at
+	// that absolute path. It previously ran through a repo-portability rewrite
+	// that emitted `.moltnet/<alias>/…`, which exists nowhere in the central
+	// layout — the env file named a file that was not there.
+	identityDir := filepath.Join(t.TempDir(), ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(identityDir, 0o700); err != nil {
+		t.Fatalf("create identity dir: %v", err)
+	}
+	pemPath := filepath.Join(identityDir, "github-app.pem")
+	config := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "client-id"},
+		GitHub: &GitHubSection{
+			AppID:          "123",
+			InstallationID: "456",
+			PrivateKeyPath: pemPath,
+		},
+	}
+
+	// Act.
+	if err := writeAgentEnvFile(identityDir, "test-agent", config); err != nil {
+		t.Fatalf("writeAgentEnvFile: %v", err)
+	}
+
+	// Assert.
+	data, err := os.ReadFile(filepath.Join(identityDir, "env"))
+	if err != nil {
+		t.Fatalf("read env file: %v", err)
+	}
+	content := string(data)
+	want := "TEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='" + pemPath + "'"
+	if !strings.Contains(content, want) {
+		t.Fatalf("expected %s, got:\n%s", want, content)
+	}
+	if strings.Contains(content, ".moltnet/test-agent") {
+		t.Fatalf("env file carries a repo-relative rewrite:\n%s", content)
+	}
+}

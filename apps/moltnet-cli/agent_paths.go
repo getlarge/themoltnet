@@ -104,22 +104,3 @@ func uniqueCleanPaths(paths []string) []string {
 	}
 	return out
 }
-
-// portableAgentEnvPath rewrites an absolute path that lives inside a repository
-// agent bundle into the repo-relative `.moltnet/<agent>/…` form, so the env file
-// survives the bundle being checked out at a different location. Identities in
-// the central store sit at a fixed absolute path and have no `.moltnet` parent,
-// so the rewrite would fabricate a path that exists nowhere: leave those alone.
-func portableAgentEnvPath(agentDir, agentName, path string) string {
-	if path == "" || !filepath.IsAbs(path) {
-		return path
-	}
-	if filepath.Base(filepath.Dir(filepath.Clean(agentDir))) != ".moltnet" {
-		return path
-	}
-	rel, err := filepath.Rel(agentDir, path)
-	if err != nil || rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
-		return path
-	}
-	return filepath.ToSlash(filepath.Join(".moltnet", agentName, rel))
-}
