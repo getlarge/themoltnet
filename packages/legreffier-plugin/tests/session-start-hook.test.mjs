@@ -14,7 +14,13 @@ const hook = join(repositoryRoot, '.claude', 'hooks', 'session-start.sh');
  * Runs the hook in an isolated HOME with the identity document already present,
  * so `npx` is never reached and the test exercises only the export logic.
  */
-function runHook({ identity = 'legreffier', withGitconfig, withDocument = true, env = {} } = {}) {
+function runHook({
+  identity = 'legreffier',
+  withGitconfig,
+  withDocument = true,
+  stubNpx = false,
+  env = {},
+} = {}) {
   const home = mkdtempSync(join(tmpdir(), 'moltnet-hook-'));
   const project = mkdtempSync(join(tmpdir(), 'moltnet-project-'));
   // Present so the hook skips `pnpm install`.
@@ -27,12 +33,23 @@ function runHook({ identity = 'legreffier', withGitconfig, withDocument = true, 
     if (withGitconfig) writeFileSync(join(dir, 'gitconfig'), '[user]\n');
   }
 
+  // A stub npx that succeeds without creating the document. It does not need to
+  // resemble the real CLI: the case under test is precisely a CLI that returns
+  // 0 while writing nothing where the hook expects a central identity.
+  let path = process.env.PATH;
+  if (stubNpx) {
+    const bin = join(home, 'bin');
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, 'npx'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+    path = `${bin}:${path}`;
+  }
+
   const envFile = join(home, 'claude-env');
   writeFileSync(envFile, '');
   const result = spawnSync('/bin/sh', [hook], {
     encoding: 'utf8',
     env: {
-      PATH: process.env.PATH,
+      PATH: path,
       HOME: home,
       CLAUDE_CODE_REMOTE: 'true',
       CLAUDE_PROJECT_DIR: project,
@@ -89,4 +106,30 @@ test('pins the CLI it installs rather than tracking latest', () => {
   const script = readFileSync(hook, 'utf8');
   assert.doesNotMatch(script, /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/);
   assert.match(script, /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-\d+\.\d+\.\d+\}/);
+});
+
+// The hook accepts the pre-cutover variable name so an environment configured
+// before the central store still activates.
+test('accepts the legacy MOLTNET_AGENT_NAME alias', () => {
+  const { status, exported } = runHook({
+    withGitconfig: false,
+    env: { MOLTNET_ACTIVE_IDENTITY: '', MOLTNET_AGENT_NAME: 'legreffier' },
+  });
+  assert.equal(status, 0);
+  assert.match(exported, /export MOLTNET_ACTIVE_IDENTITY='legreffier'/);
+});
+
+// A CLI predating the central store writes the legacy repository layout, so it
+// exits 0 having created nothing where the hook looks. Without the post-check
+// the hook would fall through and re-run every session; it must fail loudly and
+// name the override instead.
+test('fails loudly when the CLI creates no central document', () => {
+  const { status, stderr, exported } = runHook({
+    withDocument: false,
+    stubNpx: true,
+  });
+  assert.equal(status, 1);
+  assert.match(stderr, /did not create/);
+  assert.match(stderr, /MOLTNET_CLI_VERSION/);
+  assert.equal(exported, '', 'a failed bootstrap must export nothing');
 });
