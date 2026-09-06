@@ -7,16 +7,32 @@ import (
 	"testing"
 )
 
+func setupCentralEnvFixture(t *testing.T) (string, string) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	envPath := filepath.Join(agentDir, "env")
+	if err := os.WriteFile(envPath, []byte("MOLTNET_TEAM_ID='team'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return home, envPath
+}
+
 func TestEnvConfigurePreservesUnmanagedContentAndPermissions(t *testing.T) {
-	t.Parallel()
-	dir := setupActivationCacheFixture(t)
-	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	_, envPath := setupCentralEnvFixture(t)
 	if err := os.WriteFile(envPath, []byte("# keep me\nCUSTOM='unchanged'\nMOLTNET_TEAM_ID='old'\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir,
+	stdout, _, err := executeCommand(root, "env", "configure", "--identity", "test-agent",
 		"--team-id", "new-team", "--authorship", "coauthor", "--human-git-identity", "Jane Doe <jane@example.com>")
 	if err != nil {
 		t.Fatalf("configure: %v", err)
@@ -44,14 +60,13 @@ func TestEnvConfigurePreservesUnmanagedContentAndPermissions(t *testing.T) {
 }
 
 func TestEnvConfigureClearsManagedValue(t *testing.T) {
-	t.Parallel()
-	dir := setupActivationCacheFixture(t)
+	_, envPath := setupCentralEnvFixture(t)
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--clear-team-id")
+	_, _, err := executeCommand(root, "env", "configure", "--identity", "test-agent", "--clear-team-id")
 	if err != nil {
 		t.Fatalf("configure: %v", err)
 	}
-	data, err := os.ReadFile(filepath.Join(dir, ".moltnet", "test-agent", "env"))
+	data, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,16 +76,14 @@ func TestEnvConfigureClearsManagedValue(t *testing.T) {
 }
 
 func TestEnvConfigureRejectsAuthorshipWithoutHumanIdentity(t *testing.T) {
-	t.Parallel()
-	dir := setupActivationCacheFixture(t)
-	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	_, envPath := setupCentralEnvFixture(t)
 	before, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--authorship", "human")
+	_, _, err = executeCommand(root, "env", "configure", "--identity", "test-agent", "--authorship", "human")
 	if err == nil || !strings.Contains(err.Error(), "requires --human-git-identity") {
 		t.Fatalf("expected resulting-state validation, got %v", err)
 	}
@@ -84,9 +97,7 @@ func TestEnvConfigureRejectsAuthorshipWithoutHumanIdentity(t *testing.T) {
 }
 
 func TestEnvConfigureRejectsClearingRequiredHumanIdentity(t *testing.T) {
-	t.Parallel()
-	dir := setupActivationCacheFixture(t)
-	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	_, envPath := setupCentralEnvFixture(t)
 	data, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatal(err)
@@ -97,16 +108,14 @@ func TestEnvConfigureRejectsClearingRequiredHumanIdentity(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--clear-human-git-identity")
+	_, _, err = executeCommand(root, "env", "configure", "--identity", "test-agent", "--clear-human-git-identity")
 	if err == nil || !strings.Contains(err.Error(), "requires --human-git-identity") {
 		t.Fatalf("expected resulting-state validation, got %v", err)
 	}
 }
 
 func TestEnvConfigureAllowsAtomicSwitchToAgentAndIdentityClear(t *testing.T) {
-	t.Parallel()
-	dir := setupActivationCacheFixture(t)
-	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	_, envPath := setupCentralEnvFixture(t)
 	data, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +126,7 @@ func TestEnvConfigureAllowsAtomicSwitchToAgentAndIdentityClear(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--authorship", "agent", "--clear-human-git-identity")
+	_, _, err = executeCommand(root, "env", "configure", "--identity", "test-agent", "--authorship", "agent", "--clear-human-git-identity")
 	if err != nil {
 		t.Fatalf("configure: %v", err)
 	}

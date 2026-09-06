@@ -35,6 +35,7 @@ func clearMoltnetEnv(t *testing.T) {
 		"MOLTNET_GITHUB_APP_PRIVATE_KEY",
 		"MOLTNET_GITHUB_APP_SLUG",
 		"MOLTNET_AGENT_NAME",
+		"MOLTNET_ACTIVE_IDENTITY",
 		"MOLTNET_GIT_NAME",
 		"MOLTNET_GIT_EMAIL",
 	} {
@@ -49,8 +50,8 @@ func TestConfigInitFromEnvHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(stdout, "--agent") {
-		t.Errorf("expected help to contain '--agent', got: %s", stdout)
+	if !strings.Contains(stdout, "--name") {
+		t.Errorf("expected help to contain '--name', got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "MOLTNET_IDENTITY_ID") {
 		t.Errorf("expected help to mention env vars, got: %s", stdout)
@@ -68,15 +69,16 @@ func TestConfigInitFromEnvRequiresAgent(t *testing.T) {
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env")
 	if err == nil {
-		t.Fatal("expected error when --agent is missing")
+		t.Fatal("expected error when identity name is missing")
 	}
 }
 
 func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from satisfying the check
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", tmpDir)
+	_, _, err := executeCommand(root, "config", "init-from-env", "--name", "test-agent")
 	if err == nil {
 		t.Fatal("expected error when env vars are missing")
 	}
@@ -85,8 +87,32 @@ func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 	}
 }
 
+func TestConfigInitFromEnvAcceptsDeprecatedAgentAlias(t *testing.T) {
+	clearMoltnetEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd("test", "")
+	// --agent still maps onto --identity; reaching the MOLTNET_IDENTITY_ID
+	// requirement proves the alias resolved.
+	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent")
+	if err == nil || !strings.Contains(err.Error(), "MOLTNET_IDENTITY_ID") {
+		t.Fatalf("deprecated --agent was not mapped to --name: %v", err)
+	}
+
+	// --dir is rejected rather than ignored: silently accepting it sent
+	// automation that named a repository identity to the machine-global one.
+	root = NewRootCmd("test", "")
+	_, _, err = executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", ".")
+	if err == nil || !strings.Contains(err.Error(), "--dir is no longer supported") {
+		t.Fatalf("--dir must be rejected with guidance, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "config identity select") {
+		t.Fatalf("rejection must say what to do instead, got: %v", err)
+	}
+}
+
 func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	t.Setenv("MOLTNET_IDENTITY_ID", "test-identity-123")
 	t.Setenv("MOLTNET_CLIENT_ID", "test-client-id")
@@ -97,13 +123,13 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	t.Setenv("MOLTNET_API_URL", "https://api.test.example.com")
 
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", tmpDir, "--skip-git")
+	_, _, err := executeCommand(root, "config", "init-from-env", "--name", "test-agent", "--skip-git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Check moltnet.json was created
-	configPath := filepath.Join(tmpDir, ".moltnet", "test-agent", "moltnet.json")
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "test-agent", "moltnet.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
@@ -132,17 +158,13 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 		t.Errorf("expected MCP URL 'https://mcp.test.example.com/mcp', got %q", config.Endpoints.MCP)
 	}
 
-	// Check default-agent was created
-	defaultAgent, err := os.ReadFile(filepath.Join(tmpDir, ".moltnet", "default-agent"))
-	if err != nil {
-		t.Fatalf("failed to read default-agent: %v", err)
-	}
-	if strings.TrimSpace(string(defaultAgent)) != "test-agent" {
-		t.Errorf("expected default-agent 'test-agent', got %q", strings.TrimSpace(string(defaultAgent)))
+	selector, err := readIdentitySelector()
+	if err != nil || selector.DefaultIdentity != "test-agent" {
+		t.Fatalf("identity selector = %#v, %v", selector, err)
 	}
 
 	// Check env file was created
-	envPath := filepath.Join(tmpDir, ".moltnet", "test-agent", "env")
+	envPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "test-agent", "env")
 	envData, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatalf("failed to read env file: %v", err)
@@ -154,11 +176,11 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 }
 
 func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	// Pre-create the config file
-	agentDir := filepath.Join(tmpDir, ".moltnet", "existing-agent")
+	agentDir := filepath.Join(tmpDir, ".config", "moltnet", "identities", "existing-agent")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +189,7 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "existing-agent", "--dir", tmpDir)
+	_, _, err := executeCommand(root, "config", "init-from-env", "--name", "existing-agent")
 	// Should succeed (skip) without requiring env vars
 	if err != nil {
 		t.Fatalf("expected no error for existing agent, got: %v", err)
@@ -177,6 +199,7 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from overriding file values
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	// Write a dotenv file with all required vars
 	envContent := strings.Join([]string{
@@ -201,13 +224,14 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 		envFilePath,
 		false,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Verify config was created from file values
-	configPath := filepath.Join(tmpDir, ".moltnet", "file-agent", "moltnet.json")
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "file-agent", "moltnet.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
@@ -243,6 +267,7 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 
 func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	// Set a process env var that should win over the file
 	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
@@ -268,8 +293,7 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "no-override-agent",
-		"--dir", tmpDir,
+		"--name", "no-override-agent",
 		"--skip-git",
 		"--env-file", envFilePath,
 	)
@@ -277,7 +301,7 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	configPath := filepath.Join(tmpDir, ".moltnet", "no-override-agent", "moltnet.json")
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "no-override-agent", "moltnet.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
@@ -299,6 +323,7 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 
 func TestConfigInitFromEnvFileOverride(t *testing.T) {
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	// Set process env vars
 	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
@@ -330,12 +355,13 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 		envFilePath,
 		true,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	configPath := filepath.Join(tmpDir, ".moltnet", "override-agent", "moltnet.json")
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "override-agent", "moltnet.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
@@ -360,13 +386,12 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileMissing(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "test-agent",
-		"--dir", tmpDir,
+		"--name", "test-agent",
 		"--env-file", filepath.Join(tmpDir, "nonexistent.env"),
 	)
 	if err == nil {
@@ -380,6 +405,7 @@ func TestConfigInitFromEnvFileMissing(t *testing.T) {
 func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from overriding file/test values
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	// File provides some vars
 	envContent := strings.Join([]string{
@@ -405,12 +431,13 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 		envFilePath,
 		false,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	configPath := filepath.Join(tmpDir, ".moltnet", "partial-agent", "moltnet.json")
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "partial-agent", "moltnet.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("failed to read config: %v", err)
@@ -607,6 +634,7 @@ func TestWriteAgentEnvFilePreservesNonManagedKeysOutsideUserSection(t *testing.T
 
 func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	t.Setenv("MOLTNET_IDENTITY_ID", "gh-app-identity")
 	t.Setenv("MOLTNET_CLIENT_ID", "gh-app-client-id")
@@ -621,8 +649,7 @@ func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "gh-app-agent",
-		"--dir", tmpDir,
+		"--name", "gh-app-agent",
 		"--skip-git",
 	)
 	if err != nil {
@@ -630,7 +657,7 @@ func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 	}
 
 	// Check env file contains numeric AppID, not slug
-	envPath := filepath.Join(tmpDir, ".moltnet", "gh-app-agent", "env")
+	envPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "gh-app-agent", "env")
 	envData, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatalf("failed to read env file: %v", err)
@@ -656,6 +683,7 @@ func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 
 func TestConfigInitFromEnvNormalizesGitHubAppPEM(t *testing.T) {
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 	const escapedPEM = "\"-----BEGIN RSA PRIVATE KEY-----\\r\\nline-one\\nline-two\\r\\n-----END RSA PRIVATE KEY-----\""
 
 	t.Setenv("MOLTNET_IDENTITY_ID", "gh-app-identity")
@@ -671,15 +699,14 @@ func TestConfigInitFromEnvNormalizesGitHubAppPEM(t *testing.T) {
 
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "gh-app-agent",
-		"--dir", tmpDir,
+		"--name", "gh-app-agent",
 		"--skip-git",
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pemPath := filepath.Join(tmpDir, ".moltnet", "gh-app-agent", "my-gh-app.pem")
+	pemPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "gh-app-agent", "my-gh-app.pem")
 	pemData, err := os.ReadFile(pemPath)
 	if err != nil {
 		t.Fatalf("failed to read PEM: %v", err)
@@ -732,5 +759,47 @@ func TestNormalizePEMEnvValue(t *testing.T) {
 				t.Fatalf("normalizePEMEnvValue() mismatch:\nwant: %q\ngot:  %q", tt.want, got)
 			}
 		})
+	}
+}
+
+func TestWriteAgentEnvFileKeepsCentralAppKeyPathAbsolute(t *testing.T) {
+	t.Parallel()
+
+	// Arrange: `config init-from-env` resolves its target through identityDir
+	// and writes the GitHub App key inside it, so the env file has to point at
+	// that absolute path. It previously ran through a repo-portability rewrite
+	// that emitted `.moltnet/<alias>/…`, which exists nowhere in the central
+	// layout — the env file named a file that was not there.
+	identityDir := filepath.Join(t.TempDir(), ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(identityDir, 0o700); err != nil {
+		t.Fatalf("create identity dir: %v", err)
+	}
+	pemPath := filepath.Join(identityDir, "github-app.pem")
+	config := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "client-id"},
+		GitHub: &GitHubSection{
+			AppID:          "123",
+			InstallationID: "456",
+			PrivateKeyPath: pemPath,
+		},
+	}
+
+	// Act.
+	if err := writeAgentEnvFile(identityDir, "test-agent", config); err != nil {
+		t.Fatalf("writeAgentEnvFile: %v", err)
+	}
+
+	// Assert.
+	data, err := os.ReadFile(filepath.Join(identityDir, "env"))
+	if err != nil {
+		t.Fatalf("read env file: %v", err)
+	}
+	content := string(data)
+	want := "TEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='" + pemPath + "'"
+	if !strings.Contains(content, want) {
+		t.Fatalf("expected %s, got:\n%s", want, content)
+	}
+	if strings.Contains(content, ".moltnet/test-agent") {
+		t.Fatalf("env file carries a repo-relative rewrite:\n%s", content)
 	}
 }

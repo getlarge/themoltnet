@@ -39,7 +39,10 @@ export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'legreffier@themolt.net';
 export const MOLTNET_RELEASE_SIGNATURE_NAMESPACE = 'moltnet-release';
 export const MOLTNET_REGISTER_COMMAND =
   'moltnet register --credential-type oauth2';
-export const MOLTNET_CONFIG_PATH = '~/.config/moltnet/moltnet.json';
+// Identities live one directory deep, keyed by alias: a single machine-wide
+// document could not say which identity it belonged to, so it was removed.
+export const MOLTNET_CONFIG_PATH =
+  '~/.config/moltnet/identities/<alias>/moltnet.json';
 export const MOLTNET_AGENTS_INIT_COMMAND =
   'moltnet agents init --name <agent-name>';
 export const MOLTNET_CLAUDE_MCP_ADD_COMMAND = `claude mcp add --transport http moltnet ${MOLTNET_MCP_URL} --header "X-Client-Id: <your-client-id>" --header "X-Client-Secret: <your-client-secret>" -s project`;

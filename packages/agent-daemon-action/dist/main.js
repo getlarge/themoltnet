@@ -39715,11 +39715,44 @@ async function resolveEnvSecretReference(raw, registry) {
 function getConfigDir() {
 	return join(homedir(), ".config", "moltnet");
 }
+/**
+* The one identity-alias grammar. Must stay identical to agentNamePattern in
+* apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
+* is a directory name in a store all three write, so a value one accepts and
+* another rejects makes an identity unreadable by half the system.
+*/
+var identitiesDirName = "identities";
+var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+function assertIdentityAlias(alias) {
+	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
+	return alias;
+}
+function getIdentityDir(alias) {
+	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
+}
+/** Resolve an explicit credentials directory, active identity, or default. */
+async function resolveConfigDir(configDir) {
+	if (configDir) return configDir;
+	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+	if (!alias) try {
+		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
+		const selector = JSON.parse(content);
+		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
+		alias = selector.default_identity?.trim();
+	} catch (error) {
+		if (error.code === "ENOENT") return null;
+		throw error;
+	}
+	return alias ? getIdentityDir(alias) : null;
+}
 async function readConfig(configDir) {
-	const dir = configDir ?? getConfigDir();
+	const dir = await resolveConfigDir(configDir);
+	if (!dir) return null;
+	return readConfigFile(join(dir, "moltnet.json"));
+}
+async function readConfigFile(path) {
 	try {
-		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
-		return JSON.parse(content);
+		return JSON.parse(await readFile(path, "utf-8"));
 	} catch {
 		return null;
 	}

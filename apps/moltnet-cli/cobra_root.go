@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -128,6 +129,13 @@ func shouldAnnouncePendingMigration(cmd *cobra.Command) bool {
 	if isCLIWorkspaceInvocation() || cmd.Name() == "migrate" {
 		return false
 	}
-	f, ok := cmd.ErrOrStderr().(*os.File)
+	return isTerminalWriter(cmd.ErrOrStderr())
+}
+
+// isTerminalWriter reports whether w is an interactive terminal. Advisories are
+// gated on it so they never land in a pipe, a log, or a script's 2>&1 — the
+// stream discipline introduced with the pending-migration notice.
+func isTerminalWriter(w io.Writer) bool {
+	f, ok := w.(*os.File)
 	return ok && term.IsTerminal(int(f.Fd()))
 }

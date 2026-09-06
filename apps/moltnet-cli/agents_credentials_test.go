@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -525,19 +524,7 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 	tempDir := t.TempDir()
 	explicitPath := filepath.Join(tempDir, "explicit.json")
 	envPath := filepath.Join(tempDir, "env.json")
-	agentDir := filepath.Join(tempDir, "agent")
-	gitConfigPath := filepath.Join(agentDir, "gitconfig")
-	gitSiblingPath := filepath.Join(agentDir, "moltnet.json")
-	globalDir := filepath.Join(tempDir, ".config", "moltnet")
-	globalPath := filepath.Join(globalDir, "moltnet.json")
-
-	for _, path := range []string{
-		explicitPath,
-		envPath,
-		gitConfigPath,
-		gitSiblingPath,
-		globalPath,
-	} {
+	for _, path := range []string{explicitPath, envPath} {
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			t.Fatalf("mkdir %s: %v", path, err)
 		}
@@ -548,7 +535,17 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 
 	t.Setenv("HOME", tempDir)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", envPath)
-	t.Setenv("GIT_CONFIG_GLOBAL", gitConfigPath)
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "active")
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(tempDir, "repo", ".moltnet", "legacy", "gitconfig"))
+	if _, err := writeCentralIdentityConfig("active", centralIdentityFixture("active")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeIdentitySelector("default"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writeCentralIdentityConfig("default", centralIdentityFixture("default")); err != nil {
+		t.Fatal(err)
+	}
 
 	got, err := resolveCredentialsPath(explicitPath)
 	if err != nil || got != explicitPath {
@@ -562,34 +559,28 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	got, err = resolveCredentialsPath("")
-	if err != nil || got != gitSiblingPath {
-		t.Fatalf(
-			"GIT_CONFIG_GLOBAL sibling = %q, %v; want %q",
-			got,
-			err,
-			gitSiblingPath,
-		)
+	want, _ := identityCredentialsPath("active")
+	if err != nil || got != want {
+		t.Fatalf("active identity = %q, %v; want %q", got, err, want)
 	}
 
-	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
 	got, err = resolveCredentialsPath("")
-	if err != nil || got != globalPath {
-		t.Fatalf("global path = %q, %v; want %q", got, err, globalPath)
+	want, _ = identityCredentialsPath("default")
+	if err != nil || got != want {
+		t.Fatalf("persisted default = %q, %v; want %q", got, err, want)
 	}
 }
 
-func TestResolveCredentialsPathAnchorsRelativeGitConfigToRepository(
-	t *testing.T,
-) {
+func TestResolveCredentialsPathDoesNotDiscoverRepositoryGitConfig(t *testing.T) {
+	isolateIdentityEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
 	repoDir := t.TempDir()
-	if output, err := exec.Command("git", "init", repoDir).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v: %s", err, output)
+	credentialsPath := filepath.Join(home, ".config", "moltnet", "identities", "agent", "moltnet.json")
+	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0o700); err != nil {
+		t.Fatalf("create central identity directory: %v", err)
 	}
-	agentDir := filepath.Join(repoDir, ".moltnet", "agent")
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		t.Fatalf("create agent dir: %v", err)
-	}
-	credentialsPath := filepath.Join(agentDir, "moltnet.json")
 	if err := os.WriteFile(credentialsPath, []byte("{}"), privateFileMode); err != nil {
 		t.Fatalf("write credentials: %v", err)
 	}
@@ -613,18 +604,8 @@ func TestResolveCredentialsPathAnchorsRelativeGitConfigToRepository(
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
 
-	got, err := resolveCredentialsPath("")
-
-	if err != nil {
-		t.Fatalf("resolve credentials: %v", err)
-	}
-	resolvedRepoDir, err := filepath.EvalSymlinks(repoDir)
-	if err != nil {
-		t.Fatalf("resolve repository path: %v", err)
-	}
-	want := filepath.Join(resolvedRepoDir, ".moltnet", "agent", "moltnet.json")
-	if got != want {
-		t.Fatalf("credentials path = %q, want %q", got, want)
+	if _, err := resolveCredentialsPath(""); err == nil {
+		t.Fatal("repository gitconfig unexpectedly selected credentials")
 	}
 }
 
@@ -695,15 +676,12 @@ func TestAgentsCredentialsRotateUsesEndpointFromResolvedCredentials(
 	server := newCredentialsRotationServer(t, &rotateCalls, "client-id")
 	defer server.Close()
 
-	repoDir := t.TempDir()
-	if output, err := exec.Command("git", "init", repoDir).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v: %s", err, output)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	credentialsPath := filepath.Join(home, ".config", "moltnet", "identities", "agent", "moltnet.json")
+	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0o700); err != nil {
+		t.Fatalf("create central identity directory: %v", err)
 	}
-	agentDir := filepath.Join(repoDir, ".moltnet", "agent")
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		t.Fatalf("create agent dir: %v", err)
-	}
-	credentialsPath := filepath.Join(agentDir, "moltnet.json")
 	writeRotationTestCredentialsTo(
 		t,
 		credentialsPath,
@@ -711,21 +689,10 @@ func TestAgentsCredentialsRotateUsesEndpointFromResolvedCredentials(
 		testOldClientSecret,
 	)
 
-	previousDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	if err := os.Chdir(repoDir); err != nil {
-		t.Fatalf("change directory: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(previousDir); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
-	})
 	t.Setenv(apiURLEnv, "")
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
-	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "agent")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
 
 	root := NewRootCmd("test", "")
 	_, stderr, err := executeCommand(

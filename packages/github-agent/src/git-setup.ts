@@ -2,8 +2,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import {
-  getConfigDir,
   readConfig,
+  resolveConfigDir,
   updateConfigSection,
 } from '@moltnet/agent-config';
 
@@ -18,10 +18,12 @@ export async function setupGitIdentity(opts?: {
   email?: string;
   configDir?: string;
 }): Promise<string> {
-  const config = await readConfig(opts?.configDir);
+  const configDir = await resolveConfigDir(opts?.configDir);
+  const config = await readConfig(configDir ?? undefined);
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
   }
+  if (!configDir) throw new Error('No active identity selected');
   if (!config.ssh) {
     throw new Error(
       'SSH keys not exported — run `moltnet ssh-key export` first',
@@ -36,7 +38,7 @@ export async function setupGitIdentity(opts?: {
   const email = opts?.email ?? `${config.identity_id}@agents.themolt.net`;
 
   // Build allowed_signers (email <public-key>)
-  const sshDir = join(opts?.configDir ?? getConfigDir(), 'ssh');
+  const sshDir = join(configDir, 'ssh');
   const allowedSignersPath = join(sshDir, 'allowed_signers');
   await mkdir(sshDir, { recursive: true });
   await writeFile(allowedSignersPath, `${email} ${publicKey.trim()}\n`);
@@ -62,7 +64,6 @@ export async function setupGitIdentity(opts?: {
     '',
   ].join('\n');
 
-  const configDir = opts?.configDir ?? getConfigDir();
   const gitconfigPath = join(configDir, 'gitconfig');
   await writeFile(gitconfigPath, gitconfig);
 
@@ -75,7 +76,7 @@ export async function setupGitIdentity(opts?: {
       signing: true,
       config_path: gitconfigPath,
     },
-    opts?.configDir,
+    configDir,
   );
 
   return gitconfigPath;

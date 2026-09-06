@@ -102,7 +102,7 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 
 	// Check that all required vars are present
 	for _, expected := range []string{
-		"MOLTNET_AGENT_NAME=test-bot",
+		"MOLTNET_ACTIVE_IDENTITY=test-bot",
 		"MOLTNET_IDENTITY_ID=export-test-id",
 		"MOLTNET_CLIENT_ID=export-client-id",
 		"MOLTNET_CLIENT_SECRET=export-client-secret",
@@ -350,7 +350,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 	}
 	exportedContent := string(exported)
 	for _, expected := range []string{
-		"MOLTNET_AGENT_NAME=rt-agent",
+		"MOLTNET_ACTIVE_IDENTITY=rt-agent",
 		`MOLTNET_GIT_NAME="rt-agent"`,
 		`MOLTNET_GIT_EMAIL="rt-agent+rt-agent[bot]@users.noreply.github.com"`,
 	} {
@@ -361,14 +361,16 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 2: init-from-env WITHOUT --agent — should derive from MOLTNET_AGENT_NAME
 	targetDir := filepath.Join(tmpDir, "target")
+	t.Setenv("HOME", targetDir)
 	registry, _ := newMemorySecretProviderRegistry()
 	err = runConfigInitFromEnvCmdWithRegistry(
 		targetDir,
-		"",
+		"rt-agent",
 		true,
 		envFile,
 		false,
 		registry,
+		defaultMigrationDestination,
 	)
 	if err != nil {
 		t.Fatalf("init-from-env failed: %v", err)
@@ -376,7 +378,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 3: read back the reconstructed config and verify
 	reconstructed, err := ReadConfigFrom(
-		filepath.Join(targetDir, ".moltnet", "rt-agent", "moltnet.json"),
+		filepath.Join(targetDir, ".config", "moltnet", "identities", "rt-agent", "moltnet.json"),
 	)
 	if err != nil {
 		t.Fatalf("failed to read reconstructed config: %v", err)

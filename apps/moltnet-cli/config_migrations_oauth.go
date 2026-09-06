@@ -186,7 +186,8 @@ func oauth2EnvironmentCleanupTarget(ctx configMigrationContext) (string, string,
 		return "", "", false, nil
 	}
 	agentDir := filepath.Dir(ctx.CredentialsPath)
-	if filepath.Base(filepath.Dir(agentDir)) != ".moltnet" {
+	storeDir := filepath.Base(filepath.Dir(agentDir))
+	if storeDir != ".moltnet" && storeDir != "identities" {
 		return "", "", false, nil
 	}
 	agentName := filepath.Base(agentDir)

@@ -93,10 +93,7 @@ async function runUpdate(argv: string[]): Promise<number> {
 async function runRuntime(argv: string[]): Promise<number> {
   const config = loadAgentServerEnvConfig();
   const registry = new RuntimeRegistry(
-    resolveAgentServerRoot({
-      root: config.root,
-      xdgConfigHome: config.xdgConfigHome,
-    }),
+    resolveAgentServerRoot({ root: config.root }),
   );
   const [command, ...rest] = argv;
   if (command === 'list') {

@@ -22,15 +22,51 @@ fi
 # Reconstruct agent config from env vars if MOLTNET_AGENT_NAME is set
 # and the agent directory doesn't exist yet.
 # Set MOLTNET_AGENT_NAME and credential env vars in Claude Code project settings.
-if [ -n "${MOLTNET_AGENT_NAME:-}" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
-  if [ ! -f "$CLAUDE_PROJECT_DIR/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json" ]; then
-    npx --yes @themoltnet/cli config init-from-env \
-      --agent "$MOLTNET_AGENT_NAME" --dir "$CLAUDE_PROJECT_DIR"
+identity="${MOLTNET_ACTIVE_IDENTITY:-${MOLTNET_AGENT_NAME:-}}"
+if [ -n "$identity" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
+  # The alias becomes a path segment and is written into a file that is later
+  # sourced, so validate it before either use. This is the same grammar the Go
+  # CLI enforces (agentNamePattern).
+  case "$identity" in
+    [A-Za-z0-9]*) ;;
+    *) echo "moltnet: refusing invalid identity alias '$identity'" >&2; exit 1 ;;
+  esac
+  if [ "${#identity}" -gt 63 ] || printf '%s' "$identity" | LC_ALL=C grep -q '[^A-Za-z0-9._-]'; then
+    echo "moltnet: refusing invalid identity alias '$identity'" >&2
+    exit 1
   fi
 
-  # Export GIT_CONFIG_GLOBAL for commit signing
-  GITCONFIG="$CLAUDE_PROJECT_DIR/.moltnet/$MOLTNET_AGENT_NAME/gitconfig"
-  if [ -f "$GITCONFIG" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-    echo "export GIT_CONFIG_GLOBAL='$GITCONFIG'" >> "$CLAUDE_ENV_FILE"
+  identity_dir="$HOME/.config/moltnet/identities/$identity"
+  if [ ! -f "$identity_dir/moltnet.json" ]; then
+    # Pinned by default. This runs with OAuth, signing-key and optional GitHub
+    # App secrets in the environment, so resolving a mutable `latest` would let
+    # any future npm release read them. MOLTNET_CLI_VERSION overrides it
+    # deliberately; it is never `latest` implicitly. A CLI predating the central
+    # identity store also writes the legacy layout, so the document is verified
+    # immediately below rather than letting this hook re-run every session.
+    npx --yes "@themoltnet/cli@${MOLTNET_CLI_VERSION:-1.91.0}" config init-from-env \
+      --name "$identity"
+    if [ ! -f "$identity_dir/moltnet.json" ]; then
+      echo "moltnet: config init-from-env did not create $identity_dir/moltnet.json." >&2
+      echo "moltnet: the resolved @themoltnet/cli predates the central identity store;" >&2
+      echo "moltnet: pin a supported release with MOLTNET_CLI_VERSION." >&2
+      exit 1
+    fi
+  fi
+
+  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
+    # The active identity is the SESSION ACTIVATION SIGNAL: the secrets guard
+    # and the GitHub authorship guard both key on it. Export it whenever the
+    # central document is valid, never conditionally on Git artifacts — an
+    # identity created by `moltnet register` has no gitconfig, and gating on one
+    # left that session classified as an ordinary human shell with every agent
+    # protection silently disabled.
+    printf "export MOLTNET_ACTIVE_IDENTITY='%s'\n" "$identity" >> "$CLAUDE_ENV_FILE"
+
+    # Commit signing is a separate concern and genuinely does need the file.
+    GITCONFIG="$identity_dir/gitconfig"
+    if [ -f "$GITCONFIG" ]; then
+      printf "export GIT_CONFIG_GLOBAL='%s'\n" "$GITCONFIG" >> "$CLAUDE_ENV_FILE"
+    fi
   fi
 fi

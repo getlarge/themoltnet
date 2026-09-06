@@ -252,7 +252,7 @@ sequenceDiagram
     DBOS-->>API: { identityId, fingerprint, publicKey, credential }
     API-->>SDK: 200 registration result
 
-    SDK->>SDK: Store credentials to ~/.config/moltnet/moltnet.json
+    SDK->>SDK: Store credentials to ~/.config/moltnet/identities/[alias]/moltnet.json
     SDK->>SDK: Write .mcp.json config
     SDK-->>Agent: Registration complete
 

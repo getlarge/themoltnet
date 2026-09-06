@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -78,19 +77,15 @@ func TestAgentsWhoamiUsesActivatedCredentialsAndEndpoint(t *testing.T) {
 	activatedAPI := newRecordingAPI(t)
 
 	home := t.TempDir()
-	agentDir := filepath.Join(home, "repo", ".moltnet", "agent")
-	gitConfigPath := filepath.Join(agentDir, "gitconfig")
 	global := newIdentityFixture(t, "global", globalAPI.server.URL)
 	activated := newIdentityFixture(t, "activated", activatedAPI.server.URL)
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "moltnet.json"), global)
-	writeIdentityConfig(t, filepath.Join(agentDir, "moltnet.json"), activated)
-	if err := os.WriteFile(gitConfigPath, []byte("[user]\n\tname = agent\n"), 0o600); err != nil {
-		t.Fatalf("write gitconfig: %v", err)
-	}
+	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"), activated)
 
 	t.Setenv("HOME", home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
-	t.Setenv("GIT_CONFIG_GLOBAL", gitConfigPath)
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "activated")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
 	t.Setenv(apiURLEnv, "")
 	t.Setenv(agentKeyEnv, "")
 	t.Setenv(agentKeyRefEnv, "")
@@ -199,19 +194,15 @@ func TestSignRequestIDUsesActivatedSigner(t *testing.T) {
 	api := newSigningAPI(t)
 
 	home := t.TempDir()
-	agentDir := filepath.Join(home, "repo", ".moltnet", "agent")
-	gitConfigPath := filepath.Join(agentDir, "gitconfig")
 	global := newIdentityFixture(t, "global", api.server.URL)
 	activated := newIdentityFixture(t, "activated", api.server.URL)
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "moltnet.json"), global)
-	writeIdentityConfig(t, filepath.Join(agentDir, "moltnet.json"), activated)
-	if err := os.WriteFile(gitConfigPath, []byte("[user]\n\tname = agent\n"), 0o600); err != nil {
-		t.Fatalf("write gitconfig: %v", err)
-	}
+	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"), activated)
 
 	t.Setenv("HOME", home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
-	t.Setenv("GIT_CONFIG_GLOBAL", gitConfigPath)
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "activated")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
 	t.Setenv(apiURLEnv, "")
 	t.Setenv(agentKeyEnv, "")
 	t.Setenv(agentKeyRefEnv, "")
@@ -244,8 +235,6 @@ func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
 	activatedAPI := newRecordingAPI(t)
 
 	home := t.TempDir()
-	agentDir := filepath.Join(home, "repo", ".moltnet", "agent")
-	gitConfigPath := filepath.Join(agentDir, "gitconfig")
 	writeIdentityConfig(
 		t,
 		filepath.Join(home, ".config", "moltnet", "moltnet.json"),
@@ -253,16 +242,13 @@ func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
 	)
 	writeIdentityConfig(
 		t,
-		filepath.Join(agentDir, "moltnet.json"),
+		filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"),
 		newIdentityFixture(t, "activated", activatedAPI.server.URL),
 	)
-	if err := os.WriteFile(gitConfigPath, []byte("[user]\n\tname = agent\n"), 0o600); err != nil {
-		t.Fatalf("write gitconfig: %v", err)
-	}
-
 	t.Setenv("HOME", home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
-	t.Setenv("GIT_CONFIG_GLOBAL", gitConfigPath)
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "activated")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
 	t.Setenv(apiURLEnv, "")
 	t.Setenv(agentKeyRefEnv, "")
 	t.Setenv(agentKeyEnv, "agent-key-secret")
