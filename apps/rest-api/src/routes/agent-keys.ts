@@ -42,9 +42,10 @@ function authSubject(request: FastifyRequest): AgentKeySubject {
   const auth = request.authContext;
   if (!auth) throw createProblem('unauthorized');
   return {
-    ...(({ subjectId, ...rest }) => ({ agentId: subjectId, ...rest }))(
-      requireKetoSubject(request),
-    ),
+    // No renaming: AgentKeySubject carries subjectId, because this value is a
+    // humans.id for a human caller and calling it agentId re-created exactly
+    // the ambiguity this refactor removes.
+    ...requireKetoSubject(request),
     scopes: auth.scopes,
     ...(auth.subjectType === 'agent' && auth.credentialBinding
       ? {

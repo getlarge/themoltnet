@@ -246,7 +246,7 @@ export function initHumanOnboardingWorkflow(): void {
         );
         personalTeamId = resolvedPersonalTeamId;
 
-        // Step 4: Grant team ownership (Keto uses identityId)
+        // Step 4: Grant team ownership (Keto subject is humans.id)
         await grantTeamOwnerStep(resolvedPersonalTeamId, humanId);
 
         // Step 5: Create private diary (FK target for creator_human_id is humans.id)

@@ -207,8 +207,8 @@ describe('verifyExecutorForPhase agent-signed enforcement', () => {
       upsertExecutorManifest,
     } as unknown as TaskRepository;
     const agentRepository = {
-      findByIdentityId: vi.fn().mockResolvedValue({
-        identityId: callerId,
+      findById: vi.fn().mockResolvedValue({
+        id: callerId,
         publicKey: keys.publicKey,
       }),
     } as unknown as AgentRepository;
@@ -325,10 +325,10 @@ describe('registered executor manifests', () => {
       upsertExecutorManifestVerification: vi.fn().mockResolvedValue(undefined),
     } as unknown as TaskRepository;
     const agentRepository = {
-      findByIdentityId: vi.fn((identityId: string) =>
+      findById: vi.fn((agentId: string) =>
         Promise.resolve(
-          identityId === callerId
-            ? { identityId, publicKey: keys.publicKey }
+          agentId === callerId
+            ? { id: agentId, publicKey: keys.publicKey }
             : null,
         ),
       ),

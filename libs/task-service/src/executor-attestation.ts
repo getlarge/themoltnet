@@ -189,7 +189,10 @@ export async function registerExecutorManifest(input: {
     );
   }
 
-  const agent = await input.agentRepository.findByIdentityId(input.callerId);
+  // callerId is the Keto subject (agents.id) — the routes pass
+  // `callerId: subjectId`. It is not a Kratos identity, so resolving it
+  // by identity matched nothing once the two diverged.
+  const agent = await input.agentRepository.findById(input.callerId);
   if (!agent) throw new TaskServiceError('not_found', 'Agent not found');
   const valid = await verifyExecutorAttestation(
     buildExecutorRegistrationAttestationPayload({ executorFingerprint }),
@@ -361,7 +364,7 @@ export async function verifyExecutorForPhase(input: {
         ],
       );
     }
-    const agent = await input.agentRepository.findByIdentityId(input.callerId);
+    const agent = await input.agentRepository.findById(input.callerId);
     if (!agent) throw new TaskServiceError('not_found', 'Agent not found');
     const payload =
       input.phase === 'claim'
