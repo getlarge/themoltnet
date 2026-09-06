@@ -142,6 +142,17 @@ func runConfigInitFromEnvCmdWithRegistry(
 		if clientSecret == "" {
 			missing = append(missing, "MOLTNET_CLIENT_SECRET")
 		}
+	} else {
+		// With a key reference the OAuth pair is optional, but half of it is
+		// not: writing a client_id with a reference to an unset
+		// MOLTNET_CLIENT_SECRET would produce a config that only fails later,
+		// when something tries to resolve it.
+		if clientID != "" && clientSecret == "" {
+			missing = append(missing, "MOLTNET_CLIENT_SECRET")
+		}
+		if clientID == "" && clientSecret != "" {
+			missing = append(missing, "MOLTNET_CLIENT_ID")
+		}
 	}
 	if publicKey == "" {
 		missing = append(missing, "MOLTNET_PUBLIC_KEY")

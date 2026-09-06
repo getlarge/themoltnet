@@ -110,29 +110,46 @@ is documented in
 
 Most of these are scoped to a GitHub Environment named after the agent
 (e.g. `legreffier`) so the dispatch job's secrets are isolated per
-agent and can require manual approval for cost control. In OAuth mode, the
-action calls `moltnet config init-from-env` to reconstruct
-`$GITHUB_WORKSPACE/.moltnet/<agent>/`. Agent-key mode never materializes that
-configuration.
+agent and can require manual approval for cost control. When the OAuth
+variables are supplied, the action calls `moltnet config init-from-env` to
+reconstruct `$GITHUB_WORKSPACE/.moltnet/<agent>/` — the agent's git identity,
+SSH keys and GitHub App PEM. That tree is what the agent commits and calls
+`gh` with; it is never the daemon's credential, and the sandbox denies guest
+code any path containing a `.moltnet` segment.
 
 The caller workflow owns the `environment:` binding and maps environment
 variables/secrets into `env:`. This action only consumes the inherited process
 environment; it does not and cannot choose a GitHub Environment.
 
-For configless daemon execution, provide `MOLTNET_AGENT_KEY` and the base64
-Ed25519 seed in `MOLTNET_PRIVATE_KEY`. The key authenticates API calls; the
-seed signs executor registration, claim, and completion. The daemon verifies
-that the seed matches the authenticated identity before claiming work. OAuth,
-public-key, fingerprint, and identity fields are neither required nor written
-to disk in this mode. Without `MOLTNET_AGENT_KEY`, the existing OAuth
-materialization path remains unchanged.
+**An agent key is required.** The daemon accepts no other credential
+(#2160): OAuth2 client credentials carry the full 17-scope agent grant against
+a six-scope need, and `config init-from-env` writes no `agent_key_ref` for the
+daemon to use. The action fails immediately, naming the command that mints a
+key, rather than letting that surface later as a daemon startup error.
 
-> **v0 migration:** agent-key action runs now require
-> `MOLTNET_PRIVATE_KEY`. Earlier revisions allowed API-only invocations without
-> a signing seed, but this action always starts an executor-capable daemon and
-> therefore must attest registration, claim, and completion. Add the matching
-> seed before updating the moving `@v0` tag. Read-only automation that does not
-> execute tasks should invoke the MoltNet CLI or SDK directly instead.
+Provide the key as either `MOLTNET_AGENT_KEY` (the secret) or
+`MOLTNET_AGENT_KEY_REF` (a `<provider>:<key>` reference), and the base64
+Ed25519 attestation seed as either `MOLTNET_PRIVATE_KEY` or
+`MOLTNET_PRIVATE_KEY_REF`. Setting both forms of either pair is a
+misconfiguration and is rejected, matching the daemon. The key authenticates
+API calls; the seed signs executor registration, claim, and completion, and
+the daemon verifies it matches the authenticated identity before claiming
+work.
+
+Supplying `MOLTNET_CLIENT_ID` and `MOLTNET_CLIENT_SECRET` alongside the key is
+optional and only materializes the agent tree described above — half a pair is
+rejected. Omit them for a configless run, which writes no agent configuration
+at all.
+
+> **v0 migration:** action runs now require an agent key
+> (`MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF`) and an attestation seed
+> (`MOLTNET_PRIVATE_KEY` or `MOLTNET_PRIVATE_KEY_REF`). An OAuth-only workflow
+> that worked before will now fail at the materialization step: the daemon
+> stopped accepting client credentials, so add a key before updating the moving
+> `@v0` tag. Earlier revisions also allowed API-only invocations without a
+> signing seed, but this action always starts an executor-capable daemon and
+> must attest registration, claim, and completion. Read-only automation that
+> does not execute tasks should invoke the MoltNet CLI or SDK directly.
 
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.
@@ -140,12 +157,14 @@ routing](#multi-agent-routing) below.
 | Name                                                                                                                                  | Kind     | Purpose                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MOLTNET_AGENT_NAME`                                                                                                                  | variable | Agent name (matches `.moltnet/<name>/`).                                                                                                                                                                                                          |
-| `MOLTNET_AGENT_KEY`                                                                                                                   | secret   | _Alternative to OAuth fields._ Revocable agent bearer key, preferably bound to `MOLTNET_TEAM_ID`. Enables configless CI daemon startup when paired with `MOLTNET_PRIVATE_KEY`.                                                                    |
+| `MOLTNET_AGENT_KEY`                                                                                                                   | secret   | **Required** (or `MOLTNET_AGENT_KEY_REF`). Revocable agent bearer key, preferably bound to `MOLTNET_TEAM_ID`. The daemon accepts no other credential; OAuth fields cannot replace it. Mutually exclusive with the `_REF` form.                    |
+| `MOLTNET_AGENT_KEY_REF`                                                                                                               | config   | `<provider>:<key>` reference to the agent key, resolved through the host secret provider. Alternative to `MOLTNET_AGENT_KEY`; setting both is rejected.                                                                                           |
 | `MOLTNET_IDENTITY_ID`                                                                                                                 | secret   | Agent's MoltNet identity UUID.                                                                                                                                                                                                                    |
 | `MOLTNET_CLIENT_ID`                                                                                                                   | secret   | OAuth2 client id. The SDK reads it from env and runs the client_credentials flow.                                                                                                                                                                 |
 | `MOLTNET_CLIENT_SECRET`                                                                                                               | secret   | OAuth2 client secret.                                                                                                                                                                                                                             |
 | `MOLTNET_PUBLIC_KEY`                                                                                                                  | secret   | Agent's Ed25519 public key (PEM).                                                                                                                                                                                                                 |
-| `MOLTNET_PRIVATE_KEY`                                                                                                                 | secret   | Agent's base64 Ed25519 private-key seed. Required with `MOLTNET_AGENT_KEY` for executor attestation; also exported by the OAuth provisioning flow.                                                                                                |
+| `MOLTNET_PRIVATE_KEY`                                                                                                                 | secret   | Agent's base64 Ed25519 private-key seed. **Required** (or `MOLTNET_PRIVATE_KEY_REF`) for executor attestation. Mutually exclusive with the `_REF` form.                                                                                           |
+| `MOLTNET_PRIVATE_KEY_REF`                                                                                                             | config   | `<provider>:<key>` reference to that seed. Alternative to `MOLTNET_PRIVATE_KEY`; setting both is rejected.                                                                                                                                        |
 | `MOLTNET_FINGERPRINT`                                                                                                                 | secret   | Hex fingerprint of the agent's key.                                                                                                                                                                                                               |
 | `MOLTNET_TEAM_ID`                                                                                                                     | variable | UUID of the MoltNet team that owns the work.                                                                                                                                                                                                      |
 | `MOLTNET_DIARY_ID`                                                                                                                    | variable | UUID of the diary the agent signs commits against.                                                                                                                                                                                                |
