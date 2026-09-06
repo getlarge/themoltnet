@@ -32,6 +32,7 @@ describe('credentials / config', () => {
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'moltnet-test-'));
     mockedHomedir.mockReturnValue(tempDir);
+    vi.stubEnv('MOLTNET_ACTIVE_IDENTITY', 'test-agent');
   });
 
   afterEach(async () => {
@@ -40,7 +41,7 @@ describe('credentials / config', () => {
   });
 
   function configDir(): string {
-    return join(tempDir, '.config', 'moltnet');
+    return join(tempDir, '.config', 'moltnet', 'identities', 'test-agent');
   }
 
   const sampleConfig: MoltNetConfig = {
@@ -62,7 +63,7 @@ describe('credentials / config', () => {
   };
 
   describe('getConfigPath', () => {
-    it('returns path ending in moltnet.json', async () => {
+    it('returns the active central identity document path', async () => {
       const { getConfigPath } = await import('../src/credentials.js');
       const p = getConfigPath();
       expect(p).toMatch(/moltnet\.json$/);
@@ -136,6 +137,24 @@ describe('credentials / config', () => {
       const { readConfig } = await import('../src/credentials.js');
       const result = await readConfig();
       expect(result).toBeNull();
+    });
+
+    it('uses the persisted default when no active identity is set', async () => {
+      vi.stubEnv('MOLTNET_ACTIVE_IDENTITY', '');
+      const root = join(tempDir, '.config', 'moltnet');
+      const selected = join(root, 'identities', 'selected');
+      await mkdir(selected, { recursive: true });
+      await writeFile(
+        join(root, 'identity-selector.json'),
+        JSON.stringify({ version: 1, default_identity: 'selected' }),
+      );
+      await writeFile(
+        join(selected, 'moltnet.json'),
+        JSON.stringify(sampleConfig),
+      );
+
+      const { readConfig } = await import('../src/credentials.js');
+      expect((await readConfig())?.identity_id).toBe('uuid-123');
     });
   });
 

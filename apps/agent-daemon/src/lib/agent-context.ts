@@ -1,10 +1,11 @@
-import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
   type Agent,
+  assertIdentityAlias,
   AuthenticationError,
+  getIdentityDir,
   readConfig,
   type Whoami,
 } from '@themoltnet/sdk';
@@ -160,26 +161,37 @@ export async function validateStartupBinding(options: {
 /**
  * Resolve the agent's MoltNet credentials directory and connect via SDK.
  *
- * Looks under an explicit agent root first, then falls back to the git root
- * when available. Fails fast if the dir is missing — credentials are required,
- * the daemon never falls back to unauthenticated calls.
+ * The daemon selects the same central identity directory as the CLI. It never
+ * inspects a repository, Git state, or legacy agent bundle for credentials.
  */
 export async function resolveAgentContext(
   agentName: string,
   options: {
+    /**
+     * Explicit `--agent-root`. Honoured only when the operator actually passed
+     * it: `<root>/.moltnet/<agent>/moltnet.json` is then used instead of the
+     * central store. This is an explicit override, not the repository
+     * auto-discovery the central-store cutover removed — nothing is searched
+     * unless a path was named. Undefined means "central store only".
+     */
     agentRootDir?: string;
     authMode?: DaemonAuthMode;
   } = {},
 ): Promise<DaemonAgentContext> {
-  if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
-    throw new Error(
-      `Invalid agent name "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
-    );
-  }
-  const roots = resolveCredentialRoots(options.agentRootDir);
+  // One grammar, shared with the Go CLI and the daemon store. The previous
+  // inline pattern rejected `.` and had no length bound, so it both refused
+  // aliases the CLI creates and accepted names getIdentityDir then rejected
+  // with a raw "invalid identity alias".
+  assertIdentityAlias(agentName);
+  // agent-key is configless: the key comes from the environment, so the
+  // directory is only used for state and mounting and must NOT be gated on a
+  // moltnet.json that will never exist there.
+  const { agentDir, agentRootDir } = resolveIdentityLocation(
+    agentName,
+    options.agentRootDir,
+    { requireConfig: options.authMode !== 'agent-key' },
+  );
   if (options.authMode === 'agent-key') {
-    const rootDir = roots[0] ?? process.cwd();
-    const agentDir = join(rootDir, '.moltnet', agentName);
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
     // reference can be resolved.
@@ -188,7 +200,7 @@ export async function resolveAgentContext(
     });
     return {
       agentDir,
-      agentRootDir: rootDir,
+      agentRootDir,
       agent,
       credentialSource: 'environment',
       authMechanism: 'agent-key',
@@ -198,29 +210,53 @@ export async function resolveAgentContext(
   // OAuth2: the host needs `moltnet.json` to build its own Agent. Reading it on
   // the host never implies projecting it into the guest — the guest receives no
   // MoltNet credential material.
-  const located = locateAgentConfig(roots, agentName);
-  if (located) {
-    const agent = await connect({
-      configDir: located.agentDir,
-      secretProviders: createNodeSecretProviderRegistry(),
-    });
-    // connect() prefers a configured agent_key_ref over OAuth2; report the
-    // mechanism it actually used so diagnostics and telemetry agree.
-    const config = await readConfig(located.agentDir);
-    return {
-      agentDir: located.agentDir,
-      agentRootDir: located.rootDir,
-      agent,
-      credentialSource: 'config',
-      authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
-    };
-  }
+  const agent = await connect({
+    configDir: agentDir,
+    secretProviders: createNodeSecretProviderRegistry(),
+  });
+  // connect() prefers a configured agent_key_ref over OAuth2; report the
+  // mechanism it actually used so diagnostics and telemetry agree.
+  const config = await readConfig(agentDir);
+  return {
+    agentDir,
+    agentRootDir,
+    agent,
+    credentialSource: 'config',
+    authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
+  };
+}
 
-  const tried = roots.map((root) => join(root, '.moltnet', agentName));
-  throw new Error(
-    `Missing credentials for ${agentName}. ` +
-      `Checked ${tried.join(', ')}. Run the agent onboarding flow first.`,
-  );
+/**
+ * The central identity directory, unless an explicit `--agent-root` names a
+ * legacy bundle that actually exists.
+ *
+ * The flag is documented as "Directory that owns .moltnet/<agent>" and is still
+ * accepted by `once`, `poll` and `sync-sessions`. Ignoring it silently sent
+ * every caller that passes one — sandboxed runs, the e2e harness — to a
+ * central store they never populated, and failed with a bare "No credentials
+ * found".
+ */
+/**
+ * `agentDir` is where credentials live; `agentRootDir` is the directory that
+ * OWNS it and is mounted into the sandbox. They differ for a legacy bundle
+ * (`<root>/.moltnet/<agent>` inside `<root>`) and coincide for a central
+ * identity, which owns nothing above itself. Collapsing them mounted the
+ * credentials directory itself into the guest.
+ */
+function resolveIdentityLocation(
+  agentName: string,
+  explicitRootDir: string | undefined,
+  { requireConfig }: { requireConfig: boolean },
+): { agentDir: string; agentRootDir: string } {
+  const root = explicitRootDir?.trim();
+  if (root) {
+    const bundle = join(root, '.moltnet', agentName);
+    if (!requireConfig || existsSync(join(bundle, 'moltnet.json'))) {
+      return { agentDir: bundle, agentRootDir: root };
+    }
+  }
+  const central = getIdentityDir(agentName);
+  return { agentDir: central, agentRootDir: central };
 }
 
 function isTransientWhoamiError(error: unknown): boolean {
@@ -231,30 +267,4 @@ function isTransientWhoamiError(error: unknown): boolean {
     typeof statusCode === 'number' &&
     (statusCode === 408 || statusCode === 429 || statusCode >= 500)
   );
-}
-
-function locateAgentConfig(
-  roots: readonly string[],
-  agentName: string,
-): { rootDir: string; agentDir: string } | undefined {
-  for (const rootDir of roots) {
-    const agentDir = join(rootDir, '.moltnet', agentName);
-    if (existsSync(join(agentDir, 'moltnet.json')))
-      return { rootDir, agentDir };
-  }
-  return undefined;
-}
-
-function resolveCredentialRoots(agentRootDir?: string): string[] {
-  const roots = agentRootDir ? [agentRootDir] : [];
-  try {
-    const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-      encoding: 'utf8',
-      stdio: 'pipe',
-    }).trim();
-    if (!roots.includes(gitRoot)) roots.push(gitRoot);
-  } catch {
-    // Repo-free daemon runs are valid as long as the explicit root has creds.
-  }
-  return roots;
 }

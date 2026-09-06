@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { toSSHPrivateKey, toSSHPublicKey } from '@moltnet/crypto-service/ssh';
 
 import {
-  getConfigDir,
   getConfigPath,
   readConfig,
+  resolveConfigDir,
   updateConfigSection,
 } from './config.js';
 
@@ -22,10 +22,20 @@ export async function exportSSHKey(opts?: {
   outputDir?: string;
   privateKey?: string;
 }): Promise<{ privatePath: string; publicPath: string }> {
-  const config = await readConfig(opts?.configDir);
+  // Resolve the directory first: without it there is nowhere to read from or
+  // write derived artifacts to, and the two failures need different remedies.
+  const configDir = await resolveConfigDir(opts?.configDir);
+  if (!configDir) {
+    throw new Error(
+      'No active identity selected. Select one with `moltnet config identity ' +
+        'select <alias>`, set MOLTNET_ACTIVE_IDENTITY, or register with ' +
+        '`moltnet register`.',
+    );
+  }
+  const config = await readConfig(configDir);
   if (!config) {
     throw new Error(
-      `No config found at ${getConfigPath(opts?.configDir)} — run \`moltnet register\` first`,
+      `No config found at ${getConfigPath(configDir)} — run \`moltnet register\` first`,
     );
   }
   const seed =
@@ -39,9 +49,8 @@ export async function exportSSHKey(opts?: {
 
   const privateKeySSH = toSSHPrivateKey(seed);
   const publicKeySSH = toSSHPublicKey(config.keys.public_key);
-  const outputDir =
-    opts?.outputDir ?? join(opts?.configDir ?? getConfigDir(), 'ssh');
-  await mkdir(outputDir, { recursive: true });
+  const outputDir = opts?.outputDir ?? join(configDir, 'ssh');
+  await mkdir(outputDir, { recursive: true, mode: 0o700 });
 
   const privatePath = join(outputDir, 'id_ed25519');
   const publicPath = join(outputDir, 'id_ed25519.pub');
@@ -50,7 +59,7 @@ export async function exportSSHKey(opts?: {
   await updateConfigSection(
     'ssh',
     { private_key_path: privatePath, public_key_path: publicPath },
-    opts?.configDir,
+    configDir,
   );
   return { privatePath, publicPath };
 }
