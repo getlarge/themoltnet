@@ -121,7 +121,9 @@ func TestNoActiveIdentityErrorBranchesOnStoreContents(t *testing.T) {
 	for _, want := range []string{
 		"MOLTNET_ACTIVE_IDENTITY",
 		"identity-selector.json",
-		"config migrate --credentials",
+		// The supported legacy layouts, named rather than gestured at.
+		".moltnet/<alias>/moltnet.json",
+		"agents/<alias>.json",
 		"moltnet register",
 	} {
 		if !strings.Contains(empty, want) {

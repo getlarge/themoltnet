@@ -168,9 +168,16 @@ func noActiveIdentityError() error {
 		b.WriteString(strings.Join(aliases, ", "))
 		b.WriteString("\nSelect one with: moltnet config identity select <alias>")
 	default:
+		// Name the layouts migration actually supports. "an existing bundle"
+		// left the reader guessing which of several historical shapes was
+		// meant, and the alias is inferred from both of these, so --name is
+		// not part of the common path.
 		b.WriteString("No identities exist yet in the central store.\n")
-		b.WriteString("If you are upgrading, migrate an existing bundle with:\n")
-		b.WriteString("  moltnet config migrate --credentials <path-to-moltnet.json>\n")
+		b.WriteString("If you are upgrading, relocate a repository bundle:\n")
+		b.WriteString("  moltnet config migrate --credentials <repo>/.moltnet/<alias>/moltnet.json\n")
+		b.WriteString("or an agent-daemon document:\n")
+		b.WriteString("  moltnet config migrate --credentials <root>/agents/<alias>.json\n")
+		b.WriteString("The alias is taken from the path in both cases.\n")
 		b.WriteString("Otherwise create one with: moltnet register")
 	}
 	return fmt.Errorf("%s", b.String())
