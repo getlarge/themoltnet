@@ -129,6 +129,7 @@ into the --destination provider (default os-keyring); pass the same
 			credPath, _ := cmd.Flags().GetString("credentials")
 			return runConfigMigrateCmd(
 				cmd.OutOrStdout(),
+				cmd.ErrOrStderr(),
 				credPath,
 				migrateGeneratePath,
 				migrateRunPath,

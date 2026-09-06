@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -67,7 +66,7 @@ func newConfigMigrationEngine(migrations []configMigration, destination string) 
 	}
 }
 
-func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destination string, dryRun bool, names ...string) error {
+func runConfigMigrateCmd(w, errOut io.Writer, credPath, generatePath, runPath, destination string, dryRun bool, names ...string) error {
 	name := ""
 	if len(names) > 0 {
 		name = names[0]
@@ -85,10 +84,15 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 		// Relocation is silent otherwise, so `--destination file` or a
 		// generated plan reports a successful migration while the identity
 		// stays where it was.
-		fmt.Fprintf(os.Stderr,
-			"note: central identity relocation skipped (it runs only with the default "+
-				"destination and without --generate/--run); run 'moltnet config migrate "+
-				"--credentials %s' on its own to relocate.\n", credPath)
+		// Advisory, so it follows the same discipline as the pending-migration
+		// notice: the command's own error stream, and only for a human at a
+		// terminal. A raw os.Stderr write would surface in a script's 2>&1.
+		if isTerminalWriter(errOut) {
+			fmt.Fprintf(errOut,
+				"note: central identity relocation skipped (it runs only with the default "+
+					"destination and without --generate/--run); run 'moltnet config migrate "+
+					"--credentials %s' on its own to relocate.\n", credPath)
+		}
 	}
 	if relocatable && destination == defaultMigrationDestination && generatePath == "" && runPath == "" {
 		credentialsPath, pathErr := absolutePath(credPath)
@@ -108,10 +112,12 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 				return nil
 			}
 			// The secret migration below writes the command's single parseable
-			// result to stdout. Relocation is progress, not a second result:
+			// result to stdout. Relocation is an outcome, not a second result:
 			// emitting both left automation parsing two concatenated JSON
-			// documents.
-			if err := printJSONTo(os.Stderr, migrated); err != nil {
+			// documents. It goes to the command's error stream — deliberately
+			// NOT terminal-gated, unlike the advisory above, because a script
+			// still needs to know the identity moved.
+			if err := printJSONTo(errOut, migrated); err != nil {
 				return err
 			}
 			// Relocation and secret hardening are orthogonal, and an operator
