@@ -19,29 +19,35 @@ import (
 // Version 5 moves activation state into the selected central identity. Older
 // repository-bound cache files deliberately fail validation rather than being
 // discovered or reused.
-const activationCacheVersion = 5
+const activationCacheVersion = 6
 
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
 type activationCache struct {
-	Version              int                             `json:"version"`
-	AgentName            string                          `json:"agentName"`
-	Fingerprint          string                          `json:"fingerprint"`
-	DiaryID              string                          `json:"diaryId,omitempty"`
-	TeamID               string                          `json:"teamId,omitempty"`
-	GitConfigGlobal      string                          `json:"gitConfigGlobal"`
-	CredentialsPath      string                          `json:"credentialsPath"`
-	AuthorshipMode       string                          `json:"authorshipMode"`
-	AuthorshipConfigured bool                            `json:"authorshipConfigured"`
-	HumanGitIdentity     string                          `json:"humanGitIdentity,omitempty"`
-	AgentEmail           string                          `json:"agentEmail"`
-	GitHubAppConfigured  bool                            `json:"githubAppConfigured"`
-	CredentialProvider   string                          `json:"credentialProvider"`
-	CredentialProviders  map[string]string               `json:"credentialProviders"`
-	CredentialStatus     string                          `json:"credentialStatus"`
-	RegisteredAt         string                          `json:"registeredAt,omitempty"`
-	Inputs               map[string]activationCacheInput `json:"inputs"`
-	CreatedAt            string                          `json:"createdAt"`
+	Version              int               `json:"version"`
+	AgentName            string            `json:"agentName"`
+	Fingerprint          string            `json:"fingerprint"`
+	DiaryID              string            `json:"diaryId,omitempty"`
+	TeamID               string            `json:"teamId,omitempty"`
+	GitConfigGlobal      string            `json:"gitConfigGlobal"`
+	CredentialsPath      string            `json:"credentialsPath"`
+	AuthorshipMode       string            `json:"authorshipMode"`
+	AuthorshipConfigured bool              `json:"authorshipConfigured"`
+	HumanGitIdentity     string            `json:"humanGitIdentity,omitempty"`
+	AgentEmail           string            `json:"agentEmail"`
+	GitHubAppConfigured  bool              `json:"githubAppConfigured"`
+	CredentialProvider   string            `json:"credentialProvider"`
+	CredentialProviders  map[string]string `json:"credentialProviders"`
+	CredentialStatus     string            `json:"credentialStatus"`
+	RegisteredAt         string            `json:"registeredAt,omitempty"`
+	// IdentityVerifiedAt records when the pinned metadata below was last
+	// confirmed against the server. Warm validation is offline by contract, so
+	// it trusts this pin plus the input hashes rather than re-asking.
+	IdentityVerifiedAt string                          `json:"identityVerifiedAt"`
+	VerifiedIdentityID string                          `json:"verifiedIdentityId"`
+	VerifiedPublicKey  string                          `json:"verifiedPublicKey"`
+	Inputs             map[string]activationCacheInput `json:"inputs"`
+	CreatedAt          string                          `json:"createdAt"`
 }
 
 type activationCacheInput struct {
@@ -194,9 +200,26 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if creds.OAuth2.ClientSecretRef != nil {
 		credentialStatus = "configured"
 	}
-	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
-	if fingerprint == "" {
-		return nil, fmt.Errorf("missing fingerprint in env or moltnet.json")
+	// The server, not the local document, decides which identity this
+	// credential is. Refresh is the cold path and may use the network; warm
+	// `validate` stays offline and trusts what this pins.
+	verified, err := verifyIdentityAgainstServer(
+		resolveAPIURLFromCredentials("", false, creds),
+		credentialsPath,
+		creds,
+	)
+	if err != nil {
+		return nil, err
+	}
+	// Prefer the verified fingerprint over the env file's copy. A stale
+	// MOLTNET_FINGERPRINT would otherwise be pinned as though it were checked.
+	fingerprint := verified.Fingerprint
+	if envFingerprint := strings.TrimSpace(ctx.EnvVars["MOLTNET_FINGERPRINT"]); envFingerprint != "" &&
+		envFingerprint != fingerprint {
+		return nil, fmt.Errorf(
+			"MOLTNET_FINGERPRINT in %s is %s, but the server reports %s for this credential",
+			ctx.EnvPath, envFingerprint, fingerprint,
+		)
 	}
 
 	inputs := map[string]activationCacheInput{}
@@ -235,6 +258,9 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		CredentialProviders:  credentialProviders,
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,
+		IdentityVerifiedAt:   now,
+		VerifiedIdentityID:   verified.IdentityID,
+		VerifiedPublicKey:    verified.PublicKey,
 		Inputs:               inputs,
 		CreatedAt:            now,
 	}, nil
