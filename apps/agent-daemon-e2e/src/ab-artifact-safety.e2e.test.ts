@@ -140,6 +140,9 @@ describeAb(
         agent,
         agentRoot,
         agentName,
+        // Same value until #2163 splits agents.id from identity_id; passed
+        // separately so that rebase has to choose one for each.
+        agentId: creds.identityId,
         identityId: creds.identityId,
         teamId,
         apiUrl: harness.restApiUrl,

@@ -111,6 +111,24 @@ export async function provisionDaemonCredentials(input: {
   agent: Agent;
   agentRoot: string;
   agentName: string;
+  /**
+   * The agent the key is issued *for* — what `agentKeys.create`'s `agentId`
+   * is matched against.
+   *
+   * Deliberately separate from `identityId` even though the two hold the same
+   * value today. #2163 makes `agents.id` an internal identifier distinct from
+   * the Kratos `identity_id`, and this one follows `agents.id` while
+   * `identityId` below does not. Both are `uuid`, so collapsing them into one
+   * field would let that rebase pass a Kratos identity here and still
+   * typecheck — the failure mode #2163 documents as having hidden every one
+   * of its own bugs.
+   */
+  agentId: string;
+  /**
+   * The agent's Ory Kratos identity. Anchors the keyring entry
+   * (`agent-key/<identity_id>`) and `moltnet.json`'s `identity_id`, both of
+   * which #2163 explicitly leaves on `identity_id` pending its own migration.
+   */
   identityId: string;
   teamId: string;
   publicKey: string;
@@ -120,7 +138,7 @@ export async function provisionDaemonCredentials(input: {
 }): Promise<WrittenAgentCredentials> {
   const issued = await input.agent.agentKeys.create(
     {
-      agentId: input.identityId,
+      agentId: input.agentId,
       name: `${input.agentName}-daemon-${randomUUID().slice(0, 8)}`,
       scopes: [...AGENT_CREDENTIAL_SCOPES],
       ttlDays: 1,
