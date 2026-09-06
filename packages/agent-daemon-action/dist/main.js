@@ -30268,7 +30268,14 @@ var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
 var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
-[
+/**
+* REST capabilities exercised by the current MCP tool surface.
+*
+* Intentionally excludes connector invocation, key management, runtime
+* management/read, and task claiming because MCP exposes none of those
+* operations.
+*/
+var MCP_CLIENT_SCOPES = [
 	CREDENTIAL_SCOPES.AgentProfile,
 	CREDENTIAL_SCOPES.CryptoSign,
 	CREDENTIAL_SCOPES.DiaryManage,
@@ -30282,7 +30289,13 @@ var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => s
 	CREDENTIAL_SCOPES.TaskRead,
 	CREDENTIAL_SCOPES.TeamManage,
 	CREDENTIAL_SCOPES.TeamRead
-].filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile);
+];
+MCP_CLIENT_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile);
+Object.freeze([...[
+	"openid",
+	"offline",
+	"offline_access"
+], ...MCP_CLIENT_SCOPES]);
 //#endregion
 //#region ../../libs/models/src/preview-sign.ts
 function schemaRef$1(schema, id) {
