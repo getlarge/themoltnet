@@ -38,6 +38,7 @@ func clearMoltnetEnv(t *testing.T) {
 		"MOLTNET_ACTIVE_IDENTITY",
 		"MOLTNET_GIT_NAME",
 		"MOLTNET_GIT_EMAIL",
+		agentKeyRefEnv,
 	} {
 		t.Setenv(key, "")
 	}
@@ -801,5 +802,109 @@ func TestWriteAgentEnvFileKeepsCentralAppKeyPathAbsolute(t *testing.T) {
 	}
 	if strings.Contains(content, ".moltnet/test-agent") {
 		t.Fatalf("env file carries a repo-relative rewrite:\n%s", content)
+	}
+}
+
+// An agent authenticating with a key should not have to supply OAuth2 client
+// credentials just to obtain its git, SSH and GitHub App assets — none of
+// which derive from the OAuth pair (#2160).
+func TestConfigInitFromEnvAcceptsAgentKeyRefWithoutOAuth(t *testing.T) {
+	// Arrange
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
+
+	// Act
+	root := NewRootCmd("test", "")
+	if _, _, err := executeCommand(root, "config", "init-from-env",
+		"--name", "keyed-agent", "--skip-git"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Assert
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "keyed-agent", "moltnet.json")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var config CredentialsFile
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("parse config: %v", err)
+	}
+	if config.AgentKeyRef == nil {
+		t.Fatalf("expected agent_key_ref to be written, got %#v", config)
+	}
+	if config.AgentKeyRef.Provider != osKeyringProviderName ||
+		config.AgentKeyRef.Key != AgentKeyKey("identity-1") {
+		t.Errorf("unexpected agent_key_ref: %#v", config.AgentKeyRef)
+	}
+	// No OAuth pair was supplied, so none may be invented.
+	if config.OAuth2.ClientID != "" || config.OAuth2.ClientSecretRef != nil {
+		t.Errorf("expected no oauth2 section, got %#v", config.OAuth2)
+	}
+	// The identity material still lands: it is what git and SSH derive from.
+	if config.Keys.Fingerprint != "SHA256:testfingerprint" {
+		t.Errorf("expected keys section to be written, got %#v", config.Keys)
+	}
+}
+
+func TestConfigInitFromEnvRejectsForeignAgentKeyRef(t *testing.T) {
+	// Arrange: a reference bound to a different identity must not be written.
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("someone-else"))
+
+	// Act
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--name", "keyed-agent", "--skip-git")
+
+	// Assert: refused, and nothing partial left behind.
+	if err == nil {
+		t.Fatal("expected a binding error for a foreign agent_key_ref")
+	}
+	if !strings.Contains(err.Error(), agentKeyRefEnv) {
+		t.Errorf("error should name %s, got: %v", agentKeyRefEnv, err)
+	}
+	if _, statErr := os.Stat(filepath.Join(tmpDir, ".config", "moltnet", "identities", "keyed-agent", "moltnet.json")); statErr == nil {
+		t.Error("config must not be written when the reference is rejected")
+	}
+}
+
+func TestConfigInitFromEnvStillRequiresOAuthWithoutAgentKeyRef(t *testing.T) {
+	// Arrange
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
+
+	// Act
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--name", "oauth-agent", "--skip-git")
+
+	// Assert: the OAuth pair is only optional when a key ref replaces it, and
+	// the error points at that alternative.
+	if err == nil {
+		t.Fatal("expected missing-env error without OAuth credentials or a key ref")
+	}
+	if !strings.Contains(err.Error(), "MOLTNET_CLIENT_ID") {
+		t.Errorf("expected MOLTNET_CLIENT_ID in error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), agentKeyRefEnv) {
+		t.Errorf("error should offer %s as the alternative, got: %v", agentKeyRefEnv, err)
 	}
 }
