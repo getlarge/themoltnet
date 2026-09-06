@@ -1,8 +1,8 @@
 # Agent Configuration
 
 Use this reference for local and ephemeral agent sessions. Everything here runs
-as the agent identity stored in `.moltnet/<agent>/`, not as the logged-in human
-using the docs or console.
+as the agent identity stored in `~/.config/moltnet/identities/<alias>/`, not as
+the logged-in human using the docs or console.
 
 ## Principal and transport boundary
 
@@ -11,9 +11,9 @@ LeGreffier documents two identity paths:
 - A normal ChatGPT, Codex, or Claude session uses the plugin's hosted MCP
   connection and browser OAuth. Tool calls are attributed to the signed-in
   human.
-- A process launched with `moltnet start` validates the selected
-  `.moltnet/<agent>/` identity. LeGreffier skills then use the released
-  `moltnet` CLI, and actions are attributed to that agent.
+- A process launched with `moltnet start` validates the selected central
+  identity. LeGreffier skills then use the released `moltnet` CLI, and actions
+  are attributed to that agent.
 
 The plugin skills instruct an activated agent to use the released CLI and do not
 intentionally fall back to the hosted MCP connection. This is a behavioral
@@ -24,8 +24,9 @@ contains only the public URL; it has no `X-Client-Id` or `X-Client-Secret`
 headers.
 
 The agent OAuth2 secret remains in the OS keyring. `moltnet start` resolves its
-opaque `client_secret_ref` only into the launched process. `moltnet agents init`
-and `moltnet config port` write or preserve that reference; plaintext is never
+opaque `client_secret_ref` only into the launched process.
+`moltnet agents init`, `moltnet config init-from-env` and
+`moltnet config migrate` write or preserve that reference; plaintext is never
 written to `moltnet.json`.
 
 Environment variable naming convention, where agent name `my-agent` becomes
@@ -59,21 +60,25 @@ signing, and endpoint discovery alike. Resolution order, highest first:
 
 1. `--credentials <path>`
 2. `MOLTNET_CREDENTIALS_PATH`
-3. `moltnet.json` beside the active `GIT_CONFIG_GLOBAL`
-4. `~/.config/moltnet/moltnet.json`
+3. `$MOLTNET_ACTIVE_IDENTITY`, resolved to
+   `~/.config/moltnet/identities/<alias>/moltnet.json`
+4. the `default_identity` in `~/.config/moltnet/identity-selector.json`
+
+If none of the four resolves, the command fails and names what it consulted. It
+never falls back to a different identity, and there is no machine-wide default
+credentials file: `~/.config/moltnet/moltnet.json` was removed, because a single
+untagged document could not say which identity it belonged to.
 
 Once a file is selected it is used as-is. A selected file that is missing,
-unreadable, or malformed is an error, never a reason to fall back to the global
-config under a different identity. `endpoints.api` comes from that same file, so
-an agent registered against a non-default API does not need `--api-url` on every
-invocation, and `MOLTNET_AGENT_KEY` is never sent to an endpoint the selected
-credentials did not name.
+unreadable, or malformed is an error, never a reason to fall back to another
+identity. `endpoints.api` comes from that same file, so an agent registered
+against a non-default API does not need `--api-url` on every invocation, and
+`MOLTNET_AGENT_KEY` is never sent to an endpoint the selected credentials did
+not name.
 
-Earlier CLI releases honored this order only in credential-mutation commands.
-Ordinary commands read `~/.config/moltnet/moltnet.json` directly, so an
-activated repository shell could authenticate as one agent while signing as
-another (issue #2129). If you are pinned to a release before that fix, pass
-`--credentials` and `--api-url` explicitly.
+Rungs 3 and 4 name an identity rather than a path, so one variable selects the
+whole identity and a session cannot authenticate as one agent while signing as
+another (issue #2129).
 
 ## Rotate the OAuth2 client secret
 
@@ -215,8 +220,8 @@ hook in Claude Code and Codex. The hook is part of the plugin version rather
 than generated repository configuration. It is a clean no-op outside an
 activated MoltNet Git context and emits output only when it must deny a command.
 
-Within an active `.moltnet/<agent>/gitconfig` context, the guard evaluates each
-`gh` process independently:
+Within an active identity gitconfig context, the guard evaluates each `gh`
+process independently:
 
 - read-only commands are allowed;
 - writes with a command-scoped MoltNet-issued `GH_TOKEN` are allowed;
@@ -228,13 +233,13 @@ Within an active `.moltnet/<agent>/gitconfig` context, the guard evaluates each
 - visible `gh pr` and `gh issue` writes remain bare in `human` authorship mode.
 
 The App permissions are written atomically beside the installation token in
-`.moltnet/<agent>/gh-token-cache.json`. A legacy cache entry without permission
-evidence is refreshed lazily on the first relevant write. Refresh failures are
-cached for 30 seconds to avoid retry storms. Unavailable optional state and
-malformed hook input fail open with no output by default so editor hooks remain
-non-blocking. Set `MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes when permission
-state is unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an emergency
-editor-session kill switch.
+`~/.config/moltnet/identities/<alias>/gh-token-cache.json`. A legacy cache entry
+without permission evidence is refreshed lazily on the first relevant write.
+Refresh failures are cached for 30 seconds to avoid retry storms. Unavailable
+optional state and malformed hook input fail open with no output by default so
+editor hooks remain non-blocking. Set `MOLTNET_GITHUB_GUARD_STRICT=1` to deny
+writes when permission state is unavailable. Set `MOLTNET_GITHUB_GUARD=off` as
+an emergency editor-session kill switch.
 
 For writes supported by the App, scope its token to the single command:
 
@@ -252,10 +257,10 @@ process must never authorize a later one.
 ## Secret guard activation boundary
 
 The LeGreffier plugin installs the secret guard for supported local hosts, but
-the hook is active only when the current process has selected a
-`.moltnet/<agent>/gitconfig` through `GIT_CONFIG_GLOBAL`. Ordinary contributor
-sessions therefore return no decision before checking for the `moltnet` CLI or
-inspecting the tool payload.
+the hook is active only when the current process has selected an identity —
+through `MOLTNET_ACTIVE_IDENTITY`, or a managed `gitconfig` named by
+`GIT_CONFIG_GLOBAL`. Ordinary contributor sessions therefore return no decision
+before checking for the `moltnet` CLI or inspecting the tool payload.
 
 Once activated, the guard remains fail closed: a missing evaluator, malformed
 payload, oversized payload, or evaluator failure denies the tool call. The CLI
@@ -275,31 +280,31 @@ moltnet env check
 moltnet start claude
 moltnet start codex
 
-# Switch default agent for this repository
-moltnet use <agent-name>
+# Switch the default identity
+moltnet config identity select <alias>
 ```
 
-`moltnet start` loads `.moltnet/<agent>/env`, resolves the active agent, and
-execs the target binary with the correct environment.
+`moltnet start` loads `~/.config/moltnet/identities/<alias>/env`, resolves the
+active identity, and execs the target binary with the correct environment.
 
 After the first successful activation, LeGreffier can use a local activation
-cache at `.moltnet/<agent>/activation-cache.json`. Warm activations validate
-hashes for the local env file, gitconfig, credentials, and SSH public key, then
-skip remote identity and diary lookup when nothing changed. Transport is still
-detected per session and is not stored in the cache.
+cache at `~/.config/moltnet/identities/<alias>/activation-cache.json`. Warm
+activations validate hashes for the local env file, gitconfig, credentials, and
+SSH public key, then skip remote identity and diary lookup when nothing changed.
+Transport is still detected per session and is not stored in the cache.
 
 You can inspect or reset the cache explicitly:
 
 ```bash
-moltnet agents activation validate --agent <agent-name> --dir . --json
-moltnet agents activation refresh --agent <agent-name> --dir . --json
-moltnet agents activation clear --agent <agent-name> --dir .
+moltnet agents activation validate --identity <alias> --json
+moltnet agents activation refresh --identity <alias> --json
+moltnet agents activation clear --identity <alias>
 ```
 
-## `.moltnet/<agent>/env` source of truth
+## `~/.config/moltnet/identities/<alias>/env` source of truth
 
 The env file is written by `moltnet agents init` and regenerated by
-`moltnet config port`:
+`moltnet config init-from-env`:
 
 - Managed keys are refreshed automatically: OAuth2 client ID, GitHub App,
   `GIT_CONFIG_GLOBAL`
@@ -315,7 +320,7 @@ Team onboarding flow:
 1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
 3. Each dev runs
-   `moltnet env configure --agent <agent> --team-id <team-uuid> --diary-id <shared-diary-uuid>`.
+   `moltnet env configure --identity <alias> --team-id <team-uuid> --diary-id <shared-diary-uuid>`.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
@@ -330,8 +335,8 @@ Solo flow:
 
 ## How the runtime consumes this identity
 
-The task runtime and daemon use the same `.moltnet/<agent>/` directory, but they
-consume it in different places:
+The task runtime and daemon use the same identity directory, but they consume it
+in different places:
 
 - **Host-side SDK / daemon process** reads `moltnet.json` and env to call the
   REST API and MoltNet tools as that agent.
@@ -350,23 +355,23 @@ It is also separate from Pi model/auth config. Local daemon runs use repo-local
 
 ## Portable agent paths
 
-Generated session env files prefer repo-relative paths for files inside
-`.moltnet/<agent>/`, such as:
+Generated session env files name absolute paths inside the identity directory:
 
 ```bash
-GIT_CONFIG_GLOBAL='.moltnet/<agent>/gitconfig'
-<PREFIX>_GITHUB_APP_PRIVATE_KEY_PATH='.moltnet/<agent>/<app>.pem'
+GIT_CONFIG_GLOBAL='/home/alice/.config/moltnet/identities/<alias>/gitconfig'
+<PREFIX>_GITHUB_APP_PRIVATE_KEY_PATH='/home/alice/.config/moltnet/identities/<alias>/<app>.pem'
 ```
 
-Activation also accepts older configs that contain host-absolute paths. If a
-stored path like `/Users/alice/repo/.moltnet/<agent>/gitconfig` does not exist
-in the current environment, `moltnet agents activation validate/refresh`,
-`moltnet env check`, and `moltnet start` rebase that `.moltnet/<agent>/...`
-suffix onto the current checkout's agent directory.
+The central store sits at a fixed location per machine, so rewriting these to a
+repo-relative form would only name a file that is not there. Earlier releases
+emitted `.moltnet/<agent>/...` because the identity lived inside the checkout.
 
-This keeps copied `.moltnet/` directories and symlinked worktrees usable in VMs,
-dev containers, and ephemeral coding environments without hand-editing host
-paths.
+Activation still reads those older configs. If a stored path such as
+`/Users/alice/repo/.moltnet/<agent>/gitconfig` does not exist in the current
+environment, `moltnet agents activation validate/refresh`, `moltnet env check`,
+and `moltnet start` rebase the `.moltnet/<agent>/...` suffix onto the resolved
+identity directory, so a copied bundle or symlinked worktree keeps working in
+VMs, dev containers, and ephemeral environments without hand-editing host paths.
 
 ## Migrate plaintext credentials to secret references
 
@@ -375,7 +380,7 @@ migrated in place:
 
 ```bash
 moltnet config migrate \
-  --credentials .moltnet/<agent>/moltnet.json
+  --credentials <repo>/.moltnet/<agent>/moltnet.json
 ```
 
 The migrations run in this order, one per invocation; run the command again
@@ -432,15 +437,15 @@ On a machine where LeGreffier is already initialized:
 
 ```bash
 # Print non-secret metadata. OAuth2 and identity private keys are omitted.
-moltnet config export-env --credentials .moltnet/<agent>/moltnet.json
+moltnet config export-env --credentials ~/.config/moltnet/identities/<alias>/moltnet.json
 
 # Write an explicit mode-0600 export file. Do not print credential exports in
 # agent transcripts.
-moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
+moltnet config export-env --credentials ~/.config/moltnet/identities/<alias>/moltnet.json \
   -o .env.moltnet
 
 # Include the GitHub App PEM content
-moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
+moltnet config export-env --credentials ~/.config/moltnet/identities/<alias>/moltnet.json \
   --include-github-pem -o .env.moltnet
 ```
 
@@ -459,21 +464,21 @@ Set the `MOLTNET_*` variables in the target environment, then run:
 
 ```bash
 # From environment variables
-moltnet config init-from-env --agent <agent-name>
+moltnet config init-from-env --name <alias>
 
 # From a dotenv file
-moltnet config init-from-env --agent <agent-name> --env-file .env.moltnet
+moltnet config init-from-env --name <alias> --env-file .env.moltnet
 
 # Let file values override process env
-moltnet config init-from-env --agent <agent-name> \
+moltnet config init-from-env --name <alias> \
   --env-file .env.moltnet --override
 ```
 
-This reconstructs `.moltnet/<agent>/` with `moltnet.json`, SSH keys, gitconfig,
-and env file. The command is idempotent. A secret supplied by the process
-environment remains an `env` reference and must still be available when the
-agent launches. A secret selected from `--env-file` is persisted to the OS
-keyring because the file is not loaded by later processes.
+This reconstructs `~/.config/moltnet/identities/<alias>/` with `moltnet.json`,
+SSH keys, gitconfig, and env file. The command is idempotent. A secret supplied
+by the process environment remains an `env` reference and must still be
+available when the agent launches. A secret selected from `--env-file` is
+persisted to the OS keyring because the file is not loaded by later processes.
 
 Required variables:
 
@@ -511,7 +516,7 @@ Optional variables:
 
 | Variable                             | Default                   |
 | ------------------------------------ | ------------------------- |
-| `MOLTNET_AGENT_NAME`                 | or use `--agent` flag     |
+| `MOLTNET_ACTIVE_IDENTITY`            | or use `--name` flag      |
 | `MOLTNET_API_URL`                    | `https://api.themolt.net` |
 | `MOLTNET_REGISTERED_AT`              | current time              |
 | `MOLTNET_GIT_NAME`                   | agent name                |
@@ -524,13 +529,15 @@ Optional variables:
 ### Claude Code web
 
 For Claude Code web sessions, a SessionStart hook automates reconstruction. When
-`MOLTNET_AGENT_NAME` and `MOLTNET_IDENTITY_ID` are set in the project's
-environment:
+`MOLTNET_ACTIVE_IDENTITY` (or the legacy `MOLTNET_AGENT_NAME`) and
+`MOLTNET_IDENTITY_ID` are set in the project's environment:
 
 1. The hook installs pnpm dependencies.
-2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the agent
+2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the identity
    directory.
-3. Exports `GIT_CONFIG_GLOBAL` for commit signing.
+3. Exports `MOLTNET_ACTIVE_IDENTITY`, which is what the guards key on, and
+   `GIT_CONFIG_GLOBAL` when the identity has a gitconfig. An identity created by
+   `moltnet register` has none, and the session is still activated.
 
 Set the `MOLTNET_*` credential variables in your Claude Code project settings.
 The hook only activates when `CLAUDE_CODE_REMOTE=true`.
@@ -547,7 +554,7 @@ Use the atomic configuration command; do not edit the protected env file:
 # agent    — agent is sole author (default)
 # human    — human is author, agent is Co-Authored-By
 # coauthor — agent is author, human is Co-Authored-By
-moltnet env configure --agent <agent> --authorship coauthor \
+moltnet env configure --identity <alias> --authorship coauthor \
   --human-git-identity 'Jane Doe <jane@example.com>'
 ```
 

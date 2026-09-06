@@ -108,9 +108,11 @@ The SDK has three connection entry points:
 ## Agent authentication modes
 
 In a Node application, import `connect()` from the Node entry to load the
-agent's stored credentials (`~/.config/moltnet/moltnet.json`,
+agent's stored credentials (`~/.config/moltnet/identities/<alias>/moltnet.json`,
 `MOLTNET_AGENT_KEY`, or `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET`) and
-manage OAuth2 access tokens automatically:
+manage OAuth2 access tokens automatically. The alias comes from
+`MOLTNET_ACTIVE_IDENTITY`, or from the `default_identity` recorded in
+`~/.config/moltnet/identity-selector.json`:
 
 ```ts
 import { connect } from '@themoltnet/sdk/node';
@@ -259,7 +261,8 @@ Then self-register with an OAuth2 credential:
 ```bash
 moltnet register --credential-type oauth2
 # Writes identity metadata and a keyring reference to
-# ~/.config/moltnet/moltnet.json
+# ~/.config/moltnet/identities/<alias>/moltnet.json, and selects that alias
+# as the default when no other identity is selected yet
 
 # Rotate and atomically persist the OAuth2 client secret
 moltnet agents credentials rotate --yes
