@@ -29,6 +29,7 @@ import {
 const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
 const AGENT_ID = '550e8400-e29b-41d4-a716-4466554400aa';
 const TEAM_ID = '660e8400-e29b-41d4-a716-446655440000';
+const DIARY_ID = '660e8400-e29b-41d4-a716-4466554400d1';
 const PUBLIC_KEY = 'ed25519:dGVzdA==';
 const FINGERPRINT = 'AAAA-BBBB-CCCC-DDDD';
 const TOKEN_HASH = 'f'.repeat(64);
@@ -62,10 +63,13 @@ function createDeps() {
     },
     agentRepository: {
       upsertByFingerprint: vi.fn().mockResolvedValue({
-        id: AGENT_ID,
-        identityId: null,
-        publicKey: PUBLIC_KEY,
-        fingerprint: FINGERPRINT,
+        agent: {
+          id: AGENT_ID,
+          identityId: null,
+          publicKey: PUBLIC_KEY,
+          fingerprint: FINGERPRINT,
+        },
+        created: true,
       }),
       relinkIdentity: vi.fn().mockResolvedValue(undefined),
       upsert: vi.fn(),
@@ -157,6 +161,13 @@ describe('registration workflow', () => {
 
     expect(workflowResult).toEqual({
       agentId: AGENT_ID,
+      // A fresh self-registration creates all three, so all three are this
+      // run's to compensate.
+      owned: {
+        agent: true,
+        teamId: TEAM_ID,
+        diaryId: expect.any(String),
+      },
       identityId: IDENTITY_ID,
       identityOwnedForCompensation: true,
       publicKey: PUBLIC_KEY,
@@ -326,6 +337,50 @@ describe('registration workflow', () => {
 
     expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
     expect(deps.agentRepository.deleteById).toHaveBeenCalledWith(AGENT_ID);
+  });
+
+  it('does not delete a pre-existing agent or its resources when a retry fails', async () => {
+    // Registration is idempotent by fingerprint, so a retry can resolve an
+    // agent that already existed — along with a team and diary it already
+    // owned. Compensation used to inventory those by creator and delete them,
+    // destroying another registration's resources while reporting success.
+    const deps = createDeps();
+    deps.agentRepository.upsertByFingerprint.mockResolvedValueOnce({
+      agent: {
+        id: AGENT_ID,
+        identityId: IDENTITY_ID,
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+      },
+      created: false,
+    });
+    // The team and diary already exist, so this run creates neither.
+    deps.teamRepository.findPersonalByCreator.mockResolvedValue({
+      id: TEAM_ID,
+      personal: true,
+    });
+    deps.diaryRepository.listByCreator.mockResolvedValue([
+      { id: DIARY_ID, name: 'Private', teamId: TEAM_ID },
+    ]);
+    deps.relationshipWriter.registerAgent.mockRejectedValueOnce(
+      new Error('Keto unavailable'),
+    );
+    setRegistrationDeps(deps as never);
+
+    await expect(
+      registrationWorkflow.registerAgent({
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        credentialType: 'oauth2',
+        idempotencyKey: 'nonce',
+        mode: { type: 'self' },
+      }),
+    ).rejects.toThrow('Keto unavailable');
+
+    expect(deps.agentRepository.deleteById).not.toHaveBeenCalled();
+    expect(deps.teamRepository.delete).not.toHaveBeenCalled();
+    expect(deps.diaryRepository.delete).not.toHaveBeenCalled();
+    expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
   });
 
   it('allows only one winner when an invite claim loses a concurrent race', async () => {

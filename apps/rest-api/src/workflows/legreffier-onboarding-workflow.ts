@@ -175,6 +175,7 @@ export function initLegreffierOnboardingWorkflow(): void {
             registration.agentId,
             registration.identityId,
             registration.identityOwnedForCompensation,
+            registration.owned,
           );
           await handle.getResult();
         } catch (err) {
@@ -216,6 +217,7 @@ export function initLegreffierOnboardingWorkflow(): void {
             registration.agentId,
             registration.identityId,
             registration.identityOwnedForCompensation,
+            registration.owned,
           );
           await handle.getResult();
         } catch (err) {

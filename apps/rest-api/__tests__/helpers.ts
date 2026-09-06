@@ -418,10 +418,14 @@ export function createMockServices(): MockServices {
       // Registration creates the agent row before the Kratos identity, keyed
       // on fingerprint since identity_id is still NULL at that point.
       upsertByFingerprint: vi.fn().mockResolvedValue({
-        id: OWNER_ID,
-        identityId: OWNER_IDENTITY_ID,
-        publicKey: 'ed25519:mockkeypayload',
-        fingerprint: 'A1B2-C3D4-E5F6-1234',
+        agent: {
+          id: OWNER_ID,
+          identityId: OWNER_IDENTITY_ID,
+          publicKey: 'ed25519:mockkeypayload',
+          fingerprint: 'A1B2-C3D4-E5F6-1234',
+        },
+        // `created` decides what compensation may tear down.
+        created: true,
       }),
       deleteById: vi.fn().mockResolvedValue(true),
       relinkIdentity: vi.fn().mockResolvedValue(undefined),

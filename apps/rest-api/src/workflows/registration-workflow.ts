@@ -76,9 +76,33 @@ export interface RegistrationResult {
   credential: RegistrationCredential;
 }
 
+/**
+ * What a single registration run actually created, so compensation tears down
+ * only its own work.
+ *
+ * Registration is idempotent by fingerprint, so a retry can resolve an agent
+ * that already existed — along with a team and diary it already owned. Without
+ * this record, compensating that retry would delete another registration's
+ * resources while reporting success.
+ */
+export interface RegistrationOwnedResources {
+  /** This run inserted the agents row. */
+  agent: boolean;
+  /** Team id when this run created it; null when it pre-existed or is an invite team. */
+  teamId: string | null;
+  /** Diary id when this run created it; null when it pre-existed. */
+  diaryId: string | null;
+}
+
 export interface RegistrationWorkflowResult {
   /** Internal agents.id — stable across Kratos identity recreation. */
   agentId: string;
+  /**
+   * What this run created. Downstream workflows (legreffier onboarding) may
+   * compensate a registration they did not perform, and must not tear down
+   * resources that registration merely resolved.
+   */
+  owned: RegistrationOwnedResources;
   identityId: string;
   identityOwnedForCompensation: boolean;
   fingerprint: string;
@@ -136,6 +160,7 @@ type CompensateSelfRegistrationFn = (
   agentId: string,
   identityId: string | null,
   deleteIdentity: boolean,
+  owned: RegistrationOwnedResources,
 ) => Promise<void>;
 type CompensateTeamEnrollmentFn = (
   teamId: string,
@@ -143,6 +168,7 @@ type CompensateTeamEnrollmentFn = (
   agentId: string,
   identityId: string | null,
   deleteIdentity: boolean,
+  agentCreated: boolean,
 ) => Promise<void>;
 
 let _workflow: RegisterAgentFn | null = null;
@@ -217,7 +243,7 @@ export async function issueRegistrationCredential(
     credential = { type: 'oauth2', clientId, clientSecret };
   } else {
     const subject: AgentKeySubject = {
-      agentId: registration.agentId,
+      subjectId: registration.agentId,
       scopes: [...AGENT_OAUTH_SCOPES],
       subjectNs: KetoNamespace.Agent,
       subjectType: 'agent',
@@ -528,10 +554,18 @@ export function initRegistrationWorkflow(): void {
     // conflating them would clean up nothing (both are uuids, so the compiler
     // cannot catch it). identityId is nullable: the agent row is created before
     // the identity, so compensation can run when no identity exists.
+    //
+    // `owned` carries what THIS run created. Compensation used to re-derive it
+    // by listing the agent's personal team and diaries, which is correct only
+    // when the agent was new: registration resolves an existing agent by
+    // fingerprint on retry, and inventorying by creator would then delete that
+    // agent's pre-existing team and diaries. Only resources this run created
+    // are torn down; anything pre-existing is left alone.
     async (
       agentId: string,
       identityId: string | null,
       deleteIdentity: boolean,
+      owned: RegistrationOwnedResources,
     ): Promise<void> => {
       const {
         agentRepository,
@@ -539,43 +573,30 @@ export function initRegistrationWorkflow(): void {
         teamRepository,
         transactionRunner,
       } = getDeps();
-      const inventory = await transactionRunner.runInTransaction(
-        async () => {
-          const team = await teamRepository.findPersonalByCreator({
-            kind: 'agent',
-            id: agentId,
-          });
-          const diaryIds = (
-            await diaryRepository.listByCreator({
-              kind: 'agent',
-              id: agentId,
-            })
-          )
-            .filter((diary) => !team || diary.teamId === team.id)
-            .map((diary) => diary.id);
-          return { teamId: team?.id ?? null, diaryIds };
-        },
-        { name: 'registration.tx.inventorySelfRegistration' },
-      );
+      const ownedDiaryIds = owned.diaryId ? [owned.diaryId] : [];
 
-      await cleanupSelfRegistrationStep(
-        agentId,
-        inventory.teamId,
-        inventory.diaryIds,
-      );
+      // Keto grants are revoked for what this run granted. When nothing was
+      // created there is nothing to revoke.
+      if (owned.teamId || ownedDiaryIds.length > 0) {
+        await cleanupSelfRegistrationStep(agentId, owned.teamId, ownedDiaryIds);
+      }
       await transactionRunner.runInTransaction(
         async () => {
-          for (const diaryId of inventory.diaryIds) {
+          for (const diaryId of ownedDiaryIds) {
             await diaryRepository.delete(diaryId);
           }
-          if (inventory.teamId) {
-            await teamRepository.delete(inventory.teamId);
+          if (owned.teamId) {
+            await teamRepository.delete(owned.teamId);
           }
-          await agentRepository.deleteById(agentId);
+          if (owned.agent) {
+            await agentRepository.deleteById(agentId);
+          }
         },
         { name: 'registration.tx.compensateSelfRegistration' },
       );
-      if (deleteIdentity && identityId) {
+      // Only delete the Kratos identity this run minted. A pre-existing agent
+      // keeps the identity it already had.
+      if (deleteIdentity && identityId && owned.agent) {
         await deleteKratosIdentityStep(identityId);
       }
     },
@@ -593,18 +614,25 @@ export function initRegistrationWorkflow(): void {
       agentId: string,
       identityId: string | null,
       deleteIdentity: boolean,
+      agentCreated: boolean,
     ): Promise<void> => {
+      // The team membership and the invite claim are always this run's work,
+      // so both are reverted. The agent row is only ours when this run created
+      // it — an enrolment retry can resolve an agent that already existed, and
+      // deleting it would cascade into everything it owns elsewhere.
       await cleanupTeamEnrollmentStep(teamId, agentId);
       await getDeps().transactionRunner.runInTransaction(
         async () => {
           if (inviteId) {
             await getDeps().teamRepository.revertInviteClaim(inviteId);
           }
-          await getDeps().agentRepository.deleteById(agentId);
+          if (agentCreated) {
+            await getDeps().agentRepository.deleteById(agentId);
+          }
         },
         { name: 'registration.tx.compensateTeamEnrollment' },
       );
-      if (deleteIdentity && identityId) {
+      if (deleteIdentity && identityId && agentCreated) {
         await deleteKratosIdentityStep(identityId);
       }
     },
@@ -627,15 +655,24 @@ export function initRegistrationWorkflow(): void {
       // none of which may depend on an identity that does not exist yet, and
       // that a future incident could delete again. Keyed on the fingerprint so
       // a retried registration resolves to the same row.
-      const agent = await getDeps().transactionRunner.runInTransaction(
-        async () =>
-          getDeps().agentRepository.upsertByFingerprint({
-            publicKey: input.publicKey,
-            fingerprint: input.fingerprint,
-          }),
-        { name: 'registration.tx.createAgent' },
-      );
+      const { agent, created: agentCreated } =
+        await getDeps().transactionRunner.runInTransaction(
+          async () =>
+            getDeps().agentRepository.upsertByFingerprint({
+              publicKey: input.publicKey,
+              fingerprint: input.fingerprint,
+            }),
+          { name: 'registration.tx.createAgent' },
+        );
       const agentId = agent.id;
+      // Tracks what this run created so compensation tears down only its own
+      // work. A retry can resolve a pre-existing agent, whose team and diary
+      // are not ours to delete.
+      const owned: RegistrationOwnedResources = {
+        agent: agentCreated,
+        teamId: null,
+        diaryId: null,
+      };
 
       const identity = await createKratosIdentityStep(
         input.publicKey,
@@ -664,7 +701,12 @@ export function initRegistrationWorkflow(): void {
                 );
               }
               claimedInviteId = claimed.id;
-              return { teamId: claimed.teamId, privateDiaryId: null };
+              return {
+                teamId: claimed.teamId,
+                privateDiaryId: null,
+                teamCreated: false,
+                diaryCreated: false,
+              };
             }
             const existingTeam = await teamRepository.findPersonalByCreator({
               kind: 'agent',
@@ -692,11 +734,22 @@ export function initRegistrationWorkflow(): void {
                 visibility: 'private',
                 teamId: team.id,
               }));
-            return { teamId: team.id, privateDiaryId: diary.id };
+            // Report creation, not just identity: only a resource this run
+            // inserted may be compensated.
+            return {
+              teamId: team.id,
+              privateDiaryId: diary.id,
+              teamCreated: !existingTeam,
+              diaryCreated: !existingDiary,
+            };
           },
           { name: 'registration.tx.persist' },
         );
         const teamId = persisted.teamId ?? enrollmentTeamId;
+        owned.teamId = persisted.teamCreated ? persisted.teamId : null;
+        owned.diaryId = persisted.diaryCreated
+          ? persisted.privateDiaryId
+          : null;
 
         await registerInKetoStep(agentId);
         if (input.mode.type === 'self') {
@@ -718,6 +771,7 @@ export function initRegistrationWorkflow(): void {
 
         return {
           agentId,
+          owned,
           identityId,
           identityOwnedForCompensation: identity.ownedForCompensation,
           fingerprint: input.fingerprint,
@@ -747,6 +801,7 @@ export function initRegistrationWorkflow(): void {
                 agentId,
                 identityId,
                 identity.ownedForCompensation,
+                owned.agent,
               );
               await handle.getResult();
             }
@@ -761,7 +816,7 @@ export function initRegistrationWorkflow(): void {
             const handle = await DBOS.startWorkflow(
               compensateSelfRegistrationWorkflow,
               { workflowID: `registration-compensation:${parentWorkflowId}` },
-            )(agentId, identityId, identity.ownedForCompensation);
+            )(agentId, identityId, identity.ownedForCompensation, owned);
             await handle.getResult();
           } catch (compensationError) {
             logger.error(
