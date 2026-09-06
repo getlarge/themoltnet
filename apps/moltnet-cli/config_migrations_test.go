@@ -558,3 +558,89 @@ func TestConfigMigrateRejectsStalePlanAndShowsHelp(t *testing.T) {
 		}
 	}
 }
+
+// A plan carries one transition, so finishing a migration is not the same as
+// being up to date. The run output has to say so, or a user reasonably reads
+// success as "done" and stays behind until some later command fails.
+func TestConfigMigrateReportsTheNextPendingMigration(t *testing.T) {
+	credentialsPath, _ := writeLegacyMigrationFixture(t)
+	registry, _ := newMemorySecretProviderRegistry()
+
+	first := runNextConfigMigration(t, credentialsPath, registry)
+	if first.NextMigration == nil || first.NextMigration.ID != "2026-08-remove-managed-oauth2-env" {
+		t.Fatalf("after the first migration, next = %+v", first.NextMigration)
+	}
+	second := runNextConfigMigration(t, credentialsPath, registry)
+	if second.NextMigration == nil || second.NextMigration.ID != "2026-09-identity-seed-reference" {
+		t.Fatalf("after the second migration, next = %+v", second.NextMigration)
+	}
+	third := runNextConfigMigration(t, credentialsPath, registry)
+	if third.NextMigration != nil {
+		t.Fatalf("the last migration must not advertise a successor: %+v", third.NextMigration)
+	}
+	// An idempotent run applies nothing, so it has nothing to say about a
+	// successor either.
+	fourth := runNextConfigMigration(t, credentialsPath, registry)
+	if fourth.Changed || fourth.NextMigration != nil {
+		t.Fatalf("idempotent run = %+v", fourth)
+	}
+}
+
+func TestPendingConfigMigrationNoticeIsAdvisoryOnly(t *testing.T) {
+	credentialsPath, _ := writeLegacyMigrationFixture(t)
+	registry, _ := newMemorySecretProviderRegistry()
+
+	before, err := os.ReadFile(credentialsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	notice := pendingConfigMigrationNotice(credentialsPath)
+	if !strings.Contains(notice, "2026-08-oauth2-secret-reference") ||
+		!strings.Contains(notice, "--dry-run") {
+		t.Fatalf("notice = %q", notice)
+	}
+	after, err := os.ReadFile(credentialsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Detect-only: a migration relocates secrets, so merely noticing one must
+	// never move them.
+	if !bytes.Equal(before, after) {
+		t.Fatal("detecting a pending migration mutated the credentials file")
+	}
+
+	for range 3 {
+		runNextConfigMigration(t, credentialsPath, registry)
+	}
+	if notice := pendingConfigMigrationNotice(credentialsPath); notice != "" {
+		t.Fatalf("fully migrated config still notices: %q", notice)
+	}
+}
+
+// Most invocations have no credentials at all; a configuration check must never
+// become the reason a command complains.
+func TestPendingConfigMigrationNoticeIsSilentWithoutUsableCredentials(t *testing.T) {
+	// Isolate from the developer's real configuration: an empty path is not
+	// "unresolvable", it falls back to the user config directory.
+	home := t.TempDir()
+	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	t.Setenv("HOME", home)
+	dir := t.TempDir()
+
+	garbage := filepath.Join(dir, "garbage.json")
+	if err := os.WriteFile(garbage, []byte("not json at all"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for name, path := range map[string]string{
+		"no configuration anywhere": "",
+		"missing file":              filepath.Join(dir, "absent.json"),
+		"not json":                  garbage,
+		"a directory":               dir,
+	} {
+		if got := pendingConfigMigrationNotice(path); got != "" {
+			t.Errorf("%s: notice = %q, want silence", name, got)
+		}
+	}
+}

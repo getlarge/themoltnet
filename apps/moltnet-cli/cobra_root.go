@@ -30,6 +30,15 @@ without human intervention.`,
 	)
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		if !isCLIWorkspaceInvocation() && cmd.Name() != "migrate" {
+			// A local file read, so it runs inline rather than racing command
+			// output from a goroutine. `migrate` is excluded because it is
+			// about to report the same thing far more precisely.
+			credPath, _ := cmd.Flags().GetString("credentials")
+			if notice := pendingConfigMigrationNotice(credPath); notice != "" {
+				fmt.Fprint(cmd.ErrOrStderr(), notice)
+			}
+		}
 		// Advisory and credential-free: the refresh must never delay a command.
 		if cmd.Name() != "start" || isCLIWorkspaceInvocation() {
 			return
