@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -79,7 +80,17 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 	// Store migration is deliberately opt-in through an explicit path. Its alias
 	// is inferred from .moltnet/<alias>/moltnet.json when possible; --name is
 	// only needed for a credentials document outside that legacy layout.
-	if strings.TrimSpace(credPath) != "" && destination == defaultMigrationDestination && generatePath == "" && runPath == "" {
+	relocatable := strings.TrimSpace(credPath) != ""
+	if relocatable && !(destination == defaultMigrationDestination && generatePath == "" && runPath == "") {
+		// Relocation is silent otherwise, so `--destination file` or a
+		// generated plan reports a successful migration while the identity
+		// stays where it was.
+		fmt.Fprintf(os.Stderr,
+			"note: central identity relocation skipped (it runs only with the default "+
+				"destination and without --generate/--run); run 'moltnet config migrate "+
+				"--credentials %s' on its own to relocate.\n", credPath)
+	}
+	if relocatable && destination == defaultMigrationDestination && generatePath == "" && runPath == "" {
 		credentialsPath, pathErr := absolutePath(credPath)
 		if pathErr != nil {
 			return pathErr
@@ -89,7 +100,18 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 			return migrateErr
 		}
 		if migrated != nil {
-			if err := printJSONTo(w, migrated); err != nil {
+			if dryRun {
+				// Nothing follows, so the relocation plan IS the result.
+				if err := printJSONTo(w, migrated); err != nil {
+					return err
+				}
+				return nil
+			}
+			// The secret migration below writes the command's single parseable
+			// result to stdout. Relocation is progress, not a second result:
+			// emitting both left automation parsing two concatenated JSON
+			// documents.
+			if err := printJSONTo(os.Stderr, migrated); err != nil {
 				return err
 			}
 			// Relocation and secret hardening are orthogonal, and an operator
@@ -97,9 +119,6 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 			// silently skipped the plaintext->keyring migration, leaving the
 			// legacy client_secret and seed copied verbatim into the new
 			// location. Continue against the relocated document instead.
-			if dryRun {
-				return nil
-			}
 			if destPath, ok := migrated["destination"].(string); ok && destPath != "" {
 				credPath = destPath
 			}

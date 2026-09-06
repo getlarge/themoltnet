@@ -104,7 +104,15 @@ export function legacyXdgAgentServerRoot(xdgConfigHome: string): string | null {
 
 /** True when a root holds agent-server state worth preserving. */
 function hasAgentServerState(root: string): boolean {
-  for (const child of ['agent-server.json', 'identities', 'agents']) {
+  // identity-selector.json counts: a root holding only a persisted default is
+  // not empty. Omitting it let adoption treat such a root as free and rename
+  // the legacy tree over it, destroying the operator's selection.
+  for (const child of [
+    'agent-server.json',
+    'identity-selector.json',
+    'identities',
+    'agents',
+  ]) {
     try {
       if (readdirSync(join(root, child)).length > 0) return true;
     } catch {

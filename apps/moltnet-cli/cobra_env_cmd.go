@@ -1,6 +1,10 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
 
 func newEnvCmd() *cobra.Command {
 	envCmd := &cobra.Command{
@@ -69,4 +73,27 @@ func addDeprecatedIdentityFlags(cmd *cobra.Command) {
 	_ = cmd.Flags().MarkDeprecated("dir", "repository identity discovery was removed")
 	_ = cmd.Flags().MarkHidden("agent")
 	_ = cmd.Flags().MarkHidden("dir")
+
+	// --agent still maps onto --identity, but --dir has no meaning in a central
+	// store and nothing reads it. Accepting it silently redirected automation
+	// that named a repository identity to the machine-global one instead —
+	// exactly the failure an ignored argument always produces. Reject it and
+	// say what to do.
+	previous := cmd.PreRunE
+	cmd.PreRunE = func(c *cobra.Command, args []string) error {
+		if c.Flags().Changed("dir") {
+			return fmt.Errorf(
+				"--dir is no longer supported: identities live in the central store, "+
+					"not in a repository.\n"+
+					"Select one with 'moltnet config identity select <alias>', pass "+
+					"--identity <alias>, or migrate a repository bundle with "+
+					"'moltnet config migrate --credentials %s/.moltnet/<alias>/moltnet.json'.",
+				c.Flags().Lookup("dir").Value.String(),
+			)
+		}
+		if previous != nil {
+			return previous(c, args)
+		}
+		return nil
+	}
 }

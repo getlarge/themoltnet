@@ -85,6 +85,13 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 				alias, filepath.Dir(target),
 			)
 		}
+		// Publication and selector seeding are two steps: a crash between them
+		// leaves the identity durable but unselected, and this early return
+		// would report success forever without ever fixing it. Reconcile here
+		// so a retry repairs what the interrupted run could not.
+		if err := ensureIdentitySelected(alias); err != nil {
+			return nil, err
+		}
 		return result, nil
 	}
 	if dryRun {
@@ -155,14 +162,24 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 			alias, filepath.Dir(target), err,
 		)
 	}
-	if selector, err := readIdentitySelector(); err != nil {
+	if err := ensureIdentitySelected(alias); err != nil {
 		return nil, err
-	} else if selector == nil || selector.DefaultIdentity == "" {
-		if err := writeIdentitySelector(alias); err != nil {
-			return nil, err
-		}
 	}
 	return result, nil
+}
+
+// ensureIdentitySelected seeds the selector when no default is set. Idempotent
+// so it can run both after a fresh publish and on a retry that found the
+// identity already published.
+func ensureIdentitySelected(alias string) error {
+	selector, err := readIdentitySelector()
+	if err != nil {
+		return err
+	}
+	if selector != nil && selector.DefaultIdentity != "" {
+		return nil
+	}
+	return writeIdentitySelector(alias)
 }
 
 // assertPublishableIdentityDir rejects a target directory that exists but holds

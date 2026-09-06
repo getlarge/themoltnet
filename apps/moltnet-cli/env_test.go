@@ -364,12 +364,20 @@ func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", ".")
+	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent")
 	if err != nil {
 		t.Fatalf("env check legacy aliases: %v", err)
 	}
 	if !strings.Contains(stdout, "All required checks passed") {
 		t.Fatalf("unexpected output: %s", stdout)
+	}
+
+	// --dir has no meaning in a central store and nothing reads it; accepting
+	// it silently redirected the caller to the machine-global identity.
+	root = NewRootCmd("test", "")
+	if _, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", "."); err == nil ||
+		!strings.Contains(err.Error(), "--dir is no longer supported") {
+		t.Fatalf("--dir must be rejected, got: %v", err)
 	}
 }
 

@@ -80,6 +80,28 @@ describe('legacy layout migration', () => {
     expect(existsSync(legacy)).toBe(false);
   });
 
+  // A root holding only a persisted default is not empty. Treating it as empty
+  // let adoption rename the legacy tree over it, destroying the selection.
+  it('counts a selector-only root as state', () => {
+    const { legacy, current } = stagedRoots();
+    mkdirSync(join(legacy, 'identities', 'alpha'), { recursive: true });
+    writeFileSync(
+      join(legacy, 'identities', 'alpha', 'moltnet.json'),
+      JSON.stringify({ identity_id: 'a' }),
+    );
+    mkdirSync(current, { recursive: true });
+    writeFileSync(
+      join(current, 'identity-selector.json'),
+      JSON.stringify({ version: 1, default_identity: 'chosen' }),
+    );
+
+    expect(() =>
+      new AgentServerStore(current).ensure({
+        legacyXdgConfigHome: join(legacy, '..'),
+      }),
+    ).toThrow(/state exists at both/);
+  });
+
   it('refuses to guess when both roots hold state', () => {
     const { legacy, current } = stagedRoots();
     for (const root of [legacy, current]) {

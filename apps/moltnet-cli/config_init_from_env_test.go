@@ -91,9 +91,22 @@ func TestConfigInitFromEnvAcceptsDeprecatedAgentAlias(t *testing.T) {
 	clearMoltnetEnv(t)
 	t.Setenv("HOME", t.TempDir())
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", ".")
+	// --agent still maps onto --identity; reaching the MOLTNET_IDENTITY_ID
+	// requirement proves the alias resolved.
+	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent")
 	if err == nil || !strings.Contains(err.Error(), "MOLTNET_IDENTITY_ID") {
 		t.Fatalf("deprecated --agent was not mapped to --name: %v", err)
+	}
+
+	// --dir is rejected rather than ignored: silently accepting it sent
+	// automation that named a repository identity to the machine-global one.
+	root = NewRootCmd("test", "")
+	_, _, err = executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", ".")
+	if err == nil || !strings.Contains(err.Error(), "--dir is no longer supported") {
+		t.Fatalf("--dir must be rejected with guidance, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "config identity select") {
+		t.Fatalf("rejection must say what to do instead, got: %v", err)
 	}
 }
 

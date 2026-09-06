@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -341,5 +342,143 @@ func TestMigrateLegacyIdentityStoreRefusesUndecidableAliasReuse(t *testing.T) {
 				t.Errorf("%s: error %q should mention %q", name, err, want)
 			}
 		}
+	}
+}
+
+// `config identity list` and `show` are the operator's window onto the store,
+// and `show` is the one command whose output is a redacted credentials
+// document. Exercise both through the real cobra wiring so the JSON shape,
+// default resolution and redaction cannot regress independently of the unit
+// tests below them.
+func TestConfigIdentityCommandsThroughCobra(t *testing.T) {
+	isolateIdentityEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	for _, alias := range []string{"zeta", "alpha"} {
+		id := newIdentityFixture(t, alias, "https://"+alias+".example.test")
+		if _, err := writeCentralIdentityConfig(alias, &CredentialsFile{
+			IdentityID: id.identityID,
+			OAuth2:     CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "SUPER-SECRET"},
+			Keys:       CredentialsKeys{PublicKey: id.publicKey, PrivateKey: "PRIVATE-SEED", Fingerprint: id.fingerprint},
+			Endpoints:  CredentialsEndpoints{API: id.api},
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writeIdentitySelector("alpha"); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, _, err := executeCommand(NewRootCmd("test", ""), "config", "identity", "list")
+	if err != nil {
+		t.Fatalf("identity list: %v", err)
+	}
+	var listed struct {
+		Identities []string `json:"identities"`
+		Default    string   `json:"default"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &listed); err != nil {
+		t.Fatalf("list output is not JSON: %v (%s)", err, stdout)
+	}
+	if !reflect.DeepEqual(listed.Identities, []string{"alpha", "zeta"}) {
+		t.Errorf("aliases must be sorted, got %v", listed.Identities)
+	}
+	if listed.Default != "alpha" {
+		t.Errorf("default = %q, want alpha", listed.Default)
+	}
+
+	// No argument resolves through the selector.
+	stdout, _, err = executeCommand(NewRootCmd("test", ""), "config", "identity", "show")
+	if err != nil {
+		t.Fatalf("identity show: %v", err)
+	}
+	var shown struct {
+		Alias    string                 `json:"alias"`
+		Path     string                 `json:"path"`
+		Identity map[string]interface{} `json:"identity"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &shown); err != nil {
+		t.Fatalf("show output is not JSON: %v (%s)", err, stdout)
+	}
+	if shown.Alias != "alpha" {
+		t.Errorf("show resolved %q, want the selected alpha", shown.Alias)
+	}
+	for _, secret := range []string{"SUPER-SECRET", "PRIVATE-SEED", "client_secret", "private_key"} {
+		if strings.Contains(stdout, secret) {
+			t.Errorf("identity show leaked %q: %s", secret, stdout)
+		}
+	}
+
+	// An explicit alias overrides the selector.
+	stdout, _, err = executeCommand(NewRootCmd("test", ""), "config", "identity", "show", "zeta")
+	if err != nil {
+		t.Fatalf("identity show zeta: %v", err)
+	}
+	if !strings.Contains(stdout, `"alias": "zeta"`) {
+		t.Errorf("explicit alias ignored: %s", stdout)
+	}
+}
+
+// The export/import round trip must land on the identity that was exported,
+// not on whichever one happens to be the persisted default. Without
+// MOLTNET_ACTIVE_IDENTITY in the exported bundle, re-importing elsewhere
+// silently targeted the default instead.
+func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
+	isolateIdentityEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	exported := newIdentityFixture(t, "exported", "https://exported.example.test")
+	for _, alias := range []string{"competing-default", "exported"} {
+		id := exported
+		if alias == "competing-default" {
+			id = newIdentityFixture(t, alias, "https://other.example.test")
+		}
+		if _, err := writeCentralIdentityConfig(alias, &CredentialsFile{
+			IdentityID: id.identityID,
+			OAuth2:     CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "secret-" + alias},
+			Keys:       CredentialsKeys{PublicKey: id.publicKey, PrivateKey: id.seed, Fingerprint: id.fingerprint},
+			Endpoints:  CredentialsEndpoints{API: id.api},
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The default deliberately is NOT the identity being exported.
+	if err := writeIdentitySelector("competing-default"); err != nil {
+		t.Fatal(err)
+	}
+
+	credPath, err := identityCredentialsPath("exported")
+	if err != nil {
+		t.Fatal(err)
+	}
+	envPath := filepath.Join(t.TempDir(), ".env.exported")
+	if _, _, err := executeCommand(NewRootCmd("test", ""),
+		"config", "export-env", "--credentials", credPath, "--output", envPath); err != nil {
+		t.Fatalf("export-env: %v", err)
+	}
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "MOLTNET_ACTIVE_IDENTITY=exported") {
+		t.Fatalf("export must name the identity it exported, got:\n%s", data)
+	}
+
+	// Re-import into a clean HOME with no --name: the bundle must be
+	// self-describing.
+	t.Setenv("HOME", t.TempDir())
+	if _, _, err := executeCommand(NewRootCmd("test", ""),
+		"config", "init-from-env", "--env-file", envPath); err != nil {
+		t.Fatalf("init-from-env without --name: %v", err)
+	}
+	imported, err := identityCredentialsPath("exported")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regularFileExists(imported) {
+		t.Fatalf("import did not create %s", imported)
 	}
 }
