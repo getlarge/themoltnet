@@ -497,7 +497,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-key-123',
         scopes: ['diary:read'],
         metadata: {
@@ -532,8 +532,9 @@ describe('TokenValidator', () => {
         cacheControl: 'no-store',
         pragma: 'no-cache',
       });
+      // The resolver receives Talos's actor_id, which is agents.id.
       expect(resolveTalosAgent).toHaveBeenCalledWith(
-        VALID_IDENTITY_ID,
+        VALID_AGENT_ID,
         expect.any(AbortSignal),
       );
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
@@ -543,7 +544,7 @@ describe('TokenValidator', () => {
           reason: 'credential_accepted',
           keyId: 'talos-key-123',
           bindingScope: 'team',
-          actorId: VALID_IDENTITY_ID,
+          actorId: VALID_AGENT_ID,
           scopeCount: 1,
         },
         'Talos API key accepted',
@@ -568,7 +569,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-key-123',
         scopes: ['diary:read'],
         metadata: {
@@ -666,7 +667,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-key-123',
         metadata: {
           schema_version: 2,
@@ -683,7 +684,7 @@ describe('TokenValidator', () => {
           credentialType: 'talos-api-key',
           reason: 'agent_not_found_or_inactive',
           keyId: 'talos-key-123',
-          actorId: VALID_IDENTITY_ID,
+          actorId: VALID_AGENT_ID,
         },
         'Talos API key actor rejected',
       );
@@ -745,7 +746,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-public-123',
         visibility: 'KEY_VISIBILITY_PUBLIC',
       });

@@ -698,21 +698,27 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     talosIssuer: oryUrls.talosAdminUrl,
     remoteRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
     talosApi: oryClients.apiKeys,
-    resolveTalosAgent: async (identityId, signal) => {
-      const [agent, identity] = await Promise.all([
-        agentRepository.findByIdentityId(identityId),
-        oryClients.identity.getIdentity(
-          { id: identityId },
-          signal ? { signal } : undefined,
-        ),
-      ]);
-      if (!agent || identity.state !== 'active') return null;
+    resolveTalosAgent: async (actorId, signal) => {
+      // Talos `actor_id` is an agents.id: agent-key issuance writes
+      // `actor_id: input.agentId` (agent-key-service.ts), and the routes pass
+      // the internal id there. Resolving it as a Kratos identity matched
+      // nothing once the two diverged, which rejected every agent-key request.
+      //
+      // Sequential rather than parallel: the identity to check is only known
+      // after the agent row is read.
+      const agent = await agentRepository.findById(actorId);
+      // No live identity means no liveness signal to check, so the key is not
+      // honoured. This keeps the previous gate exactly as strict; widening it
+      // to identity-less agents is a separate decision.
+      if (!agent?.identityId) return null;
+      const identity = await oryClients.identity.getIdentity(
+        { id: agent.identityId },
+        signal ? { signal } : undefined,
+      );
+      if (identity.state !== 'active') return null;
       return {
         agentId: agent.id,
-        // agent.identityId is nullable since the Kratos decoupling, but this
-        // agent was found *by* identityId, so echo the argument rather than
-        // re-narrowing a value we already know is set.
-        identityId,
+        identityId: agent.identityId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
       };

@@ -619,7 +619,10 @@ export function createTokenValidator(
           remoteMetrics,
         );
       }
-      if (!agent || agent.identityId !== result.actor_id) {
+      // actor_id is the agent's internal id, so verify the resolver returned
+      // the agent Talos actually named. Comparing the Kratos identity here
+      // rejected every key once the two values diverged.
+      if (!agent || agent.agentId !== result.actor_id) {
         remoteMetrics.recordUpstreamRequest(
           'talos.agent_resolution',
           'invalid',

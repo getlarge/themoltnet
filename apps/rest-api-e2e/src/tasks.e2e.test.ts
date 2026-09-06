@@ -1033,7 +1033,7 @@ describe('Tasks API', () => {
           auth: () => proposer.accessToken,
           headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           query: {
-            claimedByAgentId: claimer.identityId,
+            claimedByAgentId: claimer.agentId,
           },
         });
       expect(claimedFilterError).toBeUndefined();
@@ -2967,7 +2967,7 @@ describe('Tasks API', () => {
         correlationId: sealed.data!.correlationId!,
         sealedByTaskId: sealed.data!.id,
         sealedByTaskType: sealed.data!.taskType,
-        sealedByAgentId: proposer.identityId,
+        sealedByAgentId: proposer.agentId,
       });
 
       const missingId = '00000000-0000-4000-8000-000000000998';
@@ -3099,14 +3099,14 @@ describe('Tasks API', () => {
             status: 'cancelled',
             completedAt: new Date(),
             cancelReason: 'sealed during delete race',
-            cancelledByAgentId: proposer.identityId,
+            cancelledByAgentId: proposer.agentId,
           })
           .where(eq(tasks.id, task.data!.id));
         await tx.insert(correlationSeals).values({
           correlationId,
           sealedByTaskId: task.data!.id,
           sealedByTaskType: task.data!.taskType,
-          sealedByAgentId: proposer.identityId,
+          sealedByAgentId: proposer.agentId,
         });
       });
 
