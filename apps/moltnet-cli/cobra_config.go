@@ -147,7 +147,7 @@ into the --destination provider (default os-keyring); pass the same
 	migrateCmd.Flags().StringVar(&migrateName, "name", "", "Central identity alias (required when it cannot be derived from a legacy .moltnet/<alias> directory)")
 	migrateCmd.Flags().StringVar(&migrateDestination, "destination", defaultMigrationDestination, "Secret provider that receives migrated secrets (os-keyring, or file with MOLTNET_SECRET_ROOT_WRITABLE=1)")
 
-	portOpts := configPortOpts{}
+	var portFrom, portDir, portName, portInstallationID string
 	portCmd := &cobra.Command{
 		Use:   "port",
 		Short: "Port an agent configuration into this repository",
@@ -169,14 +169,16 @@ does not install or configure agent-host plugins.`,
 					"  moltnet config migrate --credentials %s\n"+
 					"To pick which identity is active, run:\n"+
 					"  moltnet config identity select <alias>",
-				portOpts.from+"/"+identityConfigFileName,
+				portFrom+"/"+identityConfigFileName,
 			)
 		},
 	}
-	portCmd.Flags().StringVar(&portOpts.from, "from", "", "Source .moltnet/<agent> directory")
-	portCmd.Flags().StringVar(&portOpts.dir, "dir", ".", "Target repository root directory")
-	portCmd.Flags().StringVar(&portOpts.name, "name", "", "Target agent name (default: source directory name)")
-	portCmd.Flags().StringVar(&portOpts.installationID, "installation-id", "", "Override the GitHub App installation ID")
+	// The flags stay declared so an invocation copied from the docs reaches the
+	// retirement message instead of failing on an unknown flag first.
+	portCmd.Flags().StringVar(&portFrom, "from", "", "Source .moltnet/<agent> directory")
+	portCmd.Flags().StringVar(&portDir, "dir", ".", "Target repository root directory")
+	portCmd.Flags().StringVar(&portName, "name", "", "Target agent name (default: source directory name)")
+	portCmd.Flags().StringVar(&portInstallationID, "installation-id", "", "Override the GitHub App installation ID")
 
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)
