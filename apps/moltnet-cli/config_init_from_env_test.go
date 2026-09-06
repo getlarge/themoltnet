@@ -914,6 +914,7 @@ func TestConfigInitFromEnvStillRequiresOAuthWithoutAgentKeyRef(t *testing.T) {
 func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
 	// Arrange: a reference-only deployment — neither secret is a literal.
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -937,13 +938,13 @@ func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
 	// Act
 	root := NewRootCmd("test", "")
 	if _, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "ref-agent", "--dir", tmpDir, "--skip-git"); err != nil {
+		"--name", "ref-agent", "--skip-git"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Assert
 	var config CredentialsFile
-	data, err := os.ReadFile(filepath.Join(tmpDir, ".moltnet", "ref-agent", "moltnet.json"))
+	data, err := os.ReadFile(filepath.Join(tmpDir, ".config", "moltnet", "identities", "ref-agent", "moltnet.json"))
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}
@@ -963,6 +964,7 @@ func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
 func TestConfigInitFromEnvRejectsSeedValueAndReferenceTogether(t *testing.T) {
 	// Arrange
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -974,7 +976,7 @@ func TestConfigInitFromEnvRejectsSeedValueAndReferenceTogether(t *testing.T) {
 	// Act
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "ref-agent", "--dir", tmpDir, "--skip-git")
+		"--name", "ref-agent", "--skip-git")
 
 	// Assert: a value and its reference is a misconfiguration everywhere else
 	// in the toolchain; it must not be a precedence question here either.
@@ -987,6 +989,7 @@ func TestConfigInitFromEnvRejectsPartialOAuthPairWithAgentKeyRef(t *testing.T) {
 	// Arrange: with a key ref the OAuth pair is optional, but half of it would
 	// write a client_id pointing at an unset secret.
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -998,7 +1001,7 @@ func TestConfigInitFromEnvRejectsPartialOAuthPairWithAgentKeyRef(t *testing.T) {
 	// Act
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "ref-agent", "--dir", tmpDir, "--skip-git")
+		"--name", "ref-agent", "--skip-git")
 
 	// Assert
 	if err == nil || !strings.Contains(err.Error(), "MOLTNET_CLIENT_SECRET") {
