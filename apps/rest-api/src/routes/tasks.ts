@@ -1361,8 +1361,10 @@ export function taskRoutes(fastify: FastifyInstance) {
           subjectId,
           callerNs,
           request.body.reason,
-          // cancelledBy*Id FKs to humans.id/agents.identity_id, not the
-          // Kratos subjectId used for the Keto check above.
+          // cancelledBy*Id FKs to humans.id/agents.id. Since #2163 that is
+          // the same value as the Keto subject above, but it is derived
+          // separately because the creator shape is a discriminated
+          // {kind, id}, not a namespace string.
           authContextToCreator(request).id,
           teamId,
         );

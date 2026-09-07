@@ -191,7 +191,8 @@ const ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 /**
  * The only shape in which a value off the Talos response may reach a log.
  *
- * Anything that is not a bare UUID is dropped rather than printed. That is a
+ * Anything that is not a bare UUID or ULID is dropped rather than printed (both
+ * forms appear in the wild — see the ULID note above). That is a
  * whitelist, not a redaction: no matter what Talos returns — today, or after a
  * response-shape change nobody noticed — this function can emit only an opaque
  * identifier, so no secret, name or free-text field can reach the operator's

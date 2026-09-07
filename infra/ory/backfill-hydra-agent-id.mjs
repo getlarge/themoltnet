@@ -43,6 +43,11 @@ if (!base || !apiKey) {
 }
 const headers = { Authorization: `Bearer ${apiKey}` };
 
+// Maintenance-critical requests run on the critical path of an outage: one
+// stalled socket would otherwise extend the window indefinitely.
+const REQUEST_TIMEOUT_MS = Number(process.env.ORY_REQUEST_TIMEOUT_MS ?? 30_000);
+const requestTimeout = () => AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+
 /** Kratos identity id -> agents.id, straight from the post-migration table. */
 function loadMapping() {
   const url = process.env.DATABASE_URL;
@@ -81,20 +86,53 @@ function loadAgentIds() {
   );
 }
 
+/**
+ * Resolve a `Link: rel="next"` target, refusing anything off the configured
+ * origin.
+ *
+ * Every page request carries the production Ory admin bearer. Following an
+ * absolute URL out of a response header without checking it would send that
+ * credential wherever the header said — a response-header injection, a
+ * misconfigured proxy or a compromised upstream would be enough. Resolving
+ * against `base` and comparing origins keeps the token on the host we were
+ * configured to talk to.
+ */
+function nextPageUrl(linkHeader, currentUrl) {
+  const match = /<([^>]+)>;\s*rel="next"/.exec(linkHeader);
+  if (!match) return null;
+
+  let candidate;
+  try {
+    candidate = new URL(match[1], currentUrl);
+  } catch {
+    throw new Error(`unparseable Link header target: ${match[1]}`);
+  }
+  if (candidate.origin !== new URL(base).origin) {
+    throw new Error(
+      `refusing to follow pagination to a different origin: ${candidate.origin}`,
+    );
+  }
+  return candidate.toString();
+}
+
 async function listAllClients() {
   const clients = [];
   let url = `${base}/admin/clients?page_size=500`;
+  const seen = new Set();
   while (url) {
-    const response = await fetch(url, { headers });
+    // A server that keeps pointing at a page it already served would otherwise
+    // spin here for the length of the maintenance window.
+    if (seen.has(url)) break;
+    seen.add(url);
+
+    const response = await fetch(url, { headers, signal: requestTimeout() });
     if (!response.ok) {
       throw new Error(
         `list clients: ${response.status} ${await response.text()}`,
       );
     }
     clients.push(...(await response.json()));
-    const link = response.headers.get('link') ?? '';
-    const next = link.match(/<([^>]+)>;\s*rel="next"/);
-    url = next ? (next[1].startsWith('http') ? next[1] : base + next[1]) : null;
+    url = nextPageUrl(response.headers.get('link') ?? '', url);
   }
   return clients;
 }
@@ -172,17 +210,23 @@ if (!APPLY) {
 }
 
 async function patchAgentId(clientId, agentId, replace) {
-  const response = await fetch(`${base}/admin/clients/${clientId}`, {
-    method: 'PATCH',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify([
-      {
-        op: replace ? 'replace' : 'add',
-        path: '/metadata/agent_id',
-        value: agentId,
-      },
-    ]),
-  });
+  // Client ids are opaque strings, so a reserved character would otherwise
+  // re-target this privileged request.
+  const response = await fetch(
+    `${base}/admin/clients/${encodeURIComponent(clientId)}`,
+    {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        {
+          op: replace ? 'replace' : 'add',
+          path: '/metadata/agent_id',
+          value: agentId,
+        },
+      ]),
+      signal: requestTimeout(),
+    },
+  );
   if (!response.ok) {
     throw new Error(`${clientId}: ${response.status} ${await response.text()}`);
   }

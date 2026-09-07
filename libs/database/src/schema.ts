@@ -377,9 +377,11 @@ export const diaryEntries = pgTable(
 export const agents = pgTable(
   'agents',
   {
-    // Internal MoltNet agent ID. Seeded during the decoupling migration from
-    // whatever identity_id held at the time, so historic values look like
-    // Kratos identity IDs — they are opaque and no longer meaningful to Ory.
+    // Internal MoltNet agent ID. Migration 0041 gave every existing row a
+    // FRESH `gen_random_uuid()` — it deliberately did NOT copy identity_id
+    // across, so no agent's id equals any Kratos identity, historic rows
+    // included. That is the point: code that conflates the two fails loudly
+    // instead of appearing to work.
     // Immutable: nothing may update this column.
     id: uuid('id').primaryKey().defaultRandom(),
 
