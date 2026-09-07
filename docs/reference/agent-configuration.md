@@ -311,8 +311,20 @@ owns the secret provider.
 pin against. A credential the server no longer recognises — revoked, rotated, or
 rebound — is reported as a rejected credential rather than as an opaque failure.
 
-`moltnet agents activation validate` stays offline and trusts the pin plus the
-input hashes, so the network is only touched on refresh.
+**What this does and does not prove.** The document names its own API endpoint,
+so the check confirms that the identity metadata agrees with whatever server
+that endpoint resolves to. It catches drift, staleness, a mis-selected alias,
+and a rotated or revoked credential. It does not defend against an actor who
+controls both the document and the endpoint it names, because they can serve a
+matching answer. Anchor the origin externally with `MOLTNET_API_URL` or
+`--api-url` when that matters. The origin that was used is recorded as
+`verifiedApiUrl`, and validation reports `api_origin_changed` if the document
+later names a different one.
+
+`moltnet agents activation validate` stays offline and trusts the pins plus the
+input hashes, so the network is only touched on refresh. A cache carrying no
+verification is reported as `identity_unverified` rather than accepted, so a
+stripped or hand-edited cache cannot pass as a verified one.
 `moltnet sign --request-id` performs the matching check on the other side: it
 refuses to sign when the local seed does not derive the public key the server
 reports for the authenticated identity.

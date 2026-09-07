@@ -66,3 +66,24 @@ func TestMain(m *testing.M) {
 		return m.Run()
 	}())
 }
+
+// TestNativeKeyringGateSurvivesEnvScrub fails closed if the gate is dropped
+// from the allowlist again.
+//
+// The scrub silently disabled the whole native-keyring suite once already: the
+// variable was cleared before the tests that read it, so they skipped on every
+// platform while the job still reported success. Nothing about that failure was
+// visible in CI, which is why the invariant is asserted here rather than left
+// to be rediscovered.
+func TestNativeKeyringGateSurvivesEnvScrub(t *testing.T) {
+	const gate = "MOLTNET_RUN_NATIVE_KEYRING_TESTS"
+	if !preservedTestEnv[gate] {
+		t.Fatalf("%s is not in preservedTestEnv; TestMain will clear it and the "+
+			"native-keyring tests will skip everywhere while CI reports success", gate)
+	}
+	// The scrub itself must still work, or the isolation TestMain exists for is
+	// gone. A credential variable is the thing that must not survive.
+	if os.Getenv("MOLTNET_CLIENT_SECRET") != "" {
+		t.Fatal("MOLTNET_CLIENT_SECRET survived the scrub")
+	}
+}

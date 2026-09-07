@@ -471,13 +471,19 @@ func TestAgentsActivationValidateOutsideGitRepository(t *testing.T) {
 	}
 }
 
-// activationFixtureIdentity is what the current fixture's stub server reports.
-// Tests that need the server to disagree with the local document mutate it.
-// t.Setenv already forces these tests to run serially, so a package-level
-// handle is safe and keeps the fixture's existing signature.
-var activationFixtureIdentity *activationIdentityResponse
-
+// setupActivationCacheFixture is the common case: callers that do not need to
+// reach the stub server.
 func setupActivationCacheFixture(t *testing.T) string {
+	dir, _, _ := setupActivationCacheFixtureWithIdentity(t)
+	return dir
+}
+
+// setupActivationCacheFixtureWithIdentity also returns the stub server and the
+// record it reports, for tests that need the server to disagree with the local
+// document or to stop answering.
+func setupActivationCacheFixtureWithIdentity(
+	t *testing.T,
+) (string, *httptest.Server, *activationIdentityResponse) {
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
@@ -506,8 +512,6 @@ func setupActivationCacheFixture(t *testing.T) string {
 		t.Fatal(err)
 	}
 	server, identityAnswer := startActivationIdentityServer(t)
-	activationFixtureIdentity = identityAnswer
-	t.Cleanup(func() { activationFixtureIdentity = nil })
 	creds := CredentialsFile{
 		IdentityID: fixtureIdentityID,
 		OAuth2: CredentialsOAuth2{
@@ -534,7 +538,7 @@ func setupActivationCacheFixture(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(agentDir, "moltnet.json"), data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return dir
+	return dir, server, identityAnswer
 }
 
 func rewriteActivationFixtureCredentials(t *testing.T, dir string, mutate func(*CredentialsFile)) {
@@ -778,8 +782,8 @@ func TestAgentsActivationRefreshRejectsServerIdentityMismatch(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			setupActivationCacheFixture(t)
-			tc.mutate(activationFixtureIdentity)
+			_, _, identity := setupActivationCacheFixtureWithIdentity(t)
+			tc.mutate(identity)
 
 			// Act.
 			err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
@@ -936,5 +940,104 @@ func TestAgentsActivationRefreshReportsRejectedCredential(t *testing.T) {
 	}
 	if _, statErr := os.Stat(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")); statErr == nil {
 		t.Fatal("an activation cache was written despite an unverified identity")
+	}
+}
+
+func TestAgentsActivationValidateStaysOfflineAfterRefresh(t *testing.T) {
+	// Arrange: refresh against a live server, then take the server away.
+	dir, server, _ := setupActivationCacheFixtureWithIdentity(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	server.Close()
+
+	// Act: warm validation is offline by contract. It must not need the server,
+	// the keyring, or anything else that can be unavailable — an outage turning
+	// a good cache into input_unavailable is exactly the regression this guards.
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
+
+	// Assert.
+	if err != nil {
+		t.Fatalf("validate after the server went away: %v", err)
+	}
+	var result activationValidationResult
+	if jsonErr := json.Unmarshal([]byte(stdout), &result); jsonErr != nil {
+		t.Fatalf("unmarshal: %v\n%s", jsonErr, stdout)
+	}
+	if !result.Valid {
+		t.Fatalf("validate went invalid with the server down: %+v", result)
+	}
+	_ = dir
+}
+
+func TestAgentsActivationValidateRejectsUnverifiedCache(t *testing.T) {
+	// Arrange: a cache with the verification pins stripped, which is what a
+	// hand-edited or pre-verification cache looks like.
+	dir, _, _ := setupActivationCacheFixtureWithIdentity(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
+	raw, err := os.ReadFile(cachePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cache map[string]any
+	if err := json.Unmarshal(raw, &cache); err != nil {
+		t.Fatal(err)
+	}
+	delete(cache, "verifiedIdentityId")
+	patched, err := json.Marshal(cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cachePath, patched, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Act.
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
+	if err != nil {
+		t.Fatalf("validate: %v", err)
+	}
+
+	// Assert.
+	var result activationValidationResult
+	if jsonErr := json.Unmarshal([]byte(stdout), &result); jsonErr != nil {
+		t.Fatalf("unmarshal: %v\n%s", jsonErr, stdout)
+	}
+	if result.Valid || result.Reason != "identity_unverified" {
+		t.Fatalf("result = %+v, want invalid with identity_unverified", result)
+	}
+}
+
+func TestAgentsActivationValidateRejectsChangedAPIOrigin(t *testing.T) {
+	// Arrange: the identity was confirmed against one origin; the document now
+	// names another, so the verification no longer describes where this
+	// credential would be sent.
+	dir, _, _ := setupActivationCacheFixtureWithIdentity(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.Endpoints.API = "https://somewhere-else.example.test"
+	})
+
+	// Act.
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
+	if err != nil {
+		t.Fatalf("validate: %v", err)
+	}
+
+	// Assert.
+	var result activationValidationResult
+	if jsonErr := json.Unmarshal([]byte(stdout), &result); jsonErr != nil {
+		t.Fatalf("unmarshal: %v\n%s", jsonErr, stdout)
+	}
+	if result.Valid {
+		t.Fatalf("validate accepted a changed API origin: %+v", result)
 	}
 }

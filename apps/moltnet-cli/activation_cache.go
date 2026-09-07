@@ -43,11 +43,16 @@ type activationCache struct {
 	// IdentityVerifiedAt records when the pinned metadata below was last
 	// confirmed against the server. Warm validation is offline by contract, so
 	// it trusts this pin plus the input hashes rather than re-asking.
-	IdentityVerifiedAt string                          `json:"identityVerifiedAt"`
-	VerifiedIdentityID string                          `json:"verifiedIdentityId"`
-	VerifiedPublicKey  string                          `json:"verifiedPublicKey"`
-	Inputs             map[string]activationCacheInput `json:"inputs"`
-	CreatedAt          string                          `json:"createdAt"`
+	IdentityVerifiedAt string `json:"identityVerifiedAt"`
+	VerifiedIdentityID string `json:"verifiedIdentityId"`
+	VerifiedPublicKey  string `json:"verifiedPublicKey"`
+	// VerifiedAPIURL is the origin the identity was confirmed against. The
+	// document names its own API, so verification proves it agrees with
+	// whatever endpoint it points at — recording which one lets offline
+	// validation notice if that endpoint is changed afterwards.
+	VerifiedAPIURL string                          `json:"verifiedApiUrl"`
+	Inputs         map[string]activationCacheInput `json:"inputs"`
+	CreatedAt      string                          `json:"createdAt"`
 }
 
 type activationCacheInput struct {
@@ -117,6 +122,12 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) e
 	if err != nil {
 		return err
 	}
+	// Refresh is the only path allowed to use the network. buildActivationCache
+	// is shared with warm validate, which is offline by contract, so the server
+	// check and the pins it produces belong here and nowhere else.
+	if err := verifyAndPinIdentity(ctx, cache); err != nil {
+		return err
+	}
 	if err := writeActivationCache(ctx.CachePath, cache); err != nil {
 		return err
 	}
@@ -163,6 +174,39 @@ func resolveActivationContext(identity string) (*activationContext, error) {
 	}, nil
 }
 
+// verifyAndPinIdentity confirms the identity against the server and records
+// what was confirmed, so warm validation can trust the pins without re-asking.
+func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error {
+	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
+	creds, err := ReadConfigFrom(credentialsPath)
+	if err != nil {
+		return err
+	}
+	if creds == nil {
+		return fmt.Errorf("credentials not found at %s", credentialsPath)
+	}
+	apiURL := resolveAPIURLFromCredentials("", false, creds)
+	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds)
+	if err != nil {
+		return err
+	}
+	// A stale MOLTNET_FINGERPRINT would otherwise be pinned as though it had
+	// been checked.
+	if envFingerprint := strings.TrimSpace(ctx.EnvVars["MOLTNET_FINGERPRINT"]); envFingerprint != "" &&
+		envFingerprint != verified.Fingerprint {
+		return fmt.Errorf(
+			"MOLTNET_FINGERPRINT in %s is %s, but the server reports %s for this credential",
+			ctx.EnvPath, envFingerprint, verified.Fingerprint,
+		)
+	}
+	cache.Fingerprint = verified.Fingerprint
+	cache.VerifiedIdentityID = verified.IdentityID
+	cache.VerifiedPublicKey = verified.PublicKey
+	cache.VerifiedAPIURL = apiURL
+	cache.IdentityVerifiedAt = time.Now().UTC().Format(time.RFC3339)
+	return nil
+}
+
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
@@ -200,26 +244,9 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if creds.OAuth2.ClientSecretRef != nil {
 		credentialStatus = "configured"
 	}
-	// The server, not the local document, decides which identity this
-	// credential is. Refresh is the cold path and may use the network; warm
-	// `validate` stays offline and trusts what this pins.
-	verified, err := verifyIdentityAgainstServer(
-		resolveAPIURLFromCredentials("", false, creds),
-		credentialsPath,
-		creds,
-	)
-	if err != nil {
-		return nil, err
-	}
-	// Prefer the verified fingerprint over the env file's copy. A stale
-	// MOLTNET_FINGERPRINT would otherwise be pinned as though it were checked.
-	fingerprint := verified.Fingerprint
-	if envFingerprint := strings.TrimSpace(ctx.EnvVars["MOLTNET_FINGERPRINT"]); envFingerprint != "" &&
-		envFingerprint != fingerprint {
-		return nil, fmt.Errorf(
-			"MOLTNET_FINGERPRINT in %s is %s, but the server reports %s for this credential",
-			ctx.EnvPath, envFingerprint, fingerprint,
-		)
+	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
+	if fingerprint == "" {
+		return nil, fmt.Errorf("missing fingerprint in env or moltnet.json")
 	}
 
 	inputs := map[string]activationCacheInput{}
@@ -258,9 +285,6 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		CredentialProviders:  credentialProviders,
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,
-		IdentityVerifiedAt:   now,
-		VerifiedIdentityID:   verified.IdentityID,
-		VerifiedPublicKey:    verified.PublicKey,
 		Inputs:               inputs,
 		CreatedAt:            now,
 	}, nil
@@ -312,6 +336,31 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	if !activationMetadataEqual(cache, current) {
 		return invalidActivation("cache_metadata_mismatch", []string{relativeToRepo(ctx.AgentDir, ctx.CachePath)}), nil
 	}
+	// A cache that carries no verification was not produced by a refresh that
+	// confirmed the identity. Writing the pins without ever requiring them
+	// would let a stripped or hand-edited cache validate exactly as a verified
+	// one does.
+	if cache.VerifiedIdentityID == "" || cache.VerifiedPublicKey == "" || cache.IdentityVerifiedAt == "" {
+		return invalidActivation("identity_unverified", nil), nil
+	}
+	// The identity was confirmed against a specific origin, and the document
+	// names its own. If it now names a different one, what was verified no
+	// longer describes where this credential would be sent.
+	if verifiedAPI := strings.TrimSpace(cache.VerifiedAPIURL); verifiedAPI != "" {
+		creds, err := ReadConfigFrom(filepath.Join(ctx.AgentDir, "moltnet.json"))
+		if err == nil && creds != nil &&
+			resolveAPIURLFromCredentials("", false, creds) != verifiedAPI {
+			return invalidActivation("api_origin_changed", nil), nil
+		}
+	}
+
+	// Report the verified values, which only the cache carries: `current` is a
+	// local reconstruction and never contacts the server.
+	current.VerifiedIdentityID = cache.VerifiedIdentityID
+	current.VerifiedPublicKey = cache.VerifiedPublicKey
+	current.VerifiedAPIURL = cache.VerifiedAPIURL
+	current.IdentityVerifiedAt = cache.IdentityVerifiedAt
+	current.Fingerprint = cache.Fingerprint
 
 	result := activationResultFromCache(current)
 	return &result, nil
