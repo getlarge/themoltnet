@@ -13,6 +13,27 @@ function readJson(relativePath: string): unknown {
   ) as unknown;
 }
 
+/**
+ * Read a boolean under `oauth2.client_credentials` from the local Hydra YAML.
+ *
+ * Deliberately a targeted regex rather than a YAML parse: this file is the
+ * only consumer, and pulling in a parser to read one flag would make the
+ * contract heavier than the thing it guards.
+ */
+function readHydraClientCredentialsFlag(
+  relativePath: string,
+  key: string,
+): boolean {
+  const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+  const block = yaml.match(
+    /^ {2}client_credentials:\n((?: {4}[^\n]+\n)+)/mu,
+  )?.[1];
+  if (!block) throw new Error('Hydra oauth2.client_credentials block not found');
+  const line = block.match(new RegExp(`^ {4}${key}: (\\S+)$`, 'mu'));
+  if (!line) throw new Error(`Hydra ${key} not found under client_credentials`);
+  return line[1] === 'true';
+}
+
 function readHydraDefaultScopes(relativePath: string): string[] {
   const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
   const block = yaml.match(/^ {4}default_scope:\n((?: {6}- [^\n]+\n)+)/mu)?.[1];
@@ -72,5 +93,54 @@ describe('credential scope configuration', () => {
 
     expect(configured).toEqual(MCP_CLIENT_SCOPES);
     expect(new Set(configured).size).toBe(configured.length);
+  });
+});
+
+describe('Ory environment parity', () => {
+  // infra/ory/project.json configures Ory Network; infra/ory/hydra/hydra.yaml
+  // configures the local and e2e Hydra. They are separate deployments, not
+  // duplicates, so nothing makes them agree on its own.
+  //
+  // #2162 is what this guards against: project.json said `false` while
+  // hydra.yaml said `true`. `ory update project` pushes project.json, so
+  // production silently ran with the stricter value while local ran with the
+  // looser one — and every agent 403'd once scope enforcement went live.
+  it('keeps default_grant_allowed_scope aligned across both environments', () => {
+    const project = readJson('../../infra/ory/project.json') as {
+      services: {
+        oauth2: {
+          config: {
+            oauth2: {
+              client_credentials: { default_grant_allowed_scope: boolean };
+            };
+          };
+        };
+      };
+    };
+    const configured =
+      project.services.oauth2.config.oauth2.client_credentials
+        .default_grant_allowed_scope;
+    const localConfigured = readHydraClientCredentialsFlag(
+      '../../infra/ory/hydra/hydra.yaml',
+      'default_grant_allowed_scope',
+    );
+
+    expect(localConfigured).toBe(configured);
+  });
+
+  // `true` is a deliberate, temporary state (#2162): it stops an outage caused
+  // by clients that request no scope, at the cost of granting them everything
+  // they registered for. Restoring `false` is the intended end state, and is
+  // safe only once every client_credentials consumer sends `scope` — the SDK
+  // (token.ts) and CLI (token.go) already do, but released CLI binaries
+  // predating that fix do not. Flip both files together; this test will fail
+  // until you do, which is the point.
+  it('documents that the relaxed grant is the current, intentional value', () => {
+    const localConfigured = readHydraClientCredentialsFlag(
+      '../../infra/ory/hydra/hydra.yaml',
+      'default_grant_allowed_scope',
+    );
+
+    expect(localConfigured).toBe(true);
   });
 });
