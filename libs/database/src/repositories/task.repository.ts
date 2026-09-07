@@ -836,7 +836,7 @@ export function createTaskRepository(db: Database) {
         .onConflictDoUpdate({
           target: [
             executorManifestRegistrations.fingerprint,
-            executorManifestRegistrations.agentIdentityId,
+            executorManifestRegistrations.agentId,
           ],
           set: {
             signature: input.signature,
@@ -849,7 +849,7 @@ export function createTaskRepository(db: Database) {
 
     async findExecutorManifestRegistration(
       fingerprint: string,
-      agentIdentityId: string,
+      agentId: string,
     ): Promise<ExecutorManifestRegistration | null> {
       const [row] = await getExecutor(db)
         .select()
@@ -857,7 +857,7 @@ export function createTaskRepository(db: Database) {
         .where(
           and(
             eq(executorManifestRegistrations.fingerprint, fingerprint),
-            eq(executorManifestRegistrations.agentIdentityId, agentIdentityId),
+            eq(executorManifestRegistrations.agentId, agentId),
           ),
         )
         .limit(1);

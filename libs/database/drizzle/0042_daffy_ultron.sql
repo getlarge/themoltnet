@@ -27,6 +27,41 @@
 -- dropped by their DISCOVERED name and recreated under drizzle's canonical
 -- `<table>_<column>_agents_id_fk`.
 
+-- `executor_manifest_registrations.agent_identity_id` held a Kratos identity
+-- when 0036 created it, and after this migration it holds `agents.id`. Keeping
+-- the old name would leave a column whose name denotes precisely the concept
+-- this change separates, so callers could not tell which id they were holding.
+--
+-- Renamed HERE, before the FK backup below, so every later step in this file
+-- reads the new name: the backup records `agent_id`, the value rewrite targets
+-- `agent_id`, and the recreated constraint is named
+-- `executor_manifest_registrations_agent_id_agents_id_fk` with no special
+-- casing. Renaming it afterwards would leave the constraint carrying the old
+-- column name forever.
+ALTER TABLE "executor_manifest_registrations"
+  RENAME COLUMN "agent_identity_id" TO "agent_id";--> statement-breakpoint
+
+-- The composite primary key follows the column automatically, but its NAME does
+-- not. 0036 asked for `executor_manifest_registrations_fingerprint_agent_identity_id_pk`,
+-- which is 64 characters, so Postgres silently truncated it — the same
+-- 63-character hazard called out above. Resolve whatever is actually there
+-- rather than guessing at the truncation.
+DO $$
+DECLARE pk_name text; want text;
+BEGIN
+  want := left('executor_manifest_registrations_fingerprint_agent_id_pk', 63);
+  SELECT tc.constraint_name INTO pk_name
+  FROM information_schema.table_constraints tc
+  WHERE tc.table_schema = 'public'
+    AND tc.table_name = 'executor_manifest_registrations'
+    AND tc.constraint_type = 'PRIMARY KEY';
+  IF pk_name IS NOT NULL AND pk_name <> want THEN
+    EXECUTE format(
+      'ALTER TABLE "executor_manifest_registrations" RENAME CONSTRAINT %I TO %I',
+      pk_name, want);
+  END IF;
+END $$;--> statement-breakpoint
+
 -- A fresh identifier per agent, matching what registration generates.
 ALTER TABLE "agents" ADD COLUMN "id" uuid NOT NULL DEFAULT gen_random_uuid();--> statement-breakpoint
 

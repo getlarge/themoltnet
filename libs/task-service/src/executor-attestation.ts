@@ -219,7 +219,7 @@ export async function registerExecutorManifest(input: {
   });
   await input.taskRepository.upsertExecutorManifestRegistration({
     fingerprint: executorFingerprint,
-    agentIdentityId: input.callerId,
+    agentId: input.callerId,
     signature: executorSignature,
   });
   await input.taskRepository.upsertExecutorManifestVerification({

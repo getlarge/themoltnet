@@ -294,14 +294,9 @@ describe('registered executor manifests', () => {
         return Promise.resolve();
       });
     const upsertExecutorManifestRegistration = vi
-      .fn<
-        (input: {
-          fingerprint: string;
-          agentIdentityId: string;
-        }) => Promise<void>
-      >()
-      .mockImplementation(({ fingerprint, agentIdentityId }) => {
-        registrations.add(`${fingerprint}:${agentIdentityId}`);
+      .fn<(input: { fingerprint: string; agentId: string }) => Promise<void>>()
+      .mockImplementation(({ fingerprint, agentId }) => {
+        registrations.add(`${fingerprint}:${agentId}`);
         return Promise.resolve();
       });
     const taskRepository = {
@@ -315,10 +310,10 @@ describe('registered executor manifests', () => {
       ),
       upsertExecutorManifestRegistration,
       findExecutorManifestRegistration: vi.fn(
-        (fingerprint: string, agentIdentityId: string) =>
+        (fingerprint: string, agentId: string) =>
           Promise.resolve(
-            registrations.has(`${fingerprint}:${agentIdentityId}`)
-              ? { fingerprint, agentIdentityId }
+            registrations.has(`${fingerprint}:${agentId}`)
+              ? { fingerprint, agentId }
               : null,
           ),
       ),

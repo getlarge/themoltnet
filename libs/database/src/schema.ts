@@ -1551,7 +1551,10 @@ export const executorManifestRegistrations = pgTable(
       .references(() => executorManifests.fingerprint, {
         onDelete: 'cascade',
       }),
-    agentIdentityId: uuid('agent_identity_id')
+    // The durable `agents.id`, not a Kratos identity. Named `agent_identity_id`
+    // by 0036, when it genuinely held one; renamed in 0041 alongside the FK
+    // retarget so the name cannot outlive the meaning.
+    agentId: uuid('agent_id')
       .notNull()
       .references(() => agents.id, { onDelete: 'cascade' }),
     signature: text('signature').notNull(),
@@ -1560,9 +1563,9 @@ export const executorManifestRegistrations = pgTable(
       .defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.fingerprint, table.agentIdentityId] }),
+    primaryKey({ columns: [table.fingerprint, table.agentId] }),
     index('executor_manifest_registrations_agent_idx').on(
-      table.agentIdentityId,
+      table.agentId,
       table.registeredAt,
     ),
   ],

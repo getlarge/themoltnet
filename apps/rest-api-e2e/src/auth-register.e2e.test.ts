@@ -13,6 +13,7 @@ import {
 } from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
+import { createAgentRepository } from '@moltnet/database';
 import {
   buildSelfRegistrationMessage,
   buildTeamRegistrationMessage,
@@ -22,8 +23,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
-async function signedSelfRegistration(credentialType: 'oauth2' | 'agent_key') {
-  const keyPair = await cryptoService.generateKeyPair();
+async function signedSelfRegistration(
+  credentialType: 'oauth2' | 'agent_key',
+  existingKeyPair?: Awaited<ReturnType<typeof cryptoService.generateKeyPair>>,
+) {
+  const keyPair = existingKeyPair ?? (await cryptoService.generateKeyPair());
   const idempotencyKey = randomBytes(32).toString('base64url');
   const proof = await cryptoService.sign(
     buildSelfRegistrationMessage({
@@ -364,6 +368,103 @@ describe('proof-based registration', () => {
         (member) => member.subjectId === enrolled.data?.agentId,
       )?.role,
     ).toBe('executor');
+  });
+
+  it('recovers after a failed enrollment: no orphan row, and the same keypair can register again', async () => {
+    // Registration creates the agent row BEFORE the Kratos identity and before
+    // claiming the invite, so a failure past that point has to compensate. The
+    // property that matters operationally is that a failed attempt leaves
+    // nothing behind that would block the agent from ever registering — the
+    // 2026-09-04 incident made "can this principal come back" the question
+    // this whole change exists to answer.
+    const agentRepository = createAgentRepository(harness.db);
+
+    const { data: team } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `enrollment-recovery-${Date.now()}` },
+    });
+    const { data: invite } = await createTeamInvite({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+    });
+
+    // Two enrollments race for the single use. Whichever loses fails after its
+    // agent row exists (claimInvite is inside the compensated boundary) or
+    // before it (invite validation runs first) — the invariants below hold
+    // either way, so the test does not depend on which side of that line the
+    // scheduler lands.
+    const first = await signedTeamRegistration(invite!.code);
+    const second = await signedTeamRegistration(invite!.code);
+    const enroll = (
+      input: Awaited<ReturnType<typeof signedTeamRegistration>>,
+    ) =>
+      enrollAgent({
+        client,
+        headers: { 'idempotency-key': input.idempotencyKey },
+        body: {
+          token: invite!.code,
+          publicKey: input.keyPair.publicKey,
+          proof: input.proof,
+          credentialType: 'oauth2',
+        },
+      });
+
+    const [a, b] = await Promise.all([enroll(first), enroll(second)]);
+    const attempts = [
+      { input: first, result: a },
+      { input: second, result: b },
+    ];
+    const winners = attempts.filter((x) => x.result.response.status === 200);
+    const losers = attempts.filter((x) => x.result.response.status !== 200);
+    expect(winners).toHaveLength(1);
+    expect(losers).toHaveLength(1);
+
+    const loser = losers[0];
+
+    // No orphan: the losing attempt must not leave a half-built agent behind,
+    // whether it never created one or compensation removed it.
+    expect(
+      await agentRepository.findByFingerprint(loser.input.keyPair.fingerprint),
+    ).toBeNull();
+
+    // Recovery: the same keypair registers cleanly afterwards. A fresh
+    // idempotency key is required and correct — the key identifies the
+    // REQUEST, so reusing it would resolve to the failed workflow rather than
+    // starting a new one.
+    const retry = await signedSelfRegistration('oauth2', loser.input.keyPair);
+    const response = await fetch(`${harness.baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'idempotency-key': retry.idempotencyKey,
+      },
+      body: JSON.stringify({
+        publicKey: retry.keyPair.publicKey,
+        proof: retry.proof,
+        credentialType: 'oauth2',
+      }),
+    });
+    expect(response.status).toBe(200);
+    const registered = (await response.json()) as {
+      agentId: string;
+      credential: { clientId: string; clientSecret: string };
+    };
+
+    // Bound to a live identity, and the credential actually works — a row that
+    // exists but cannot authenticate would be the subtler failure.
+    const recovered = await agentRepository.findById(registered.agentId);
+    expect(recovered?.fingerprint).toBe(loser.input.keyPair.fingerprint);
+    expect(recovered?.identityId).toEqual(expect.any(String));
+
+    const token = await requestOAuthToken(
+      harness.baseUrl,
+      registered.credential.clientId,
+      registered.credential.clientSecret,
+    );
+    expect(token.status).toBe(200);
   });
 
   it('prevents registration after a team invite is revoked', async () => {
