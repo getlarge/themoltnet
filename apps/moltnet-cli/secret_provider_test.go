@@ -165,8 +165,20 @@ func requireOSKeyringTestable(t *testing.T) {
 	}
 	// GITHUB_ACTIONS is set by the runner and by nothing else. Requiring it
 	// keeps the developer machine out of reach even when the opt-in is set.
+	// Fail, do not skip. The opt-in is only ever set deliberately: by CI, or by
+	// someone trying it by hand. Skipping the second case is silent, and a
+	// silent skip is what let this whole suite report success while running
+	// nothing. Failing also means that if CI ever stops setting GITHUB_ACTIONS
+	// — a different provider, a renamed variable — the native job goes red
+	// instead of quietly covering nothing.
+	//
+	// CI=true is not used as the signal: this repository's own docs recommend
+	// exporting it locally to skip husky, so it would put a developer's real
+	// keychain back in reach.
 	if os.Getenv("GITHUB_ACTIONS") != "true" {
-		t.Skip("native keyring tests write to the real credential store; they run on CI only")
+		t.Fatalf("MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 is set but GITHUB_ACTIONS is not: " +
+			"these tests write to the machine's real credential store and run on CI only. " +
+			"Unset MOLTNET_RUN_NATIVE_KEYRING_TESTS to run the suite locally.")
 	}
 	// Undo TestMain's HOME relocation for this test. macOS looks up the login
 	// keychain under HOME, so the temp HOME leaves `security` with nothing to
