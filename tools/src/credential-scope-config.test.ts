@@ -28,7 +28,8 @@ function readHydraClientCredentialsFlag(
   const block = yaml.match(
     /^ {2}client_credentials:\n((?: {4}[^\n]+\n)+)/mu,
   )?.[1];
-  if (!block) throw new Error('Hydra oauth2.client_credentials block not found');
+  if (!block)
+    throw new Error('Hydra oauth2.client_credentials block not found');
   const line = block.match(new RegExp(`^ {4}${key}: (\\S+)$`, 'mu'));
   if (!line) throw new Error(`Hydra ${key} not found under client_credentials`);
   return line[1] === 'true';
