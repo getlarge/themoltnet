@@ -390,6 +390,11 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
             request: {
               client_id: dcrClient.client_id,
               grant_types: ['authorization_code'],
+              // A real grant always carries these. The DCR scope cap refuses a
+              // request presenting none rather than reading it as "nothing
+              // granted", so omitting them would test the refusal instead of
+              // the human path this asserts.
+              granted_scopes: ['openid', 'diary:read'],
             },
           }),
         },
@@ -432,6 +437,11 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
             request: {
               client_id: dcrClient.client_id,
               grant_types: ['authorization_code'],
+              // A real grant always carries these. The DCR scope cap refuses a
+              // request presenting none rather than reading it as "nothing
+              // granted", so omitting them would test the refusal instead of
+              // the human path this asserts.
+              granted_scopes: ['openid', 'diary:read'],
             },
           }),
         },
