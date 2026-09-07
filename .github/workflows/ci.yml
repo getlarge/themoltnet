@@ -218,6 +218,11 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y gnome-keyring libsecret-1-dev dbus dbus-x11
+      # No macOS keychain provisioning step: it was tried and does not help.
+      # The Go provider drives /usr/bin/security, which blocks on an access
+      # prompt regardless of whether the keychain is unlocked, so those tests
+      # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
+      # provisions its own keychain and binds Security.framework directly.
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native

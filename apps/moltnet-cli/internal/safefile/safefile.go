@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/gofrs/flock"
 	"github.com/natefinch/atomic"
@@ -85,7 +86,13 @@ func validateLockFile(file *flock.Flock, path string) error {
 	if !os.SameFile(pathInfo, openedInfo) {
 		return fmt.Errorf("lock path %s changed while it was opened", path)
 	}
-	if pathInfo.Mode().Perm()&0o077 != 0 {
+	// Windows has no POSIX mode bits. Go synthesises 0666 for every file there,
+	// so this assertion would reject every lock the CLI takes — which is what
+	// happened: `config identity select` and every other credential write
+	// failed with "unsafe permissions 666" on Windows. Access there is governed
+	// by the ACL the file inherits from its parent directory, not by mode bits,
+	// so there is nothing meaningful for this check to assert.
+	if runtime.GOOS != "windows" && pathInfo.Mode().Perm()&0o077 != 0 {
 		return fmt.Errorf("lock path %s has unsafe permissions %o", path, pathInfo.Mode().Perm())
 	}
 	return nil

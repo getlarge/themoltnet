@@ -347,27 +347,10 @@ runs:
           echo "::error::could not derive the CLI version from $ACTION_PATH/../../packages/cli/package.json" >&2
           exit 1
         fi
-        # --agent, not --name, because this has to work either side of the
-        # release that introduces the central store. The published CLI only
-        # understands --agent; the central-store CLI keeps it as a deprecated
-        # alias for exactly one release. --name would be an unknown flag on
-        # every version available until this change ships.
         npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-$MOLTNET_CLI_PIN}" config init-from-env \
-          --agent "$MOLTNET_AGENT_NAME"
-        # And accept either layout for the same reason: the derived pin is the
-        # last released CLI, which writes the repository bundle, while the CLI
-        # this action is built against writes the central store. Take whichever
-        # document actually exists rather than assuming, so the action stays
-        # green across the release boundary instead of breaking on whichever
-        # side it did not predict.
-        LEGACY_AGENT_DIR="${GITHUB_WORKSPACE:-$PWD}/.moltnet/$MOLTNET_AGENT_NAME"
-        if [ -f "$AGENT_DIR/moltnet.json" ]; then
-          echo "::notice::identity resolved from the central store at $AGENT_DIR"
-        elif [ -f "$LEGACY_AGENT_DIR/moltnet.json" ]; then
-          echo "::notice::identity resolved from the legacy bundle at $LEGACY_AGENT_DIR; the resolved @themoltnet/cli predates the central identity store"
-          AGENT_DIR="$LEGACY_AGENT_DIR"
-        else
-          echo "::error::config init-from-env created no moltnet.json at $AGENT_DIR or $LEGACY_AGENT_DIR" >&2
+          --name "$MOLTNET_AGENT_NAME"
+        if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
+          echo "::error::config init-from-env created no moltnet.json at $AGENT_DIR; the resolved @themoltnet/cli predates the central identity store — pin one with MOLTNET_CLI_VERSION" >&2
           exit 1
         fi
         {

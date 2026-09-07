@@ -23,6 +23,16 @@ func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []s
 		if err != nil {
 			return err
 		}
+		// A local seed must belong to the identity this request authenticated
+		// as. A remote signer is checked by the broker that holds the key
+		// (validateExecutorSigningIdentity), so there is nothing to compare here.
+		if local, ok := signer.(*localSeedSigner); ok {
+			if err := assertSigningIdentityMatchesServer(
+				context.Background(), client, local.seed,
+			); err != nil {
+				return err
+			}
+		}
 		sig, err := signer.SignDiaryEntry(context.Background(), client, requestID)
 		if err != nil {
 			return err

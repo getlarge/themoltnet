@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -96,5 +98,33 @@ func TestCooperatingWriterCannotInterleaveCompareAndReplace(t *testing.T) {
 	got, _ := os.ReadFile(path)
 	if string(got) != "second" {
 		t.Fatalf("final content = %q", got)
+	}
+}
+
+func TestAcquireRejectsGroupReadableLockOnPOSIX(t *testing.T) {
+	// The permission assertion still has to bite where mode bits mean
+	// something. Windows is exempt because Go reports 0666 for every file
+	// there, which made this check reject every credential write on that
+	// platform; the exemption must not quietly disable it everywhere else.
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX mode bits are not meaningful on Windows")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "target")
+	if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := path + ".lock"
+	if err := os.WriteFile(lockPath, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	lock, err := Acquire(path)
+	if err == nil {
+		_ = lock.Close()
+		t.Fatal("expected a group-readable lock file to be rejected")
+	}
+	if !strings.Contains(err.Error(), "unsafe permissions") {
+		t.Fatalf("error = %v, want it to mention unsafe permissions", err)
 	}
 }

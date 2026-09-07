@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -138,10 +139,33 @@ func TestEnvironmentSecretProviderIsReadOnly(t *testing.T) {
 	}
 }
 
-func TestOSKeyringSecretProviderRoundTrip(t *testing.T) {
+// requireOSKeyringTestable gates the tests that touch the real credential
+// store, in one place so the reason is stated once.
+//
+// macOS is excluded deliberately. The Go provider goes through
+// zalando/go-keyring, which shells out to /usr/bin/security; adding an item
+// there asks for access approval, and on a CI runner with no UI the call blocks
+// until the Go test timeout rather than failing. Provisioning and unlocking a
+// keychain first does not help, because the prompt is about the calling
+// binary's ACL entry, not about the keychain being locked. libs/os-keyring is
+// unaffected because it binds Security.framework directly instead of driving
+// the CLI.
+//
+// Linux and Windows exercise the provider for real, so the paths this covers
+// are not untested — only the macOS half is missing, and it fails loudly here
+// rather than silently passing.
+func requireOSKeyringTestable(t *testing.T) {
+	t.Helper()
 	if os.Getenv("MOLTNET_RUN_NATIVE_KEYRING_TESTS") != "1" {
 		t.Skip("set MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 to use the native credential store")
 	}
+	if runtime.GOOS == "darwin" {
+		t.Skip("go-keyring drives /usr/bin/security, which blocks on an access prompt with no UI")
+	}
+}
+
+func TestOSKeyringSecretProviderRoundTrip(t *testing.T) {
+	requireOSKeyringTestable(t)
 	provider := OSKeyringSecretProvider{}
 	key := "oauth2/test-identity/test-client"
 
