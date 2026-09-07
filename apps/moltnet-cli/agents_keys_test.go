@@ -430,6 +430,14 @@ type agentKeysStubHandler struct {
 	list   func(moltnetapi.ListAgentKeysParams) moltnetapi.ListAgentKeysRes
 	rotate func(moltnetapi.RotateAgentKeyParams) moltnetapi.RotateAgentKeyRes
 	revoke func(moltnetapi.OptRevokeAgentKeyReq, moltnetapi.RevokeAgentKeyParams) moltnetapi.RevokeAgentKeyRes
+	whoami func() moltnetapi.GetWhoamiRes
+}
+
+func (h agentKeysStubHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRes, error) {
+	if h.whoami == nil {
+		return &moltnetapi.GetWhoamiUnauthorized{}, nil
+	}
+	return h.whoami(), nil
 }
 
 func (h agentKeysStubHandler) CreateAgentKey(_ context.Context, req *moltnetapi.CreateAgentKeyReq, params moltnetapi.CreateAgentKeyParams) (moltnetapi.CreateAgentKeyRes, error) {
@@ -848,5 +856,98 @@ func TestAgentsKeysRevokeRequiresReason(t *testing.T) {
 	_, _, err := executeCommand(root, "agents", "keys", "revoke", "key-1", "--team-id", testTeamID)
 	if err == nil || !strings.Contains(err.Error(), "reason") {
 		t.Fatalf("expected required reason error, got %v", err)
+	}
+}
+
+func TestRunAgentsKeysCreate_DefaultsAgentIDFromWhoami(t *testing.T) {
+	// The server authorizes by comparing agentId against the authenticated
+	// subject, so for the common self-mint it already knows the answer.
+	// Omitting --agent-id must resolve it rather than fail.
+	t.Parallel()
+
+	var received uuid.UUID
+	handler := agentKeysStubHandler{
+		whoami: func() moltnetapi.GetWhoamiRes {
+			return &moltnetapi.Whoami{
+				IdentityId:  uuid.MustParse(testAgentID),
+				SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
+			}
+		},
+		create: func(req *moltnetapi.CreateAgentKeyReq, _ moltnetapi.CreateAgentKeyParams) moltnetapi.CreateAgentKeyRes {
+			received = req.AgentId
+			return &moltnetapi.AgentKeyWithSecret{Key: validAgentKey("key-1"), Secret: "sk_x"}
+		},
+	}
+	_, _, client := newTestServer(t, handler)
+
+	var out, errOut bytes.Buffer
+	err := runAgentsKeysCreateWithClient(context.Background(), client, agentsKeysCreateOpts{
+		teamID: testTeamID, name: "ci", out: &out, errOut: &errOut,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if received.String() != testAgentID {
+		t.Fatalf("agentId = %q, want the authenticated agent %q", received, testAgentID)
+	}
+}
+
+func TestRunAgentsKeysCreate_ExplicitAgentIDWins(t *testing.T) {
+	// A team credential manager minting for a different agent must not have
+	// its target silently replaced by its own identity.
+	t.Parallel()
+
+	const other = "3f1d5c2e-6b7a-4c8d-9e0f-1a2b3c4d5e6f"
+	var received uuid.UUID
+	whoamiCalls := 0
+	handler := agentKeysStubHandler{
+		whoami: func() moltnetapi.GetWhoamiRes {
+			whoamiCalls++
+			return &moltnetapi.Whoami{
+				IdentityId:  uuid.MustParse(testAgentID),
+				SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
+			}
+		},
+		create: func(req *moltnetapi.CreateAgentKeyReq, _ moltnetapi.CreateAgentKeyParams) moltnetapi.CreateAgentKeyRes {
+			received = req.AgentId
+			return &moltnetapi.AgentKeyWithSecret{Key: validAgentKey("key-1"), Secret: "sk_x"}
+		},
+	}
+	_, _, client := newTestServer(t, handler)
+
+	var out, errOut bytes.Buffer
+	err := runAgentsKeysCreateWithClient(context.Background(), client, agentsKeysCreateOpts{
+		teamID: testTeamID, agentID: other, name: "ci", out: &out, errOut: &errOut,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if received.String() != other {
+		t.Fatalf("agentId = %q, want the explicit target %q", received, other)
+	}
+	if whoamiCalls != 0 {
+		t.Errorf("whoami should not be called when --agent-id is supplied, got %d calls", whoamiCalls)
+	}
+}
+
+func TestRunAgentsKeysCreate_WhoamiFailureNamesTheFlag(t *testing.T) {
+	// Without a resolvable identity the operator needs to know the flag is the
+	// way out, not just that whoami failed.
+	t.Parallel()
+
+	handler := agentKeysStubHandler{
+		whoami: func() moltnetapi.GetWhoamiRes { return &moltnetapi.GetWhoamiUnauthorized{} },
+	}
+	_, _, client := newTestServer(t, handler)
+
+	var out, errOut bytes.Buffer
+	err := runAgentsKeysCreateWithClient(context.Background(), client, agentsKeysCreateOpts{
+		teamID: testTeamID, name: "ci", out: &out, errOut: &errOut,
+	})
+	if err == nil {
+		t.Fatal("expected an error when whoami cannot resolve the agent")
+	}
+	if !strings.Contains(err.Error(), "--agent-id") {
+		t.Errorf("error should point at --agent-id, got: %v", err)
 	}
 }

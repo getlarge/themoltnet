@@ -201,6 +201,14 @@
           "cwd": "{workspaceRoot}",
           "command": "node tools/release/agent-bundle/build.mjs --skip-daemon-build --out dist/agent-bundle"
         }
+      },
+      "test": {
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/docs/operate/*.md",
+          "{workspaceRoot}/docs/.vitepress/config.ts"
+        ]
       }
     }
   }

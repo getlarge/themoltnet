@@ -79,6 +79,15 @@ Prerequisites:
     MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF); no agent files
   - config-based and sync-sessions: <agent-root>/.moltnet/<agent>/moltnet.json
     carrying agent_key_ref (OAuth2 client credentials are not accepted)
+
+No key yet? Mint one with the CLI (--store writes agent_key_ref into
+moltnet.json and keeps the secret in a provider):
+
+  moltnet teams list             # find the team id
+  moltnet agents keys create --team-id <team-uuid> \\
+    --name <agent>-daemon --store
+
+  https://docs.themolt.net/operate/agent-keys#run-the-daemon-with-an-agent-key
   - --profile — remote runtime profile supplies provider/model/sandbox
     policy and CWD is used as the VM mountPath.
 
