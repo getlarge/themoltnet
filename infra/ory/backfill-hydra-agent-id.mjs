@@ -48,28 +48,40 @@ const headers = { Authorization: `Bearer ${apiKey}` };
 const REQUEST_TIMEOUT_MS = Number(process.env.ORY_REQUEST_TIMEOUT_MS ?? 30_000);
 const requestTimeout = () => AbortSignal.timeout(REQUEST_TIMEOUT_MS);
 
-/** Kratos identity id -> agents.id, straight from the post-migration table. */
-function loadMapping() {
+function query(sql) {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
-  return new Map(
-    execFileSync(
-      'psql',
-      [
-        url,
-        '-At',
-        '-F',
-        ',',
-        '-c',
-        'SELECT identity_id, id FROM agents WHERE identity_id IS NOT NULL',
-      ],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-    )
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => line.split(',')),
-  );
+  return execFileSync('psql', [url, '-At', '-F', ',', '-c', sql], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.split(','));
+}
+
+/**
+ * Two ways to resolve a client to its agent, in order of confidence.
+ *
+ * `byIdentity` is the obvious one, but it fails for exactly the cohort this
+ * whole change exists to serve: an agent relinked after the 2026-09-04 deletion
+ * carries a NEW `agents.identity_id`, while its OAuth2 client's metadata still
+ * names the DEAD identity. Those clients join to nothing.
+ *
+ * `byPublicKey` recovers them. The public key is the agent's durable
+ * cryptographic identity — it is what registration proved possession of and
+ * what `agents.public_key` is keyed on — so it survives any number of identity
+ * recreations. Without it the incident cohort would keep an unresolvable
+ * client and could never recover credentials.
+ */
+function loadMapping() {
+  return {
+    byIdentity: new Map(
+      query('SELECT identity_id, id FROM agents WHERE identity_id IS NOT NULL'),
+    ),
+    byPublicKey: new Map(query('SELECT public_key, id FROM agents')),
+  };
 }
 
 /** Every agents.id, so a backfilled value can be proven to resolve. */
@@ -141,23 +153,34 @@ const mapping = loadMapping();
 const agentIds = loadAgentIds();
 const clients = await listAllClients();
 
+// A MoltNet agent client is identified by carrying either handle we can resolve
+// on. Requiring identity_id alone would exclude the relinked cohort before we
+// ever get to look at their public key.
 const moltnetClients = clients.filter(
   (client) =>
     Array.isArray(client.grant_types) &&
     client.grant_types.includes('client_credentials') &&
-    typeof client.metadata?.identity_id === 'string',
+    (typeof client.metadata?.identity_id === 'string' ||
+      typeof client.metadata?.public_key === 'string'),
 );
 
 const targets = [];
 const alreadyCorrect = [];
 const mismatched = [];
 const unmappable = [];
+let viaPublicKey = 0;
 
 for (const client of moltnetClients) {
-  const expected = mapping.get(client.metadata.identity_id);
+  // Identity first when it still resolves; public key for the relinked cohort,
+  // whose stored identity_id is dead. Never guess beyond these two.
+  let expected = mapping.byIdentity.get(client.metadata.identity_id);
   if (!expected) {
-    // The client names an identity no agent row claims. Never guess: this is
-    // a client for a deleted agent, or an identity that was never relinked.
+    expected = mapping.byPublicKey.get(client.metadata.public_key);
+    if (expected) viaPublicKey += 1;
+  }
+  if (!expected) {
+    // Neither handle resolves: a client for a deleted agent, or one MoltNet
+    // never created.
     unmappable.push(client);
     continue;
   }
@@ -175,7 +198,8 @@ console.log(`moltnet agent clients    : ${moltnetClients.length}`);
 console.log(`already correct          : ${alreadyCorrect.length}`);
 console.log(`to backfill              : ${targets.length}`);
 console.log(`mismatched agent_id      : ${mismatched.length}`);
-console.log(`identity not in agents   : ${unmappable.length}`);
+console.log(`resolved via public_key  : ${viaPublicKey}`);
+console.log(`unresolvable             : ${unmappable.length}`);
 
 for (const item of mismatched) {
   console.warn(
@@ -184,7 +208,7 @@ for (const item of mismatched) {
 }
 for (const client of unmappable) {
   console.warn(
-    `  UNMAPPABLE ${client.client_id}: identity ${client.metadata.identity_id} has no agent row`,
+    `  UNRESOLVABLE ${client.client_id}: neither identity ${client.metadata?.identity_id ?? '<none>'} nor its public key matches an agent row`,
   );
 }
 
@@ -252,14 +276,18 @@ if (REPAIR) {
 
 // Verify by re-reading, rather than trusting the writes we just made.
 const after = await listAllClients();
-const stillWrong = after.filter(
-  (client) =>
-    Array.isArray(client.grant_types) &&
-    client.grant_types.includes('client_credentials') &&
-    typeof client.metadata?.identity_id === 'string' &&
-    mapping.has(client.metadata.identity_id) &&
-    client.metadata.agent_id !== mapping.get(client.metadata.identity_id),
-);
+const stillWrong = after.filter((client) => {
+  if (
+    !Array.isArray(client.grant_types) ||
+    !client.grant_types.includes('client_credentials')
+  ) {
+    return false;
+  }
+  const expected =
+    mapping.byIdentity.get(client.metadata?.identity_id) ??
+    mapping.byPublicKey.get(client.metadata?.public_key);
+  return expected !== undefined && client.metadata?.agent_id !== expected;
+});
 
 console.log(
   `\nBackfilled ${done} clients${REPAIR ? `, repaired ${repaired}` : ''}.`,

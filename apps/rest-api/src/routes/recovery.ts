@@ -337,11 +337,28 @@ export async function recoveryRoutes(
                 const metadata = client.metadata as
                   | Record<string, unknown>
                   | undefined;
+
+                // The caller has already proved possession of the private key
+                // for this public key, so the key pair is the strongest signal
+                // available here — stronger than any identifier in metadata.
+                const keyMatch =
+                  metadata?.public_key === agent.publicKey &&
+                  metadata?.fingerprint === agent.fingerprint;
+
+                // A client carrying someone else's durable id is never a
+                // match, whatever else lines up.
+                const durableId = metadata?.agent_id;
+                if (
+                  typeof durableId === 'string' &&
+                  durableId.length > 0 &&
+                  durableId !== agent.id
+                ) {
+                  return false;
+                }
+
                 return (
                   client.client_name === `Agent: ${agent.fingerprint}` &&
-                  metadata?.identity_id === agent.identityId &&
-                  metadata?.public_key === agent.publicKey &&
-                  metadata?.fingerprint === agent.fingerprint
+                  keyMatch
                 );
               }),
             );
@@ -368,18 +385,45 @@ export async function recoveryRoutes(
             'Failed to fetch OAuth2 client',
           );
         }
-        if (matches.length === 0) {
+        // Rank rather than filter flat. `identity_id` still disambiguates when
+        // it is accurate, so the most specific tier that matches anything wins:
+        //
+        //   1. the durable agent_id written by the Hydra backfill;
+        //   2. the agent's CURRENT Kratos identity;
+        //   3. anything else that matched on the key pair.
+        //
+        // Tier 3 is what serves an agent relinked after the 2026-09-04
+        // deletion: its client still names the DEAD identity, so tier 2 finds
+        // nothing and requiring identity equality outright — as this did — hid
+        // exactly the client recovery exists to find. The backfill cannot
+        // repair those either, since it joins on that same dead identity.
+        const meta = (client: { metadata?: unknown }) =>
+          client.metadata as Record<string, unknown> | undefined;
+        const byDurableId = matches.filter(
+          (client) => meta(client)?.agent_id === agent.id,
+        );
+        const byCurrentIdentity = matches.filter(
+          (client) => meta(client)?.identity_id === agent.identityId,
+        );
+        const ranked =
+          byDurableId.length > 0
+            ? byDurableId
+            : byCurrentIdentity.length > 0
+              ? byCurrentIdentity
+              : matches;
+
+        if (ranked.length === 0) {
           throw createProblem(
             'not-found',
             'No OAuth2 client exists for this agent',
           );
         }
-        if (matches.length > 1) {
+        if (ranked.length > 1) {
           fastify.log.warn(
             {
               fingerprint: agent.fingerprint,
               identityId: agent.identityId,
-              matchCount: matches.length,
+              matchCount: ranked.length,
               requestId: request.id,
               rotated: false,
             },
@@ -390,7 +434,7 @@ export async function recoveryRoutes(
             'Multiple OAuth2 clients match this agent identity',
           );
         }
-        existingClient = matches[0];
+        existingClient = ranked[0];
       }
 
       const clientId = existingClient.client_id;
