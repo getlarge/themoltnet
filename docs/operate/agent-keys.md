@@ -339,11 +339,15 @@ which it no longer accepts.
 
 #### Run unattended without macOS Keychain prompts
 
-When an OAuth2 client secret is stored in the macOS Keychain, a daemon launched
-through `npx` asks Keychain to authorize the Node.js executable that loaded it.
-That is awkward for an unattended process and may prompt again when the Node or
-package execution path changes. Use agent-key authentication to keep daemon
-startup independent of Keychain:
+A secret stored in the macOS Keychain makes a daemon launched through `npx` ask
+Keychain to authorize the Node.js executable that loaded it. That is awkward for
+an unattended process and may prompt again when the Node or package execution
+path changes.
+
+The daemon takes an agent key either way, so this is not a choice of credential
+but of where it lives: an `agent_key_ref` pointing at the Keychain prompts, and
+the environment form does not. Pass the key configless to keep startup
+independent of Keychain:
 
 ```bash
 export MOLTNET_AGENT_KEY="$(cat daemon.key)"
