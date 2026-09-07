@@ -158,6 +158,14 @@ func requireOSKeyringTestable(t *testing.T) {
 	if os.Getenv("GITHUB_ACTIONS") != "true" {
 		t.Skip("native keyring tests write to the real credential store; they run on CI only")
 	}
+	// Undo TestMain's HOME relocation for this test. macOS looks up the login
+	// keychain under HOME, so the temp HOME leaves `security` with nothing to
+	// open and it blocks; zalando/go-keyring's own suite passes on a stock
+	// macOS runner precisely because it does not move HOME. t.Setenv restores
+	// the temp HOME when the test ends.
+	if realHome != "" {
+		t.Setenv("HOME", realHome)
+	}
 }
 
 func TestOSKeyringSecretProviderRoundTrip(t *testing.T) {
