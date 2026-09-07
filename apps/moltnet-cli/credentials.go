@@ -8,8 +8,14 @@ import (
 )
 
 // CredentialsFile matches the JS SDK MoltNetConfig format.
+type SubjectType string
+
+const SubjectTypeAgent SubjectType = "agent"
+
 type CredentialsFile struct {
-	IdentityID   string               `json:"identity_id"`
+	SubjectID    string               `json:"subject_id,omitempty"`
+	SubjectType  SubjectType          `json:"subject_type,omitempty"`
+	IdentityID   string               `json:"identity_id,omitempty"`
 	AgentKeyRef  *SecretReference     `json:"agent_key_ref,omitempty"`
 	OAuth2       CredentialsOAuth2    `json:"oauth2"`
 	Keys         CredentialsKeys      `json:"keys"`

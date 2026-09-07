@@ -27,7 +27,8 @@ type RegistrationCredential struct {
 }
 
 type RegisterResponse struct {
-	IdentityID  string                 `json:"identityId"`
+	SubjectID   string                 `json:"subjectId"`
+	SubjectType SubjectType            `json:"subjectType"`
 	Fingerprint string                 `json:"fingerprint"`
 	PublicKey   string                 `json:"publicKey"`
 	Credential  RegistrationCredential `json:"credential"`
@@ -71,8 +72,9 @@ func flattenRegistrationResponse(response *moltnetapi.RegisterResponse) (*Regist
 		return nil, fmt.Errorf("registration response has an unknown credential type")
 	}
 	return &RegisterResponse{
-		IdentityID: response.IdentityId.String(), Fingerprint: response.Fingerprint,
-		PublicKey: response.PublicKey, Credential: credential,
+		SubjectID: response.AgentId.String(), SubjectType: SubjectTypeAgent,
+		Fingerprint: response.Fingerprint,
+		PublicKey:   response.PublicKey, Credential: credential,
 	}, nil
 }
 
@@ -164,7 +166,7 @@ func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType str
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(errOut, "Registered as %s (fingerprint: %s)\n", result.Response.IdentityID, result.KeyPair.Fingerprint)
+	fmt.Fprintf(errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, result.KeyPair.Fingerprint)
 	if jsonOut {
 		return outputJSON(stdout, result)
 	}
@@ -172,13 +174,14 @@ func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType str
 	credential := result.Response.Credential
 	secretRef := SecretReference{
 		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey(result.Response.IdentityID, credential.ClientID),
+		Key:      OAuth2SecretKey(result.Response.SubjectID, credential.ClientID),
 	}
 	if err := (OSKeyringSecretProvider{}).Set(secretRef.Key, credential.ClientSecret); err != nil {
 		return fmt.Errorf("store OAuth2 secret in the OS keyring: %w", err)
 	}
 	credPath, err := writeCentralIdentityConfig(name, &CredentialsFile{
-		IdentityID:   result.Response.IdentityID,
+		SubjectID:    result.Response.SubjectID,
+		SubjectType:  result.Response.SubjectType,
 		OAuth2:       CredentialsOAuth2{ClientID: credential.ClientID, ClientSecretRef: &secretRef},
 		Keys:         CredentialsKeys{PublicKey: result.KeyPair.PublicKey, PrivateKey: result.KeyPair.PrivateKey, Fingerprint: result.KeyPair.Fingerprint},
 		Endpoints:    CredentialsEndpoints{API: result.APIUrl, MCP: deriveMCPURL(url)},
@@ -197,8 +200,9 @@ func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType str
 
 func outputJSON(stdout io.Writer, result *RegisterResult) error {
 	out := map[string]interface{}{
-		"identity_id": result.Response.IdentityID, "fingerprint": result.KeyPair.Fingerprint,
-		"public_key": result.KeyPair.PublicKey, "private_key": result.KeyPair.PrivateKey,
+		"subject_id": result.Response.SubjectID, "subject_type": result.Response.SubjectType,
+		"fingerprint": result.KeyPair.Fingerprint,
+		"public_key":  result.KeyPair.PublicKey, "private_key": result.KeyPair.PrivateKey,
 		"credential": result.Response.Credential,
 		"api_url":    result.APIUrl, "mcp_url": deriveMCPURL(result.APIUrl),
 	}

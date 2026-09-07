@@ -62,6 +62,12 @@ func TestDoRegisterSelfOAuth2(t *testing.T) {
 	if result.Response.Credential.ClientID != "client-id" {
 		t.Fatalf("client ID = %q", result.Response.Credential.ClientID)
 	}
+	if result.Response.SubjectID != "00000000-0000-4000-a000-000000000123" {
+		t.Fatalf("subject ID = %q", result.Response.SubjectID)
+	}
+	if result.Response.SubjectType != SubjectTypeAgent {
+		t.Fatalf("subject type = %q", result.Response.SubjectType)
+	}
 }
 
 func TestDoRegisterSelfAgentKey(t *testing.T) {

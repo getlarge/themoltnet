@@ -65,8 +65,9 @@ export type GitHubConfig =
       private_key_ref: SecretReference;
     };
 
+export type AgentSubjectType = 'agent';
+
 interface MoltNetConfigBase {
-  identity_id: string;
   registered_at: string;
   keys: KeysConfig;
   endpoints: { api: string; mcp: string };
@@ -81,14 +82,43 @@ interface MoltNetConfigBase {
 }
 
 /**
+ * The durable local anchor. Canonical documents use the MoltNet subject;
+ * identity_id is accepted only while the explicit compatibility reader ships.
+ */
+export interface CanonicalMoltNetConfigAnchor {
+  subject_id: string;
+  subject_type: AgentSubjectType;
+  identity_id?: never;
+}
+
+export interface LegacyMoltNetConfigAnchor {
+  subject_id?: never;
+  subject_type?: never;
+  identity_id: string;
+}
+
+export type MoltNetConfigAnchor =
+  | CanonicalMoltNetConfigAnchor
+  | LegacyMoltNetConfigAnchor;
+
+/**
  * A canonical profile must contain at least one authentication mechanism.
  * Profiles may contain both during credential transitions.
  */
-export type MoltNetConfig = MoltNetConfigBase &
-  (
-    | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
-    | { agent_key_ref?: SecretReference; oauth2: OAuth2Config }
-  );
+type MoltNetAuthenticationConfig =
+  | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
+  | { agent_key_ref?: SecretReference; oauth2: OAuth2Config };
+
+export type CanonicalMoltNetConfig = MoltNetConfigBase &
+  CanonicalMoltNetConfigAnchor &
+  MoltNetAuthenticationConfig;
+
+export type LegacyMoltNetConfig = MoltNetConfigBase &
+  LegacyMoltNetConfigAnchor &
+  MoltNetAuthenticationConfig;
+
+/** Read compatibility shape; canonical writers are narrowed in a later slice. */
+export type MoltNetConfig = CanonicalMoltNetConfig | LegacyMoltNetConfig;
 
 export function getConfigDir(): string {
   // One root, shared with the Go CLI's GetConfigDir and the daemon's

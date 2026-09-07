@@ -1,4 +1,6 @@
 export {
+  type AgentSubjectType,
+  type CanonicalMoltNetConfig,
   assertIdentityAlias,
   deriveMcpUrl,
   getConfigDir,
@@ -8,7 +10,9 @@ export {
   IDENTITY_ALIAS_PATTERN,
   type IdentitySelector,
   type KeysConfig,
+  type LegacyMoltNetConfig,
   type MoltNetConfig,
+  type MoltNetConfigAnchor,
   type OAuth2Config,
   readConfig,
   resolveConfigDir,

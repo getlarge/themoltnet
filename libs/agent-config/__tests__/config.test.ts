@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type GitHubConfig,
   type KeysConfig,
+  type LegacyMoltNetConfig,
   type MoltNetConfig,
   updateConfigSection,
   updateGitHubConfig,
@@ -15,7 +16,7 @@ import {
   writeConfig,
 } from '../src/config.js';
 
-function config(): MoltNetConfig {
+function config(): LegacyMoltNetConfig {
   return {
     identity_id: 'identity',
     registered_at: '2026-01-01T00:00:00Z',
@@ -29,6 +30,28 @@ function config(): MoltNetConfig {
 }
 
 describe('OAuth2 config updates', () => {
+  it('round-trips a canonical subject anchor without identity_id', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const { identity_id: _identityId, ...rest } = config();
+    const canonical: MoltNetConfig = {
+      ...rest,
+      subject_id: 'subject-1',
+      subject_type: 'agent',
+    };
+
+    const path = await writeConfig(canonical, dir);
+    const stored = JSON.parse(await readFile(path, 'utf8')) as Record<
+      string,
+      unknown
+    >;
+
+    expect(stored).toMatchObject({
+      subject_id: 'subject-1',
+      subject_type: 'agent',
+    });
+    expect(stored).not.toHaveProperty('identity_id');
+  });
+
   it('round-trips an agent-key-only config without an OAuth2 section', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     const { oauth2: _oauth2, ...agentKeyOnly } = config();
