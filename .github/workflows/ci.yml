@@ -131,6 +131,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Provision Ubuntu 24.04 and copy the checkout to ext4
+        # `wsl.exe --install` downloads a distro image and has no timeout of
+        # its own, so a stalled download consumes the whole 35-minute job
+        # budget and reports a generic job timeout rather than naming the step
+        # that hung. This step normally takes a few minutes — the job as a
+        # whole runs in ~10.
+        timeout-minutes: 15
         run: |
           $distro = 'Ubuntu-24.04'
           if (-not (wsl.exe --list --quiet | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $distro })) {

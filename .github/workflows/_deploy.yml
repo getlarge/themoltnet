@@ -50,6 +50,7 @@ jobs:
   preflight:
     name: Preflight
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: read
@@ -82,6 +83,7 @@ jobs:
     needs: preflight
     if: ${{ needs.preflight.outputs.image-exists == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: production
     permissions:
       contents: read
@@ -155,6 +157,7 @@ jobs:
     name: Deploy to Fly.io
     needs: [preflight, promote]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: production
     permissions:
       contents: read

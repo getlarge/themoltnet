@@ -55,6 +55,7 @@ jobs:
       contains(github.event.comment.body, '@moltnet-') &&
       !endsWith(github.event.comment.user.login, '[bot]')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Pure body parsing — no GH API access needed.
     permissions: {}
     outputs:

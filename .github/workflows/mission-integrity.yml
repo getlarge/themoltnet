@@ -17,6 +17,7 @@ jobs:
   crypto-integrity:
     name: Crypto Library Integrity
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -65,6 +66,7 @@ jobs:
   centralization-scan:
     name: Centralization Surface Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:

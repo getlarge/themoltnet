@@ -46,6 +46,7 @@ jobs:
   restore:
     name: Restore Ory identities (${{ inputs.mode }} -> ${{ inputs.target_project }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # The production environment holds ORY_BACKUP_PASSPHRASE and can carry a
     # required-reviewer rule, which gates `apply` behind a human approval.
     environment: production

@@ -61,6 +61,7 @@ jobs:
     name: Release Please
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
@@ -221,6 +222,7 @@ jobs:
       always() && !cancelled() &&
       (github.event_name == 'push' || inputs.engine == 'legacy')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       sdk: ${{ steps.resolve.outputs.sdk }}
       sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
@@ -593,6 +595,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.sdk == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -636,6 +639,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.os-keyring == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -672,6 +676,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.tasks-orchestrator == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -714,6 +719,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.credentials == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -754,6 +760,7 @@ jobs:
     needs: [resolve-publish, publish-credentials]
     if: ${{ always() && needs.resolve-publish.outputs.credential-broker == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -795,6 +802,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.ctap == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -831,6 +839,7 @@ jobs:
       (needs.publish-ctap.result == 'success' || needs.publish-ctap.result == 'skipped') &&
       !failure() && !cancelled()
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -916,6 +925,7 @@ jobs:
       needs.publish-n8n-nodes-moltnet.result == 'success' &&
       !failure() && !cancelled()
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -946,6 +956,7 @@ jobs:
       needs.scan-n8n-nodes-moltnet.result == 'success' &&
       !failure() && !cancelled()
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -959,6 +970,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.node-red == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1002,6 +1014,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.node-red-theme == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1042,6 +1055,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.github-agent == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1082,6 +1096,7 @@ jobs:
     needs: resolve-publish
     if: ${{ needs.resolve-publish.outputs.api-client == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -1115,6 +1130,7 @@ jobs:
     needs: resolve-publish
     if: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -1406,6 +1422,7 @@ jobs:
         !cancelled()
       }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       id-token: write
@@ -1498,6 +1515,7 @@ jobs:
         !cancelled()
       }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
@@ -1546,6 +1564,7 @@ jobs:
         !cancelled()
       }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
@@ -1580,6 +1599,7 @@ jobs:
     needs: resolve-publish
     if: ${{ needs.resolve-publish.outputs.legreffier-plugin == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       artifact-metadata: write
       attestations: write
@@ -1707,6 +1727,7 @@ jobs:
     needs: resolve-publish
     if: ${{ needs.resolve-publish.outputs.skill == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -1732,6 +1753,7 @@ jobs:
     needs: [resolve-publish, release-skill]
     if: ${{ always() && needs.resolve-publish.outputs.skill == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -1764,6 +1786,7 @@ jobs:
         !cancelled()
       }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1804,6 +1827,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.agent-runtime == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1844,6 +1868,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.shell-command-analyzer == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1884,6 +1909,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.sandbox-gondolin == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1930,6 +1956,7 @@ jobs:
       ]
     if: ${{ always() && needs.resolve-publish.outputs.pi-runtime == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -1977,6 +2004,7 @@ jobs:
       ]
     if: ${{ always() && needs.resolve-publish.outputs.pi-extension == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -2034,6 +2062,7 @@ jobs:
     # for the daemon itself.
     if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -2403,6 +2432,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.design-system == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write
@@ -2447,6 +2477,7 @@ jobs:
       (needs.publish-yubikey-preview-sign.result == 'success' || needs.publish-yubikey-preview-sign.result == 'skipped') &&
       !failure() && !cancelled()
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       id-token: write

@@ -51,6 +51,7 @@ jobs:
   models:
     name: Resolve model matrix
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
