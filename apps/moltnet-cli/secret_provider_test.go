@@ -138,6 +138,16 @@ func TestEnvironmentSecretProviderIsReadOnly(t *testing.T) {
 	}
 }
 
+// realHome is the HOME this process started with, recorded by TestMain before
+// it relocates HOME for the package.
+//
+// It is declared here rather than beside TestMain because that file is built
+// with `!e2e` while this one is untagged: putting the variable there made the
+// e2e build fail to compile. Under the e2e tag nothing assigns it, which is
+// correct — that build has its own TestMain and does not relocate HOME, so the
+// empty-string guard below simply skips the restore.
+var realHome string
+
 // requireOSKeyringTestable gates the tests that write to the real credential
 // store.
 //

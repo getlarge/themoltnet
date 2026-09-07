@@ -33,16 +33,6 @@ import (
 // skipped on all three platforms while the job still reported success. A gate
 // that is cleared before it is read fails open and is invisible, so anything
 // added here must be a switch, never a secret.
-// realHome is the HOME this process started with, captured before TestMain
-// relocates it.
-//
-// The relocation protects the developer's ~/.config/moltnet, but it applies to
-// every test in the package, and macOS resolves the login keychain and the
-// default-keychain preference through HOME. A test that talks to the real
-// credential store therefore has to put HOME back, or `security` finds no
-// keychain to open and blocks until the Go test timeout.
-var realHome string
-
 var preservedTestEnv = map[string]bool{
 	"MOLTNET_RUN_NATIVE_KEYRING_TESTS": true,
 }
