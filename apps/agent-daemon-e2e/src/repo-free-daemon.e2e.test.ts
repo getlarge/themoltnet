@@ -26,7 +26,10 @@ import {
   vi,
 } from 'vitest';
 
-import { buildProducerVerification } from './fixtures.js';
+import {
+  buildProducerVerification,
+  provisionDaemonCredentials,
+} from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const { createPiTaskExecutorMock, observeGovernancePlanSafelySpy } = vi.hoisted(
@@ -127,6 +130,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
   let diaryId: string;
   let agentName: string;
   let clientId: string;
+  let identityId: string;
   let clientSecret: string;
   let publicKey: string;
   let privateKey: string;
@@ -138,6 +142,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     const creds = await harness.createAgent('e2e-repo-free-daemon');
     agentName = creds.name;
     clientId = creds.clientId;
+    identityId = creds.identityId;
     clientSecret = creds.clientSecret;
     publicKey = creds.keyPair.publicKey;
     privateKey = creds.keyPair.privateKey;
@@ -185,11 +190,15 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-agent-root-e2e-'));
     tempRoots.push(sandboxRoot);
     tempRoots.push(agentRoot);
-    writeAgentCredentials({
+    await provisionDaemonCredentials({
+      agent,
       agentRoot,
       agentName,
-      clientId,
-      clientSecret,
+      // Same value until #2163 splits agents.id from identity_id; passed
+      // separately so that rebase has to choose one for each.
+      agentId: identityId,
+      identityId,
+      teamId,
       publicKey,
       privateKey,
       fingerprint,
@@ -253,7 +262,13 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     });
     expect(executorOptions.mountPath).not.toBe(sandboxRoot);
     const executorWhoami = await executorOptions.moltnetAgent.agents.whoami();
-    expect(executorWhoami.credentialBinding).toBeUndefined();
+    // The daemon now authenticates with a team-bound agent key rather than
+    // OAuth2 client credentials (#2160), so the executor inherits that binding
+    // — and it must be the team the daemon was started with, not merely present.
+    expect(executorWhoami.credentialBinding).toMatchObject({
+      bindingScope: 'team',
+      boundTeamId: teamId,
+    });
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
@@ -300,11 +315,15 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-gov-root-e2e-'));
     tempRoots.push(sandboxRoot);
     tempRoots.push(agentRoot);
-    writeAgentCredentials({
+    await provisionDaemonCredentials({
+      agent,
       agentRoot,
       agentName,
-      clientId,
-      clientSecret,
+      // Same value until #2163 splits agents.id from identity_id; passed
+      // separately so that rebase has to choose one for each.
+      agentId: identityId,
+      identityId,
+      teamId,
       publicKey,
       privateKey,
       fingerprint,
@@ -424,47 +443,3 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     expect(final.status).toBe('completed');
   }, 120_000);
 });
-
-function writeAgentCredentials(input: {
-  agentRoot: string;
-  agentName: string;
-  clientId: string;
-  clientSecret: string;
-  publicKey: string;
-  privateKey: string;
-  fingerprint: string;
-  apiUrl: string;
-}): void {
-  const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
-  mkdirSync(agentDir, { recursive: true });
-  writeFileSync(
-    join(agentDir, 'moltnet.json'),
-    JSON.stringify(
-      {
-        identity_id: randomUUID(),
-        registered_at: new Date().toISOString(),
-        oauth2: {
-          client_id: input.clientId,
-          client_secret: input.clientSecret,
-        },
-        keys: {
-          public_key: input.publicKey,
-          private_key: input.privateKey,
-          fingerprint: input.fingerprint,
-        },
-        endpoints: {
-          api: input.apiUrl,
-          mcp: `${input.apiUrl}/mcp`,
-        },
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
-  writeFileSync(
-    join(agentDir, 'env'),
-    `MOLTNET_AGENT_NAME=${input.agentName}\n`,
-    'utf8',
-  );
-}

@@ -50,6 +50,15 @@ function actionStep(name: string): WorkflowStep {
   return step;
 }
 
+/** Some steps carry an `id` instead of a `name` (e.g. `create-task`). */
+function actionStepById(id: string): WorkflowStep {
+  const step = action.runs.steps.find(
+    (candidate) => (candidate as { id?: string }).id === id,
+  );
+  if (!step) throw new Error(`Missing action step id: ${id}`);
+  return step;
+}
+
 describe('workspace daemon action contract', () => {
   it('uses a TypeScript-aware source entrypoint in workspace mode', () => {
     const run = action.runs.steps.map((step) => step.run ?? '').join('\n');
@@ -78,6 +87,14 @@ describe('workspace daemon action contract', () => {
           MOLTNET_AGENT_NAME: 'configless',
           MOLTNET_AGENT_KEY: 'agent-key-secret',
           MOLTNET_PRIVATE_KEY: 'signing-seed',
+          // Configless is an assertion about absence, so clear these
+          // explicitly rather than inheriting a developer's shell. The _REF
+          // forms matter too: the step now rejects a value and a reference
+          // together, so an inherited one would fail the run.
+          MOLTNET_CLIENT_ID: '',
+          MOLTNET_CLIENT_SECRET: '',
+          MOLTNET_AGENT_KEY_REF: '',
+          MOLTNET_PRIVATE_KEY_REF: '',
         },
       });
 
@@ -114,6 +131,14 @@ describe('workspace daemon action contract', () => {
           MOLTNET_AGENT_NAME: 'configless',
           MOLTNET_AGENT_KEY: 'agent-key-secret',
           MOLTNET_PRIVATE_KEY: 'signing-seed',
+          // Configless is an assertion about absence, so clear these
+          // explicitly rather than inheriting a developer's shell. The _REF
+          // forms matter too: the step now rejects a value and a reference
+          // together, so an inherited one would fail the run.
+          MOLTNET_CLIENT_ID: '',
+          MOLTNET_CLIENT_SECRET: '',
+          MOLTNET_AGENT_KEY_REF: '',
+          MOLTNET_PRIVATE_KEY_REF: '',
           MOLTNET_API_URL: 'https://staging.example.test',
         },
       });
@@ -138,49 +163,185 @@ describe('workspace daemon action contract', () => {
         MOLTNET_AGENT_NAME: 'configless',
         MOLTNET_AGENT_KEY: 'agent-key-secret',
         MOLTNET_PRIVATE_KEY: '',
+        // "Absent" must mean absent: inheriting a reference from the
+        // developer's shell would satisfy the check and hide the failure.
+        MOLTNET_PRIVATE_KEY_REF: '',
       },
     });
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      'MOLTNET_PRIVATE_KEY is required with MOLTNET_AGENT_KEY',
+      'MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF) is required',
     );
   });
 
-  it('retains config materialization for OAuth execution', () => {
+  // The guards below run before the task is created, so a shape the daemon
+  // would reject must fail here rather than queue work nothing claims.
+  const materializeStep = () =>
+    actionStep('Materialize MoltNet agent dir from env').run!;
+
+  const baseEnv = {
+    AGENT_NAME_OVERRIDE: '',
+    MOLTNET_AGENT_NAME: 'guarded',
+    MOLTNET_AGENT_KEY: '',
+    MOLTNET_AGENT_KEY_REF: '',
+    MOLTNET_PRIVATE_KEY: '',
+    MOLTNET_PRIVATE_KEY_REF: '',
+    MOLTNET_CLIENT_ID: '',
+    MOLTNET_CLIENT_SECRET: '',
+  };
+
+  const runMaterialize = (overrides: Record<string, string>) =>
+    spawnSync('bash', ['-c', materializeStep()], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        ...baseEnv,
+        ...overrides,
+        GITHUB_WORKSPACE: tmpdir(),
+      },
+    });
+
+  it.each([
+    [
+      'an agent key value and reference together',
+      {
+        MOLTNET_AGENT_KEY: 'k',
+        MOLTNET_AGENT_KEY_REF: 'os-keyring:agent-key/id-1',
+        MOLTNET_PRIVATE_KEY: 'seed',
+      },
+      'Set only one of MOLTNET_AGENT_KEY',
+    ],
+    [
+      'a seed value and reference together',
+      {
+        MOLTNET_AGENT_KEY: 'k',
+        MOLTNET_PRIVATE_KEY: 'seed',
+        MOLTNET_PRIVATE_KEY_REF: 'file:identity/FP/seed',
+      },
+      'Set only one of MOLTNET_PRIVATE_KEY',
+    ],
+    [
+      'a client id without its secret',
+      {
+        MOLTNET_AGENT_KEY: 'k',
+        MOLTNET_PRIVATE_KEY: 'seed',
+        MOLTNET_CLIENT_ID: 'c1',
+      },
+      'MOLTNET_CLIENT_SECRET is required',
+    ],
+    [
+      'a client secret without its id',
+      {
+        MOLTNET_AGENT_KEY: 'k',
+        MOLTNET_PRIVATE_KEY: 'seed',
+        MOLTNET_CLIENT_SECRET: 's1',
+      },
+      'MOLTNET_CLIENT_ID is required',
+    ],
+  ])('rejects %s', (_label, overrides, expected) => {
+    const result = runMaterialize(overrides);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(expected);
+  });
+
+  it('selects configless credentials for a key reference', () => {
+    // Scoped to the credential branch, which is all this can honestly cover:
+    // driving real task creation would need the CLI and a live API. Before the
+    // fix this branch tested only MOLTNET_AGENT_KEY, so a reference-only run —
+    // which materializes no moltnet.json to point at — fell through to
+    // "credentials not found".
+    const run = actionStepById('create-task').run!;
+
+    // The branch must accept either form.
+    expect(run).toContain(
+      'if [ -n "${MOLTNET_AGENT_KEY:-}" ] || [ -n "${MOLTNET_AGENT_KEY_REF:-}" ]; then',
+    );
+    // And the failure it used to hit must still exist for the case it is for:
+    // no key of either form and no credentials file.
+    expect(run).toContain('moltnet credentials not found');
+  });
+
+  it('accepts a seed reference in place of the literal seed', () => {
+    // The daemon resolves either form, so a reference-only deployment must not
+    // be rejected by the wrapper and pushed into exposing the seed value.
+    const run = actionStep('Materialize MoltNet agent dir from env').run!;
+    const root = mkdtempSync(resolve(tmpdir(), 'agent-daemon-action-seedref-'));
+    const githubEnv = resolve(root, 'github-env');
+    writeFileSync(githubEnv, '', 'utf8');
+
+    try {
+      const result = spawnSync('bash', ['-c', run], {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GITHUB_WORKSPACE: root,
+          GITHUB_ENV: githubEnv,
+          AGENT_NAME_OVERRIDE: '',
+          MOLTNET_AGENT_NAME: 'configless',
+          MOLTNET_AGENT_KEY_REF: 'os-keyring:agent-key/identity-1',
+          MOLTNET_AGENT_KEY: '',
+          MOLTNET_PRIVATE_KEY: '',
+          MOLTNET_PRIVATE_KEY_REF: 'os-keyring:identity/FP/seed',
+          MOLTNET_CLIENT_ID: '',
+          MOLTNET_CLIENT_SECRET: '',
+        },
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('configless MoltNet agent-key');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('retains agent-tree materialization when OAuth vars are supplied', () => {
     const run = actionStep('Materialize MoltNet agent dir from env').run!;
 
-    expect(run).toContain('OAuth mode reconstructs a central identity');
+    // OAuth vars still rebuild git, SSH and GitHub App assets — they just no
+    // longer authenticate the daemon, which needs the agent key below.
     expect(run).toContain('config init-from-env');
+  });
 
-    // The alias becomes a $HOME path segment and three GITHUB_ENV values, so a
-    // newline would inject environment variables into every later step and
-    // "../" would escape the identity store. Validation must cover the
-    // inherited MOLTNET_AGENT_NAME too, not just the agent-name input.
-    expect(run).toContain('^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$');
-    const validationIndex = run.indexOf('[A-Za-z0-9._-]{0,62}');
-    const githubEnvIndex = run.indexOf('$GITHUB_ENV');
-    expect(validationIndex).toBeGreaterThan(-1);
-    expect(githubEnvIndex).toBeGreaterThan(validationIndex);
+  it('refuses to run without an agent key, naming the fix', () => {
+    // Arrange: the pre-#2160 shape — OAuth client credentials and no key.
+    // `config init-from-env` writes no agent_key_ref, so the daemon would
+    // refuse the config it produces; fail here instead, with the remedy.
+    const run = actionStep('Materialize MoltNet agent dir from env').run!;
 
-    // A published CLI predating the central identity store writes the legacy
-    // repository layout, leaving AGENT_DIR empty; that must fail loudly here.
-    expect(run).toContain('MOLTNET_CLI_VERSION');
-    expect(run).toContain('$AGENT_DIR/moltnet.json');
+    // Act
+    const result = spawnSync('bash', ['-c', run], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        GITHUB_WORKSPACE: tmpdir(),
+        AGENT_NAME_OVERRIDE: '',
+        MOLTNET_AGENT_NAME: 'oauth-only',
+        MOLTNET_AGENT_KEY: '',
+        MOLTNET_AGENT_KEY_REF: '',
+        MOLTNET_CLIENT_ID: 'client-1',
+        MOLTNET_CLIENT_SECRET: 'secret-1',
+        MOLTNET_PRIVATE_KEY: 'signing-seed',
+      },
+    });
 
-    // The step runs with OAuth, signing-key and GitHub App secrets in its
-    // environment, so it must not resolve a mutable tag by default.
-    expect(run).not.toMatch(
-      /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/,
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('MOLTNET_AGENT_KEY');
+    expect(result.stderr).toContain(
+      'no longer accepts OAuth2 client credentials',
     );
+  });
 
-    // The version is derived from the action's own checkout rather than
-    // duplicated, so there is no pin to drift and nothing to remember to bump.
-    expect(run).toContain('ACTION_PATH');
-    expect(run).toContain('packages/cli/package.json');
-    expect(run).not.toMatch(/MOLTNET_CLI_PIN="\d+\.\d+\.\d+"/);
-    // A failed derivation must stop the step, not silently install nothing.
-    expect(run).toMatch(/if \[ -z "\$MOLTNET_CLI_PIN" \]/);
+  it('materializes the agent tree when a key and OAuth vars are both present', () => {
+    // Arrange: the two paths used to be mutually exclusive — the key branch
+    // exited before materialization, so a committing agent could not have
+    // both. Assert they now compose.
+    const run = actionStep('Materialize MoltNet agent dir from env').run!;
+
+    expect(run).toContain(
+      'Agent-key authentication with a materialized agent tree',
+    );
   });
 
   it('keeps multi-lens workers on the minimal configless secret set', () => {

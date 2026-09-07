@@ -75,9 +75,10 @@ Commands:
 Run \`agent-daemon <command> --help\` for command-specific flags.
 
 Prerequisites:
-  - agent-key mode: MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) and
+  - configless: MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) and
     MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF); no agent files
-  - OAuth2 and sync-sessions: <agent-root>/.moltnet/<agent>/moltnet.json
+  - config-based and sync-sessions: <agent-root>/.moltnet/<agent>/moltnet.json
+    carrying agent_key_ref (OAuth2 client credentials are not accepted)
   - --profile — remote runtime profile supplies provider/model/sandbox
     policy and CWD is used as the VM mountPath.
 

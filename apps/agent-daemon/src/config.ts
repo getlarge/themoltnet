@@ -5,7 +5,10 @@
  * here, so the rest of the daemon imports typed values rather than
  * sprinkling string lookups across the codebase.
  */
-import { type DaemonAuthMode, detectAuthMode } from './lib/agent-context.js';
+import {
+  type DaemonCredentialSource,
+  detectCredentialSource,
+} from './lib/agent-context.js';
 import type { IdentityPin } from './lib/identity-pin.js';
 
 export interface DaemonConfig {
@@ -20,12 +23,19 @@ export interface DaemonConfig {
   /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
   piCodingAgentDir: string;
   /**
-   * Which credential `connect()` will use: `agent-key` when `MOLTNET_AGENT_KEY`
-   * is set, otherwise the default `oauth2` client-credentials flow. The secret
-   * itself is never surfaced here.
+   * Where the agent key comes from: `environment` when `MOLTNET_AGENT_KEY`
+   * (or `_REF`) is set, otherwise `config` — an `agent_key_ref` in
+   * `moltnet.json`. The daemon accepts no other credential. The secret itself
+   * is never surfaced here.
    */
-  authMode: DaemonAuthMode;
-  /** Base64 Ed25519 seed used for executor attestation in agent-key mode. */
+  credentialSource: DaemonCredentialSource;
+  /**
+   * `MOLTNET_API_URL`, forwarded to credential resolution so `agent-context`
+   * never reads `process.env` itself — this module is the daemon's single
+   * environment entry point.
+   */
+  apiUrl: string;
+  /** Base64 Ed25519 seed used for executor attestation when configless. */
   signingPrivateKey: string;
   /**
    * `<provider>:<key>` reference to that seed (`MOLTNET_PRIVATE_KEY_REF`),
@@ -61,7 +71,8 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
-    authMode: detectAuthMode(process.env),
+    credentialSource: detectCredentialSource(process.env),
+    apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
     signingPrivateKeyRef: process.env['MOLTNET_PRIVATE_KEY_REF'] ?? '',
     gitAuthor: process.env['MOLTNET_GIT_AUTHOR'] ?? '',

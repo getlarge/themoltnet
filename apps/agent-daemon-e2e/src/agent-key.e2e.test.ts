@@ -484,7 +484,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     try {
       const ctx = await resolveAgentContext(AGENT_NAME, {
         agentRootDir: root,
-        authMode: 'agent-key',
+        credentialSource: 'environment',
       });
       const whoami = await ctx.agent.agents.whoami();
       expect(whoami.credentialBinding).toMatchObject({

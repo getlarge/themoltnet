@@ -123,27 +123,94 @@ func runConfigInitFromEnvCmdWithRegistry(
 	privateKey := getenv("MOLTNET_PRIVATE_KEY", fileVars, override)
 	fingerprint := getenv("MOLTNET_FINGERPRINT", fileVars, override)
 
+	// An agent-key reference is an alternative to OAuth2 client credentials.
+	// The git, SSH and GitHub App assets this command writes derive from the
+	// Ed25519 material below and never from the OAuth pair, so an agent
+	// authenticating with a key should not have to supply client credentials
+	// just to obtain them (#2160).
+	agentKeyRef := getenv(agentKeyRefEnv, fileVars, override)
+	haveAgentKeyRef := strings.TrimSpace(agentKeyRef) != ""
+
 	var missing []string
 	if identityID == "" {
 		missing = append(missing, "MOLTNET_IDENTITY_ID")
 	}
-	if clientID == "" {
-		missing = append(missing, "MOLTNET_CLIENT_ID")
-	}
-	if clientSecret == "" {
-		missing = append(missing, "MOLTNET_CLIENT_SECRET")
+	if !haveAgentKeyRef {
+		if clientID == "" {
+			missing = append(missing, "MOLTNET_CLIENT_ID")
+		}
+		if clientSecret == "" {
+			missing = append(missing, "MOLTNET_CLIENT_SECRET")
+		}
+	} else {
+		// With a key reference the OAuth pair is optional, but half of it is
+		// not: writing a client_id with a reference to an unset
+		// MOLTNET_CLIENT_SECRET would produce a config that only fails later,
+		// when something tries to resolve it.
+		if clientID != "" && clientSecret == "" {
+			missing = append(missing, "MOLTNET_CLIENT_SECRET")
+		}
+		if clientID == "" && clientSecret != "" {
+			missing = append(missing, "MOLTNET_CLIENT_ID")
+		}
 	}
 	if publicKey == "" {
 		missing = append(missing, "MOLTNET_PUBLIC_KEY")
 	}
-	if privateKey == "" {
+	// The seed may be a literal or a reference; SSH export resolves either
+	// (ssh.go -> resolveIdentitySeed), so requiring the literal would reject a
+	// reference-only deployment that the rest of the toolchain supports.
+	privateKeyRef := getenv("MOLTNET_PRIVATE_KEY_REF", fileVars, override)
+	havePrivateKeyRef := strings.TrimSpace(privateKeyRef) != ""
+	if privateKey == "" && !havePrivateKeyRef {
 		missing = append(missing, "MOLTNET_PRIVATE_KEY")
+	}
+	if privateKey != "" && havePrivateKeyRef {
+		return fmt.Errorf("set only one of MOLTNET_PRIVATE_KEY or MOLTNET_PRIVATE_KEY_REF")
 	}
 	if fingerprint == "" {
 		missing = append(missing, "MOLTNET_FINGERPRINT")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required environment variables: %s", strings.Join(missing, ", "))
+		hint := ""
+		if !haveAgentKeyRef {
+			hint = fmt.Sprintf(" (or set %s to write an agent_key_ref instead of OAuth2 client credentials)", agentKeyRefEnv)
+		}
+		return fmt.Errorf("missing required environment variables: %s%s", strings.Join(missing, ", "), hint)
+	}
+
+	// Parse and bind-check the reference before anything is written, so a
+	// malformed or foreign reference fails without leaving a partial agent dir.
+	var privateKeyReference *SecretReference
+	if havePrivateKeyRef {
+		parsed, err := parseSecretReferenceString(privateKeyRef)
+		if err != nil {
+			return fmt.Errorf("MOLTNET_PRIVATE_KEY_REF: %w", err)
+		}
+		if err := validateSecretReferenceBinding(
+			credentialIdentitySeed,
+			parsed,
+			credentialBindingIDs{Fingerprint: fingerprint},
+		); err != nil {
+			return fmt.Errorf("MOLTNET_PRIVATE_KEY_REF: %w", err)
+		}
+		privateKeyReference = &parsed
+	}
+
+	var agentKeyReference *SecretReference
+	if haveAgentKeyRef {
+		parsed, err := parseSecretReferenceString(agentKeyRef)
+		if err != nil {
+			return fmt.Errorf("%s: %w", agentKeyRefEnv, err)
+		}
+		if err := validateSecretReferenceBinding(
+			credentialAgentKey,
+			parsed,
+			credentialBindingIDs{IdentityID: identityID},
+		); err != nil {
+			return fmt.Errorf("%s: %w", agentKeyRefEnv, err)
+		}
+		agentKeyReference = &parsed
 	}
 
 	// Optional env vars with defaults
@@ -162,44 +229,52 @@ func runConfigInitFromEnvCmdWithRegistry(
 		return fmt.Errorf("create agent dir: %w", err)
 	}
 
-	// A secret arriving through the process environment is only referenced, so
-	// nothing is written. One arriving from --env-file has to be persisted
-	// somewhere, and that destination must be selectable: the OS keyring does
-	// not exist on a headless host — CI runners, containers, servers — where
-	// this command is precisely what runs.
-	secretReference := &SecretReference{
-		Provider: environmentProviderName,
-		Key:      environmentSecretKey,
-	}
-	if valueComesFromFile(environmentSecretKey, fileVars, override) {
-		resolved, err := validateMigrationDestination(secretProviders, destination)
-		if err != nil {
-			return err
+	// The OAuth2 section is optional once an agent-key reference is supplied,
+	// so build it only when client credentials are actually present.
+	oauth2Section := CredentialsOAuth2{}
+	if clientID != "" {
+		// A secret arriving through the process environment is only referenced, so
+		// nothing is written. One arriving from --env-file has to be persisted
+		// somewhere, and that destination must be selectable: the OS keyring does
+		// not exist on a headless host — CI runners, containers, servers — where
+		// this command is precisely what runs.
+		secretReference := &SecretReference{
+			Provider: environmentProviderName,
+			Key:      environmentSecretKey,
 		}
-		secretReference = &SecretReference{
-			Provider: resolved,
-			Key:      OAuth2SecretKey(identityID, clientID),
+		if valueComesFromFile(environmentSecretKey, fileVars, override) {
+			resolved, err := validateMigrationDestination(secretProviders, destination)
+			if err != nil {
+				return err
+			}
+			secretReference = &SecretReference{
+				Provider: resolved,
+				Key:      OAuth2SecretKey(identityID, clientID),
+			}
+			if err := secretProviders.Store(*secretReference, clientSecret); err != nil {
+				return fmt.Errorf(
+					"persist env-file OAuth2 client secret to %q: %w\n"+
+						"On a host without an OS keyring, pass --destination file with %s and %s=1.",
+					resolved, err, secretRootEnv, secretRootWritableEnv,
+				)
+			}
 		}
-		if err := secretProviders.Store(*secretReference, clientSecret); err != nil {
-			return fmt.Errorf(
-				"persist env-file OAuth2 client secret to %q: %w\n"+
-					"On a host without an OS keyring, pass --destination file with %s and %s=1.",
-				resolved, err, secretRootEnv, secretRootWritableEnv,
-			)
+		oauth2Section = CredentialsOAuth2{
+			ClientID:        clientID,
+			ClientSecretRef: secretReference,
 		}
 	}
 
 	// Build config
 	config := &CredentialsFile{
-		IdentityID: identityID,
-		OAuth2: CredentialsOAuth2{
-			ClientID:        clientID,
-			ClientSecretRef: secretReference,
-		},
+		IdentityID:  identityID,
+		AgentKeyRef: agentKeyReference,
+		OAuth2:      oauth2Section,
 		Keys: CredentialsKeys{
-			PublicKey:   publicKey,
-			PrivateKey:  privateKey,
-			Fingerprint: fingerprint,
+			PublicKey:     publicKey,
+			PrivateKey:    privateKey,
+			PrivateKeyRef: privateKeyReference,
+			Fingerprint:   fingerprint,
 		},
 		Endpoints: CredentialsEndpoints{
 			API: apiURL,
@@ -238,6 +313,22 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 	fmt.Fprintf(os.Stderr, "Config written to %s\n", configPath)
 
+	// From here on the config exists on disk, and the early-return above treats
+	// its presence as "already initialized". A later failure would therefore be
+	// permanent: the retry skips initialization and the identity keeps whatever
+	// half-built state it reached. Remove the config on any failure so the next
+	// invocation starts clean.
+	initialized := false
+	defer func() {
+		if !initialized {
+			if rmErr := os.Remove(configPath); rmErr == nil {
+				fmt.Fprintf(os.Stderr,
+					"Initialization failed; removed the partial config at %s so it can be retried\n",
+					configPath)
+			}
+		}
+	}()
+
 	// Export SSH keys (reuses existing logic)
 	if err := runSSHKeyExportCmd(configPath, ""); err != nil {
 		return fmt.Errorf("export SSH keys: %w", err)
@@ -271,6 +362,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 		}
 	}
 
+	initialized = true
 	fmt.Fprintf(os.Stderr, "Agent %q initialized from environment variables\n", agentName)
 	return nil
 }
@@ -318,7 +410,11 @@ func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *Credentia
 
 	var lines []string
 	lines = append(lines, "# Managed by moltnet config init-from-env — do not edit above the user section")
-	lines = append(lines, fmt.Sprintf("%s_CLIENT_ID='%s'", prefix, shellQuote(config.OAuth2.ClientID)))
+	// An agent-key config carries no OAuth2 section; emitting an empty
+	// CLIENT_ID would look like a broken credential rather than an absent one.
+	if config.OAuth2.ClientID != "" {
+		lines = append(lines, fmt.Sprintf("%s_CLIENT_ID='%s'", prefix, shellQuote(config.OAuth2.ClientID)))
+	}
 
 	if config.GitHub != nil {
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, shellQuote(config.GitHub.AppID)))

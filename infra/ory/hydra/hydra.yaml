@@ -96,19 +96,19 @@ oidc:
       salt: local-dev-salt-not-for-production
   dynamic_client_registration:
     enabled: true
+    # Capped at the MCP tool surface (DCR_MAX_SCOPES): registration is
+    # open, so this default is what an anonymous registrant walks away
+    # with. key:manage, runtime:manage, connector:invoke, runtime:read
+    # and task:claim stay unreachable by self-registration.
     default_scope:
       - agent:profile
-      - connector:invoke
       - crypto:sign
       - diary:manage
       - diary:read
       - diary:write
-      - key:manage
+      - human:profile
       - pack:read
       - pack:write
-      - runtime:manage
-      - runtime:read
-      - task:claim
       - task:execute
       - task:manage
       - task:read

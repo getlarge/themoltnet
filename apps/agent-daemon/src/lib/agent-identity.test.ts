@@ -23,22 +23,22 @@ describe('resolveDaemonAgentIdentity', () => {
     });
   });
 
-  it('uses host git config in oauth2 mode', async () => {
+  it('uses host git config when credentials come from the config file', async () => {
     const identity = await resolveDaemonAgentIdentity({
       agentName: 'legreffier',
       whoami,
-      authMode: 'oauth2',
+      credentialSource: 'config',
       agentDir: '/agent',
     });
     expect(identity).toMatchObject({ gitName: 'LeGreffier', gitEmail: 'h@x' });
     expect(readConfigMock).toHaveBeenCalledWith('/agent');
   });
 
-  it('never reads host config in agent-key mode and derives the bot address', async () => {
+  it('never reads host config when configless and derives the bot address', async () => {
     const identity = await resolveDaemonAgentIdentity({
       agentName: 'legreffier',
       whoami,
-      authMode: 'agent-key',
+      credentialSource: 'environment',
       agentDir: '/agent',
     });
     expect(identity.gitEmail).toBe(
@@ -51,7 +51,7 @@ describe('resolveDaemonAgentIdentity', () => {
     const identity = await resolveDaemonAgentIdentity({
       agentName: 'legreffier',
       whoami,
-      authMode: 'oauth2',
+      credentialSource: 'config',
       agentDir: '/agent',
       gitAuthor: 'Bot <b@x>',
     });

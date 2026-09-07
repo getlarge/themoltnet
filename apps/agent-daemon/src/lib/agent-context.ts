@@ -1,12 +1,16 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import {
   type Agent,
   assertIdentityAlias,
+  assertTrustedConfigApiUrl,
   AuthenticationError,
   getIdentityDir,
   readConfig,
+  requireSecureCredentialApiUrl,
+  resolveAgentKey,
   type Whoami,
 } from '@themoltnet/sdk';
 import {
@@ -16,52 +20,50 @@ import {
 
 import { assessIdentityPin, type IdentityPin } from './identity-pin.js';
 
-/** The mechanism `connect()` actually authenticated with. */
-export type DaemonAuthMechanism = 'agent-key' | 'oauth2';
+/** Scopes a daemon key must carry; mirrors `DAEMON_REQUIRED_SCOPES`. */
+const DAEMON_KEY_SCOPES = AGENT_CREDENTIAL_SCOPES;
+
+/**
+ * Where the daemon's credentials live.
+ *
+ * - `environment`: configless — `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF`
+ *   holds the key; no agent files are read.
+ * - `config`: `moltnet.json` supplies an `agent_key_ref`.
+ *
+ * This is deliberately *not* an authentication mode. The daemon authenticates
+ * with a team-bound agent key either way: OAuth2 client_credentials was retired
+ * (#2160) because it hands the daemon the full 17-scope agent grant against a
+ * six-scope need, and because a Hydra token cannot be a Talos derivation parent.
+ */
+export type DaemonCredentialSource = 'environment' | 'config';
 
 export interface DaemonAgentContext {
   agentDir: string;
   agentRootDir: string;
   agent: Agent;
-  /**
-   * Where credentials came from: the configless environment
-   * (`MOLTNET_AGENT_KEY` / `MOLTNET_AGENT_KEY_REF`) or `moltnet.json`.
-   */
-  credentialSource: 'environment' | 'config';
-  /**
-   * The authentication mechanism in use. Differs from `credentialSource`
-   * when `moltnet.json` carries an `agent_key_ref`: the source is `config`
-   * but the mechanism is `agent-key`.
-   */
-  authMechanism: DaemonAuthMechanism;
+  credentialSource: DaemonCredentialSource;
 }
 
 /**
- * Where the daemon's credentials come from — this is the *credential source*,
- * not necessarily the authentication mechanism (see `DaemonAgentContext`).
+ * Report where `connect()` will find the key, without ever reading the secret
+ * value into anything logged. A non-blank `MOLTNET_AGENT_KEY` or
+ * `MOLTNET_AGENT_KEY_REF` means configless; otherwise the key comes from
+ * `moltnet.json`. This mirrors the SDK precedence, where an environment key
+ * wins over the config file.
  *
- * - `agent-key`: configless — a static, team-bound bearer secret from
- *   `MOLTNET_AGENT_KEY` (or `MOLTNET_AGENT_KEY_REF`); no agent files are read.
- * - `oauth2`: `moltnet.json` supplies the credentials; the mechanism is the
- *   OAuth2 client-credentials flow unless the file carries `agent_key_ref`.
- */
-export type DaemonAuthMode = 'agent-key' | 'oauth2';
-
-/**
- * Report which auth mode `connect()` will use, without ever reading the secret
- * value into anything logged. Agent-key mode is selected when
- * `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` holds a non-blank value —
- * mirroring the SDK precedence
- * where an environment key opts into key mode ahead of the config-file OAuth2
- * credentials. The daemon never passes explicit in-code credentials to
- * `connect()`, so this env-only check matches what `connect()` actually does.
+ * It reports the *source*, not what `connect()` would pick on its own: the
+ * config path resolves the key and passes it explicitly, because ambient
+ * resolution ranks environment OAuth2 credentials above a configured
+ * `agent_key_ref` (see `resolveAgentContext`).
  *
  * Pure: `env` is passed in (the config module owns the `process.env` read).
  */
-export function detectAuthMode(env: NodeJS.ProcessEnv): DaemonAuthMode {
+export function detectCredentialSource(
+  env: NodeJS.ProcessEnv,
+): DaemonCredentialSource {
   return env.MOLTNET_AGENT_KEY?.trim() || env.MOLTNET_AGENT_KEY_REF?.trim()
-    ? 'agent-key'
-    : 'oauth2';
+    ? 'environment'
+    : 'config';
 }
 
 /** Result of the pure startup-binding assessment. */
@@ -175,7 +177,12 @@ export async function resolveAgentContext(
      * unless a path was named. Undefined means "central store only".
      */
     agentRootDir?: string;
-    authMode?: DaemonAuthMode;
+    credentialSource?: DaemonCredentialSource;
+    /**
+     * `MOLTNET_API_URL` as the config module already read it. Supplied rather
+     * than read here so this stays the daemon's single `process.env` owner.
+     */
+    envApiUrl?: string;
   } = {},
 ): Promise<DaemonAgentContext> {
   // One grammar, shared with the Go CLI and the daemon store. The previous
@@ -183,15 +190,15 @@ export async function resolveAgentContext(
   // aliases the CLI creates and accepted names getIdentityDir then rejected
   // with a raw "invalid identity alias".
   assertIdentityAlias(agentName);
-  // agent-key is configless: the key comes from the environment, so the
-  // directory is only used for state and mounting and must NOT be gated on a
-  // moltnet.json that will never exist there.
+  // Configless runs take the key from the environment, so the directory is
+  // only used for state and mounting and must NOT be gated on a moltnet.json
+  // that will never exist there.
   const { agentDir, agentRootDir } = resolveIdentityLocation(
     agentName,
     options.agentRootDir,
-    { requireConfig: options.authMode !== 'agent-key' },
+    { requireConfig: options.credentialSource !== 'environment' },
   );
-  if (options.authMode === 'agent-key') {
+  if (options.credentialSource === 'environment') {
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
     // reference can be resolved.
@@ -203,27 +210,63 @@ export async function resolveAgentContext(
       agentRootDir,
       agent,
       credentialSource: 'environment',
-      authMechanism: 'agent-key',
     };
   }
 
-  // OAuth2: the host needs `moltnet.json` to build its own Agent. Reading it on
-  // the host never implies projecting it into the guest — the guest receives no
+  // The host needs `moltnet.json` to build its own Agent. Reading it on the
+  // host never implies projecting it into the guest — the guest receives no
   // MoltNet credential material.
+  const config = await readConfig(agentDir);
+  if (!config?.agent_key_ref) {
+    throw new Error(agentKeyRequiredMessage(agentDir, agentName));
+  }
+  const secretProviders = createNodeSecretProviderRegistry();
+  // Resolve the key here and hand it to connect() explicitly rather than
+  // letting ambient resolution pick. Ambient order puts environment OAuth2
+  // client credentials *ahead* of a configured agent_key_ref
+  // (connect-ambient.ts step 4 vs step 5), and `moltnet start` injects
+  // MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET into the daemon's environment
+  // (start.go). Checking that agent_key_ref exists and then calling ambient
+  // connect() would therefore still authenticate with the over-scoped OAuth2
+  // token on the launcher path — the exact outcome #2160 exists to prevent.
+  // An explicit agentKey is step 1 and beats every environment variable.
+  const agentKey = await resolveAgentKey(config, secretProviders);
+  if (!agentKey) {
+    throw new Error(agentKeyRequiredMessage(agentDir, agentName));
+  }
   const agent = await connect({
     configDir: agentDir,
-    secretProviders: createNodeSecretProviderRegistry(),
+    secretProviders,
+    agentKey,
+    apiUrl: resolveConfigApiUrl(config, options.envApiUrl),
   });
-  // connect() prefers a configured agent_key_ref over OAuth2; report the
-  // mechanism it actually used so diagnostics and telemetry agree.
-  const config = await readConfig(agentDir);
   return {
     agentDir,
     agentRootDir,
     agent,
     credentialSource: 'config',
-    authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
   };
+}
+
+/**
+ * The daemon runs on an agent key only. A `moltnet.json` carrying OAuth2
+ * client credentials but no `agent_key_ref` is the pre-#2160 shape, and
+ * `connect()` would happily authenticate it — so this has to be refused here
+ * rather than left to surface as an over-scoped token later.
+ */
+function agentKeyRequiredMessage(agentDir: string, agentName: string): string {
+  return (
+    `${join(agentDir, 'moltnet.json')} has no "agent_key_ref". The daemon ` +
+    `requires a team-bound agent key; OAuth2 client_credentials is no longer ` +
+    `accepted. Mint one with:\n\n` +
+    `  moltnet agents keys create --agent-id <agent-uuid> ` +
+    `--team-id <team-uuid> --name ${agentName}-daemon --store\n\n` +
+    `That writes "agent_key_ref" into moltnet.json and keeps the secret in a ` +
+    `provider. The key needs these scopes: ` +
+    `${DAEMON_KEY_SCOPES.join(' ')}.\n` +
+    `Alternatively set MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF to run ` +
+    `configless.`
+  );
 }
 
 /**
@@ -257,6 +300,24 @@ function resolveIdentityLocation(
   }
   const central = getIdentityDir(agentName);
   return { agentDir: central, agentRootDir: central };
+}
+
+/**
+ * Pick the API URL for an explicitly-keyed connect, preserving the checks
+ * ambient config resolution would have applied. An explicit `apiUrl` skips
+ * ambient's own normalisation, so a URL taken from `moltnet.json` still has to
+ * clear the config-trust and transport checks before it is used.
+ */
+function resolveConfigApiUrl(
+  config: { endpoints?: { api?: string } },
+  envApiUrl?: string,
+): string | undefined {
+  if (envApiUrl?.trim()) return undefined; // connect() reads it from the env
+  const fromConfig = config.endpoints?.api?.trim();
+  if (!fromConfig) return undefined;
+  assertTrustedConfigApiUrl(fromConfig);
+  requireSecureCredentialApiUrl(fromConfig);
+  return fromConfig;
 }
 
 function isTransientWhoamiError(error: unknown): boolean {

@@ -81,31 +81,50 @@ All config flows from environment variables. The daemon reads them in
 
 ### MoltNet identity
 
-| Var                   | Required                              | Purpose                                                                    |
-| --------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`   | OAuth2/local                          | Optional git identity path; not needed for configless agent-key startup.   |
-| `MOLTNET_AGENT_NAME`  | yes                                   | Agent name (matches `.moltnet/<name>/`).                                   |
-| `MOLTNET_API_URL`     | agent-key only                        | Explicit API endpoint; key mode never reads it from `moltnet.json`.        |
-| `MOLTNET_AGENT_KEY`   | no                                    | Team- or identity-scoped agent key. Set to authenticate instead of OAuth2. |
-| `MOLTNET_PRIVATE_KEY` | agent-key `once`, `poll`, and `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.             |
+| Var                   | Required                           | Purpose                                                                   |
+| --------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| `GIT_CONFIG_GLOBAL`   | config-based                       | Optional git identity path; not needed for configless startup.            |
+| `MOLTNET_AGENT_NAME`  | yes                                | Agent name (matches `.moltnet/<name>/`).                                  |
+| `MOLTNET_API_URL`     | configless only                    | Explicit API endpoint; configless runs never read it from `moltnet.json`. |
+| `MOLTNET_AGENT_KEY`   | no                                 | Team- or identity-scoped agent key. Overrides `moltnet.json`.             |
+| `MOLTNET_PRIVATE_KEY` | configless `once`, `poll`, `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
 
-For OAuth2/local mode, the agent's `moltnet.json` and gitconfig live next to
+For config-based runs, the agent's `moltnet.json` and gitconfig live next to
 each other in `.moltnet/<agent>/`. Provision them once via
 [`moltnet agents init`](../../docs/start/install-and-initialize.md#initialize-an-autonomous-agent).
 
-**Auth mode.** When `MOLTNET_AGENT_KEY` is set the daemon authenticates with
-that key as an opaque bearer token (no OAuth2 exchange); otherwise it uses the
-OAuth2 client-credentials from `moltnet.json`. The key is read from the
-environment only — never store it in `moltnet.json`. The daemon reconciles a
-team-bound key against `--team` at startup; an identity-scoped key may select
-any team where the agent is authorized. It fails fast if the key is rejected,
-is not an agent, or a team binding mismatches. See
+**The daemon runs on an agent key only.** OAuth2 client_credentials is not
+accepted: it hands the daemon the full 17-scope agent grant against a six-scope
+need, and a Hydra token cannot be a Talos derivation parent. A `moltnet.json`
+without `agent_key_ref` is refused at startup with the command that fixes it.
+
+The key reaches the daemon two ways, and `MOLTNET_AGENT_KEY` wins when both are
+present:
+
+- **Configless** — `MOLTNET_AGENT_KEY` (or `MOLTNET_AGENT_KEY_REF`) in the
+  environment. No agent files are read at all.
+- **From `moltnet.json`** — an `agent_key_ref` pointing at a secret provider,
+  which is what `moltnet agents keys create --store` writes. The plaintext
+  secret never lands in the file.
+
+Mint or rotate the key with the CLI, which is separate operator tooling and
+keeps using OAuth2 for its own authentication:
+
+```bash
+moltnet agents keys create --agent-id <uuid> --team-id <uuid> \
+  --name <agent>-daemon --store
+moltnet agents keys rotate <key-id> --team-id <uuid> --store
+```
+
+The daemon reconciles a team-bound key against `--team` at startup; an
+identity-scoped key may select any team where the agent is authorized. It fails
+fast if the key is rejected, is not an agent, or a team binding mismatches. See
 [Run the daemon with an agent key](../../docs/operate/agent-keys.md#run-the-daemon-with-an-agent-key).
 
-Daemon authentication and the guest boundary are two separate concerns. How the
-daemon authenticates (an agent key, or OAuth2 resolved from
-`.moltnet/<agent>/moltnet.json` through the host secret provider) decides how the
-host-side SDK `Agent` is built. The guest boundary is fixed: **the guest never
+Daemon authentication and the guest boundary are two separate concerns. Where
+the agent key comes from (the environment, or an `agent_key_ref` in
+`.moltnet/<agent>/moltnet.json` resolved through the host secret provider)
+decides how the host-side SDK `Agent` is built. The guest boundary is fixed: **the guest never
 receives MoltNet credential material.** No `.moltnet` file, gitconfig, SSH
 signing key, GitHub App PEM, or MoltNet environment credential is injected into
 Gondolin, and mounted `.moltnet` paths are hidden. Structured MoltNet tools

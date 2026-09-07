@@ -104,3 +104,53 @@ export const MCP_CLIENT_SCOPES = [
 export const MCP_M2M_SCOPES = MCP_CLIENT_SCOPES.filter(
   (scope) => scope !== CREDENTIAL_SCOPES.HumanProfile,
 );
+
+/**
+ * OIDC protocol scopes. Not MoltNet capabilities — they carry no REST
+ * authorization — so every capability cap has to allow them through
+ * explicitly rather than treating them as over-grants.
+ */
+export const OIDC_PROTOCOL_SCOPES = [
+  'openid',
+  'offline',
+  'offline_access',
+] as const;
+
+/**
+ * Ceiling for a self-registered (Dynamic Client Registration) OAuth2 client.
+ *
+ * DCR is deliberately open — chat agents cannot connect to the MCP server any
+ * other way — so registration is not a trust boundary and the grant it hands
+ * out is the only thing standing between an anonymous registrant and the API.
+ * Capping it at the MCP tool surface keeps `key:manage`, `runtime:manage`,
+ * `connector:invoke`, `runtime:read` and `task:claim` unreachable by
+ * self-registration: no client that registered without proving anything can
+ * mint agent keys, drive the runtime, or claim work.
+ *
+ * First-party clients are unaffected. Both creation sites
+ * (`registration-workflow.ts`, `libs/bootstrap`) stamp `metadata.identity_id`,
+ * which routes them down the agent path in the Hydra token hook, and the
+ * Console authenticates with Kratos sessions rather than OAuth2 at all.
+ *
+ * Two layers, and this constant is used for both — they are not the same
+ * thing:
+ *
+ * - In Ory's `dynamic_client_registration.default_scope` it is only the
+ *   **default** applied to a registration that names no scopes. A registrant
+ *   that asks for something else is not stopped there.
+ * - In the Hydra token hook it is the **enforced** ceiling: a token whose
+ *   granted scopes exceed it is refused. That is what actually makes a
+ *   privileged scope unreachable by self-registration.
+ *
+ * Derived on purpose: when MCP grows a tool that needs a new capability, adding
+ * it to `MCP_CLIENT_SCOPES` moves this cap with it, and
+ * `tools/src/credential-scope-config.test.ts` fails until the Ory configs
+ * follow. The corollary is the part to keep in mind — **every scope added to
+ * `MCP_CLIENT_SCOPES` is also handed to anonymous self-registrants.** That is
+ * the right default, since DCR clients are MCP clients, but it makes widening
+ * that list a security decision rather than a routine one.
+ */
+export const DCR_MAX_SCOPES: readonly string[] = Object.freeze([
+  ...OIDC_PROTOCOL_SCOPES,
+  ...MCP_CLIENT_SCOPES,
+]);
