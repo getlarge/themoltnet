@@ -686,8 +686,10 @@ describe('agent-key requirement', () => {
 
       // Assert
       const text = (error as Error).message;
-      expect(text).toContain('moltnet agents whoami');
       expect(text).toContain('moltnet teams list');
+      // --agent-id defaults to the authenticated agent, so the recipe must not
+      // send an operator hunting for a value the CLI already resolves.
+      expect(text).not.toContain('--agent-id <agent-uuid>');
       expect(text).toContain('moltnet agents keys create');
       expect(text).toContain('--store');
       expect(text).toContain('MOLTNET_AGENT_KEY');

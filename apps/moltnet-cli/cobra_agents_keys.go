@@ -120,7 +120,7 @@ a second credential.`,
 	}
 	cmd.Flags().String("team-id", "", "Team UUID the key is bound to")
 	cmd.Flags().Bool("identity-scoped", false, "Bind the key to the agent identity")
-	cmd.Flags().String("agent-id", "", "Agent UUID the key authenticates (required)")
+	cmd.Flags().String("agent-id", "", "Agent UUID the key authenticates (defaults to the authenticated agent)")
 	cmd.Flags().String("name", "", "Human-readable key name (required)")
 	cmd.Flags().StringSlice("scopes", nil, "Credential scopes to request, comma-separated (default agent grant applies if unset)")
 	cmd.Flags().Int("ttl-days", 0, "Key lifetime in days (server default applies if unset)")

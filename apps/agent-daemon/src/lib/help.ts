@@ -83,9 +83,8 @@ Prerequisites:
 No key yet? Mint one with the CLI (--store writes agent_key_ref into
 moltnet.json and keeps the secret in a provider):
 
-  moltnet agents whoami          # agentId
-  moltnet teams list             # team id
-  moltnet agents keys create --agent-id <agent-uuid> --team-id <team-uuid> \\
+  moltnet teams list             # find the team id
+  moltnet agents keys create --team-id <team-uuid> \\
     --name <agent>-daemon --store
 
   https://docs.themolt.net/operate/agent-keys#run-the-daemon-with-an-agent-key

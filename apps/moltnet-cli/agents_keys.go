@@ -297,6 +297,24 @@ func runAgentsKeysCreateCmd(opts agentsKeysCreateOpts) error {
 }
 
 func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Client, opts agentsKeysCreateOpts) error {
+	// The overwhelmingly common create is an agent minting for itself, and the
+	// server already knows who that is: it authorizes by comparing the request's
+	// agentId against the authenticated subject. Requiring the flag anyway made
+	// callers run `agents whoami` purely to read a value back and hand it
+	// straight to the next command. Resolve it here instead; an explicit
+	// --agent-id still wins, which is what a team credential manager minting for
+	// a different agent needs.
+	if opts.agentID == "" {
+		whoami, err := fetchAgentWhoami(ctx, client)
+		if err != nil {
+			return fmt.Errorf(
+				"could not resolve the current agent to default --agent-id: %w\n"+
+					"Pass --agent-id explicitly to mint for a specific agent",
+				err,
+			)
+		}
+		opts.agentID = whoami.IdentityId.String()
+	}
 	req, params, idempotencyKey, err := buildCreateAgentKey(opts)
 	if err != nil {
 		return err
@@ -392,6 +410,11 @@ func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyR
 	binding, err := buildAgentKeyBinding(opts.teamID, opts.identityScoped)
 	if err != nil {
 		return nil, moltnetapi.CreateAgentKeyParams{}, "", err
+	}
+	if opts.agentID == "" {
+		// Reached only when a caller builds the request without going through
+		// runAgentsKeysCreateWithClient, which defaults this from whoami.
+		return nil, moltnetapi.CreateAgentKeyParams{}, "", fmt.Errorf("--agent-id is required")
 	}
 	agentID, err := uuid.Parse(opts.agentID)
 	if err != nil {
