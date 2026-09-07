@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -866,6 +867,14 @@ func TestAgentsActivationRefreshRejectsStaleEnvFingerprint(t *testing.T) {
 // Windows with a live keyring.
 func TestAgentsActivationRefreshResolvesOSKeyringAgentKey(t *testing.T) {
 	requireOSKeyringTestable(t)
+	if runtime.GOOS == "darwin" {
+		// Not a provider limitation. This fixture points HOME at a temp
+		// directory, and macOS resolves the login keychain and the
+		// default-keychain preference through HOME — so `security` has no
+		// keychain to open and blocks. TestOSKeyringSecretProviderRoundTrip
+		// covers the provider itself here; it does not relocate HOME.
+		t.Skip("the activation fixture relocates HOME, which breaks macOS keychain resolution")
+	}
 
 	// Arrange.
 	dir := setupActivationCacheFixture(t)
