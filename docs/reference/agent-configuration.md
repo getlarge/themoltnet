@@ -293,6 +293,30 @@ activations validate hashes for the local env file, gitconfig, credentials, and
 SSH public key, then skip remote identity and diary lookup when nothing changed.
 Transport is still detected per session and is not stored in the cache.
 
+### Identity verification
+
+`moltnet agents activation refresh` does not trust the local document. It calls
+`GET /agents/whoami` and compares the identity ID, public key, and fingerprint
+in `moltnet.json` against the record the server holds for the credential that
+authenticated, then pins the confirmed values into the cache as
+`verifiedIdentityId`, `verifiedPublicKey`, and `identityVerifiedAt`. A
+disagreement fails the refresh and writes no cache.
+
+This exists because the local document is not authoritative: an actor who can
+edit `moltnet.json` can point an alias at a different identity, and no
+local-only check can tell, since the file is trusted by the same OS user that
+owns the secret provider.
+
+`whoami` is the canonical identity record, so there is no separate endpoint to
+pin against. A credential the server no longer recognises — revoked, rotated, or
+rebound — is reported as a rejected credential rather than as an opaque failure.
+
+`moltnet agents activation validate` stays offline and trusts the pin plus the
+input hashes, so the network is only touched on refresh.
+`moltnet sign --request-id` performs the matching check on the other side: it
+refuses to sign when the local seed does not derive the public key the server
+reports for the authenticated identity.
+
 You can inspect or reset the cache explicitly:
 
 ```bash

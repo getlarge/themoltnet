@@ -103,6 +103,19 @@ func fetchAgentWhoami(ctx context.Context, client *moltnetapi.Client) (*moltneta
 	}
 	whoami, ok := res.(*moltnetapi.Whoami)
 	if !ok {
+		// A rejected credential is the shape a revoked or rotated binding
+		// takes: the server stops recognising it, and every later step would
+		// fail with something less specific. Name it here rather than let a
+		// bare 401 propagate.
+		if _, unauthorized := res.(*moltnetapi.GetWhoamiUnauthorized); unauthorized {
+			return nil, fmt.Errorf(
+				"the server rejected this credential (%w).\n"+
+					"It may have been revoked, rotated, or bound to a different identity. "+
+					"Re-check the selected identity with `moltnet config identity list`, "+
+					"or rotate with `moltnet agents credentials rotate`",
+				formatAPIError(res),
+			)
+		}
 		return nil, formatAPIError(res)
 	}
 	if whoami.SubjectType != moltnetapi.WhoamiSubjectTypeAgent {

@@ -896,3 +896,45 @@ func TestAgentsActivationRefreshResolvesOSKeyringAgentKey(t *testing.T) {
 		t.Fatalf("agentKey provider = %q, want %q", got, osKeyringProviderName)
 	}
 }
+
+func TestAgentsActivationRefreshReportsRejectedCredential(t *testing.T) {
+	// Arrange: the server no longer recognises the credential, which is the
+	// shape a revoked or rotated binding takes from the client's side.
+	dir := setupActivationCacheFixture(t)
+	rejecting := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/oauth2/token" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token": "test-token", "token_type": "Bearer", "expires_in": 3600,
+			})
+			return
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"title":  "Unauthorized",
+			"status": 401,
+			"detail": "credential is not active",
+			"code":   "UNAUTHORIZED",
+			"type":   "https://themolt.net/problems/unauthorized",
+		})
+	}))
+	t.Cleanup(rejecting.Close)
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.Endpoints.API = rejecting.URL
+	})
+
+	// Act.
+	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+
+	// Assert: reported as a rejected binding, not as an opaque failure, and
+	// nothing is pinned from an unverified answer.
+	if err == nil {
+		t.Fatal("expected refresh to fail when the server rejects the credential")
+	}
+	if !strings.Contains(err.Error(), "rejected this credential") {
+		t.Fatalf("error = %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")); statErr == nil {
+		t.Fatal("an activation cache was written despite an unverified identity")
+	}
+}
