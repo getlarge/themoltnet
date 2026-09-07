@@ -218,6 +218,21 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y gnome-keyring libsecret-1-dev dbus dbus-x11
+      # The Go tests write through `security`, which blocks on a locked
+      # keychain with no UI to unlock it — a run then hangs until the 10-minute
+      # Go test timeout rather than failing. The TypeScript suite provisions its
+      # own keychain; doing it here covers every test-native task on the runner.
+      - name: Provision a macOS test keychain
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/moltnet-test.keychain-db"
+          security create-keychain -p moltnet-test "$KEYCHAIN"
+          security unlock-keychain -p moltnet-test "$KEYCHAIN"
+          # No auto-lock, and no idle timeout: either would re-lock mid-run.
+          security set-keychain-settings "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security default-keychain -d user -s "$KEYCHAIN"
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native
