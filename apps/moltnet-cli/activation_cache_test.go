@@ -865,9 +865,7 @@ func TestAgentsActivationRefreshRejectsStaleEnvFingerprint(t *testing.T) {
 // wired into the `test-native` target, which CI runs on Linux, macOS and
 // Windows with a live keyring.
 func TestAgentsActivationRefreshResolvesOSKeyringAgentKey(t *testing.T) {
-	if os.Getenv("MOLTNET_RUN_NATIVE_KEYRING_TESTS") != "1" {
-		t.Skip("set MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 to use the native credential store")
-	}
+	requireOSKeyringTestable(t)
 
 	// Arrange.
 	dir := setupActivationCacheFixture(t)
