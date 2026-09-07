@@ -670,6 +670,35 @@ describe('agent-key requirement', () => {
     }
   });
 
+  it('gives a runnable recipe and a link, not just a diagnosis', async () => {
+    // Arrange: this message is the entire recovery path for an operator whose
+    // daemon will not start, so it has to carry the commands that produce the
+    // two ids as well as the one that mints the key.
+    const root = mkdtempSync(join(tmpdir(), 'daemon-recipe-root-'));
+    try {
+      writeCredentials(root, 'legreffier');
+      readConfigMock.mockResolvedValue({ client_id: 'agent-client' });
+
+      // Act
+      const error = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+      }).catch((err: unknown) => err as Error);
+
+      // Assert
+      const text = (error as Error).message;
+      expect(text).toContain('moltnet agents whoami');
+      expect(text).toContain('moltnet teams list');
+      expect(text).toContain('moltnet agents keys create');
+      expect(text).toContain('--store');
+      expect(text).toContain('MOLTNET_AGENT_KEY');
+      expect(text).toContain(
+        'https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md',
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('names the scopes a daemon key needs, including crypto:sign', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-scopes-root-'));
     execFileSyncMock.mockImplementation(() => {

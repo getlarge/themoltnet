@@ -20,6 +20,14 @@ import {
 
 import { assessIdentityPin, type IdentityPin } from './identity-pin.js';
 
+/**
+ * Where an operator goes after the daemon refuses to start. A GitHub blob URL
+ * rather than docs.themolt.net because this page is not in the published site
+ * yet, and the repo's other READMEs already link this way.
+ */
+const AGENT_KEYS_DOC_URL =
+  'https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md#run-the-daemon-with-an-agent-key';
+
 /** Scopes a daemon key must carry; mirrors `DAEMON_REQUIRED_SCOPES`. */
 const DAEMON_KEY_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
@@ -255,18 +263,36 @@ export async function resolveAgentContext(
  * rather than left to surface as an over-scoped token later.
  */
 function agentKeyRequiredMessage(agentDir: string, agentName: string): string {
-  return (
-    `${join(agentDir, 'moltnet.json')} has no "agent_key_ref". The daemon ` +
-    `requires a team-bound agent key; OAuth2 client_credentials is no longer ` +
-    `accepted. Mint one with:\n\n` +
-    `  moltnet agents keys create --agent-id <agent-uuid> ` +
-    `--team-id <team-uuid> --name ${agentName}-daemon --store\n\n` +
-    `That writes "agent_key_ref" into moltnet.json and keeps the secret in a ` +
-    `provider. The key needs these scopes: ` +
-    `${DAEMON_KEY_SCOPES.join(' ')}.\n` +
-    `Alternatively set MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF to run ` +
-    `configless.`
-  );
+  // Runnable as printed. The two ids are the part an operator does not have to
+  // hand, so name the commands that produce them rather than leaving
+  // placeholders to guess at.
+  return [
+    `${join(agentDir, 'moltnet.json')} has no "agent_key_ref". The daemon`,
+    `requires a team-bound agent key; OAuth2 client_credentials is no longer`,
+    `accepted.`,
+    ``,
+    `Find the two ids:`,
+    ``,
+    `  moltnet agents whoami          # agentId`,
+    `  moltnet teams list             # team id`,
+    ``,
+    `Mint the key:`,
+    ``,
+    `  moltnet agents keys create \\`,
+    `    --agent-id <agent-uuid> --team-id <team-uuid> \\`,
+    `    --name ${agentName}-daemon \\`,
+    `    --scopes ${DAEMON_KEY_SCOPES.join(',')} \\`,
+    `    --store`,
+    ``,
+    `--store writes "agent_key_ref" into moltnet.json and keeps the secret in`,
+    `a provider, so the key itself never lands in the file. Omit --scopes to`,
+    `get the same daemon minimum by default.`,
+    ``,
+    `To run configless instead, set MOLTNET_AGENT_KEY (or`,
+    `MOLTNET_AGENT_KEY_REF) and skip the config entirely.`,
+    ``,
+    `Full guide: ${AGENT_KEYS_DOC_URL}`,
+  ].join('\n');
 }
 
 /**
