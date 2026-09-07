@@ -21,12 +21,13 @@ import {
 import { assessIdentityPin, type IdentityPin } from './identity-pin.js';
 
 /**
- * Where an operator goes after the daemon refuses to start. A GitHub blob URL
- * rather than docs.themolt.net because this page is not in the published site
- * yet, and the repo's other READMEs already link this way.
+ * Where an operator goes after the daemon refuses to start. The published site
+ * rather than a GitHub blob: it renders, and it tracks the deployed docs
+ * instead of whatever `main` happens to say. Sidebar entry lives in
+ * `docs/.vitepress/config.ts`.
  */
 const AGENT_KEYS_DOC_URL =
-  'https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md#run-the-daemon-with-an-agent-key';
+  'https://docs.themolt.net/operate/agent-keys#run-the-daemon-with-an-agent-key';
 
 /** Scopes a daemon key must carry; mirrors `DAEMON_REQUIRED_SCOPES`. */
 const DAEMON_KEY_SCOPES = AGENT_CREDENTIAL_SCOPES;

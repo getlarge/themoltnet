@@ -88,7 +88,7 @@ moltnet.json and keeps the secret in a provider):
   moltnet agents keys create --agent-id <agent-uuid> --team-id <team-uuid> \\
     --name <agent>-daemon --store
 
-  https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md#run-the-daemon-with-an-agent-key
+  https://docs.themolt.net/operate/agent-keys#run-the-daemon-with-an-agent-key
   - --profile — remote runtime profile supplies provider/model/sandbox
     policy and CWD is used as the VM mountPath.
 

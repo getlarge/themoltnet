@@ -692,7 +692,7 @@ describe('agent-key requirement', () => {
       expect(text).toContain('--store');
       expect(text).toContain('MOLTNET_AGENT_KEY');
       expect(text).toContain(
-        'https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md',
+        'https://docs.themolt.net/operate/agent-keys',
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
