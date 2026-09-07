@@ -147,6 +147,7 @@ func TestResolveIdentitySeedNormalizesProviderFailures(t *testing.T) {
 func TestResolveAgentKeyAndEnvReferences(t *testing.T) {
 	registry, provider := newMemorySecretProviderRegistry()
 	provider.values["agent-key/id-1"] = " ak_secret "
+	provider.values["agent-key/subject-1"] = " ak_subject_secret "
 	provider.values["agent-key/other"] = "x"
 	provider.values["agent-key/empty"] = "  "
 
@@ -157,6 +158,14 @@ func TestResolveAgentKeyAndEnvReferences(t *testing.T) {
 	key, configured, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: ref("agent-key/id-1")}, registry)
 	if !configured || err != nil || key != "ak_secret" {
 		t.Fatalf("bound reference = %q, %v, %v", key, configured, err)
+	}
+	key, configured, err = resolveAgentKey(&CredentialsFile{
+		SubjectID:   "subject-1",
+		SubjectType: SubjectTypeAgent,
+		AgentKeyRef: ref("agent-key/subject-1"),
+	}, registry)
+	if !configured || err != nil || key != "ak_subject_secret" {
+		t.Fatalf("subject-bound reference = %q, %v, %v", key, configured, err)
 	}
 	var resolutionErr *CredentialResolutionError
 	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: ref("agent-key/other")}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" {

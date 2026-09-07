@@ -249,9 +249,32 @@ func TestResolveOAuth2SecretRejectsUnboundReference(t *testing.T) {
 }
 
 func TestOAuth2SecretKeyIsStable(t *testing.T) {
-	got := OAuth2SecretKey("identity-123", "client-456")
-	if got != "oauth2/identity-123/client-456" {
+	got := OAuth2SecretKey("subject-123", "client-456")
+	if got != "oauth2/subject-123/client-456" {
 		t.Fatalf("OAuth2SecretKey = %q", got)
+	}
+}
+
+func TestExpectedSecretKeyPrefersDurableSubject(t *testing.T) {
+	ids := credentialBindingIDs{
+		SubjectID:  "subject-123",
+		IdentityID: "legacy-identity",
+		ClientID:   "client-456",
+	}
+
+	oauthKey, err := expectedSecretKey(credentialOAuth2ClientSecret, ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if oauthKey != "oauth2/subject-123/client-456" {
+		t.Fatalf("OAuth2 key = %q", oauthKey)
+	}
+	agentKey, err := expectedSecretKey(credentialAgentKey, ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if agentKey != "agent-key/subject-123" {
+		t.Fatalf("agent key = %q", agentKey)
 	}
 }
 

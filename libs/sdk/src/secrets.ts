@@ -263,6 +263,9 @@ export type CredentialKind =
   | 'agent-key';
 
 export interface CredentialBindingIds {
+  /** Durable MoltNet subject. Canonical credential bindings use this value. */
+  subjectId?: string;
+  /** Temporary compatibility input for pre-subject config documents. */
   identityId?: string;
   clientId?: string;
   fingerprint?: string;
@@ -311,14 +314,14 @@ export const CREDENTIAL_ENV_KEYS: Readonly<Record<CredentialKind, string>> =
 const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
   Object.freeze({
     'oauth2-client-secret':
-      'OAuth2 secret reference is not bound to this MoltNet identity and client',
+      'OAuth2 secret reference is not bound to this MoltNet subject and client',
     'identity-seed':
       'Identity seed reference is not bound to this MoltNet identity',
-    'agent-key': 'Agent key reference is not bound to this MoltNet identity',
+    'agent-key': 'Agent key reference is not bound to this MoltNet subject',
   });
 
-export function oauth2SecretKey(identityId: string, clientId: string): string {
-  return `oauth2/${identityId}/${clientId}`;
+export function oauth2SecretKey(subjectId: string, clientId: string): string {
+  return `oauth2/${subjectId}/${clientId}`;
 }
 
 export function identitySeedKey(fingerprint: string): string {
@@ -372,6 +375,10 @@ function requireId(value: string | undefined, name: string): string {
   return trimmed;
 }
 
+function requireSubjectId(ids: CredentialBindingIds): string {
+  return requireId(ids.subjectId ?? ids.identityId, 'subjectId');
+}
+
 /** Canonical provider key for a credential kind bound to this agent. */
 export function expectedSecretKey(
   kind: CredentialKind,
@@ -380,13 +387,13 @@ export function expectedSecretKey(
   switch (kind) {
     case 'oauth2-client-secret':
       return oauth2SecretKey(
-        requireId(ids.identityId, 'identityId'),
+        requireSubjectId(ids),
         requireId(ids.clientId, 'clientId'),
       );
     case 'identity-seed':
       return identitySeedKey(requireId(ids.fingerprint, 'fingerprint'));
     case 'agent-key':
-      return agentKeyKey(requireId(ids.identityId, 'identityId'));
+      return agentKeyKey(requireSubjectId(ids));
   }
 }
 

@@ -36,6 +36,7 @@ const (
 )
 
 type credentialBindingIDs struct {
+	SubjectID   string
 	IdentityID  string
 	ClientID    string
 	Fingerprint string
@@ -74,8 +75,8 @@ func IdentitySeedKey(fingerprint string) string {
 }
 
 // AgentKeyKey returns the stable provider key for an agent's team-bound key.
-func AgentKeyKey(identityID string) string {
-	return "agent-key/" + identityID
+func AgentKeyKey(subjectID string) string {
+	return "agent-key/" + subjectID
 }
 
 var secretProviderNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -104,22 +105,28 @@ func credentialEnvKey(kind credentialKind) string {
 }
 
 func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, error) {
+	subjectID := strings.TrimSpace(ids.SubjectID)
+	if subjectID == "" {
+		// Compatibility release only: legacy documents were anchored to the
+		// replaceable Ory identity. Canonical callers always provide SubjectID.
+		subjectID = strings.TrimSpace(ids.IdentityID)
+	}
 	switch kind {
 	case credentialOAuth2ClientSecret:
-		if strings.TrimSpace(ids.IdentityID) == "" || strings.TrimSpace(ids.ClientID) == "" {
-			return "", fmt.Errorf("credential binding requires identity_id and oauth2.client_id")
+		if subjectID == "" || strings.TrimSpace(ids.ClientID) == "" {
+			return "", fmt.Errorf("credential binding requires subject_id and oauth2.client_id")
 		}
-		return OAuth2SecretKey(ids.IdentityID, ids.ClientID), nil
+		return OAuth2SecretKey(subjectID, ids.ClientID), nil
 	case credentialIdentitySeed:
 		if strings.TrimSpace(ids.Fingerprint) == "" {
 			return "", fmt.Errorf("credential binding requires keys.fingerprint")
 		}
 		return IdentitySeedKey(ids.Fingerprint), nil
 	case credentialAgentKey:
-		if strings.TrimSpace(ids.IdentityID) == "" {
-			return "", fmt.Errorf("credential binding requires identity_id")
+		if subjectID == "" {
+			return "", fmt.Errorf("credential binding requires subject_id")
 		}
-		return AgentKeyKey(ids.IdentityID), nil
+		return AgentKeyKey(subjectID), nil
 	}
 	return "", fmt.Errorf("unknown credential kind %q", kind)
 }
@@ -153,8 +160,8 @@ type SecretReference struct {
 
 // OAuth2SecretKey returns the stable account name used for an agent's OAuth2
 // secret in an OS keyring.
-func OAuth2SecretKey(identityID, clientID string) string {
-	return fmt.Sprintf("oauth2/%s/%s", identityID, clientID)
+func OAuth2SecretKey(subjectID, clientID string) string {
+	return fmt.Sprintf("oauth2/%s/%s", subjectID, clientID)
 }
 
 // windowsKeyringTarget documents the target shared by the Go and Node Windows
@@ -413,9 +420,13 @@ func validateOAuth2SecretReferenceBinding(creds *CredentialsFile, ref SecretRefe
 	if creds == nil {
 		return fmt.Errorf("credentials are missing")
 	}
-	ids := credentialBindingIDs{IdentityID: creds.IdentityID, ClientID: creds.OAuth2.ClientID}
+	ids := credentialBindingIDs{
+		SubjectID:  creds.SubjectID,
+		IdentityID: creds.IdentityID,
+		ClientID:   creds.OAuth2.ClientID,
+	}
 	if err := validateSecretReferenceBinding(credentialOAuth2ClientSecret, ref, ids); err != nil {
-		return fmt.Errorf("oauth2 secret reference is not bound to this MoltNet identity and client")
+		return fmt.Errorf("oauth2 secret reference is not bound to this MoltNet subject and client")
 	}
 	return nil
 }

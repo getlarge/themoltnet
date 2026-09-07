@@ -248,6 +248,26 @@ describe('resolveOAuth2ClientSecret', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
+  it('resolves a canonical subject-bound OAuth2 reference', async () => {
+    const registry = registryWith({ 'oauth2/subject-1/c': 'secret' });
+
+    await expect(
+      resolveOAuth2ClientSecret(
+        {
+          subject_id: 'subject-1',
+          oauth2: {
+            client_id: 'c',
+            client_secret_ref: {
+              provider: 'memory',
+              key: 'oauth2/subject-1/c',
+            },
+          },
+        },
+        registry,
+      ),
+    ).resolves.toBe('secret');
+  });
+
   it('rejects an unbound reference with a typed code', async () => {
     const registry = registryWith({ 'oauth2/other/c': 'secret' });
 
@@ -283,6 +303,25 @@ describe('resolveAgentKey and resolveEnvSecretReference', () => {
         registry,
       ),
     ).resolves.toBe('ak_secret');
+  });
+
+  it('resolves a canonical subject-bound agent key', async () => {
+    const registry = registryWith({
+      'agent-key/subject-1': 'ak_subject_secret',
+    });
+
+    await expect(
+      resolveAgentKey(
+        {
+          subject_id: 'subject-1',
+          agent_key_ref: {
+            provider: 'memory',
+            key: 'agent-key/subject-1',
+          },
+        },
+        registry,
+      ),
+    ).resolves.toBe('ak_subject_secret');
   });
 
   it('rejects unbound and empty agent keys with typed codes', async () => {
