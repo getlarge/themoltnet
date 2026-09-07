@@ -118,8 +118,20 @@ type signingAPI struct {
 	requestID   string
 	signedBytes []byte
 
-	mu        sync.Mutex
-	submitted string
+	mu              sync.Mutex
+	submitted       string
+	authPublicKey   string
+	authFingerprint string
+}
+
+// authenticateAs makes whoami report the given identity. `sign --request-id`
+// now refuses to sign with a seed that does not belong to the identity the
+// request authenticated as, so a signing test has to say who that is.
+func (a *signingAPI) authenticateAs(fixture identityFixture) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.authPublicKey = fixture.publicKey
+	a.authFingerprint = fixture.fingerprint
 }
 
 func newSigningAPI(t *testing.T) *signingAPI {
@@ -146,6 +158,15 @@ func newSigningAPI(t *testing.T) *signingAPI {
 	mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"access_token":"token","token_type":"bearer","expires_in":3600}`))
+	})
+	mux.HandleFunc("/agents/whoami", func(w http.ResponseWriter, _ *http.Request) {
+		api.mu.Lock()
+		publicKey, fingerprint := api.authPublicKey, api.authFingerprint
+		api.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"identityId":"44444444-4444-4444-8444-444444444444",` +
+			`"subjectType":"agent","scopes":["agent:profile"],` +
+			`"publicKey":"` + publicKey + `","fingerprint":"` + fingerprint + `"}`))
 	})
 	mux.HandleFunc("/crypto/signing-requests/"+api.requestID+"/sign", func(w http.ResponseWriter, r *http.Request) {
 		var payload struct {
@@ -196,6 +217,7 @@ func TestSignRequestIDUsesActivatedSigner(t *testing.T) {
 	home := t.TempDir()
 	global := newIdentityFixture(t, "global", api.server.URL)
 	activated := newIdentityFixture(t, "activated", api.server.URL)
+	api.authenticateAs(activated)
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "moltnet.json"), global)
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"), activated)
 
@@ -269,5 +291,50 @@ func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
 		if header != "Bearer agent-key-secret" {
 			t.Errorf("Authorization = %q, want the environment agent key", header)
 		}
+	}
+}
+
+// TestSignRequestIDRefusesSeedFromAnotherIdentity covers the CLI half of the
+// daemon's validateExecutorSigningIdentity check. The local document is
+// internally consistent — its seed derives its own public key — so every local
+// check passes. Only the server can say the credential authenticated as someone
+// else, which is exactly the case an activated shell can drift into.
+func TestSignRequestIDRefusesSeedFromAnotherIdentity(t *testing.T) {
+	// Arrange.
+	api := newSigningAPI(t)
+	home := t.TempDir()
+	selected := newIdentityFixture(t, "selected", api.server.URL)
+	somebodyElse := newIdentityFixture(t, "somebody-else", api.server.URL)
+	writeIdentityConfig(
+		t,
+		filepath.Join(home, ".config", "moltnet", "identities", "selected", "moltnet.json"),
+		selected,
+	)
+	// The credential authenticates as a different identity than the one whose
+	// seed is about to sign.
+	api.authenticateAs(somebodyElse)
+
+	t.Setenv("HOME", home)
+	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "selected")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	t.Setenv(apiURLEnv, "")
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	t.Setenv(signerURLEnv, "")
+
+	// Act.
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "sign", "--request-id", api.requestID)
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected signing to be refused when the seed is not the authenticated identity's")
+	}
+	if !strings.Contains(err.Error(), "does not belong to the authenticated identity") {
+		t.Fatalf("error = %v", err)
+	}
+	if api.submittedSignature() != "" {
+		t.Fatal("a signature was submitted despite the identity mismatch")
 	}
 }

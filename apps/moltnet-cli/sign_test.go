@@ -100,6 +100,21 @@ type stubSigningHandler struct {
 	nonce              uuid.UUID
 	verificationMethod moltnetapi.SigningRequestVerificationMethod
 	gotSig             string
+	// authPublicKey and authFingerprint are what whoami reports. `sign
+	// --request-id` refuses a seed that does not belong to the authenticated
+	// identity, so a signing stub has to answer whoami.
+	authPublicKey   string
+	authFingerprint string
+}
+
+func (h *stubSigningHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRes, error) {
+	return &moltnetapi.Whoami{
+		IdentityId:  uuid.MustParse("44444444-4444-4444-8444-444444444444"),
+		SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
+		Scopes:      []string{"agent:profile"},
+		PublicKey:   moltnetapi.NewOptString(h.authPublicKey),
+		Fingerprint: moltnetapi.NewOptString(h.authFingerprint),
+	}, nil
 }
 
 func (h *stubSigningHandler) GetSigningRequest(_ context.Context, params moltnetapi.GetSigningRequestParams) (moltnetapi.GetSigningRequestRes, error) {
@@ -201,6 +216,8 @@ func TestRunSignRequestIDUsesAgentKeyWithLocalSigningCredentials(t *testing.T) {
 		message:            "agent-key authenticated signing",
 		nonce:              uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001"),
 		verificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
+		authPublicKey:      kp.PublicKey,
+		authFingerprint:    kp.Fingerprint,
 	}
 	generated, err := moltnetapi.NewServer(handler, noopSecurityHandler{})
 	if err != nil {

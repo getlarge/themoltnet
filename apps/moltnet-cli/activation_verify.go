@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"fmt"
 	"strings"
 
@@ -44,19 +45,9 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	if err != nil {
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
-	res, err := client.GetWhoami(context.Background())
+	whoami, err := fetchAgentWhoami(context.Background(), client)
 	if err != nil {
-		return nil, fmt.Errorf("verify identity: %w", formatTransportError(err))
-	}
-	whoami, ok := res.(*moltnetapi.Whoami)
-	if !ok {
-		return nil, fmt.Errorf("verify identity: %w", formatAPIError(res))
-	}
-	if whoami.SubjectType != moltnetapi.WhoamiSubjectTypeAgent {
-		return nil, fmt.Errorf(
-			"verify identity: the credential authenticated as %q, not as an agent",
-			whoami.SubjectType,
-		)
+		return nil, fmt.Errorf("verify identity: %w", err)
 	}
 
 	serverIdentityID := whoami.IdentityId.String()
@@ -101,4 +92,75 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		PublicKey:   serverPublicKey,
 		Fingerprint: serverFingerprint,
 	}, nil
+}
+
+// fetchAgentWhoami reads the server's record for the credential that
+// authenticated, and refuses anything that is not an agent.
+func fetchAgentWhoami(ctx context.Context, client *moltnetapi.Client) (*moltnetapi.Whoami, error) {
+	res, err := client.GetWhoami(ctx)
+	if err != nil {
+		return nil, formatTransportError(err)
+	}
+	whoami, ok := res.(*moltnetapi.Whoami)
+	if !ok {
+		return nil, formatAPIError(res)
+	}
+	if whoami.SubjectType != moltnetapi.WhoamiSubjectTypeAgent {
+		return nil, fmt.Errorf(
+			"the credential authenticated as %q, not as an agent",
+			whoami.SubjectType,
+		)
+	}
+	return whoami, nil
+}
+
+// assertSigningIdentityMatchesServer refuses to sign with a seed that does not
+// belong to the identity the request was authenticated as.
+//
+// assertSeedMatchesPublicKey already proves the seed derives keys.public_key,
+// but that is the *local* claim: a document whose seed and public key agree
+// with each other still signs as whoever the file says, which is not
+// necessarily who the API just authenticated. The daemon has always compared
+// against whoami (validateExecutorSigningIdentity); the CLI did not, so an
+// agent could authenticate as one identity and sign as another.
+func assertSigningIdentityMatchesServer(
+	ctx context.Context,
+	client *moltnetapi.Client,
+	seed string,
+) error {
+	whoami, err := fetchAgentWhoami(ctx, client)
+	if err != nil {
+		return fmt.Errorf("verify signing identity: %w", err)
+	}
+	serverPublicKey := strings.TrimSpace(whoami.PublicKey.Or(""))
+	serverFingerprint := strings.TrimSpace(whoami.Fingerprint.Or(""))
+	if serverPublicKey == "" || serverFingerprint == "" {
+		return fmt.Errorf(
+			"verify signing identity: the server returned no public key or fingerprint for this credential",
+		)
+	}
+	if err := assertSeedMatchesPublicKey(seed, serverPublicKey); err != nil {
+		derived, derivedErr := deriveFingerprintFromSeed(seed)
+		if derivedErr != nil {
+			return fmt.Errorf("verify signing identity: %w", derivedErr)
+		}
+		return fmt.Errorf(
+			"verify signing identity: the signing key does not belong to the authenticated identity "+
+				"(authenticated %s, signing key derives %s).\n"+
+				"The credential and the signing seed describe different identities; "+
+				"select the intended one with `moltnet config identity select <alias>`.",
+			serverFingerprint, derived,
+		)
+	}
+	return nil
+}
+
+// deriveFingerprintFromSeed reports the fingerprint the seed actually carries,
+// so a mismatch names both sides instead of only the expected one.
+func deriveFingerprintFromSeed(seedB64 string) (string, error) {
+	seed, err := decodeEd25519Seed(seedB64)
+	if err != nil {
+		return "", fmt.Errorf("signing seed is not a valid Ed25519 seed: %w", err)
+	}
+	return Fingerprint(ed25519.NewKeyFromSeed(seed).Public().(ed25519.PublicKey)), nil
 }
