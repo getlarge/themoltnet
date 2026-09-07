@@ -550,13 +550,12 @@ export async function hookRoutes(fastify: FastifyInstance) {
         // cannot narrow `granted_scopes`. So an over-broad grant cannot be
         // trimmed down to the cap, only refused.
         //
-        // `default_grant_allowed_scope` is `true` (#2162), so a client that
-        // requests no `scope` is granted everything it registered for. That
-        // makes the registration-time cap in Ory's `default_scope` the thing
-        // that actually limits tokens, and it means a client registered under
-        // the old 17-scope default is refused here on *every* request, not
-        // only when it explicitly asks for a privileged scope. Existing DCR
-        // clients must be narrowed before this deploys.
+        // `default_grant_allowed_scope` is `true` (#2162), but it is scoped to
+        // `oauth2.client_credentials`, so it does not widen this population:
+        // DCR clients reaching here came through authorization_code, whose
+        // granted scopes are what the client asked for. A DCR client using
+        // client_credentials never gets this far — it has no id_token subject
+        // and falls through to identity_not_found below.
         const overGrantedScopes = (tokenRequest.granted_scopes ?? []).filter(
           (scope) => !DCR_MAX_SCOPES.includes(scope),
         );

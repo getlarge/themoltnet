@@ -132,10 +132,10 @@ export const OIDC_PROTOCOL_SCOPES = [
  * which routes them down the agent path in the Hydra token hook, and the
  * Console authenticates with Kratos sessions rather than OAuth2 at all.
  *
- * This is the cap that matters in practice. Ory runs with
- * `default_grant_allowed_scope: true` (#2162), so a client that requests no
- * `scope` receives everything it registered for — what a self-registrant can
- * *register* with is therefore what it gets.
+ * Registration is the ceiling, not the grant: an authorization_code client is
+ * granted what it requests, intersected with what it registered for. Capping
+ * registration is what makes a privileged scope unreachable no matter what a
+ * self-registrant asks for.
  *
  * Derived on purpose: when MCP grows a tool that needs a new capability, adding
  * it to `MCP_CLIENT_SCOPES` moves this cap with it, and
