@@ -112,10 +112,11 @@ Most of these are scoped to a GitHub Environment named after the agent
 (e.g. `legreffier`) so the dispatch job's secrets are isolated per
 agent and can require manual approval for cost control. When the OAuth
 variables are supplied, the action calls `moltnet config init-from-env` to
-reconstruct `$GITHUB_WORKSPACE/.moltnet/<agent>/` — the agent's git identity,
+reconstruct `~/.config/moltnet/identities/<agent>/` — the agent's git identity,
 SSH keys and GitHub App PEM. That tree is what the agent commits and calls
-`gh` with; it is never the daemon's credential, and the sandbox denies guest
-code any path containing a `.moltnet` segment.
+`gh` with; it is never the daemon's credential. It also sits outside
+`$GITHUB_WORKSPACE`, and the sandbox mounts the workspace rather than `$HOME`,
+so guest task code cannot reach it.
 
 The caller workflow owns the `environment:` binding and maps environment
 variables/secrets into `env:`. This action only consumes the inherited process

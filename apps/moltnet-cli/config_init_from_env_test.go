@@ -1008,3 +1008,57 @@ func TestConfigInitFromEnvRejectsPartialOAuthPairWithAgentKeyRef(t *testing.T) {
 		t.Fatalf("expected the missing half to be named, got: %v", err)
 	}
 }
+
+func TestConfigInitFromEnvRemovesPartialConfigOnFailure(t *testing.T) {
+	// Arrange: the config is written before SSH export runs, and the early
+	// return treats its presence as "already initialized". A failure after the
+	// write would otherwise be permanent — the retry skips initialization and
+	// the identity stays half-built. An unresolvable seed reference is the
+	// realistic trigger (a provider that cannot read the secret).
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
+	t.Setenv("MOLTNET_SECRET_ROOT", t.TempDir()) // empty: the seed is absent
+	t.Setenv("MOLTNET_PRIVATE_KEY_REF", "file:"+IdentitySeedKey("FP1"))
+
+	// Act
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--name", "partial-agent", "--skip-git")
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected initialization to fail on an unresolvable seed")
+	}
+	configPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "partial-agent", "moltnet.json")
+	if _, statErr := os.Stat(configPath); statErr == nil {
+		t.Fatalf("a partial config survived at %s; the retry would skip initialization", configPath)
+	}
+}
+
+func TestConfigInitFromEnvRejectsSecretWithoutClientIDWithAgentKeyRef(t *testing.T) {
+	// The mirror of the client-id-without-secret case: half a pair is rejected
+	// in both directions, so neither half can silently produce a config with a
+	// dangling OAuth2 section.
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	clearMoltnetEnv(t)
+	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "secret-1")
+	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env",
+		"--name", "half-pair-agent", "--skip-git")
+
+	if err == nil || !strings.Contains(err.Error(), "MOLTNET_CLIENT_ID") {
+		t.Fatalf("expected the missing half to be named, got: %v", err)
+	}
+}

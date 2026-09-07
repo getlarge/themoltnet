@@ -80,6 +80,28 @@ function isMoltNetMetadata(
   );
 }
 
+/** Most over-granted scopes to name before summarising; keeps an
+ *  attacker-supplied list out of logs and response bodies at full length. */
+const MAX_REPORTED_SCOPES = 5;
+const MAX_REPORTED_SCOPE_CHARS = 64;
+
+function boundScopeSample(scopes: readonly string[]): {
+  sample: string[];
+  text: string;
+} {
+  const sample = scopes
+    .slice(0, MAX_REPORTED_SCOPES)
+    .map((scope) => scope.slice(0, MAX_REPORTED_SCOPE_CHARS));
+  const remaining = scopes.length - sample.length;
+  return {
+    sample,
+    text:
+      remaining > 0
+        ? `${sample.join(', ')} (and ${remaining} more)`
+        : sample.join(', '),
+  };
+}
+
 /**
  * Build an Ory-compatible webhook error response.
  * Ory Kratos expects this schema for flow-interrupting webhooks:
@@ -556,14 +578,35 @@ export async function hookRoutes(fastify: FastifyInstance) {
         // granted scopes are what the client asked for. A DCR client using
         // client_credentials never gets this far — it has no id_token subject
         // and falls through to identity_not_found below.
-        const overGrantedScopes = (tokenRequest.granted_scopes ?? []).filter(
+        // Fail closed on an absent or malformed list. `granted_scopes` is
+        // optional in the schema because the agent path above does not need
+        // it, but here it is the only evidence of what the token will carry —
+        // treating "not stated" as "nothing granted" would let a malformed
+        // payload walk past the cap and mint a human-subject token.
+        if (!Array.isArray(tokenRequest.granted_scopes)) {
+          fastify.log.warn(
+            { client_id: tokenRequest.client_id },
+            'Token exchange: self-registered client sent no granted_scopes',
+          );
+          return await reply.status(403).send({
+            error: 'scope_not_allowed',
+            error_description:
+              'A self-registered client must present its granted scopes.',
+          });
+        }
+        const overGrantedScopes = tokenRequest.granted_scopes.filter(
           (scope) => !DCR_MAX_SCOPES.includes(scope),
         );
         if (overGrantedScopes.length > 0) {
+          // The list is attacker-controlled in both length and content, and it
+          // reaches a log sink and a response body. Report a bounded sample
+          // rather than echoing it whole.
+          const reported = boundScopeSample(overGrantedScopes);
           fastify.log.warn(
             {
               client_id: tokenRequest.client_id,
-              over_granted_scopes: overGrantedScopes,
+              over_granted_scopes: reported.sample,
+              over_granted_scope_count: overGrantedScopes.length,
             },
             'Token exchange: self-registered client exceeded the DCR scope cap',
           );
@@ -571,8 +614,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
             error: 'scope_not_allowed',
             error_description:
               `A self-registered client may not be granted ` +
-              `${overGrantedScopes.join(', ')}. Re-register requesting only ` +
-              `the MCP tool scopes.`,
+              `${reported.text}. Re-register requesting only the MCP tool ` +
+              `scopes.`,
           });
         }
 

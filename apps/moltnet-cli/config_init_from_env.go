@@ -313,6 +313,22 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 	fmt.Fprintf(os.Stderr, "Config written to %s\n", configPath)
 
+	// From here on the config exists on disk, and the early-return above treats
+	// its presence as "already initialized". A later failure would therefore be
+	// permanent: the retry skips initialization and the identity keeps whatever
+	// half-built state it reached. Remove the config on any failure so the next
+	// invocation starts clean.
+	initialized := false
+	defer func() {
+		if !initialized {
+			if rmErr := os.Remove(configPath); rmErr == nil {
+				fmt.Fprintf(os.Stderr,
+					"Initialization failed; removed the partial config at %s so it can be retried\n",
+					configPath)
+			}
+		}
+	}()
+
 	// Export SSH keys (reuses existing logic)
 	if err := runSSHKeyExportCmd(configPath, ""); err != nil {
 		return fmt.Errorf("export SSH keys: %w", err)
@@ -346,6 +362,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 		}
 	}
 
+	initialized = true
 	fmt.Fprintf(os.Stderr, "Agent %q initialized from environment variables\n", agentName)
 	return nil
 }

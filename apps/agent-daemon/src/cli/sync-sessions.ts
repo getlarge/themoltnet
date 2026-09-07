@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { loadConfig } from '../config.js';
 import {
   resolveAgentContext,
   validateStartupBinding,
@@ -63,7 +64,12 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
   const explicitAgentRootDir = values['agent-root']
     ? resolve(process.cwd(), values['agent-root'])
     : undefined;
+  const cfg = loadConfig();
   const ctx = await resolveAgentContext(opts.agent, {
+    // Without this the resolver always takes the config path, so a configless
+    // MOLTNET_AGENT_KEY run demands a moltnet.json it was never meant to have.
+    credentialSource: cfg.credentialSource,
+    envApiUrl: cfg.apiUrl,
     agentRootDir: explicitAgentRootDir,
   });
   // Fail fast on a rejected or wrong-team credential before touching sessions.

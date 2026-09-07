@@ -314,6 +314,10 @@ describe('Hook routes', () => {
           request: {
             client_id: 'dcr-client',
             grant_types: ['authorization_code'],
+            // A real grant always carries these; the cap now refuses a
+            // request that presents none rather than reading it as "no
+            // scopes granted".
+            granted_scopes: ['openid', 'diary:read'],
           },
         },
       });
@@ -365,6 +369,75 @@ describe('Hook routes', () => {
       expect(body.error).toBe('scope_not_allowed');
       expect(body.error_description).toContain('key:manage');
       expect(mocks.humanRepository.findByIdentityId).not.toHaveBeenCalled();
+    });
+
+    it('refuses a self-registered client that presents no granted scopes', async () => {
+      // Arrange: `granted_scopes` is optional in the schema because the agent
+      // path does not need it. On this path it is the only evidence of what
+      // the token carries, so absent must fail closed — otherwise a malformed
+      // payload mints a human-subject token past the cap.
+      (
+        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
+      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+        client_id: 'dcr-client',
+        metadata: {},
+      });
+      mocks.humanRepository.findByIdentityId.mockResolvedValue({
+        id: HUMAN_ID,
+        identityId: HUMAN_IDENTITY_ID,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // Act
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: { id_token: { subject: HUMAN_IDENTITY_ID } },
+          request: {
+            client_id: 'dcr-client',
+            grant_types: ['authorization_code'],
+          },
+        },
+      });
+
+      // Assert
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error).toBe('scope_not_allowed');
+      expect(mocks.humanRepository.findByIdentityId).not.toHaveBeenCalled();
+    });
+
+    it('bounds an oversized over-grant instead of echoing it', async () => {
+      // The list is attacker-controlled in length and content and reaches both
+      // a log sink and a response body.
+      (
+        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
+      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+        client_id: 'dcr-client',
+        metadata: {},
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: { id_token: { subject: HUMAN_IDENTITY_ID } },
+          request: {
+            client_id: 'dcr-client',
+            grant_types: ['authorization_code'],
+            granted_scopes: Array.from({ length: 40 }, (_, i) => `bogus:${i}`),
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const description = response.json().error_description as string;
+      expect(description).toContain('and 35 more');
+      expect(description).not.toContain('bogus:39');
+      expect(description.length).toBeLessThan(400);
     });
 
     it('names every over-granted scope so the registrant can re-register', async () => {
@@ -516,6 +589,9 @@ describe('Hook routes', () => {
           request: {
             client_id: 'unknown-client',
             grant_types: ['client_credentials'],
+            // In-cap scopes, so this test stays about the missing identity
+            // rather than tripping the scope cap first.
+            granted_scopes: ['diary:read'],
           },
         },
       });

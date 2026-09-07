@@ -50,6 +50,15 @@ function actionStep(name: string): WorkflowStep {
   return step;
 }
 
+/** Some steps carry an `id` instead of a `name` (e.g. `create-task`). */
+function actionStepById(id: string): WorkflowStep {
+  const step = action.runs.steps.find(
+    (candidate) => (candidate as { id?: string }).id === id,
+  );
+  if (!step) throw new Error(`Missing action step id: ${id}`);
+  return step;
+}
+
 describe('workspace daemon action contract', () => {
   it('uses a TypeScript-aware source entrypoint in workspace mode', () => {
     const run = action.runs.steps.map((step) => step.run ?? '').join('\n');
@@ -236,30 +245,21 @@ describe('workspace daemon action contract', () => {
     expect(result.stderr).toContain(expected);
   });
 
-  it('creates the task with a key reference and no credentials file', () => {
-    // A reference-only run materializes no moltnet.json, so a check that only
-    // looked at MOLTNET_AGENT_KEY fell through to "credentials not found".
-    const run = actionStep('Cancel superseded tasks').run!;
-    const root = mkdtempSync(resolve(tmpdir(), 'agent-daemon-action-taskref-'));
+  it('selects configless credentials for a key reference', () => {
+    // Scoped to the credential branch, which is all this can honestly cover:
+    // driving real task creation would need the CLI and a live API. Before the
+    // fix this branch tested only MOLTNET_AGENT_KEY, so a reference-only run —
+    // which materializes no moltnet.json to point at — fell through to
+    // "credentials not found".
+    const run = actionStepById('create-task').run!;
 
-    try {
-      const result = spawnSync('bash', ['-c', run], {
-        encoding: 'utf8',
-        env: {
-          ...process.env,
-          ...baseEnv,
-          GITHUB_WORKSPACE: root,
-          MOLTNET_AGENT_KEY_REF: 'os-keyring:agent-key/id-1',
-          TASK_SPEC_PATH: '',
-        },
-      });
-
-      // The step short-circuits without a spec path, but must not have failed
-      // on credential resolution first.
-      expect(result.stderr).not.toContain('moltnet credentials not found');
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    // The branch must accept either form.
+    expect(run).toContain(
+      'if [ -n "${MOLTNET_AGENT_KEY:-}" ] || [ -n "${MOLTNET_AGENT_KEY_REF:-}" ]; then',
+    );
+    // And the failure it used to hit must still exist for the case it is for:
+    // no key of either form and no credentials file.
+    expect(run).toContain('moltnet credentials not found');
   });
 
   it('accepts a seed reference in place of the literal seed', () => {

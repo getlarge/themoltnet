@@ -93,7 +93,7 @@ a second credential.`,
   moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name ci-runner \
     --ttl-days 30 --idempotency-key 7c9e...
   moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name daemon \
-    --scopes agent:profile,runtime:read,task:read,task:claim,task:execute
+    --scopes agent:profile,crypto:sign,runtime:read,task:read,task:claim,task:execute
   moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name daemon --store`,
 		Args:    cobra.NoArgs,
 		PreRunE: validateAgentKeyBindingFlags,
