@@ -32,7 +32,7 @@
     "test-native": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go test . -run \"^(TestOSKeyringSecretProviderRoundTrip|TestWindowsKeyringTargetMatchesCrossRuntimeConformance|TestWindowsLaunchProcessPropagatesExitCode)$\"",
+        "command": "go test . -run \"^(TestOSKeyringSecretProviderRoundTrip|TestAgentsActivationRefreshResolvesOSKeyringAgentKey|TestWindowsKeyringTargetMatchesCrossRuntimeConformance|TestWindowsLaunchProcessPropagatesExitCode)$\"",
         "cwd": "apps/moltnet-cli"
       }
     }

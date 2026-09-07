@@ -850,3 +850,49 @@ func TestAgentsActivationRefreshRejectsStaleEnvFingerprint(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+// TestAgentsActivationRefreshResolvesOSKeyringAgentKey covers the path the rest
+// of the activation suite deliberately avoids.
+//
+// Refresh authenticates in order to verify the identity, and it prefers an
+// agent_key_ref, so a keyring-backed agent key must be resolvable for
+// activation to complete. The other tests keep that reference file-backed so
+// they run without a credential store; this one exercises the real thing and is
+// wired into the `test-native` target, which CI runs on Linux, macOS and
+// Windows with a live keyring.
+func TestAgentsActivationRefreshResolvesOSKeyringAgentKey(t *testing.T) {
+	if os.Getenv("MOLTNET_RUN_NATIVE_KEYRING_TESTS") != "1" {
+		t.Skip("set MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 to use the native credential store")
+	}
+
+	// Arrange.
+	dir := setupActivationCacheFixture(t)
+	provider := OSKeyringSecretProvider{}
+	key := AgentKeyKey(fixtureIdentityID)
+	if err := provider.Set(key, "fixture-agent-key"); err != nil {
+		t.Fatalf("store agent key in the OS keyring: %v", err)
+	}
+	// The keyring is per-user and outlives the test's temporary HOME.
+	t.Cleanup(func() { _ = provider.Delete(key) })
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.AgentKeyRef = &SecretReference{Provider: osKeyringProviderName, Key: key}
+	})
+
+	// Act.
+	var out bytes.Buffer
+	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
+		t.Fatalf("refresh with a keyring-backed agent key: %v", err)
+	}
+
+	// Assert.
+	var result activationValidationResult
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, out.String())
+	}
+	if !result.Valid {
+		t.Fatalf("refresh reported invalid: %+v", result)
+	}
+	if got := result.CredentialProviders["agentKey"]; got != osKeyringProviderName {
+		t.Fatalf("agentKey provider = %q, want %q", got, osKeyringProviderName)
+	}
+}

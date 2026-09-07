@@ -25,6 +25,18 @@ import (
 // Redirecting HOME here makes isolation the default rather than something each
 // test has to remember, and clearing the credential variables makes a local run
 // match CI by construction. Tests needing their own HOME still call t.Setenv.
+// preservedTestEnv lists MOLTNET_* variables that select which tests run, as
+// opposed to variables that feed them credentials.
+//
+// Scrubbing the whole prefix took this one with it, which silently disabled the
+// Go half of the native-keyring job: TestOSKeyringSecretProviderRoundTrip
+// skipped on all three platforms while the job still reported success. A gate
+// that is cleared before it is read fails open and is invisible, so anything
+// added here must be a switch, never a secret.
+var preservedTestEnv = map[string]bool{
+	"MOLTNET_RUN_NATIVE_KEYRING_TESTS": true,
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(func() int {
 		home, err := os.MkdirTemp("", "moltnet-unit-home-")
@@ -39,7 +51,7 @@ func TestMain(m *testing.M) {
 		}
 		for _, entry := range os.Environ() {
 			key, _, found := strings.Cut(entry, "=")
-			if !found || !strings.HasPrefix(key, "MOLTNET_") {
+			if !found || !strings.HasPrefix(key, "MOLTNET_") || preservedTestEnv[key] {
 				continue
 			}
 			if err := os.Unsetenv(key); err != nil {
