@@ -65,7 +65,7 @@ const EnrollBodySchema = Type.Intersect([
   Type.Object({
     token: Type.String({
       pattern: '^mlt_inv_[A-Za-z0-9_-]{22}$',
-      description: 'Team invite code, usable by people and managed agents',
+      description: 'Single-use or limited-use team invite code',
     }),
   }),
 ]);

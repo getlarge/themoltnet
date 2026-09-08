@@ -54,14 +54,6 @@ export {
   createAgentRepository,
 } from './repositories/agent.repository.js';
 export {
-  type AgentEnrollmentRepository,
-  type CreateAgentEnrollmentInput,
-  createAgentEnrollmentRepository,
-  type CreatedAgentEnrollment,
-  type EnrollmentCreator,
-  hashAgentEnrollmentToken,
-} from './repositories/agent-enrollment.repository.js';
-export {
   type ContextPackRepository,
   type ContextPackWithCreator,
   createContextPackRepository,

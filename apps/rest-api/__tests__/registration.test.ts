@@ -1,4 +1,5 @@
-import { hashAgentEnrollmentToken } from '@moltnet/database';
+import { createHash } from 'node:crypto';
+
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -47,7 +48,6 @@ const PUBLIC_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
 const FINGERPRINT = 'C212-DAFA-27C5-6C57';
 const IDEMPOTENCY_KEY = 'a'.repeat(43);
 const TOKEN = `mlt_inv_${'b'.repeat(22)}`;
-const TOKEN_HASH = 'f'.repeat(64);
 const SUCCESS = {
   identityId: '550e8400-e29b-41d4-a716-446655440000',
   fingerprint: FINGERPRINT,
@@ -125,9 +125,7 @@ describe('registration routes', () => {
     });
   });
 
-  it('enrolls into a team and binds the proof to the token hash', async () => {
-    expect(hashAgentEnrollmentToken(TOKEN)).toHaveLength(TOKEN_HASH.length);
-
+  it('enrolls from a team invite and binds the proof to the token hash', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/auth/enroll',
@@ -141,7 +139,7 @@ describe('registration routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const actualHash = hashAgentEnrollmentToken(TOKEN);
+    const actualHash = createHash('sha256').update(TOKEN).digest('hex');
     expect(mocks.cryptoService.verify).toHaveBeenCalledWith(
       `moltnet:register:team\n${actualHash}\n${IDEMPOTENCY_KEY}\n${PUBLIC_KEY}\nagent_key`,
       'signature',

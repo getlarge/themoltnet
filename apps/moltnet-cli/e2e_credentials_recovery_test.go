@@ -14,7 +14,7 @@ import (
 // self-registered agent keeps the immediate server-side rotation isolated
 // from the package-wide e2e credentials.
 func TestE2E_AgentsCredentialsRecover(t *testing.T) {
-	registration, err := DoRegister(e2eAPIURL, credentialTypeOAuth2, "")
+	registration, err := DoRegister(e2eAPIURL, credentialTypeOAuth2)
 	if err != nil {
 		t.Fatalf("register dedicated recovery agent: %v", err)
 	}

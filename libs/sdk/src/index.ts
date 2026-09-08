@@ -1,6 +1,5 @@
 export type {
   Agent,
-  AgentEnrollmentsNamespace,
   AgentKeyIssueRequestOptions,
   AgentKeysNamespace,
   AgentsNamespace,

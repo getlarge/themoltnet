@@ -41,7 +41,6 @@ import {
 } from './plugins/rate-limit.js';
 import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
-import { agentEnrollmentRoutes } from './routes/agent-enrollments.js';
 import { agentKeyRoutes } from './routes/agent-keys.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
@@ -71,7 +70,6 @@ import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { sharedSchemas } from './schemas.js';
 import type {
-  AgentEnrollmentRepository,
   AgentRepository,
   ContextPackRepository,
   ContextPackService,
@@ -163,7 +161,6 @@ export interface AppOptions {
   agentRepository: AgentRepository;
   humanRepository: HumanRepository;
   cryptoService: CryptoService;
-  agentEnrollmentRepository: AgentEnrollmentRepository;
   groupRepository: GroupRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
@@ -415,7 +412,6 @@ export async function registerApiRoutes(
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('humanRepository', options.humanRepository);
   decorateSafe('cryptoService', options.cryptoService);
-  decorateSafe('agentEnrollmentRepository', options.agentEnrollmentRepository);
   decorateSafe('groupRepository', options.groupRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
@@ -499,7 +495,6 @@ export async function registerApiRoutes(
   await app.register(agentKeyRoutes, {
     talosApi: options.oryClients.apiKeys,
   });
-  await app.register(agentEnrollmentRoutes);
   await app.register(cryptoRoutes);
   await app.register(previewSignChallengeRoutes);
   await app.register(signingRequestRoutes);

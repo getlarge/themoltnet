@@ -13,7 +13,6 @@ type capturedRegistrationRequest struct {
 	CredentialType string `json:"credentialType"`
 	Proof          string `json:"proof"`
 	PublicKey      string `json:"publicKey"`
-	Token          string `json:"token"`
 }
 
 func assertRegistrationProof(t *testing.T, request *http.Request, body capturedRegistrationRequest, message string) {
@@ -55,7 +54,7 @@ func TestDoRegisterSelfOAuth2(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := DoRegister(server.URL, credentialTypeOAuth2, "")
+	result, err := DoRegister(server.URL, credentialTypeOAuth2)
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -64,10 +63,9 @@ func TestDoRegisterSelfOAuth2(t *testing.T) {
 	}
 }
 
-func TestDoRegisterRedeemsEnrollmentForAgentKey(t *testing.T) {
-	const token = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+func TestDoRegisterSelfAgentKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/auth/enroll" {
+		if r.URL.Path != "/auth/register" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		var body capturedRegistrationRequest
@@ -75,28 +73,37 @@ func TestDoRegisterRedeemsEnrollmentForAgentKey(t *testing.T) {
 			t.Fatal(err)
 		}
 		nonce := r.Header.Get("Idempotency-Key")
-		assertRegistrationProof(t, r, body, buildTeamRegistrationMessage(token, nonce, body.PublicKey, body.CredentialType))
+		assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"identityId":  "00000000-0000-0000-0000-000000000123",
-			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
+			"fingerprint": "ABCD-1234-EF56-7890",
+			"publicKey":   body.PublicKey,
 			"credential": map[string]any{
-				"type": "agent_key", "secret": "secret",
+				"type":   "agent_key",
+				"secret": "secret",
 				"key": map[string]any{
-					"id": "key-1", "agentId": "00000000-0000-0000-0000-000000000123",
-					"bindingScope": "team",
-					"teamId":       "00000000-0000-0000-0000-000000000456", "name": "Bootstrap credential",
-					"status": "active", "scopes": []string{}, "createdAt": nil, "expiresAt": nil,
-					"lastUsedAt": nil, "updatedAt": nil, "revocationReason": nil, "revocationDescription": nil,
+					"id":                    "key-1",
+					"agentId":               "00000000-0000-0000-0000-000000000123",
+					"bindingScope":          "identity",
+					"name":                  "Bootstrap credential",
+					"status":                "active",
+					"scopes":                []string{},
+					"createdAt":             nil,
+					"expiresAt":             nil,
+					"lastUsedAt":            nil,
+					"updatedAt":             nil,
+					"revocationReason":      nil,
+					"revocationDescription": nil,
 				},
 			},
 		})
 	}))
 	defer server.Close()
 
-	result, err := DoRegister(server.URL, credentialTypeAgentKey, token)
+	result, err := DoRegister(server.URL, credentialTypeAgentKey)
 	if err != nil {
-		t.Fatalf("enroll: %v", err)
+		t.Fatalf("register: %v", err)
 	}
 	if result.Response.Credential.AgentKey != "secret" {
 		t.Fatalf("agent key = %q", result.Response.Credential.AgentKey)
@@ -110,13 +117,13 @@ func TestDoRegisterErrors(t *testing.T) {
 		_, _ = w.Write([]byte(`{"type":"urn:moltnet:problem:registration-failed","title":"Registration Failed","status":403}`))
 	}))
 	defer server.Close()
-	if _, err := DoRegister(server.URL, credentialTypeOAuth2, ""); err == nil {
+	if _, err := DoRegister(server.URL, credentialTypeOAuth2); err == nil {
 		t.Fatal("expected HTTP error")
 	}
-	if _, err := DoRegister("http://127.0.0.1:1", credentialTypeOAuth2, ""); err == nil {
+	if _, err := DoRegister("http://127.0.0.1:1", credentialTypeOAuth2); err == nil {
 		t.Fatal("expected network error")
 	}
-	if _, err := DoRegister(server.URL, "password", ""); err == nil {
+	if _, err := DoRegister(server.URL, "password"); err == nil {
 		t.Fatal("expected credential type validation error")
 	}
 }

@@ -620,7 +620,6 @@ export function initRegistrationWorkflow(): void {
               claimedInviteId = claimed.id;
               return { teamId: claimed.teamId, privateDiaryId: null };
             }
-
             const existingTeam = await teamRepository.findPersonalByCreator({
               kind: 'agent',
               id: identityId,

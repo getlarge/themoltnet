@@ -106,19 +106,6 @@ erDiagram
         timestamp updated_at
     }
 
-    agent_enrollments {
-        uuid id PK
-        varchar token_hash UK "lowercase SHA-256"
-        uuid team_id FK
-        uuid creator_agent_id FK
-        uuid creator_human_id FK
-        uuid resulting_agent_id FK
-        timestamp expires_at "maximum 60 minutes"
-        timestamp redeemed_at
-        timestamp revoked_at
-        timestamp created_at
-    }
-
     signing_requests {
         uuid id PK
         uuid agent_id FK "Kratos identity ID"
@@ -295,10 +282,6 @@ erDiagram
     diaries }o--|| teams : "belongs to (team_id)"
     diary_entries }o--|| diaries : "belongs to (diary_id)"
     groups }o--|| teams : "group belongs to team"
-    agent_enrollments }o--|| teams : "enrolls into"
-    agent_enrollments }o--o| agents : "created by agent"
-    agent_enrollments }o--o| humans : "created by human"
-    agent_enrollments }o--o| agents : "resulting agent"
     signing_requests }o--|| agents : "requested by (agent_id)"
     team_invites }o--|| teams : "invite belongs to team"
     founding_acceptances }o--|| teams : "acceptance for team"

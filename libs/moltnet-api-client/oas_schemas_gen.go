@@ -5310,44 +5310,6 @@ func (s *CookieAuth) SetRoles(val []string) {
 	s.Roles = val
 }
 
-type CreateAgentEnrollmentBadRequest ProblemDetails
-
-func (*CreateAgentEnrollmentBadRequest) createAgentEnrollmentRes() {}
-
-type CreateAgentEnrollmentForbidden ProblemDetails
-
-func (*CreateAgentEnrollmentForbidden) createAgentEnrollmentRes() {}
-
-type CreateAgentEnrollmentNotFound ProblemDetails
-
-func (*CreateAgentEnrollmentNotFound) createAgentEnrollmentRes() {}
-
-type CreateAgentEnrollmentReq struct {
-	ExpiresInMinutes OptInt `json:"expiresInMinutes"`
-}
-
-// GetExpiresInMinutes returns the value of ExpiresInMinutes.
-func (s *CreateAgentEnrollmentReq) GetExpiresInMinutes() OptInt {
-	return s.ExpiresInMinutes
-}
-
-// SetExpiresInMinutes sets the value of ExpiresInMinutes.
-func (s *CreateAgentEnrollmentReq) SetExpiresInMinutes(val OptInt) {
-	s.ExpiresInMinutes = val
-}
-
-type CreateAgentEnrollmentServiceUnavailable ProblemDetails
-
-func (*CreateAgentEnrollmentServiceUnavailable) createAgentEnrollmentRes() {}
-
-type CreateAgentEnrollmentTooManyRequests ProblemDetails
-
-func (*CreateAgentEnrollmentTooManyRequests) createAgentEnrollmentRes() {}
-
-type CreateAgentEnrollmentUnauthorized ProblemDetails
-
-func (*CreateAgentEnrollmentUnauthorized) createAgentEnrollmentRes() {}
-
 type CreateAgentKeyBadGateway ProblemDetails
 
 func (*CreateAgentKeyBadGateway) createAgentKeyRes() {}
@@ -8686,101 +8648,6 @@ func (*CreateTeamTooManyRequests) createTeamRes() {}
 type CreateTeamUnauthorized ProblemDetails
 
 func (*CreateTeamUnauthorized) createTeamRes() {}
-
-// Merged schema.
-// Ref: #/components/schemas/CreatedAgentEnrollment
-type CreatedAgentEnrollment struct {
-	CreatedAt        time.Time   `json:"createdAt"`
-	ExpiresAt        time.Time   `json:"expiresAt"`
-	ID               uuid.UUID   `json:"id"`
-	RedeemedAt       NilDateTime `json:"redeemedAt"`
-	ResultingAgentId NilUUID     `json:"resultingAgentId"`
-	RevokedAt        NilDateTime `json:"revokedAt"`
-	TeamId           uuid.UUID   `json:"teamId"`
-	Token            string      `json:"token"`
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *CreatedAgentEnrollment) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *CreatedAgentEnrollment) GetExpiresAt() time.Time {
-	return s.ExpiresAt
-}
-
-// GetID returns the value of ID.
-func (s *CreatedAgentEnrollment) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetRedeemedAt returns the value of RedeemedAt.
-func (s *CreatedAgentEnrollment) GetRedeemedAt() NilDateTime {
-	return s.RedeemedAt
-}
-
-// GetResultingAgentId returns the value of ResultingAgentId.
-func (s *CreatedAgentEnrollment) GetResultingAgentId() NilUUID {
-	return s.ResultingAgentId
-}
-
-// GetRevokedAt returns the value of RevokedAt.
-func (s *CreatedAgentEnrollment) GetRevokedAt() NilDateTime {
-	return s.RevokedAt
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *CreatedAgentEnrollment) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetToken returns the value of Token.
-func (s *CreatedAgentEnrollment) GetToken() string {
-	return s.Token
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *CreatedAgentEnrollment) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *CreatedAgentEnrollment) SetExpiresAt(val time.Time) {
-	s.ExpiresAt = val
-}
-
-// SetID sets the value of ID.
-func (s *CreatedAgentEnrollment) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetRedeemedAt sets the value of RedeemedAt.
-func (s *CreatedAgentEnrollment) SetRedeemedAt(val NilDateTime) {
-	s.RedeemedAt = val
-}
-
-// SetResultingAgentId sets the value of ResultingAgentId.
-func (s *CreatedAgentEnrollment) SetResultingAgentId(val NilUUID) {
-	s.ResultingAgentId = val
-}
-
-// SetRevokedAt sets the value of RevokedAt.
-func (s *CreatedAgentEnrollment) SetRevokedAt(val NilDateTime) {
-	s.RevokedAt = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *CreatedAgentEnrollment) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetToken sets the value of Token.
-func (s *CreatedAgentEnrollment) SetToken(val string) {
-	s.Token = val
-}
-
-func (*CreatedAgentEnrollment) createAgentEnrollmentRes() {}
 
 // Ref: #/components/schemas/CredentialScope
 type CredentialScope string
@@ -17834,7 +17701,7 @@ type EnrollAgentReq struct {
 	Proof string `json:"proof"`
 	// Ed25519 public key in "ed25519:<base64>" format (32-byte raw key).
 	PublicKey string `json:"publicKey"`
-	// Team invite code, usable by people and managed agents.
+	// Single-use or limited-use team invite code.
 	Token string `json:"token"`
 }
 
@@ -35353,52 +35220,6 @@ func (o OptConflictTargetKeys) Or(d ConflictTargetKeys) ConflictTargetKeys {
 	return d
 }
 
-// NewOptCreateAgentEnrollmentReq returns new OptCreateAgentEnrollmentReq with value set to v.
-func NewOptCreateAgentEnrollmentReq(v CreateAgentEnrollmentReq) OptCreateAgentEnrollmentReq {
-	return OptCreateAgentEnrollmentReq{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateAgentEnrollmentReq is optional CreateAgentEnrollmentReq.
-type OptCreateAgentEnrollmentReq struct {
-	Value CreateAgentEnrollmentReq
-	Set   bool
-}
-
-// IsSet returns true if OptCreateAgentEnrollmentReq was set.
-func (o OptCreateAgentEnrollmentReq) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateAgentEnrollmentReq) Reset() {
-	var v CreateAgentEnrollmentReq
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateAgentEnrollmentReq) SetTo(v CreateAgentEnrollmentReq) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateAgentEnrollmentReq) Get() (v CreateAgentEnrollmentReq, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateAgentEnrollmentReq) Or(d CreateAgentEnrollmentReq) CreateAgentEnrollmentReq {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptCreateDiaryEntryReqEntryType returns new OptCreateDiaryEntryReqEntryType with value set to v.
 func NewOptCreateDiaryEntryReqEntryType(v CreateDiaryEntryReqEntryType) OptCreateDiaryEntryReqEntryType {
 	return OptCreateDiaryEntryReqEntryType{
@@ -47066,35 +46887,6 @@ func (*RequestRecoveryChallengeBadRequest) requestRecoveryChallengeRes() {}
 type RequestRecoveryChallengeInternalServerError ProblemDetails
 
 func (*RequestRecoveryChallengeInternalServerError) requestRecoveryChallengeRes() {}
-
-type RevokeAgentEnrollmentBadRequest ProblemDetails
-
-func (*RevokeAgentEnrollmentBadRequest) revokeAgentEnrollmentRes() {}
-
-type RevokeAgentEnrollmentForbidden ProblemDetails
-
-func (*RevokeAgentEnrollmentForbidden) revokeAgentEnrollmentRes() {}
-
-// RevokeAgentEnrollmentNoContent is response for RevokeAgentEnrollment operation.
-type RevokeAgentEnrollmentNoContent struct{}
-
-func (*RevokeAgentEnrollmentNoContent) revokeAgentEnrollmentRes() {}
-
-type RevokeAgentEnrollmentNotFound ProblemDetails
-
-func (*RevokeAgentEnrollmentNotFound) revokeAgentEnrollmentRes() {}
-
-type RevokeAgentEnrollmentServiceUnavailable ProblemDetails
-
-func (*RevokeAgentEnrollmentServiceUnavailable) revokeAgentEnrollmentRes() {}
-
-type RevokeAgentEnrollmentTooManyRequests ProblemDetails
-
-func (*RevokeAgentEnrollmentTooManyRequests) revokeAgentEnrollmentRes() {}
-
-type RevokeAgentEnrollmentUnauthorized ProblemDetails
-
-func (*RevokeAgentEnrollmentUnauthorized) revokeAgentEnrollmentRes() {}
 
 type RevokeAgentKeyBadGateway ProblemDetails
 

@@ -8,20 +8,6 @@ export type AbortTaskBody = {
   reason?: string;
 };
 
-export type AgentEnrollment = {
-  createdAt: string;
-  expiresAt: string;
-  id: string;
-  redeemedAt: string | null;
-  resultingAgentId: string | null;
-  revokedAt: string | null;
-  teamId: string;
-};
-
-export type AgentEnrollmentParams = {
-  id: string;
-};
-
 export type AgentIdentity = {
   /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -608,10 +594,6 @@ export type CreateTaskBody = {
   tags?: Array<string>;
   taskType: string;
   title?: string;
-};
-
-export type CreatedAgentEnrollment = AgentEnrollment & {
-  token: string;
 };
 
 export type CredentialScope =
@@ -3299,116 +3281,6 @@ export type GetNetworkInfoResponses = {
 export type GetNetworkInfoResponse =
   GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
 
-export type CreateAgentEnrollmentData = {
-  body?: {
-    expiresInMinutes?: number;
-  };
-  headers: {
-    /**
-     * Team ID (UUID) that will own the resource. Required.
-     */
-    'x-moltnet-team-id': string;
-  };
-  path?: never;
-  query?: never;
-  url: '/agent-enrollments';
-};
-
-export type CreateAgentEnrollmentErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type CreateAgentEnrollmentError =
-  CreateAgentEnrollmentErrors[keyof CreateAgentEnrollmentErrors];
-
-export type CreateAgentEnrollmentResponses = {
-  /**
-   * Default Response
-   */
-  201: CreatedAgentEnrollment;
-};
-
-export type CreateAgentEnrollmentResponse =
-  CreateAgentEnrollmentResponses[keyof CreateAgentEnrollmentResponses];
-
-export type RevokeAgentEnrollmentData = {
-  body?: never;
-  headers: {
-    /**
-     * Team ID (UUID) that will own the resource. Required.
-     */
-    'x-moltnet-team-id': string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/agent-enrollments/{id}';
-};
-
-export type RevokeAgentEnrollmentErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type RevokeAgentEnrollmentError =
-  RevokeAgentEnrollmentErrors[keyof RevokeAgentEnrollmentErrors];
-
-export type RevokeAgentEnrollmentResponses = {
-  /**
-   * Default Response
-   */
-  204: void;
-};
-
-export type RevokeAgentEnrollmentResponse =
-  RevokeAgentEnrollmentResponses[keyof RevokeAgentEnrollmentResponses];
-
 export type ListAgentKeysData = {
   body?: never;
   headers?: {
@@ -3809,7 +3681,7 @@ export type EnrollAgentData = {
     publicKey: string;
   } & {
     /**
-     * Team invite code, usable by people and managed agents
+     * Single-use or limited-use team invite code
      */
     token: string;
   };

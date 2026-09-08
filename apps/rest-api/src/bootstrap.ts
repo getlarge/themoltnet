@@ -25,7 +25,6 @@ import {
 import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
-  createAgentEnrollmentRepository,
   createAgentRepository,
   createContextPackRepository,
   createCorrelationSealRepository,
@@ -344,9 +343,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const groupRepository = createGroupRepository(dbConnection.db);
-  const agentEnrollmentRepository = createAgentEnrollmentRepository(
-    dbConnection.db,
-  );
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
@@ -755,7 +751,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     agentRepository,
     humanRepository,
     cryptoService,
-    agentEnrollmentRepository,
     groupRepository,
     teamRepository,
     diaryTransferRepository,

@@ -59,6 +59,12 @@ func TestRegisterHelp(t *testing.T) {
 	if !strings.Contains(stdout, "--credential-type") {
 		t.Errorf("expected help to contain '--credential-type', got: %s", stdout)
 	}
+	if strings.Contains(stdout, "--enrollment-token") || strings.Contains(stdout, "--invite-code") {
+		t.Errorf("expected team membership to be absent from register help, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "moltnet teams join --code") {
+		t.Errorf("expected help to direct users to 'teams join', got: %s", stdout)
+	}
 	if !strings.Contains(stdout, "Example") {
 		t.Errorf("expected help to contain 'Example', got: %s", stdout)
 	}
@@ -1177,35 +1183,6 @@ func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 		t.Fatal("expected error for unreachable API, got nil")
 	}
 	// Should fail with connection error, NOT "no credentials found"
-	if strings.Contains(err.Error(), "no credentials found") {
-		t.Errorf("credentials flag was ignored — got 'no credentials found' instead of connection error: %v", err)
-	}
-}
-
-func TestCredentialsFlagPlumbedToAgentEnrollmentCreate(t *testing.T) {
-	kp, err := GenerateKeyPair()
-	if err != nil {
-		t.Fatalf("generate keypair: %v", err)
-	}
-	dir := t.TempDir()
-	credPath := filepath.Join(dir, "creds.json")
-	creds := CredentialsFile{
-		IdentityID: "test",
-		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
-	}
-	data, _ := json.Marshal(creds)
-	os.WriteFile(credPath, data, 0o600)
-
-	isolateCredentialDiscovery(t)
-	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "agents", "enrollments", "create",
-		"--team-id", "00000000-0000-0000-0000-000000000001",
-		"--credentials", credPath,
-		"--api-url", "http://127.0.0.1:1")
-	if err == nil {
-		t.Fatal("expected error for unreachable API, got nil")
-	}
 	if strings.Contains(err.Error(), "no credentials found") {
 		t.Errorf("credentials flag was ignored — got 'no credentials found' instead of connection error: %v", err)
 	}

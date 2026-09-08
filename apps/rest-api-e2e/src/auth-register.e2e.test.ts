@@ -273,6 +273,51 @@ describe('proof-based registration', () => {
     expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
   });
 
+  it('redeems a single-use member invite into team membership', async () => {
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `agent-invite-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+
+    const invite = await createTeamInvite({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+    });
+    expect(invite.response.status).toBe(201);
+    expect(invite.error).toBeUndefined();
+    expect(invite.data?.code).toMatch(/^mlt_inv_[A-Za-z0-9_-]{22}$/);
+
+    const input = await signedTeamRegistration(invite.data!.code);
+    const enrolled = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: invite.data!.code,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.error).toBeUndefined();
+
+    const members = await listTeamMembers({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+    });
+    expect(members.response.status).toBe(200);
+    expect(
+      members.data?.items.find(
+        (member) => member.subjectId === enrolled.data?.identityId,
+      )?.role,
+    ).toBe('member');
+  });
+
   it('honors an executor team invite during managed-agent enrollment', async () => {
     const { data: team, error: teamError } = await createTeam({
       client,

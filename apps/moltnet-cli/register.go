@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -54,17 +53,6 @@ func buildSelfRegistrationMessage(nonce, publicKey, credentialType string) strin
 	}, "\n")
 }
 
-func buildTeamRegistrationMessage(token, nonce, publicKey, credentialType string) string {
-	tokenHash := sha256.Sum256([]byte(token))
-	return strings.Join([]string{
-		"moltnet:register:team",
-		fmt.Sprintf("%x", tokenHash),
-		nonce,
-		publicKey,
-		credentialType,
-	}, "\n")
-}
-
 func flattenRegistrationResponse(response *moltnetapi.RegisterResponse) (*RegisterResponse, error) {
 	credential := RegistrationCredential{}
 	if oauth, ok := response.Credential.GetOAuth2RegistrationCredential(); ok {
@@ -88,10 +76,10 @@ func flattenRegistrationResponse(response *moltnetapi.RegisterResponse) (*Regist
 	}, nil
 }
 
-// DoRegister generates a keypair and either self-registers or redeems a team
-// enrollment. A fresh nonce is generated once and used for both the signature
-// and Idempotency-Key header.
-func DoRegister(apiURL, credentialType, enrollmentToken string) (*RegisterResult, error) {
+// DoRegister generates a keypair and self-registers an identity. Team
+// membership is managed separately through `moltnet teams join` after the
+// registration credential has been stored.
+func DoRegister(apiURL, credentialType string) (*RegisterResult, error) {
 	if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
 		return nil, fmt.Errorf("credential type must be oauth2 or agent_key")
 	}
@@ -104,9 +92,6 @@ func DoRegister(apiURL, credentialType, enrollmentToken string) (*RegisterResult
 		return nil, err
 	}
 	message := buildSelfRegistrationMessage(nonce, kp.PublicKey, credentialType)
-	if enrollmentToken != "" {
-		message = buildTeamRegistrationMessage(enrollmentToken, nonce, kp.PublicKey, credentialType)
-	}
 	proof, err := SignRawMessage(message, kp.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("sign registration request: %w", err)
@@ -120,45 +105,23 @@ func DoRegister(apiURL, credentialType, enrollmentToken string) (*RegisterResult
 	if err != nil {
 		return nil, fmt.Errorf("create API client: %w", err)
 	}
-	var apiResponse *moltnetapi.RegisterResponse
-	if enrollmentToken == "" {
-		request := &moltnetapi.RegisterAgentReq{
-			PublicKey: kp.PublicKey, Proof: proof,
-			CredentialType: moltnetapi.RegisterAgentReqCredentialType(credentialType),
-		}
-		params := moltnetapi.RegisterAgentParams{IdempotencyKey: nonce}
-		res, callErr := client.RegisterAgent(context.Background(), request, params)
-		if callErr != nil {
-			// The server may have committed before the response was dropped. Replay
-			// this exact signed request once with the same idempotency nonce.
-			res, callErr = client.RegisterAgent(context.Background(), request, params)
-		}
-		if callErr != nil {
-			return nil, fmt.Errorf("registration request failed: %w", formatTransportError(callErr))
-		}
-		var ok bool
-		apiResponse, ok = res.(*moltnetapi.RegisterResponse)
-		if !ok {
-			return nil, fmt.Errorf("registration failed: %w", formatAPIError(res))
-		}
-	} else {
-		request := moltnetapi.NewOptEnrollAgentReq(moltnetapi.EnrollAgentReq{
-			PublicKey: kp.PublicKey, Proof: proof, Token: enrollmentToken,
-			CredentialType: moltnetapi.EnrollAgentReqCredentialType(credentialType),
-		})
-		params := moltnetapi.EnrollAgentParams{IdempotencyKey: nonce}
-		res, callErr := client.EnrollAgent(context.Background(), request, params)
-		if callErr != nil {
-			res, callErr = client.EnrollAgent(context.Background(), request, params)
-		}
-		if callErr != nil {
-			return nil, fmt.Errorf("enrollment request failed: %w", formatTransportError(callErr))
-		}
-		var ok bool
-		apiResponse, ok = res.(*moltnetapi.RegisterResponse)
-		if !ok {
-			return nil, fmt.Errorf("enrollment failed: %w", formatAPIError(res))
-		}
+	request := &moltnetapi.RegisterAgentReq{
+		PublicKey: kp.PublicKey, Proof: proof,
+		CredentialType: moltnetapi.RegisterAgentReqCredentialType(credentialType),
+	}
+	params := moltnetapi.RegisterAgentParams{IdempotencyKey: nonce}
+	res, callErr := client.RegisterAgent(context.Background(), request, params)
+	if callErr != nil {
+		// The server may have committed before the response was dropped. Replay
+		// this exact signed request once with the same idempotency nonce.
+		res, callErr = client.RegisterAgent(context.Background(), request, params)
+	}
+	if callErr != nil {
+		return nil, fmt.Errorf("registration request failed: %w", formatTransportError(callErr))
+	}
+	apiResponse, ok := res.(*moltnetapi.RegisterResponse)
+	if !ok {
+		return nil, fmt.Errorf("registration failed: %w", formatAPIError(res))
 	}
 
 	response, err := flattenRegistrationResponse(apiResponse)
@@ -168,11 +131,11 @@ func DoRegister(apiURL, credentialType, enrollmentToken string) (*RegisterResult
 	return &RegisterResult{KeyPair: kp, Response: response, APIUrl: strings.TrimRight(apiURL, "/")}, nil
 }
 
-func runRegisterCmd(stdout, errOut io.Writer, apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool) error {
-	return runRegisterCmdWithName(stdout, errOut, apiURL, credentialType, enrollmentToken, jsonOut, noMCP, "default")
+func runRegisterCmd(stdout, errOut io.Writer, apiURL, credentialType string, jsonOut, noMCP bool) error {
+	return runRegisterCmdWithName(stdout, errOut, apiURL, credentialType, jsonOut, noMCP, "default")
 }
 
-func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool, name string) error {
+func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType string, jsonOut, noMCP bool, name string) error {
 	url := strings.TrimRight(apiURL, "/")
 	if !jsonOut {
 		if strings.TrimSpace(name) == "" {
@@ -197,7 +160,7 @@ func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType, en
 	}
 
 	fmt.Fprintln(errOut, "Generating Ed25519 keypair...")
-	result, err := DoRegister(url, credentialType, enrollmentToken)
+	result, err := DoRegister(url, credentialType)
 	if err != nil {
 		return err
 	}

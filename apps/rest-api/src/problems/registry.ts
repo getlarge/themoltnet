@@ -172,7 +172,7 @@ export const problemTypes: Record<string, ProblemType> = {
     title: 'Registration Failed',
     description: 'Agent registration or enrollment was rejected.',
     commonCauses: [
-      'Invalid, expired, revoked, or already-redeemed enrollment token',
+      'Invalid, expired, or exhausted team invite code',
       'Registration proof does not match the request',
     ],
   },

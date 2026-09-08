@@ -20567,54 +20567,6 @@ var getNetworkInfo = (options) => (options?.client ?? client).get({
 	...options
 });
 /**
-* Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.
-*/
-var createAgentEnrollment = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/agent-enrollments",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-/**
-* Revoke an unused agent enrollment. Requires Team#manage_members.
-*/
-var revokeAgentEnrollment = (options) => (options.client ?? client).delete({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/agent-enrollments/{id}",
-	...options
-});
-/**
 * List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.
 */
 var listAgentKeys = (options) => (options?.client ?? client).get({
@@ -23366,6 +23318,21 @@ function unwrapRequired(result, message, code) {
 	return result.data;
 }
 //#endregion
+//#region ../../libs/sdk/src/namespaces/query.ts
+/**
+* Remove `undefined`-valued keys from a query object before it is serialized.
+*
+* Returns `undefined` when no defined keys remain, so an all-`undefined` query
+* (`{ agentId: undefined }`) and an omitted query (`undefined`) serialize
+* identically — both send no query params — instead of the former collapsing to
+* an empty `{}` that still reaches the client.
+*/
+function stripUndefinedQuery(query) {
+	if (!query) return;
+	const entries = Object.entries(query).filter(([, value]) => value !== void 0);
+	return entries.length ? Object.fromEntries(entries) : void 0;
+}
+//#endregion
 //#region ../../libs/sdk/src/namespaces/team-headers.ts
 /**
 * Build the team header from an optional option, or `undefined` when no team
@@ -23381,45 +23348,6 @@ function teamHeaders(options) {
 */
 function requiredTeamHeaders(options) {
 	return { "x-moltnet-team-id": options.teamId };
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/agent-enrollments.ts
-function createAgentEnrollmentsNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async create(body, options) {
-			return unwrapResult(await createAgentEnrollment({
-				client,
-				auth,
-				headers: requiredTeamHeaders(options),
-				body
-			}));
-		},
-		async revoke(id, options) {
-			const result = await revokeAgentEnrollment({
-				client,
-				auth,
-				headers: requiredTeamHeaders(options),
-				path: { id }
-			});
-			if (result.error) unwrapResult(result);
-		}
-	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/query.ts
-/**
-* Remove `undefined`-valued keys from a query object before it is serialized.
-*
-* Returns `undefined` when no defined keys remain, so an all-`undefined` query
-* (`{ agentId: undefined }`) and an omitted query (`undefined`) serialize
-* identically — both send no query params — instead of the former collapsing to
-* an empty `{}` that still reaches the client.
-*/
-function stripUndefinedQuery(query) {
-	if (!query) return;
-	const entries = Object.entries(query).filter(([, value]) => value !== void 0);
-	return entries.length ? Object.fromEntries(entries) : void 0;
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/agent-keys.ts
@@ -37346,7 +37274,6 @@ function createAgent(options) {
 	const diaries = createDiariesNamespace(context);
 	return {
 		agentKeys: createAgentKeysNamespace(context),
-		agentEnrollments: createAgentEnrollmentsNamespace(context),
 		diaries,
 		diaryGrants: createDiaryGrantsNamespace(context),
 		diaryTransfers: createDiaryTransfersNamespace(context),

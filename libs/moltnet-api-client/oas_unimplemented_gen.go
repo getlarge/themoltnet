@@ -153,16 +153,6 @@ func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskR
 	return r, ht.ErrNotImplemented
 }
 
-// CreateAgentEnrollment implements createAgentEnrollment operation.
-//
-// Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw
-// token is returned once and only its SHA-256 hash is stored.
-//
-// POST /agent-enrollments
-func (UnimplementedHandler) CreateAgentEnrollment(ctx context.Context, req OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (r CreateAgentEnrollmentRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // CreateAgentKey implements createAgentKey operation.
 //
 // Issue a secret API key bound to one agent identity or, by default, the active team.
@@ -1125,15 +1115,6 @@ func (UnimplementedHandler) RenderContextPack(ctx context.Context, req *RenderCo
 //
 // POST /recovery/challenge
 func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *RecoveryChallengeRequest) (r RequestRecoveryChallengeRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// RevokeAgentEnrollment implements revokeAgentEnrollment operation.
-//
-// Revoke an unused agent enrollment. Requires Team#manage_members.
-//
-// DELETE /agent-enrollments/{id}
-func (UnimplementedHandler) RevokeAgentEnrollment(ctx context.Context, params RevokeAgentEnrollmentParams) (r RevokeAgentEnrollmentRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
