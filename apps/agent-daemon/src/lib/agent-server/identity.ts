@@ -149,18 +149,20 @@ export async function createManagedAgent(
     }
 
     const now = new Date().toISOString();
-    const { identityId, fingerprint, publicKey, privateKey } = result.identity;
+    const { agentId, identityId, fingerprint, publicKey, privateKey } =
+      result.identity;
     registeredIdentityId = identityId;
     const agentKeyReference = {
       provider: FILE_SECRET_PROVIDER,
-      key: agentKeyKey(identityId),
+      key: agentKeyKey(agentId),
     };
     const seedReference = {
       provider: FILE_SECRET_PROVIDER,
       key: identitySeedKey(fingerprint),
     };
     const config: MoltNetConfig = {
-      identity_id: identityId,
+      subject_id: agentId,
+      subject_type: 'agent',
       registered_at: now,
       agent_key_ref: agentKeyReference,
       keys: {
@@ -189,6 +191,12 @@ export async function createManagedAgent(
       { identityId, publicKey, fingerprint },
       'authenticated whoami',
       `new managed agent "${alias}"`,
+    );
+    assertSubjectMatches(
+      whoami,
+      config,
+      'authenticated whoami',
+      `managed config ${store.agentPath(alias)}`,
     );
     const boundTeamId = boundTeamIdFromWhoami(whoami);
     const activation: AgentActivation = {
@@ -299,7 +307,6 @@ export async function reconcileManagedRegistration(
       `pending registration for "${alias}" is missing persisted secret material`,
     );
   }
-  const identity = identityFromConfig(config);
   const apiUrl = requireConfigApiUrl(config, store.agentPath(alias));
   const whoami = await callWhoami(
     connectAgent,
@@ -307,6 +314,13 @@ export async function reconcileManagedRegistration(
     store.agentPath(alias),
     signal,
   );
+  assertSubjectMatches(
+    whoami,
+    config,
+    'authenticated whoami',
+    `pending registration "${alias}" config`,
+  );
+  const identity = identityFromConfig(config, whoami.identityId);
   assertIdentityMatches(
     whoami,
     identity,
@@ -436,6 +450,12 @@ export async function verifyAgentActivation(
     'authenticated whoami',
     `agent "${activation.alias}" pinned activation`,
   );
+  assertSubjectMatches(
+    verified.whoami,
+    verified.config,
+    'authenticated whoami',
+    `agent "${activation.alias}" config`,
+  );
   const boundTeamId = boundTeamIdFromWhoami(verified.whoami);
   if (activation.boundTeamId !== boundTeamId) {
     throw new AgentServerIdentityError(
@@ -551,7 +571,7 @@ function assertActivatedConfig(
     );
   }
   assertIdentityMatches(
-    identityFromConfig(config),
+    identityFromConfig(config, activation.identityId),
     activation,
     configPath,
     `agent "${activation.alias}" pinned activation`,
@@ -698,14 +718,17 @@ function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
   return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
-function identityFromConfig(config: MoltNetConfig): IdentityPin {
-  const identityId = config?.identity_id?.trim();
+function identityFromConfig(
+  config: MoltNetConfig,
+  canonicalIdentityId?: string,
+): IdentityPin {
+  const identityId = config?.identity_id?.trim() || canonicalIdentityId?.trim();
   const publicKey = config?.keys?.public_key?.trim();
   const fingerprint = config?.keys?.fingerprint?.trim();
   if (!identityId || !publicKey || !fingerprint) {
     throw new AgentServerIdentityError(
       'verification_failed',
-      'agent config is missing canonical identity_id, keys.public_key, or keys.fingerprint',
+      'agent config is missing identity metadata, keys.public_key, or keys.fingerprint',
     );
   }
   return {
@@ -713,6 +736,33 @@ function identityFromConfig(config: MoltNetConfig): IdentityPin {
     publicKey,
     fingerprint,
   };
+}
+
+function assertSubjectMatches(
+  current: Pick<Whoami, 'subjectId' | 'subjectType'>,
+  expected: MoltNetConfig,
+  currentLabel: string,
+  expectedLabel: string,
+): void {
+  if (expected.subject_type !== 'agent' || !expected.subject_id?.trim()) {
+    // Legacy external configs carry only identity_id. Authentication remains
+    // their compatibility bridge until the shared config migration rewrites
+    // them; canonical managed configs must always enter the branch below.
+    if (expected.identity_id?.trim()) return;
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `${expectedLabel} is missing canonical subject_type=agent and subject_id`,
+    );
+  }
+  if (
+    current.subjectType !== 'agent' ||
+    current.subjectId !== expected.subject_id
+  ) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `${currentLabel} subject does not match ${expectedLabel}`,
+    );
+  }
 }
 
 function assertIdentityMatches(

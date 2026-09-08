@@ -66,6 +66,7 @@ export {
   IDENTITY_ALIAS_PATTERN,
   type IdentitySelector,
   type KeysConfig,
+  type LegacyMoltNetConfig,
   type MoltNetConfig,
   type OAuth2Config,
   readConfig,

@@ -11,6 +11,7 @@ import { join } from 'node:path';
 
 import type * as Sdk from '@themoltnet/sdk';
 import {
+  type LegacyMoltNetConfig,
   type MoltNetConfig,
   MoltNetError,
   READ_ONLY_CAPABILITIES,
@@ -58,7 +59,9 @@ function freshStore(): AgentServerStore {
   return new AgentServerStore(join(root, 'agent-server')).ensure();
 }
 
-function externalConfig(overrides: Partial<MoltNetConfig> = {}): MoltNetConfig {
+function externalConfig(
+  overrides: Partial<LegacyMoltNetConfig> = {},
+): LegacyMoltNetConfig {
   return {
     identity_id: 'identity-1',
     registered_at: '2026-01-01T00:00:00Z',
@@ -107,7 +110,7 @@ beforeEach(() => {
   });
   registerMock.mockResolvedValue({
     identity: {
-      subjectId: 'agent-1',
+      agentId: 'agent-1',
       identityId: 'identity-1',
       publicKey: 'ed25519:public',
       privateKey: 'private-seed',
@@ -163,7 +166,7 @@ describe('managed agent server agents', () => {
       await finish;
       return {
         identity: {
-          subjectId: 'agent-1',
+          agentId: 'agent-1',
           identityId: 'identity-1',
           publicKey: 'ed25519:public',
           privateKey: 'private-seed',
@@ -209,9 +212,10 @@ describe('managed agent server agents', () => {
 
     expect(result.config.registered_at).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
     expect(result.config).toEqual({
-      identity_id: 'identity-1',
+      subject_id: 'agent-1',
+      subject_type: 'agent',
       registered_at: result.config.registered_at,
-      agent_key_ref: { provider: 'file', key: 'agent-key/identity-1' },
+      agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
       keys: {
         public_key: 'ed25519:public',
         fingerprint: 'FP-1',
@@ -283,7 +287,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'team-bot',
-        registry({ 'agent-key/identity-1': 'agent-key-secret' }),
+        registry({ 'agent-key/agent-1': 'agent-key-secret' }),
         registry(),
       ),
     ).rejects.toThrow('team binding does not match');
@@ -307,7 +311,8 @@ describe('managed agent server agents', () => {
       }),
     ).rejects.toMatchObject({ code: 'registration_incomplete' });
     expect(store.readAgentConfig('partial')).toMatchObject({
-      identity_id: 'identity-1',
+      subject_id: 'agent-1',
+      subject_type: 'agent',
     });
     expect(store.hasPendingRegistration('partial')).toBe(true);
     await expect(
@@ -630,7 +635,7 @@ describe('external agent server agents', () => {
     });
     writeFileSync(
       join(configDir, 'moltnet.json'),
-      JSON.stringify(externalConfig(change as Partial<MoltNetConfig>)),
+      JSON.stringify(externalConfig(change as Partial<LegacyMoltNetConfig>)),
     );
 
     await expect(
