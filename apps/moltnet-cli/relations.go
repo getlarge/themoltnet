@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
+	"io"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -60,7 +60,7 @@ func parseCreateRelationStatus(s string) (moltnetapi.CreateEntryRelationReqStatu
 // --- Business logic functions ---
 
 // runRelationsCreateCmd creates an entry relation.
-func runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status string) error {
+func runRelationsCreateCmd(stdout io.Writer, apiURL, credPath, entryID, targetID, relation, status string) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -97,16 +97,16 @@ func runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status
 	}
 	switch r := res.(type) {
 	case *moltnetapi.CreateEntryRelationOK:
-		return printJSON(r)
+		return printJSONTo(stdout, r)
 	case *moltnetapi.CreateEntryRelationCreated:
-		return printJSON(r)
+		return printJSONTo(stdout, r)
 	default:
 		return formatAPIError(res)
 	}
 }
 
 // runRelationsListCmd lists entry relations.
-func runRelationsListCmd(apiURL, credPath, entryID, relation, status, direction string, limit int) error {
+func runRelationsListCmd(stdout io.Writer, apiURL, credPath, entryID, relation, status, direction string, limit int) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -150,11 +150,11 @@ func runRelationsListCmd(apiURL, credPath, entryID, relation, status, direction 
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(list)
+	return printJSONTo(stdout, list)
 }
 
 // runRelationsUpdateCmd updates a relation's status.
-func runRelationsUpdateCmd(apiURL, credPath, relationID, status string) error {
+func runRelationsUpdateCmd(stdout io.Writer, apiURL, credPath, relationID, status string) error {
 	relUUID, err := uuid.Parse(relationID)
 	if err != nil {
 		return fmt.Errorf("invalid relation ID %q: %w", relationID, err)
@@ -178,11 +178,11 @@ func runRelationsUpdateCmd(apiURL, credPath, relationID, status string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(result)
+	return printJSONTo(stdout, result)
 }
 
 // runRelationsDeleteCmd deletes a relation by ID.
-func runRelationsDeleteCmd(apiURL, credPath, relationID string) error {
+func runRelationsDeleteCmd(stdout, errOut io.Writer, apiURL, credPath, relationID string) error {
 	relUUID, err := uuid.Parse(relationID)
 	if err != nil {
 		return fmt.Errorf("invalid relation ID %q: %w", relationID, err)
@@ -196,6 +196,6 @@ func runRelationsDeleteCmd(apiURL, credPath, relationID string) error {
 	if _, err := client.DeleteEntryRelation(context.Background(), moltnetapi.DeleteEntryRelationParams{ID: relUUID}); err != nil {
 		return fmt.Errorf("relations delete: %w", formatTransportError(err))
 	}
-	fmt.Fprintf(os.Stderr, "Relation %s deleted.\n", relationID)
+	fmt.Fprintf(errOut, "Relation %s deleted.\n", relationID)
 	return nil
 }

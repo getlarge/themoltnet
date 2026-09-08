@@ -44,7 +44,7 @@ Entry types: semantic, episodic, procedural, reflection`,
 			tagsStr, _ := cmd.Flags().GetString("tags")
 			importance, _ := cmd.Flags().GetInt("importance")
 			importanceChanged := cmd.Flags().Changed("importance")
-			return runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr, importance, importanceChanged)
+			return runEntryCreateCmd(cmd.OutOrStdout(), apiURL, credPath, diaryID, content, title, entryType, tagsStr, importance, importanceChanged)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
@@ -85,7 +85,7 @@ Entry types: semantic, episodic, procedural, reflection`,
 			tagsStr, _ := cmd.Flags().GetString("tags")
 			importance, _ := cmd.Flags().GetInt("importance")
 			importanceChanged := cmd.Flags().Changed("importance")
-			return runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr, importance, importanceChanged)
+			return runEntryCreateSignedCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, diaryID, content, title, entryType, tagsStr, importance, importanceChanged)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
@@ -122,7 +122,7 @@ func newEntryListCmd() *cobra.Command {
 			entryType, _ := cmd.Flags().GetString("entry-type")
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
-			return runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryType, limit, offset)
+			return runEntryListCmd(cmd.OutOrStdout(), apiURL, credPath, diaryID, ids, tags, excludeTags, entryType, limit, offset)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to list entries from (required)")
@@ -148,7 +148,7 @@ func newEntryGetCmd() *cobra.Command {
 			apiURL := resolveAPIURL(cmd, credPath)
 			expand, _ := cmd.Flags().GetString("expand")
 			depth, _ := cmd.Flags().GetInt("depth")
-			return runEntryGetCmd(apiURL, credPath, args[0], expand, depth)
+			return runEntryGetCmd(cmd.OutOrStdout(), apiURL, credPath, args[0], expand, depth)
 		},
 	}
 	cmd.Flags().String("expand", "", `Expand inline data ("relations")`)
@@ -172,7 +172,7 @@ func newEntryUpdateCmd() *cobra.Command {
 			tagsStr, _ := cmd.Flags().GetString("tags")
 			importance, _ := cmd.Flags().GetInt("importance")
 			importanceChanged := cmd.Flags().Changed("importance")
-			return runEntryUpdateCmd(apiURL, credPath, args[0], content, title, entryType, tagsStr, importance, importanceChanged)
+			return runEntryUpdateCmd(cmd.OutOrStdout(), apiURL, credPath, args[0], content, title, entryType, tagsStr, importance, importanceChanged)
 		},
 	}
 	cmd.Flags().String("content", "", "Updated entry content")
@@ -192,7 +192,7 @@ func newEntryDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
-			return runEntryDeleteCmd(apiURL, credPath, args[0])
+			return runEntryDeleteCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, args[0])
 		},
 	}
 }
@@ -223,7 +223,7 @@ func newEntrySearchCmd() *cobra.Command {
 			taskType, _ := cmd.Flags().GetString("task-type")
 			taskCorrelationID, _ := cmd.Flags().GetString("task-correlation-id")
 			taskAttempt, _ := cmd.Flags().GetInt("task-attempt")
-			return runEntrySearchCmd(apiURL, credPath, entrySearchOptions{
+			return runEntrySearchCmd(cmd.OutOrStdout(), apiURL, credPath, entrySearchOptions{
 				query:                    query,
 				diaryID:                  diaryID,
 				tags:                     tags,
@@ -274,7 +274,7 @@ func newEntryVerifyCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
-			return runEntryVerifyCmd(apiURL, credPath, args[0])
+			return runEntryVerifyCmd(cmd.OutOrStdout(), apiURL, credPath, args[0])
 		},
 	}
 }

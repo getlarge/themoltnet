@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -78,6 +80,7 @@ func TestRunServerPackRenderCmd_WritesMarkdownToOutOnPersist(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "rendered.md")
 
 	if err := runServerPackRenderCmd(
+		io.Discard, io.Discard,
 		client,
 		packID,
 		"server:pack-to-docs-v1",
@@ -116,6 +119,7 @@ func TestRunServerPackRenderCmd_WritesMarkdownToOutOnPreview(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "preview.md")
 
 	if err := runServerPackRenderCmd(
+		io.Discard, io.Discard,
 		client,
 		packID,
 		"server:pack-to-docs-v1",
@@ -192,6 +196,7 @@ func TestRunPackRenderCmd_PreviewsCallerMarkdownFromFile(t *testing.T) {
 	credPath := mustWriteTestCreds(t, apiSrv.URL)
 
 	if err := runPackRenderCmd(
+		io.Discard, io.Discard,
 		apiSrv.URL,
 		credPath,
 		packID,
@@ -231,6 +236,7 @@ func TestRunPackRenderCmd_PersistsCallerMarkdownFromStdin(t *testing.T) {
 	credPath := mustWriteTestCreds(t, apiSrv.URL)
 
 	if err := runPackRenderCmd(
+		io.Discard, io.Discard,
 		apiSrv.URL,
 		credPath,
 		packID,
@@ -272,6 +278,7 @@ func TestRunPackRenderCmd_RejectsMarkdownFlagsForServerMethods(t *testing.T) {
 	credPath := mustWriteTestCreds(t, apiSrv.URL)
 
 	err := runPackRenderCmd(
+		io.Discard, io.Discard,
 		apiSrv.URL,
 		credPath,
 		packID,
@@ -348,4 +355,43 @@ func mustWriteTestCreds(t *testing.T, apiURL string) string {
 		t.Fatalf("WriteFile(%s): %v", path, err)
 	}
 	return path
+}
+
+func TestRunPackRenderCmd_KeepsProgressOffTheResultStream(t *testing.T) {
+	t.Parallel()
+
+	// Arrange: with --out, `pack render` writes the document to a file and
+	// reports progress. While that progress went to the process's own stderr
+	// it could not be captured, so nothing proved it stayed off the stream a
+	// caller parses.
+	packID := "00000000-0000-0000-0000-000000000001"
+	handler := &stubRenderPackHandler{}
+	apiSrv := newCombinedRenderServer(t, handler)
+	credPath := mustWriteTestCreds(t, apiSrv.URL)
+	dir := t.TempDir()
+	outPath := filepath.Join(dir, "rendered.md")
+	markdownPath := filepath.Join(dir, "caller.md")
+	if err := os.WriteFile(markdownPath, []byte("# Caller Markdown\n"), 0644); err != nil {
+		t.Fatalf("WriteFile(%s): %v", markdownPath, err)
+	}
+	var stdout, errOut bytes.Buffer
+
+	// Act. Caller-supplied markdown keeps this off the pack-fetch path, which
+	// the stub does not implement.
+	if err := runPackRenderCmd(
+		&stdout, &errOut,
+		apiSrv.URL, credPath, packID, "agent:pack-to-docs-v1",
+		true, nil, outPath, markdownPath, false,
+	); err != nil {
+		t.Fatalf("runPackRenderCmd() error: %v", err)
+	}
+
+	// Assert: the document went to the file, so the result stream stays empty
+	// and the notice is on the error stream.
+	if stdout.Len() != 0 {
+		t.Fatalf("result stream should be empty when --out is set, got:\n%s", stdout.String())
+	}
+	if !strings.Contains(errOut.String(), "[pack render] preview \u2192 "+outPath) {
+		t.Fatalf("expected the preview notice on the error stream, got:\n%s", errOut.String())
+	}
 }

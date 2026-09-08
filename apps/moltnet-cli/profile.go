@@ -15,7 +15,7 @@ import (
 
 // runProfileListCmd lists runtime profiles for a team. The team header is
 // optional; when omitted the server falls back to the token's current team.
-func runProfileListCmd(apiURL, credPath, teamID string) error {
+func runProfileListCmd(stdout io.Writer, apiURL, credPath, teamID string) error {
 	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
@@ -36,11 +36,11 @@ func runProfileListCmd(apiURL, credPath, teamID string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(list)
+	return printJSONTo(stdout, list)
 }
 
 // runProfileGetCmd fetches a single runtime profile by id or name.
-func runProfileGetCmd(apiURL, credPath, ref, teamID string) error {
+func runProfileGetCmd(stdout io.Writer, apiURL, credPath, ref, teamID string) error {
 	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
@@ -57,11 +57,11 @@ func runProfileGetCmd(apiURL, credPath, ref, teamID string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(profile)
+	return printJSONTo(stdout, profile)
 }
 
 // runProfileCreateCmd creates a runtime profile from a JSON definition file.
-func runProfileCreateCmd(apiURL, credPath, fromFile, teamID string) error {
+func runProfileCreateCmd(stdout, errOut io.Writer, apiURL, credPath, fromFile, teamID string) error {
 	var body moltnetapi.CreateRuntimeProfileBody
 	if err := decodeProfileFile(fromFile, &body); err != nil {
 		return err
@@ -86,11 +86,11 @@ func runProfileCreateCmd(apiURL, credPath, fromFile, teamID string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(profile)
+	return printJSONTo(stdout, profile)
 }
 
 // runProfileUpdateCmd applies a partial JSON patch to a runtime profile.
-func runProfileUpdateCmd(apiURL, credPath, ref, fromFile, teamID string) error {
+func runProfileUpdateCmd(stdout io.Writer, apiURL, credPath, ref, fromFile, teamID string) error {
 	var body moltnetapi.UpdateRuntimeProfileBody
 	if err := decodeProfileFile(fromFile, &body); err != nil {
 		return err
@@ -111,11 +111,11 @@ func runProfileUpdateCmd(apiURL, credPath, ref, fromFile, teamID string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(profile)
+	return printJSONTo(stdout, profile)
 }
 
 // runProfileDeleteCmd deletes a runtime profile by id or name.
-func runProfileDeleteCmd(apiURL, credPath, ref, teamID string) error {
+func runProfileDeleteCmd(stdout, errOut io.Writer, apiURL, credPath, ref, teamID string) error {
 	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
@@ -131,7 +131,7 @@ func runProfileDeleteCmd(apiURL, credPath, ref, teamID string) error {
 	if _, ok := res.(*moltnetapi.DeleteRuntimeProfileNoContent); !ok {
 		return formatAPIError(res)
 	}
-	fmt.Fprintf(os.Stderr, "Deleted runtime profile %s\n", profileID)
+	fmt.Fprintf(errOut, "Deleted runtime profile %s\n", profileID)
 	return nil
 }
 

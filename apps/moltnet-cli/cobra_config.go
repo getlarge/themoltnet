@@ -73,7 +73,7 @@ Optional env vars:
 			envFile, _ := cmd.Flags().GetString("env-file")
 			override, _ := cmd.Flags().GetBool("override")
 			destination, _ := cmd.Flags().GetString("destination")
-			return runConfigInitFromEnvCmd("", name, skipGit, envFile, override, destination)
+			return runConfigInitFromEnvCmd(cmd.ErrOrStderr(), "", name, skipGit, envFile, override, destination)
 		},
 	}
 	initFromEnvCmd.Flags().String("name", "", "Identity alias (or set MOLTNET_ACTIVE_IDENTITY)")

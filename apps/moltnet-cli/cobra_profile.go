@@ -34,7 +34,7 @@ func newProfileListCmd() *cobra.Command {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			teamID, _ := cmd.Flags().GetString("team-id")
-			return runProfileListCmd(apiURL, credPath, teamID)
+			return runProfileListCmd(cmd.OutOrStdout(), apiURL, credPath, teamID)
 		},
 	}
 	cmd.Flags().String("team-id", "", "Team UUID to scope the listing (defaults to the token's current team)")
@@ -52,7 +52,7 @@ func newProfileGetCmd() *cobra.Command {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			teamID, _ := cmd.Flags().GetString("team-id")
-			return runProfileGetCmd(apiURL, credPath, args[0], teamID)
+			return runProfileGetCmd(cmd.OutOrStdout(), apiURL, credPath, args[0], teamID)
 		},
 	}
 	cmd.Flags().String("team-id", "", "Team UUID used to resolve a profile name to an id")
@@ -84,7 +84,7 @@ forwards them into the sandbox at run time.`,
 			apiURL := resolveAPIURL(cmd, credPath)
 			fromFile, _ := cmd.Flags().GetString("from-file")
 			teamID, _ := cmd.Flags().GetString("team-id")
-			return runProfileCreateCmd(apiURL, credPath, fromFile, teamID)
+			return runProfileCreateCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, fromFile, teamID)
 		},
 	}
 	cmd.Flags().String("from-file", "", `Path to a JSON profile definition, or "-" for stdin (required)`)
@@ -112,7 +112,7 @@ requiredEnv.`,
 			apiURL := resolveAPIURL(cmd, credPath)
 			fromFile, _ := cmd.Flags().GetString("from-file")
 			teamID, _ := cmd.Flags().GetString("team-id")
-			return runProfileUpdateCmd(apiURL, credPath, args[0], fromFile, teamID)
+			return runProfileUpdateCmd(cmd.OutOrStdout(), apiURL, credPath, args[0], fromFile, teamID)
 		},
 	}
 	cmd.Flags().String("from-file", "", `Path to a JSON patch, or "-" for stdin (required)`)
@@ -131,7 +131,7 @@ func newProfileDeleteCmd() *cobra.Command {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			teamID, _ := cmd.Flags().GetString("team-id")
-			return runProfileDeleteCmd(apiURL, credPath, args[0], teamID)
+			return runProfileDeleteCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, args[0], teamID)
 		},
 	}
 	cmd.Flags().String("team-id", "", "Team UUID used to resolve a profile name to an id")

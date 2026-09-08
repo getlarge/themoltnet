@@ -42,7 +42,7 @@ func TestDeflateBase64URL(t *testing.T) {
 
 func TestRunPackProvenance_RequiresOneSelector(t *testing.T) {
 	// Neither --pack-id nor --pack-cid should fail.
-	err := runPackProvenance([]string{})
+	err := runPackProvenance(io.Discard, io.Discard, []string{})
 	if err == nil {
 		t.Fatal("expected error with no selectors")
 	}
@@ -51,14 +51,14 @@ func TestRunPackProvenance_RequiresOneSelector(t *testing.T) {
 	}
 
 	// Both --pack-id and --pack-cid should fail.
-	err = runPackProvenance([]string{"--pack-id", "00000000-0000-0000-0000-000000000000", "--pack-cid", "bafy123"})
+	err = runPackProvenance(io.Discard, io.Discard, []string{"--pack-id", "00000000-0000-0000-0000-000000000000", "--pack-cid", "bafy123"})
 	if err == nil {
 		t.Fatal("expected error with both selectors")
 	}
 }
 
 func TestRunPackProvenance_InvalidPackID(t *testing.T) {
-	err := runPackProvenance([]string{"--pack-id", "not-a-uuid"})
+	err := runPackProvenance(io.Discard, io.Discard, []string{"--pack-id", "not-a-uuid"})
 	if err == nil {
 		t.Fatal("expected error with invalid UUID")
 	}
@@ -68,7 +68,7 @@ func TestRunPackProvenance_InvalidPackID(t *testing.T) {
 }
 
 func TestRunPackProvenance_NegativeDepth(t *testing.T) {
-	err := runPackProvenance([]string{"--pack-id", "00000000-0000-0000-0000-000000000000", "--depth", "-1"})
+	err := runPackProvenance(io.Discard, io.Discard, []string{"--pack-id", "00000000-0000-0000-0000-000000000000", "--depth", "-1"})
 	if err == nil {
 		t.Fatal("expected error with negative depth")
 	}

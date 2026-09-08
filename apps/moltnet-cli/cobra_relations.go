@@ -31,7 +31,7 @@ func newRelationsCreateCmd() *cobra.Command {
 			targetID, _ := cmd.Flags().GetString("target-id")
 			relation, _ := cmd.Flags().GetString("relation")
 			status, _ := cmd.Flags().GetString("status")
-			return runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status)
+			return runRelationsCreateCmd(cmd.OutOrStdout(), apiURL, credPath, entryID, targetID, relation, status)
 		},
 	}
 	cmd.Flags().String("entry-id", "", "Source entry UUID (required)")
@@ -58,7 +58,7 @@ func newRelationsListCmd() *cobra.Command {
 			status, _ := cmd.Flags().GetString("status")
 			direction, _ := cmd.Flags().GetString("direction")
 			limit, _ := cmd.Flags().GetInt("limit")
-			return runRelationsListCmd(apiURL, credPath, entryID, relation, status, direction, limit)
+			return runRelationsListCmd(cmd.OutOrStdout(), apiURL, credPath, entryID, relation, status, direction, limit)
 		},
 	}
 	cmd.Flags().String("entry-id", "", "Entry UUID to list relations for (required)")
@@ -81,7 +81,7 @@ func newRelationsUpdateCmd() *cobra.Command {
 			apiURL := resolveAPIURL(cmd, credPath)
 			relationID, _ := cmd.Flags().GetString("relation-id")
 			status, _ := cmd.Flags().GetString("status")
-			return runRelationsUpdateCmd(apiURL, credPath, relationID, status)
+			return runRelationsUpdateCmd(cmd.OutOrStdout(), apiURL, credPath, relationID, status)
 		},
 	}
 	cmd.Flags().String("relation-id", "", "Relation UUID to update (required)")
@@ -100,7 +100,7 @@ func newRelationsDeleteCmd() *cobra.Command {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			relationID, _ := cmd.Flags().GetString("relation-id")
-			return runRelationsDeleteCmd(apiURL, credPath, relationID)
+			return runRelationsDeleteCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, relationID)
 		},
 	}
 	cmd.Flags().String("relation-id", "", "Relation UUID to delete (required)")

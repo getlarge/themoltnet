@@ -521,7 +521,7 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	if err := runGitHubSetupCmd(configPath, opts.name, creds.GitHub.AppSlug); err != nil {
 		return err
 	}
-	if err := writeAgentEnvFile(identityDir, opts.name, creds); err != nil {
+	if err := writeAgentEnvFile(opts.errOut, identityDir, opts.name, creds); err != nil {
 		return err
 	}
 	// Seed the selector when none exists, as register / init-from-env /

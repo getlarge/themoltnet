@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -363,7 +364,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 	targetDir := filepath.Join(tmpDir, "target")
 	t.Setenv("HOME", targetDir)
 	registry, _ := newMemorySecretProviderRegistry()
-	err = runConfigInitFromEnvCmdWithRegistry(
+	err = runConfigInitFromEnvCmdWithRegistry(io.Discard,
 		targetDir,
 		"rt-agent",
 		true,
