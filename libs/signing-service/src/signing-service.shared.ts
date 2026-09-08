@@ -1,4 +1,9 @@
-import { type AuthContext, KetoNamespace } from '@moltnet/auth';
+import type { KetoNamespace } from '@moltnet/auth';
+import {
+  type AuthContext,
+  authPrincipal,
+  authPrincipalCreator,
+} from '@moltnet/auth';
 import type { SigningMethodJson } from '@moltnet/signing-workflows';
 import {
   SigningCredentialError,
@@ -13,9 +18,7 @@ export function asSigningMethodJson(value: unknown): SigningMethodJson {
 }
 
 export function namespace(actor: AuthContext): KetoNamespace {
-  return actor.subjectType === 'human'
-    ? KetoNamespace.Human
-    : KetoNamespace.Agent;
+  return authPrincipal(actor).subjectNs;
 }
 
 /**
@@ -27,7 +30,7 @@ export function namespace(actor: AuthContext): KetoNamespace {
  * one silently detaches the principal from every permission it holds.
  */
 export function subjectId(actor: AuthContext): string {
-  return actor.subjectType === 'human' ? actor.humanId : actor.agentId;
+  return authPrincipal(actor).subjectId;
 }
 
 /**
@@ -38,7 +41,7 @@ export function actorPrincipal(actor: AuthContext): {
   readonly kind: 'agent' | 'human';
   readonly id: string;
 } {
-  return { kind: actor.subjectType, id: subjectId(actor) } as const;
+  return authPrincipalCreator(actor);
 }
 
 export function requireHuman(

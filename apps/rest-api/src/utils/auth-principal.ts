@@ -15,10 +15,14 @@
  *   directly here instead of doing a DB lookup keyed by identityId —
  *   that lookup would race the human-onboarding DBOS workflow's
  *   `setIdentityIdStep` and trigger duplicate-row INSERTs.
- * - For agent principals, `agents.identity_id` IS the FK target,
- *   so no translation is needed.
+ * - Agents are no longer the easy case. `agents.id` is the FK target,
+ *   not `agents.identity_id`, and the two are unrelated UUIDs since the
+ *   decoupling — so both principals need the same translation, and the
+ *   mapping is `authPrincipalCreator` from the auth layer rather than a
+ *   copy kept here.
  */
 
+import { authPrincipalCreator } from '@moltnet/auth';
 import type {
   AgentRepository,
   HumanRepository,
@@ -79,16 +83,11 @@ export function authContextToCreator(
       'authContextToCreator called on a request with no authContext (route is not behind requireAuth)',
     );
   }
-  if (ctx.subjectType === 'agent') {
-    // agents.id, not the Kratos identity: every *_agent_id column FKs to
-    // agents.id since the decoupling, so writing identityId here would
-    // violate the constraint for any agent whose identity has moved — which,
-    // with fresh internal ids, is every agent.
-    return { kind: 'agent', id: ctx.agentId };
-  }
-  // Human: humans.id is on the auth context (sourced from Kratos
-  // metadata_public.human_id). No DB lookup, no race with onboarding.
-  return { kind: 'human', id: ctx.humanId };
+  // agents.id / humans.id, never the Kratos identity: every *_agent_id and
+  // *_human_id column FKs to the internal id since the decoupling, so writing
+  // identityId here would violate the constraint for any agent whose identity
+  // has moved — which, with fresh internal ids, is every agent.
+  return authPrincipalCreator(ctx);
 }
 
 /**

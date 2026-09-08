@@ -252,6 +252,60 @@ async function resolveMembers(
   });
 }
 
+/**
+ * Reject founding members whose subject does not exist.
+ *
+ * `foundingMembers[].subjectId` is an internal `agents.id` / `humans.id`. It
+ * used to be the Kratos identity, and the two were the same value, so a client
+ * holding an identity could pass it and the team worked. Since the decoupling
+ * the identity resolves to nothing here — and nothing downstream notices: the
+ * team is created in `founding` status, an acceptance row is seeded for a
+ * subject that cannot authenticate, and the team can never reach `active`
+ * because that owner will never accept. The caller gets a 201.
+ *
+ * A team that is permanently stuck is worse than a rejected request, so the
+ * targets are resolved up front, before the team row exists. Callers get the
+ * durable id from `whoami.subjectId` for themselves and from
+ * `GET /teams/:id/members` for others.
+ */
+async function assertFoundingMembersResolve(
+  fastify: FastifyInstance,
+  members: ReadonlyArray<{ subjectId: string; subjectNs: string }>,
+): Promise<void> {
+  const humanIds = members
+    .filter((m) => m.subjectNs === 'Human')
+    .map((m) => m.subjectId);
+  const agentIds = members
+    .filter((m) => m.subjectNs !== 'Human')
+    .map((m) => m.subjectId);
+
+  const [agents, humans] = await Promise.all([
+    agentIds.length > 0
+      ? fastify.agentRepository.findByIds(agentIds)
+      : new Map<string, unknown>(),
+    humanIds.length > 0
+      ? fastify.humanRepository.findByIds(humanIds)
+      : new Map<string, unknown>(),
+  ]);
+
+  const unknown = members.filter((m) =>
+    m.subjectNs === 'Human'
+      ? !humans.has(m.subjectId)
+      : !agents.has(m.subjectId),
+  );
+  if (unknown.length === 0) return;
+
+  throw createProblem(
+    'validation-failed',
+    `No ${unknown.length === 1 ? 'principal exists' : 'principals exist'} for ` +
+      `founding member(s): ${unknown
+        .map((m) => `${m.subjectNs}:${m.subjectId}`)
+        .join(', ')}. subjectId must be the internal MoltNet id — ` +
+      'whoami.subjectId for yourself, GET /teams/:id/members for others — ' +
+      'not an Ory identity id.',
+  );
+}
+
 function getAuthContext(request: FastifyRequest) {
   const authContext = request.authContext;
   if (!authContext) {
@@ -309,6 +363,12 @@ export function teamRoutes(fastify: FastifyInstance) {
       }
 
       const creator = authContextToCreator(request);
+
+      // Before any row is written: a team created around an unresolvable
+      // owner can never be activated or cleaned up by its caller.
+      if (foundingMembers && foundingMembers.length > 0) {
+        await assertFoundingMembersResolve(fastify, foundingMembers);
+      }
 
       if (!foundingMembers || foundingMembers.length === 0) {
         // Instant active team — original behavior
