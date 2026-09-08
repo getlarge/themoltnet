@@ -19,7 +19,7 @@ import (
 
 // runPackRenderCmd renders a pack locally for agent-authored methods and
 // delegates to the server for trusted server-side render methods.
-func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out, markdownFile string, markdownStdin bool) error {
+func runPackRenderCmd(stdout, errOut io.Writer, apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out, markdownFile string, markdownStdin bool) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
@@ -38,7 +38,7 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		if markdownFile != "" || markdownStdin {
 			return fmt.Errorf("server render methods must not be combined with --markdown-file or --markdown-stdin")
 		}
-		return runServerPackRenderCmd(client, packUUID, renderMethod, preview, pinned, out)
+		return runServerPackRenderCmd(stdout, errOut, client, packUUID, renderMethod, preview, pinned, out)
 	}
 
 	md, err := resolvePackRenderMarkdown(
@@ -68,9 +68,9 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 			if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
 				return fmt.Errorf("write %s: %w", out, err)
 			}
-			fmt.Fprintf(os.Stderr, "[pack render] preview → %s\n", out)
+			fmt.Fprintf(errOut, "[pack render] preview → %s\n", out)
 		} else {
-			fmt.Print(result.RenderedMarkdown)
+			fmt.Fprint(stdout, result.RenderedMarkdown)
 		}
 		return nil
 	}
@@ -98,9 +98,9 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
 			return fmt.Errorf("write %s: %w", out, err)
 		}
-		fmt.Fprintf(os.Stderr, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
+		fmt.Fprintf(errOut, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
 	} else {
-		return printJSON(result)
+		return printJSONTo(stdout, result)
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func executePreviewRenderedPack(client *moltnetapi.Client, packUUID uuid.UUID, r
 	}
 }
 
-func runServerPackRenderCmd(client *moltnetapi.Client, packUUID uuid.UUID, renderMethod string, preview bool, pinned *bool, out string) error {
+func runServerPackRenderCmd(stdout, errOut io.Writer, client *moltnetapi.Client, packUUID uuid.UUID, renderMethod string, preview bool, pinned *bool, out string) error {
 	if preview {
 		req := &moltnetapi.PreviewRenderedPackReq{
 			RenderMethod: renderMethod,
@@ -196,9 +196,9 @@ func runServerPackRenderCmd(client *moltnetapi.Client, packUUID uuid.UUID, rende
 			if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
 				return fmt.Errorf("write %s: %w", out, err)
 			}
-			fmt.Fprintf(os.Stderr, "[pack render] preview → %s\n", out)
+			fmt.Fprintf(errOut, "[pack render] preview → %s\n", out)
 		} else {
-			fmt.Print(result.RenderedMarkdown)
+			fmt.Fprint(stdout, result.RenderedMarkdown)
 		}
 		return nil
 	}
@@ -223,15 +223,15 @@ func runServerPackRenderCmd(client *moltnetapi.Client, packUUID uuid.UUID, rende
 		if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
 			return fmt.Errorf("write %s: %w", out, err)
 		}
-		fmt.Fprintf(os.Stderr, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
+		fmt.Fprintf(errOut, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
 		return nil
 	}
 
-	return printJSON(result)
+	return printJSONTo(stdout, result)
 }
 
 // runPackProvenanceCmd is the flag-free business logic for pack provenance.
-func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, out, shareURL string) error {
+func runPackProvenanceCmd(stdout, errOut io.Writer, apiURL, credPath, packID, packCID string, depth int, out, shareURL string) error {
 	// Mutual exclusivity: exactly one of packID or packCID must be non-empty.
 	if (packID == "") == (packCID == "") {
 		return fmt.Errorf("provide exactly one of --pack-id or --pack-cid")
@@ -304,10 +304,10 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 			return fmt.Errorf("compress graph: %w", err)
 		}
 		if len(param) > 8000 {
-			fmt.Fprintf(os.Stderr, "[pack provenance] warning: URL param is %d bytes — may exceed browser limits\n", len(param))
+			fmt.Fprintf(errOut, "[pack provenance] warning: URL param is %d bytes — may exceed browser limits\n", len(param))
 		}
 		viewerURL := strings.TrimRight(shareURL, "/") + "?graph=" + param
-		fmt.Println(viewerURL)
+		fmt.Fprintln(stdout, viewerURL)
 		return nil
 	}
 
@@ -315,11 +315,11 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 		if err := os.WriteFile(out, append(serialized, '\n'), 0644); err != nil {
 			return fmt.Errorf("write %s: %w", out, err)
 		}
-		fmt.Fprintf(os.Stderr, "[pack provenance] wrote %s\n", out)
+		fmt.Fprintf(errOut, "[pack provenance] wrote %s\n", out)
 		return nil
 	}
 
-	fmt.Println(string(serialized))
+	fmt.Fprintln(stdout, string(serialized))
 	return nil
 }
 
@@ -376,7 +376,7 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 }
 
 // runPackCreateCmd is the flag-free business logic for pack create.
-func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool, force bool, supersedes string) error {
+func runPackCreateCmd(stdout io.Writer, apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool, force bool, supersedes string) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -442,7 +442,7 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 	}
 
 	if pack, ok := res.(*moltnetapi.CustomPackResult); ok {
-		return printJSON(pack)
+		return printJSONTo(stdout, pack)
 	}
 
 	// A 409 carries the prompt-injection-flagged entries; surface them so the
@@ -478,7 +478,7 @@ func formatInjectionConflict(
 }
 
 // runPackUpdateCmd is the flag-free business logic for pack update.
-func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt string) error {
+func runPackUpdateCmd(stdout io.Writer, apiURL, credPath, packID string, pinned *bool, expiresAt string) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
@@ -515,7 +515,7 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 		return formatAPIError(res)
 	}
 
-	return printJSON(pack)
+	return printJSONTo(stdout, pack)
 }
 
 // runPackListCmd lists context packs: the whole team catalog by default, or
@@ -523,7 +523,7 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 //
 // Neither flag is required. They remain mutually exclusive because the API
 // serves diary-scoped listing from a different route.
-func runPackListCmd(apiURL, credPath, diaryID, containsEntry, teamID string, includeRendered bool, limit, offset int, expand string) error {
+func runPackListCmd(stdout io.Writer, apiURL, credPath, diaryID, containsEntry, teamID string, includeRendered bool, limit, offset int, expand string) error {
 	if diaryID != "" && containsEntry != "" {
 		return fmt.Errorf("--diary-id and --contains-entry cannot be combined")
 	}
@@ -560,7 +560,7 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry, teamID string, inc
 			return formatAPIError(res)
 		}
 
-		return printJSON(list)
+		return printJSONTo(stdout, list)
 	}
 
 	params := moltnetapi.ListContextPacksParams{}
@@ -616,11 +616,11 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry, teamID string, inc
 		return apiErr
 	}
 
-	return printJSON(list)
+	return printJSONTo(stdout, list)
 }
 
 // runPackGetCmd fetches a single context pack by ID.
-func runPackGetCmd(apiURL, credPath, packID, expand string) error {
+func runPackGetCmd(stdout io.Writer, apiURL, credPath, packID, expand string) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
@@ -646,13 +646,13 @@ func runPackGetCmd(apiURL, credPath, packID, expand string) error {
 		return formatAPIError(res)
 	}
 
-	return printJSON(pack)
+	return printJSONTo(stdout, pack)
 }
 
 // --- Legacy wrappers preserved for existing tests ---
 
 // runPackProvenance is the legacy flag-parsing entry point, preserved for existing tests.
-func runPackProvenance(args []string) error {
+func runPackProvenance(stdout, errOut io.Writer, args []string) error {
 	fs := flag.NewFlagSet("pack provenance", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
 	packID := fs.String("pack-id", "", "Pack UUID")
@@ -660,15 +660,16 @@ func runPackProvenance(args []string) error {
 	depth := fs.Int("depth", 2, "Follow pack supersession ancestry to this depth")
 	out := fs.String("out", "", "Write JSON to file instead of stdout")
 	shareURL := fs.String("share-url", "", "Print a shareable viewer URL (e.g. https://themolt.net/labs/provenance)")
+	fs.SetOutput(errOut)
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack provenance [options]")
-		fmt.Fprintln(os.Stderr, "\nExport the provenance graph for a context pack as JSON.")
-		fmt.Fprintln(os.Stderr, "Provide exactly one of --pack-id or --pack-cid.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
+		fmt.Fprintln(errOut, "Usage: moltnet pack provenance [options]")
+		fmt.Fprintln(errOut, "\nExport the provenance graph for a context pack as JSON.")
+		fmt.Fprintln(errOut, "Provide exactly one of --pack-id or --pack-cid.")
+		fmt.Fprintln(errOut, "\nOptions:")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return runPackProvenanceCmd(*apiURL, "", *packID, *packCID, *depth, *out, *shareURL)
+	return runPackProvenanceCmd(stdout, errOut, *apiURL, "", *packID, *packCID, *depth, *out, *shareURL)
 }

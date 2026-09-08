@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -220,7 +221,7 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 	}
 
 	registry, provider := newMemorySecretProviderRegistry()
-	err := runConfigInitFromEnvCmdWithRegistry(
+	err := runConfigInitFromEnvCmdWithRegistry(io.Discard,
 		tmpDir,
 		"file-agent",
 		true,
@@ -351,7 +352,7 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 	}
 
 	registry, provider := newMemorySecretProviderRegistry()
-	err := runConfigInitFromEnvCmdWithRegistry(
+	err := runConfigInitFromEnvCmdWithRegistry(io.Discard,
 		tmpDir,
 		"override-agent",
 		true,
@@ -427,7 +428,7 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
 
 	registry, provider := newMemorySecretProviderRegistry()
-	err := runConfigInitFromEnvCmdWithRegistry(
+	err := runConfigInitFromEnvCmdWithRegistry(io.Discard,
 		tmpDir,
 		"partial-agent",
 		true,
@@ -498,7 +499,7 @@ func TestWriteAgentEnvFilePreservesUserSection(t *testing.T) {
 			ClientSecret: "new-secret",
 		},
 	}
-	if err := writeAgentEnvFile(agentDir, "test-agent", config); err != nil {
+	if err := writeAgentEnvFile(io.Discard, agentDir, "test-agent", config); err != nil {
 		t.Fatalf("writeAgentEnvFile failed: %v", err)
 	}
 
@@ -542,7 +543,7 @@ func TestWriteAgentEnvFileNoExistingFile(t *testing.T) {
 			ClientSecret: "secret",
 		},
 	}
-	if err := writeAgentEnvFile(agentDir, "fresh-agent", config); err != nil {
+	if err := writeAgentEnvFile(io.Discard, agentDir, "fresh-agent", config); err != nil {
 		t.Fatalf("writeAgentEnvFile failed: %v", err)
 	}
 
@@ -579,7 +580,7 @@ func TestWriteAgentEnvFileRejectsSymlinkWithoutChangingTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err := writeAgentEnvFile(agentDir, "test-agent", &CredentialsFile{
+	err := writeAgentEnvFile(io.Discard, agentDir, "test-agent", &CredentialsFile{
 		OAuth2: CredentialsOAuth2{ClientID: "client-id"},
 	})
 
@@ -617,7 +618,7 @@ func TestWriteAgentEnvFilePreservesNonManagedKeysOutsideUserSection(t *testing.T
 	config := &CredentialsFile{
 		OAuth2: CredentialsOAuth2{ClientID: "new", ClientSecret: "new-secret"},
 	}
-	if err := writeAgentEnvFile(agentDir, "test-agent", config); err != nil {
+	if err := writeAgentEnvFile(io.Discard, agentDir, "test-agent", config); err != nil {
 		t.Fatalf("writeAgentEnvFile failed: %v", err)
 	}
 
@@ -788,7 +789,7 @@ func TestWriteAgentEnvFileKeepsCentralAppKeyPathAbsolute(t *testing.T) {
 	}
 
 	// Act.
-	if err := writeAgentEnvFile(identityDir, "test-agent", config); err != nil {
+	if err := writeAgentEnvFile(io.Discard, identityDir, "test-agent", config); err != nil {
 		t.Fatalf("writeAgentEnvFile: %v", err)
 	}
 
@@ -1060,5 +1061,50 @@ func TestConfigInitFromEnvRejectsSecretWithoutClientIDWithAgentKeyRef(t *testing
 
 	if err == nil || !strings.Contains(err.Error(), "MOLTNET_CLIENT_ID") {
 		t.Fatalf("expected the missing half to be named, got: %v", err)
+	}
+}
+
+func TestConfigInitFromEnvReportsThroughTheCommandStream(t *testing.T) {
+	// Arrange: this command runs inside .claude/hooks/session-start.sh and the
+	// agent-daemon GitHub Action, where its progress lands in someone's logs.
+	// While it wrote to the process's own stderr a caller could not redirect or
+	// capture it, and no test could see it at all.
+	clearMoltnetEnv(t)
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	envContent := strings.Join([]string{
+		`MOLTNET_IDENTITY_ID=stream-identity`,
+		`MOLTNET_CLIENT_ID=stream-client-id`,
+		`MOLTNET_CLIENT_SECRET=stream-client-secret`,
+		`MOLTNET_PUBLIC_KEY=` + testPublicKey,
+		`MOLTNET_PRIVATE_KEY=` + testPrivateKey,
+		`MOLTNET_FINGERPRINT=SHA256:streamfingerprint`,
+	}, "\n")
+	envFilePath := filepath.Join(tmpDir, ".env.moltnet")
+	if err := os.WriteFile(envFilePath, []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	registry, _ := newMemorySecretProviderRegistry()
+	var errOut bytes.Buffer
+
+	// Act.
+	if err := runConfigInitFromEnvCmdWithRegistry(
+		&errOut, tmpDir, "stream-agent", true, envFilePath, false,
+		registry, defaultMigrationDestination,
+	); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Assert: the progress the operator relies on is on the stream the caller
+	// supplied, not on the process's.
+	got := errOut.String()
+	for _, want := range []string{
+		"Loaded env file",
+		"Config written to",
+		`Agent "stream-agent" initialized from environment variables`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected %q on the command's error stream, got:\n%s", want, got)
+		}
 	}
 }

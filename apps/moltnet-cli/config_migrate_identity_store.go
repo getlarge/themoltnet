@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -150,7 +151,10 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	if err != nil {
 		return nil, err
 	}
-	if err := writeAgentEnvFile(stagingDir, alias, regenerated); err != nil {
+	// io.Discard: this runs inside `config migrate`, which owns a single
+	// machine-readable document on stdout and prints its own progress. The
+	// env writer's notice would be a second, unrelated voice.
+	if err := writeAgentEnvFile(io.Discard, stagingDir, alias, regenerated); err != nil {
 		return nil, fmt.Errorf("regenerate central environment: %w", err)
 	}
 	if err := rewriteStagedIdentityPaths(stagingDir, filepath.Dir(target), regenerated); err != nil {

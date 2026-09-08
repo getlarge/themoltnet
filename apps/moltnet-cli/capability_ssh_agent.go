@@ -120,6 +120,16 @@ func serveSSHAgentAdapter(ctx context.Context, signer Signer, socket string, onR
 	// Bound what a guest can do with the socket: a small number of concurrent
 	// clients, each with an idle deadline. ssh-keygen opens one short-lived
 	// connection per signature; anything else is refused or timed out.
+	// The two adapter log lines below stay on os.Stderr rather than moving to
+	// the command's error stream, and the reason is concurrency, not the
+	// adapter being long-lived: cmd.ErrOrStderr() is os.Stderr in production
+	// anyway. The "client session ended" line runs on a per-connection
+	// goroutine — up to sshAgentMaxClients at once, and still able to fire
+	// after this function has returned on context cancellation. Writes to an
+	// *os.File are a single syscall and tolerate that; a bytes.Buffer injected
+	// by a test does not, so threading a writer here would buy a data race for
+	// log lines nobody redirects. The one-shot readiness notice is different
+	// and does go through the command's stream, via onReady.
 	slots := make(chan struct{}, sshAgentMaxClients)
 	for {
 		conn, err := listener.Accept()

@@ -32,7 +32,7 @@ forwards standard tooling to a capability. No key material is involved.`,
 		Short: "Serve a protocol adapter for a capability",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCapabilityServeCmd(cmd.Context(), args[0], flagString(cmd, "adapter"), flagString(cmd, "socket"))
+			return runCapabilityServeCmd(cmd.Context(), cmd.ErrOrStderr(), args[0], flagString(cmd, "adapter"), flagString(cmd, "socket"))
 		},
 	}
 	serve.Flags().String("adapter", "ssh-agent", "Adapter protocol (ssh-agent)")

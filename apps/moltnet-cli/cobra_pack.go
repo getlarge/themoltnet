@@ -42,7 +42,7 @@ func newPackListCmd() *cobra.Command {
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
 			expand, _ := cmd.Flags().GetString("expand")
-			return runPackListCmd(
+			return runPackListCmd(cmd.OutOrStdout(),
 				apiURL,
 				credPath,
 				diaryID,
@@ -76,7 +76,7 @@ func newPackGetCmd() *cobra.Command {
 			apiURL := resolveAPIURL(cmd, credPath)
 			packID, _ := cmd.Flags().GetString("id")
 			expand, _ := cmd.Flags().GetString("expand")
-			return runPackGetCmd(apiURL, credPath, packID, expand)
+			return runPackGetCmd(cmd.OutOrStdout(), apiURL, credPath, packID, expand)
 		},
 	}
 	cmd.Flags().String("id", "", "Pack UUID (required)")
@@ -117,7 +117,7 @@ Use --preview to return the rendered markdown without persisting.`,
 				pinned = &v
 			}
 
-			return runPackRenderCmd(
+			return runPackRenderCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(),
 				apiURL,
 				credPath,
 				args[0],
@@ -172,7 +172,7 @@ pack anyway.`,
 				pinned = &v
 			}
 
-			return runPackCreateCmd(apiURL, credPath, diaryID, entries, tokenBudget, pinned, force, supersedes)
+			return runPackCreateCmd(cmd.OutOrStdout(), apiURL, credPath, diaryID, entries, tokenBudget, pinned, force, supersedes)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
@@ -209,7 +209,7 @@ func newPackUpdateCmd() *cobra.Command {
 				pinned = &v
 			}
 
-			return runPackUpdateCmd(apiURL, credPath, packID, pinned, expiresAt)
+			return runPackUpdateCmd(cmd.OutOrStdout(), apiURL, credPath, packID, pinned, expiresAt)
 		},
 	}
 	cmd.Flags().String("pack-id", "", "Pack UUID (required)")
@@ -236,7 +236,7 @@ Provide exactly one of --pack-id or --pack-cid.`,
 			depth, _ := cmd.Flags().GetInt("depth")
 			out, _ := cmd.Flags().GetString("out")
 			shareURL, _ := cmd.Flags().GetString("share-url")
-			return runPackProvenanceCmd(apiURL, credPath, packID, packCID, depth, out, shareURL)
+			return runPackProvenanceCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, packID, packCID, depth, out, shareURL)
 		},
 	}
 	cmd.Flags().String("pack-id", "", "Pack UUID")

@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -173,7 +174,7 @@ func TestEntryCreateSignedUsesRemoteSigner(t *testing.T) {
 	defer apiSrv.Close()
 
 	// No credentials file at all: the guest holds no key material.
-	err = runEntryCreateSignedCmd(apiSrv.URL, filepath.Join(t.TempDir(), "missing.json"),
+	err = runEntryCreateSignedCmd(io.Discard, io.Discard, apiSrv.URL, filepath.Join(t.TempDir(), "missing.json"),
 		"11111111-1111-4111-8111-111111111111", "content", "title", "semantic", "a,b", 0, false)
 	if err != nil {
 		t.Fatalf("runEntryCreateSignedCmd: %v", err)

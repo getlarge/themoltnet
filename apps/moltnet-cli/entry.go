@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -13,7 +13,7 @@ import (
 // --- Entry-level business logic (moved from diary.go) ---
 
 // runEntryCreateCmd creates a diary entry.
-func runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
+func runEntryCreateCmd(stdout io.Writer, apiURL, credPath, diaryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -50,11 +50,11 @@ func runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tag
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(entry)
+	return printJSONTo(stdout, entry)
 }
 
 // runEntryCreateSignedCmd creates a content-signed immutable diary entry.
-func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
+func runEntryCreateSignedCmd(stdout, errOut io.Writer, apiURL, credPath, diaryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -78,7 +78,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	if err != nil {
 		return fmt.Errorf("compute CID: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Computed CID: %s\n", cid)
+	fmt.Fprintf(errOut, "Computed CID: %s\n", cid)
 
 	// Step 2: Resolve the signer (local seed or host broker) and client
 	signer, err := resolveSigner(credPath)
@@ -102,14 +102,14 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	if !ok {
 		return formatAPIError(sigRes)
 	}
-	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
+	fmt.Fprintf(errOut, "Signing request created: %s\n", sigReq.ID)
 
 	// Step 4: Sign and submit
 	_, err = signWithRequestID(context.Background(), client, signer, sigReq.ID.String())
 	if err != nil {
 		return fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}
-	fmt.Fprintf(os.Stderr, "Signature submitted\n")
+	fmt.Fprintf(errOut, "Signature submitted\n")
 
 	// Step 5: Create signed entry
 	req := &moltnetapi.CreateDiaryEntryReq{
@@ -136,12 +136,12 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	if !ok {
 		return formatAPIError(res)
 	}
-	fmt.Fprintf(os.Stderr, "Signed entry created: %s\n", entry.ID)
-	return printJSON(entry)
+	fmt.Fprintf(errOut, "Signed entry created: %s\n", entry.ID)
+	return printJSONTo(stdout, entry)
 }
 
 // runEntryListCmd lists diary entries with optional filters.
-func runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryType string, limit, offset int) error {
+func runEntryListCmd(stdout io.Writer, apiURL, credPath, diaryID, ids, tags, excludeTags, entryType string, limit, offset int) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -186,11 +186,11 @@ func runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryTyp
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(list)
+	return printJSONTo(stdout, list)
 }
 
 // runEntryGetCmd fetches a diary entry by ID, optionally expanding relations.
-func runEntryGetCmd(apiURL, credPath, entryID, expand string, depth int) error {
+func runEntryGetCmd(stdout io.Writer, apiURL, credPath, entryID, expand string, depth int) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -222,11 +222,11 @@ func runEntryGetCmd(apiURL, credPath, entryID, expand string, depth int) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(entry)
+	return printJSONTo(stdout, entry)
 }
 
 // runEntryUpdateCmd updates a diary entry by ID.
-func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
+func runEntryUpdateCmd(stdout io.Writer, apiURL, credPath, entryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -266,11 +266,11 @@ func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tag
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(entry)
+	return printJSONTo(stdout, entry)
 }
 
 // runEntryDeleteCmd deletes a diary entry by ID.
-func runEntryDeleteCmd(apiURL, credPath, entryID string) error {
+func runEntryDeleteCmd(stdout, errOut io.Writer, apiURL, credPath, entryID string) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -283,7 +283,7 @@ func runEntryDeleteCmd(apiURL, credPath, entryID string) error {
 	if _, err := client.DeleteDiaryEntryById(context.Background(), moltnetapi.DeleteDiaryEntryByIdParams{EntryId: entryUUID}); err != nil {
 		return fmt.Errorf("entry delete: %w", formatTransportError(err))
 	}
-	fmt.Fprintf(os.Stderr, "Entry %s deleted.\n", entryID)
+	fmt.Fprintf(errOut, "Entry %s deleted.\n", entryID)
 	return nil
 }
 
@@ -311,7 +311,7 @@ type entrySearchOptions struct {
 }
 
 // runEntrySearchCmd searches diary entries.
-func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
+func runEntrySearchCmd(stdout io.Writer, apiURL, credPath string, opts entrySearchOptions) error {
 	req := moltnetapi.SearchDiaryReq{}
 	if opts.query != "" {
 		req.Query = moltnetapi.OptString{Value: opts.query, Set: true}
@@ -376,7 +376,7 @@ func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(results)
+	return printJSONTo(stdout, results)
 }
 
 func hasEntrySearchCriteria(req moltnetapi.SearchDiaryReq) bool {
@@ -394,7 +394,7 @@ func hasEntrySearchCriteria(req moltnetapi.SearchDiaryReq) bool {
 }
 
 // runEntryVerifyCmd verifies a signed diary entry.
-func runEntryVerifyCmd(apiURL, credPath, entryID string) error {
+func runEntryVerifyCmd(stdout io.Writer, apiURL, credPath, entryID string) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -412,7 +412,7 @@ func runEntryVerifyCmd(apiURL, credPath, entryID string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(result)
+	return printJSONTo(stdout, result)
 }
 
 // --- Utility functions ---

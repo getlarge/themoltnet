@@ -20,7 +20,7 @@ team; otherwise registration creates a personal team and diary.`,
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			noMCP, _ := cmd.Flags().GetBool("no-mcp")
 			name, _ := cmd.Flags().GetString("name")
-			return runRegisterCmdWithName(apiURL, credentialType, enrollmentToken, jsonOut, noMCP, name)
+			return runRegisterCmdWithName(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credentialType, enrollmentToken, jsonOut, noMCP, name)
 		},
 	}
 

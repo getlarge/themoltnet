@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -167,11 +168,11 @@ func DoRegister(apiURL, credentialType, enrollmentToken string) (*RegisterResult
 	return &RegisterResult{KeyPair: kp, Response: response, APIUrl: strings.TrimRight(apiURL, "/")}, nil
 }
 
-func runRegisterCmd(apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool) error {
-	return runRegisterCmdWithName(apiURL, credentialType, enrollmentToken, jsonOut, noMCP, "default")
+func runRegisterCmd(stdout, errOut io.Writer, apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool) error {
+	return runRegisterCmdWithName(stdout, errOut, apiURL, credentialType, enrollmentToken, jsonOut, noMCP, "default")
 }
 
-func runRegisterCmdWithName(apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool, name string) error {
+func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType, enrollmentToken string, jsonOut, noMCP bool, name string) error {
 	url := strings.TrimRight(apiURL, "/")
 	if !jsonOut {
 		if strings.TrimSpace(name) == "" {
@@ -195,14 +196,14 @@ func runRegisterCmdWithName(apiURL, credentialType, enrollmentToken string, json
 		}
 	}
 
-	fmt.Fprintln(os.Stderr, "Generating Ed25519 keypair...")
+	fmt.Fprintln(errOut, "Generating Ed25519 keypair...")
 	result, err := DoRegister(url, credentialType, enrollmentToken)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "Registered as %s (fingerprint: %s)\n", result.Response.IdentityID, result.KeyPair.Fingerprint)
+	fmt.Fprintf(errOut, "Registered as %s (fingerprint: %s)\n", result.Response.IdentityID, result.KeyPair.Fingerprint)
 	if jsonOut {
-		return outputJSON(result)
+		return outputJSON(stdout, result)
 	}
 
 	credential := result.Response.Credential
@@ -224,19 +225,19 @@ func runRegisterCmdWithName(apiURL, credentialType, enrollmentToken string, json
 		_ = (OSKeyringSecretProvider{}).Delete(secretRef.Key)
 		return fmt.Errorf("credentials could not be written; the new keyring entry was removed: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Credentials written to %s\n", credPath)
+	fmt.Fprintf(errOut, "Credentials written to %s\n", credPath)
 	if !noMCP {
-		fmt.Fprintln(os.Stderr, "MCP config not written: install LeGreffier from your host's plugin directory for authenticated MCP access")
+		fmt.Fprintln(errOut, "MCP config not written: install LeGreffier from your host's plugin directory for authenticated MCP access")
 	}
 	return nil
 }
 
-func outputJSON(result *RegisterResult) error {
+func outputJSON(stdout io.Writer, result *RegisterResult) error {
 	out := map[string]interface{}{
 		"identity_id": result.Response.IdentityID, "fingerprint": result.KeyPair.Fingerprint,
 		"public_key": result.KeyPair.PublicKey, "private_key": result.KeyPair.PrivateKey,
 		"credential": result.Response.Credential,
 		"api_url":    result.APIUrl, "mcp_url": deriveMCPURL(result.APIUrl),
 	}
-	return printJSON(out)
+	return printJSONTo(stdout, out)
 }

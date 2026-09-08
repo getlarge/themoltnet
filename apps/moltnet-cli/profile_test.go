@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -142,11 +143,11 @@ func TestProfileListPassesTeamHeader(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileListCmd(apiSrv.URL, credPath, testProfileTeam.String())
+	err := runProfileListCmd(io.Discard, apiSrv.URL, credPath, testProfileTeam.String())
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileListCmd() error: %v", err)
+		t.Fatalf("runProfileListCmd(io.Discard, ) error: %v", err)
 	}
 	if !handler.listParams.XMoltnetTeamID.Set || handler.listParams.XMoltnetTeamID.Value != testProfileTeam {
 		t.Fatalf("expected team header %s, got %#v", testProfileTeam, handler.listParams.XMoltnetTeamID)
@@ -159,11 +160,11 @@ func TestProfileListOmitsTeamHeaderWhenUnset(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileListCmd(apiSrv.URL, credPath, "")
+	err := runProfileListCmd(io.Discard, apiSrv.URL, credPath, "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileListCmd() error: %v", err)
+		t.Fatalf("runProfileListCmd(io.Discard, ) error: %v", err)
 	}
 	if handler.listParams.XMoltnetTeamID.Set {
 		t.Fatalf("expected no team header, got %#v", handler.listParams.XMoltnetTeamID)
@@ -176,11 +177,11 @@ func TestProfileGetByID(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileGetCmd(apiSrv.URL, credPath, testProfileID.String(), "")
+	err := runProfileGetCmd(io.Discard, apiSrv.URL, credPath, testProfileID.String(), "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileGetCmd() error: %v", err)
+		t.Fatalf("runProfileGetCmd(io.Discard, ) error: %v", err)
 	}
 	if handler.getParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.getParams.ProfileId)
@@ -193,11 +194,11 @@ func TestProfileGetByNameResolvesViaList(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act — a name reference must be resolved to an id through a team-scoped list.
-	err := runProfileGetCmd(apiSrv.URL, credPath, testProfileName, testProfileTeam.String())
+	err := runProfileGetCmd(io.Discard, apiSrv.URL, credPath, testProfileName, testProfileTeam.String())
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileGetCmd() error: %v", err)
+		t.Fatalf("runProfileGetCmd(io.Discard, ) error: %v", err)
 	}
 	if !handler.listParams.XMoltnetTeamID.Set || handler.listParams.XMoltnetTeamID.Value != testProfileTeam {
 		t.Fatalf("expected resolution list scoped to team %s, got %#v", testProfileTeam, handler.listParams.XMoltnetTeamID)
@@ -214,11 +215,11 @@ func TestProfileGetByNameUsesCurrentTeamFallback(t *testing.T) {
 
 	// Act — no --team-id: the resolution list omits the team header so the server
 	// scopes it to the token's current team, matching the documented fallback.
-	err := runProfileGetCmd(apiSrv.URL, credPath, testProfileName, "")
+	err := runProfileGetCmd(io.Discard, apiSrv.URL, credPath, testProfileName, "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileGetCmd() error: %v", err)
+		t.Fatalf("runProfileGetCmd(io.Discard, ) error: %v", err)
 	}
 	if handler.listParams.XMoltnetTeamID.Set {
 		t.Fatalf("expected no team header on the resolution list, got %#v", handler.listParams.XMoltnetTeamID)
@@ -234,7 +235,7 @@ func TestProfileGetByUnknownNameFails(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileGetCmd(apiSrv.URL, credPath, "does-not-exist", testProfileTeam.String())
+	err := runProfileGetCmd(io.Discard, apiSrv.URL, credPath, "does-not-exist", testProfileTeam.String())
 
 	// Assert
 	if err == nil {
@@ -254,11 +255,11 @@ func TestProfileCreateFromFile(t *testing.T) {
 	}`)
 
 	// Act
-	err := runProfileCreateCmd(apiSrv.URL, credPath, file, testProfileTeam.String())
+	err := runProfileCreateCmd(io.Discard, io.Discard, apiSrv.URL, credPath, file, testProfileTeam.String())
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileCreateCmd() error: %v", err)
+		t.Fatalf("runProfileCreateCmd(io.Discard, io.Discard, ) error: %v", err)
 	}
 	if !handler.createBody.Set {
 		t.Fatal("expected create body to be set")
@@ -280,7 +281,7 @@ func TestProfileCreateMissingFileFails(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileCreateCmd(apiSrv.URL, credPath, filepath.Join(t.TempDir(), "nope.json"), "")
+	err := runProfileCreateCmd(io.Discard, io.Discard, apiSrv.URL, credPath, filepath.Join(t.TempDir(), "nope.json"), "")
 
 	// Assert
 	if err == nil {
@@ -295,11 +296,11 @@ func TestProfileUpdateFromFile(t *testing.T) {
 	file := writeTempProfileFile(t, `{"model": "claude-sonnet"}`)
 
 	// Act
-	err := runProfileUpdateCmd(apiSrv.URL, credPath, testProfileID.String(), file, "")
+	err := runProfileUpdateCmd(io.Discard, apiSrv.URL, credPath, testProfileID.String(), file, "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileUpdateCmd() error: %v", err)
+		t.Fatalf("runProfileUpdateCmd(io.Discard, ) error: %v", err)
 	}
 	if handler.updateParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.updateParams.ProfileId)
@@ -315,11 +316,11 @@ func TestProfileDeleteByID(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileDeleteCmd(apiSrv.URL, credPath, testProfileID.String(), "")
+	err := runProfileDeleteCmd(io.Discard, io.Discard, apiSrv.URL, credPath, testProfileID.String(), "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileDeleteCmd() error: %v", err)
+		t.Fatalf("runProfileDeleteCmd(io.Discard, io.Discard, ) error: %v", err)
 	}
 	if handler.deleteParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.deleteParams.ProfileId)
@@ -353,11 +354,11 @@ func TestProfileCreateFromStdin(t *testing.T) {
 	setStdin(t, `{"name":"standard-engineering","provider":"anthropic","model":"claude-opus","sandbox":{}}`)
 
 	// Act
-	err := runProfileCreateCmd(apiSrv.URL, credPath, "-", "")
+	err := runProfileCreateCmd(io.Discard, io.Discard, apiSrv.URL, credPath, "-", "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileCreateCmd() error: %v", err)
+		t.Fatalf("runProfileCreateCmd(io.Discard, io.Discard, ) error: %v", err)
 	}
 	if !handler.createBody.Set || handler.createBody.Value.Name != testProfileName {
 		t.Fatalf("expected create body name %q, got %#v", testProfileName, handler.createBody)
@@ -371,11 +372,11 @@ func TestProfileUpdateFromStdin(t *testing.T) {
 	setStdin(t, `{"model":"claude-sonnet"}`)
 
 	// Act
-	err := runProfileUpdateCmd(apiSrv.URL, credPath, testProfileID.String(), "-", "")
+	err := runProfileUpdateCmd(io.Discard, apiSrv.URL, credPath, testProfileID.String(), "-", "")
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runProfileUpdateCmd() error: %v", err)
+		t.Fatalf("runProfileUpdateCmd(io.Discard, ) error: %v", err)
 	}
 	if !handler.updateBody.Set || !handler.updateBody.Value.Model.Set || handler.updateBody.Value.Model.Value != "claude-sonnet" {
 		t.Fatalf("expected patched model, got %#v", handler.updateBody.Value.Model)

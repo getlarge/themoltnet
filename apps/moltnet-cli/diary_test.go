@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -509,7 +510,7 @@ func TestEntrySearchCommandPassesFilters(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runEntrySearchCmd(apiSrv.URL, credPath, entrySearchOptions{
+	err := runEntrySearchCmd(io.Discard, apiSrv.URL, credPath, entrySearchOptions{
 		query:                    "stale lockfile",
 		diaryID:                  testDiaryID.String(),
 		tags:                     "incident,scope:cli",
@@ -534,7 +535,7 @@ func TestEntrySearchCommandPassesFilters(t *testing.T) {
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runEntrySearchCmd() error: %v", err)
+		t.Fatalf("runEntrySearchCmd(io.Discard, ) error: %v", err)
 	}
 	if !handler.searchDiaryReq.Set {
 		t.Fatal("expected search request to be set")
@@ -593,14 +594,14 @@ func TestEntrySearchCommandAllowsFilterOnlySearch(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runEntrySearchCmd(apiSrv.URL, credPath, entrySearchOptions{
+	err := runEntrySearchCmd(io.Discard, apiSrv.URL, credPath, entrySearchOptions{
 		tags:       "incident,scope:cli",
 		entryTypes: "episodic",
 	})
 
 	// Assert
 	if err != nil {
-		t.Fatalf("runEntrySearchCmd() error: %v", err)
+		t.Fatalf("runEntrySearchCmd(io.Discard, ) error: %v", err)
 	}
 	req := handler.searchDiaryReq.Value
 	if req.Query.Set {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -56,8 +57,9 @@ func normalizePEMEnvValue(raw string) string {
 // runConfigInitFromEnvCmd reconstructs an identity's central local directory
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where moltnet agents init cannot run interactively.
-func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool, destination string) error {
+func runConfigInitFromEnvCmd(errOut io.Writer, dir, agentName string, skipGit bool, envFile string, override bool, destination string) error {
 	return runConfigInitFromEnvCmdWithRegistry(
+		errOut,
 		dir,
 		agentName,
 		skipGit,
@@ -69,6 +71,7 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 }
 
 func runConfigInitFromEnvCmdWithRegistry(
+	errOut io.Writer,
 	dir, agentName string,
 	skipGit bool,
 	envFile string,
@@ -84,7 +87,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 		if err != nil {
 			return fmt.Errorf("read env file %q: %w", envFile, err)
 		}
-		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
+		fmt.Fprintf(errOut, "Loaded env file %s (override=%v)\n", envFile, override)
 	}
 
 	// Resolve identity alias: --name > MOLTNET_ACTIVE_IDENTITY. The pre-cutover
@@ -111,7 +114,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 
 	// Skip if already initialized (no env vars needed).
 	if _, err := os.Stat(configPath); err == nil {
-		fmt.Fprintf(os.Stderr, "Agent %q already initialized at %s, skipping\n", agentName, configPath)
+		fmt.Fprintf(errOut, "Agent %q already initialized at %s, skipping\n", agentName, configPath)
 		return nil
 	}
 
@@ -304,14 +307,14 @@ func runConfigInitFromEnvCmdWithRegistry(
 			InstallationID: ghInstallID,
 			PrivateKeyPath: pemPath,
 		}
-		fmt.Fprintf(os.Stderr, "GitHub App PEM written to %s\n", pemPath)
+		fmt.Fprintf(errOut, "GitHub App PEM written to %s\n", pemPath)
 	}
 
 	// Write moltnet.json
 	if _, err := WriteConfigTo(config, configPath); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Config written to %s\n", configPath)
+	fmt.Fprintf(errOut, "Config written to %s\n", configPath)
 
 	// From here on the config exists on disk, and the early-return above treats
 	// its presence as "already initialized". A later failure would therefore be
@@ -322,7 +325,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	defer func() {
 		if !initialized {
 			if rmErr := os.Remove(configPath); rmErr == nil {
-				fmt.Fprintf(os.Stderr,
+				fmt.Fprintf(errOut,
 					"Initialization failed; removed the partial config at %s so it can be retried\n",
 					configPath)
 			}
@@ -347,7 +350,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 
 	// Write env file
-	if err := writeAgentEnvFile(agentDir, agentName, config); err != nil {
+	if err := writeAgentEnvFile(errOut, agentDir, agentName, config); err != nil {
 		return fmt.Errorf("write env file: %w", err)
 	}
 
@@ -363,7 +366,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 
 	initialized = true
-	fmt.Fprintf(os.Stderr, "Agent %q initialized from environment variables\n", agentName)
+	fmt.Fprintf(errOut, "Agent %q initialized from environment variables\n", agentName)
 	return nil
 }
 
@@ -383,13 +386,13 @@ func shellQuote(v string) string {
 // writeAgentEnvFile writes a shell-sourceable env file for the agent.
 // If the file already exists, user-section content (lines after the
 // "# User section" marker, plus any non-managed keys) is preserved.
-func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) error {
-	return writeAgentEnvFileWithUserVars(agentDir, agentName, config, nil)
+func writeAgentEnvFile(errOut io.Writer, agentDir, agentName string, config *CredentialsFile) error {
+	return writeAgentEnvFileWithUserVars(errOut, agentDir, agentName, config, nil)
 }
 
 // writeAgentEnvFileWithUserVars uses the canonical managed env serializer and
 // merges the selected non-secret variables into its preserved user section.
-func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *CredentialsFile, userVars map[string]string) error {
+func writeAgentEnvFileWithUserVars(errOut io.Writer, agentDir, agentName string, config *CredentialsFile, userVars map[string]string) error {
 	prefix := toEnvPrefix(agentName)
 	moltnetRelDir := agentDir
 
@@ -468,7 +471,7 @@ func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *Credentia
 	if err != nil {
 		return fmt.Errorf("write env file: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "Env file written to %s\n", envPath)
+	fmt.Fprintf(errOut, "Env file written to %s\n", envPath)
 	return nil
 }
 
