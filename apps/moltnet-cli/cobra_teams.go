@@ -141,7 +141,7 @@ func newTeamsJoinCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "join",
 		Short:   "Join a team using an invite code",
-		Example: `  moltnet teams join --code abc123`,
+		Example: `  moltnet teams join --code mlt_inv_...`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)

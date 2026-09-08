@@ -59,6 +59,12 @@ func TestRegisterHelp(t *testing.T) {
 	if !strings.Contains(stdout, "--credential-type") {
 		t.Errorf("expected help to contain '--credential-type', got: %s", stdout)
 	}
+	if strings.Contains(stdout, "--enrollment-token") || strings.Contains(stdout, "--invite-code") {
+		t.Errorf("expected team membership to be absent from register help, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "moltnet teams join --code") {
+		t.Errorf("expected help to direct users to 'teams join', got: %s", stdout)
+	}
 	if !strings.Contains(stdout, "Example") {
 		t.Errorf("expected help to contain 'Example', got: %s", stdout)
 	}
