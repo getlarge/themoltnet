@@ -199,27 +199,30 @@ func TestMigrateLegacyIdentityStoreRejectsAliasCollisionAndIsIdempotent(t *testi
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	writeLegacy := func(dir, alias string) (string, string) {
+	writeLegacy := func(dir string, identity identityFixture, subjectID string) string {
 		bundle := filepath.Join(dir, ".moltnet", "shared")
 		if err := os.MkdirAll(bundle, 0o700); err != nil {
 			t.Fatal(err)
 		}
 		path := filepath.Join(bundle, "moltnet.json")
-		identity := newIdentityFixture(t, alias, "https://"+alias+".example.test")
 		creds := &CredentialsFile{
-			SubjectID: identity.identityID,
-			OAuth2:    CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
-			Keys:      CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-			Endpoints: CredentialsEndpoints{API: identity.api},
-			Git:       &GitSection{Name: "Bot", Email: alias + "@example.test"},
+			SubjectID:   subjectID,
+			SubjectType: SubjectTypeAgent,
+			OAuth2:      CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
+			Keys:        CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
+			Endpoints:   CredentialsEndpoints{API: identity.api},
+			Git:         &GitSection{Name: "Bot", Email: "bot@example.test"},
 		}
 		if _, err := WriteConfigTo(creds, path); err != nil {
 			t.Fatal(err)
 		}
-		return path, identity.identityID
+		return path
 	}
 
-	first, firstID := writeLegacy(t.TempDir(), "one")
+	firstIdentity := newIdentityFixture(t, "one", "")
+	firstSubject := "00000000-0000-4000-a000-000000000101"
+	firstIdentity.api = newInitFromEnvWhoamiServer(t, "00000000-0000-4000-a000-000000000201", firstSubject, "agent").URL
+	first := writeLegacy(t.TempDir(), firstIdentity, firstSubject)
 	if _, err := migrateLegacyIdentityStore(first, "", false); err != nil {
 		t.Fatalf("first migration: %v", err)
 	}
@@ -233,8 +236,18 @@ func TestMigrateLegacyIdentityStoreRejectsAliasCollisionAndIsIdempotent(t *testi
 		t.Fatalf("re-migration should report changed=false, got %v", again)
 	}
 
-	// A different identity claiming the same alias must be refused.
-	second, _ := writeLegacy(t.TempDir(), "two")
+	// Signing-key rotation is not an alias collision when both credentials
+	// authenticate as the same durable subject.
+	rotated := newIdentityFixture(t, "rotated", firstIdentity.api)
+	if _, err := migrateLegacyIdentityStore(writeLegacy(t.TempDir(), rotated, firstSubject), "", false); err != nil {
+		t.Fatalf("authenticated rotation: %v", err)
+	}
+
+	// A different authenticated subject claiming the same alias is refused.
+	secondIdentity := newIdentityFixture(t, "two", "")
+	secondSubject := "00000000-0000-4000-a000-000000000102"
+	secondIdentity.api = newInitFromEnvWhoamiServer(t, "00000000-0000-4000-a000-000000000202", secondSubject, "agent").URL
+	second := writeLegacy(t.TempDir(), secondIdentity, secondSubject)
 	if _, err := migrateLegacyIdentityStore(second, "", false); err == nil {
 		t.Fatal("expected alias collision to be rejected")
 	}
@@ -248,7 +261,7 @@ func TestMigrateLegacyIdentityStoreRejectsAliasCollisionAndIsIdempotent(t *testi
 	if err != nil || surviving == nil {
 		t.Fatalf("read surviving identity: %v", err)
 	}
-	if surviving.SubjectID != firstID {
+	if surviving.SubjectID != firstSubject {
 		t.Fatalf("collision overwrote the existing identity: %s", surviving.SubjectID)
 	}
 }
@@ -260,85 +273,35 @@ func TestMigrateLegacyIdentityStoreDryRunReportsCollision(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	seed := func(alias string) string {
+	seed := func(alias, identityID, subjectID string) string {
 		bundle := filepath.Join(t.TempDir(), ".moltnet", "shared")
 		if err := os.MkdirAll(bundle, 0o700); err != nil {
 			t.Fatal(err)
 		}
 		path := filepath.Join(bundle, "moltnet.json")
 		identity := newIdentityFixture(t, alias, "https://"+alias+".example.test")
+		identity.api = newInitFromEnvWhoamiServer(t, identityID, subjectID, "agent").URL
 		if _, err := WriteConfigTo(&CredentialsFile{
-			SubjectID: identity.identityID,
-			OAuth2:    CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
-			Keys:      CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-			Endpoints: CredentialsEndpoints{API: identity.api},
-			Git:       &GitSection{Name: "Bot", Email: alias + "@example.test"},
+			SubjectID:   subjectID,
+			SubjectType: SubjectTypeAgent,
+			OAuth2:      CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
+			Keys:        CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
+			Endpoints:   CredentialsEndpoints{API: identity.api},
+			Git:         &GitSection{Name: "Bot", Email: alias + "@example.test"},
 		}, path); err != nil {
 			t.Fatal(err)
 		}
 		return path
 	}
 
-	legacy := seed("one")
+	legacy := seed("one", "00000000-0000-4000-a000-000000000201", "00000000-0000-4000-a000-000000000101")
 	if _, err := migrateLegacyIdentityStore(legacy, "", false); err != nil {
 		t.Fatalf("seed migration: %v", err)
 	}
-	conflictingPath := seed("two")
+	conflictingPath := seed("two", "00000000-0000-4000-a000-000000000202", "00000000-0000-4000-a000-000000000102")
 
 	if _, err := migrateLegacyIdentityStore(conflictingPath, "", true); err == nil {
 		t.Fatal("dry run must surface the collision instead of reporting success")
-	}
-}
-
-// A central alias cannot be reused for a different durable subject or key.
-func TestMigrateLegacyIdentityStoreRefusesAliasReuse(t *testing.T) {
-	isolateIdentityEnv(t)
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-
-	write := func(identityID string, id identityFixture) string {
-		dir := filepath.Join(t.TempDir(), ".moltnet", "shared")
-		if err := os.MkdirAll(dir, 0o700); err != nil {
-			t.Fatal(err)
-		}
-		path := filepath.Join(dir, "moltnet.json")
-		if _, err := WriteConfigTo(&CredentialsFile{
-			SubjectID: identityID,
-			OAuth2:    CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "s"},
-			Keys:      CredentialsKeys{PublicKey: id.publicKey, PrivateKey: id.seed, Fingerprint: id.fingerprint},
-			Endpoints: CredentialsEndpoints{API: id.api},
-			Git:       &GitSection{Name: "Bot", Email: "a@example.test"},
-		}, path); err != nil {
-			t.Fatal(err)
-		}
-		return path
-	}
-
-	original := newIdentityFixture(t, "original", "https://original.example.test")
-	if _, err := migrateLegacyIdentityStore(write("kratos-a", original), "", false); err != nil {
-		t.Fatalf("first migration: %v", err)
-	}
-
-	// Identical bundle re-migrates as a no-op.
-	if _, err := migrateLegacyIdentityStore(write("kratos-a", original), "", false); err != nil {
-		t.Fatalf("identical re-migration must succeed: %v", err)
-	}
-
-	// A different subject and an unreconciled rotation are both refused.
-	rotated := newIdentityFixture(t, "rotated", "https://original.example.test")
-	for name, path := range map[string]string{
-		"relinked identity": write("kratos-b", original),
-		"rotated keypair":   write("kratos-a", rotated),
-	} {
-		_, err := migrateLegacyIdentityStore(path, "", false)
-		if err == nil {
-			t.Fatalf("%s: expected refusal", name)
-		}
-		for _, want := range []string{"--name", "alias collision"} {
-			if !strings.Contains(err.Error(), want) {
-				t.Errorf("%s: error %q should mention %q", name, err, want)
-			}
-		}
 	}
 }
 

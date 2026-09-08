@@ -28,12 +28,6 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	if alias == "" && filepath.Base(filepath.Dir(legacyDir)) == ".moltnet" {
 		alias = filepath.Base(legacyDir)
 	}
-	// The early agent daemon stored managed documents as
-	// agents/<alias>.json. It has no bundle directory, but its filename still
-	// provides the local-only alias required by the central store.
-	if alias == "" && filepath.Base(legacyDir) == "agents" && filepath.Ext(path) == ".json" {
-		alias = strings.TrimSuffix(filepath.Base(path), ".json")
-	}
 	if alias == "" {
 		return nil, fmt.Errorf("--name is required when the legacy credentials path does not encode an identity alias")
 	}
@@ -63,15 +57,19 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	if existing != nil {
-		sameSubject := strings.TrimSpace(existing.SubjectID) != "" &&
-			existing.SubjectID == creds.SubjectID
-		if !sameSubject ||
-			existing.Keys.PublicKey != creds.Keys.PublicKey {
+		registry := NewSecretProviderRegistry()
+		source, verifyErr := verifyConfigIdentityAgainstServer(creds.Endpoints.API, path, creds, registry)
+		if verifyErr != nil {
+			return nil, fmt.Errorf("authenticate relocation source: %w", verifyErr)
+		}
+		destination, verifyErr := verifyConfigIdentityAgainstServer(existing.Endpoints.API, target, existing, registry)
+		if verifyErr != nil {
+			return nil, fmt.Errorf("authenticate central identity: %w", verifyErr)
+		}
+		if source.SubjectID != destination.SubjectID {
 			return nil, fmt.Errorf(
-				"central identity %q already exists and does not match the bundle "+
-					"being migrated (subject and/or public key differ).\n"+
-					"A different subject is an alias collision; a matching subject with "+
-					"a changed key requires authenticated rotation reconciliation.\n"+
+				"central identity %q authenticates as a different subject than the bundle being migrated.\n"+
+					"This is an alias collision.\n"+
 					"Migrate under another alias with --name <alias>, or remove %s "+
 					"first if you are certain it is the same agent.",
 				alias, filepath.Dir(target),
