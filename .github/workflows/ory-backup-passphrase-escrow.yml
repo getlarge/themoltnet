@@ -1,0 +1,129 @@
+# Export a copy of ORY_BACKUP_PASSPHRASE encrypted to an operator-held GPG key,
+# so the value can be kept in a password manager alongside other credentials.
+#
+# GitHub environment secrets are write-only, so a copy has to be produced by a
+# job that can read the secret. This one re-encrypts it to a public key supplied
+# at dispatch time and publishes only the ciphertext as an artifact. The
+# plaintext never leaves the runner, is never written to disk, and is piped on
+# stdin rather than passed as an argument, so it cannot appear in a process
+# listing.
+#
+# Because it reads a secret, it is manual-dispatch only and takes the recipient
+# key as an input rather than a stored secret: it cannot run from a push, a
+# schedule, or a fork, and the key it encrypts to is chosen per run.
+#
+# After running: download the artifact, decrypt it locally, store the value, and
+# delete the artifact. Retention is one day; the ciphertext is only as strong as
+# the private key that opens it.
+#
+# This exports the current value. It does not rotate it — bundles are encrypted
+# with whatever passphrase was current when they were written, so rotation is a
+# separate operation that has to account for existing bundles.
+
+name: Ory Backup Passphrase Escrow
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient_public_key:
+        description: 'Armored GPG public key to encrypt the passphrase to (must carry an encryption subkey)'
+        required: true
+        type: string
+      recipient_fingerprint:
+        description: 'Full 40-character fingerprint of the encryption subkey to encrypt to. Checked against the supplied key so a mistyped or signing-only key fails here rather than producing an unopenable file.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  escrow:
+    runs-on: ubuntu-latest
+    # Holds ORY_BACKUP_PASSPHRASE. Environment protection rules therefore gate
+    # this workflow the same way they gate a deployment.
+    environment: production
+    steps:
+      - name: Import the recipient key into an isolated keyring
+        id: recipient
+        env:
+          RECIPIENT_PUBLIC_KEY: ${{ inputs.recipient_public_key }}
+          EXPECTED_FPR: ${{ inputs.recipient_fingerprint }}
+        run: |
+          set -euo pipefail
+
+          GNUPGHOME="$(mktemp -d)"
+          chmod 700 "$GNUPGHOME"
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+          export GNUPGHOME
+
+          printf '%s\n' "$RECIPIENT_PUBLIC_KEY" > "$GNUPGHOME/recipient.asc"
+          gpg --batch --import "$GNUPGHOME/recipient.asc"
+
+          # Normalise: strip spaces and upper-case, so a fingerprint pasted in
+          # the spaced form gpg prints is accepted.
+          expected="$(printf '%s' "$EXPECTED_FPR" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')"
+
+          # The key must actually carry an ENCRYPTION subkey. A signing-only key
+          # imports happily and then fails at encrypt time with a less obvious
+          # error, so check the capability explicitly.
+          if ! gpg --list-keys --with-colons --with-fingerprint --with-subkey-fingerprint \
+            | awk -F: '/^sub:/{u=$12} /^fpr:/{if (u ~ /e/) print $10; u=""}' \
+            | grep -qx "$expected"; then
+            echo "::error::No encryption subkey matching $expected in the supplied key."
+            echo "Encryption-capable subkeys found:"
+            gpg --list-keys --with-colons --with-fingerprint --with-subkey-fingerprint \
+              | awk -F: '/^sub:/{u=$12} /^fpr:/{if (u ~ /e/) print "  " $10; u=""}'
+            exit 1
+          fi
+
+          echo "recipient=$expected" >> "$GITHUB_OUTPUT"
+          echo "Encrypting to $expected"
+
+      - name: Encrypt the passphrase
+        env:
+          # Consumed from the environment and piped on stdin. Never interpolated
+          # into a command line, never written to a file.
+          ORY_BACKUP_PASSPHRASE: ${{ secrets.ORY_BACKUP_PASSPHRASE }}
+          RECIPIENT: ${{ steps.recipient.outputs.recipient }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ORY_BACKUP_PASSPHRASE:-}" ]; then
+            echo "::error::ORY_BACKUP_PASSPHRASE is empty or unset in the production environment."
+            exit 1
+          fi
+
+          # The trailing '!' pins the exact subkey. Without it gpg picks an
+          # encryption subkey by its own policy, so adding a newer subkey later
+          # would silently redirect the escrow to a key the operator may not
+          # have to hand.
+          printf '%s' "$ORY_BACKUP_PASSPHRASE" \
+            | gpg --batch --no-tty --trust-model always --armor \
+                  --encrypt --recipient "${RECIPIENT}!" \
+                  --output ory-backup-passphrase.asc
+
+          # Prove the artifact is a real message addressed to the intended key
+          # before anyone relies on it. `--list-packets` on a public-key
+          # encrypted file reveals only the recipient key id, not the plaintext.
+          test -s ory-backup-passphrase.asc
+          grep -q 'BEGIN PGP MESSAGE' ory-backup-passphrase.asc
+          gpg --batch --list-packets ory-backup-passphrase.asc \
+            | grep -i 'keyid' \
+            | grep -qi "${RECIPIENT: -16}"
+
+          echo "Wrote $(wc -c < ory-backup-passphrase.asc) bytes of ciphertext."
+
+      - name: Upload the ciphertext
+        uses: actions/upload-artifact@v4
+        with:
+          name: ory-backup-passphrase-escrow
+          path: ory-backup-passphrase.asc
+          # Short by design: the operator downloads it, decrypts it into a
+          # password manager, and deletes the artifact. It should not linger.
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Remove the keyring
+        if: always()
+        run: rm -rf "${GNUPGHOME:-}" ory-backup-passphrase.asc
