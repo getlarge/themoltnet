@@ -164,7 +164,10 @@ func newSigningAPI(t *testing.T) *signingAPI {
 		publicKey, fingerprint := api.authPublicKey, api.authFingerprint
 		api.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"identityId":"44444444-4444-4444-8444-444444444444",` +
+		// subjectId is required and is NOT the identity: distinct values here so
+		// a reader of the wrong field cannot pass.
+		_, _ = w.Write([]byte(`{"subjectId":"44444444-4444-4444-8444-4444444444aa",` +
+			`"identityId":"44444444-4444-4444-8444-444444444444",` +
 			`"subjectType":"agent","scopes":["agent:profile"],` +
 			`"publicKey":"` + publicKey + `","fingerprint":"` + fingerprint + `"}`))
 	})
