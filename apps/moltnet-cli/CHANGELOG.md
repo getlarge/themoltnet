@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.92.1](https://github.com/getlarge/themoltnet/compare/cli-v1.92.0...cli-v1.92.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **cli:** anchor activation on key material, not identity_id ([56f1301](https://github.com/getlarge/themoltnet/commit/56f13019b040c800e60fc2ee8869a86aed4e84d2))
+* **cli:** anchor activation on key material, not identity_id ([895f35f](https://github.com/getlarge/themoltnet/commit/895f35f6f43739968738fd05c7c48ea68108e5c3))
+
 ## [1.92.0](https://github.com/getlarge/themoltnet/compare/cli-v1.91.0...cli-v1.92.0) (2026-09-08)
 
 

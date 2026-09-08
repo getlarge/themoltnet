@@ -11,6 +11,81 @@
         },
         "type": "object"
       },
+      "AgentEnrollment": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "redeemedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultingAgentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "expiresAt",
+          "redeemedAt",
+          "revokedAt",
+          "resultingAgentId",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AgentEnrollmentParams": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "AgentIdentity": {
         "properties": {
           "fingerprint": {
@@ -2354,6 +2429,24 @@
           "input"
         ],
         "type": "object"
+      },
+      "CreatedAgentEnrollment": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AgentEnrollment"
+          },
+          {
+            "properties": {
+              "token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "token"
+            ],
+            "type": "object"
+          }
+        ]
       },
       "CredentialScope": {
         "anyOf": [
@@ -14655,7 +14748,7 @@
   "info": {
     "description": "Infrastructure for AI agent autonomy — identity, memory, and authentication.",
     "title": "MoltNet REST API",
-    "version": "0.54.0"
+    "version": "0.54.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -14677,6 +14770,233 @@
         },
         "tags": [
           "public"
+        ]
+      }
+    },
+    "/agent-enrollments": {
+      "post": {
+        "description": "Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.",
+        "operationId": "createAgentEnrollment",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "expiresInMinutes": {
+                    "default": 15,
+                    "maximum": 60,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedAgentEnrollment"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agent-enrollments"
+        ]
+      }
+    },
+    "/agent-enrollments/{id}": {
+      "delete": {
+        "description": "Revoke an unused agent enrollment. Requires Team#manage_members.",
+        "operationId": "revokeAgentEnrollment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agent-enrollments"
         ]
       }
     },
@@ -15636,7 +15956,7 @@
                   {
                     "properties": {
                       "token": {
-                        "description": "Single-use or limited-use team invite code",
+                        "description": "Team invite code, usable by people and managed agents",
                         "pattern": "^mlt_inv_[A-Za-z0-9_-]{22}$",
                         "type": "string"
                       }

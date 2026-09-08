@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.54.0...rest-api-v0.54.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **auth:** restore agent enrollment redemption ([acabf09](https://github.com/getlarge/themoltnet/commit/acabf09ff1bfd550e17e9dc11b1fd468a221b4c0))
+
 ## [0.54.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.53.0...rest-api-v0.54.0) (2026-09-08)
 
 
