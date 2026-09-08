@@ -39499,8 +39499,8 @@ function oauth2SecretKey(subjectId, clientId) {
 function identitySeedKey(fingerprint) {
 	return `identity/${fingerprint}/seed`;
 }
-function agentKeyKey(agentId) {
-	return `agent-key/${agentId}`;
+function agentKeyKey(subjectId) {
+	return `agent-key/${subjectId}`;
 }
 var PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
 var SECRET_REFERENCE_MESSAGE = "Secret reference must be <provider>:<key> with a lowercase provider name";
@@ -39515,7 +39515,7 @@ function normalizeSecretReference(reference) {
 }
 /**
 * Parse the `<provider>:<key>` form used by environment references such as
-* `MOLTNET_AGENT_KEY_REF=file:agent-key.identity-1`. The first colon splits.
+* `MOLTNET_AGENT_KEY_REF=file:agent-key.subject-1`. The first colon splits.
 */
 function parseSecretReferenceString(value) {
 	const trimmed = value.trim();
