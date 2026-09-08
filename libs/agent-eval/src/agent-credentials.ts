@@ -6,12 +6,8 @@ export interface WriteAgentCredentialsInput {
   /** Root under which `.moltnet/<agentName>/` is created. */
   agentRoot: string;
   agentName: string;
-  /**
-   * The agent's real identity id. It binds `agent_key_ref` to this agent —
-   * the SDK rejects a reference whose key is not `agent-key/<identity_id>` —
-   * so a placeholder will not resolve.
-   */
-  identityId: string;
+  /** The durable agent subject that anchors the config and agent-key ref. */
+  subjectId: string;
   /**
    * A live agent-key secret, as returned by `agentKeys.create(...).secret`.
    * Mint it through the eval's OAuth2 agent, exactly as an operator would with
@@ -57,10 +53,10 @@ export function writeAgentCredentials(
   const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
   mkdirSync(agentDir, { recursive: true });
 
-  // The file provider maps `agent-key/<identity_id>` to that path under the
+  // The file provider maps `agent-key/<subject_id>` to that path under the
   // root, so the directory layout has to mirror the key exactly.
   const secretRoot = join(input.agentRoot, 'secrets');
-  const secretKey = `agent-key/${input.identityId}`;
+  const secretKey = `agent-key/${input.subjectId}`;
   mkdirSync(join(secretRoot, 'agent-key'), { recursive: true });
   writeFileSync(join(secretRoot, secretKey), input.agentKeySecret, {
     encoding: 'utf8',
@@ -71,7 +67,8 @@ export function writeAgentCredentials(
     join(agentDir, 'moltnet.json'),
     JSON.stringify(
       {
-        identity_id: input.identityId,
+        subject_id: input.subjectId,
+        subject_type: 'agent',
         registered_at: new Date().toISOString(),
         agent_key_ref: { provider: 'file', key: secretKey },
         keys: {

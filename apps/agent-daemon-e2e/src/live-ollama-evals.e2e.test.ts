@@ -60,7 +60,6 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
   let agentName: string;
   let clientId: string;
   let agentId: string;
-  let identityId: string;
   let clientSecret: string;
   let publicKey: string;
   let privateKey: string;
@@ -81,7 +80,6 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
     agentName = creds.name;
     clientId = creds.clientId;
     agentId = creds.agentId;
-    identityId = creds.identityId;
     clientSecret = creds.clientSecret;
     publicKey = creds.keyPair.publicKey;
     privateKey = creds.keyPair.privateKey;
@@ -146,10 +144,7 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
         agent,
         agentRoot,
         agentName,
-        // Same value until #2163 splits agents.id from identity_id; passed
-        // separately so that rebase has to choose one for each.
         agentId,
-        identityId,
         teamId,
         apiUrl: harness.restApiUrl,
         publicKey,
