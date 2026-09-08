@@ -3,10 +3,17 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+type subjectDeleteFailureProvider struct{ *memorySecretProvider }
+
+func (p *subjectDeleteFailureProvider) Delete(string) error {
+	return errors.New("keyring unavailable")
+}
 
 func writeSubjectMigrationFixture(t *testing.T, apiURL, publicKey, fingerprint string) string {
 	t.Helper()
@@ -34,14 +41,11 @@ func TestSubjectAnchorMigrationRekeysReferencesAndPreservesExtensions(t *testing
 	verified := &subjectVerification{SubjectID: subjectID, SubjectType: SubjectTypeAgent, PublicKey: "ed25519:public", Fingerprint: "FINGERPRINT"}
 	migrations := []configMigration{newSubjectAnchorMigration(verified)}
 
-	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, migrations, verified)
+	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, migrations)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plan.Parameters[migrationSubjectIDParameter] != subjectID || plan.Parameters[migrationSubjectTypeParameter] != "agent" {
-		t.Fatalf("plan parameters = %#v", plan.Parameters)
-	}
-	if _, err := applyConfigMigrationPlan(plan, osKeyringProviderName, registry, migrations, verified); err != nil {
+	if _, err := applyConfigMigrationPlan(plan, osKeyringProviderName, registry, migrations); err != nil {
 		t.Fatal(err)
 	}
 
@@ -78,6 +82,56 @@ func TestSubjectAnchorMigrationRekeysReferencesAndPreservesExtensions(t *testing
 	if _, exists := provider.values[AgentKeyKey("legacy-identity")]; exists {
 		t.Fatal("legacy agent-key entry was not deleted")
 	}
+	retry, err := buildConfigMigrationPlan(
+		path,
+		osKeyringProviderName,
+		[]configMigration{newSubjectAnchorMigration(nil)},
+	)
+	if err != nil || len(retry.Migrations) != 0 {
+		t.Fatalf("canonical retry should be a no-op: plan=%+v err=%v", retry, err)
+	}
+}
+
+func TestSubjectAnchorMigrationReportsPostCommitCleanupAsWarning(t *testing.T) {
+	const subjectID = "00000000-0000-4000-8000-000000000217"
+	path := writeSubjectMigrationFixture(t, "https://api.example.test", "ed25519:public", "FINGERPRINT")
+	provider := &subjectDeleteFailureProvider{&memorySecretProvider{values: map[string]string{
+		OAuth2SecretKey("legacy-identity", "client"): "oauth-secret",
+		AgentKeyKey("legacy-identity"):               "agent-secret",
+	}}}
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, provider)
+	verified := &subjectVerification{SubjectID: subjectID, SubjectType: SubjectTypeAgent, PublicKey: "ed25519:public", Fingerprint: "FINGERPRINT"}
+	migrations := []configMigration{newSubjectAnchorMigration(verified)}
+	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, migrations)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := runAndPrintConfigMigrationPlan(&output, plan, osKeyringProviderName, registry, migrations); err != nil {
+		t.Fatalf("cleanup warning returned a command error: %v", err)
+	}
+	var result configMigrationRunOutput
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Applied) != 1 || result.Applied[0] != subjectAnchorMigrationID ||
+		!result.Changed || !result.ManualRecoveryRequired || result.Failure != nil || len(result.Warnings) != 1 {
+		t.Fatalf("result = %+v", result)
+	}
+	if !bytes.Contains([]byte(result.Warnings[0]), []byte("os-keyring:oauth2/legacy-identity/client")) {
+		t.Fatalf("warning lacks remediation reference: %q", result.Warnings[0])
+	}
+	if !bytes.Contains([]byte(result.Warnings[0]), []byte("os-keyring:agent-key/legacy-identity")) {
+		t.Fatalf("warning omits a failed cleanup reference: %q", result.Warnings[0])
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte("identity_id")) || !bytes.Contains(data, []byte(subjectID)) {
+		t.Fatalf("canonical config was not committed: %s", data)
+	}
 }
 
 func TestSubjectAnchorMigrationRejectsDestinationConflictBeforeRewrite(t *testing.T) {
@@ -90,12 +144,12 @@ func TestSubjectAnchorMigrationRejectsDestinationConflictBeforeRewrite(t *testin
 	provider.values[OAuth2SecretKey(subjectID, "client")] = "different"
 	verified := &subjectVerification{SubjectID: subjectID, SubjectType: SubjectTypeAgent, PublicKey: "ed25519:public", Fingerprint: "FINGERPRINT"}
 	migrations := []configMigration{newSubjectAnchorMigration(verified)}
-	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, migrations, verified)
+	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, migrations)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := applyConfigMigrationPlan(plan, osKeyringProviderName, registry, migrations, verified); err == nil {
+	if _, err := applyConfigMigrationPlan(plan, osKeyringProviderName, registry, migrations); err == nil {
 		t.Fatal("conflicting destination unexpectedly accepted")
 	}
 	current, _ := os.ReadFile(path)
@@ -107,28 +161,9 @@ func TestSubjectAnchorMigrationRejectsDestinationConflictBeforeRewrite(t *testin
 	}
 }
 
-func TestSubjectAnchorPlanCannotRunForAnotherSubject(t *testing.T) {
-	path := writeSubjectMigrationFixture(t, "https://api.example.test", "ed25519:public", "FINGERPRINT")
-	registry, provider := newMemorySecretProviderRegistry()
-	provider.values[OAuth2SecretKey("legacy-identity", "client")] = "oauth-secret"
-	provider.values[AgentKeyKey("legacy-identity")] = "agent-secret"
-	first := &subjectVerification{SubjectID: "00000000-0000-4000-8000-000000000217", SubjectType: SubjectTypeAgent, PublicKey: "ed25519:public", Fingerprint: "FINGERPRINT"}
-	second := &subjectVerification{SubjectID: "00000000-0000-4000-8000-000000000218", SubjectType: SubjectTypeAgent, PublicKey: "ed25519:public", Fingerprint: "FINGERPRINT"}
-	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, []configMigration{newSubjectAnchorMigration(first)}, first)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := applyConfigMigrationPlan(plan, osKeyringProviderName, registry, []configMigration{newSubjectAnchorMigration(second)}, second); err == nil {
-		t.Fatal("cross-subject plan unexpectedly applied")
-	}
-}
-
-func TestConfigMigrateEncodesAuthenticatedSubjectIntoPlan(t *testing.T) {
-	server, answer := startActivationIdentityServer(t)
-	path := writeSubjectMigrationFixture(t, server.URL, answer.PublicKey, answer.Fingerprint)
-	registry, provider := newMemorySecretProviderRegistry()
-	provider.values[OAuth2SecretKey("legacy-identity", "client")] = "oauth-secret"
-	provider.values[AgentKeyKey("legacy-identity")] = "agent-secret"
+func TestConfigMigrateDryRunDoesNotAuthenticateOrBindAPlanToOneSubject(t *testing.T) {
+	path := writeSubjectMigrationFixture(t, "http://127.0.0.1:1", "ed25519:public", "FINGERPRINT")
+	registry, _ := newMemorySecretProviderRegistry()
 	var output bytes.Buffer
 
 	err := runConfigMigrateCmdWithRegistry(
@@ -148,8 +183,55 @@ func TestConfigMigrateEncodesAuthenticatedSubjectIntoPlan(t *testing.T) {
 	if err := json.Unmarshal(output.Bytes(), &plan); err != nil {
 		t.Fatal(err)
 	}
-	if plan.Parameters[migrationSubjectIDParameter] != answer.SubjectID ||
-		plan.Parameters[migrationSubjectTypeParameter] != "agent" {
-		t.Fatalf("plan parameters = %#v", plan.Parameters)
+	if len(plan.Migrations) == 0 || plan.Migrations[0].ID != subjectAnchorMigrationID {
+		t.Fatalf("subject migration missing from offline plan: %#v", plan.Migrations)
+	}
+	if _, exists := plan.Parameters["subject_id"]; exists {
+		t.Fatalf("offline plan was bound to a subject: %#v", plan.Parameters)
+	}
+}
+
+func TestConfigMigrateReportsSubjectAuthenticationFailureAsRunOutput(t *testing.T) {
+	path := writeSubjectMigrationFixture(t, "http://127.0.0.1:1", "ed25519:public", "FINGERPRINT")
+	registry, _ := newMemorySecretProviderRegistry()
+	var output bytes.Buffer
+
+	err := runConfigMigrateCmdWithRegistry(
+		&output,
+		path,
+		"",
+		"",
+		osKeyringProviderName,
+		false,
+		registry,
+		subjectAwareConfigMigrations(osKeyringProviderName),
+	)
+	if err == nil {
+		t.Fatal("subject authentication unexpectedly succeeded")
+	}
+	var result configMigrationRunOutput
+	if jsonErr := json.Unmarshal(output.Bytes(), &result); jsonErr != nil {
+		t.Fatalf("failure output is not JSON: %v\n%s", jsonErr, output.String())
+	}
+	if result.Failure == nil || result.Failure.Stage != "verify_subject" {
+		t.Fatalf("failure = %+v", result.Failure)
+	}
+}
+
+func TestSubjectAnchorMigrationDoesNotApplyToCredentiallessConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+	if err := os.WriteFile(path, []byte("{\"keys\":{},\"oauth2\":{},\"endpoints\":{}}"), privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := buildConfigMigrationPlan(
+		path,
+		osKeyringProviderName,
+		[]configMigration{newSubjectAnchorMigration(nil)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Migrations) != 0 {
+		t.Fatalf("credentialless config has pending subject migration: %#v", plan.Migrations)
 	}
 }

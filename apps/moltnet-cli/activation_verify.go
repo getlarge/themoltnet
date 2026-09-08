@@ -52,14 +52,14 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
 
-	return verifyAuthenticatedSubject(credentialsPath, creds, whoami)
+	return verifyAuthenticatedSubject(credentialsPath, creds, whoami, true)
 }
 
 // verifyConfigIdentityAgainstServer is the migration variant of identity
 // verification. It resolves only references from the supplied document and
 // registry, preventing an ambient agent-key override from authenticating a
 // different subject while the plan is being bound.
-func verifyConfigIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, registry *SecretProviderRegistry) (*subjectVerification, error) {
+func verifyConfigIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, registry *SecretProviderRegistry, verifySigningKey bool) (*subjectVerification, error) {
 	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
 	if err != nil {
 		return nil, fmt.Errorf("verify config identity: %w", err)
@@ -68,18 +68,20 @@ func verifyConfigIdentityAgainstServer(apiURL, credentialsPath string, creds *Cr
 	if err != nil {
 		return nil, fmt.Errorf("verify config identity: %w", err)
 	}
-	return verifyAuthenticatedSubject(credentialsPath, creds, whoami)
+	return verifyAuthenticatedSubject(credentialsPath, creds, whoami, verifySigningKey)
 }
 
 // verifyAuthenticatedSubject is shared by activation and config migration so
 // their definition of the durable binding cannot drift. Legacy documents have
 // no subject tuple to compare; authentication supplies it. Canonical documents
-// must match it exactly. Ory identity and signing-key metadata are intentionally
-// not equality guards because both may rotate while the agent subject remains.
+// must match it exactly. Ory identity may rotate independently, but the local
+// signing key must match the authenticated agent because the corresponding
+// private seed cannot be recovered from the server record.
 func verifyAuthenticatedSubject(
 	credentialsPath string,
 	creds *CredentialsFile,
 	whoami *moltnetapi.Whoami,
+	verifySigningKey bool,
 ) (*subjectVerification, error) {
 	serverSubjectID := whoami.SubjectId.String()
 	serverSubjectType := SubjectType(whoami.SubjectType)
@@ -118,6 +120,16 @@ func verifyAuthenticatedSubject(
 		return nil, fmt.Errorf(
 			"verify identity: the server returned no public key or fingerprint for this credential",
 		)
+	}
+	if verifySigningKey {
+		localPublicKey := strings.TrimSpace(creds.Keys.PublicKey)
+		localFingerprint := strings.TrimSpace(creds.Keys.Fingerprint)
+		if localPublicKey != "" && localPublicKey != serverPublicKey {
+			return nil, fmt.Errorf("verify identity: local public key does not match the authenticated agent")
+		}
+		if localFingerprint != "" && localFingerprint != serverFingerprint {
+			return nil, fmt.Errorf("verify identity: local fingerprint does not match the authenticated agent")
+		}
 	}
 
 	return &subjectVerification{

@@ -219,7 +219,8 @@ async function main(): Promise<void> {
   // agent has no GitHub App. The daemon path doesn't need one for tasks
   // that don't touch GitHub.
   const moltnetJson = {
-    identity_id: agent.identityId,
+    subject_id: agent.agentId,
+    subject_type: 'agent',
     oauth2: {
       client_id: agent.clientId,
       client_secret: agent.clientSecret,

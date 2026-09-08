@@ -157,7 +157,7 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 	}
 
 	// Required fields
-	if strings.TrimSpace(creds.SubjectID) == "" || creds.SubjectType != SubjectTypeAgent {
+	if _, ok := creds.CanonicalSubject(); !ok {
 		issues = append(issues, ConfigIssue{Field: "subject_id", Problem: "missing or unsupported subject anchor", Action: "warning"})
 	}
 	if creds.Keys.PublicKey == "" {

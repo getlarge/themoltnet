@@ -15,6 +15,7 @@ import {
   assertTrustedConfigApiUrl,
   deriveMcpUrl,
   identitySeedKey,
+  isCanonicalConfig,
   type MoltNetConfig,
   MoltNetError,
   register,
@@ -473,7 +474,15 @@ export async function verifyAgentActivation(
     );
   }
   const refreshed = { ...activation, ...identity };
-  store.writeActivation(refreshed);
+  if (
+    activation.publicKey !== refreshed.publicKey ||
+    activation.fingerprint !== refreshed.fingerprint
+  ) {
+    store.writeActivation(refreshed);
+    process.stderr.write(
+      `agent-server: refreshed the authenticated signing identity for ${JSON.stringify(activation.alias)}\n`,
+    );
+  }
   return {
     activation: refreshed,
     config: verified.config,
@@ -750,10 +759,10 @@ function assertSubjectMatches(
   currentLabel: string,
   expectedLabel: string,
 ): void {
-  if (expected.subject_type !== 'agent' || !expected.subject_id?.trim()) {
+  if (!isCanonicalConfig(expected)) {
     throw new AgentServerIdentityError(
       'verification_failed',
-      `${expectedLabel} is missing canonical subject_type=agent and subject_id`,
+      `${expectedLabel} is missing canonical subject_type=agent and subject_id; run \`moltnet config migrate\` first`,
     );
   }
   if (

@@ -1,11 +1,13 @@
 import { toSSHPublicKey } from './ssh.js';
 
+export const AGENT_SIGNING_PROTOCOL_VERSION = 1 as const;
+
 /**
  * Non-secret identity of the agent a daemon runs as. Everything here may be
  * projected into a sandbox guest; nothing here can sign.
  */
 export interface AgentIdentity {
-  protocolVersion: 1;
+  protocolVersion: typeof AGENT_SIGNING_PROTOCOL_VERSION;
   agentName: string;
   subjectId: string;
   subjectType: 'agent';

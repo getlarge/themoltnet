@@ -17,12 +17,12 @@
   },
   "scripts": {},
   "dependencies": {
+    "@moltnet/agent-config": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "typebox": "catalog:"
   },
   "devDependencies": {
-    "@themoltnet/sdk": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

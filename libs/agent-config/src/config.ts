@@ -67,6 +67,18 @@ export type GitHubConfig =
 
 export type AgentSubjectType = 'agent';
 
+export function oauth2SecretKey(subjectId: string, clientId: string): string {
+  return `oauth2/${subjectId}/${clientId}`;
+}
+
+export function identitySeedKey(fingerprint: string): string {
+  return `identity/${fingerprint}/seed`;
+}
+
+export function agentKeyKey(subjectId: string): string {
+  return `agent-key/${subjectId}`;
+}
+
 interface MoltNetConfigBase {
   registered_at: string;
   keys: KeysConfig;
@@ -122,10 +134,16 @@ export type LegacyMoltNetConfig = MoltNetConfigBase &
 /** Temporary compatibility shape returned by readers during the migration release. */
 type ReadMoltNetConfig = MoltNetConfig | LegacyMoltNetConfig;
 
-function assertCanonicalConfig(
+export function isCanonicalConfig(
+  config: ReadMoltNetConfig,
+): config is MoltNetConfig {
+  return Boolean(config.subject_id?.trim()) && config.subject_type === 'agent';
+}
+
+export function assertCanonicalConfig(
   config: ReadMoltNetConfig,
 ): asserts config is MoltNetConfig {
-  if (!config.subject_id?.trim() || config.subject_type !== 'agent') {
+  if (!isCanonicalConfig(config)) {
     throw new Error(
       'legacy config is read-only; run `moltnet config migrate` before writing',
     );

@@ -319,7 +319,6 @@ func runConfigInitFromEnvCmdWithRegistry(
 			}
 		}
 	}
-
 	if subjectID == "" || subjectType != SubjectTypeAgent {
 		return fmt.Errorf("canonical config requires MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent")
 	}
@@ -470,8 +469,9 @@ func runConfigInitFromEnvCmdWithRegistry(
 	initialized = true
 	if legacyAgentKeySource != nil {
 		if err := secretProviders.Delete(*legacyAgentKeySource); err != nil {
-			return fmt.Errorf(
-				"canonical config is active, but deleting legacy agent credential %s:%s failed: %w; remove that source manually",
+			fmt.Fprintf(
+				errOut,
+				"Warning: canonical config is active, but deleting legacy agent credential %s:%s failed: %v; remove that source manually\n",
 				legacyAgentKeySource.Provider,
 				legacyAgentKeySource.Key,
 				err,

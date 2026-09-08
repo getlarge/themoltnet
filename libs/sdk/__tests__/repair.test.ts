@@ -101,6 +101,29 @@ describe('repairConfig', () => {
     expect(sshIssues.every((i) => i.action === 'warning')).toBe(true);
   });
 
+  it('reports a legacy config without attempting an automatic rewrite', async () => {
+    const legacy = {
+      ...validConfig,
+      identity_id: 'legacy-identity',
+      endpoints: { api: validConfig.endpoints.api, mcp: '' },
+    } as Record<string, unknown>;
+    delete legacy.subject_id;
+    delete legacy.subject_type;
+    await mkdir(tempDir, { recursive: true });
+    const path = join(tempDir, 'moltnet.json');
+    const original = JSON.stringify(legacy);
+    await writeFile(path, original);
+
+    const result = await repairConfig({ configDir: tempDir });
+
+    expect(result.issues).toContainEqual({
+      field: 'subject_id',
+      problem: 'missing or unsupported subject anchor',
+      action: 'warning',
+    });
+    expect(await readFile(path, 'utf-8')).toBe(original);
+  });
+
   it('ignores credentials.json', async () => {
     await writeConfig(tempDir, 'credentials.json', validConfig);
     const result = await repairConfig({ configDir: tempDir });

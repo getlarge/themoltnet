@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readdir, readFile, stat } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -146,6 +153,43 @@ describe('OAuth2 config updates', () => {
       writeConfig(legacy as unknown as MoltNetConfig, dir),
     ).rejects.toThrow(/moltnet config migrate/);
     expect(await readdir(dir)).toEqual([]);
+  });
+
+  it.each([
+    ['section', (dir: string) => updateConfigSection('git', {}, dir)],
+    [
+      'oauth2',
+      (dir: string) =>
+        updateOAuth2Config(
+          { client_id: 'client', client_secret: 'secret' },
+          dir,
+        ),
+    ],
+    [
+      'keys',
+      (dir: string) =>
+        updateKeysConfig(
+          { public_key: 'pub', private_key: 'seed', fingerprint: 'fp' },
+          dir,
+        ),
+    ],
+    [
+      'github',
+      (dir: string) =>
+        updateGitHubConfig(
+          { app_id: '1', installation_id: '2', private_key_path: '/pem' },
+          dir,
+        ),
+    ],
+  ])('keeps legacy configs out of the %s updater', async (_name, update) => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const { subject_id: _id, subject_type: _type, ...rest } = config();
+    await writeFile(
+      join(dir, 'moltnet.json'),
+      JSON.stringify({ ...rest, identity_id: 'legacy-identity' }),
+    );
+
+    await expect(update(dir)).rejects.toThrow(/moltnet config migrate/);
   });
 });
 

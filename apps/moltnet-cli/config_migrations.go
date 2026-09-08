@@ -61,21 +61,11 @@ func validateMigrationDestination(registry *SecretProviderRegistry, destination 
 
 const migrationDestinationParameter = "destination"
 
-const (
-	migrationSubjectIDParameter   = "subject_id"
-	migrationSubjectTypeParameter = "subject_type"
-)
-
-func newConfigMigrationEngine(migrations []configMigration, destination string, verified ...*subjectVerification) configmigrate.Engine[*SecretProviderRegistry] {
-	parameters := map[string]string{migrationDestinationParameter: destination}
-	if len(verified) > 0 && verified[0] != nil {
-		parameters[migrationSubjectIDParameter] = verified[0].SubjectID
-		parameters[migrationSubjectTypeParameter] = string(verified[0].SubjectType)
-	}
+func newConfigMigrationEngine(migrations []configMigration, destination string) configmigrate.Engine[*SecretProviderRegistry] {
 	return configmigrate.Engine[*SecretProviderRegistry]{
 		GeneratedBy:    "moltnet@" + version,
 		MaxConfigBytes: maxMigrationConfigBytes,
-		Parameters:     parameters,
+		Parameters:     map[string]string{migrationDestinationParameter: destination},
 		Migrations:     migrations,
 	}
 }
@@ -182,26 +172,16 @@ func runConfigMigrateCmdWithRegistry(
 		if filepath.Clean(plan.CredentialsPath) != filepath.Clean(credentialsPath) {
 			return fmt.Errorf("migration plan targets %s, not %s", plan.CredentialsPath, credentialsPath)
 		}
-		verified, boundMigrations, err := bindSubjectMigrationPlan(plan, credentialsPath, secretProviders, migrations)
+		boundMigrations, err := bindSubjectMigrationPlan(plan, credentialsPath, secretProviders, migrations)
 		if err != nil {
-			return err
+			return printConfigMigrationPreflightFailure(w, plan, err)
 		}
-		return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, boundMigrations, verified)
+		return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, boundMigrations)
 	}
 
 	plan, err := buildConfigMigrationPlan(credentialsPath, destination, migrations)
 	if err != nil {
 		return err
-	}
-	verified, migrations, err := bindSubjectMigrationPlan(plan, credentialsPath, secretProviders, migrations)
-	if err != nil {
-		return err
-	}
-	if verified != nil {
-		plan, err = buildConfigMigrationPlan(credentialsPath, destination, migrations, verified)
-		if err != nil {
-			return err
-		}
 	}
 	if dryRun {
 		return printJSONTo(w, plan)
@@ -212,7 +192,22 @@ func runConfigMigrateCmdWithRegistry(
 		}
 		return printJSONTo(w, plan)
 	}
-	return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, migrations, verified)
+	migrations, err = bindSubjectMigrationPlan(plan, credentialsPath, secretProviders, migrations)
+	if err != nil {
+		return printConfigMigrationPreflightFailure(w, plan, err)
+	}
+	return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, migrations)
+}
+
+func printConfigMigrationPreflightFailure(w io.Writer, plan configMigrationPlan, err error) error {
+	failure := configmigrate.FailureFromError(
+		plan,
+		migrationStageError("verify_subject", configmigrate.FailureState{}, err),
+	)
+	if printErr := printJSONTo(w, configMigrationRunOutput{Plan: plan, Failure: failure}); printErr != nil {
+		return errors.Join(err, printErr)
+	}
+	return errors.New(failure.Message)
 }
 
 func runAndPrintConfigMigrationPlan(
@@ -221,13 +216,21 @@ func runAndPrintConfigMigrationPlan(
 	destination string,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
-	verified ...*subjectVerification,
 ) error {
-	applied, err := applyConfigMigrationPlan(plan, destination, secretProviders, migrations, verified...)
+	applied, err := applyConfigMigrationPlan(plan, destination, secretProviders, migrations)
 	output := configMigrationRunOutput{
 		Plan:    plan,
 		Applied: applied,
 		Changed: len(applied) > 0,
+	}
+	var cleanupErr *subjectCleanupError
+	if errors.As(err, &cleanupErr) {
+		output.Applied = []string{subjectAnchorMigrationID}
+		output.Changed = true
+		output.ManualRecoveryRequired = true
+		output.Warnings = []string{cleanupErr.Error()}
+		output.NextMigration = nextPendingMigration(plan.CredentialsPath, destination, migrations)
+		return printJSONTo(w, output)
 	}
 	if err == nil && len(applied) > 0 {
 		output.NextMigration = nextPendingMigration(plan.CredentialsPath, destination, migrations)
@@ -244,8 +247,8 @@ func runAndPrintConfigMigrationPlan(
 	return printJSONTo(w, output)
 }
 
-func buildConfigMigrationPlan(credentialsPath, destination string, migrations []configMigration, verified ...*subjectVerification) (configMigrationPlan, error) {
-	return newConfigMigrationEngine(migrations, destination, verified...).BuildPlan(credentialsPath)
+func buildConfigMigrationPlan(credentialsPath, destination string, migrations []configMigration) (configMigrationPlan, error) {
+	return newConfigMigrationEngine(migrations, destination).BuildPlan(credentialsPath)
 }
 
 func applyConfigMigrationPlan(
@@ -253,29 +256,28 @@ func applyConfigMigrationPlan(
 	destination string,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
-	verified ...*subjectVerification,
 ) ([]string, error) {
-	return newConfigMigrationEngine(migrations, destination, verified...).Apply(plan, secretProviders)
+	return newConfigMigrationEngine(migrations, destination).Apply(plan, secretProviders)
 }
 
-func bindSubjectMigrationPlan(plan configMigrationPlan, credentialsPath string, registry *SecretProviderRegistry, migrations []configMigration) (*subjectVerification, []configMigration, error) {
+func bindSubjectMigrationPlan(plan configMigrationPlan, credentialsPath string, registry *SecretProviderRegistry, migrations []configMigration) ([]configMigration, error) {
 	if len(plan.Migrations) == 0 || plan.Migrations[0].ID != subjectAnchorMigrationID {
-		return nil, migrations, nil
+		return migrations, nil
 	}
 	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("read credentials for subject migration: %w", err)
+		return nil, fmt.Errorf("read credentials for subject migration: %w", err)
 	}
 	if creds == nil {
-		return nil, nil, fmt.Errorf("read credentials for subject migration: config not found at %s", credentialsPath)
+		return nil, fmt.Errorf("read credentials for subject migration: config not found at %s", credentialsPath)
 	}
 	apiURL := strings.TrimSpace(creds.Endpoints.API)
 	if apiURL == "" {
-		return nil, nil, fmt.Errorf("subject migration requires endpoints.api")
+		return nil, fmt.Errorf("subject migration requires endpoints.api")
 	}
-	verified, err := verifyConfigIdentityAgainstServer(apiURL, credentialsPath, creds, registry)
+	verified, err := verifyConfigIdentityAgainstServer(apiURL, credentialsPath, creds, registry, true)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	bound := append([]configMigration(nil), migrations...)
 	for index := range bound {
@@ -283,7 +285,7 @@ func bindSubjectMigrationPlan(plan configMigrationPlan, credentialsPath string, 
 			bound[index] = newSubjectAnchorMigration(verified)
 		}
 	}
-	return verified, bound, nil
+	return bound, nil
 }
 
 func writeConfigMigrationPlan(path string, plan configMigrationPlan) error {

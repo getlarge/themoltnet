@@ -661,7 +661,7 @@ func verifyAgentsInitSubject(
 	}
 	verified, err := verifyAuthenticatedSubject(configPath, &CredentialsFile{
 		SubjectID: state.SubjectID, SubjectType: state.SubjectType,
-	}, whoami)
+	}, whoami, true)
 	if err != nil {
 		return nil, fmt.Errorf("verify onboarding credential: %w", err)
 	}

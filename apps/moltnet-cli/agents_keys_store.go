@@ -87,7 +87,8 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(creds.SubjectID) == "" || creds.SubjectType != SubjectTypeAgent {
+	subjectID, ok := creds.CanonicalSubject()
+	if !ok {
 		return nil, fmt.Errorf("--store requires subject_type=agent and subject_id in %s; run `moltnet config migrate` first", credentialsPath)
 	}
 	writeRecovery := opts.writeRecovery
@@ -96,8 +97,8 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	}
 	return &agentKeyStoreTarget{
 		credentialsPath: credentialsPath,
-		subjectID:       creds.SubjectID,
-		ref:             SecretReference{Provider: destination, Key: AgentKeyKey(creds.SubjectID)},
+		subjectID:       subjectID,
+		ref:             SecretReference{Provider: destination, Key: AgentKeyKey(subjectID)},
 		providers:       providers,
 		writeRecovery:   writeRecovery,
 	}, nil
@@ -155,7 +156,7 @@ func (t *agentKeyStoreTarget) updateCredentials() error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(creds.SubjectID) != t.subjectID || creds.SubjectType != SubjectTypeAgent {
+	if subjectID, ok := creds.CanonicalSubject(); !ok || subjectID != t.subjectID {
 		return errAgentKeySubjectChanged
 	}
 	updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {

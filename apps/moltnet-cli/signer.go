@@ -19,6 +19,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const signerProtocolVersion = 1
+
 // SignerIdentity is the non-secret identity a signer speaks for.
 type SignerIdentity struct {
 	ProtocolVersion int         `json:"protocolVersion"`
@@ -78,13 +80,13 @@ func newLocalSeedSigner(creds *CredentialsFile, seed string) *localSeedSigner {
 }
 
 func (s *localSeedSigner) Identity(_ context.Context) (SignerIdentity, error) {
-	if strings.TrimSpace(s.creds.SubjectID) == "" || s.creds.SubjectType != SubjectTypeAgent {
+	if _, ok := s.creds.CanonicalSubject(); !ok {
 		return SignerIdentity{}, errors.New(
 			"local signer requires subject_type=agent and subject_id; run `moltnet config migrate` first",
 		)
 	}
 	id := SignerIdentity{
-		ProtocolVersion: 1,
+		ProtocolVersion: signerProtocolVersion,
 		SubjectID:       s.creds.SubjectID,
 		SubjectType:     s.creds.SubjectType,
 		PublicKey:       s.creds.Keys.PublicKey,
@@ -239,10 +241,11 @@ func (s *remoteSigner) Identity(ctx context.Context) (SignerIdentity, error) {
 	if err := s.call(ctx, http.MethodGet, "/identity", nil, &id); err != nil {
 		return SignerIdentity{}, err
 	}
-	if id.ProtocolVersion != 1 {
+	if id.ProtocolVersion != signerProtocolVersion {
 		return SignerIdentity{}, fmt.Errorf(
-			"remote signer protocol version %d is unsupported; expected 1",
+			"remote signer protocol version %d is unsupported; expected %d; upgrade the CLI and signer together",
 			id.ProtocolVersion,
+			signerProtocolVersion,
 		)
 	}
 	if id.SubjectID == "" || id.SubjectType != SubjectTypeAgent || id.PublicKey == "" || id.Fingerprint == "" {

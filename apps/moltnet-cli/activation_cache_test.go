@@ -796,19 +796,13 @@ func TestAgentsActivationRefreshRejectsServerSubjectMismatch(t *testing.T) {
 	}
 }
 
-func TestAgentsActivationRefreshAllowsRotatedIdentityMetadata(t *testing.T) {
+func TestAgentsActivationRefreshAllowsRotatedOryIdentityOnly(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		mutate func(*activationIdentityResponse)
 	}{
 		{name: "identity id", mutate: func(a *activationIdentityResponse) {
 			a.IdentityID = "00000000-0000-4000-8000-0000000000bb"
-		}},
-		{name: "public key", mutate: func(a *activationIdentityResponse) {
-			a.PublicKey = "ed25519:rotated"
-		}},
-		{name: "fingerprint", mutate: func(a *activationIdentityResponse) {
-			a.Fingerprint = "SHA256:rotated"
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -819,6 +813,26 @@ func TestAgentsActivationRefreshAllowsRotatedIdentityMetadata(t *testing.T) {
 			}
 			if _, err := os.Stat(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")); err != nil {
 				t.Fatalf("rotation did not produce a refreshed cache: %v", err)
+			}
+		})
+	}
+}
+
+func TestAgentsActivationRefreshRejectsSigningKeyMismatch(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		mutate  func(*activationIdentityResponse)
+		wantMsg string
+	}{
+		{name: "public key", mutate: func(a *activationIdentityResponse) { a.PublicKey = "ed25519:rotated" }, wantMsg: "local public key"},
+		{name: "fingerprint", mutate: func(a *activationIdentityResponse) { a.Fingerprint = "SHA256:rotated" }, wantMsg: "local fingerprint"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, identity := setupActivationCacheFixtureWithIdentity(t)
+			tc.mutate(identity)
+			err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+			if err == nil || !strings.Contains(err.Error(), tc.wantMsg) {
+				t.Fatalf("error = %v, want %q", err, tc.wantMsg)
 			}
 		})
 	}
@@ -889,10 +903,8 @@ func TestAgentsActivationRefreshReplacesStaleEnvFingerprint(t *testing.T) {
 	// Act.
 	err = runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
 
-	// Assert: the authenticated record wins because signing metadata can rotate
-	// while the durable subject remains unchanged.
 	if err != nil {
-		t.Fatalf("refresh with stale fingerprint: %v", err)
+		t.Fatalf("refresh with stale environment fingerprint: %v", err)
 	}
 	cache, err := readActivationCache(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json"))
 	if err != nil {

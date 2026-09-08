@@ -57,4 +57,11 @@ describe('loadConfig observability settings', () => {
       fingerprint: 'fp-1',
     });
   });
+
+  it('rejects the obsolete identity pin instead of silently disabling pinning', () => {
+    vi.stubEnv('MOLTNET_EXPECTED_IDENTITY_ID', 'identity-1');
+    expect(() => loadConfig()).toThrow(
+      'MOLTNET_EXPECTED_IDENTITY_ID is no longer supported',
+    );
+  });
 });

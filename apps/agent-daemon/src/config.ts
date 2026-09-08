@@ -89,6 +89,11 @@ export function loadConfig(): DaemonConfig {
 }
 
 function readExpectedAgent(): DaemonConfig['expectedAgent'] {
+  if (process.env['MOLTNET_EXPECTED_IDENTITY_ID']?.trim()) {
+    throw new Error(
+      'MOLTNET_EXPECTED_IDENTITY_ID is no longer supported; set the complete MOLTNET_EXPECTED_SUBJECT_ID, MOLTNET_EXPECTED_SUBJECT_TYPE=agent, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT pin',
+    );
+  }
   const subjectId = process.env['MOLTNET_EXPECTED_SUBJECT_ID']?.trim() ?? '';
   const subjectType =
     process.env['MOLTNET_EXPECTED_SUBJECT_TYPE']?.trim() ?? '';

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   deriveMcpUrl,
   getConfigDir,
+  isCanonicalConfig,
   type MoltNetConfig,
   writeConfig,
 } from './credentials.js';
@@ -40,6 +41,10 @@ export async function repairConfig(opts?: {
 
   validateConfig(config, issues);
   await checkFilePaths(config, issues);
+
+  if (!isCanonicalConfig(config)) {
+    return { issues, config };
+  }
 
   // Apply auto-fixes
   if (!config.endpoints.mcp && config.endpoints.api) {

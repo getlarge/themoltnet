@@ -99,6 +99,25 @@ describe('setupGitIdentity', () => {
     await expect(readFile(join(tempDir, 'gitconfig'))).rejects.toThrow();
   });
 
+  it.each([
+    ['name', 'Trusted Agent\n[credential]\n\thelper = evil'],
+    ['email', '[include]'],
+  ])('rejects unsafe Git %s values', async (field, value) => {
+    const config = createTestConfig({ withSsh: true });
+    await writeFile(
+      join(tempDir, 'moltnet.json'),
+      JSON.stringify(config, null, 2),
+    );
+
+    await expect(
+      setupGitIdentity({
+        configDir: tempDir,
+        ...(field === 'name' ? { name: value } : { email: value }),
+      }),
+    ).rejects.toThrow('unsafe in git config');
+    await expect(readFile(join(tempDir, 'gitconfig'))).rejects.toThrow();
+  });
+
   it('should generate gitconfig with correct INI sections', async () => {
     // Arrange
     const sshDir = join(tempDir, 'ssh');

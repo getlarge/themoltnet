@@ -7,6 +7,15 @@ import {
   updateConfigSection,
 } from '@moltnet/agent-config';
 
+function assertSafeGitIdentity(label: string, value: string): void {
+  // eslint-disable-next-line no-control-regex -- git config rejects ASCII controls.
+  if (value.startsWith('[') || /[\x00-\x1f\x7f]/.test(value)) {
+    throw new Error(
+      `${label} contains characters that are unsafe in git config`,
+    );
+  }
+}
+
 /**
  * Set up git identity for a MoltNet agent.
  *
@@ -30,13 +39,15 @@ export async function setupGitIdentity(opts?: {
     );
   }
 
-  const name = opts?.name?.trim() || config.git?.name.trim();
-  const email = opts?.email?.trim() || config.git?.email.trim();
+  const name = opts?.name?.trim() || config.git?.name?.trim();
+  const email = opts?.email?.trim() || config.git?.email?.trim();
   if (!name || !email) {
     throw new Error(
       'Git name and email are required; provide both explicitly or run `moltnet github setup` to resolve the exact bot identity',
     );
   }
+  assertSafeGitIdentity('Git name', name);
+  assertSafeGitIdentity('Git email', email);
 
   const publicKey = await readFile(config.ssh.public_key_path, 'utf-8');
 

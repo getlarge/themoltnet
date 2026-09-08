@@ -2,6 +2,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { agentKeyKey } from '@moltnet/agent-config';
+
 export interface WriteAgentCredentialsInput {
   /** Root under which `.moltnet/<agentName>/` is created. */
   agentRoot: string;
@@ -56,7 +58,7 @@ export function writeAgentCredentials(
   // The file provider maps `agent-key/<subject_id>` to that path under the
   // root, so the directory layout has to mirror the key exactly.
   const secretRoot = join(input.agentRoot, 'secrets');
-  const secretKey = `agent-key/${input.subjectId}`;
+  const secretKey = agentKeyKey(input.subjectId);
   mkdirSync(join(secretRoot, 'agent-key'), { recursive: true });
   writeFileSync(join(secretRoot, secretKey), input.agentKeySecret, {
     encoding: 'utf8',

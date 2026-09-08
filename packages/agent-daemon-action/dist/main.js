@@ -39321,6 +39321,62 @@ var _decodeOptions = {
 _decodeOptions.tags[CID_CBOR_TAG] = cidDecoder;
 ({ ..._decodeOptions }), _decodeOptions.tags.slice();
 new TextEncoder().encode("SSHSIG");
+//#endregion
+//#region ../../libs/agent-config/src/config.ts
+function oauth2SecretKey(subjectId, clientId) {
+	return `oauth2/${subjectId}/${clientId}`;
+}
+function identitySeedKey(fingerprint) {
+	return `identity/${fingerprint}/seed`;
+}
+function agentKeyKey(subjectId) {
+	return `agent-key/${subjectId}`;
+}
+function getConfigDir() {
+	return join(homedir(), ".config", "moltnet");
+}
+/**
+* The one identity-alias grammar. Must stay identical to agentNamePattern in
+* apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
+* is a directory name in a store all three write, so a value one accepts and
+* another rejects makes an identity unreadable by half the system.
+*/
+var identitiesDirName = "identities";
+var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+function assertIdentityAlias(alias) {
+	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
+	return alias;
+}
+function getIdentityDir(alias) {
+	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
+}
+/** Resolve an explicit credentials directory, active identity, or default. */
+async function resolveConfigDir(configDir) {
+	if (configDir) return configDir;
+	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+	if (!alias) try {
+		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
+		const selector = JSON.parse(content);
+		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
+		alias = selector.default_identity?.trim();
+	} catch (error) {
+		if (error.code === "ENOENT") return null;
+		throw error;
+	}
+	return alias ? getIdentityDir(alias) : null;
+}
+async function readConfig(configDir) {
+	const dir = await resolveConfigDir(configDir);
+	if (!dir) return null;
+	return readConfigFile(join(dir, "moltnet.json"));
+}
+async function readConfigFile(path) {
+	try {
+		return JSON.parse(await readFile(path, "utf-8"));
+	} catch {
+		return null;
+	}
+}
 var OS_KEYRING_SECRET_PROVIDER = "os-keyring";
 var READ_ONLY_CAPABILITIES = Object.freeze({
 	read: true,
@@ -39493,15 +39549,6 @@ var BINDING_MESSAGES = Object.freeze({
 	"identity-seed": "Identity seed reference is not bound to this MoltNet identity",
 	"agent-key": "Agent key reference is not bound to this MoltNet subject"
 });
-function oauth2SecretKey(subjectId, clientId) {
-	return `oauth2/${subjectId}/${clientId}`;
-}
-function identitySeedKey(fingerprint) {
-	return `identity/${fingerprint}/seed`;
-}
-function agentKeyKey(subjectId) {
-	return `agent-key/${subjectId}`;
-}
 var PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
 var SECRET_REFERENCE_MESSAGE = "Secret reference must be <provider>:<key> with a lowercase provider name";
 function normalizeSecretReference(reference) {
@@ -39583,6 +39630,12 @@ function warnLegacyCredentialFieldOnce(field) {
 function warnLegacyCredentialOnce(kind) {
 	warnLegacyCredentialFieldOnce(LEGACY_FIELDS[kind]);
 }
+function warnLegacyIdentityBindingOnce() {
+	const field = "identity_id credential binding";
+	if (warned.has(field)) return;
+	warned.add(field);
+	console.warn("Warning: an identity_id-bound secret reference is deprecated; run 'moltnet config migrate' before the next major SDK release.");
+}
 /**
 * Resolve through the registry, normalizing any provider failure into a
 * value-free `provider_failure` error. Provider messages are retained only
@@ -39606,6 +39659,7 @@ async function resolveOAuth2ClientSecret(config, registry) {
 	const reference = oauth2.client_secret_ref;
 	if (hasLegacy && reference) throw new CredentialResolutionError(kind, "ambiguous", "config must set exactly one of client_secret or client_secret_ref");
 	if (reference) {
+		if (!config.subject_id && config.identity_id) warnLegacyIdentityBindingOnce();
 		try {
 			assertSecretReferenceBinding(kind, reference, {
 				subjectId: config.subject_id,
@@ -39631,6 +39685,7 @@ async function resolveAgentKey(config, registry) {
 	const kind = "agent-key";
 	const reference = config.agent_key_ref;
 	if (!reference) return null;
+	if (!config.subject_id && config.identity_id) warnLegacyIdentityBindingOnce();
 	try {
 		assertSecretReferenceBinding(kind, reference, {
 			subjectId: config.subject_id,
@@ -39658,53 +39713,6 @@ async function resolveEnvSecretReference(raw, registry) {
 	}
 	if (!value) throw new Error(`Secret reference ${reference.provider}:${reference.key} resolved to an empty value`);
 	return value;
-}
-//#endregion
-//#region ../../libs/agent-config/src/config.ts
-function getConfigDir() {
-	return join(homedir(), ".config", "moltnet");
-}
-/**
-* The one identity-alias grammar. Must stay identical to agentNamePattern in
-* apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
-* is a directory name in a store all three write, so a value one accepts and
-* another rejects makes an identity unreadable by half the system.
-*/
-var identitiesDirName = "identities";
-var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
-function assertIdentityAlias(alias) {
-	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
-	return alias;
-}
-function getIdentityDir(alias) {
-	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
-}
-/** Resolve an explicit credentials directory, active identity, or default. */
-async function resolveConfigDir(configDir) {
-	if (configDir) return configDir;
-	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
-	if (!alias) try {
-		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
-		const selector = JSON.parse(content);
-		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
-		alias = selector.default_identity?.trim();
-	} catch (error) {
-		if (error.code === "ENOENT") return null;
-		throw error;
-	}
-	return alias ? getIdentityDir(alias) : null;
-}
-async function readConfig(configDir) {
-	const dir = await resolveConfigDir(configDir);
-	if (!dir) return null;
-	return readConfigFile(join(dir, "moltnet.json"));
-}
-async function readConfigFile(path) {
-	try {
-		return JSON.parse(await readFile(path, "utf-8"));
-	} catch {
-		return null;
-	}
 }
 //#endregion
 //#region ../../libs/sdk/src/connect-ambient.ts

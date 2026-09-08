@@ -1,5 +1,6 @@
 export {
   type AgentSubjectType,
+  assertCanonicalConfig,
   assertIdentityAlias,
   type CanonicalMoltNetConfig,
   deriveMcpUrl,
@@ -9,6 +10,7 @@ export {
   type GitHubConfig,
   IDENTITY_ALIAS_PATTERN,
   type IdentitySelector,
+  isCanonicalConfig,
   type KeysConfig,
   type LegacyMoltNetConfig,
   type MoltNetConfig,

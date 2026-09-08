@@ -94,7 +94,7 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(creds.SubjectID) == "" || creds.SubjectType != SubjectTypeAgent {
+	if _, ok := creds.CanonicalSubject(); !ok {
 		return fmt.Errorf(
 			"agents credentials recover requires subject_type=agent and subject_id in %s; run `moltnet config migrate` first",
 			credentialsPath,

@@ -13,7 +13,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import type { AgentIdentity } from '@moltnet/crypto-service';
+import {
+  AGENT_SIGNING_PROTOCOL_VERSION,
+  type AgentIdentity,
+} from '@moltnet/crypto-service';
 import {
   createHostCapabilityRouter,
   createLocalSeedSigner,
@@ -208,17 +211,22 @@ const hostAgent = await connect({
   clientSecret: brokeredClientSecret,
   apiUrl: agentConfig.endpoints.api,
 });
+const gitName = agentConfig.git?.name?.trim();
+const gitEmail = agentConfig.git?.email?.trim();
+if (!gitName || !gitEmail) {
+  throw new Error(
+    'credential preflight failed: configure git.name and git.email before running the probe',
+  );
+}
 const agentIdentity: AgentIdentity = {
-  protocolVersion: 1,
+  protocolVersion: AGENT_SIGNING_PROTOCOL_VERSION,
   agentName,
   subjectId: agentConfig.subject_id,
   subjectType: agentConfig.subject_type,
   publicKey: agentConfig.keys.public_key,
   fingerprint: agentConfig.keys.fingerprint,
-  gitName: agentConfig.git?.name ?? agentName,
-  gitEmail:
-    agentConfig.git?.email ??
-    `${agentConfig.subject_id}+${agentName}[bot]@users.noreply.github.com`,
+  gitName,
+  gitEmail,
 };
 // Resolve once: keys.private_key_ref may point at a keyring or file secret.
 const hostPrivateKeySeed = await resolveIdentitySeed(

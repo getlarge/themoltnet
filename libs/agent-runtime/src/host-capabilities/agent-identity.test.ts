@@ -24,7 +24,7 @@ describe('resolveAgentIdentity', () => {
     });
   });
 
-  it('uses existing host git config and refuses to invent authorship', () => {
+  it('uses existing host git config and only defaults missing authorship', () => {
     expect(
       resolveAgentIdentity({
         agentName: 'legreffier',
@@ -32,9 +32,12 @@ describe('resolveAgentIdentity', () => {
         hostGit: { name: 'LeGreffier', email: 'h@x' },
       }),
     ).toMatchObject({ gitName: 'LeGreffier', gitEmail: 'h@x' });
-    expect(() =>
+    expect(
       resolveAgentIdentity({ agentName: 'legreffier', whoami }),
-    ).toThrow(/git authorship is missing/);
+    ).toMatchObject({
+      gitName: 'legreffier',
+      gitEmail: 'legreffier@localhost.invalid',
+    });
   });
 
   it('parses authors with spaces and angle brackets without backtracking', () => {

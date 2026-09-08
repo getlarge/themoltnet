@@ -1,5 +1,13 @@
+import {
+  agentKeyKey,
+  identitySeedKey,
+  oauth2SecretKey,
+} from '@moltnet/agent-config';
+
 import { readEnvironmentVariable } from './config.js';
 import type { SecretReference } from './credentials.js';
+
+export { agentKeyKey, identitySeedKey, oauth2SecretKey };
 
 export const ENVIRONMENT_SECRET_PROVIDER = 'env';
 export const OS_KEYRING_SECRET_PROVIDER = 'os-keyring';
@@ -319,18 +327,6 @@ const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
       'Identity seed reference is not bound to this MoltNet identity',
     'agent-key': 'Agent key reference is not bound to this MoltNet subject',
   });
-
-export function oauth2SecretKey(subjectId: string, clientId: string): string {
-  return `oauth2/${subjectId}/${clientId}`;
-}
-
-export function identitySeedKey(fingerprint: string): string {
-  return `identity/${fingerprint}/seed`;
-}
-
-export function agentKeyKey(subjectId: string): string {
-  return `agent-key/${subjectId}`;
-}
 
 const PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
 const SECRET_REFERENCE_MESSAGE =

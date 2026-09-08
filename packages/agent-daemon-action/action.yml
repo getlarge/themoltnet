@@ -146,7 +146,7 @@ runs:
   # the spawned shell's process environment (see CompositeActionHandler.cs
   # > "Merge global env"). Adopters declare the MOLTNET_* set
   # (CLIENT_ID, CLIENT_SECRET, PUBLIC_KEY, PRIVATE_KEY, FINGERPRINT,
-  # IDENTITY_ID, AGENT_NAME, API_URL, TEAM_ID, DIARY_ID, optional
+  # SUBJECT_ID, SUBJECT_TYPE, AGENT_NAME, API_URL, TEAM_ID, DIARY_ID, optional
   # GITHUB_APP_*, GIT_NAME, GIT_EMAIL) on the step that calls this
   # action — every shell below sees them via process.env without having
   # to re-list each one in a child `env:` block.
@@ -284,6 +284,10 @@ runs:
         fi
         export MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}"
         AGENT_DIR="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME"
+        if [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
+          echo "::error::MOLTNET_IDENTITY_ID is no longer supported. Set MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent." >&2
+          exit 1
+        fi
         # The daemon authenticates with an agent key and nothing else (#2160).
         # OAuth2 client credentials can still materialize the agent's git, SSH
         # and GitHub App assets below, but they cannot authenticate it. A

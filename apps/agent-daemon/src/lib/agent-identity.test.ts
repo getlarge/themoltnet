@@ -35,15 +35,17 @@ describe('resolveDaemonAgentIdentity', () => {
     expect(readConfigMock).toHaveBeenCalledWith('/agent');
   });
 
-  it('never reads host config when configless and requires explicit authorship', async () => {
-    await expect(
-      resolveDaemonAgentIdentity({
-        agentName: 'legreffier',
-        whoami,
-        credentialSource: 'environment',
-        agentDir: '/agent',
-      }),
-    ).rejects.toThrow(/git authorship is missing/);
+  it('uses a local-only default when a configless task has no Git authorship', async () => {
+    const identity = await resolveDaemonAgentIdentity({
+      agentName: 'legreffier',
+      whoami,
+      credentialSource: 'environment',
+      agentDir: '/agent',
+    });
+    expect(identity).toMatchObject({
+      gitName: 'legreffier',
+      gitEmail: 'legreffier@localhost.invalid',
+    });
     expect(readConfigMock).not.toHaveBeenCalled();
   });
 

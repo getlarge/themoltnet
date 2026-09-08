@@ -57,7 +57,10 @@ export {
   warnLegacyCredentialFieldOnce,
 } from './credential-resolver.js';
 export {
+  type AgentSubjectType,
+  assertCanonicalConfig,
   assertIdentityAlias,
+  type CanonicalMoltNetConfig,
   deriveMcpUrl,
   getConfigDir,
   getConfigPath,
@@ -65,9 +68,11 @@ export {
   type GitHubConfig,
   IDENTITY_ALIAS_PATTERN,
   type IdentitySelector,
+  isCanonicalConfig,
   type KeysConfig,
   type LegacyMoltNetConfig,
   type MoltNetConfig,
+  type MoltNetConfigAnchor,
   type OAuth2Config,
   readConfig,
   resolveConfigDir,

@@ -213,15 +213,18 @@ describe('resolveOAuth2ClientSecret', () => {
   });
 
   it('resolves a bound reference and warns once for plaintext', async () => {
-    const registry = registryWith({ 'oauth2/id/c': 'secret' });
+    const registry = registryWith({ 'oauth2/subject-1/c': 'secret' });
 
     await expect(
       resolveOAuth2ClientSecret(
         {
-          identity_id: 'id',
+          subject_id: 'subject-1',
           oauth2: {
             client_id: 'c',
-            client_secret_ref: { provider: 'memory', key: 'oauth2/id/c' },
+            client_secret_ref: {
+              provider: 'memory',
+              key: 'oauth2/subject-1/c',
+            },
           },
         },
         registry,
@@ -246,6 +249,25 @@ describe('resolveOAuth2ClientSecret', () => {
       ),
     ).resolves.toBe('plain');
     expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns once when resolving legacy identity-bound references', async () => {
+    const registry = registryWith({ 'oauth2/id/c': 'secret' });
+    const config = {
+      identity_id: 'id',
+      oauth2: {
+        client_id: 'c',
+        client_secret_ref: { provider: 'memory', key: 'oauth2/id/c' },
+      },
+    };
+
+    await resolveOAuth2ClientSecret(config, registry);
+    await resolveOAuth2ClientSecret(config, registry);
+
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(console.warn).mock.calls[0]?.[0]).toContain(
+      'identity_id-bound secret reference',
+    );
   });
 
   it('resolves a canonical subject-bound OAuth2 reference', async () => {

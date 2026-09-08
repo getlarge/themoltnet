@@ -1,4 +1,7 @@
-import type { AgentIdentity } from '@moltnet/crypto-service';
+import {
+  AGENT_SIGNING_PROTOCOL_VERSION,
+  type AgentIdentity,
+} from '@moltnet/crypto-service';
 
 /**
  * Parse `Name <email>` without a backtracking regex (CodeQL: polynomial
@@ -16,6 +19,9 @@ function parseGitAuthor(
   const at = email.indexOf('@');
   if (
     name === '' ||
+    name.startsWith('[') ||
+    // eslint-disable-next-line no-control-regex -- git config rejects ASCII controls.
+    /[\x00-\x1f\x7f]/.test(name) ||
     at <= 0 ||
     at === email.length - 1 ||
     email.indexOf('@', at + 1) !== -1 ||
@@ -28,9 +34,9 @@ function parseGitAuthor(
 
 /**
  * Build the non-secret identity projected to guests. Public key and
- * fingerprint come from the authenticated `whoami`; git authorship must come
- * from an explicit option or an existing host config and is never synthesized
- * from a MoltNet identifier.
+ * fingerprint come from the authenticated `whoami`. Existing or explicit Git
+ * authorship always wins; configless agents receive a stable local-only
+ * default so tasks that never commit do not fail during startup.
  */
 export function resolveAgentIdentity(input: {
   agentName: string;
@@ -66,15 +72,20 @@ export function resolveAgentIdentity(input: {
     gitName = parsed.name;
     gitEmail = parsed.email;
   } else if (input.hostGit?.name && input.hostGit.email) {
-    gitName = input.hostGit.name;
-    gitEmail = input.hostGit.email;
-  } else {
-    throw new Error(
-      'git authorship is missing; configure git.name and git.email or set --git-author/MOLTNET_GIT_AUTHOR',
+    const parsed = parseGitAuthor(
+      `${input.hostGit.name} <${input.hostGit.email}>`,
     );
+    if (!parsed) {
+      throw new Error('configured git authorship is unsafe or malformed');
+    }
+    gitName = parsed.name;
+    gitEmail = parsed.email;
+  } else {
+    gitName = input.agentName;
+    gitEmail = `${input.agentName}@localhost.invalid`;
   }
   return {
-    protocolVersion: 1,
+    protocolVersion: AGENT_SIGNING_PROTOCOL_VERSION,
     agentName: input.agentName,
     subjectId,
     subjectType: 'agent',

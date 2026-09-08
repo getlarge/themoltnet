@@ -43,6 +43,7 @@ type RunOutput struct {
 	Changed                bool     `json:"changed"`
 	Failure                *Failure `json:"failure,omitempty"`
 	ManualRecoveryRequired bool     `json:"manualRecoveryRequired"`
+	Warnings               []string `json:"warnings,omitempty"`
 	// NextMigration is the transition that becomes applicable once this run's
 	// change has landed. A plan carries at most one transition because a later
 	// migration's Applies predicate can only be evaluated against the rewritten

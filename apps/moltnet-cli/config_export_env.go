@@ -37,7 +37,7 @@ func runConfigExportEnvCmdWithRegistry(
 	if creds == nil {
 		return fmt.Errorf("no config found at %s", credPath)
 	}
-	if strings.TrimSpace(creds.SubjectID) == "" || creds.SubjectType != SubjectTypeAgent {
+	if _, ok := creds.CanonicalSubject(); !ok {
 		return fmt.Errorf(
 			"config at %s has no canonical agent subject; run `moltnet config migrate` first",
 			credPath,

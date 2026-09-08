@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // CredentialsFile matches the JS SDK MoltNetConfig format.
@@ -26,9 +27,17 @@ type CredentialsFile struct {
 	legacyIdentityID string
 }
 
+func (c *CredentialsFile) CanonicalSubject() (string, bool) {
+	if c == nil || c.SubjectType != SubjectTypeAgent {
+		return "", false
+	}
+	subjectID := strings.TrimSpace(c.SubjectID)
+	return subjectID, subjectID != ""
+}
+
 // UnmarshalJSON accepts identity_id only into private compatibility state.
-// Canonical callers cannot construct or serialize it through CredentialsFile;
-// the field exists solely so the explicit migration can resolve legacy keys.
+// The field exists solely so the compatibility release can resolve legacy
+// keys without exposing identity_id as a canonical caller-controlled field.
 func (c *CredentialsFile) UnmarshalJSON(data []byte) error {
 	type canonicalCredentials CredentialsFile
 	var document struct {
@@ -41,6 +50,21 @@ func (c *CredentialsFile) UnmarshalJSON(data []byte) error {
 	*c = CredentialsFile(document.canonicalCredentials)
 	c.legacyIdentityID = document.IdentityID
 	return nil
+}
+
+// MarshalJSON preserves identity_id only when this value came from a legacy
+// document. Ordinary commands may still add SSH or Git metadata before the
+// explicit migration runs; dropping the only anchor during that round trip
+// would make the document impossible to authenticate or migrate.
+func (c CredentialsFile) MarshalJSON() ([]byte, error) {
+	type canonicalCredentials CredentialsFile
+	if c.legacyIdentityID == "" {
+		return json.Marshal(canonicalCredentials(c))
+	}
+	return json.Marshal(struct {
+		canonicalCredentials
+		IdentityID string `json:"identity_id"`
+	}{canonicalCredentials(c), c.legacyIdentityID})
 }
 
 type CredentialsOAuth2 struct {

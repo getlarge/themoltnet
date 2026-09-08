@@ -58,11 +58,11 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	}
 	if existing != nil {
 		registry := NewSecretProviderRegistry()
-		source, verifyErr := verifyConfigIdentityAgainstServer(creds.Endpoints.API, path, creds, registry)
+		source, verifyErr := verifyConfigIdentityAgainstServer(creds.Endpoints.API, path, creds, registry, false)
 		if verifyErr != nil {
 			return nil, fmt.Errorf("authenticate relocation source: %w", verifyErr)
 		}
-		destination, verifyErr := verifyConfigIdentityAgainstServer(existing.Endpoints.API, target, existing, registry)
+		destination, verifyErr := verifyConfigIdentityAgainstServer(existing.Endpoints.API, target, existing, registry, false)
 		if verifyErr != nil {
 			return nil, fmt.Errorf("authenticate central identity: %w", verifyErr)
 		}

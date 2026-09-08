@@ -16,6 +16,23 @@ type subjectSecretMove struct {
 	value       string
 }
 
+type subjectCleanupError struct {
+	failures []subjectCleanupFailure
+}
+
+type subjectCleanupFailure struct {
+	reference SecretReference
+	err       error
+}
+
+func (e *subjectCleanupError) Error() string {
+	parts := make([]string, 0, len(e.failures))
+	for _, failure := range e.failures {
+		parts = append(parts, fmt.Sprintf("%s:%s (%v)", failure.reference.Provider, failure.reference.Key, failure.err))
+	}
+	return "canonical config is durable, but these legacy secrets could not be deleted; delete these provider entries manually: " + strings.Join(parts, ", ")
+}
+
 func newSubjectAnchorMigration(verified *subjectVerification) configMigration {
 	return configMigration{
 		ID:          subjectAnchorMigrationID,
@@ -32,7 +49,16 @@ func newSubjectAnchorMigration(verified *subjectVerification) configMigration {
 				return false, err
 			}
 			_, hasLegacyIdentity := raw["identity_id"]
-			return hasLegacyIdentity || strings.TrimSpace(creds.SubjectID) == "" || creds.SubjectType != SubjectTypeAgent, nil
+			if hasLegacyIdentity {
+				return true, nil
+			}
+			if _, ok := creds.CanonicalSubject(); ok {
+				return false, nil
+			}
+			hasAgentKey := creds.AgentKeyRef != nil
+			hasOAuth2 := strings.TrimSpace(creds.OAuth2.ClientID) != "" &&
+				(strings.TrimSpace(creds.OAuth2.ClientSecret) != "" || creds.OAuth2.ClientSecretRef != nil)
+			return hasAgentKey || hasOAuth2, nil
 		},
 		Run: func(ctx configMigrationContext, providers *SecretProviderRegistry) error {
 			if verified == nil || verified.SubjectType != SubjectTypeAgent || strings.TrimSpace(verified.SubjectID) == "" {
@@ -90,13 +116,17 @@ func newSubjectAnchorMigration(verified *subjectVerification) configMigration {
 			if err := ctx.ReplaceCredentials(updated); err != nil {
 				return migrationStageError("replace_credentials", retainedRetryableState(stored), err)
 			}
+			var cleanupFailures []subjectCleanupFailure
 			for _, move := range moves {
 				if move.source == move.destination || !providers.CanWrite(move.source.Provider) {
 					continue
 				}
 				if err := providers.Delete(move.source); err != nil {
-					return migrationStageError("delete_legacy_sources", configmigrate.FailureState{Changed: true, ManualRecoveryRequired: true}, fmt.Errorf("delete %s:%s: %w", move.source.Provider, move.source.Key, err))
+					cleanupFailures = append(cleanupFailures, subjectCleanupFailure{reference: move.source, err: err})
 				}
+			}
+			if len(cleanupFailures) > 0 {
+				return &subjectCleanupError{failures: cleanupFailures}
 			}
 			return nil
 		},
