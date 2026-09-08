@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.3.0...legreffier-plugin-v0.3.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **skills:** activate the guards on the session identity ([9595d51](https://github.com/getlarge/themoltnet/commit/9595d51d33de890d009f99c4cf358abedc1d44ae))
+* **skills:** export the activation signal independently of git artifacts ([5d8fbc4](https://github.com/getlarge/themoltnet/commit/5d8fbc4e9d81335e16dee6c9abef01322240708c))
+* **skills:** recognize central identity activation ([3b99cf1](https://github.com/getlarge/themoltnet/commit/3b99cf141145138ae62a961beada4600259979a2))
+* **skills:** run the session-start hook under its own shebang in tests ([c270a43](https://github.com/getlarge/themoltnet/commit/c270a43e8d168b2d57a2f3e89416f56b84225e3f))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.2.0...legreffier-plugin-v0.3.0) (2026-09-01)
 
 

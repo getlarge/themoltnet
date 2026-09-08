@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.46.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.45.3...agent-runtime-v0.46.0) (2026-09-08)
+
+
+### Features
+
+* **agent-daemon:** run on an agent key only, retiring OAuth2 ([95d33d0](https://github.com/getlarge/themoltnet/commit/95d33d0cf60fbd705898939d3aa55e4c2f4cb0c2)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+* run the daemon on an agent key only; cap what DCR can grant ([2be632f](https://github.com/getlarge/themoltnet/commit/2be632f2766733dfef4ea604062acfe31d4b28f7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.140.2
+
 ## [0.45.3](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.45.2...agent-runtime-v0.45.3) (2026-09-05)
 
 

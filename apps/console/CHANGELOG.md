@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.1](https://github.com/getlarge/themoltnet/compare/console-v0.12.0...console-v0.12.1) (2026-09-08)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.140.2
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/console-v0.11.0...console-v0.12.0) (2026-09-05)
 
 

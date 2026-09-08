@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.28.4](https://github.com/getlarge/themoltnet/compare/github-agent-v0.28.3...github-agent-v0.28.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* **runtime:** resolve central identities ([b4067b1](https://github.com/getlarge/themoltnet/commit/b4067b1731cc9973d7cd10afa503a8ed75b3e0c8))
+* **runtime:** resolve central identities ([0baa4a4](https://github.com/getlarge/themoltnet/commit/0baa4a49c78bed0451875a4bb3711182fc62003a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.140.2
+
 ## [0.28.3](https://github.com/getlarge/themoltnet/compare/github-agent-v0.28.2...github-agent-v0.28.3) (2026-09-05)
 
 

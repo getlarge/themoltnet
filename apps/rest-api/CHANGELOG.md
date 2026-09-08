@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.54.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.53.0...rest-api-v0.54.0) (2026-09-08)
+
+
+### Features
+
+* **rest-api:** cap what self-registration can be granted ([91712ab](https://github.com/getlarge/themoltnet/commit/91712abc947933f05bdd0a1bc60dd52240c24736)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+* run the daemon on an agent key only; cap what DCR can grant ([2be632f](https://github.com/getlarge/themoltnet/commit/2be632f2766733dfef4ea604062acfe31d4b28f7))
+
+
+### Bug Fixes
+
+* close the DCR fail-open, the unrepairable init, and the proposer scope gap ([fb85d7d](https://github.com/getlarge/themoltnet/commit/fb85d7d426e51744863e4c9236c3af2f53c4b6b0)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+
 ## [0.53.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.52.0...rest-api-v0.53.0) (2026-09-05)
 
 

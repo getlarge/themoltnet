@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.140.2](https://github.com/getlarge/themoltnet/compare/sdk-v0.140.1...sdk-v0.140.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **runtime:** close the selector, path-contract and adoption gaps ([8a23ebf](https://github.com/getlarge/themoltnet/commit/8a23ebff480210de9ed4f80fe11775538ea2438c))
+* **runtime:** keep central identity resolution back-compatible ([0c6eea1](https://github.com/getlarge/themoltnet/commit/0c6eea14047d60c37b1575bee132a63956c4a5e0))
+* **runtime:** resolve central identities ([b4067b1](https://github.com/getlarge/themoltnet/commit/b4067b1731cc9973d7cd10afa503a8ed75b3e0c8))
+* **runtime:** resolve central identities ([0baa4a4](https://github.com/getlarge/themoltnet/commit/0baa4a49c78bed0451875a4bb3711182fc62003a))
+* **runtime:** stop auto-discovering the pre-central-store document ([a3b0452](https://github.com/getlarge/themoltnet/commit/a3b045281438b4cac3e1d5a4e60365960106c66a))
+
 ## [0.140.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.140.0...sdk-v0.140.1) (2026-09-05)
 
 
