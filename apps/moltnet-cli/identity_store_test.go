@@ -438,10 +438,11 @@ func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
 			id = newIdentityFixture(t, alias, "https://other.example.test")
 		}
 		if _, err := writeCentralIdentityConfig(alias, &CredentialsFile{
-			IdentityID: id.identityID,
-			OAuth2:     CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "secret-" + alias},
-			Keys:       CredentialsKeys{PublicKey: id.publicKey, PrivateKey: id.seed, Fingerprint: id.fingerprint},
-			Endpoints:  CredentialsEndpoints{API: id.api},
+			SubjectID:   id.identityID,
+			SubjectType: SubjectTypeAgent,
+			OAuth2:      CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "secret-" + alias},
+			Keys:        CredentialsKeys{PublicKey: id.publicKey, PrivateKey: id.seed, Fingerprint: id.fingerprint},
+			Endpoints:   CredentialsEndpoints{API: id.api},
 		}); err != nil {
 			t.Fatal(err)
 		}

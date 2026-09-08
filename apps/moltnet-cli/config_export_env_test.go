@@ -13,7 +13,8 @@ func TestConfigExportEnvResolvesReferencedSecret(t *testing.T) {
 	t.Parallel()
 	key := OAuth2SecretKey("export-id", "export-client")
 	config := &CredentialsFile{
-		IdentityID: "export-id",
+		SubjectID:   "export-id",
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID: "export-client",
 			ClientSecretRef: &SecretReference{
@@ -65,7 +66,8 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	config := &CredentialsFile{
-		IdentityID: "export-test-id",
+		SubjectID:   "export-test-id",
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "export-client-id",
 			ClientSecret: "export-client-secret",
@@ -104,7 +106,8 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 	// Check that all required vars are present
 	for _, expected := range []string{
 		"MOLTNET_ACTIVE_IDENTITY=test-bot",
-		"MOLTNET_IDENTITY_ID=export-test-id",
+		"MOLTNET_SUBJECT_ID=export-test-id",
+		"MOLTNET_SUBJECT_TYPE=agent",
 		"MOLTNET_CLIENT_ID=export-client-id",
 		"MOLTNET_CLIENT_SECRET=export-client-secret",
 		"MOLTNET_PUBLIC_KEY=ed25519:",
@@ -119,6 +122,9 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 			t.Errorf("expected stdout to contain %q, got:\n%s", expected, stdout)
 		}
 	}
+	if strings.Contains(stdout, "MOLTNET_IDENTITY_ID=") {
+		t.Fatalf("canonical export retained MOLTNET_IDENTITY_ID:\n%s", stdout)
+	}
 }
 
 func TestConfigExportEnvOmitsSecretFromStdoutByDefault(t *testing.T) {
@@ -126,7 +132,9 @@ func TestConfigExportEnvOmitsSecretFromStdoutByDefault(t *testing.T) {
 	tmpDir := t.TempDir()
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	if _, err := WriteConfigTo(&CredentialsFile{
-		OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "stdout-canary"},
+		SubjectID:   "stdout-agent",
+		SubjectType: SubjectTypeAgent,
+		OAuth2:      CredentialsOAuth2{ClientID: "client", ClientSecret: "stdout-canary"},
 	}, credPath); err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +156,8 @@ func TestConfigExportEnvToFile(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	config := &CredentialsFile{
-		IdentityID: "file-export-id",
+		SubjectID:   "file-export-id",
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "file-client-id",
 			ClientSecret: "file-client-secret",
@@ -187,8 +196,14 @@ func TestConfigExportEnvToFile(t *testing.T) {
 	}
 	content := string(data)
 
-	if !strings.Contains(content, "MOLTNET_IDENTITY_ID=file-export-id") {
-		t.Errorf("output file missing IDENTITY_ID, got:\n%s", content)
+	if !strings.Contains(content, "MOLTNET_SUBJECT_ID=file-export-id") {
+		t.Errorf("output file missing SUBJECT_ID, got:\n%s", content)
+	}
+	if !strings.Contains(content, "MOLTNET_SUBJECT_TYPE=agent") {
+		t.Errorf("output file missing SUBJECT_TYPE, got:\n%s", content)
+	}
+	if strings.Contains(content, "MOLTNET_IDENTITY_ID=") {
+		t.Errorf("output file retained IDENTITY_ID, got:\n%s", content)
 	}
 	if !strings.Contains(content, "MOLTNET_CLIENT_SECRET=file-client-secret") {
 		t.Errorf("output file missing CLIENT_SECRET, got:\n%s", content)
@@ -216,7 +231,8 @@ func TestConfigExportEnvWithGitHub(t *testing.T) {
 	}
 
 	config := &CredentialsFile{
-		IdentityID: "gh-export-id",
+		SubjectID:   "gh-export-id",
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "gh-client-id",
 			ClientSecret: "gh-secret",
@@ -304,7 +320,8 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Create a config in .moltnet/<agent>/ structure with git identity
 	config := &CredentialsFile{
-		IdentityID: "roundtrip-id",
+		SubjectID:   "roundtrip-id",
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "rt-client",
 			ClientSecret: "rt-secret",
@@ -385,8 +402,8 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 		t.Fatalf("failed to read reconstructed config: %v", err)
 	}
 
-	if reconstructed.IdentityID != "roundtrip-id" {
-		t.Errorf("identity_id mismatch: got %q", reconstructed.IdentityID)
+	if reconstructed.SubjectID != "roundtrip-id" {
+		t.Errorf("subject_id mismatch: got %q", reconstructed.SubjectID)
 	}
 	if reconstructed.OAuth2.ClientID != "rt-client" {
 		t.Errorf("client_id mismatch: got %q", reconstructed.OAuth2.ClientID)
@@ -404,8 +421,9 @@ func TestConfigExportEnvResolvesPrivateKeyReference(t *testing.T) {
 	t.Setenv(signerURLEnv, "")
 	t.Setenv(identitySeedEnvKey, seed)
 	config := &CredentialsFile{
-		IdentityID: "export-id",
-		OAuth2:     CredentialsOAuth2{ClientID: "export-client", ClientSecret: "plain"},
+		SubjectID:   "export-id",
+		SubjectType: SubjectTypeAgent,
+		OAuth2:      CredentialsOAuth2{ClientID: "export-client", ClientSecret: "plain"},
 		Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
 			PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey}},
 	}
@@ -430,9 +448,10 @@ func TestConfigExportEnvIncludesReferencedGitHubPEM(t *testing.T) {
 	pemData := testRSAPrivateKeyPEM(t)
 	t.Setenv(githubAppPrivateKeyEnvKey, string(pemData))
 	config := &CredentialsFile{
-		IdentityID: "id",
-		OAuth2:     CredentialsOAuth2{ClientID: "c", ClientSecret: "s"},
-		Keys:       CredentialsKeys{PublicKey: testPublicKey, PrivateKey: testPrivateKey, Fingerprint: "fp"},
+		SubjectID:   "id",
+		SubjectType: SubjectTypeAgent,
+		OAuth2:      CredentialsOAuth2{ClientID: "c", ClientSecret: "s"},
+		Keys:        CredentialsKeys{PublicKey: testPublicKey, PrivateKey: testPrivateKey, Fingerprint: "fp"},
 		GitHub: &GitHubSection{AppID: "123", InstallationID: "456",
 			PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: githubAppPrivateKeyEnvKey}},
 	}

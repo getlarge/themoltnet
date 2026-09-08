@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/joho/godotenv"
 )
 
@@ -118,8 +120,12 @@ func runConfigInitFromEnvCmdWithRegistry(
 		return nil
 	}
 
-	// Required env vars
-	identityID := getenv("MOLTNET_IDENTITY_ID", fileVars, override)
+	// Canonical bundles carry the durable agent subject. During this
+	// compatibility release, identity_id is accepted only as an authenticated
+	// legacy assertion; it is never copied into the generated config.
+	subjectID := strings.TrimSpace(getenv("MOLTNET_SUBJECT_ID", fileVars, override))
+	subjectType := SubjectType(strings.TrimSpace(getenv("MOLTNET_SUBJECT_TYPE", fileVars, override)))
+	identityID := strings.TrimSpace(getenv("MOLTNET_IDENTITY_ID", fileVars, override))
 	clientID := getenv("MOLTNET_CLIENT_ID", fileVars, override)
 	clientSecret := getenv("MOLTNET_CLIENT_SECRET", fileVars, override)
 	publicKey := getenv("MOLTNET_PUBLIC_KEY", fileVars, override)
@@ -135,8 +141,17 @@ func runConfigInitFromEnvCmdWithRegistry(
 	haveAgentKeyRef := strings.TrimSpace(agentKeyRef) != ""
 
 	var missing []string
-	if identityID == "" {
-		missing = append(missing, "MOLTNET_IDENTITY_ID")
+	if subjectID == "" && identityID == "" {
+		missing = append(missing, "MOLTNET_SUBJECT_ID (or legacy MOLTNET_IDENTITY_ID)")
+	}
+	if subjectID != "" && subjectType == "" {
+		missing = append(missing, "MOLTNET_SUBJECT_TYPE")
+	}
+	if subjectID == "" && subjectType != "" {
+		missing = append(missing, "MOLTNET_SUBJECT_ID")
+	}
+	if subjectType != "" && subjectType != SubjectTypeAgent {
+		return fmt.Errorf("MOLTNET_SUBJECT_TYPE must be %q, got %q", SubjectTypeAgent, subjectType)
 	}
 	if !haveAgentKeyRef {
 		if clientID == "" {
@@ -201,6 +216,8 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 
 	var agentKeyReference *SecretReference
+	var agentKeySecret string
+	var legacyAgentKeySource *SecretReference
 	if haveAgentKeyRef {
 		parsed, err := parseSecretReferenceString(agentKeyRef)
 		if err != nil {
@@ -209,7 +226,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 		if err := validateSecretReferenceBinding(
 			credentialAgentKey,
 			parsed,
-			credentialBindingIDs{IdentityID: identityID},
+			credentialBindingIDs{SubjectID: subjectID, IdentityID: identityID},
 		); err != nil {
 			return fmt.Errorf("%s: %w", agentKeyRefEnv, err)
 		}
@@ -222,6 +239,90 @@ func runConfigInitFromEnvCmdWithRegistry(
 		apiURL = defaultAPIURL
 	}
 	apiURL = strings.TrimRight(apiURL, "/")
+
+	// identity_id is not a durable local anchor. Authenticate any bundle that
+	// still supplies it, verify the legacy identity assertion, and obtain the
+	// canonical subject from the server before writing config or secrets.
+	if identityID != "" {
+		var client *moltnetapi.Client
+		if agentKeyReference != nil {
+			agentKeySecret, err = secretProviders.Resolve(*agentKeyReference)
+			if err != nil {
+				return fmt.Errorf("authenticate legacy bundle: resolve %s: %w", agentKeyRefEnv, err)
+			}
+			if err := validateAgentKeyAPIURL(apiURL); err != nil {
+				return err
+			}
+			client, err = newBearerClient(
+				apiURL,
+				func(_ context.Context) (string, error) { return agentKeySecret, nil },
+				newAPIHTTPClient(),
+			)
+		} else {
+			tm := NewTokenManager(apiURL, clientID, clientSecret)
+			client, err = newBearerClient(
+				apiURL,
+				func(_ context.Context) (string, error) { return tm.GetToken() },
+				tm.httpClient,
+			)
+		}
+		if err != nil {
+			return fmt.Errorf("authenticate legacy bundle: %w", err)
+		}
+		whoami, err := fetchAgentWhoami(context.Background(), client)
+		if err != nil {
+			return fmt.Errorf("authenticate legacy bundle: %w", err)
+		}
+		if got := whoami.IdentityId.String(); got != identityID {
+			return fmt.Errorf(
+				"legacy MOLTNET_IDENTITY_ID does not match the authenticated credential (bundle %s, server %s)",
+				identityID,
+				got,
+			)
+		}
+		serverSubjectID := whoami.SubjectId.String()
+		if subjectID != "" && subjectID != serverSubjectID {
+			return fmt.Errorf(
+				"MOLTNET_SUBJECT_ID does not match the authenticated credential (bundle %s, server %s)",
+				subjectID,
+				serverSubjectID,
+			)
+		}
+		subjectID = serverSubjectID
+		subjectType = SubjectTypeAgent
+		fmt.Fprintln(errOut, "Warning: authenticated legacy MOLTNET_IDENTITY_ID and wrote a canonical subject anchor; remove the legacy variable from this bundle")
+
+		// A legacy identity-bound agent-key reference must move with the
+		// canonical config. Copy within the same provider, verify without
+		// overwriting conflicts, and retain the source until initialization has
+		// fully succeeded.
+		if agentKeyReference != nil {
+			canonical := SecretReference{
+				Provider: agentKeyReference.Provider,
+				Key:      AgentKeyKey(subjectID),
+			}
+			if canonical.Key != agentKeyReference.Key {
+				if !secretProviders.CanWrite(canonical.Provider) {
+					return fmt.Errorf(
+						"legacy %s must be re-keyed to %s in writable provider %q; supply canonical subject variables or run `moltnet config migrate` on a writable host",
+						agentKeyRefEnv,
+						canonical.Key,
+						canonical.Provider,
+					)
+				}
+				if _, err := secretProviders.Ensure(canonical, agentKeySecret); err != nil {
+					return fmt.Errorf("re-key legacy agent credential to %q: %w", canonical.Key, err)
+				}
+				source := *agentKeyReference
+				legacyAgentKeySource = &source
+				agentKeyReference = &canonical
+			}
+		}
+	}
+
+	if subjectID == "" || subjectType != SubjectTypeAgent {
+		return fmt.Errorf("canonical config requires MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent")
+	}
 
 	registeredAt := getenv("MOLTNET_REGISTERED_AT", fileVars, override)
 	if registeredAt == "" {
@@ -252,7 +353,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 			}
 			secretReference = &SecretReference{
 				Provider: resolved,
-				Key:      OAuth2SecretKey(identityID, clientID),
+				Key:      OAuth2SecretKey(subjectID, clientID),
 			}
 			if err := secretProviders.Store(*secretReference, clientSecret); err != nil {
 				return fmt.Errorf(
@@ -270,7 +371,8 @@ func runConfigInitFromEnvCmdWithRegistry(
 
 	// Build config
 	config := &CredentialsFile{
-		IdentityID:  identityID,
+		SubjectID:   subjectID,
+		SubjectType: subjectType,
 		AgentKeyRef: agentKeyReference,
 		OAuth2:      oauth2Section,
 		Keys: CredentialsKeys{
@@ -366,6 +468,16 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 
 	initialized = true
+	if legacyAgentKeySource != nil {
+		if err := secretProviders.Delete(*legacyAgentKeySource); err != nil {
+			return fmt.Errorf(
+				"canonical config is active, but deleting legacy agent credential %s:%s failed: %w; remove that source manually",
+				legacyAgentKeySource.Provider,
+				legacyAgentKeySource.Key,
+				err,
+			)
+		}
+	}
 	fmt.Fprintf(errOut, "Agent %q initialized from environment variables\n", agentName)
 	return nil
 }

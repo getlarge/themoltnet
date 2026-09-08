@@ -4,11 +4,41 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func newInitFromEnvWhoamiServer(t *testing.T, identityID, subjectID, subjectType string) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"access_token":"env-test-token","expires_in":3600}`)
+	})
+	mux.HandleFunc("/agents/whoami", func(w http.ResponseWriter, r *http.Request) {
+		authorization := r.Header.Get("Authorization")
+		if authorization != "Bearer env-test-token" && authorization != "Bearer legacy-agent-key" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"subjectId":   subjectID,
+			"subjectType": subjectType,
+			"identityId":  identityID,
+			"publicKey":   testPublicKey,
+			"fingerprint": "A1B2-C3D4-E5F6-A1B2",
+			"scopes":      []string{},
+		})
+	})
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return server
+}
 
 // Valid 32-byte base64-encoded Ed25519 test keys.
 const (
@@ -23,6 +53,8 @@ const (
 func clearMoltnetEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
+		"MOLTNET_SUBJECT_ID",
+		"MOLTNET_SUBJECT_TYPE",
 		"MOLTNET_IDENTITY_ID",
 		"MOLTNET_CLIENT_ID",
 		"MOLTNET_CLIENT_SECRET",
@@ -57,7 +89,7 @@ func TestConfigInitFromEnvHelp(t *testing.T) {
 	if !strings.Contains(stdout, "--name") {
 		t.Errorf("expected help to contain '--name', got: %s", stdout)
 	}
-	if !strings.Contains(stdout, "MOLTNET_IDENTITY_ID") {
+	if !strings.Contains(stdout, "MOLTNET_SUBJECT_ID") {
 		t.Errorf("expected help to mention env vars, got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "--env-file") {
@@ -86,7 +118,7 @@ func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when env vars are missing")
 	}
-	if !strings.Contains(err.Error(), "MOLTNET_IDENTITY_ID") {
+	if !strings.Contains(err.Error(), "MOLTNET_SUBJECT_ID") {
 		t.Errorf("expected error to list missing vars, got: %v", err)
 	}
 }
@@ -95,10 +127,10 @@ func TestConfigInitFromEnvAcceptsDeprecatedAgentAlias(t *testing.T) {
 	clearMoltnetEnv(t)
 	t.Setenv("HOME", t.TempDir())
 	root := NewRootCmd("test", "")
-	// --agent still maps onto --identity; reaching the MOLTNET_IDENTITY_ID
+	// --agent still maps onto --identity; reaching the MOLTNET_SUBJECT_ID
 	// requirement proves the alias resolved.
 	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent")
-	if err == nil || !strings.Contains(err.Error(), "MOLTNET_IDENTITY_ID") {
+	if err == nil || !strings.Contains(err.Error(), "MOLTNET_SUBJECT_ID") {
 		t.Fatalf("deprecated --agent was not mapped to --name: %v", err)
 	}
 
@@ -118,7 +150,8 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
-	t.Setenv("MOLTNET_IDENTITY_ID", "test-identity-123")
+	t.Setenv("MOLTNET_SUBJECT_ID", "test-identity-123")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_CLIENT_ID", "test-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "test-client-secret")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -144,8 +177,8 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 		t.Fatalf("failed to parse config: %v", err)
 	}
 
-	if config.IdentityID != "test-identity-123" {
-		t.Errorf("expected identity_id 'test-identity-123', got %q", config.IdentityID)
+	if config.SubjectID != "test-identity-123" {
+		t.Errorf("expected subject_id 'test-identity-123', got %q", config.SubjectID)
 	}
 	if config.OAuth2.ClientID != "test-client-id" {
 		t.Errorf("expected client_id 'test-client-id', got %q", config.OAuth2.ClientID)
@@ -179,6 +212,196 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	}
 }
 
+func TestConfigInitFromEnvAuthenticatesLegacyIdentityAndWritesSubject(t *testing.T) {
+	clearMoltnetEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	identityID := "00000000-0000-4000-8000-000000000011"
+	subjectID := "00000000-0000-4000-8000-000000000022"
+	server := newInitFromEnvWhoamiServer(t, identityID, subjectID, "agent")
+	t.Setenv("MOLTNET_IDENTITY_ID", identityID)
+	t.Setenv("MOLTNET_CLIENT_ID", "legacy-client")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "legacy-secret")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "A1B2-C3D4-E5F6-A1B2")
+	t.Setenv("MOLTNET_API_URL", server.URL)
+	var warnings bytes.Buffer
+
+	err := runConfigInitFromEnvCmdWithRegistry(
+		&warnings,
+		"",
+		"legacy-agent",
+		true,
+		"",
+		false,
+		NewSecretProviderRegistry(),
+		defaultMigrationDestination,
+	)
+	if err != nil {
+		t.Fatalf("init legacy bundle: %v", err)
+	}
+	configPath, err := identityCredentialsPath("legacy-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config CredentialsFile
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	if config.SubjectID != subjectID || config.SubjectType != SubjectTypeAgent {
+		t.Fatalf("canonical subject = %q/%q", config.SubjectType, config.SubjectID)
+	}
+	if strings.Contains(string(data), "identity_id") {
+		t.Fatalf("canonical config retained identity_id:\n%s", data)
+	}
+	if !strings.Contains(warnings.String(), "authenticated legacy MOLTNET_IDENTITY_ID") {
+		t.Fatalf("legacy warning missing:\n%s", warnings.String())
+	}
+}
+
+func TestConfigInitFromEnvLegacyMismatchLeavesConfigAndSecretsUntouched(t *testing.T) {
+	clearMoltnetEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	server := newInitFromEnvWhoamiServer(
+		t,
+		"00000000-0000-4000-8000-000000000011",
+		"00000000-0000-4000-8000-000000000022",
+		"agent",
+	)
+	envPath := filepath.Join(t.TempDir(), ".env.moltnet")
+	envContent := strings.Join([]string{
+		`MOLTNET_IDENTITY_ID=00000000-0000-4000-8000-000000000099`,
+		`MOLTNET_CLIENT_ID=legacy-client`,
+		`MOLTNET_CLIENT_SECRET=legacy-secret`,
+		`MOLTNET_PUBLIC_KEY=` + testPublicKey,
+		`MOLTNET_PRIVATE_KEY=` + testPrivateKey,
+		`MOLTNET_FINGERPRINT=A1B2-C3D4-E5F6-A1B2`,
+		`MOLTNET_API_URL=` + server.URL,
+	}, "\n")
+	if err := os.WriteFile(envPath, []byte(envContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	registry, provider := newMemorySecretProviderRegistry()
+
+	err := runConfigInitFromEnvCmdWithRegistry(
+		io.Discard,
+		"",
+		"mismatch-agent",
+		true,
+		envPath,
+		false,
+		registry,
+		defaultMigrationDestination,
+	)
+	if err == nil || !strings.Contains(err.Error(), "does not match the authenticated credential") {
+		t.Fatalf("expected authenticated identity mismatch, got %v", err)
+	}
+	configPath, pathErr := identityCredentialsPath("mismatch-agent")
+	if pathErr != nil {
+		t.Fatal(pathErr)
+	}
+	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
+		t.Fatalf("mismatch wrote config: %v", statErr)
+	}
+	if len(provider.values) != 0 {
+		t.Fatalf("mismatch wrote destination secrets: %#v", provider.values)
+	}
+}
+
+func TestConfigInitFromEnvRejectsLegacyHumanSubjectWithoutWriting(t *testing.T) {
+	clearMoltnetEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	identityID := "00000000-0000-4000-8000-000000000011"
+	server := newInitFromEnvWhoamiServer(
+		t,
+		identityID,
+		"00000000-0000-4000-8000-000000000022",
+		"human",
+	)
+	t.Setenv("MOLTNET_IDENTITY_ID", identityID)
+	t.Setenv("MOLTNET_CLIENT_ID", "legacy-client")
+	t.Setenv("MOLTNET_CLIENT_SECRET", "legacy-secret")
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "A1B2-C3D4-E5F6-A1B2")
+	t.Setenv("MOLTNET_API_URL", server.URL)
+
+	err := runConfigInitFromEnvCmdWithRegistry(
+		io.Discard,
+		"",
+		"human-subject",
+		true,
+		"",
+		false,
+		NewSecretProviderRegistry(),
+		defaultMigrationDestination,
+	)
+	if err == nil || !strings.Contains(err.Error(), "not as an agent") {
+		t.Fatalf("expected human subject rejection, got %v", err)
+	}
+	configPath, pathErr := identityCredentialsPath("human-subject")
+	if pathErr != nil {
+		t.Fatal(pathErr)
+	}
+	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
+		t.Fatalf("human subject wrote config: %v", statErr)
+	}
+}
+
+func TestConfigInitFromEnvRekeysLegacyAgentCredentialAfterAuthentication(t *testing.T) {
+	clearMoltnetEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	identityID := "00000000-0000-4000-8000-000000000011"
+	subjectID := "00000000-0000-4000-8000-000000000022"
+	server := newInitFromEnvWhoamiServer(t, identityID, subjectID, "agent")
+	legacyKey := AgentKeyKey(identityID)
+	canonicalKey := AgentKeyKey(subjectID)
+	t.Setenv("MOLTNET_IDENTITY_ID", identityID)
+	t.Setenv(agentKeyRefEnv, osKeyringProviderName+":"+legacyKey)
+	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
+	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
+	t.Setenv("MOLTNET_FINGERPRINT", "A1B2-C3D4-E5F6-A1B2")
+	t.Setenv("MOLTNET_API_URL", server.URL)
+	registry, provider := newMemorySecretProviderRegistry()
+	provider.values[legacyKey] = "legacy-agent-key"
+
+	err := runConfigInitFromEnvCmdWithRegistry(
+		io.Discard,
+		"",
+		"legacy-key-agent",
+		true,
+		"",
+		false,
+		registry,
+		defaultMigrationDestination,
+	)
+	if err != nil {
+		t.Fatalf("init legacy agent-key bundle: %v", err)
+	}
+	if _, exists := provider.values[legacyKey]; exists {
+		t.Fatal("legacy agent-key source was not deleted last")
+	}
+	if provider.values[canonicalKey] != "legacy-agent-key" {
+		t.Fatal("canonical agent-key destination was not verified and retained")
+	}
+	configPath, pathErr := identityCredentialsPath("legacy-key-agent")
+	if pathErr != nil {
+		t.Fatal(pathErr)
+	}
+	config, readErr := ReadConfigFrom(configPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if config == nil || config.AgentKeyRef == nil || config.AgentKeyRef.Key != canonicalKey {
+		t.Fatalf("canonical agent-key reference = %#v", config)
+	}
+}
+
 func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
@@ -207,7 +430,8 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 
 	// Write a dotenv file with all required vars
 	envContent := strings.Join([]string{
-		`MOLTNET_IDENTITY_ID=file-identity-456`,
+		`MOLTNET_SUBJECT_ID=file-identity-456`,
+		`MOLTNET_SUBJECT_TYPE=agent`,
 		`MOLTNET_CLIENT_ID=file-client-id`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
 		`MOLTNET_PUBLIC_KEY=` + testPublicKey,
@@ -246,8 +470,8 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 		t.Fatalf("failed to parse config: %v", err)
 	}
 
-	if config.IdentityID != "file-identity-456" {
-		t.Errorf("expected identity_id 'file-identity-456', got %q", config.IdentityID)
+	if config.SubjectID != "file-identity-456" {
+		t.Errorf("expected subject_id 'file-identity-456', got %q", config.SubjectID)
 	}
 	if config.OAuth2.ClientID != "file-client-id" {
 		t.Errorf("expected client_id 'file-client-id', got %q", config.OAuth2.ClientID)
@@ -274,7 +498,8 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 
 	// Set a process env var that should win over the file
-	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
+	t.Setenv("MOLTNET_SUBJECT_ID", "process-identity")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_CLIENT_ID", "process-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "process-client-secret")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -283,7 +508,8 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 
 	// File has different values
 	envContent := strings.Join([]string{
-		`MOLTNET_IDENTITY_ID=file-identity`,
+		`MOLTNET_SUBJECT_ID=file-identity`,
+		`MOLTNET_SUBJECT_TYPE=agent`,
 		`MOLTNET_CLIENT_ID=file-client-id`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
 		`MOLTNET_PUBLIC_KEY=` + altPublicKey,
@@ -317,8 +543,8 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 	}
 
 	// Process env should win (godotenv.Load does not override)
-	if config.IdentityID != "process-identity" {
-		t.Errorf("expected process env to win, got identity_id %q", config.IdentityID)
+	if config.SubjectID != "process-identity" {
+		t.Errorf("expected process env to win, got subject_id %q", config.SubjectID)
 	}
 	if config.OAuth2.ClientID != "process-client-id" {
 		t.Errorf("expected process env to win, got client_id %q", config.OAuth2.ClientID)
@@ -330,7 +556,8 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 
 	// Set process env vars
-	t.Setenv("MOLTNET_IDENTITY_ID", "process-identity")
+	t.Setenv("MOLTNET_SUBJECT_ID", "process-identity")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_CLIENT_ID", "process-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "process-client-secret")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -339,7 +566,8 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 
 	// File has different values that should win with --override
 	envContent := strings.Join([]string{
-		`MOLTNET_IDENTITY_ID=file-identity-wins`,
+		`MOLTNET_SUBJECT_ID=file-identity-wins`,
+		`MOLTNET_SUBJECT_TYPE=agent`,
 		`MOLTNET_CLIENT_ID=file-client-id-wins`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
 		`MOLTNET_PUBLIC_KEY=` + testPublicKey,
@@ -377,8 +605,8 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 	}
 
 	// File values should win with --override
-	if config.IdentityID != "file-identity-wins" {
-		t.Errorf("expected file env to win with --override, got identity_id %q", config.IdentityID)
+	if config.SubjectID != "file-identity-wins" {
+		t.Errorf("expected file env to win with --override, got subject_id %q", config.SubjectID)
 	}
 	if config.OAuth2.ClientID != "file-client-id-wins" {
 		t.Errorf("expected file env to win with --override, got client_id %q", config.OAuth2.ClientID)
@@ -413,7 +641,8 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 
 	// File provides some vars
 	envContent := strings.Join([]string{
-		`MOLTNET_IDENTITY_ID=file-identity`,
+		`MOLTNET_SUBJECT_ID=file-identity`,
+		`MOLTNET_SUBJECT_TYPE=agent`,
 		`MOLTNET_CLIENT_ID=file-client-id`,
 		`MOLTNET_CLIENT_SECRET=file-client-secret`,
 	}, "\n")
@@ -453,8 +682,8 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	}
 
 	// File vars
-	if config.IdentityID != "file-identity" {
-		t.Errorf("expected 'file-identity', got %q", config.IdentityID)
+	if config.SubjectID != "file-identity" {
+		t.Errorf("expected 'file-identity', got %q", config.SubjectID)
 	}
 	// Process vars
 	if config.Keys.Fingerprint != "SHA256:processfingerprint" {
@@ -640,7 +869,8 @@ func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
-	t.Setenv("MOLTNET_IDENTITY_ID", "gh-app-identity")
+	t.Setenv("MOLTNET_SUBJECT_ID", "gh-app-identity")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_CLIENT_ID", "gh-app-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "gh-app-client-secret")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -690,7 +920,8 @@ func TestConfigInitFromEnvNormalizesGitHubAppPEM(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 	const escapedPEM = "\"-----BEGIN RSA PRIVATE KEY-----\\r\\nline-one\\nline-two\\r\\n-----END RSA PRIVATE KEY-----\""
 
-	t.Setenv("MOLTNET_IDENTITY_ID", "gh-app-identity")
+	t.Setenv("MOLTNET_SUBJECT_ID", "gh-app-identity")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_CLIENT_ID", "gh-app-client-id")
 	t.Setenv("MOLTNET_CLIENT_SECRET", "gh-app-client-secret")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
@@ -816,7 +1047,8 @@ func TestConfigInitFromEnvAcceptsAgentKeyRefWithoutOAuth(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
@@ -861,7 +1093,8 @@ func TestConfigInitFromEnvRejectsForeignAgentKeyRef(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
@@ -889,7 +1122,8 @@ func TestConfigInitFromEnvStillRequiresOAuthWithoutAgentKeyRef(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:testfingerprint")
@@ -917,7 +1151,8 @@ func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
 	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
@@ -967,7 +1202,8 @@ func TestConfigInitFromEnvRejectsSeedValueAndReferenceTogether(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
@@ -992,7 +1228,8 @@ func TestConfigInitFromEnvRejectsPartialOAuthPairWithAgentKeyRef(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
@@ -1019,7 +1256,8 @@ func TestConfigInitFromEnvRemovesPartialConfigOnFailure(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
 	t.Setenv(agentKeyRefEnv, "os-keyring:"+AgentKeyKey("identity-1"))
@@ -1048,7 +1286,8 @@ func TestConfigInitFromEnvRejectsSecretWithoutClientIDWithAgentKeyRef(t *testing
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	clearMoltnetEnv(t)
-	t.Setenv("MOLTNET_IDENTITY_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_ID", "identity-1")
+	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 	t.Setenv("MOLTNET_PUBLIC_KEY", testPublicKey)
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "FP1")
@@ -1073,7 +1312,8 @@ func TestConfigInitFromEnvReportsThroughTheCommandStream(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 	envContent := strings.Join([]string{
-		`MOLTNET_IDENTITY_ID=stream-identity`,
+		`MOLTNET_SUBJECT_ID=stream-identity`,
+		`MOLTNET_SUBJECT_TYPE=agent`,
 		`MOLTNET_CLIENT_ID=stream-client-id`,
 		`MOLTNET_CLIENT_SECRET=stream-client-secret`,
 		`MOLTNET_PUBLIC_KEY=` + testPublicKey,

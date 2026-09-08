@@ -36,17 +36,21 @@ moltnet agents init cannot run interactively.
 Identity alias resolution: --name flag > MOLTNET_ACTIVE_IDENTITY env var.
 
 Required env vars:
-  MOLTNET_IDENTITY_ID, MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY,
-  MOLTNET_FINGERPRINT
+  MOLTNET_SUBJECT_ID, MOLTNET_SUBJECT_TYPE=agent,
+  MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
   plus ONE credential:
     MOLTNET_CLIENT_ID + MOLTNET_CLIENT_SECRET   (OAuth2), or
-    MOLTNET_AGENT_KEY_REF=<provider>:agent-key/<identity_id>
+    MOLTNET_AGENT_KEY_REF=<provider>:agent-key/<subject_id>
+
+Compatibility release: a legacy bundle with MOLTNET_IDENTITY_ID is accepted
+only after its supplied credential authenticates and whoami confirms both the
+legacy identity and an agent subject. Canonical and legacy values must agree
+when both are supplied.
 
 The git, SSH and GitHub App assets derive from the Ed25519 material above,
 never from the OAuth2 pair, so an agent authenticating with a key needs no
-client credentials to obtain them. The reference must be bound to this
-identity, and cannot use the env provider — set MOLTNET_AGENT_KEY directly
-for that.
+client credentials to obtain them. The reference must be bound to this agent
+subject and cannot use the env provider.
 
 Optional env vars:
   MOLTNET_ACTIVE_IDENTITY (alternative to --name flag)

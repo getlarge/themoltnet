@@ -308,7 +308,12 @@ func TestConfigExportEnvOmitsSeedUnderRemoteSigner(t *testing.T) {
 	t.Setenv(signerURLEnv, "https://agent-signing.moltnet.internal")
 	kp, _ := GenerateKeyPair()
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "x", OAuth2: CredentialsOAuth2{ClientID: "c", ClientSecret: "s"}, Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, credPath); err != nil {
+	if _, err := WriteConfigTo(&CredentialsFile{
+		SubjectID:   "x",
+		SubjectType: SubjectTypeAgent,
+		OAuth2:      CredentialsOAuth2{ClientID: "c", ClientSecret: "s"},
+		Keys:        CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint},
+	}, credPath); err != nil {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
