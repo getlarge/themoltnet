@@ -19,7 +19,7 @@ import (
 // Version 5 moves activation state into the selected central identity. Older
 // repository-bound cache files deliberately fail validation rather than being
 // discovered or reused.
-const activationCacheVersion = 6
+const activationCacheVersion = 7
 
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
@@ -40,12 +40,12 @@ type activationCache struct {
 	CredentialProviders  map[string]string `json:"credentialProviders"`
 	CredentialStatus     string            `json:"credentialStatus"`
 	RegisteredAt         string            `json:"registeredAt,omitempty"`
-	// IdentityVerifiedAt records when the pinned metadata below was last
+	// SubjectVerifiedAt records when the durable subject anchor below was last
 	// confirmed against the server. Warm validation is offline by contract, so
 	// it trusts this pin plus the input hashes rather than re-asking.
-	IdentityVerifiedAt string `json:"identityVerifiedAt"`
-	VerifiedIdentityID string `json:"verifiedIdentityId"`
-	VerifiedPublicKey  string `json:"verifiedPublicKey"`
+	SubjectVerifiedAt   string      `json:"subjectVerifiedAt"`
+	VerifiedSubjectID   string      `json:"verifiedSubjectId"`
+	VerifiedSubjectType SubjectType `json:"verifiedSubjectType"`
 	// VerifiedAPIURL is the origin the identity was confirmed against. The
 	// document names its own API, so verification proves it agrees with
 	// whatever endpoint it points at — recording which one lets offline
@@ -190,20 +190,14 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error 
 	if err != nil {
 		return err
 	}
-	// A stale MOLTNET_FINGERPRINT would otherwise be pinned as though it had
-	// been checked.
-	if envFingerprint := strings.TrimSpace(ctx.EnvVars["MOLTNET_FINGERPRINT"]); envFingerprint != "" &&
-		envFingerprint != verified.Fingerprint {
-		return fmt.Errorf(
-			"MOLTNET_FINGERPRINT in %s is %s, but the server reports %s for this credential",
-			ctx.EnvPath, envFingerprint, verified.Fingerprint,
-		)
-	}
+	// Identity and signing-key attributes may rotate without changing the
+	// durable agent subject. Refresh derived metadata from the authenticated
+	// record instead of turning a stale local fingerprint into a lockout.
 	cache.Fingerprint = verified.Fingerprint
-	cache.VerifiedIdentityID = verified.IdentityID
-	cache.VerifiedPublicKey = verified.PublicKey
+	cache.VerifiedSubjectID = verified.SubjectID
+	cache.VerifiedSubjectType = verified.SubjectType
 	cache.VerifiedAPIURL = apiURL
-	cache.IdentityVerifiedAt = time.Now().UTC().Format(time.RFC3339)
+	cache.SubjectVerifiedAt = time.Now().UTC().Format(time.RFC3339)
 	return nil
 }
 
@@ -340,7 +334,7 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	// confirmed the identity. Writing the pins without ever requiring them
 	// would let a stripped or hand-edited cache validate exactly as a verified
 	// one does.
-	if cache.VerifiedIdentityID == "" || cache.VerifiedPublicKey == "" || cache.IdentityVerifiedAt == "" {
+	if cache.VerifiedSubjectID == "" || cache.VerifiedSubjectType != SubjectTypeAgent || cache.SubjectVerifiedAt == "" {
 		return invalidActivation("identity_unverified", nil), nil
 	}
 	// The identity was confirmed against a specific origin, and the document
@@ -356,10 +350,10 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 
 	// Report the verified values, which only the cache carries: `current` is a
 	// local reconstruction and never contacts the server.
-	current.VerifiedIdentityID = cache.VerifiedIdentityID
-	current.VerifiedPublicKey = cache.VerifiedPublicKey
+	current.VerifiedSubjectID = cache.VerifiedSubjectID
+	current.VerifiedSubjectType = cache.VerifiedSubjectType
 	current.VerifiedAPIURL = cache.VerifiedAPIURL
-	current.IdentityVerifiedAt = cache.IdentityVerifiedAt
+	current.SubjectVerifiedAt = cache.SubjectVerifiedAt
 	current.Fingerprint = cache.Fingerprint
 
 	result := activationResultFromCache(current)
