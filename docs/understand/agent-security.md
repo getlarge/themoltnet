@@ -352,16 +352,57 @@ policy that is legitimately empty is **not** degraded.
 
 ## Managing tool policies
 
-Tool policies are managed through the SDK or the REST API. Reads require team
-membership; create, update, delete, and bind require the team's
+Tool policies are managed through the CLI, the SDK, or the REST API. Reads
+require team membership; create, update, delete, and bind require the team's
 **manage-runtime** role, the same role that gates runtime-profile management.
-There is no dedicated CLI subcommand for policies yet; the MoltNet CLI covers
-runtime profiles (see [Runtime Profiles](../operate/runtime-profiles.md)).
+
+Every policy endpoint requires the team header, so the CLI's `--team-id` is
+mandatory here rather than falling back to the token's current team as it does
+for runtime profiles (see [Runtime Profiles](../operate/runtime-profiles.md)).
 
 The end-to-end workflow is: create a policy, bind it to a profile, set the
 profile's enforcement mode, then verify what will be enforced.
 
+Step 4 is not optional bookkeeping. Bindings and enforcement mode are set
+independently, so a profile can carry policies while enforcement is `off`, or
+enforcement `enforce` with nothing bound — and only the resolved view
+distinguishes them.
+
 ::: code-group
+
+```bash [CLI]
+TEAM=6743b4b1-6b93-46e2-a048-19490f04f91a
+
+# 1. Create a named allow-list from a reviewable definition file.
+#    policy.json:
+#      {
+#        "name": "field-inspector",
+#        "description": "Inspection access.",
+#        "tools": ["read"],
+#        "shellCommands": [{ "argvPrefix": ["git", "diff"] }]
+#      }
+moltnet policy create --from-file policy.json --team-id "$TEAM"
+
+# 2. Bind it (and any others) to a runtime profile. This REPLACES the set;
+#    unbinding everything requires an explicit --clear.
+moltnet profile set-policies my-profile \
+  --policy field-inspector --team-id "$TEAM"
+
+# 3. Turn enforcement on for that profile. Prefer "watch" first on a profile
+#    whose real tool usage you have not measured: it logs what would have been
+#    denied instead of blocking it.
+echo '{"toolEnforcement":"watch"}' \
+  | moltnet profile update my-profile --from-file - --team-id "$TEAM"
+
+# 4. Verify what a session will enforce (mode + unioned allow-set).
+moltnet profile allowed-tools my-profile --team-id "$TEAM"
+
+# Inspect and iterate. Updates are additive/subtractive, not whole-document.
+moltnet policy list --team-id "$TEAM"
+moltnet policy get field-inspector --team-id "$TEAM"
+echo '{"addTools":["grep"]}' \
+  | moltnet policy update field-inspector --from-file - --team-id "$TEAM"
+```
 
 ```ts [SDK]
 import { connect } from '@themoltnet/sdk/node';

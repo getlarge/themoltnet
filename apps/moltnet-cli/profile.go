@@ -181,6 +181,14 @@ func decodeProfileFile(path string, v any) error {
 	if path == "" {
 		return fmt.Errorf("--from-file is required")
 	}
+	return decodeJSONFile("profile", path, v)
+}
+
+// decodeJSONFile reads a JSON document from path (or stdin when path is "-")
+// and unmarshals it into an ogen request-body struct via its generated
+// UnmarshalJSON. kind names the document in error messages so a bad path or
+// malformed body says which definition it was reading.
+func decodeJSONFile(kind, path string, v any) error {
 	var (
 		data []byte
 		err  error
@@ -191,10 +199,10 @@ func decodeProfileFile(path string, v any) error {
 		data, err = os.ReadFile(path)
 	}
 	if err != nil {
-		return fmt.Errorf("read profile file %q: %w", path, err)
+		return fmt.Errorf("read %s file %q: %w", kind, path, err)
 	}
 	if err := json.Unmarshal(data, v); err != nil {
-		return fmt.Errorf("parse profile file %q: %w", path, err)
+		return fmt.Errorf("parse %s file %q: %w", kind, path, err)
 	}
 	return nil
 }

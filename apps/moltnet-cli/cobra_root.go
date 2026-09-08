@@ -75,6 +75,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newRelationsCmd())
 	rootCmd.AddCommand(newTeamsCmd())
 	rootCmd.AddCommand(newProfileCmd())
+	rootCmd.AddCommand(newPolicyCmd())
 	rootCmd.AddCommand(newTaskCmd())
 	rootCmd.AddCommand(newEvalCmd())
 	rootCmd.AddCommand(newCompletionCmd())
