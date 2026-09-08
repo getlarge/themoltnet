@@ -289,7 +289,7 @@ func TestSSHKeyExportWritesPublicKeyOnlyUnderRemoteSigner(t *testing.T) {
 	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "x", Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, credPath); err != nil {
 		t.Fatal(err)
 	}
-	if err := runSSHKeyExportCmd(credPath, filepath.Join(dir, "ssh")); err != nil {
+	if err := runSSHKeyExportCmd(io.Discard, credPath, filepath.Join(dir, "ssh")); err != nil {
 		t.Fatalf("runSSHKeyExportCmd: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "ssh", "id_ed25519")); !os.IsNotExist(err) {

@@ -113,7 +113,7 @@ func runGitHubSetupCmd(credPath, name, appSlug string) error {
 	// Step 1: Export SSH keys if not present
 	if creds.SSH == nil {
 		fmt.Fprintln(os.Stderr, "Exporting SSH keys...")
-		if err := runSSHKeyExportCmd(credPath, ""); err != nil {
+		if err := runSSHKeyExportCmd(os.Stderr, credPath, ""); err != nil {
 			return fmt.Errorf("ssh-key export: %w", err)
 		}
 		// Re-read config to get SSH paths
@@ -140,7 +140,7 @@ func runGitHubSetupCmd(credPath, name, appSlug string) error {
 
 	// Step 4: Run git setup
 	fmt.Fprintln(os.Stderr, "Configuring git identity...")
-	if err := runGitSetupCmd(credPath, gitName, gitEmail); err != nil {
+	if err := runGitSetupCmd(os.Stderr, credPath, gitName, gitEmail); err != nil {
 		return fmt.Errorf("git setup: %w", err)
 	}
 

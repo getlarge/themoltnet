@@ -15,7 +15,7 @@ id_ed25519.pub to the output directory.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			outDir, _ := cmd.Flags().GetString("output-dir")
-			return runSSHKeyExportCmd(credPath, outDir)
+			return runSSHKeyExportCmd(cmd.ErrOrStderr(), credPath, outDir)
 		},
 	}
 

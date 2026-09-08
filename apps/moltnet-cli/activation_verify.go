@@ -54,15 +54,28 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	serverPublicKey := strings.TrimSpace(whoami.PublicKey.Or(""))
 	serverFingerprint := strings.TrimSpace(whoami.Fingerprint.Or(""))
 
-	// Compare every field the local document claims. A field the server does
-	// not return is not evidence of agreement, so it is not silently accepted:
-	// the ones that matter are required below.
+	// Compare the key material, and only the key material.
+	//
+	// identity_id is deliberately not compared. It is the Ory identity record's
+	// ID, an attribute of the identity rather than the identity itself: a
+	// relink changes it server-side while the keypair — the thing that actually
+	// proves who this is — stays exactly the same. Comparing it turned a
+	// routine relink into a hard activation failure on a credential that
+	// authenticates correctly and signs correctly.
+	//
+	// It is also not repairable by rewriting the document, which is the obvious
+	// thing to reach for: OAuth2SecretKey and AgentKeyKey derive provider keys
+	// from identity_id, so changing it in place orphans the keyring entries
+	// holding the secrets. Moving them is a migration (see the subject-anchor
+	// work), not something activation should attempt.
+	//
+	// The server's identity_id is still pinned into the cache as reported
+	// provenance; nothing compares it there either.
 	for _, field := range []struct {
 		name   string
 		local  string
 		server string
 	}{
-		{"identity_id", strings.TrimSpace(creds.IdentityID), serverIdentityID},
 		{"public key", strings.TrimSpace(creds.Keys.PublicKey), serverPublicKey},
 		{"fingerprint", strings.TrimSpace(creds.Keys.Fingerprint), serverFingerprint},
 	} {
@@ -79,9 +92,10 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 				"verify identity: local %s does not match the server record for this credential.\n"+
 					"  local:  %s\n"+
 					"  server: %s\n"+
-					"The identity document at %s describes a different identity than the one it "+
-					"authenticates as. Re-run `moltnet config migrate` against the intended bundle, "+
-					"or select the correct identity with `moltnet config identity select <alias>`.",
+					"The identity document at %s carries different key material than the "+
+					"credential authenticates as. Re-run `moltnet config migrate` against the "+
+					"intended bundle, or select the correct identity with "+
+					"`moltnet config identity select <alias>`.",
 				field.name, field.local, field.server, credentialsPath,
 			)
 		}

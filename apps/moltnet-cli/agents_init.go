@@ -515,7 +515,7 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	if err := rejectAgentPathSymlinks(identityDir); err != nil {
 		return err
 	}
-	if err := runSSHKeyExportCmd(configPath, filepath.Join(identityDir, "ssh")); err != nil {
+	if err := runSSHKeyExportCmd(opts.errOut, configPath, filepath.Join(identityDir, "ssh")); err != nil {
 		return err
 	}
 	if err := runGitHubSetupCmd(configPath, opts.name, creds.GitHub.AppSlug); err != nil {

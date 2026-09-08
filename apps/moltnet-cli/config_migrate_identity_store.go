@@ -116,7 +116,9 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	}
 	// SSH and Git paths are derived deployment artifacts. Recreate them beneath
 	// the central identity directory rather than retaining repository paths.
-	if err := runSSHKeyExportCmd(stagedConfig, filepath.Join(stagingDir, "ssh")); err != nil {
+	// io.Discard, for the same reason as the Git setup below: these paths are
+	// inside the staging directory and stop existing at the publish rename.
+	if err := runSSHKeyExportCmd(io.Discard, stagedConfig, filepath.Join(stagingDir, "ssh")); err != nil {
 		return nil, fmt.Errorf("regenerate SSH exports: %w", err)
 	}
 	gitName, gitEmail := alias, creds.IdentityID+"@agents.themolt.net"
@@ -128,7 +130,13 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 			gitEmail = creds.Git.Email
 		}
 	}
-	if err := runGitSetupCmd(stagedConfig, gitName, gitEmail); err != nil {
+	// io.Discard: this configures Git inside the staging directory, whose name
+	// (.<alias>-<random>) exists only until the publish rename below. Letting
+	// runGitSetupCmd print its summary surfaced paths like
+	// `.legreffier-1252146280/gitconfig` to the operator as though that were
+	// their identity. Migration reports the real destination in its own
+	// document.
+	if err := runGitSetupCmd(io.Discard, stagedConfig, gitName, gitEmail); err != nil {
 		return nil, fmt.Errorf("regenerate Git configuration: %w", err)
 	}
 	if regenerated, err := ReadConfigFrom(stagedConfig); err != nil {
