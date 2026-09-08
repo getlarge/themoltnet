@@ -105,7 +105,7 @@ func runCapabilityCallCmd(w io.Writer, baseURL, name, operation, jsonBody string
 // host, while the local-seed fallback loads the private seed from credentials.
 // The guest projection always runs this in broker mode, so the seed never
 // enters the guest.
-func runCapabilityServeCmd(ctx context.Context, name, adapter, socket string) error {
+func runCapabilityServeCmd(ctx context.Context, errOut io.Writer, name, adapter, socket string) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	switch adapter {
@@ -118,7 +118,7 @@ func runCapabilityServeCmd(ctx context.Context, name, adapter, socket string) er
 			return err
 		}
 		return serveSSHAgentAdapter(ctx, signer, socket, func() {
-			fmt.Fprintf(os.Stderr, "ssh-agent adapter listening on %s\n", socket)
+			fmt.Fprintf(errOut, "ssh-agent adapter listening on %s\n", socket)
 		})
 	default:
 		return fmt.Errorf("unknown adapter %q (supported: ssh-agent)", adapter)
