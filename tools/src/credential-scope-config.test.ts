@@ -37,7 +37,9 @@ function readHydraClientCredentialsFlag(
 
 function readHydraSupportedScopes(relativePath: string): string[] {
   const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
-  const block = yaml.match(/^ {4}supported_scope:\n((?: {6}- [^\n]+\n)+)/mu)?.[1];
+  const block = yaml.match(
+    /^ {4}supported_scope:\n((?: {6}- [^\n]+\n)+)/mu,
+  )?.[1];
   if (!block) throw new Error('Hydra webfinger supported_scope not found');
   return [...block.matchAll(/^ {6}- (.+)$/gmu)].map((match) => match[1]!);
 }
