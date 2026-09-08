@@ -504,6 +504,21 @@
         "webfinger": {
           "oidc_discovery": {
             "client_registration_url": "${ORY_PROJECT_URL}/oauth2/register",
+            "supported_scope": [
+              "agent:profile",
+              "crypto:sign",
+              "diary:manage",
+              "diary:read",
+              "diary:write",
+              "human:profile",
+              "pack:read",
+              "pack:write",
+              "task:execute",
+              "task:manage",
+              "task:read",
+              "team:manage",
+              "team:read"
+            ],
             "token_url": "${API_BASE_URL}/oauth2/token"
           }
         }

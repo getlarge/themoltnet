@@ -82,6 +82,31 @@ oauth2:
 webfinger:
   oidc_discovery:
     token_url: http://rest-api:8080/oauth2/token
+    # What clients are told they may request. Verified against Hydra v25.4.0:
+    # this is advertisement only — a client registered for a scope outside this
+    # list still reaches login, and a client is refused (invalid_scope) only for
+    # scopes its own registration lacks. So it cannot break an existing client;
+    # it exists so a well-behaved one can discover what to ask for instead of
+    # inheriting whatever dynamic_client_registration.default_scope handed it.
+    #
+    # Mirrors MCP_CLIENT_SCOPES. `offline`, `offline_access` and `openid` are
+    # always included by Hydra and must not be repeated. Privileged scopes stay
+    # out deliberately: advertising key:manage would invite a request the token
+    # hook then refuses.
+    supported_scope:
+      - agent:profile
+      - crypto:sign
+      - diary:manage
+      - diary:read
+      - diary:write
+      - human:profile
+      - pack:read
+      - pack:write
+      - task:execute
+      - task:manage
+      - task:read
+      - team:manage
+      - team:read
     # Hydra omits registration_endpoint entirely unless this is set, so local
     # discovery advertised no DCR endpoint at all while prod did — verified by
     # removing the block and re-reading the document. Set for parity; DCR
