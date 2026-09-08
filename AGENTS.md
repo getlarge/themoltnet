@@ -154,6 +154,31 @@ that would attribute the action to the human account. Headless runtimes without
 the hook must follow their runtime instructor, which uses command-scoped App
 tokens because no human-token fallback is available there.
 
+## This Repository Is Public
+
+`getlarge/themoltnet` is public. Issues, pull requests, commit messages and
+every committed file are world-readable, and issue edit history survives a
+redaction — only an admin deleting the issue removes it.
+
+The reasoning that makes a change reviewable is not automatically safe to
+publish. For ordinary engineering it is; for anything describing the *state of
+a credential or a defence* it is not. Never commit or file, in this repository:
+
+- that a specific credential is leaked, weak, singly-held, or not yet rotated
+- storage locations for backups or secrets, beyond what is already committed
+- incident narratives naming what failed and what is still unfixed
+- anything whose value to an attacker is the fact that it has not been fixed yet
+
+Describe the mechanism, not the weakness that motivated it: a workflow header
+explains what the workflow does, not which credential is fragile. Put the
+rationale in a private channel — a diary entry, a private security advisory, or
+a message to the operator.
+
+When work originates from a security finding, decide where it is going to be
+written down *before* writing it, not after. The check is one question: would
+this sentence help someone attacking us more than it helps someone maintaining
+us?
+
 ## E2E Tests
 
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
