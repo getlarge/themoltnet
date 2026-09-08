@@ -19,7 +19,8 @@ describe('repairConfig', () => {
   });
 
   const validConfig: MoltNetConfig = {
-    identity_id: 'test-agent',
+    subject_id: 'test-agent',
+    subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00Z',
     oauth2: { client_id: 'cid', client_secret: 'csec' },
     keys: {
@@ -52,7 +53,7 @@ describe('repairConfig', () => {
   it('reports missing required fields', async () => {
     const broken = {
       ...validConfig,
-      identity_id: '',
+      subject_id: '',
       keys: { public_key: '', private_key: '', fingerprint: '' },
       endpoints: { api: '', mcp: '' },
     };
@@ -60,7 +61,7 @@ describe('repairConfig', () => {
     const result = await repairConfig({ configDir: tempDir, dryRun: true });
 
     const fields = result.issues.map((i) => i.field);
-    expect(fields).toContain('identity_id');
+    expect(fields).toContain('subject_id');
     expect(fields).toContain('keys.public_key');
     expect(fields).toContain('keys.private_key');
     expect(fields).toContain('endpoints.api');

@@ -10,7 +10,9 @@ import { setupGitIdentity } from '../src/git-setup.js';
 // Zero seed vector for deterministic test keys
 const ZERO_SEED_BASE64 = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 const TEST_PUBLIC_KEY = 'ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=';
-const TEST_IDENTITY_ID = 'test-agent-1234-5678-abcd-ef0123456789';
+const TEST_SUBJECT_ID = 'test-agent-1234-5678-abcd-ef0123456789';
+const TEST_GIT_NAME = 'MoltNet Test Agent';
+const TEST_GIT_EMAIL = 'test-agent@example.test';
 
 function createTestConfig(opts?: {
   withSsh?: boolean;
@@ -18,7 +20,8 @@ function createTestConfig(opts?: {
   sshPrivateKeyPath?: string;
 }) {
   const config: Record<string, unknown> = {
-    identity_id: TEST_IDENTITY_ID,
+    subject_id: TEST_SUBJECT_ID,
+    subject_type: 'agent',
     registered_at: '2025-01-01T00:00:00.000Z',
     oauth2: { client_id: 'test-client', client_secret: 'test-secret' },
     keys: {
@@ -29,6 +32,12 @@ function createTestConfig(opts?: {
     endpoints: {
       api: 'https://api.themolt.net',
       mcp: 'https://mcp.themolt.net/mcp',
+    },
+    git: {
+      name: TEST_GIT_NAME,
+      email: TEST_GIT_EMAIL,
+      signing: true,
+      config_path: '/tmp/gitconfig',
     },
   };
 
@@ -74,6 +83,20 @@ describe('setupGitIdentity', () => {
     await expect(setupGitIdentity({ configDir: tempDir })).rejects.toThrow(
       'SSH keys not exported',
     );
+  });
+
+  it('refuses to invent missing Git authorship from a MoltNet identifier', async () => {
+    const config = createTestConfig({ withSsh: true });
+    delete config.git;
+    await writeFile(
+      join(tempDir, 'moltnet.json'),
+      JSON.stringify(config, null, 2),
+    );
+
+    await expect(setupGitIdentity({ configDir: tempDir })).rejects.toThrow(
+      'Git name and email are required',
+    );
+    await expect(readFile(join(tempDir, 'gitconfig'))).rejects.toThrow();
   });
 
   it('should generate gitconfig with correct INI sections', async () => {
@@ -137,8 +160,7 @@ describe('setupGitIdentity', () => {
       join(sshDir, 'allowed_signers'),
       'utf-8',
     );
-    const expectedEmail = `${TEST_IDENTITY_ID}@agents.themolt.net`;
-    expect(allowedSigners).toContain(expectedEmail);
+    expect(allowedSigners).toContain(TEST_GIT_EMAIL);
     expect(allowedSigners).toContain('ssh-ed25519');
     expect(allowedSigners.trim()).toMatch(
       /^[^\s]+\s+ssh-ed25519\s+[A-Za-z0-9+/=]+$/,
@@ -173,8 +195,8 @@ describe('setupGitIdentity', () => {
       await readFile(join(tempDir, 'moltnet.json'), 'utf-8'),
     );
     expect(updatedConfig.git).toEqual({
-      name: `moltnet-agent-${TEST_IDENTITY_ID.slice(0, 8)}`,
-      email: `${TEST_IDENTITY_ID}@agents.themolt.net`,
+      name: TEST_GIT_NAME,
+      email: TEST_GIT_EMAIL,
       signing: true,
       config_path: gitconfigPath,
     });
@@ -220,7 +242,7 @@ describe('setupGitIdentity', () => {
     expect(updatedConfig.git.email).toBe(customEmail);
   });
 
-  it('should use identity_id prefix for default name', async () => {
+  it('preserves configured authorship when no override is supplied', async () => {
     // Arrange
     const sshDir = join(tempDir, 'ssh');
     await mkdir(sshDir, { recursive: true });
@@ -245,11 +267,7 @@ describe('setupGitIdentity', () => {
 
     // Assert
     const gitconfig = await readFile(gitconfigPath, 'utf-8');
-    expect(gitconfig).toContain(
-      `\tname = moltnet-agent-${TEST_IDENTITY_ID.slice(0, 8)}`,
-    );
-    expect(gitconfig).toContain(
-      `\temail = ${TEST_IDENTITY_ID}@agents.themolt.net`,
-    );
+    expect(gitconfig).toContain(`\tname = ${TEST_GIT_NAME}`);
+    expect(gitconfig).toContain(`\temail = ${TEST_GIT_EMAIL}`);
   });
 });

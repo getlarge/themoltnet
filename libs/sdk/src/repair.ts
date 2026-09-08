@@ -60,10 +60,14 @@ export async function repairConfig(opts?: {
 }
 
 function validateConfig(config: MoltNetConfig, issues: ConfigIssue[]): void {
-  if (!config.identity_id) {
+  if (
+    !('subject_id' in config) ||
+    !config.subject_id ||
+    config.subject_type !== 'agent'
+  ) {
     issues.push({
-      field: 'identity_id',
-      problem: 'missing',
+      field: 'subject_id',
+      problem: 'missing or unsupported subject anchor',
       action: 'warning',
     });
   }

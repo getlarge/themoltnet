@@ -30,12 +30,15 @@ export async function setupGitIdentity(opts?: {
     );
   }
 
-  // Read the public key content for allowed_signers
-  const publicKey = await readFile(config.ssh.public_key_path, 'utf-8');
+  const name = opts?.name?.trim() || config.git?.name.trim();
+  const email = opts?.email?.trim() || config.git?.email.trim();
+  if (!name || !email) {
+    throw new Error(
+      'Git name and email are required; provide both explicitly or run `moltnet github setup` to resolve the exact bot identity',
+    );
+  }
 
-  // Determine name/email
-  const name = opts?.name ?? `moltnet-agent-${config.identity_id.slice(0, 8)}`;
-  const email = opts?.email ?? `${config.identity_id}@agents.themolt.net`;
+  const publicKey = await readFile(config.ssh.public_key_path, 'utf-8');
 
   // Build allowed_signers (email <public-key>)
   const sshDir = join(configDir, 'ssh');
