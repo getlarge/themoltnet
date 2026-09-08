@@ -328,10 +328,8 @@ export function identitySeedKey(fingerprint: string): string {
   return `identity/${fingerprint}/seed`;
 }
 
-export function agentKeyKey(agentId: string): string {
-  // Derivation string unchanged — renaming the parameter must not re-key
-  // secrets already stored under this prefix.
-  return `agent-key/${agentId}`;
+export function agentKeyKey(subjectId: string): string {
+  return `agent-key/${subjectId}`;
 }
 
 const PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
@@ -349,7 +347,7 @@ function normalizeSecretReference(reference: SecretReference): SecretReference {
 
 /**
  * Parse the `<provider>:<key>` form used by environment references such as
- * `MOLTNET_AGENT_KEY_REF=file:agent-key.identity-1`. The first colon splits.
+ * `MOLTNET_AGENT_KEY_REF=file:agent-key.subject-1`. The first colon splits.
  */
 export function parseSecretReferenceString(value: string): SecretReference {
   const trimmed = value.trim();

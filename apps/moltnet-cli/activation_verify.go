@@ -17,7 +17,6 @@ import (
 type subjectVerification struct {
 	SubjectID   string
 	SubjectType SubjectType
-	IdentityID  string
 	PublicKey   string
 	Fingerprint string
 }
@@ -124,7 +123,6 @@ func verifyAuthenticatedSubject(
 	return &subjectVerification{
 		SubjectID:   serverSubjectID,
 		SubjectType: serverSubjectType,
-		IdentityID:  whoami.IdentityId.String(),
 		PublicKey:   serverPublicKey,
 		Fingerprint: serverFingerprint,
 	}, nil
