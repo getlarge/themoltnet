@@ -91,4 +91,8 @@ jobs:
           # the optional `context: TaskContext` field.
           skip-validation: 'true'
           max-attempts: '2'
-          profile: ${{ vars.MOLTNET_AGENT_PROFILE }}
+          # Hardened read-only review runtime (.github/runtime-profiles/legreffier-review-v1.json):
+          # sandboxed, no network egress, bounded turns, and a prompt contract that
+          # treats reviewed diffs as untrusted data. Falls back to the generic agent
+          # profile only if the variable is unset.
+          profile: ${{ vars.MOLTNET_REVIEW_PROFILE || vars.MOLTNET_AGENT_PROFILE }}
