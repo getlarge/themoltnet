@@ -23,7 +23,6 @@ import { vi } from 'vitest';
 import { type AppOptions, buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
-  AgentEnrollmentRepository,
   AgentRepository,
   CryptoService,
   DataSource,
@@ -160,9 +159,6 @@ export interface MockServices {
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   humanRepository: { [K in keyof HumanRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
-  agentEnrollmentRepository: {
-    [K in keyof AgentEnrollmentRepository]: ReturnType<typeof vi.fn>;
-  };
   embeddingService: {
     embedPassage: ReturnType<typeof vi.fn>;
     embedQuery: ReturnType<typeof vi.fn>;
@@ -456,13 +452,6 @@ export function createMockServices(): MockServices {
       getFingerprintFromPublicKey: vi.fn(),
       createIdentityProof: vi.fn(),
       verifyIdentityProof: vi.fn(),
-    },
-    agentEnrollmentRepository: {
-      create: vi.fn(),
-      findPendingByTokenHash: vi.fn(),
-      redeem: vi.fn(),
-      revoke: vi.fn(),
-      releaseRedemption: vi.fn(),
     },
     embeddingService: {
       embedPassage: vi.fn().mockResolvedValue([]),
@@ -903,8 +892,6 @@ export async function createTestApp(
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     humanRepository: mocks.humanRepository as unknown as HumanRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
-    agentEnrollmentRepository:
-      mocks.agentEnrollmentRepository as unknown as AgentEnrollmentRepository,
     signingRequestRepository:
       mocks.signingRequestRepository as unknown as SigningRequestRepository,
     signingCredentialRepository:

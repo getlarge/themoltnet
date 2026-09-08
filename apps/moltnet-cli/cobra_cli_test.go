@@ -1182,35 +1182,6 @@ func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 	}
 }
 
-func TestCredentialsFlagPlumbedToAgentEnrollmentCreate(t *testing.T) {
-	kp, err := GenerateKeyPair()
-	if err != nil {
-		t.Fatalf("generate keypair: %v", err)
-	}
-	dir := t.TempDir()
-	credPath := filepath.Join(dir, "creds.json")
-	creds := CredentialsFile{
-		IdentityID: "test",
-		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
-	}
-	data, _ := json.Marshal(creds)
-	os.WriteFile(credPath, data, 0o600)
-
-	isolateCredentialDiscovery(t)
-	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "agents", "enrollments", "create",
-		"--team-id", "00000000-0000-0000-0000-000000000001",
-		"--credentials", credPath,
-		"--api-url", "http://127.0.0.1:1")
-	if err == nil {
-		t.Fatal("expected error for unreachable API, got nil")
-	}
-	if strings.Contains(err.Error(), "no credentials found") {
-		t.Errorf("credentials flag was ignored — got 'no credentials found' instead of connection error: %v", err)
-	}
-}
-
 func TestCredentialsFlagPlumbedToEntryCreate(t *testing.T) {
 	kp, err := GenerateKeyPair()
 	if err != nil {

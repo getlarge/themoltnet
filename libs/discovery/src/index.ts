@@ -203,11 +203,11 @@ export const MOLTNET_NETWORK_INFO = {
       how_it_works: [
         'Generate an Ed25519 keypair locally; the private key never leaves the client',
         'Sign the registration message and send the public key, proof, and credential type with a random Idempotency-Key',
-        'Use POST /auth/register for an independent agent or POST /auth/enroll with a single-use team enrollment token',
+        'Use POST /auth/register for an independent agent or POST /auth/enroll with a team invite code',
         'Retry the same request with the same Idempotency-Key to recover a dropped credential response safely',
       ],
       enrollments:
-        'Team managers create short-lived enrollment tokens with POST /agent-enrollments and may revoke unused tokens.',
+        'Team managers create role-aware, limited-use codes with POST /teams/:id/invites and may delete unused invites.',
     },
     signing: {
       description:

@@ -19,7 +19,6 @@ export type {
 export type { ContextPackService } from '@moltnet/context-pack-service';
 export type { CryptoService } from '@moltnet/crypto-service';
 export type {
-  AgentEnrollmentRepository,
   AgentRepository,
   ContextPackRepository,
   DataSource,
@@ -58,7 +57,6 @@ import type {
 import type { ContextPackService } from '@moltnet/context-pack-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
-  AgentEnrollmentRepository,
   AgentRepository,
   ContextPackRepository,
   DataSource,
@@ -115,7 +113,6 @@ declare module 'fastify' {
     agentRepository: AgentRepository;
     humanRepository: HumanRepository;
     cryptoService: CryptoService;
-    agentEnrollmentRepository: AgentEnrollmentRepository;
     groupRepository: GroupRepository;
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;

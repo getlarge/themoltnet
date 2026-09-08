@@ -419,62 +419,6 @@ export const humans = pgTable('humans', {
     .notNull(),
 });
 
-/**
- * Agent Enrollments Table
- *
- * Short-lived, single-use bearer tokens for adding a new agent directly to an
- * existing team. Only the SHA-256 token hash is persisted; the raw token is
- * returned once by the repository.
- */
-export const agentEnrollments = pgTable(
-  'agent_enrollments',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
-    teamId: uuid('team_id')
-      .notNull()
-      .references(() => teams.id, { onDelete: 'cascade' }),
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
-    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
-      onDelete: 'restrict',
-    }),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
-    revokedAt: timestamp('revoked_at', { withTimezone: true }),
-    resultingAgentId: uuid('resulting_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex('agent_enrollments_token_hash_idx').on(table.tokenHash),
-    index('agent_enrollments_team_idx').on(table.teamId),
-    index('agent_enrollments_creator_agent_idx')
-      .on(table.creatorAgentId)
-      .where(sql`creator_agent_id IS NOT NULL`),
-    index('agent_enrollments_creator_human_idx')
-      .on(table.creatorHumanId)
-      .where(sql`creator_human_id IS NOT NULL`),
-    index('agent_enrollments_pending_expiry_idx')
-      .on(table.expiresAt)
-      .where(sql`redeemed_at IS NULL AND revoked_at IS NULL`),
-    check(
-      'agent_enrollments_creator_xor',
-      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
-    ),
-    check(
-      'agent_enrollments_redemption_result_pair',
-      sql`(redeemed_at IS NULL) = (resulting_agent_id IS NULL)`,
-    ),
-  ],
-);
-
 // Signing request status enum
 export const signingRequestStatusEnum = pgEnum('signing_request_status', [
   'pending',
@@ -1264,8 +1208,6 @@ export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
 export type Human = typeof humans.$inferSelect;
 export type NewHuman = typeof humans.$inferInsert;
-export type AgentEnrollment = typeof agentEnrollments.$inferSelect;
-export type NewAgentEnrollment = typeof agentEnrollments.$inferInsert;
 export type SigningCredential = typeof signingCredentials.$inferSelect;
 export type NewSigningCredential = typeof signingCredentials.$inferInsert;
 export type SigningCredentialEvent =

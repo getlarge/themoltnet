@@ -21,9 +21,7 @@ import type {
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
-  CreateAgentEnrollmentData,
   CreateAgentKeyData,
-  CreatedAgentEnrollment,
   CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
@@ -177,7 +175,6 @@ import type {
 
 import type { AgentContext } from './agent-context.js';
 import { MoltNetError } from './errors.js';
-import { createAgentEnrollmentsNamespace } from './namespaces/agent-enrollments.js';
 import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
@@ -548,17 +545,6 @@ export interface CryptoNamespace {
 
   signingRequests: SigningRequestsNamespace;
   signingCredentials: SigningCredentialsNamespace;
-}
-
-export interface AgentEnrollmentsNamespace {
-  /** Create a single-use enrollment. The raw token is returned only once. */
-  create(
-    body: CreateAgentEnrollmentData['body'],
-    options: RequiredTeamRequestOptions,
-  ): Promise<CreatedAgentEnrollment>;
-
-  /** Revoke an unused enrollment. */
-  revoke(id: string, options: RequiredTeamRequestOptions): Promise<void>;
 }
 
 export interface AuthNamespace {
@@ -1051,7 +1037,6 @@ export type RuntimeSessionDownloadStream = AsyncIterable<Uint8Array>;
 
 export interface Agent {
   agentKeys: AgentKeysNamespace;
-  agentEnrollments: AgentEnrollmentsNamespace;
   diaries: DiariesNamespace;
   diaryGrants: DiaryGrantsNamespace;
   diaryTransfers: DiaryTransfersNamespace;
@@ -1097,7 +1082,6 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
   const diaries = createDiariesNamespace(context);
   const agentKeys = createAgentKeysNamespace(context);
-  const agentEnrollments = createAgentEnrollmentsNamespace(context);
   const diaryGrants = createDiaryGrantsNamespace(context);
   const diaryTransfers = createDiaryTransfersNamespace(context);
   const packs = createPacksNamespace(context);
@@ -1125,7 +1109,6 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
   return {
     agentKeys,
-    agentEnrollments,
     diaries,
     diaryGrants,
     diaryTransfers,

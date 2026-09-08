@@ -59,11 +59,6 @@ function createDeps() {
       deleteOAuth2Client: vi.fn(),
       setOAuth2Client: vi.fn(),
     },
-    agentEnrollmentRepository: {
-      findPendingByTokenHash: vi.fn().mockResolvedValue({ teamId: TEAM_ID }),
-      redeem: vi.fn().mockResolvedValue({ teamId: TEAM_ID }),
-      releaseRedemption: vi.fn().mockResolvedValue(true),
-    },
     agentRepository: {
       upsert: vi.fn(),
       delete: vi.fn(),
@@ -221,36 +216,6 @@ describe('registration workflow', () => {
     );
   });
 
-  it('atomically redeems an agent enrollment and grants membership', async () => {
-    const deps = createDeps();
-    setRegistrationDeps(deps as never);
-
-    await registrationWorkflow.registerAgent({
-      publicKey: PUBLIC_KEY,
-      fingerprint: FINGERPRINT,
-      credentialType: 'agent_key',
-      idempotencyKey: 'agent-enrollment-nonce',
-      mode: {
-        type: 'agent_enrollment',
-        enrollmentTokenHash: TOKEN_HASH,
-      },
-    });
-
-    expect(
-      deps.agentEnrollmentRepository.findPendingByTokenHash,
-    ).toHaveBeenCalledWith(TOKEN_HASH);
-    expect(deps.agentEnrollmentRepository.redeem).toHaveBeenCalledWith(
-      TOKEN_HASH,
-      IDENTITY_ID,
-    );
-    expect(deps.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
-      TEAM_ID,
-      IDENTITY_ID,
-      'Agent',
-    );
-    expect(deps.teamRepository.claimInvite).not.toHaveBeenCalled();
-  });
-
   it('honors an executor team invite for managed-agent enrollment', async () => {
     const deps = createDeps();
     deps.teamRepository.findInviteById.mockResolvedValue({
@@ -369,52 +334,6 @@ describe('registration workflow', () => {
     expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
       id: IDENTITY_ID,
     });
-  });
-
-  it('allows only one winner when an agent enrollment redemption loses a race', async () => {
-    const deps = createDeps();
-    deps.agentEnrollmentRepository.redeem.mockResolvedValueOnce(null);
-    setRegistrationDeps(deps as never);
-
-    await expect(
-      registrationWorkflow.registerAgent({
-        publicKey: PUBLIC_KEY,
-        fingerprint: FINGERPRINT,
-        credentialType: 'oauth2',
-        idempotencyKey: 'nonce',
-        mode: {
-          type: 'agent_enrollment',
-          enrollmentTokenHash: TOKEN_HASH,
-        },
-      }),
-    ).rejects.toThrow(EnrollmentValidationError);
-    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
-      id: IDENTITY_ID,
-    });
-  });
-
-  it('releases a redeemed agent enrollment when registration fails', async () => {
-    const deps = createDeps();
-    deps.relationshipWriter.registerAgent.mockRejectedValueOnce(
-      new Error('Keto unavailable'),
-    );
-    setRegistrationDeps(deps as never);
-
-    await expect(
-      registrationWorkflow.registerAgent({
-        publicKey: PUBLIC_KEY,
-        fingerprint: FINGERPRINT,
-        credentialType: 'oauth2',
-        idempotencyKey: 'nonce',
-        mode: {
-          type: 'agent_enrollment',
-          enrollmentTokenHash: TOKEN_HASH,
-        },
-      }),
-    ).rejects.toThrow('Keto unavailable');
-    expect(
-      deps.agentEnrollmentRepository.releaseRedemption,
-    ).toHaveBeenCalledWith(TOKEN_HASH, IDENTITY_ID);
   });
 
   it('does not persist or compensate registration when HTTP credential issuance fails', async () => {

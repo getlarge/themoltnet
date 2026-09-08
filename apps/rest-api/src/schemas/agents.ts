@@ -1,7 +1,6 @@
 import { Type } from 'typebox';
 
 import { AgentKeySchema } from './agent-keys.js';
-import { DateTime } from './atoms.js';
 
 // ── Agent ───────────────────────────────────────────────────
 
@@ -89,32 +88,6 @@ export const RegisterResponseSchema = Type.Object(
     ]),
   },
   { $id: 'RegisterResponse' },
-);
-
-export const AgentEnrollmentSchema = Type.Object(
-  {
-    id: Type.String({ format: 'uuid' }),
-    teamId: Type.String({ format: 'uuid' }),
-    expiresAt: DateTime,
-    redeemedAt: Type.Union([DateTime, Type.Null()]),
-    revokedAt: Type.Union([DateTime, Type.Null()]),
-    resultingAgentId: Type.Union([
-      Type.String({ format: 'uuid' }),
-      Type.Null(),
-    ]),
-    createdAt: DateTime,
-  },
-  { $id: 'AgentEnrollment' },
-);
-
-export const CreatedAgentEnrollmentSchema = Type.Intersect(
-  [Type.Ref(AgentEnrollmentSchema.$id), Type.Object({ token: Type.String() })],
-  { $id: 'CreatedAgentEnrollment' },
-);
-
-export const AgentEnrollmentParamsSchema = Type.Object(
-  { id: Type.String({ format: 'uuid' }) },
-  { $id: 'AgentEnrollmentParams' },
 );
 
 export const RotateSecretResponseSchema = Type.Object(

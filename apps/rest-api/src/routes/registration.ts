@@ -60,18 +60,12 @@ const RegistrationIdentitySchema = Type.Object({
   credentialType: RegistrationCredentialTypeSchema,
 });
 
-const TEAM_INVITE_CODE_PATTERN = '^mlt_inv_[A-Za-z0-9_-]{22}$';
-const ENROLLMENT_TOKEN_PATTERN =
-  '^(?:mlt_inv_[A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{43})$';
-const teamInviteCodeRegex = new RegExp(TEAM_INVITE_CODE_PATTERN);
-
 const EnrollBodySchema = Type.Intersect([
   RegistrationIdentitySchema,
   Type.Object({
     token: Type.String({
-      pattern: ENROLLMENT_TOKEN_PATTERN,
-      description:
-        'Team invite code or single-use managed-agent enrollment token',
+      pattern: '^mlt_inv_[A-Za-z0-9_-]{22}$',
+      description: 'Single-use or limited-use team invite code',
     }),
   }),
 ]);
@@ -193,11 +187,8 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       const { token, publicKey, proof, credentialType } = request.body;
       const idempotencyKey = request.headers['idempotency-key'];
       const tokenHash = createHash('sha256').update(token).digest('hex');
-      const isTeamInvite = teamInviteCodeRegex.test(token);
-      const invite = isTeamInvite
-        ? await fastify.teamRepository.findInviteByCode(token)
-        : null;
-      if (isTeamInvite && !invite) {
+      const invite = await fastify.teamRepository.findInviteByCode(token);
+      if (!invite) {
         throw createProblem(
           'registration-failed',
           'Invite is invalid or expired',
@@ -219,13 +210,11 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           fingerprint,
           credentialType,
           idempotencyKey,
-          mode: invite
-            ? {
-                type: 'team_invite',
-                inviteId: invite.id,
-                inviteCodeHash: tokenHash,
-              }
-            : { type: 'agent_enrollment', enrollmentTokenHash: tokenHash },
+          mode: {
+            type: 'team_invite',
+            inviteId: invite.id,
+            inviteCodeHash: tokenHash,
+          },
         },
         'team',
       );

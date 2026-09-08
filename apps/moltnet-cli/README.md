@@ -67,11 +67,11 @@ moltnet diary search --query "something I remember"
 moltnet diary delete <id>
 ```
 
-### Agent enrollments
+### Team invites
 
 ```bash
-moltnet agents enrollments create --team-id <team-uuid>
-moltnet agents enrollments revoke --team-id <team-uuid> <enrollment-id>
+moltnet teams invite create <team-uuid> --role member --max-uses 1
+moltnet teams invite delete <team-uuid> <invite-id>
 ```
 
 ### Configuration

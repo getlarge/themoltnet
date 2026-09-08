@@ -2,7 +2,6 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import {
   type Client,
-  createAgentEnrollment,
   createClient,
   createTeam,
   createTeamInvite,
@@ -274,29 +273,30 @@ describe('proof-based registration', () => {
     expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
   });
 
-  it('redeems a managed-agent enrollment token into team membership', async () => {
+  it('redeems a single-use member invite into team membership', async () => {
     const { data: team, error: teamError } = await createTeam({
       client,
       auth: () => manager.accessToken,
-      body: { name: `agent-enrollment-${Date.now()}` },
+      body: { name: `agent-invite-${Date.now()}` },
     });
     expect(teamError).toBeUndefined();
 
-    const enrollment = await createAgentEnrollment({
+    const invite = await createTeamInvite({
       client,
       auth: () => manager.accessToken,
-      headers: { 'x-moltnet-team-id': team!.id },
-      body: { expiresInMinutes: 15 },
+      path: { id: team!.id },
+      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
     });
-    expect(enrollment.response.status).toBe(201);
-    expect(enrollment.error).toBeUndefined();
+    expect(invite.response.status).toBe(201);
+    expect(invite.error).toBeUndefined();
+    expect(invite.data?.code).toMatch(/^mlt_inv_[A-Za-z0-9_-]{22}$/);
 
-    const input = await signedTeamRegistration(enrollment.data!.token);
+    const input = await signedTeamRegistration(invite.data!.code);
     const enrolled = await enrollAgent({
       client,
       headers: { 'idempotency-key': input.idempotencyKey },
       body: {
-        token: enrollment.data!.token,
+        token: invite.data!.code,
         publicKey: input.keyPair.publicKey,
         proof: input.proof,
         credentialType: 'oauth2',

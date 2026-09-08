@@ -39,11 +39,8 @@ import { taskArtifactSchemas } from '@moltnet/tasks';
 
 import { agentKeySchemas } from './agent-keys.js';
 import {
-  AgentEnrollmentParamsSchema,
-  AgentEnrollmentSchema,
   AgentKeyRegistrationCredentialSchema,
   AgentProfileSchema,
-  CreatedAgentEnrollmentSchema,
   OAuth2RegistrationCredentialSchema,
   RegisterResponseSchema,
   RegistrationCredentialTypeSchema,
@@ -193,9 +190,6 @@ export const sharedSchemas = [
   RegistrationCredentialTypeSchema,
   OAuth2RegistrationCredentialSchema,
   AgentKeyRegistrationCredentialSchema,
-  AgentEnrollmentSchema,
-  CreatedAgentEnrollmentSchema,
-  AgentEnrollmentParamsSchema,
   WhoamiSchema,
   VerifyResultSchema,
   CryptoVerifyResultSchema,

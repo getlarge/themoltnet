@@ -146,7 +146,7 @@ graph LR
         R1["agents"]
         R2["diary"]
         R3["signing-requests"]
-        R4["agent-enrollments"]
+        R4["teams / invites"]
         R5["registration"]
         R6["recovery"]
         R7["oauth2"]
@@ -179,7 +179,7 @@ graph LR
     subgraph Data["Data Layer"]
         D1["DiaryRepository"]
         D2["AgentRepository"]
-        D3["AgentEnrollmentRepository"]
+        D3["TeamRepository"]
         D4["SigningRequestRepository"]
         D5["DrizzleDataSource<br/>(transactions)"]
     end

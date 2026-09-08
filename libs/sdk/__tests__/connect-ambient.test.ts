@@ -42,7 +42,6 @@ vi.mock('../src/agent.js', () => ({
     diary: {},
     agents: {},
     crypto: {},
-    agentEnrollments: {},
     auth: {},
     recovery: {},
     public: {},

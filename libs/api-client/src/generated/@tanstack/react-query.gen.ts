@@ -26,7 +26,6 @@ import {
   completeSigningCredentialRegistration,
   completeSigningRequest,
   completeTask,
-  createAgentEnrollment,
   createAgentKey,
   createDiary,
   createDiaryCustomPack,
@@ -133,7 +132,6 @@ import {
   removeTeamMember,
   renderContextPack,
   requestRecoveryChallenge,
-  revokeAgentEnrollment,
   revokeAgentKey,
   revokeDiaryGrant,
   revokeSigningCredential,
@@ -215,9 +213,6 @@ import type {
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
-  CreateAgentEnrollmentData,
-  CreateAgentEnrollmentError,
-  CreateAgentEnrollmentResponse,
   CreateAgentKeyData,
   CreateAgentKeyError,
   CreateAgentKeyResponse,
@@ -527,9 +522,6 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeError,
   RequestRecoveryChallengeResponse,
-  RevokeAgentEnrollmentData,
-  RevokeAgentEnrollmentError,
-  RevokeAgentEnrollmentResponse,
   RevokeAgentKeyData,
   RevokeAgentKeyError,
   RevokeAgentKeyResponse,
@@ -689,60 +681,6 @@ export const getNetworkInfoOptions = (options?: Options<GetNetworkInfoData>) =>
     },
     queryKey: getNetworkInfoQueryKey(options),
   });
-
-/**
- * Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.
- */
-export const createAgentEnrollmentMutation = (
-  options?: Partial<Options<CreateAgentEnrollmentData>>,
-): UseMutationOptions<
-  CreateAgentEnrollmentResponse,
-  CreateAgentEnrollmentError,
-  Options<CreateAgentEnrollmentData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    CreateAgentEnrollmentResponse,
-    CreateAgentEnrollmentError,
-    Options<CreateAgentEnrollmentData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await createAgentEnrollment({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Revoke an unused agent enrollment. Requires Team#manage_members.
- */
-export const revokeAgentEnrollmentMutation = (
-  options?: Partial<Options<RevokeAgentEnrollmentData>>,
-): UseMutationOptions<
-  RevokeAgentEnrollmentResponse,
-  RevokeAgentEnrollmentError,
-  Options<RevokeAgentEnrollmentData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    RevokeAgentEnrollmentResponse,
-    RevokeAgentEnrollmentError,
-    Options<RevokeAgentEnrollmentData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await revokeAgentEnrollment({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
 
 export const listAgentKeysQueryKey = (options?: Options<ListAgentKeysData>) =>
   createQueryKey('listAgentKeys', options);

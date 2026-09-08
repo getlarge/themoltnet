@@ -65,10 +65,6 @@ type CompleteTaskRes interface {
 	completeTaskRes()
 }
 
-type CreateAgentEnrollmentRes interface {
-	createAgentEnrollmentRes()
-}
-
 type CreateAgentKeyRes interface {
 	createAgentKeyRes()
 }
@@ -467,10 +463,6 @@ type RenderContextPackRes interface {
 
 type RequestRecoveryChallengeRes interface {
 	requestRecoveryChallengeRes()
-}
-
-type RevokeAgentEnrollmentRes interface {
-	revokeAgentEnrollmentRes()
 }
 
 type RevokeAgentKeyRes interface {

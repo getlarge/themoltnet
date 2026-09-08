@@ -67,7 +67,6 @@ async function main() {
     agentRepository: createStubService() as never,
     humanRepository: createStubService() as never,
     cryptoService: createStubService() as never,
-    agentEnrollmentRepository: createStubService() as never,
     groupRepository: createStubService() as never,
     diaryTransferRepository: createStubService() as never,
     runtimeProfileRepository: createStubService() as never,

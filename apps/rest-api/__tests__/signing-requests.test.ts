@@ -19,7 +19,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import type {
-  AgentEnrollmentRepository,
   AgentRepository,
   CryptoService,
   DiaryService,
@@ -156,10 +155,6 @@ function createApp(
       verify: vi.fn(),
       parsePublicKey: vi.fn(),
     } as unknown as CryptoService,
-    agentEnrollmentRepository: new Proxy(
-      {},
-      { get: () => vi.fn() },
-    ) as unknown as AgentEnrollmentRepository,
     signingRequestRepository:
       signingRepo as unknown as SigningRequestRepository,
     maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,

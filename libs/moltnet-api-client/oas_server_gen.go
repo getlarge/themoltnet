@@ -98,13 +98,6 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
 	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
-	// CreateAgentEnrollment implements createAgentEnrollment operation.
-	//
-	// Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw
-	// token is returned once and only its SHA-256 hash is stored.
-	//
-	// POST /agent-enrollments
-	CreateAgentEnrollment(ctx context.Context, req OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (CreateAgentEnrollmentRes, error)
 	// CreateAgentKey implements createAgentKey operation.
 	//
 	// Issue a secret API key bound to one agent identity or, by default, the active team.
@@ -755,12 +748,6 @@ type Handler interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, req *RecoveryChallengeRequest) (RequestRecoveryChallengeRes, error)
-	// RevokeAgentEnrollment implements revokeAgentEnrollment operation.
-	//
-	// Revoke an unused agent enrollment. Requires Team#manage_members.
-	//
-	// DELETE /agent-enrollments/{id}
-	RevokeAgentEnrollment(ctx context.Context, params RevokeAgentEnrollmentParams) (RevokeAgentEnrollmentRes, error)
 	// RevokeAgentKey implements revokeAgentKey operation.
 	//
 	// Permanently revoke an agent API key.
