@@ -14,12 +14,13 @@ import (
 	"github.com/google/uuid"
 )
 
-func writeAgentKeyStoreFixture(t *testing.T, identityID string) string {
+func writeAgentKeyStoreFixture(t *testing.T, subjectID string) string {
 	t.Helper()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "moltnet.json")
 	doc := `{
-  "identity_id": ` + mustJSON(t, identityID) + `,
+  "subject_id": ` + mustJSON(t, subjectID) + `,
+  "subject_type": "agent",
   "oauth2": { "client_id": "cid", "client_secret_ref": { "provider": "os-keyring", "key": "oauth2/x/cid" } },
   "keys": { "public_key": "ed25519:pub", "fingerprint": "AAAA-BBBB", "private_key_ref": { "provider": "os-keyring", "key": "identity/AAAA-BBBB/seed" } },
   "endpoints": { "api": "https://api.example.test", "mcp": "https://mcp.example.test" },
@@ -94,7 +95,7 @@ func TestAgentsKeysCreateStoreWritesReferenceWithoutPrintingSecret(t *testing.T)
 	}
 	assertNoSecret(t, secret, &out, &errOut)
 	if provider.values[AgentKeyKey(testAgentID)] != secret {
-		t.Fatal("secret was not stored under agent-key/<identity_id>")
+		t.Fatal("secret was not stored under agent-key/<subject_id>")
 	}
 	var result storedAgentKeyOutput
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
@@ -126,6 +127,16 @@ func TestAgentsKeysCreateStoreWritesReferenceWithoutPrintingSecret(t *testing.T)
 
 func TestAgentsKeysCreateStoreFailsBeforeNetworkOnBadTargets(t *testing.T) {
 	credentialsPath := writeAgentKeyStoreFixture(t, "00000000-0000-4000-8000-00000000beef")
+	legacyCredentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+	legacyRaw, err := os.ReadFile(legacyCredentialsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyRaw = bytes.Replace(legacyRaw, []byte(`"subject_id"`), []byte(`"identity_id"`), 1)
+	legacyRaw = bytes.Replace(legacyRaw, []byte("  \"subject_type\": \"agent\",\n"), nil, 1)
+	if err := os.WriteFile(legacyCredentialsPath, legacyRaw, privateFileMode); err != nil {
+		t.Fatal(err)
+	}
 	registry, _ := newMemorySecretProviderRegistry()
 	capture := newRecoveryCapture(t)
 	calls := 0
@@ -144,6 +155,7 @@ func TestAgentsKeysCreateStoreFailsBeforeNetworkOnBadTargets(t *testing.T) {
 		{"agent id mismatch", agentsKeysCreateOpts{credPath: credentialsPath, agentID: testAgentID, store: storeOpts(registry, capture)}, "authenticates agent"},
 		{"env destination", agentsKeysCreateOpts{credPath: credentialsPath, agentID: testAgentID, store: agentKeyStoreOpts{enabled: true, destination: "env", secretProviders: registry}}, "read-only"},
 		{"missing credentials", agentsKeysCreateOpts{credPath: filepath.Join(t.TempDir(), "none.json"), agentID: testAgentID, store: storeOpts(registry, capture)}, "requires a credentials file"},
+		{"legacy credentials", agentsKeysCreateOpts{credPath: legacyCredentialsPath, agentID: testAgentID, store: storeOpts(registry, capture)}, "run `moltnet config migrate` first"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -225,8 +237,8 @@ func TestAgentsKeysStoreFailurePathsNeverEmitTheSecret(t *testing.T) {
 		credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
 		registry, provider := newMemorySecretProviderRegistry()
 		capture := newRecoveryCapture(t)
-		// Swap the identity after the target was prepared: the locked
-		// re-read refuses to bind the key to a different identity.
+		// Swap the subject after the target was prepared: the locked
+		// re-read refuses to bind the key to a different agent.
 		handler := agentKeyStubSecret(secret)
 		handler.create = func(_ *moltnetapi.CreateAgentKeyReq, _ moltnetapi.CreateAgentKeyParams) moltnetapi.CreateAgentKeyRes {
 			raw, _ := os.ReadFile(credentialsPath)
@@ -254,7 +266,7 @@ func TestAgentsKeysStoreFailurePathsNeverEmitTheSecret(t *testing.T) {
 			t.Fatalf("a stored secret must not be copied into the recovery artifact: %+v", capture.written)
 		}
 		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRef != nil {
-			t.Fatal("agent_key_ref must not be bound to a changed identity")
+			t.Fatal("agent_key_ref must not be bound to a changed subject")
 		}
 	})
 
@@ -349,7 +361,7 @@ func TestAgentsKeysRotateStoreReplacesSecretAndChecksAgent(t *testing.T) {
 		t.Fatalf("mismatch after rotation must preserve the new secret in the recovery artifact: %+v", capture.written)
 	}
 	if creds, _ := ReadConfigFrom(other); creds.AgentKeyRef != nil {
-		t.Fatal("mismatched identity must not gain agent_key_ref")
+		t.Fatal("mismatched subject must not gain agent_key_ref")
 	}
 }
 
