@@ -104,11 +104,17 @@ jobs:
                   --output ory-backup-passphrase.asc
 
           # Prove the artifact is a real message addressed to the intended key
-          # before anyone relies on it. `--list-packets` on a public-key
-          # encrypted file reveals only the recipient key id, not the plaintext.
+          # before anyone relies on it.
+          #
+          # --list-only is required, not decoration: --list-packets alone TRIES
+          # TO DECRYPT, so on a runner holding only the public key it prints the
+          # packet header and then exits 2 with "No secret key". Combined with
+          # pipefail that fails the step even though the encryption succeeded.
+          # --list-only parses without attempting decryption, and reveals only
+          # the recipient key id.
           test -s ory-backup-passphrase.asc
           grep -q 'BEGIN PGP MESSAGE' ory-backup-passphrase.asc
-          gpg --batch --list-packets ory-backup-passphrase.asc \
+          gpg --batch --list-only --list-packets ory-backup-passphrase.asc \
             | grep -i 'keyid' \
             | grep -qi "${RECIPIENT: -16}"
 
