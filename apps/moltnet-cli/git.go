@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 )
 
 // runGitSetupCmd is the flag-free business logic for git setup.
-func runGitSetupCmd(credPath, name, email string) error {
+func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
@@ -101,12 +102,12 @@ func runGitSetupCmd(credPath, name, email string) error {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Git identity configured:\n")
-	fmt.Fprintf(os.Stderr, "  Name:       %s\n", gitName)
-	fmt.Fprintf(os.Stderr, "  Email:      %s\n", gitEmail)
-	fmt.Fprintf(os.Stderr, "  Gitconfig:  %s\n", gitconfigPath)
-	fmt.Fprintf(os.Stderr, "  Signers:    %s\n", allowedSignersPath)
-	fmt.Fprintf(os.Stderr, "\nActivate with: export GIT_CONFIG_GLOBAL=%s\n", gitconfigPath)
+	fmt.Fprintf(errOut, "Git identity configured:\n")
+	fmt.Fprintf(errOut, "  Name:       %s\n", gitName)
+	fmt.Fprintf(errOut, "  Email:      %s\n", gitEmail)
+	fmt.Fprintf(errOut, "  Gitconfig:  %s\n", gitconfigPath)
+	fmt.Fprintf(errOut, "  Signers:    %s\n", allowedSignersPath)
+	fmt.Fprintf(errOut, "\nActivate with: export GIT_CONFIG_GLOBAL=%s\n", gitconfigPath)
 
 	return nil
 }
@@ -174,5 +175,5 @@ func runGitSetup(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return runGitSetupCmd(*credPath, *name, *email)
+	return runGitSetupCmd(os.Stderr, *credPath, *name, *email)
 }

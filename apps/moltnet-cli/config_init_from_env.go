@@ -333,7 +333,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}()
 
 	// Export SSH keys (reuses existing logic)
-	if err := runSSHKeyExportCmd(configPath, ""); err != nil {
+	if err := runSSHKeyExportCmd(errOut, configPath, ""); err != nil {
 		return fmt.Errorf("export SSH keys: %w", err)
 	}
 
@@ -344,7 +344,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 		if gitName == "" {
 			gitName = agentName
 		}
-		if err := runGitSetupCmd(configPath, gitName, gitEmail); err != nil {
+		if err := runGitSetupCmd(errOut, configPath, gitName, gitEmail); err != nil {
 			return fmt.Errorf("git setup: %w", err)
 		}
 	}

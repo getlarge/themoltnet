@@ -16,7 +16,7 @@ func newGitCmd() *cobra.Command {
   moltnet git setup --name "my-agent" --email "agent@example.com"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
-			return runGitSetupCmd(credPath, name, email)
+			return runGitSetupCmd(cmd.ErrOrStderr(), credPath, name, email)
 		},
 	}
 	setupCmd.Flags().StringVar(&name, "name", "", "git committer name")

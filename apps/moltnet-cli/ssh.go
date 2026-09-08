@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,7 +51,7 @@ func ToSSHPrivateKey(seedBase64 string) (string, error) {
 }
 
 // runSSHKeyExportCmd exports the MoltNet identity as SSH key files.
-func runSSHKeyExportCmd(credPath, outDir string) error {
+func runSSHKeyExportCmd(errOut io.Writer, credPath, outDir string) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
@@ -83,7 +84,7 @@ func runSSHKeyExportCmd(credPath, outDir string) error {
 	if err := os.WriteFile(pubPath, []byte(pubSSH+"\n"), 0o644); err != nil {
 		return fmt.Errorf("write public key: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "SSH public key written to %s\n", pubPath)
+	fmt.Fprintf(errOut, "SSH public key written to %s\n", pubPath)
 
 	// Under a host signing broker the private key never exists locally:
 	// export the public half only and let git sign through SSH_AUTH_SOCK.
@@ -101,7 +102,7 @@ func runSSHKeyExportCmd(credPath, outDir string) error {
 		if err := os.WriteFile(privPath, []byte(privPEM), 0o600); err != nil {
 			return fmt.Errorf("write private key: %w", err)
 		}
-		fmt.Fprintf(os.Stderr, "SSH private key written to %s\n", privPath)
+		fmt.Fprintf(errOut, "SSH private key written to %s\n", privPath)
 	}
 
 	// Update the ssh section in the config file
@@ -131,5 +132,5 @@ func runSSHKeyExport(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return runSSHKeyExportCmd(*credPath, *outDir)
+	return runSSHKeyExportCmd(os.Stderr, *credPath, *outDir)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -169,7 +170,7 @@ func TestRunGitSetupRejectsIdentityControlCharacters(t *testing.T) {
 	}, credPath); err != nil {
 		t.Fatal(err)
 	}
-	err := runGitSetupCmd(credPath, "safe\n[credential]", "agent@example.test")
+	err := runGitSetupCmd(io.Discard, credPath, "safe\n[credential]", "agent@example.test")
 	if err == nil || !strings.Contains(err.Error(), "control characters") {
 		t.Fatalf("runGitSetupCmd error = %v", err)
 	}

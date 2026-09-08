@@ -772,11 +772,6 @@ func TestAgentsActivationRefreshRejectsServerIdentityMismatch(t *testing.T) {
 			wantMsg: "local public key does not match",
 		},
 		{
-			name:    "identity id",
-			mutate:  func(a *activationIdentityResponse) { a.IdentityID = "00000000-0000-4000-8000-0000000000bb" },
-			wantMsg: "local identity_id does not match",
-		},
-		{
 			name:    "human subject",
 			mutate:  func(a *activationIdentityResponse) { a.SubjectType = "human" },
 			wantMsg: "not as an agent",
@@ -1046,5 +1041,25 @@ func TestAgentsActivationValidateRejectsChangedAPIOrigin(t *testing.T) {
 	}
 	if result.Valid {
 		t.Fatalf("validate accepted a changed API origin: %+v", result)
+	}
+}
+
+func TestAgentsActivationRefreshAcceptsRelinkedIdentityID(t *testing.T) {
+	// Arrange: the server reports a different identity_id for the same
+	// keypair. That is what an Ory relink looks like from the client, and it
+	// is not evidence of a different agent — the key material is unchanged.
+	//
+	// It is also not repairable locally: OAuth2SecretKey and AgentKeyKey derive
+	// provider keys from identity_id, so rewriting the document to match would
+	// orphan the keyring entries holding the secrets.
+	_, _, identity := setupActivationCacheFixtureWithIdentity(t)
+	identity.IdentityID = "00000000-0000-4000-8000-0000000000bb"
+
+	// Act.
+	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+
+	// Assert.
+	if err != nil {
+		t.Fatalf("refresh rejected a relinked identity_id with matching key material: %v", err)
 	}
 }
