@@ -101,7 +101,8 @@ func TestAgentsInitRemoteCheckpointRequiresEveryRecoverableField(t *testing.T) {
 		AppID:                  "1",
 		AppSlug:                "agent",
 		SealedGitHubPrivateKey: "sealed-pem",
-		IdentityID:             "identity",
+		SubjectID:              "00000000-0000-4000-8000-000000000022",
+		SubjectType:            SubjectTypeAgent,
 		ClientID:               "client",
 		SealedClientSecret:     "sealed-secret",
 		InstallationID:         "installation",
@@ -142,7 +143,8 @@ func TestAgentsInitCheckpointEncryptsOneTimeCredentials(t *testing.T) {
 		AppID:                  "1",
 		AppSlug:                "agent",
 		SealedGitHubPrivateKey: sealedPEM,
-		IdentityID:             "identity",
+		SubjectID:              "00000000-0000-4000-8000-000000000022",
+		SubjectType:            SubjectTypeAgent,
 		ClientID:               "client",
 		SealedClientSecret:     sealedSecret,
 		InstallationID:         "installation",
@@ -190,9 +192,10 @@ func TestExchangeGitHubManifestHonorsContextDeadline(t *testing.T) {
 
 func TestAgentInitComplete(t *testing.T) {
 	complete := &CredentialsFile{
-		IdentityID: "identity",
-		OAuth2:     CredentialsOAuth2{ClientID: "client"},
-		GitHub:     &GitHubSection{AppID: "app", InstallationID: "installation"},
+		SubjectID:   "00000000-0000-4000-8000-000000000022",
+		SubjectType: SubjectTypeAgent,
+		OAuth2:      CredentialsOAuth2{ClientID: "client"},
+		GitHub:      &GitHubSection{AppID: "app", InstallationID: "installation"},
 	}
 	if !agentInitRemoteComplete(complete) {
 		t.Fatal("complete credentials were not recognized")
@@ -200,6 +203,98 @@ func TestAgentInitComplete(t *testing.T) {
 	complete.GitHub.InstallationID = ""
 	if agentInitRemoteComplete(complete) {
 		t.Fatal("incomplete credentials were accepted")
+	}
+}
+
+func TestAgentsInitLegacyRemoteCheckpointIsRecoverable(t *testing.T) {
+	path := filepath.Join(t.TempDir(), agentsInitStateFile)
+	legacy := `{
+  "workflowId": "workflow",
+  "manifestUrl": "https://example.test",
+  "phase": "remote_complete",
+  "appId": "1",
+  "appSlug": "agent",
+  "sealedGitHubPrivateKey": "sealed-pem",
+  "identityId": "00000000-0000-4000-8000-000000000011",
+  "clientId": "client",
+  "sealedClientSecret": "sealed-secret",
+  "installationId": "installation"
+}`
+	if err := os.WriteFile(path, []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	state, err := readAgentsInitState(path)
+	if err != nil {
+		t.Fatalf("legacy checkpoint rejected: %v", err)
+	}
+	if state.LegacyIdentityID == "" || state.SubjectID != "" || state.SubjectType != "" {
+		t.Fatalf("legacy checkpoint decoded incorrectly: %#v", state)
+	}
+}
+
+func TestAgentsInitCanonicalCheckpointOmitsIdentityID(t *testing.T) {
+	path := filepath.Join(t.TempDir(), agentsInitStateFile)
+	state := &agentsInitState{
+		WorkflowID:             "workflow",
+		Phase:                  agentsInitPhaseRemoteComplete,
+		AppID:                  "1",
+		AppSlug:                "agent",
+		SealedGitHubPrivateKey: "sealed-pem",
+		SubjectID:              "00000000-0000-4000-8000-000000000022",
+		SubjectType:            SubjectTypeAgent,
+		ClientID:               "client",
+		SealedClientSecret:     "sealed-secret",
+		InstallationID:         "installation",
+	}
+	if err := writeAgentsInitState(path, state); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "identityId") {
+		t.Fatalf("canonical checkpoint retained identityId:\n%s", data)
+	}
+}
+
+func TestVerifyAgentsInitSubjectCanonicalizesLegacyCheckpoint(t *testing.T) {
+	identityID := "00000000-0000-4000-8000-000000000011"
+	subjectID := "00000000-0000-4000-8000-000000000022"
+	server := newInitFromEnvWhoamiServer(t, identityID, subjectID, "agent")
+	state := &agentsInitState{
+		LegacyIdentityID: identityID,
+		ClientID:         "client",
+	}
+
+	verified, err := verifyAgentsInitSubject(
+		context.Background(), server.URL, "moltnet.json", state, "secret",
+	)
+	if err != nil {
+		t.Fatalf("verify legacy checkpoint: %v", err)
+	}
+	if verified.SubjectID != subjectID || verified.SubjectType != SubjectTypeAgent {
+		t.Fatalf("verified subject = %q/%q", verified.SubjectType, verified.SubjectID)
+	}
+}
+
+func TestVerifyAgentsInitSubjectRejectsLegacyIdentityMismatch(t *testing.T) {
+	server := newInitFromEnvWhoamiServer(
+		t,
+		"00000000-0000-4000-8000-000000000011",
+		"00000000-0000-4000-8000-000000000022",
+		"agent",
+	)
+	state := &agentsInitState{
+		LegacyIdentityID: "00000000-0000-4000-8000-000000000099",
+		ClientID:         "client",
+	}
+
+	_, err := verifyAgentsInitSubject(
+		context.Background(), server.URL, "moltnet.json", state, "secret",
+	)
+	if err == nil || !strings.Contains(err.Error(), "does not match authenticated identity") {
+		t.Fatalf("expected identity mismatch, got %v", err)
 	}
 }
 
