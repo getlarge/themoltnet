@@ -18,7 +18,7 @@ import {
   createNodeSecretProviderRegistry,
 } from '@themoltnet/sdk/node';
 
-import { type AgentStartupPin, assessAgentStartupPin } from './identity-pin.js';
+import { assessAgentStartupPin, type SubjectPin } from './identity-pin.js';
 
 /**
  * Where an operator goes after the daemon refuses to start. The published site
@@ -138,7 +138,7 @@ export interface StartupWhoamiSource {
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
   teamId?: string;
-  expectedAgent?: AgentStartupPin;
+  expectedAgent?: SubjectPin;
 }): Promise<Whoami> {
   let whoami: Whoami;
   const maxAttempts = 3;

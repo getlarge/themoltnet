@@ -57,19 +57,4 @@ describe('loadConfig observability settings', () => {
       fingerprint: 'fp-1',
     });
   });
-
-  it('accepts the legacy expected identity pin without mixing contracts', () => {
-    vi.stubEnv('MOLTNET_EXPECTED_IDENTITY_ID', 'id-1');
-    vi.stubEnv('MOLTNET_EXPECTED_PUBLIC_KEY', 'pk-1');
-    vi.stubEnv('MOLTNET_EXPECTED_FINGERPRINT', 'fp-1');
-    expect(loadConfig().expectedAgent).toEqual({
-      identityId: 'id-1',
-      publicKey: 'pk-1',
-      fingerprint: 'fp-1',
-    });
-
-    vi.stubEnv('MOLTNET_EXPECTED_SUBJECT_ID', 'agent-1');
-    vi.stubEnv('MOLTNET_EXPECTED_SUBJECT_TYPE', 'agent');
-    expect(() => loadConfig()).toThrow('cannot be combined');
-  });
 });

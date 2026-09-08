@@ -9,7 +9,7 @@ import {
   type DaemonCredentialSource,
   detectCredentialSource,
 } from './lib/agent-context.js';
-import type { AgentStartupPin } from './lib/identity-pin.js';
+import type { SubjectPin } from './lib/identity-pin.js';
 
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
@@ -58,7 +58,7 @@ export interface DaemonConfig {
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
   /** Subject pin supplied by the local Agent Server. */
-  expectedAgent?: AgentStartupPin;
+  expectedAgent?: SubjectPin;
 }
 
 export function loadConfig(): DaemonConfig {
@@ -92,31 +92,21 @@ function readExpectedAgent(): DaemonConfig['expectedAgent'] {
   const subjectId = process.env['MOLTNET_EXPECTED_SUBJECT_ID']?.trim() ?? '';
   const subjectType =
     process.env['MOLTNET_EXPECTED_SUBJECT_TYPE']?.trim() ?? '';
-  const identityId = process.env['MOLTNET_EXPECTED_IDENTITY_ID']?.trim() ?? '';
   const publicKey = process.env['MOLTNET_EXPECTED_PUBLIC_KEY']?.trim() ?? '';
   const fingerprint = process.env['MOLTNET_EXPECTED_FINGERPRINT']?.trim() ?? '';
-  const canonicalPresent = [subjectId, subjectType].filter(Boolean).length;
-  if (canonicalPresent > 0 && identityId) {
-    throw new Error(
-      'MOLTNET_EXPECTED_SUBJECT_ID/TYPE cannot be combined with legacy MOLTNET_EXPECTED_IDENTITY_ID',
-    );
-  }
-  const present = [subjectId || identityId, publicKey, fingerprint].filter(
+  const present = [subjectId, subjectType, publicKey, fingerprint].filter(
     Boolean,
   ).length;
   if (present === 0) return undefined;
-  if (present !== 3 || (canonicalPresent > 0 && canonicalPresent !== 2)) {
+  if (present !== 4) {
     throw new Error(
       'MOLTNET_EXPECTED_SUBJECT_ID, MOLTNET_EXPECTED_SUBJECT_TYPE, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT must be set together',
     );
   }
-  if (canonicalPresent > 0) {
-    if (subjectType !== 'agent') {
-      throw new Error('MOLTNET_EXPECTED_SUBJECT_TYPE must be agent');
-    }
-    return { subjectId, subjectType, publicKey, fingerprint };
+  if (subjectType !== 'agent') {
+    throw new Error('MOLTNET_EXPECTED_SUBJECT_TYPE must be agent');
   }
-  return { identityId, publicKey, fingerprint };
+  return { subjectId, subjectType, publicKey, fingerprint };
 }
 
 function assertSingleCredentialForm(valueName: string, refName: string): void {
@@ -141,8 +131,6 @@ export interface AgentServerEnvConfig {
   port: string;
   allowedOrigins: string;
   root: string;
-  /** Legacy pre-1834 store root; only used to adopt state left there. */
-  xdgConfigHome: string;
   apiUrl: string;
   logLevel: string;
 }
@@ -152,7 +140,6 @@ export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
     port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',
     allowedOrigins: process.env['MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS'] ?? '',
     root: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
-    xdgConfigHome: process.env['XDG_CONFIG_HOME'] ?? '',
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
   };

@@ -11,7 +11,6 @@ import { join } from 'node:path';
 
 import type * as Sdk from '@themoltnet/sdk';
 import {
-  type LegacyMoltNetConfig,
   type MoltNetConfig,
   MoltNetError,
   READ_ONLY_CAPABILITIES,
@@ -59,11 +58,10 @@ function freshStore(): AgentServerStore {
   return new AgentServerStore(join(root, 'agent-server')).ensure();
 }
 
-function externalConfig(
-  overrides: Partial<LegacyMoltNetConfig> = {},
-): LegacyMoltNetConfig {
+function externalConfig(overrides: Partial<MoltNetConfig> = {}): MoltNetConfig {
   return {
-    identity_id: 'identity-1',
+    subject_id: 'agent-1',
+    subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00Z',
     oauth2: { client_id: 'client', client_secret: 'oauth-secret' },
     keys: {
@@ -460,7 +458,7 @@ describe('managed agent server agents', () => {
         api: 'https://custom.example',
         mcp: 'https://custom.example/mcp',
       },
-      agent_key_ref: { provider: 'file', key: 'agent-key/identity-1' },
+      agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
       keys: {
         public_key: 'ed25519:public',
         fingerprint: 'FP-1',
@@ -482,7 +480,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'managed',
-        registry({ 'agent-key/identity-1': 'resolved-agent-key' }),
+        registry({ 'agent-key/agent-1': 'resolved-agent-key' }),
         registry(),
       ),
     ).resolves.toMatchObject({ activation: { alias: 'managed' } });
@@ -506,7 +504,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'managed',
-        registry({ 'agent-key/identity-1': 'resolved-agent-key' }),
+        registry({ 'agent-key/agent-1': 'resolved-agent-key' }),
         registry(),
       ),
     ).rejects.toThrow('API endpoint does not match its pinned activation');
@@ -587,10 +585,10 @@ describe('external agent server agents', () => {
     );
   });
 
-  it('rejects attach-time identity mismatches', async () => {
+  it('rejects attach-time subject mismatches', async () => {
     const store = freshStore();
     const configDir = writeExternalConfig(
-      externalConfig({ identity_id: 'different' }),
+      externalConfig({ subject_id: 'different' }),
     );
 
     await expect(
@@ -605,7 +603,7 @@ describe('external agent server agents', () => {
   });
 
   it.each([
-    ['identity id', { identity_id: 'changed' }],
+    ['subject id', { subject_id: 'changed' }],
     [
       'public key',
       {
@@ -635,7 +633,7 @@ describe('external agent server agents', () => {
     });
     writeFileSync(
       join(configDir, 'moltnet.json'),
-      JSON.stringify(externalConfig(change as Partial<LegacyMoltNetConfig>)),
+      JSON.stringify(externalConfig(change as Partial<MoltNetConfig>)),
     );
 
     await expect(

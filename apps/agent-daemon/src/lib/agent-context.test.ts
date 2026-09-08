@@ -483,20 +483,6 @@ describe('validateStartupBinding', () => {
     ).rejects.toThrow('must authenticate as an agent');
   });
 
-  it('validates a legacy expected identity pin against whoami.identityId', async () => {
-    await expect(
-      validateStartupBinding({
-        agent: stubAgent(() => Promise.resolve(pinnedWhoami)),
-        teamId: TEAM_A,
-        expectedAgent: {
-          identityId: 'id-1',
-          publicKey: 'pk-1',
-          fingerprint: 'fp-1',
-        },
-      }),
-    ).resolves.toEqual(pinnedWhoami);
-  });
-
   it('propagates non-auth errors unchanged', async () => {
     const boom = new Error('network down');
     const agent = stubAgent(() => Promise.reject(boom));

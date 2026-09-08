@@ -18,7 +18,6 @@ import {
   AgentServerStore,
   AgentServerStoreError,
   assertStoreName,
-  legacyXdgAgentServerRoot,
   resolveAgentServerRoot,
 } from './store.js';
 
@@ -41,123 +40,10 @@ describe('resolveAgentServerRoot', () => {
     expect(resolveAgentServerRoot({})).toMatch(/\.config\/moltnet$/);
   });
 
-  it('still reports the legacy XDG root so it can be adopted', () => {
-    expect(legacyXdgAgentServerRoot('/xdg')).toBe(join('/xdg', 'moltnet'));
-    expect(legacyXdgAgentServerRoot('')).toBeNull();
-  });
-
   // The parameter is gone entirely rather than ignored, so XDG cannot reach
   // root resolution at all — a structural guarantee, not a runtime assertion.
   it('takes no XDG input', () => {
     expect(resolveAgentServerRoot({})).toMatch(/\.config\/moltnet$/);
-  });
-});
-
-describe('legacy layout migration', () => {
-  function stagedRoots(): { legacy: string; current: string } {
-    const base = mkdtempSync(join(tmpdir(), 'agent-server-migrate-'));
-    roots.push(base);
-    return {
-      legacy: join(base, 'xdg', 'moltnet'),
-      current: join(base, 'home'),
-    };
-  }
-
-  it('adopts state left at the pre-1834 XDG root', () => {
-    const { legacy, current } = stagedRoots();
-    mkdirSync(join(legacy, 'identities', 'alpha'), { recursive: true });
-    writeFileSync(
-      join(legacy, 'identities', 'alpha', 'moltnet.json'),
-      JSON.stringify({ identity_id: 'a' }),
-    );
-    const store = new AgentServerStore(current).ensure({
-      legacyXdgConfigHome: join(legacy, '..'),
-    });
-
-    // Aligning the root without adopting would leave an upgraded daemon
-    // reporting zero managed agents while its state sat untouched elsewhere.
-    expect(store.readAgentConfig('alpha')).toMatchObject({ identity_id: 'a' });
-    expect(existsSync(legacy)).toBe(false);
-  });
-
-  // A root holding only a persisted default is not empty. Treating it as empty
-  // let adoption rename the legacy tree over it, destroying the selection.
-  it('counts a selector-only root as state', () => {
-    const { legacy, current } = stagedRoots();
-    mkdirSync(join(legacy, 'identities', 'alpha'), { recursive: true });
-    writeFileSync(
-      join(legacy, 'identities', 'alpha', 'moltnet.json'),
-      JSON.stringify({ identity_id: 'a' }),
-    );
-    mkdirSync(current, { recursive: true });
-    writeFileSync(
-      join(current, 'identity-selector.json'),
-      JSON.stringify({ version: 1, default_identity: 'chosen' }),
-    );
-
-    expect(() =>
-      new AgentServerStore(current).ensure({
-        legacyXdgConfigHome: join(legacy, '..'),
-      }),
-    ).toThrow(/state exists at both/);
-  });
-
-  it('refuses to guess when both roots hold state', () => {
-    const { legacy, current } = stagedRoots();
-    for (const root of [legacy, current]) {
-      mkdirSync(join(root, 'identities', 'alpha'), { recursive: true });
-      writeFileSync(
-        join(root, 'identities', 'alpha', 'moltnet.json'),
-        JSON.stringify({ identity_id: root }),
-      );
-    }
-    expect(() =>
-      new AgentServerStore(current).ensure({
-        legacyXdgConfigHome: join(legacy, '..'),
-      }),
-    ).toThrow(/state exists at both/);
-  });
-
-  it('migrates agents/<alias>.json to identities/<alias>/moltnet.json', () => {
-    const base = mkdtempSync(join(tmpdir(), 'agent-server-agents-'));
-    roots.push(base);
-    const root = join(base, 'moltnet');
-    mkdirSync(join(root, 'agents'), { recursive: true });
-    writeFileSync(
-      join(root, 'agents', 'alpha.json'),
-      JSON.stringify({ identity_id: 'alpha-id' }),
-    );
-
-    const store = new AgentServerStore(root).ensure();
-
-    expect(store.readAgentConfig('alpha')).toMatchObject({
-      identity_id: 'alpha-id',
-    });
-    expect(existsSync(join(root, 'agents', 'alpha.json'))).toBe(false);
-  });
-
-  it('never clobbers an existing managed document', () => {
-    const base = mkdtempSync(join(tmpdir(), 'agent-server-agents-'));
-    roots.push(base);
-    const root = join(base, 'moltnet');
-    mkdirSync(join(root, 'agents'), { recursive: true });
-    writeFileSync(
-      join(root, 'agents', 'alpha.json'),
-      JSON.stringify({ identity_id: 'stale' }),
-    );
-    mkdirSync(join(root, 'identities', 'alpha'), { recursive: true });
-    writeFileSync(
-      join(root, 'identities', 'alpha', 'moltnet.json'),
-      JSON.stringify({ identity_id: 'authoritative' }),
-    );
-
-    const store = new AgentServerStore(root).ensure();
-
-    expect(store.readAgentConfig('alpha')).toMatchObject({
-      identity_id: 'authoritative',
-    });
-    // Left in place for inspection rather than silently discarded.
-    expect(existsSync(join(root, 'agents', 'alpha.json'))).toBe(true);
   });
 });
 
@@ -256,9 +142,10 @@ describe('AgentServerStore', () => {
   it('stores managed agents as canonical configs and lists activations sorted', () => {
     const store = freshStore();
     store.writeAgentConfig('zeta', {
-      identity_id: 'id-z',
+      subject_id: 'agent-z',
+      subject_type: 'agent',
       registered_at: 't',
-      agent_key_ref: { provider: 'file', key: 'agent-key/id-z' },
+      agent_key_ref: { provider: 'file', key: 'agent-key/agent-z' },
       keys: {
         public_key: 'pk-z',
         fingerprint: 'fp-z',
@@ -283,8 +170,9 @@ describe('AgentServerStore', () => {
     ).toEqual(['alpha', 'zeta']);
     expect(store.readActivation('missing')).toBeNull();
     expect(store.readAgentConfig('zeta')).toMatchObject({
-      identity_id: 'id-z',
-      agent_key_ref: { provider: 'file', key: 'agent-key/id-z' },
+      subject_id: 'agent-z',
+      subject_type: 'agent',
+      agent_key_ref: { provider: 'file', key: 'agent-key/agent-z' },
     });
 
     const raw = readFileSync(store.agentPath('zeta'), 'utf8');
@@ -300,7 +188,8 @@ describe('AgentServerStore', () => {
   it('uses the shared versioned selector without consulting repository state', () => {
     const store = freshStore();
     store.writeAgentConfig('first', {
-      identity_id: 'id-first',
+      subject_id: 'agent-first',
+      subject_type: 'agent',
       registered_at: 't',
       oauth2: {
         client_id: 'client-first',
@@ -314,7 +203,8 @@ describe('AgentServerStore', () => {
       endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
     });
     store.writeAgentConfig('second', {
-      identity_id: 'id-second',
+      subject_id: 'agent-second',
+      subject_type: 'agent',
       registered_at: 't',
       oauth2: {
         client_id: 'client-second',
@@ -564,8 +454,14 @@ describe('AgentServerStore', () => {
   it('clears the persisted default when the identity it names is removed', () => {
     const store = freshStore();
     store.ensure();
-    store.writeAgentConfig('alpha', { identity_id: 'a' } as never);
-    store.writeAgentConfig('beta', { identity_id: 'b' } as never);
+    store.writeAgentConfig('alpha', {
+      subject_id: 'a',
+      subject_type: 'agent',
+    } as never);
+    store.writeAgentConfig('beta', {
+      subject_id: 'b',
+      subject_type: 'agent',
+    } as never);
     store.writeIdentitySelector('alpha');
     expect(store.readIdentitySelector()?.default_identity).toBe('alpha');
 

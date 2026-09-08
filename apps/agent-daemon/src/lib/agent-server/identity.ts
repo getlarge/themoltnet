@@ -384,20 +384,24 @@ export async function attachExternalAgent(
       connectAgent,
       input.signal,
     );
-    const identity = identityFromConfig(config);
+    const identity = identityFromConfig(config, whoami.identityId);
     assertIdentityMatches(
       identity,
       whoami,
       `external config ${configPath}`,
       'authenticated whoami',
     );
+    assertSubjectMatches(
+      whoami,
+      config,
+      'authenticated whoami',
+      `external config ${configPath}`,
+    );
     const boundTeamId = boundTeamIdFromWhoami(whoami);
 
     const activation: AgentActivation = {
       alias,
       source: 'external',
-      // From whoami, not the config: an external moltnet.json predating the
-      // decoupling carries no subject at all.
       subjectId: whoami.subjectId,
       ...identity,
       ...(boundTeamId ? { boundTeamId } : {}),
@@ -722,7 +726,7 @@ function identityFromConfig(
   config: MoltNetConfig,
   canonicalIdentityId?: string,
 ): IdentityPin {
-  const identityId = config?.identity_id?.trim() || canonicalIdentityId?.trim();
+  const identityId = canonicalIdentityId?.trim();
   const publicKey = config?.keys?.public_key?.trim();
   const fingerprint = config?.keys?.fingerprint?.trim();
   if (!identityId || !publicKey || !fingerprint) {
@@ -745,10 +749,6 @@ function assertSubjectMatches(
   expectedLabel: string,
 ): void {
   if (expected.subject_type !== 'agent' || !expected.subject_id?.trim()) {
-    // Legacy external configs carry only identity_id. Authentication remains
-    // their compatibility bridge until the shared config migration rewrites
-    // them; canonical managed configs must always enter the branch below.
-    if (expected.identity_id?.trim()) return;
     throw new AgentServerIdentityError(
       'verification_failed',
       `${expectedLabel} is missing canonical subject_type=agent and subject_id`,

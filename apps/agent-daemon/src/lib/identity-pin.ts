@@ -13,9 +13,6 @@ export interface SubjectPin {
   fingerprint: string;
 }
 
-/** Compatibility shape accepted for one release from older Agent Servers. */
-export type AgentStartupPin = SubjectPin | IdentityPin;
-
 export type IdentityPinAssessment =
   | { ok: true }
   | {
@@ -46,22 +43,19 @@ export function assessAgentStartupPin(
     subjectId?: string;
     subjectType?: string;
   },
-  expected: AgentStartupPin,
-): IdentityPinAssessment | SubjectPinAssessment {
-  if ('subjectId' in expected) {
-    for (const [field, label] of [
-      ['subjectId', 'subject id'],
-      ['subjectType', 'subject type'],
-      ['publicKey', 'public key'],
-      ['fingerprint', 'fingerprint'],
-    ] as const) {
-      if (!current[field] || current[field] !== expected[field]) {
-        return { ok: false, field, label };
-      }
+  expected: SubjectPin,
+): SubjectPinAssessment {
+  for (const [field, label] of [
+    ['subjectId', 'subject id'],
+    ['subjectType', 'subject type'],
+    ['publicKey', 'public key'],
+    ['fingerprint', 'fingerprint'],
+  ] as const) {
+    if (!current[field] || current[field] !== expected[field]) {
+      return { ok: false, field, label };
     }
-    return { ok: true };
   }
-  return assessIdentityPin(current, expected);
+  return { ok: true };
 }
 
 export type SubjectPinAssessment =

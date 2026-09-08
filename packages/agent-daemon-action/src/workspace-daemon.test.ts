@@ -303,7 +303,7 @@ describe('workspace daemon action contract', () => {
     expect(run).toContain('config init-from-env');
     expect(run).toContain('MOLTNET_SUBJECT_ID');
     expect(run).toContain('MOLTNET_SUBJECT_TYPE');
-    expect(run).toContain('legacy MOLTNET_IDENTITY_ID');
+    expect(run).not.toContain('MOLTNET_IDENTITY_ID');
   });
 
   it('refuses to run without an agent key, naming the fix', () => {

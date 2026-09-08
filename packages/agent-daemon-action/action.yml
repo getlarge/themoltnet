@@ -325,23 +325,13 @@ runs:
           echo "::error::MOLTNET_CLIENT_ID is required alongside MOLTNET_CLIENT_SECRET." >&2
           exit 1
         fi
-        # Asset materialization needs a canonical agent subject. During the
-        # compatibility release, init-from-env also accepts identity_id after
-        # authenticating it against whoami; keep that bridge visible here.
+        # Asset materialization needs a canonical agent subject.
         if [ -n "${MOLTNET_CLIENT_ID:-}" ]; then
-          if [ -z "${MOLTNET_SUBJECT_ID:-}" ] && [ -z "${MOLTNET_IDENTITY_ID:-}" ]; then
-            echo "::error::MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent are required for asset materialization (or legacy MOLTNET_IDENTITY_ID for the authenticated compatibility bridge)." >&2
+          if [ -z "${MOLTNET_SUBJECT_ID:-}" ] || [ -z "${MOLTNET_SUBJECT_TYPE:-}" ]; then
+            echo "::error::MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent are required for asset materialization." >&2
             exit 1
           fi
-          if [ -n "${MOLTNET_SUBJECT_ID:-}" ] && [ -z "${MOLTNET_SUBJECT_TYPE:-}" ]; then
-            echo "::error::MOLTNET_SUBJECT_TYPE=agent is required alongside MOLTNET_SUBJECT_ID." >&2
-            exit 1
-          fi
-          if [ -z "${MOLTNET_SUBJECT_ID:-}" ] && [ -n "${MOLTNET_SUBJECT_TYPE:-}" ]; then
-            echo "::error::MOLTNET_SUBJECT_ID is required alongside MOLTNET_SUBJECT_TYPE." >&2
-            exit 1
-          fi
-          if [ -n "${MOLTNET_SUBJECT_TYPE:-}" ] && [ "${MOLTNET_SUBJECT_TYPE}" != "agent" ]; then
+          if [ "${MOLTNET_SUBJECT_TYPE}" != "agent" ]; then
             echo "::error::MOLTNET_SUBJECT_TYPE must be agent." >&2
             exit 1
           fi
