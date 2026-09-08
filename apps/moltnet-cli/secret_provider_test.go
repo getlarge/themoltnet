@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -139,28 +138,55 @@ func TestEnvironmentSecretProviderIsReadOnly(t *testing.T) {
 	}
 }
 
-// requireOSKeyringTestable gates the tests that touch the real credential
-// store, in one place so the reason is stated once.
+// realHome is the HOME this process started with, recorded by TestMain before
+// it relocates HOME for the package.
 //
-// macOS is excluded deliberately. The Go provider goes through
-// zalando/go-keyring, which shells out to /usr/bin/security; adding an item
-// there asks for access approval, and on a CI runner with no UI the call blocks
-// until the Go test timeout rather than failing. Provisioning and unlocking a
-// keychain first does not help, because the prompt is about the calling
-// binary's ACL entry, not about the keychain being locked. libs/os-keyring is
-// unaffected because it binds Security.framework directly instead of driving
-// the CLI.
+// It is declared here rather than beside TestMain because that file is built
+// with `!e2e` while this one is untagged: putting the variable there made the
+// e2e build fail to compile. Under the e2e tag nothing assigns it, which is
+// correct — that build has its own TestMain and does not relocate HOME, so the
+// empty-string guard below simply skips the restore.
+var realHome string
+
+// requireOSKeyringTestable gates the tests that write to the real credential
+// store.
 //
-// Linux and Windows exercise the provider for real, so the paths this covers
-// are not untested — only the macOS half is missing, and it fails loudly here
-// rather than silently passing.
+// These tests create and delete items in the machine's actual keychain, which
+// is per-user and outlives any temporary HOME. That is acceptable on a
+// disposable CI runner and not acceptable on a developer's machine, so the
+// gate requires BOTH an explicit opt-in and a CI marker. Setting the opt-in
+// alone on a workstation does nothing — that combination has already been
+// tripped by hand once, and a variable named "RUN_NATIVE_KEYRING_TESTS" reads
+// like it is safe to try.
 func requireOSKeyringTestable(t *testing.T) {
 	t.Helper()
 	if os.Getenv("MOLTNET_RUN_NATIVE_KEYRING_TESTS") != "1" {
 		t.Skip("set MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 to use the native credential store")
 	}
-	if runtime.GOOS == "darwin" {
-		t.Skip("go-keyring drives /usr/bin/security, which blocks on an access prompt with no UI")
+	// GITHUB_ACTIONS is set by the runner and by nothing else. Requiring it
+	// keeps the developer machine out of reach even when the opt-in is set.
+	// Fail, do not skip. The opt-in is only ever set deliberately: by CI, or by
+	// someone trying it by hand. Skipping the second case is silent, and a
+	// silent skip is what let this whole suite report success while running
+	// nothing. Failing also means that if CI ever stops setting GITHUB_ACTIONS
+	// — a different provider, a renamed variable — the native job goes red
+	// instead of quietly covering nothing.
+	//
+	// CI=true is not used as the signal: this repository's own docs recommend
+	// exporting it locally to skip husky, so it would put a developer's real
+	// keychain back in reach.
+	if os.Getenv("GITHUB_ACTIONS") != "true" {
+		t.Fatalf("MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 is set but GITHUB_ACTIONS is not: " +
+			"these tests write to the machine's real credential store and run on CI only. " +
+			"Unset MOLTNET_RUN_NATIVE_KEYRING_TESTS to run the suite locally.")
+	}
+	// Undo TestMain's HOME relocation for this test. macOS looks up the login
+	// keychain under HOME, so the temp HOME leaves `security` with nothing to
+	// open and it blocks; zalando/go-keyring's own suite passes on a stock
+	// macOS runner precisely because it does not move HOME. t.Setenv restores
+	// the temp HOME when the test ends.
+	if realHome != "" {
+		t.Setenv("HOME", realHome)
 	}
 }
 

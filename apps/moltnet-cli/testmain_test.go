@@ -39,6 +39,7 @@ var preservedTestEnv = map[string]bool{
 
 func TestMain(m *testing.M) {
 	os.Exit(func() int {
+		realHome = os.Getenv("HOME")
 		home, err := os.MkdirTemp("", "moltnet-unit-home-")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "test setup: create isolated HOME: %v\n", err)
