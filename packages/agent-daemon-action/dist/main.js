@@ -39489,12 +39489,12 @@ var CREDENTIAL_ENV_KEYS = Object.freeze({
 	"agent-key": "MOLTNET_AGENT_KEY"
 });
 var BINDING_MESSAGES = Object.freeze({
-	"oauth2-client-secret": "OAuth2 secret reference is not bound to this MoltNet identity and client",
+	"oauth2-client-secret": "OAuth2 secret reference is not bound to this MoltNet subject and client",
 	"identity-seed": "Identity seed reference is not bound to this MoltNet identity",
-	"agent-key": "Agent key reference is not bound to this MoltNet identity"
+	"agent-key": "Agent key reference is not bound to this MoltNet subject"
 });
-function oauth2SecretKey(identityId, clientId) {
-	return `oauth2/${identityId}/${clientId}`;
+function oauth2SecretKey(subjectId, clientId) {
+	return `oauth2/${subjectId}/${clientId}`;
 }
 function identitySeedKey(fingerprint) {
 	return `identity/${fingerprint}/seed`;
@@ -39530,12 +39530,15 @@ function requireId(value, name) {
 	if (!trimmed) throw new Error(`Credential binding requires ${name}`);
 	return trimmed;
 }
+function requireSubjectId(ids) {
+	return requireId(ids.subjectId ?? ids.identityId, "subjectId");
+}
 /** Canonical provider key for a credential kind bound to this agent. */
 function expectedSecretKey(kind, ids) {
 	switch (kind) {
-		case "oauth2-client-secret": return oauth2SecretKey(requireId(ids.identityId, "identityId"), requireId(ids.clientId, "clientId"));
+		case "oauth2-client-secret": return oauth2SecretKey(requireSubjectId(ids), requireId(ids.clientId, "clientId"));
 		case "identity-seed": return identitySeedKey(requireId(ids.fingerprint, "fingerprint"));
-		case "agent-key": return agentKeyKey(requireId(ids.identityId, "identityId"));
+		case "agent-key": return agentKeyKey(requireSubjectId(ids));
 	}
 }
 /** Binding check for a MoltNet-owned credential kind from the table above. */
@@ -39605,6 +39608,7 @@ async function resolveOAuth2ClientSecret(config, registry) {
 	if (reference) {
 		try {
 			assertSecretReferenceBinding(kind, reference, {
+				subjectId: config.subject_id,
 				identityId: config.identity_id,
 				clientId: oauth2.client_id
 			});
@@ -39628,7 +39632,10 @@ async function resolveAgentKey(config, registry) {
 	const reference = config.agent_key_ref;
 	if (!reference) return null;
 	try {
-		assertSecretReferenceBinding(kind, reference, { identityId: config.identity_id });
+		assertSecretReferenceBinding(kind, reference, {
+			subjectId: config.subject_id,
+			identityId: config.identity_id
+		});
 	} catch (cause) {
 		throw new CredentialResolutionError(kind, "unbound", cause.message);
 	}

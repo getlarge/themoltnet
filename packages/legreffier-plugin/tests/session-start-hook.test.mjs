@@ -31,7 +31,7 @@ function runHook({
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       join(dir, 'moltnet.json'),
-      JSON.stringify({ identity_id: 'x' }),
+      JSON.stringify({ subject_id: 'x', subject_type: 'agent' }),
     );
     if (withGitconfig) writeFileSync(join(dir, 'gitconfig'), '[user]\n');
   }
@@ -63,7 +63,8 @@ function runHook({
       CLAUDE_PROJECT_DIR: project,
       CLAUDE_ENV_FILE: envFile,
       MOLTNET_ACTIVE_IDENTITY: identity,
-      MOLTNET_IDENTITY_ID: 'identity-uuid',
+      MOLTNET_SUBJECT_ID: 'subject-uuid',
+      MOLTNET_SUBJECT_TYPE: 'agent',
       ...env,
     },
   });
@@ -137,6 +138,19 @@ test('accepts the legacy MOLTNET_AGENT_NAME alias', () => {
   const { status, exported } = runHook({
     withGitconfig: false,
     env: { MOLTNET_ACTIVE_IDENTITY: '', MOLTNET_AGENT_NAME: 'legreffier' },
+  });
+  assert.equal(status, 0);
+  assert.match(exported, /export MOLTNET_ACTIVE_IDENTITY='legreffier'/);
+});
+
+test('retains the authenticated legacy identity bridge', () => {
+  const { status, exported } = runHook({
+    withGitconfig: false,
+    env: {
+      MOLTNET_SUBJECT_ID: '',
+      MOLTNET_SUBJECT_TYPE: '',
+      MOLTNET_IDENTITY_ID: 'identity-uuid',
+    },
   });
   assert.equal(status, 0);
   assert.match(exported, /export MOLTNET_ACTIVE_IDENTITY='legreffier'/);

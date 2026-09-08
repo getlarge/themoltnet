@@ -26,7 +26,7 @@
 #   4. (Optional) Add reviewers on the Environment for approval gating.
 #
 # Secrets (per-environment):
-#   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
+#   MOLTNET_SUBJECT_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
 #   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
 #                            agent identity + OAuth2 creds
 #   MOLTNET_GITHUB_APP_PRIVATE_KEY  (optional, with the GH App vars below)
@@ -158,7 +158,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Agent identity (required)
           MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-          MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+          MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
+          MOLTNET_SUBJECT_TYPE: agent
           MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
           MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
           MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}

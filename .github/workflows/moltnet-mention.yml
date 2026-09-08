@@ -146,7 +146,8 @@ jobs:
           # Agent identity (required) — sourced from `moltnet config
           # export-env` against the dogfooding agent's moltnet.json.
           MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-          MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+          MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
+          MOLTNET_SUBJECT_TYPE: agent
           MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
           MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
           # The daemon authenticates with this key; the OAuth pair above only

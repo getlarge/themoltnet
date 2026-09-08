@@ -286,10 +286,10 @@ runs:
         AGENT_DIR="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME"
         # The daemon authenticates with an agent key and nothing else (#2160).
         # OAuth2 client credentials can still materialize the agent's git, SSH
-        # and GitHub App assets below, but they cannot authenticate it:
-        # `config init-from-env` writes no agent_key_ref, and the daemon refuses
-        # a config without one. Fail here with the fix rather than letting that
-        # surface as a daemon startup error.
+        # and GitHub App assets below, but they cannot authenticate it. A
+        # literal MOLTNET_AGENT_KEY remains configless; only the _REF form can
+        # become agent_key_ref. Fail here with the fix rather than letting a
+        # missing key surface as a daemon startup error.
         if [ -z "${MOLTNET_AGENT_KEY:-}" ] && [ -z "${MOLTNET_AGENT_KEY_REF:-}" ]; then
           echo "::error::MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) is required. The daemon no longer accepts OAuth2 client credentials; mint a key with 'moltnet agents keys create --agent-id <uuid> --team-id <uuid> --name <agent>-daemon --scopes agent:profile,crypto:sign,runtime:read,task:read,task:claim,task:execute,task:manage' and add it as a secret. task:manage is required on top of the daemon minimum because this action also creates the task it then executes. MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET alone materialize git and App assets but cannot authenticate the daemon." >&2
           exit 1
@@ -324,6 +324,27 @@ runs:
         if [ -z "${MOLTNET_CLIENT_ID:-}" ] && [ -n "${MOLTNET_CLIENT_SECRET:-}" ]; then
           echo "::error::MOLTNET_CLIENT_ID is required alongside MOLTNET_CLIENT_SECRET." >&2
           exit 1
+        fi
+        # Asset materialization needs a canonical agent subject. During the
+        # compatibility release, init-from-env also accepts identity_id after
+        # authenticating it against whoami; keep that bridge visible here.
+        if [ -n "${MOLTNET_CLIENT_ID:-}" ]; then
+          if [ -z "${MOLTNET_SUBJECT_ID:-}" ] && [ -z "${MOLTNET_IDENTITY_ID:-}" ]; then
+            echo "::error::MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent are required for asset materialization (or legacy MOLTNET_IDENTITY_ID for the authenticated compatibility bridge)." >&2
+            exit 1
+          fi
+          if [ -n "${MOLTNET_SUBJECT_ID:-}" ] && [ -z "${MOLTNET_SUBJECT_TYPE:-}" ]; then
+            echo "::error::MOLTNET_SUBJECT_TYPE=agent is required alongside MOLTNET_SUBJECT_ID." >&2
+            exit 1
+          fi
+          if [ -z "${MOLTNET_SUBJECT_ID:-}" ] && [ -n "${MOLTNET_SUBJECT_TYPE:-}" ]; then
+            echo "::error::MOLTNET_SUBJECT_ID is required alongside MOLTNET_SUBJECT_TYPE." >&2
+            exit 1
+          fi
+          if [ -n "${MOLTNET_SUBJECT_TYPE:-}" ] && [ "${MOLTNET_SUBJECT_TYPE}" != "agent" ]; then
+            echo "::error::MOLTNET_SUBJECT_TYPE must be agent." >&2
+            exit 1
+          fi
         fi
         if [ -z "${MOLTNET_CLIENT_ID:-}" ]; then
           # Configless: the key comes from the environment and there are no

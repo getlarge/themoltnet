@@ -36,7 +36,8 @@ jobs:
       # legreffier diary for the incident write-up. Composite-action steps
       # inherit job env directly, with no string-substitution round trip.
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+      MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
+      MOLTNET_SUBJECT_TYPE: agent
       MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
       MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
       # The daemon authenticates with this key; the OAuth pair above only

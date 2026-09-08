@@ -301,6 +301,9 @@ describe('workspace daemon action contract', () => {
     // OAuth vars still rebuild git, SSH and GitHub App assets — they just no
     // longer authenticate the daemon, which needs the agent key below.
     expect(run).toContain('config init-from-env');
+    expect(run).toContain('MOLTNET_SUBJECT_ID');
+    expect(run).toContain('MOLTNET_SUBJECT_TYPE');
+    expect(run).toContain('legacy MOLTNET_IDENTITY_ID');
   });
 
   it('refuses to run without an agent key, naming the fix', () => {
