@@ -35,6 +35,15 @@ function readHydraClientCredentialsFlag(
   return line[1] === 'true';
 }
 
+function readHydraSupportedScopes(relativePath: string): string[] {
+  const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+  const block = yaml.match(
+    /^ {4}supported_scope:\n((?: {6}- [^\n]+\n)+)/mu,
+  )?.[1];
+  if (!block) throw new Error('Hydra webfinger supported_scope not found');
+  return [...block.matchAll(/^ {6}- (.+)$/gmu)].map((match) => match[1]!);
+}
+
 function readHydraDefaultScopes(relativePath: string): string[] {
   const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
   const block = yaml.match(/^ {4}default_scope:\n((?: {6}- [^\n]+\n)+)/mu)?.[1];
@@ -143,5 +152,59 @@ describe('Ory environment parity', () => {
     );
 
     expect(localConfigured).toBe(true);
+  });
+});
+
+describe('advertised scopes', () => {
+  // `scopes_supported` in the discovery document is how a client learns what it
+  // may request. Before this was set, Hydra advertised only its three built-in
+  // OIDC scopes, so an MCP client could not discover `diary:read` at all — it
+  // only ever received whatever dynamic_client_registration.default_scope
+  // handed it, which is why clients ended up registered for the full agent
+  // grant.
+  //
+  // Verified against Hydra v25.4.0: this list is advertisement, not
+  // enforcement. A client registered for a scope outside it still reaches
+  // login; `invalid_scope` is raised only for scopes the client's own
+  // registration lacks.
+  it('advertises exactly the MCP tool surface in both environments', () => {
+    const project = readJson('../../infra/ory/project.json') as {
+      services: {
+        oauth2: {
+          config: {
+            webfinger: { oidc_discovery: { supported_scope: string[] } };
+          };
+        };
+      };
+    };
+    const configured =
+      project.services.oauth2.config.webfinger.oidc_discovery.supported_scope;
+    const localConfigured = readHydraSupportedScopes(
+      '../../infra/ory/hydra/hydra.yaml',
+    );
+
+    expect(configured).toEqual([...MCP_CLIENT_SCOPES]);
+    expect(localConfigured).toEqual([...MCP_CLIENT_SCOPES]);
+  });
+
+  it('never advertises a scope the token hook would then refuse', () => {
+    const localConfigured = readHydraSupportedScopes(
+      '../../infra/ory/hydra/hydra.yaml',
+    );
+
+    // Hydra always adds openid/offline/offline_access, so what a client sees is
+    // those plus this list — which must land exactly on the enforced cap.
+    expect([...OIDC_PROTOCOL_SCOPES, ...localConfigured].sort()).toEqual(
+      [...DCR_MAX_SCOPES].sort(),
+    );
+    for (const privileged of [
+      'key:manage',
+      'runtime:manage',
+      'connector:invoke',
+      'runtime:read',
+      'task:claim',
+    ]) {
+      expect(localConfigured).not.toContain(privileged);
+    }
   });
 });
