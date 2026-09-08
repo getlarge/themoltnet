@@ -1188,6 +1188,33 @@ jobs:
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
 
+      # release-please owns the prefixed tag (cli-vX.Y.Z); GoReleaser is handed
+      # the bare semver so {{.Version}} resolves to X.Y.Z. That value reaches
+      # the binary through ldflags and names every archive
+      # (moltnet_X.Y.Z_darwin_arm64.tar.gz), so passing the prefixed tag
+      # instead would produce moltnet_cli-vX.Y.Z_* and a `moltnet --version` of
+      # cli-vX.Y.Z, breaking install.sh, the Homebrew cask and the Scoop
+      # manifest.
+      #
+      # The bare tag has never existed as a ref. GoReleaser <= 2.18.0 did not
+      # mind; 2.18.1 validates it while "getting and validating git state" and
+      # fails with `couldn't get tag contents`. The action tracks `~> v2`, so
+      # that upgrade arrived on its own and turned a long-standing latent bug
+      # fatal — which is why cli-v1.92.0 shipped zero binaries.
+      #
+      # Materialize it locally instead. It is never pushed, and
+      # `release: disable: true` in .goreleaser.yml means GoReleaser creates no
+      # tag or release of its own. A lightweight tag is enough: GoReleaser reads
+      # `%(contents)`, which falls back to the commit message, so no committer
+      # identity is required here.
+      - name: Materialize the bare semver tag GoReleaser resolves
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
+          SEMVER="${{ steps.tag.outputs.semver }}"
+          git tag -f "$SEMVER" "${TAG}^{commit}"
+          git tag -l --format='%(refname:short) -> %(objectname:short)' "$SEMVER"
+
       - name: Generate GitHub App token for Homebrew tap, Scoop bucket and APT repo
         uses: actions/create-github-app-token@v3
         id: app-token
