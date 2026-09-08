@@ -12,6 +12,7 @@ import {
   type TeamInviteRole,
 } from '@moltnet/auth';
 import {
+  type AgentEnrollmentRepository,
   type AgentRepository,
   DBOS,
   type DiaryRepository,
@@ -27,7 +28,8 @@ export type RegistrationCredentialType = 'oauth2' | 'agent_key';
 
 export type RegistrationMode =
   | { type: 'self' }
-  | { type: 'team_invite'; inviteId: string; inviteCodeHash: string };
+  | { type: 'team_invite'; inviteId: string; inviteCodeHash: string }
+  | { type: 'agent_enrollment'; enrollmentTokenHash: string };
 
 export interface RegistrationInput {
   credentialType: RegistrationCredentialType;
@@ -50,12 +52,17 @@ export function registrationInputsEqual(
   ) {
     return false;
   }
-  return (
-    left.mode.type === 'self' ||
-    (left.mode.type === 'team_invite' &&
-      right.mode.type === 'team_invite' &&
+  if (left.mode.type === 'self') return true;
+  if (left.mode.type === 'team_invite' && right.mode.type === 'team_invite') {
+    return (
       left.mode.inviteId === right.mode.inviteId &&
-      left.mode.inviteCodeHash === right.mode.inviteCodeHash)
+      left.mode.inviteCodeHash === right.mode.inviteCodeHash
+    );
+  }
+  return (
+    left.mode.type === 'agent_enrollment' &&
+    right.mode.type === 'agent_enrollment' &&
+    left.mode.enrollmentTokenHash === right.mode.enrollmentTokenHash
   );
 }
 
@@ -101,6 +108,7 @@ export class RegistrationWorkflowError extends Error {
 export interface RegistrationDeps {
   identityApi: IdentityApi;
   oauth2Api: OAuth2Api;
+  agentEnrollmentRepository: AgentEnrollmentRepository;
   agentRepository: AgentRepository;
   diaryRepository: DiaryRepository;
   teamRepository: TeamRepository;
@@ -135,6 +143,7 @@ type CompensateSelfRegistrationFn = (
 type CompensateTeamEnrollmentFn = (
   teamId: string,
   inviteId: string | null,
+  enrollmentTokenHash: string | null,
   identityId: string,
   deleteIdentity: boolean,
 ) => Promise<void>;
@@ -254,6 +263,25 @@ export function initRegistrationWorkflow(): void {
       return { teamId: invite.teamId, inviteId: invite.id, role: invite.role };
     },
     { name: 'registration.step.validateTeamInvite', retriesAllowed: false },
+  );
+
+  const validateAgentEnrollmentStep = DBOS.registerStep(
+    async (tokenHash: string): Promise<string> => {
+      const enrollment =
+        await getDeps().agentEnrollmentRepository.findPendingByTokenHash(
+          tokenHash,
+        );
+      if (!enrollment) {
+        throw new EnrollmentValidationError(
+          'Enrollment is invalid, expired, revoked, or already redeemed',
+        );
+      }
+      return enrollment.teamId;
+    },
+    {
+      name: 'registration.step.validateAgentEnrollment',
+      retriesAllowed: false,
+    },
   );
 
   const createKratosIdentityStep = DBOS.registerStep(
@@ -560,6 +588,7 @@ export function initRegistrationWorkflow(): void {
     async (
       teamId: string,
       inviteId: string | null,
+      enrollmentTokenHash: string | null,
       identityId: string,
       deleteIdentity: boolean,
     ): Promise<void> => {
@@ -568,6 +597,12 @@ export function initRegistrationWorkflow(): void {
         async () => {
           if (inviteId) {
             await getDeps().teamRepository.revertInviteClaim(inviteId);
+          }
+          if (enrollmentTokenHash) {
+            await getDeps().agentEnrollmentRepository.releaseRedemption(
+              enrollmentTokenHash,
+              identityId,
+            );
           }
           await getDeps().agentRepository.delete(identityId);
         },
@@ -587,8 +622,13 @@ export function initRegistrationWorkflow(): void {
         input.mode.type === 'team_invite'
           ? await validateTeamInviteStep(input.mode.inviteId)
           : null;
-      const enrollmentTeamId = invite?.teamId ?? null;
+      const agentEnrollmentTeamId =
+        input.mode.type === 'agent_enrollment'
+          ? await validateAgentEnrollmentStep(input.mode.enrollmentTokenHash)
+          : null;
+      const enrollmentTeamId = invite?.teamId ?? agentEnrollmentTeamId;
       let claimedInviteId: string | null = null;
+      let redeemedEnrollmentTokenHash: string | null = null;
       const identity = await createKratosIdentityStep(
         input.publicKey,
         DBOS.workflowID ?? `registration-${input.idempotencyKey}`,
@@ -596,6 +636,7 @@ export function initRegistrationWorkflow(): void {
       const { identityId } = identity;
       try {
         const {
+          agentEnrollmentRepository,
           agentRepository,
           diaryRepository,
           teamRepository,
@@ -619,6 +660,19 @@ export function initRegistrationWorkflow(): void {
               }
               claimedInviteId = claimed.id;
               return { teamId: claimed.teamId, privateDiaryId: null };
+            }
+            if (input.mode.type === 'agent_enrollment') {
+              const redeemed = await agentEnrollmentRepository.redeem(
+                input.mode.enrollmentTokenHash,
+                identityId,
+              );
+              if (!redeemed || redeemed.teamId !== enrollmentTeamId) {
+                throw new EnrollmentValidationError(
+                  'Enrollment was redeemed by another registration request',
+                );
+              }
+              redeemedEnrollmentTokenHash = input.mode.enrollmentTokenHash;
+              return { teamId: redeemed.teamId, privateDiaryId: null };
             }
 
             const existingTeam = await teamRepository.findPersonalByCreator({
@@ -670,6 +724,9 @@ export function initRegistrationWorkflow(): void {
             invite?.role ?? TEAM_ROLE.Member,
           );
         }
+        if (input.mode.type === 'agent_enrollment') {
+          await grantTeamRoleStep(teamId, identityId, TEAM_ROLE.Member);
+        }
 
         return {
           identityId,
@@ -687,7 +744,7 @@ export function initRegistrationWorkflow(): void {
           'registration.compensation_started',
         );
         const parentWorkflowId = DBOS.workflowID ?? identityId;
-        if (input.mode.type === 'team_invite') {
+        if (input.mode.type !== 'self') {
           try {
             if (enrollmentTeamId) {
               const handle = await DBOS.startWorkflow(
@@ -698,6 +755,7 @@ export function initRegistrationWorkflow(): void {
               )(
                 enrollmentTeamId,
                 claimedInviteId,
+                redeemedEnrollmentTokenHash,
                 identityId,
                 identity.ownedForCompensation,
               );
