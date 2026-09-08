@@ -47,6 +47,7 @@ const PUBLIC_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
 const FINGERPRINT = 'C212-DAFA-27C5-6C57';
 const IDEMPOTENCY_KEY = 'a'.repeat(43);
 const TOKEN = `mlt_inv_${'b'.repeat(22)}`;
+const AGENT_ENROLLMENT_TOKEN = 'c'.repeat(43);
 const TOKEN_HASH = 'f'.repeat(64);
 const SUCCESS = {
   identityId: '550e8400-e29b-41d4-a716-446655440000',
@@ -125,7 +126,7 @@ describe('registration routes', () => {
     });
   });
 
-  it('enrolls into a team and binds the proof to the token hash', async () => {
+  it('enrolls from a team invite and binds the proof to the token hash', async () => {
     expect(hashAgentEnrollmentToken(TOKEN)).toHaveLength(TOKEN_HASH.length);
 
     const response = await app.inject({
@@ -158,6 +159,33 @@ describe('registration routes', () => {
         },
       }),
     );
+  });
+
+  it('enrolls from a single-use agent enrollment token', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/enroll',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        token: AGENT_ENROLLMENT_TOKEN,
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'agent_key',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const tokenHash = hashAgentEnrollmentToken(AGENT_ENROLLMENT_TOKEN);
+    const workflowCall = mockStartWorkflow.mock.results[0].value;
+    expect(workflowCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: {
+          type: 'agent_enrollment',
+          enrollmentTokenHash: tokenHash,
+        },
+      }),
+    );
+    expect(mocks.teamRepository.findInviteByCode).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid or malformed proof before starting the workflow', async () => {

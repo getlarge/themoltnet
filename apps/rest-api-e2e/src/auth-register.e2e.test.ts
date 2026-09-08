@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import {
   type Client,
+  createAgentEnrollment,
   createClient,
   createTeam,
   createTeamInvite,
@@ -271,6 +272,50 @@ describe('proof-based registration', () => {
     });
     expect(whoami.response.status).toBe(200);
     expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
+  });
+
+  it('redeems a managed-agent enrollment token into team membership', async () => {
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `agent-enrollment-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+
+    const enrollment = await createAgentEnrollment({
+      client,
+      auth: () => manager.accessToken,
+      headers: { 'x-moltnet-team-id': team!.id },
+      body: { expiresInMinutes: 15 },
+    });
+    expect(enrollment.response.status).toBe(201);
+    expect(enrollment.error).toBeUndefined();
+
+    const input = await signedTeamRegistration(enrollment.data!.token);
+    const enrolled = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: enrollment.data!.token,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.error).toBeUndefined();
+
+    const members = await listTeamMembers({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+    });
+    expect(members.response.status).toBe(200);
+    expect(
+      members.data?.items.find(
+        (member) => member.subjectId === enrolled.data?.identityId,
+      )?.role,
+    ).toBe('member');
   });
 
   it('honors an executor team invite during managed-agent enrollment', async () => {
