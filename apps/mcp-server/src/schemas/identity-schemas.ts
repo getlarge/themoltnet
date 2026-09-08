@@ -47,6 +47,12 @@ export const WhoamiOutputSchema = Type.Object({
     Type.Object({
       /** Internal `agents.id` / `humans.id` — the durable subject id. */
       subjectId: Type.String(),
+      /**
+       * Which of the two `subjectId` is. Carried because the id alone does not
+       * say, and callers pass it alongside `subject_id` to the team and grant
+       * tools, whose member listings are already discriminated the same way.
+       */
+      subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
       identityId: Type.String(),
       clientId: Type.String(),
       publicKey: Type.String(),

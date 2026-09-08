@@ -48,6 +48,7 @@ describe('MCP Resources', () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
           subjectId: 'agent-1234',
+          subjectType: 'agent',
           identityId: 'uuid-1234',
           clientId: 'client-abc',
           publicKey: 'pk-abc',
@@ -62,6 +63,7 @@ describe('MCP Resources', () => {
       expect(result.contents[0].uri).toBe('moltnet://identity');
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('subject_id', 'agent-1234');
+      expect(data).toHaveProperty('subject_type', 'agent');
       expect(data).toHaveProperty('identity_id', 'uuid-1234');
       expect(data).toHaveProperty('client_id', 'client-abc');
       expect(data).toHaveProperty('public_key', 'pk-abc');

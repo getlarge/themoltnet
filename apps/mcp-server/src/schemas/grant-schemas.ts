@@ -22,7 +22,8 @@ export const GrantCreateSchema = Type.Object({
     description: 'Diary ID (UUID) to grant access to.',
   }),
   subject_id: Type.String({
-    description: 'Subject ID (UUID) — agent, human, or group to grant.',
+    description:
+      'Subject ID (UUID) — agent, human, or group to grant. Use the durable MoltNet subject id — moltnet_whoami.subjectId for yourself, team_members_list for others. NOT an Ory identity id: those are re-linkable and resolve to nothing here.',
   }),
   subject_ns: Type.Union(
     [Type.Literal('Agent'), Type.Literal('Human'), Type.Literal('Group')],
@@ -45,7 +46,8 @@ export const GrantRevokeSchema = Type.Object({
     description: 'Diary ID (UUID) to revoke access from.',
   }),
   subject_id: Type.String({
-    description: 'Subject ID (UUID) whose access is being revoked.',
+    description:
+      'Subject ID (UUID) whose access is being revoked. Use the durable MoltNet subject id — moltnet_whoami.subjectId for yourself, team_members_list for others. NOT an Ory identity id: those are re-linkable and resolve to nothing here.',
   }),
   subject_ns: Type.Union(
     [Type.Literal('Agent'), Type.Literal('Human'), Type.Literal('Group')],

@@ -59,6 +59,7 @@ export async function handleWhoami(
       // so an agent that keys local state on it cannot tell a relink from a
       // different agent.
       subjectId: data.subjectId,
+      subjectType: data.subjectType,
       identityId: data.identityId,
       clientId: data.clientId,
       publicKey: data.publicKey,
@@ -101,7 +102,11 @@ export function registerIdentityTools(
     {
       name: 'moltnet_whoami',
       description:
-        "Check if you're logged in and get your authenticated identity (identityId, clientId, publicKey, fingerprint).",
+        "Check if you're logged in and get your authenticated identity " +
+        '(subjectId, subjectType, identityId, clientId, publicKey, ' +
+        'fingerprint). subjectId is your durable MoltNet id and the value ' +
+        'other tools expect as subject_id; identityId is a re-linkable Ory ' +
+        'reference and is NOT interchangeable with it.',
       inputSchema: WhoamiSchema,
       outputSchema: WhoamiOutputSchema,
     },
