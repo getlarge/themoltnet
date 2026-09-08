@@ -161,8 +161,8 @@ every committed file are world-readable, and issue edit history survives a
 redaction — only an admin deleting the issue removes it.
 
 The reasoning that makes a change reviewable is not automatically safe to
-publish. For ordinary engineering it is; for anything describing the *state of
-a credential or a defence* it is not. Never commit or file, in this repository:
+publish. For ordinary engineering it is; for anything describing the _state of
+a credential or a defence_ it is not. Never commit or file, in this repository:
 
 - that a specific credential is leaked, weak, singly-held, or not yet rotated
 - storage locations for backups or secrets, beyond what is already committed
@@ -175,7 +175,7 @@ rationale in a private channel — a diary entry, a private security advisory, o
 a message to the operator.
 
 When work originates from a security finding, decide where it is going to be
-written down *before* writing it, not after. The check is one question: would
+written down _before_ writing it, not after. The check is one question: would
 this sentence help someone attacking us more than it helps someone maintaining
 us?
 
