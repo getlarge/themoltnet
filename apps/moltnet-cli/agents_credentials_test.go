@@ -141,7 +141,8 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 	t.Setenv(secretRootEnv, secretRoot)
 	t.Setenv(secretRootWritableEnv, "1")
 	credentials := &CredentialsFile{
-		IdentityID: "identity-id",
+		SubjectID:   "subject-id",
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientSecret: "stale-client-secret",
 		},
@@ -189,7 +190,7 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 	if updated.OAuth2.ClientID != "recovered-client-id" ||
 		updated.OAuth2.ClientSecret != "" || updated.OAuth2.ClientSecretRef == nil ||
 		updated.OAuth2.ClientSecretRef.Provider != fileProviderName ||
-		updated.OAuth2.ClientSecretRef.Key != OAuth2SecretKey("identity-id", "recovered-client-id") {
+		updated.OAuth2.ClientSecretRef.Key != OAuth2SecretKey("subject-id", "recovered-client-id") {
 		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
 	}
 }
@@ -284,7 +285,7 @@ func TestAgentsCredentialsRecoverUpdatesReferencedSecret(t *testing.T) {
 	defer server.Close()
 	ref := &SecretReference{
 		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey("identity-id", "stale-client-id"),
+		Key:      OAuth2SecretKey("subject-id", "stale-client-id"),
 	}
 	credentialsPath := writeRecoveryTestCredentials(
 		t,
@@ -311,7 +312,7 @@ func TestAgentsCredentialsRecoverUpdatesReferencedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("recover referenced secret: %v", err)
 	}
-	canonicalKey := OAuth2SecretKey("identity-id", "recovered-client-id")
+	canonicalKey := OAuth2SecretKey("subject-id", "recovered-client-id")
 	if provider.values[canonicalKey] != "recovered-client-secret" {
 		t.Fatalf("stored secret = %q", provider.values[canonicalKey])
 	}
@@ -350,7 +351,7 @@ func TestReconcileRecoveredCredentialsRejectsConcurrentClientChange(t *testing.T
 	if _, err := WriteConfigTo(current, path); err != nil {
 		t.Fatalf("write concurrent change: %v", err)
 	}
-	ref := SecretReference{Provider: osKeyringProviderName, Key: OAuth2SecretKey("identity-id", "resolved-client-id")}
+	ref := SecretReference{Provider: osKeyringProviderName, Key: OAuth2SecretKey("subject-id", "resolved-client-id")}
 
 	err = reconcileRecoveredCredentials(path, original, "resolved-client-id", ref)
 
@@ -359,6 +360,37 @@ func TestReconcileRecoveredCredentialsRejectsConcurrentClientChange(t *testing.T
 	}
 	after, readErr := ReadConfigFrom(path)
 	if readErr != nil || after.OAuth2.ClientID != "concurrent-client-id" || after.OAuth2.ClientSecretRef != nil {
+		t.Fatalf("concurrent credentials were overwritten: %#v, %v", after, readErr)
+	}
+}
+
+func TestReconcileRecoveredCredentialsRejectsConcurrentSubjectChange(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	path := writeRecoveryTestCredentials(t, keyPair, "https://api.example.com", CredentialsOAuth2{})
+	original, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatalf("read original credentials: %v", err)
+	}
+	current, _, err := readCredentialsDocument(path)
+	if err != nil {
+		t.Fatalf("read current credentials: %v", err)
+	}
+	current.SubjectID = "different-subject"
+	if _, err := WriteConfigTo(current, path); err != nil {
+		t.Fatalf("write concurrent change: %v", err)
+	}
+	ref := SecretReference{Provider: osKeyringProviderName, Key: OAuth2SecretKey("subject-id", "resolved-client-id")}
+
+	err = reconcileRecoveredCredentials(path, original, "resolved-client-id", ref)
+
+	if err == nil || !strings.Contains(err.Error(), "subject, client, or OAuth2 source changed concurrently") {
+		t.Fatalf("error = %v, want concurrent subject change rejection", err)
+	}
+	after, readErr := ReadConfigFrom(path)
+	if readErr != nil || after.SubjectID != "different-subject" || after.OAuth2.ClientSecretRef != nil {
 		t.Fatalf("concurrent credentials were overwritten: %#v, %v", after, readErr)
 	}
 }
@@ -903,13 +935,13 @@ func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create client: %v", err)
 	}
-	key := OAuth2SecretKey("identity-id", "client-id")
+	key := OAuth2SecretKey("subject-id", "client-id")
 	ref := SecretReference{Provider: osKeyringProviderName, Key: key}
 	registry, provider := newMemorySecretProviderRegistry()
 	provider.values[key] = testOldClientSecret
 	document := map[string]json.RawMessage{
 		"oauth2": json.RawMessage(
-			`{"client_id":"client-id","client_secret_ref":{"provider":"os-keyring","key":"oauth2/identity-id/client-id"}}`,
+			`{"client_id":"client-id","client_secret_ref":{"provider":"os-keyring","key":"oauth2/subject-id/client-id"}}`,
 		),
 	}
 	var stdout bytes.Buffer
@@ -1290,8 +1322,9 @@ func writeRecoveryTestCredentials(
 	t.Helper()
 	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
 	credentials := &CredentialsFile{
-		IdentityID: "identity-id",
-		OAuth2:     oauth2,
+		SubjectID:   "subject-id",
+		SubjectType: SubjectTypeAgent,
+		OAuth2:      oauth2,
 		Keys: CredentialsKeys{
 			PublicKey:   keyPair.PublicKey,
 			PrivateKey:  keyPair.PrivateKey,
