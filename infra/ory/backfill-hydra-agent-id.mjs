@@ -31,9 +31,19 @@
  */
 import { execFileSync } from 'node:child_process';
 
-const argv = process.argv.slice(2);
-const APPLY = argv.includes('--apply');
-const REPAIR = argv.includes('--repair');
+import {
+  assertTargetMatchesDatabase,
+  openCheckpoint,
+  parseArgs,
+  pooled,
+  request,
+} from './lib/maintenance.mjs';
+
+const args = parseArgs();
+const APPLY = args.apply;
+const REPAIR = args.repair;
+const CONCURRENCY = args.concurrency;
+const STATE_PATH = args.statePath('.hydra-agent-id-backfill-state.log');
 
 const base = process.env.ORY_PROJECT_URL?.replace(/\/$/, '');
 const apiKey = process.env.ORY_PROJECT_API_KEY;
@@ -42,11 +52,6 @@ if (!base || !apiKey) {
   process.exit(1);
 }
 const headers = { Authorization: `Bearer ${apiKey}` };
-
-// Maintenance-critical requests run on the critical path of an outage: one
-// stalled socket would otherwise extend the window indefinitely.
-const REQUEST_TIMEOUT_MS = Number(process.env.ORY_REQUEST_TIMEOUT_MS ?? 30_000);
-const requestTimeout = () => AbortSignal.timeout(REQUEST_TIMEOUT_MS);
 
 function query(sql) {
   const url = process.env.DATABASE_URL;
@@ -137,7 +142,7 @@ async function listAllClients() {
     if (seen.has(url)) break;
     seen.add(url);
 
-    const response = await fetch(url, { headers, signal: requestTimeout() });
+    const response = await request(url, { headers });
     if (!response.ok) {
       throw new Error(
         `list clients: ${response.status} ${await response.text()}`,
@@ -148,6 +153,13 @@ async function listAllClients() {
   }
   return clients;
 }
+
+assertTargetMatchesDatabase({
+  apply: APPLY,
+  databaseUrl: process.env.DATABASE_URL,
+  targetUrl: base,
+  targetName: 'Hydra',
+});
 
 const mapping = loadMapping();
 const agentIds = loadAgentIds();
@@ -236,7 +248,7 @@ if (!APPLY) {
 async function patchAgentId(clientId, agentId, replace) {
   // Client ids are opaque strings, so a reserved character would otherwise
   // re-target this privileged request.
-  const response = await fetch(
+  const response = await request(
     `${base}/admin/clients/${encodeURIComponent(clientId)}`,
     {
       method: 'PATCH',
@@ -248,7 +260,6 @@ async function patchAgentId(clientId, agentId, replace) {
           value: agentId,
         },
       ]),
-      signal: requestTimeout(),
     },
   );
   if (!response.ok) {
@@ -256,22 +267,37 @@ async function patchAgentId(clientId, agentId, replace) {
   }
 }
 
-let done = 0;
-for (const item of targets) {
-  await patchAgentId(item.client.client_id, item.agentId, false);
-  done += 1;
+// Patched with bounded concurrency rather than one at a time: at ~100ms per
+// request a serial pass over 10k clients adds roughly 17 minutes to the
+// outage, and one slow response stalls every client behind it.
+const checkpoint = openCheckpoint(STATE_PATH);
+const remaining = targets.filter(
+  (item) => !checkpoint.has(item.client.client_id),
+);
+if (checkpoint.size() > 0) {
   console.log(
-    `  [${done}/${targets.length}] ${item.client.client_id} -> agent_id=${item.agentId}`,
+    `\nresuming: ${checkpoint.size()} already patched, ${remaining.length} remaining`,
   );
 }
 
+let done = 0;
+await pooled(remaining, CONCURRENCY, async (item) => {
+  await patchAgentId(item.client.client_id, item.agentId, false);
+  checkpoint.record(item.client.client_id);
+  done += 1;
+  if (done % 50 === 0 || done === remaining.length) {
+    console.log(`  ${done}/${remaining.length}`);
+  }
+});
+
 let repaired = 0;
 if (REPAIR) {
-  for (const item of mismatched) {
+  await pooled(mismatched, CONCURRENCY, async (item) => {
     await patchAgentId(item.client.client_id, item.expected, true);
+    checkpoint.record(item.client.client_id);
     repaired += 1;
     console.log(`  REPAIRED ${item.client.client_id} -> ${item.expected}`);
-  }
+  });
 }
 
 // Verify by re-reading, rather than trusting the writes we just made.
@@ -296,16 +322,34 @@ console.log(
   `Clients still missing or holding a wrong agent_id: ${stillWrong.length}`,
 );
 if (stillWrong.length > 0) {
+  const absent = stillWrong.filter(
+    (client) => typeof client.metadata?.agent_id !== 'string',
+  );
   for (const client of stillWrong) {
     console.error(
       `  ${client.client_id}: agent_id=${client.metadata.agent_id ?? '<absent>'}`,
     );
   }
-  console.error(
-    REPAIR
-      ? 'FAIL: some clients could not be reconciled'
-      : 'FAIL: re-run with --repair to overwrite mismatched values',
-  );
+  // Distinguish the two causes: --repair only overwrites clients that hold a
+  // WRONG value, so advising it for a client holding NO value sends the
+  // operator down a path that cannot fix anything. A client that should have
+  // been written but was not is almost always a checkpoint carried over from
+  // an earlier window — the resume skips it, and only this pass notices.
+  if (absent.length > 0) {
+    console.error(
+      `FAIL: ${absent.length} client(s) carry no agent_id despite resolving to ` +
+        `an agent. If this run reported "resuming", the checkpoint at ` +
+        `${STATE_PATH} is from an earlier window and skipped them; rerun with ` +
+        'a fresh --state path.',
+    );
+  }
+  if (absent.length < stillWrong.length) {
+    console.error(
+      REPAIR
+        ? 'FAIL: some clients hold a wrong agent_id and could not be reconciled'
+        : 'FAIL: some clients hold a wrong agent_id; re-run with --repair to overwrite',
+    );
+  }
   process.exit(1);
 }
 console.log('PASS — every MoltNet agent client resolves to its agents.id');

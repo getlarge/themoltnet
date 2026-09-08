@@ -64,18 +64,19 @@
  * nothing an operator could act on.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 
-const argv = process.argv.slice(2);
-const APPLY = argv.includes('--apply');
+import {
+  assertTargetMatchesDatabase,
+  openCheckpoint,
+  parseArgs,
+  pooled,
+  request,
+} from './lib/maintenance.mjs';
 
-function flag(name, fallback) {
-  const index = argv.indexOf(name);
-  return index === -1 ? fallback : argv[index + 1];
-}
-
-const CONCURRENCY = Math.max(1, Number(flag('--concurrency', '8')));
-const STATE_PATH = flag('--state', '.talos-legacy-key-revocation-state.json');
+const args = parseArgs();
+const APPLY = args.apply;
+const CONCURRENCY = args.concurrency;
+const STATE_PATH = args.statePath('.talos-legacy-key-revocation-state.log');
 const PAGE_SIZE = 200;
 // PRIVILEGE_WITHDRAWN rather than the seemingly-apter AFFILIATION_CHANGED:
 // Talos rejects a `description` with any other reason —
@@ -135,7 +136,7 @@ async function* pageKeys() {
     const query = new URLSearchParams({ page_size: String(PAGE_SIZE) });
     if (pageToken) query.set('page_token', pageToken);
 
-    const response = await fetch(`${api}?${query}`, { headers });
+    const response = await request(`${api}?${query}`, { headers });
     if (!response.ok) {
       throw new Error(`list keys: ${response.status} ${await response.text()}`);
     }
@@ -246,24 +247,8 @@ function isActive(key) {
   return key.status === 'KEY_STATUS_ACTIVE';
 }
 
-function loadState() {
-  try {
-    const parsed = JSON.parse(readFileSync(STATE_PATH, 'utf8'));
-    return new Set(parsed.done ?? []);
-  } catch {
-    return new Set();
-  }
-}
-
-/** Atomic so an interrupt cannot leave a truncated checkpoint. */
-function saveState(done) {
-  const tmp = `${STATE_PATH}.tmp`;
-  writeFileSync(tmp, JSON.stringify({ done: [...done] }, null, 2));
-  renameSync(tmp, STATE_PATH);
-}
-
 async function revokeKey(key, description) {
-  const response = await fetch(`${api}/${key.key_id}:revoke`, {
+  const response = await request(`${api}/${key.key_id}:revoke`, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason: REVOCATION_REASON, description }),
@@ -275,50 +260,12 @@ async function revokeKey(key, description) {
   }
 }
 
-/** Runs `worker` over `items` with at most `limit` in flight. */
-async function pooled(items, limit, worker) {
-  let cursor = 0;
-  const runners = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      for (;;) {
-        const index = cursor++;
-        if (index >= items.length) return;
-        await worker(items[index], index);
-      }
-    },
-  );
-  await Promise.all(runners);
-}
-
-/**
- * Refuse to revoke production keys from a local database.
- *
- * A rehearsal runs against a restored copy on 127.0.0.1 while the Talos URL
- * still points at production. Dry-running that way is harmless, but `--apply`
- * would revoke live agent credentials on the strength of ids that exist only
- * in a throwaway container. The combination is never legitimate.
- */
-function assertDatabaseAndTalosAgree() {
-  const dbHost = new URL(process.env.DATABASE_URL).hostname;
-  const talosHost = new URL(base).hostname;
-  const local = ['localhost', '127.0.0.1', '::1'];
-  const dbIsLocal = local.includes(dbHost);
-  const talosIsLocal =
-    local.includes(talosHost) || talosHost.endsWith('.local');
-
-  if (APPLY && dbIsLocal && !talosIsLocal) {
-    console.error(
-      `Refusing to apply: DATABASE_URL points at ${dbHost} (local) while ` +
-        `Talos points at ${talosHost} (remote). The agent ids read from a ` +
-        'local copy do not describe that deployment, so applying would ' +
-        'revoke live credentials on the strength of unrelated data.',
-    );
-    process.exit(1);
-  }
-}
-
-assertDatabaseAndTalosAgree();
+assertTargetMatchesDatabase({
+  apply: APPLY,
+  databaseUrl: process.env.DATABASE_URL,
+  targetUrl: base,
+  targetName: 'Talos',
+});
 
 const { agentIds, byIdentityId } = loadPrincipals();
 
@@ -398,16 +345,15 @@ if (!APPLY) {
   process.exit(0);
 }
 
-const done = loadState();
-const remaining = work.filter((item) => !done.has(item.key.key_id));
-if (done.size > 0) {
+const checkpoint = openCheckpoint(STATE_PATH);
+const remaining = work.filter((item) => !checkpoint.has(item.key.key_id));
+if (checkpoint.size() > 0) {
   console.log(
-    `\nresuming: ${done.size} already revoked, ${remaining.length} remaining`,
+    `\nresuming: ${checkpoint.size()} already revoked, ${remaining.length} remaining`,
   );
 }
 
 let completed = 0;
-let checkpointAt = 0;
 await pooled(remaining, CONCURRENCY, async (item) => {
   await revokeKey(
     item.key,
@@ -416,15 +362,12 @@ await pooled(remaining, CONCURRENCY, async (item) => {
       : `MoltNet principal decoupling: actor_id ${item.key.actor_id} resolves to no agent, so this key can no longer authenticate.`,
   );
 
-  done.add(item.key.key_id);
+  checkpoint.record(item.key.key_id);
   completed += 1;
-  if (completed - checkpointAt >= 50 || completed === remaining.length) {
-    checkpointAt = completed;
-    saveState(done);
+  if (completed % 50 === 0 || completed === remaining.length) {
     console.log(`  ${completed}/${remaining.length}`);
   }
 });
-saveState(done);
 
 // Verify by re-reading, rather than trusting the writes we just made.
 let stillActive = 0;

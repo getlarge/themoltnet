@@ -50,18 +50,20 @@
  * file silently skips work. Use a fresh path per maintenance window.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 
-const argv = process.argv.slice(2);
-const APPLY = argv.includes('--apply');
+import {
+  assertTargetMatchesDatabase,
+  openCheckpoint,
+  parseArgs,
+  pooled,
+  request,
+} from './lib/maintenance.mjs';
 
-function flag(name, fallback) {
-  const index = argv.indexOf(name);
-  return index === -1 ? fallback : argv[index + 1];
-}
-
-const CONCURRENCY = Math.max(1, Number(flag('--concurrency', '8')));
-const STATE_PATH = flag('--state', '.keto-subject-migration-state.json');
+const args = parseArgs();
+const APPLY = args.apply;
+const flag = args.flag;
+const CONCURRENCY = args.concurrency;
+const STATE_PATH = args.statePath('.keto-subject-migration-state.log');
 const ONLY_NAMESPACE = flag('--namespace', null);
 const PAGE_SIZE = 500;
 
@@ -138,7 +140,7 @@ async function* pageTuples() {
     const query = new URLSearchParams({ page_size: String(PAGE_SIZE) });
     if (pageToken) query.set('page_token', pageToken);
 
-    const response = await fetch(`${readBase}/relation-tuples?${query}`, {
+    const response = await request(`${readBase}/relation-tuples?${query}`, {
       headers,
     });
     if (!response.ok) {
@@ -191,24 +193,8 @@ function tupleKey(tuple) {
   return `${tuple.namespace}|${tuple.object}|${tuple.relation}|${subject}`;
 }
 
-function loadState() {
-  try {
-    const parsed = JSON.parse(readFileSync(STATE_PATH, 'utf8'));
-    return new Set(parsed.done ?? []);
-  } catch {
-    return new Set();
-  }
-}
-
-/** Atomic so an interrupt cannot leave a truncated checkpoint. */
-function saveState(done) {
-  const tmp = `${STATE_PATH}.tmp`;
-  writeFileSync(tmp, JSON.stringify({ done: [...done] }, null, 2));
-  renameSync(tmp, STATE_PATH);
-}
-
 async function createTuple(tuple) {
-  const response = await fetch(`${writeBase}/admin/relation-tuples`, {
+  const response = await request(`${writeBase}/admin/relation-tuples`, {
     method: 'PUT',
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify(tuple),
@@ -234,10 +220,10 @@ async function deleteTuple(tuple) {
     query.set('subject_id', tuple.subject_id);
   }
 
-  const response = await fetch(`${writeBase}/admin/relation-tuples?${query}`, {
-    method: 'DELETE',
-    headers,
-  });
+  const response = await request(
+    `${writeBase}/admin/relation-tuples?${query}`,
+    { method: 'DELETE', headers },
+  );
   if (!response.ok) {
     throw new Error(
       `delete ${JSON.stringify(tuple)}: ${response.status} ${await response.text()}`,
@@ -245,51 +231,12 @@ async function deleteTuple(tuple) {
   }
 }
 
-/** Runs `worker` over `items` with at most `limit` in flight. */
-async function pooled(items, limit, worker) {
-  let cursor = 0;
-  const runners = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      for (;;) {
-        const index = cursor++;
-        if (index >= items.length) return;
-        await worker(items[index], index);
-      }
-    },
-  );
-  await Promise.all(runners);
-}
-
-/**
- * Refuse to write production Keto from a local database.
- *
- * A rehearsal runs this against a restored copy on 127.0.0.1 while
- * ORY_PROJECT_URL still points at production. Dry-running that way is
- * harmless, but `--apply` would rewrite production tuples to internal IDs that
- * exist only in the throwaway container — every principal authorized against
- * nothing. The combination is never legitimate, so reject it outright.
- */
-function assertDatabaseAndOryAgree() {
-  const dbHost = new URL(process.env.DATABASE_URL).hostname;
-  const oryHost = new URL(writeBase).hostname;
-  const dbIsLocal = ['localhost', '127.0.0.1', '::1'].includes(dbHost);
-  const oryIsLocal =
-    ['localhost', '127.0.0.1', '::1'].includes(oryHost) ||
-    oryHost.endsWith('.local');
-
-  if (APPLY && dbIsLocal && !oryIsLocal) {
-    console.error(
-      `Refusing to apply: DATABASE_URL points at ${dbHost} (local) while ` +
-        `ORY_PROJECT_URL points at ${oryHost} (remote). The internal IDs read ` +
-        'from a local copy do not exist in that Ory project, so applying ' +
-        'would leave every principal authorized against nothing.',
-    );
-    process.exit(1);
-  }
-}
-
-assertDatabaseAndOryAgree();
+assertTargetMatchesDatabase({
+  apply: APPLY,
+  databaseUrl: process.env.DATABASE_URL,
+  targetUrl: writeBase,
+  targetName: 'the Keto write API',
+});
 
 const mapping = loadMapping();
 for (const ns of Object.keys(mapping)) {
@@ -330,30 +277,28 @@ if (!APPLY) {
   process.exit(0);
 }
 
-const done = loadState();
-const remaining = work.filter((item) => !done.has(tupleKey(item.from)));
-if (done.size > 0) {
+const checkpoint = openCheckpoint(STATE_PATH);
+const remaining = work.filter((item) => !checkpoint.has(tupleKey(item.from)));
+if (checkpoint.size() > 0) {
   console.log(
-    `\nresuming: ${done.size} already applied, ${remaining.length} remaining`,
+    `\nresuming: ${checkpoint.size()} already applied, ${remaining.length} remaining`,
   );
 }
 
 let completed = 0;
-let checkpointAt = 0;
 await pooled(remaining, CONCURRENCY, async (item) => {
   // Create before delete: an interruption over-permits rather than locks out.
   await createTuple(item.to);
   await deleteTuple(item.from);
 
-  done.add(tupleKey(item.from));
+  // Recorded immediately, not batched: a batched checkpoint loses up to a
+  // batch of work on interrupt, and the append costs one write.
+  checkpoint.record(tupleKey(item.from));
   completed += 1;
-  if (completed - checkpointAt >= 50 || completed === remaining.length) {
-    checkpointAt = completed;
-    saveState(done);
+  if (completed % 50 === 0 || completed === remaining.length) {
     console.log(`  ${completed}/${remaining.length}`);
   }
 });
-saveState(done);
 
 // Verify: no tuple may still name a Kratos identity as a mapped subject.
 let stale = 0;
