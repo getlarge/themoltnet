@@ -9,8 +9,10 @@ import {
 } from './host-credentials.js';
 
 const identity = {
+  protocolVersion: 1 as const,
   agentName: 'probe-agent',
-  identityId: 'identity-1',
+  subjectId: 'agent-1',
+  subjectType: 'agent' as const,
   publicKey: `ed25519:${Buffer.alloc(32, 1).toString('base64')}`,
   fingerprint: 'AAAA-BBBB-CCCC-DDDD',
   gitName: 'Probe Agent',
@@ -18,7 +20,8 @@ const identity = {
 };
 
 const config = {
-  identity_id: identity.identityId,
+  subject_id: identity.subjectId,
+  subject_type: identity.subjectType,
   registered_at: '2026-01-01T00:00:00Z',
   oauth2: {
     client_id: 'client-1',
@@ -81,7 +84,7 @@ describe('hostAuthenticationCapability', () => {
       agentSubject: true,
       identityMatched: true,
     });
-    expect(JSON.stringify(body)).not.toContain(identity.identityId);
+    expect(JSON.stringify(body)).not.toContain(identity.subjectId);
     expect(JSON.stringify(body)).not.toContain(identity.publicKey);
     expect(agent.agents.whoami).toHaveBeenCalledOnce();
   });
@@ -89,7 +92,7 @@ describe('hostAuthenticationCapability', () => {
   it('reports an identity mismatch without returning either identity', async () => {
     const { router } = createRouter({
       ...identity,
-      identityId: 'other-identity',
+      subjectId: 'other-agent',
       subjectType: 'agent',
     });
 

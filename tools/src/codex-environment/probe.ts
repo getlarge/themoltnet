@@ -184,6 +184,11 @@ const agentConfig = await readConfig(agentDirectory);
 if (!agentConfig) {
   throw new Error(`credential preflight failed: required_binding_missing`);
 }
+if (!agentConfig.subject_id || agentConfig.subject_type !== 'agent') {
+  throw new Error(
+    'credential preflight failed: legacy config must be migrated first',
+  );
+}
 const credentialPreflight = preflightBrokeredHostCredential(
   agentConfig,
   process.env,
@@ -204,14 +209,16 @@ const hostAgent = await connect({
   apiUrl: agentConfig.endpoints.api,
 });
 const agentIdentity: AgentIdentity = {
+  protocolVersion: 1,
   agentName,
-  identityId: agentConfig.identity_id,
+  subjectId: agentConfig.subject_id,
+  subjectType: agentConfig.subject_type,
   publicKey: agentConfig.keys.public_key,
   fingerprint: agentConfig.keys.fingerprint,
   gitName: agentConfig.git?.name ?? agentName,
   gitEmail:
     agentConfig.git?.email ??
-    `${agentConfig.identity_id}+${agentName}[bot]@users.noreply.github.com`,
+    `${agentConfig.subject_id}+${agentName}[bot]@users.noreply.github.com`,
 };
 // Resolve once: keys.private_key_ref may point at a keyring or file secret.
 const hostPrivateKeySeed = await resolveIdentitySeed(

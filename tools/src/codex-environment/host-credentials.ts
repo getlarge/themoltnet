@@ -2,7 +2,7 @@ import {
   defineHostCapability,
   type HostCapabilityContext,
 } from '@themoltnet/agent-runtime';
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import type { OAuth2Config } from '@themoltnet/sdk';
 import { Type } from 'typebox';
 
 import {
@@ -12,7 +12,7 @@ import {
 
 /** Verify that the released CLI brokered the configured binding into the host. */
 export function preflightBrokeredHostCredential(
-  config: MoltNetConfig,
+  config: { oauth2?: OAuth2Config },
   environment: NodeJS.ProcessEnv,
 ): CredentialPreflightReason {
   const oauth2 = config.oauth2;
@@ -81,7 +81,7 @@ export const hostAuthenticationCapability = defineHostCapability({
           authenticated: true as const,
           agentSubject: whoami.subjectType === 'agent',
           identityMatched:
-            whoami.identityId === context.identity.identityId &&
+            whoami.subjectId === context.identity.subjectId &&
             whoami.publicKey === context.identity.publicKey &&
             whoami.fingerprint === context.identity.fingerprint,
         };
