@@ -63,12 +63,12 @@ describe('AgentServerStore', () => {
   it('round-trips the versioned activation state', () => {
     const store = freshStore();
     expect(store.readAgentServerState()).toEqual({
-      version: 1,
+      version: 2,
       pendingRegistrations: {},
       activations: {},
     });
     store.writeAgentServerState({
-      version: 1,
+      version: 2,
       activations: {},
       pendingRegistrations: {},
     });
@@ -83,7 +83,7 @@ describe('AgentServerStore', () => {
     writeFileSync(
       join(store.root, 'agent-server.json'),
       JSON.stringify({
-        version: 1,
+        version: 2,
         pendingRegistrations: {},
         activations: {},
         pairedOrigins: {
@@ -128,7 +128,6 @@ describe('AgentServerStore', () => {
       alias: 'agent',
       source: 'managed',
       subjectId: 'agent-1',
-      identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
       createdAt: 't',
@@ -136,7 +135,9 @@ describe('AgentServerStore', () => {
     });
 
     expect(store.hasPendingRegistration('agent')).toBe(false);
-    expect(store.readActivation('agent')).toMatchObject({ identityId: 'id' });
+    expect(store.readActivation('agent')).toMatchObject({
+      subjectId: 'agent-1',
+    });
   });
 
   it('stores managed agents as canonical configs and lists activations sorted', () => {
@@ -156,7 +157,6 @@ describe('AgentServerStore', () => {
     const base = {
       source: 'managed' as const,
       subjectId: 'agent-1',
-      identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
       createdAt: 't',
@@ -232,7 +232,6 @@ describe('AgentServerStore', () => {
       alias: 'external',
       source: 'external',
       subjectId: 'agent-1',
-      identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
       configPath: '/repo/.moltnet/external/moltnet.json',
@@ -275,12 +274,11 @@ describe('AgentServerStore', () => {
       'alias/key agreement',
       { source: 'managed', alias: 'other', apiUrl: 'https://api.example' },
     ],
-  ])('rejects malformed version 1 activation %s', (_case, change) => {
+  ])('rejects malformed version 2 activation %s', (_case, change) => {
     const store = freshStore();
     const activation = {
       alias: 'broken',
       subjectId: 'agent-1',
-      identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
       createdAt: 't',
@@ -289,14 +287,14 @@ describe('AgentServerStore', () => {
     writeFileSync(
       join(store.root, 'agent-server.json'),
       JSON.stringify({
-        version: 1,
+        version: 2,
         pendingRegistrations: {},
         activations: { broken: activation },
       }),
     );
 
     expect(() => store.readAgentServerState()).toThrow(
-      'not a valid version 1 activation',
+      'not a valid version 2 activation',
     );
   });
 

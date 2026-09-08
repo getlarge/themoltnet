@@ -234,7 +234,6 @@ describe('managed agent server agents', () => {
       alias: 'course-bot',
       source: 'managed',
       subjectId: 'agent-1',
-      identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
     });
@@ -325,7 +324,7 @@ describe('managed agent server agents', () => {
     await expect(
       reconcileManagedRegistration(store, secrets, 'partial', 'resume'),
     ).resolves.toMatchObject({
-      activation: { alias: 'partial', identityId: 'identity-1' },
+      activation: { alias: 'partial', subjectId: 'agent-1' },
     });
     expect(store.hasPendingRegistration('partial')).toBe(false);
     expect(registerMock).toHaveBeenCalledTimes(1);
@@ -469,7 +468,6 @@ describe('managed agent server agents', () => {
       alias: 'managed',
       source: 'managed',
       subjectId: 'agent-1',
-      identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
       createdAt: 't',
@@ -572,7 +570,6 @@ describe('external agent server agents', () => {
       configPath: join(configDir, 'moltnet.json'),
       apiUrl: 'https://api.themolt.net',
       subjectId: 'agent-1',
-      identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
     });
@@ -669,7 +666,6 @@ describe('external agent server agents', () => {
   });
 
   it.each([
-    ['identity id', { identityId: 'changed' }],
     ['public key', { publicKey: 'changed' }],
     ['fingerprint', { fingerprint: 'changed' }],
   ])('rejects a run-time whoami %s mismatch', async (_field, change) => {
@@ -689,6 +685,52 @@ describe('external agent server agents', () => {
       verifyAgentActivation(store, 'external', registry(), registry()),
     ).rejects.toMatchObject({
       code: 'verification_failed',
+    });
+  });
+
+  it('accepts an Ory relink and refreshes rotated signing metadata', async () => {
+    const store = freshStore();
+    const configDir = writeExternalConfig(externalConfig());
+    await attachExternalAgent(store, registry(), {
+      name: 'external',
+      configDir,
+    });
+    writeFileSync(
+      join(configDir, 'moltnet.json'),
+      JSON.stringify(
+        externalConfig({
+          keys: {
+            public_key: 'rotated-public',
+            private_key: 'rotated-seed',
+            fingerprint: 'ROTATED-FP',
+          },
+        }),
+      ),
+    );
+    connectMock.mockResolvedValueOnce({
+      agents: {
+        whoami: vi.fn().mockResolvedValue({
+          ...whoami,
+          identityId: 'replacement-identity',
+          publicKey: 'rotated-public',
+          fingerprint: 'ROTATED-FP',
+        }),
+      },
+    });
+
+    await expect(
+      verifyAgentActivation(store, 'external', registry(), registry()),
+    ).resolves.toMatchObject({
+      activation: {
+        subjectId: 'agent-1',
+        publicKey: 'rotated-public',
+        fingerprint: 'ROTATED-FP',
+      },
+    });
+    expect(store.readActivation('external')).toMatchObject({
+      subjectId: 'agent-1',
+      publicKey: 'rotated-public',
+      fingerprint: 'ROTATED-FP',
     });
   });
 

@@ -188,7 +188,7 @@ export async function createManagedAgent(
     );
     assertIdentityMatches(
       whoami,
-      { identityId, publicKey, fingerprint },
+      { publicKey, fingerprint },
       'authenticated whoami',
       `new managed agent "${alias}"`,
     );
@@ -203,7 +203,6 @@ export async function createManagedAgent(
       alias,
       source: 'managed',
       subjectId: whoami.subjectId,
-      identityId,
       publicKey,
       fingerprint,
       ...(boundTeamId ? { boundTeamId } : {}),
@@ -320,7 +319,7 @@ export async function reconcileManagedRegistration(
     'authenticated whoami',
     `pending registration "${alias}" config`,
   );
-  const identity = identityFromConfig(config, whoami.identityId);
+  const identity = identityFromConfig(config);
   assertIdentityMatches(
     whoami,
     identity,
@@ -384,7 +383,7 @@ export async function attachExternalAgent(
       connectAgent,
       input.signal,
     );
-    const identity = identityFromConfig(config, whoami.identityId);
+    const identity = identityFromConfig(config);
     assertIdentityMatches(
       identity,
       whoami,
@@ -423,7 +422,7 @@ export async function attachExternalAgent(
   }
 }
 
-/** Load and authenticate the current config, then compare all pinned fields. */
+/** Load and authenticate the current config, then refresh its derived pin. */
 export async function verifyAgentActivation(
   store: AgentServerStore,
   alias: string,
@@ -448,15 +447,22 @@ export async function verifyAgentActivation(
           connectAgent,
           signal,
         );
-  assertIdentityMatches(
-    verified.whoami,
-    activation,
-    'authenticated whoami',
-    `agent "${activation.alias}" pinned activation`,
-  );
   assertSubjectMatches(
     verified.whoami,
     verified.config,
+    'authenticated whoami',
+    `agent "${activation.alias}" config`,
+  );
+  if (verified.whoami.subjectId !== activation.subjectId) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `authenticated whoami subject does not match agent "${activation.alias}" pinned activation`,
+    );
+  }
+  const identity = identityFromConfig(verified.config);
+  assertIdentityMatches(
+    verified.whoami,
+    identity,
     'authenticated whoami',
     `agent "${activation.alias}" config`,
   );
@@ -467,8 +473,10 @@ export async function verifyAgentActivation(
       `authenticated whoami team binding does not match agent "${activation.alias}" pinned activation`,
     );
   }
+  const refreshed = { ...activation, ...identity };
+  store.writeActivation(refreshed);
   return {
-    activation,
+    activation: refreshed,
     config: verified.config,
     ...(boundTeamId ? { boundTeamId } : {}),
   };
@@ -574,12 +582,12 @@ function assertActivatedConfig(
       `agent config at ${configPath} API endpoint does not match its pinned activation`,
     );
   }
-  assertIdentityMatches(
-    identityFromConfig(config, activation.identityId),
-    activation,
-    configPath,
-    `agent "${activation.alias}" pinned activation`,
-  );
+  if (config.subject_id !== activation.subjectId) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `agent config at ${configPath} subject does not match its pinned activation`,
+    );
+  }
 }
 
 function requireConfigApiUrl(
@@ -722,21 +730,16 @@ function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
   return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
-function identityFromConfig(
-  config: MoltNetConfig,
-  canonicalIdentityId?: string,
-): IdentityPin {
-  const identityId = canonicalIdentityId?.trim();
+function identityFromConfig(config: MoltNetConfig): IdentityPin {
   const publicKey = config?.keys?.public_key?.trim();
   const fingerprint = config?.keys?.fingerprint?.trim();
-  if (!identityId || !publicKey || !fingerprint) {
+  if (!publicKey || !fingerprint) {
     throw new AgentServerIdentityError(
       'verification_failed',
-      'agent config is missing identity metadata, keys.public_key, or keys.fingerprint',
+      'agent config is missing keys.public_key or keys.fingerprint',
     );
   }
   return {
-    identityId,
     publicKey,
     fingerprint,
   };
@@ -800,7 +803,6 @@ export function publicAgentView(
       kind: 'managed',
       agentName: activation.alias,
       subjectId: activation.subjectId,
-      identityId: activation.identityId,
       fingerprint: activation.fingerprint,
       ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
       apiUrl: activation.apiUrl,
@@ -815,7 +817,6 @@ export function publicAgentView(
     configDir: dirname(activation.configPath),
     ...(activation.apiUrl ? { apiUrl: activation.apiUrl } : {}),
     subjectId: activation.subjectId,
-    identityId: activation.identityId,
     fingerprint: activation.fingerprint,
     ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
     createdAt: activation.createdAt,

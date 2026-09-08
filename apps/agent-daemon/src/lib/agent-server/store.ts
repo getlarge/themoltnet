@@ -33,7 +33,7 @@ import {
   type MoltNetConfig,
 } from '@themoltnet/sdk';
 
-export const AGENT_SERVER_STATE_VERSION = 1;
+export const AGENT_SERVER_STATE_VERSION = 2;
 export const IDENTITY_SELECTOR_VERSION = 1;
 
 // Imported, not restated. An alias is a directory name in a store the Go CLI,
@@ -126,8 +126,7 @@ interface ActivationIdentity {
    * survives the Kratos identity being recreated.
    */
   subjectId: string;
-  /** Identity material pinned after authenticated `whoami`. */
-  identityId: string;
+  /** Current signing material confirmed by authenticated `whoami`. */
   publicKey: string;
   fingerprint: string;
   /** Team binding authenticated through whoami when the activation is made. */
@@ -310,7 +309,7 @@ export class AgentServerStore {
     if (!isRecord(state.pendingRegistrations) || !isRecord(state.activations)) {
       throw new AgentServerStoreError(
         'invalid_state',
-        'agent-server.json is missing the version 1 activation map; clear the unreleased agent server store and reconfigure it',
+        'agent-server.json is missing the version 2 activation map; clear the unreleased agent server store and reconfigure it',
       );
     }
     for (const [alias, activation] of Object.entries(state.activations)) {
@@ -694,14 +693,14 @@ function validateActivation(alias: string, value: unknown): void {
   const invalid = (): never => {
     throw new AgentServerStoreError(
       'invalid_state',
-      `activation "${alias}" is not a valid version 1 activation`,
+      `activation "${alias}" is not a valid version 2 activation`,
     );
   };
   if (!isRecord(value)) invalid();
   const activation = value as Record<string, unknown>;
   if (activation.alias !== alias) invalid();
   if (
-    !['identityId', 'publicKey', 'fingerprint', 'createdAt'].every(
+    !['subjectId', 'publicKey', 'fingerprint', 'createdAt'].every(
       (field) =>
         typeof activation[field] === 'string' && activation[field].length > 0,
     )

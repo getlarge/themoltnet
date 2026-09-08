@@ -25,9 +25,6 @@
           "hasPrivateKey": {
             "type": "boolean"
           },
-          "identityId": {
-            "type": "string"
-          },
           "kind": {
             "anyOf": [
               {
@@ -54,6 +51,7 @@
         "required": [
           "kind",
           "agentName",
+          "subjectId",
           "createdAt"
         ],
         "type": "object"
