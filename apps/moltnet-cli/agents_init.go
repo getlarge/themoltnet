@@ -257,7 +257,6 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	}
 	creds.SubjectID = state.SubjectID
 	creds.SubjectType = state.SubjectType
-	creds.IdentityID = ""
 	creds.OAuth2 = CredentialsOAuth2{ClientID: state.ClientID, ClientSecretRef: &oauthRef}
 	creds.RegisteredAt = time.Now().UTC().Format(time.RFC3339Nano)
 	creds.GitHub.InstallationID = state.InstallationID

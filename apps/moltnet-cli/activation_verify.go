@@ -56,6 +56,22 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	return verifyAuthenticatedSubject(credentialsPath, creds, whoami)
 }
 
+// verifyConfigIdentityAgainstServer is the migration variant of identity
+// verification. It resolves only references from the supplied document and
+// registry, preventing an ambient agent-key override from authenticating a
+// different subject while the plan is being bound.
+func verifyConfigIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, registry *SecretProviderRegistry) (*subjectVerification, error) {
+	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
+	if err != nil {
+		return nil, fmt.Errorf("verify config identity: %w", err)
+	}
+	whoami, err := fetchAgentWhoami(context.Background(), client)
+	if err != nil {
+		return nil, fmt.Errorf("verify config identity: %w", err)
+	}
+	return verifyAuthenticatedSubject(credentialsPath, creds, whoami)
+}
+
 // verifyAuthenticatedSubject is shared by activation and config migration so
 // their definition of the durable binding cannot drift. Legacy documents have
 // no subject tuple to compare; authentication supplies it. Canonical documents

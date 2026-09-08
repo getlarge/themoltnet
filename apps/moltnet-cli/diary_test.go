@@ -124,7 +124,7 @@ func newCLICommandTestServer(t *testing.T, h moltnetapi.Handler) (*httptest.Serv
 
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
 	data, err := json.Marshal(CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "cid",
 			ClientSecret: "csec",

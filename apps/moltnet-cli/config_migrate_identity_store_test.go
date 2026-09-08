@@ -17,16 +17,15 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 	}
 	legacyPath := filepath.Join(home, "repo", ".moltnet", "legacy", "moltnet.json")
 	identity := newIdentityFixture(t, "legacy", "https://legacy.example.test")
-	legacy := &CredentialsFile{
-		IdentityID: identity.identityID,
-		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
-		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-		Endpoints:  CredentialsEndpoints{API: identity.api},
-		Git:        &GitSection{Name: "Legacy Bot", Email: "legacy@example.test"},
-	}
+	legacy := legacyCredentialsForTest(identity.identityID)
+	legacy.OAuth2 = CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"}
+	legacy.Keys = CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint}
+	legacy.Endpoints = CredentialsEndpoints{API: identity.api}
+	legacy.Git = &GitSection{Name: "Legacy Bot", Email: "legacy@example.test"}
 	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
 		t.Fatal(err)
 	}
+	addLegacyIdentityToConfigFile(t, legacyPath, identity.identityID)
 	if err := os.WriteFile(filepath.Join(filepath.Dir(legacyPath), "env"), []byte("GIT_CONFIG_GLOBAL='/old/repository/gitconfig'\nCUSTOM_VALUE='kept'\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +38,7 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 		t.Fatalf("migration result = %#v", result)
 	}
 	target, _ := identityCredentialsPath("legacy")
-	if copied, err := ReadConfigFrom(target); err != nil || copied.IdentityID != legacy.IdentityID {
+	if copied, err := ReadConfigFrom(target); err != nil || copied.legacyIdentityID != identity.identityID {
 		t.Fatalf("copied config = %#v, %v", copied, err)
 	} else {
 		if copied.SSH == nil || filepath.Dir(copied.SSH.PublicKeyPath) != filepath.Join(filepath.Dir(target), "ssh") {
@@ -81,10 +80,11 @@ func TestMigrateLegacyIdentityStoreInfersAliasFromDaemonAgentDocument(t *testing
 	legacyPath := filepath.Join(home, ".config", "moltnet", "agents", "daemon-agent.json")
 	identity := newIdentityFixture(t, "daemon-agent", "https://daemon.example.test")
 	legacy := &CredentialsFile{
-		IdentityID: identity.identityID,
-		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "daemon-secret"},
-		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-		Endpoints:  CredentialsEndpoints{API: identity.api},
+		SubjectID: identity.identityID,
+		OAuth2:    CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "daemon-secret"},
+		Keys:      CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
+		Endpoints: CredentialsEndpoints{API: identity.api},
+		Git:       &GitSection{Name: "Daemon Bot", Email: "daemon@example.test"},
 	}
 	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
 		t.Fatal(err)
@@ -101,7 +101,7 @@ func TestMigrateLegacyIdentityStoreInfersAliasFromDaemonAgentDocument(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if copied, err := ReadConfigFrom(target); err != nil || copied == nil || copied.IdentityID != legacy.IdentityID {
+	if copied, err := ReadConfigFrom(target); err != nil || copied == nil || copied.SubjectID != legacy.SubjectID {
 		t.Fatalf("migrated daemon document = %#v, %v", copied, err)
 	}
 }

@@ -151,11 +151,13 @@ func TestResolveAgentKeyAndEnvReferences(t *testing.T) {
 	provider.values["agent-key/other"] = "x"
 	provider.values["agent-key/empty"] = "  "
 
-	if _, configured, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1"}, registry); configured || err != nil {
+	if _, configured, err := resolveAgentKey(legacyCredentialsForTest("id-1"), registry); configured || err != nil {
 		t.Fatalf("no reference: configured=%v err=%v", configured, err)
 	}
 	ref := func(key string) *SecretReference { return &SecretReference{Provider: osKeyringProviderName, Key: key} }
-	key, configured, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: ref("agent-key/id-1")}, registry)
+	legacy := legacyCredentialsForTest("id-1")
+	legacy.AgentKeyRef = ref("agent-key/id-1")
+	key, configured, err := resolveAgentKey(legacy, registry)
 	if !configured || err != nil || key != "ak_secret" {
 		t.Fatalf("bound reference = %q, %v, %v", key, configured, err)
 	}
@@ -168,14 +170,18 @@ func TestResolveAgentKeyAndEnvReferences(t *testing.T) {
 		t.Fatalf("subject-bound reference = %q, %v, %v", key, configured, err)
 	}
 	var resolutionErr *CredentialResolutionError
-	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: ref("agent-key/other")}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" {
+	legacy.AgentKeyRef = ref("agent-key/other")
+	if _, _, err := resolveAgentKey(legacy, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" {
 		t.Fatalf("unbound error = %v", err)
 	}
-	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "empty", AgentKeyRef: ref("agent-key/empty")}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "invalid_value" {
+	empty := legacyCredentialsForTest("empty")
+	empty.AgentKeyRef = ref("agent-key/empty")
+	if _, _, err := resolveAgentKey(empty, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "invalid_value" {
 		t.Fatalf("empty value error = %v", err)
 	}
 
-	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: &SecretReference{Provider: environmentProviderName, Key: agentKeyEnv}}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" || !strings.Contains(err.Error(), "cannot use the env provider") {
+	legacy.AgentKeyRef = &SecretReference{Provider: environmentProviderName, Key: agentKeyEnv}
+	if _, _, err := resolveAgentKey(legacy, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" || !strings.Contains(err.Error(), "cannot use the env provider") {
 		t.Fatalf("env provider for a config-bound agent key must be rejected, got %v", err)
 	}
 	if got, err := resolveEnvSecretReference("os-keyring:agent-key/other", registry); err != nil || got != "x" {

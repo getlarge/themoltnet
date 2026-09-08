@@ -36,10 +36,10 @@ const (
 )
 
 type credentialBindingIDs struct {
-	SubjectID   string
-	IdentityID  string
-	ClientID    string
-	Fingerprint string
+	SubjectID        string
+	LegacyIdentityID string
+	ClientID         string
+	Fingerprint      string
 }
 
 // secretReferenceBinding describes which reference keys may resolve one
@@ -109,7 +109,7 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 	if subjectID == "" {
 		// Compatibility release only: legacy documents were anchored to the
 		// replaceable Ory identity. Canonical callers always provide SubjectID.
-		subjectID = strings.TrimSpace(ids.IdentityID)
+		subjectID = strings.TrimSpace(ids.LegacyIdentityID)
 	}
 	switch kind {
 	case credentialOAuth2ClientSecret:
@@ -421,9 +421,9 @@ func validateOAuth2SecretReferenceBinding(creds *CredentialsFile, ref SecretRefe
 		return fmt.Errorf("credentials are missing")
 	}
 	ids := credentialBindingIDs{
-		SubjectID:  creds.SubjectID,
-		IdentityID: creds.IdentityID,
-		ClientID:   creds.OAuth2.ClientID,
+		SubjectID:        creds.SubjectID,
+		LegacyIdentityID: creds.legacyIdentityID,
+		ClientID:         creds.OAuth2.ClientID,
 	}
 	if err := validateSecretReferenceBinding(credentialOAuth2ClientSecret, ref, ids); err != nil {
 		return fmt.Errorf("oauth2 secret reference is not bound to this MoltNet subject and client")

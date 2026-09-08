@@ -95,7 +95,7 @@ func TestSignRequiresNonceOrRequestID(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "creds.json")
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  kp.PublicKey,
 			PrivateKey: kp.PrivateKey,
@@ -193,7 +193,7 @@ func TestEncryptDecryptRoundTripCLI(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "creds.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   kp.PublicKey,
 			PrivateKey:  kp.PrivateKey,
@@ -1166,9 +1166,9 @@ func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "creds.json")
 	creds := CredentialsFile{
-		IdentityID: "test",
-		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+		SubjectID: "test",
+		Keys:      CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
 	}
 	data, _ := json.Marshal(creds)
 	os.WriteFile(credPath, data, 0o600)
@@ -1196,9 +1196,9 @@ func TestCredentialsFlagPlumbedToEntryCreate(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "creds.json")
 	creds := CredentialsFile{
-		IdentityID: "test",
-		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+		SubjectID: "test",
+		Keys:      CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
 	}
 	data, _ := json.Marshal(creds)
 	os.WriteFile(credPath, data, 0o600)
@@ -1226,7 +1226,7 @@ func TestCredentialsFlagPlumbedToSignRequestID(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "creds.json")
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  kp.PublicKey,
 			PrivateKey: kp.PrivateKey,

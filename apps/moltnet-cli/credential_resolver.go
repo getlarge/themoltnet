@@ -172,8 +172,8 @@ func resolveAgentKey(creds *CredentialsFile, registry *SecretProviderRegistry) (
 		return "", false, nil
 	}
 	if err := validateSecretReferenceBinding(kind, *creds.AgentKeyRef, credentialBindingIDs{
-		SubjectID:  creds.SubjectID,
-		IdentityID: creds.IdentityID,
+		SubjectID:        creds.SubjectID,
+		LegacyIdentityID: creds.legacyIdentityID,
 	}); err != nil {
 		return "", true, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
 	}

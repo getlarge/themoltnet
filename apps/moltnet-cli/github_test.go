@@ -51,7 +51,7 @@ func TestRunGitHubSetup_NoGitHub(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -75,7 +75,7 @@ func TestRunGitHubSetup_NoSlug(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -122,7 +122,7 @@ func TestRunGitHubSetup_FullFlow(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent-12345678",
+		SubjectID: "test-agent-12345678",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -206,7 +206,7 @@ func TestRunGitHubSetup_WritesInsteadOfIdempotent(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent-12345678",
+		SubjectID: "test-agent-12345678",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -252,7 +252,7 @@ func TestRunGitHubToken_NoGitHub(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -276,7 +276,7 @@ func TestRunGitHubToken_EnvFallback(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -313,7 +313,7 @@ func TestGitHubCredentialHelper_NoGitHub(t *testing.T) {
 	// Write credentials file without GitHub section
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",

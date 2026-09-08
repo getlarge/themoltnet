@@ -31,19 +31,19 @@ func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
 		return fmt.Errorf("read SSH public key: %w", err)
 	}
 
-	// Determine name/email
-	gitName := name
-	if gitName == "" {
-		idPrefix := creds.IdentityID
-		if len(idPrefix) > 8 {
-			idPrefix = idPrefix[:8]
+	gitName, gitEmail := strings.TrimSpace(name), strings.TrimSpace(email)
+	if creds.Git != nil {
+		if gitName == "" {
+			gitName = strings.TrimSpace(creds.Git.Name)
 		}
-		gitName = "moltnet-agent-" + idPrefix
+		if gitEmail == "" {
+			gitEmail = strings.TrimSpace(creds.Git.Email)
+		}
 	}
-
-	gitEmail := email
-	if gitEmail == "" {
-		gitEmail = creds.IdentityID + "@agents.themolt.net"
+	if gitName == "" || gitEmail == "" {
+		return fmt.Errorf(
+			"Git name and email are required; pass --name and --email, or run 'moltnet github setup' to resolve the exact bot identity",
+		)
 	}
 	if err := validateGitIdentityValue("Git name", gitName); err != nil {
 		return err

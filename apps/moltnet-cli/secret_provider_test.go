@@ -232,7 +232,7 @@ func TestResolveOAuth2SecretRejectsUnboundReference(t *testing.T) {
 	registry, provider := newMemorySecretProviderRegistry()
 	provider.values["oauth2/another-identity/another-client"] = "wrong-secret"
 	creds := &CredentialsFile{
-		IdentityID: "identity-123",
+		SubjectID: "identity-123",
 		OAuth2: CredentialsOAuth2{
 			ClientID: "client-456",
 			ClientSecretRef: &SecretReference{
@@ -257,9 +257,9 @@ func TestOAuth2SecretKeyIsStable(t *testing.T) {
 
 func TestExpectedSecretKeyPrefersDurableSubject(t *testing.T) {
 	ids := credentialBindingIDs{
-		SubjectID:  "subject-123",
-		IdentityID: "legacy-identity",
-		ClientID:   "client-456",
+		SubjectID:        "subject-123",
+		LegacyIdentityID: "legacy-identity",
+		ClientID:         "client-456",
 	}
 
 	oauthKey, err := expectedSecretKey(credentialOAuth2ClientSecret, ids)
@@ -304,7 +304,7 @@ func TestSecretReferenceConfigRoundTripDoesNotEmbedSecret(t *testing.T) {
 		Key:      OAuth2SecretKey("identity-123", "client-456"),
 	}
 	config := &CredentialsFile{
-		IdentityID: "identity-123",
+		SubjectID: "identity-123",
 		OAuth2: CredentialsOAuth2{
 			ClientID:        "client-456",
 			ClientSecretRef: wantRef,
@@ -335,7 +335,7 @@ func TestResolveAgentOAuth2EnvironmentFromBoundKeyringReference(t *testing.T) {
 	agentDir := t.TempDir()
 	key := OAuth2SecretKey("identity-123", "client-456")
 	config := &CredentialsFile{
-		IdentityID: "identity-123",
+		SubjectID: "identity-123",
 		OAuth2: CredentialsOAuth2{
 			ClientID: "client-456",
 			ClientSecretRef: &SecretReference{
@@ -373,7 +373,7 @@ func TestResolveAgentOAuth2EnvironmentFromBoundKeyringReference(t *testing.T) {
 func TestResolveAgentOAuth2EnvironmentRejectsUnboundReference(t *testing.T) {
 	agentDir := t.TempDir()
 	config := &CredentialsFile{
-		IdentityID: "identity-123",
+		SubjectID: "identity-123",
 		OAuth2: CredentialsOAuth2{
 			ClientID: "client-456",
 			ClientSecretRef: &SecretReference{

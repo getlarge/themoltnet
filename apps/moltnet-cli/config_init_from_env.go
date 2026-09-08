@@ -226,7 +226,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 		if err := validateSecretReferenceBinding(
 			credentialAgentKey,
 			parsed,
-			credentialBindingIDs{SubjectID: subjectID, IdentityID: identityID},
+			credentialBindingIDs{SubjectID: subjectID, LegacyIdentityID: identityID},
 		); err != nil {
 			return fmt.Errorf("%s: %w", agentKeyRefEnv, err)
 		}

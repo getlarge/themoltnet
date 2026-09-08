@@ -13,17 +13,34 @@ type SubjectType string
 const SubjectTypeAgent SubjectType = "agent"
 
 type CredentialsFile struct {
-	SubjectID    string               `json:"subject_id,omitempty"`
-	SubjectType  SubjectType          `json:"subject_type,omitempty"`
-	IdentityID   string               `json:"identity_id,omitempty"`
-	AgentKeyRef  *SecretReference     `json:"agent_key_ref,omitempty"`
-	OAuth2       CredentialsOAuth2    `json:"oauth2"`
-	Keys         CredentialsKeys      `json:"keys"`
-	Endpoints    CredentialsEndpoints `json:"endpoints"`
-	RegisteredAt string               `json:"registered_at"`
-	SSH          *SSHSection          `json:"ssh,omitempty"`
-	Git          *GitSection          `json:"git,omitempty"`
-	GitHub       *GitHubSection       `json:"github,omitempty"`
+	SubjectID        string               `json:"subject_id,omitempty"`
+	SubjectType      SubjectType          `json:"subject_type,omitempty"`
+	AgentKeyRef      *SecretReference     `json:"agent_key_ref,omitempty"`
+	OAuth2           CredentialsOAuth2    `json:"oauth2"`
+	Keys             CredentialsKeys      `json:"keys"`
+	Endpoints        CredentialsEndpoints `json:"endpoints"`
+	RegisteredAt     string               `json:"registered_at"`
+	SSH              *SSHSection          `json:"ssh,omitempty"`
+	Git              *GitSection          `json:"git,omitempty"`
+	GitHub           *GitHubSection       `json:"github,omitempty"`
+	legacyIdentityID string
+}
+
+// UnmarshalJSON accepts identity_id only into private compatibility state.
+// Canonical callers cannot construct or serialize it through CredentialsFile;
+// the field exists solely so the explicit migration can resolve legacy keys.
+func (c *CredentialsFile) UnmarshalJSON(data []byte) error {
+	type canonicalCredentials CredentialsFile
+	var document struct {
+		canonicalCredentials
+		IdentityID string `json:"identity_id"`
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return err
+	}
+	*c = CredentialsFile(document.canonicalCredentials)
+	c.legacyIdentityID = document.IdentityID
+	return nil
 }
 
 type CredentialsOAuth2 struct {

@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 	e2eAgentID = agent.AgentID
 
 	e2eCreds = &CredentialsFile{
-		IdentityID: agent.IdentityID,
+		SubjectID: agent.IdentityID,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     agent.ClientID,
 			ClientSecret: agent.ClientSecret,

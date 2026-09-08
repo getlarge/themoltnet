@@ -30,7 +30,7 @@ func newOAuth2SecretReferenceMigration(destinationProvider string) configMigrati
 			if creds.OAuth2.ClientSecret == "" {
 				return false, nil
 			}
-			if creds.IdentityID == "" || creds.OAuth2.ClientID == "" {
+			if creds.legacyIdentityID == "" || creds.OAuth2.ClientID == "" {
 				return false, fmt.Errorf("plaintext OAuth2 credentials require identity_id and oauth2.client_id")
 			}
 			return true, nil
@@ -52,7 +52,7 @@ func migrateOAuth2SecretReference(
 	}
 	ref := SecretReference{
 		Provider: destinationProvider,
-		Key:      OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID),
+		Key:      OAuth2SecretKey(creds.legacyIdentityID, creds.OAuth2.ClientID),
 	}
 	storedNewValue, err := providers.Ensure(ref, creds.OAuth2.ClientSecret)
 	if err != nil {

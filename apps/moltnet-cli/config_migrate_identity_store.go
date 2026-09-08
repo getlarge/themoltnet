@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -62,25 +63,15 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	if existing != nil {
-		// Neither field the CLI holds is a stable agent identifier:
-		// identity_id binds to an Ory Kratos identity that can be recreated
-		// (2026-09-04 incident) and re-linked, and the keypair can be rotated.
-		// The one durable identifier is agents.id, which registration does not
-		// return, so the CLI cannot tell a rotation or relink of THIS agent
-		// from a different agent reusing the alias.
-		//
-		// Refuse rather than guess: silently overwriting would destroy another
-		// identity's credentials, and there is no local evidence to justify it.
-		// Once agents.id is exposed at registration this becomes decidable and
-		// the guard should key on it.
-		if existing.IdentityID != creds.IdentityID ||
+		sameSubject := strings.TrimSpace(existing.SubjectID) != "" &&
+			existing.SubjectID == creds.SubjectID
+		if !sameSubject ||
 			existing.Keys.PublicKey != creds.Keys.PublicKey {
 			return nil, fmt.Errorf(
 				"central identity %q already exists and does not match the bundle "+
-					"being migrated (bound identity and/or public key differ).\n"+
-					"This may be a key rotation, a re-linked Kratos identity, or a "+
-					"different agent reusing the alias — the CLI cannot tell, because "+
-					"it holds no stable agent identifier.\n"+
+					"being migrated (subject and/or public key differ).\n"+
+					"A different subject is an alias collision; a matching subject with "+
+					"a changed key requires authenticated rotation reconciliation.\n"+
 					"Migrate under another alias with --name <alias>, or remove %s "+
 					"first if you are certain it is the same agent.",
 				alias, filepath.Dir(target),
@@ -121,14 +112,11 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	if err := runSSHKeyExportCmd(io.Discard, stagedConfig, filepath.Join(stagingDir, "ssh")); err != nil {
 		return nil, fmt.Errorf("regenerate SSH exports: %w", err)
 	}
-	gitName, gitEmail := alias, creds.IdentityID+"@agents.themolt.net"
-	if creds.Git != nil {
-		if creds.Git.Name != "" {
-			gitName = creds.Git.Name
-		}
-		if creds.Git.Email != "" {
-			gitEmail = creds.Git.Email
-		}
+	if creds.Git == nil || strings.TrimSpace(creds.Git.Name) == "" || strings.TrimSpace(creds.Git.Email) == "" {
+		return nil, fmt.Errorf(
+			"legacy identity %q has no complete Git authorship; configure git.name and git.email or run 'moltnet github setup' before migrating",
+			alias,
+		)
 	}
 	// io.Discard: this configures Git inside the staging directory, whose name
 	// (.<alias>-<random>) exists only until the publish rename below. Letting
@@ -136,7 +124,7 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	// `.legreffier-1252146280/gitconfig` to the operator as though that were
 	// their identity. Migration reports the real destination in its own
 	// document.
-	if err := runGitSetupCmd(io.Discard, stagedConfig, gitName, gitEmail); err != nil {
+	if err := runGitSetupCmd(io.Discard, stagedConfig, creds.Git.Name, creds.Git.Email); err != nil {
 		return nil, fmt.Errorf("regenerate Git configuration: %w", err)
 	}
 	if regenerated, err := ReadConfigFrom(stagedConfig); err != nil {
@@ -168,6 +156,16 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	if err := rewriteStagedIdentityPaths(stagingDir, filepath.Dir(target), regenerated); err != nil {
 		return nil, err
 	}
+	// The public config writer intentionally cannot serialize identity_id. A
+	// relocated legacy document still needs that private compatibility value
+	// for the older OAuth2 transition, which runs before subject anchoring.
+	// Preserve it only in this staged copy; the final subject migration removes
+	// it atomically after the provider references have been re-keyed.
+	if creds.legacyIdentityID != "" {
+		if err := restoreLegacyIdentityField(stagedConfig, creds.legacyIdentityID); err != nil {
+			return nil, err
+		}
+	}
 	if err := os.Rename(stagingDir, filepath.Dir(target)); err != nil {
 		return nil, fmt.Errorf(
 			"publish central identity %q to %s: %w",
@@ -178,6 +176,32 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	return result, nil
+}
+
+func restoreLegacyIdentityField(path, identityID string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read staged legacy credentials: %w", err)
+	}
+	var document map[string]json.RawMessage
+	if err := json.Unmarshal(data, &document); err != nil {
+		return fmt.Errorf("parse staged legacy credentials: %w", err)
+	}
+	updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
+		encoded, marshalErr := json.Marshal(identityID)
+		if marshalErr != nil {
+			return marshalErr
+		}
+		top["identity_id"] = encoded
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if err := writeFileAtomic(path, updated); err != nil {
+		return fmt.Errorf("preserve staged legacy identity: %w", err)
+	}
+	return nil
 }
 
 // ensureIdentitySelected seeds the selector when no default is set. Idempotent

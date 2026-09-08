@@ -318,7 +318,7 @@ func TestEnvCheckPass(t *testing.T) {
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
 	}, filepath.Join(agentDir, "moltnet.json"))
 
@@ -347,7 +347,7 @@ func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "test-identity", OAuth2: CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"}}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+	if _, err := WriteConfigTo(&CredentialsFile{SubjectID: "test-identity", OAuth2: CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"}}, filepath.Join(agentDir, "moltnet.json")); err != nil {
 		t.Fatal(err)
 	}
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
@@ -404,7 +404,7 @@ func TestStartDryRun(t *testing.T) {
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
 	}, filepath.Join(agentDir, "moltnet.json"))
 	gitconfig := filepath.Join(agentDir, "gitconfig")
@@ -439,7 +439,7 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "target-secret"},
 	}, filepath.Join(agentDir, "moltnet.json"))
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o644)
@@ -480,7 +480,7 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	}
 	key := OAuth2SecretKey("identity-123", "client-456")
 	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "identity-123",
+		SubjectID: "identity-123",
 		OAuth2: CredentialsOAuth2{
 			ClientID: "client-456",
 			ClientSecretRef: &SecretReference{

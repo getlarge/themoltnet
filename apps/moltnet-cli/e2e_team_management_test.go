@@ -51,7 +51,7 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 		t.Fatalf("bootstrap invitee agent: %v", err)
 	}
 	inviteeCreds := &CredentialsFile{
-		IdentityID: inviteeAgent.IdentityID,
+		SubjectID: inviteeAgent.IdentityID,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     inviteeAgent.ClientID,
 			ClientSecret: inviteeAgent.ClientSecret,

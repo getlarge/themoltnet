@@ -41,7 +41,7 @@ func TestE2E_CLI_TaskAttempts_AcceptsAdditiveResponseFields(t *testing.T) {
 	defer server.Close()
 
 	credsPath, err := writeE2ECredsFile(&CredentialsFile{
-		IdentityID: "22222222-2222-4222-8222-222222222222",
+		SubjectID: "22222222-2222-4222-8222-222222222222",
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "e2e-client",
 			ClientSecret: "e2e-secret",

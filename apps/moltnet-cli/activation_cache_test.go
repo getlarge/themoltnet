@@ -859,8 +859,8 @@ func TestAgentsActivationRefreshUpgradesLegacyIdentityPin(t *testing.T) {
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.SubjectID = ""
 		creds.SubjectType = ""
-		creds.IdentityID = fixtureIdentityID
 	})
+	addLegacyIdentityToConfigFile(t, filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "moltnet.json"), fixtureIdentityID)
 
 	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh legacy config: %v", err)

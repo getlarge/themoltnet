@@ -108,7 +108,7 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 		)
 	}
 
-	creds, err := loadCredentials(credPath)
+	client, err := newConfigAuthenticatedClient(apiURL, credPath, NewSecretProviderRegistry())
 	if err != nil {
 		return nil, fmt.Errorf(
 			"OAuth2 credentials unavailable: %w; set %s for agent-key authentication",
@@ -116,9 +116,20 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 			agentKeyEnv,
 		)
 	}
-	// A configured agent_key_ref is a config-mode credential and precedes
-	// the OAuth2 client credentials.
-	if configKey, configured, err := resolveAgentKey(creds, NewSecretProviderRegistry()); configured {
+	return client, nil
+}
+
+// newConfigAuthenticatedClient authenticates with the credential declared by
+// one exact config document. Unlike newAuthenticatedClient it deliberately
+// ignores process-wide MOLTNET_AGENT_KEY overrides: config migration must prove
+// which subject the document itself belongs to, not which subject happens to
+// be active in the caller's environment.
+func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProviderRegistry) (*moltnetapi.Client, error) {
+	creds, err := loadCredentials(credPath)
+	if err != nil {
+		return nil, fmt.Errorf("load credentials for authentication: %w", err)
+	}
+	if configKey, configured, err := resolveAgentKey(creds, registry); configured {
 		if err != nil {
 			return nil, fmt.Errorf("resolve agent_key_ref: %w", err)
 		}
@@ -127,28 +138,21 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 		}
 		return newBearerClient(
 			apiURL,
-			func(_ context.Context) (string, error) {
-				return configKey, nil
-			},
+			func(_ context.Context) (string, error) { return configKey, nil },
 			newAPIHTTPClient(),
 		)
 	}
 	if creds.OAuth2.ClientID == "" {
-		return nil, fmt.Errorf(
-			"credentials missing client_id — run 'moltnet register' or set %s",
-			agentKeyEnv,
-		)
+		return nil, fmt.Errorf("credentials missing client_id and agent_key_ref")
 	}
-	clientSecret, err := resolveOAuth2Secret(creds, NewSecretProviderRegistry())
+	clientSecret, err := resolveOAuth2Secret(creds, registry)
 	if err != nil {
 		return nil, fmt.Errorf("resolve OAuth2 client secret: %w", err)
 	}
 	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, clientSecret)
 	return newBearerClient(
 		apiURL,
-		func(_ context.Context) (string, error) {
-			return tm.GetToken()
-		},
+		func(_ context.Context) (string, error) { return tm.GetToken() },
 		tm.httpClient,
 	)
 }

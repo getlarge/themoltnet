@@ -232,7 +232,7 @@ func TestLoadCredentialsFailsClosedWhenActivatedPathMissing(t *testing.T) {
 	if err == nil {
 		t.Fatalf(
 			"loadCredentials fell back to identity %q; want an error",
-			creds.IdentityID,
+			creds.SubjectID,
 		)
 	}
 	if strings.Contains(err.Error(), "legacy") {
@@ -255,7 +255,7 @@ func TestLoadCredentialsFailsClosedWhenActivatedPathUnreadable(t *testing.T) {
 	if err == nil {
 		t.Fatalf(
 			"loadCredentials fell back to identity %q; want an error",
-			creds.IdentityID,
+			creds.SubjectID,
 		)
 	}
 }
