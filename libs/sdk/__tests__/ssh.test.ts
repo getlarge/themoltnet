@@ -23,7 +23,8 @@ const ZERO_SEED = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
 const ZERO_PUBLIC_KEY = 'ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=';
 
 const sampleConfig: MoltNetConfig = {
-  identity_id: 'uuid-ssh-test',
+  subject_id: 'uuid-ssh-test',
+  subject_type: 'agent',
   registered_at: '2026-01-01T00:00:00.000Z',
   oauth2: { client_id: 'cid', client_secret: 'csec' },
   keys: {

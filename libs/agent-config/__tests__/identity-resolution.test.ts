@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import type * as NodeOS from 'node:os';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -49,7 +49,8 @@ async function freshHome(): Promise<string> {
 
 function credentials(id: string): MoltNetConfig {
   return {
-    identity_id: id,
+    subject_id: id,
+    subject_type: 'agent',
     oauth2: { client_id: 'c', client_secret: 's', token_url: 'https://t' },
     keys: { public_key: 'pub', private_key: 'priv' },
     endpoints: { api: 'https://api', mcp: 'https://api/mcp' },
@@ -116,13 +117,13 @@ describe('identity resolution ladder', () => {
 
     // Selector alone.
     expect(await resolveConfigDir()).toBe(getIdentityDir('from-selector'));
-    expect((await readConfig())?.identity_id).toBe('selector');
+    expect((await readConfig())?.subject_id).toBe('selector');
 
     // The env var must OVERRIDE the persisted selector, not merely be used
     // when the selector is absent.
     process.env.MOLTNET_ACTIVE_IDENTITY = 'from-env';
     expect(await resolveConfigDir()).toBe(getIdentityDir('from-env'));
-    expect((await readConfig())?.identity_id).toBe('env');
+    expect((await readConfig())?.subject_id).toBe('env');
     expect(getConfigPath()).toBe(
       join(getIdentityDir('from-env'), 'moltnet.json'),
     );
@@ -242,7 +243,7 @@ describe('writeConfig boundaries', () => {
     // exists but only this process can find it.
     delete process.env.MOLTNET_ACTIVE_IDENTITY;
     expect(await resolveConfigDir()).toBe(getIdentityDir('first'));
-    expect((await readConfig())?.identity_id).toBe('first');
+    expect((await readConfig())?.subject_id).toBe('first');
   });
 
   it('never overwrites an existing default', async () => {
@@ -264,7 +265,6 @@ describe('writeConfig boundaries', () => {
     await expect(writeConfig(credentials('nobody'))).rejects.toThrow();
 
     // The rejection must not leave a partial store behind.
-    const { readdir } = await import('node:fs/promises');
     const entries = await readdir(getConfigDir());
     expect(entries).toEqual([]);
     expect(home).toBeTruthy();

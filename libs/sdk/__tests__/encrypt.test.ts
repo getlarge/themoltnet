@@ -127,7 +127,8 @@ describe('encrypt / decrypt', () => {
       tempDirs.push(dir);
       await writeConfig(
         {
-          identity_id: 'id',
+          subject_id: 'id',
+          subject_type: 'agent',
           registered_at: '2026-01-01T00:00:00Z',
           oauth2: { client_id: 'c', client_secret: 's' },
           keys: {

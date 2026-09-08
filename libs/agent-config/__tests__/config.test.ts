@@ -16,9 +16,10 @@ import {
   writeConfig,
 } from '../src/config.js';
 
-function config(): LegacyMoltNetConfig {
+function config(): MoltNetConfig {
   return {
-    identity_id: 'identity',
+    subject_id: 'subject-1',
+    subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00Z',
     oauth2: { client_id: 'client', client_secret: 'plaintext' },
     keys: { public_key: 'pub', private_key: 'priv', fingerprint: 'fp' },
@@ -32,14 +33,7 @@ function config(): LegacyMoltNetConfig {
 describe('OAuth2 config updates', () => {
   it('round-trips a canonical subject anchor without identity_id', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
-    const { identity_id: _identityId, ...rest } = config();
-    const canonical: MoltNetConfig = {
-      ...rest,
-      subject_id: 'subject-1',
-      subject_type: 'agent',
-    };
-
-    const path = await writeConfig(canonical, dir);
+    const path = await writeConfig(config(), dir);
     const stored = JSON.parse(await readFile(path, 'utf8')) as Record<
       string,
       unknown
@@ -61,7 +55,7 @@ describe('OAuth2 config updates', () => {
         ...agentKeyOnly,
         agent_key_ref: {
           provider: 'file',
-          key: 'agent-key/identity',
+          key: 'agent-key/subject-1',
         },
       },
       dir,
@@ -71,7 +65,7 @@ describe('OAuth2 config updates', () => {
     expect(stored.oauth2).toBeUndefined();
     expect(stored.agent_key_ref).toEqual({
       provider: 'file',
-      key: 'agent-key/identity',
+      key: 'agent-key/subject-1',
     });
   });
 
@@ -130,10 +124,28 @@ describe('OAuth2 config updates', () => {
     await mkdir(join(blocked, 'moltnet.json'));
 
     await expect(
-      writeConfig({ ...config(), identity_id: 'other' }, blocked),
+      writeConfig({ ...config(), subject_id: 'other' }, blocked),
     ).rejects.toThrow();
     expect(await readFile(join(dir, 'moltnet.json'), 'utf8')).toBe(before);
     expect(await readdir(blocked)).toEqual(['moltnet.json']);
+  });
+
+  it('keeps the legacy read shape out of canonical writers', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const {
+      subject_id: _subjectId,
+      subject_type: _subjectType,
+      ...rest
+    } = config();
+    const legacy: LegacyMoltNetConfig = {
+      ...rest,
+      identity_id: 'legacy-identity',
+    };
+
+    await expect(
+      writeConfig(legacy as unknown as MoltNetConfig, dir),
+    ).rejects.toThrow(/moltnet config migrate/);
+    expect(await readdir(dir)).toEqual([]);
   });
 });
 
