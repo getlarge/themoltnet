@@ -18,7 +18,7 @@ import {
   createNodeSecretProviderRegistry,
 } from '@themoltnet/sdk/node';
 
-import { assessAgentStartupPin, type AgentStartupPin } from './identity-pin.js';
+import { type AgentStartupPin, assessAgentStartupPin } from './identity-pin.js';
 
 /**
  * Where an operator goes after the daemon refuses to start. The published site

@@ -14,8 +14,10 @@ import {
 async function fixture() {
   const kp = await cryptoService.generateKeyPair();
   const identity = {
+    protocolVersion: 1 as const,
     agentName: 'a',
-    identityId: 'me',
+    subjectId: 'me',
+    subjectType: 'agent' as const,
     publicKey: kp.publicKey,
     fingerprint: kp.fingerprint,
     gitName: 'A',

@@ -15,6 +15,7 @@ import (
 
 type identityFixture struct {
 	identityID  string
+	subjectID   string
 	clientID    string
 	fingerprint string
 	api         string
@@ -27,6 +28,7 @@ func newIdentityFixture(t *testing.T, name, api string) identityFixture {
 	seed, publicKey := testSeedAndPublicKey(t)
 	return identityFixture{
 		identityID:  name + "-identity",
+		subjectID:   name + "-subject",
 		clientID:    name + "-client",
 		fingerprint: name + "-fingerprint",
 		api:         api,
@@ -40,7 +42,8 @@ func newIdentityFixture(t *testing.T, name, api string) identityFixture {
 func writeIdentityConfig(t *testing.T, path string, fixture identityFixture) string {
 	t.Helper()
 	creds := CredentialsFile{
-		IdentityID: fixture.identityID,
+		SubjectID:   fixture.subjectID,
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     fixture.clientID,
 			ClientSecret: fixture.clientID + "-secret",
@@ -162,11 +165,12 @@ func TestLoadCredentialsAutoDiscoveryPrecedence(t *testing.T) {
 			if err != nil {
 				t.Fatalf("loadCredentials(%q): %v", credPath, err)
 			}
-			if creds.IdentityID != want.identityID {
+			if creds.SubjectID != want.subjectID || creds.SubjectType != SubjectTypeAgent {
 				t.Errorf(
-					"loadCredentials loaded identity %q, want %q",
-					creds.IdentityID,
-					want.identityID,
+					"loadCredentials loaded subject %q/%q, want agent/%q",
+					creds.SubjectType,
+					creds.SubjectID,
+					want.subjectID,
 				)
 			}
 		})

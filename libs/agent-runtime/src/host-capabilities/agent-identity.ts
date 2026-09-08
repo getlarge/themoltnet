@@ -28,25 +28,36 @@ function parseGitAuthor(
 
 /**
  * Build the non-secret identity projected to guests. Public key and
- * fingerprint come from the authenticated `whoami`; git author precedence is
- * explicit option → host git config (OAuth2 hosts only) → derived bot address.
+ * fingerprint come from the authenticated `whoami`; git authorship must come
+ * from an explicit option or an existing host config and is never synthesized
+ * from a MoltNet identifier.
  */
 export function resolveAgentIdentity(input: {
   agentName: string;
-  whoami: { identityId: string; publicKey?: string; fingerprint?: string };
+  whoami: {
+    subjectId: string;
+    subjectType: string;
+    publicKey?: string;
+    fingerprint?: string;
+  };
   /** `Name <email>` from a CLI option or environment. */
   gitAuthor?: string;
   /** Non-secret git identity from host configuration, when available. */
   hostGit?: { name?: string; email?: string };
 }): AgentIdentity {
-  const { identityId, publicKey, fingerprint } = input.whoami;
+  const { subjectId, subjectType, publicKey, fingerprint } = input.whoami;
+  if (!subjectId || subjectType !== 'agent') {
+    throw new Error(
+      'whoami did not return a canonical agent subject; cannot build the agent identity',
+    );
+  }
   if (!publicKey || !fingerprint) {
     throw new Error(
       'whoami did not return publicKey and fingerprint; cannot build the agent identity',
     );
   }
-  let gitName = input.agentName;
-  let gitEmail = `${identityId}+${input.agentName}[bot]@users.noreply.github.com`;
+  let gitName: string;
+  let gitEmail: string;
   if (input.gitAuthor !== undefined) {
     const parsed = parseGitAuthor(input.gitAuthor);
     if (!parsed) {
@@ -57,10 +68,16 @@ export function resolveAgentIdentity(input: {
   } else if (input.hostGit?.name && input.hostGit.email) {
     gitName = input.hostGit.name;
     gitEmail = input.hostGit.email;
+  } else {
+    throw new Error(
+      'git authorship is missing; configure git.name and git.email or set --git-author/MOLTNET_GIT_AUTHOR',
+    );
   }
   return {
+    protocolVersion: 1,
     agentName: input.agentName,
-    identityId,
+    subjectId,
+    subjectType: 'agent',
     publicKey,
     fingerprint,
     gitName,

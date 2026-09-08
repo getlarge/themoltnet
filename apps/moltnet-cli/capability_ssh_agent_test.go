@@ -37,7 +37,7 @@ func newRecordingSigner(t *testing.T) *recordingSigner {
 	return &recordingSigner{
 		priv: ed25519.NewKeyFromSeed(seed),
 		identity: SignerIdentity{
-			AgentName: "legreffier", IdentityID: "id", PublicKey: kp.PublicKey,
+			ProtocolVersion: 1, AgentName: "legreffier", SubjectID: "agent-id", SubjectType: SubjectTypeAgent, PublicKey: kp.PublicKey,
 			Fingerprint: kp.Fingerprint, GitName: "LeGreffier", GitEmail: "l@x",
 		},
 	}

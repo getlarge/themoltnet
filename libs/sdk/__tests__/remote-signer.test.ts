@@ -4,8 +4,10 @@ import { createRemoteSigner, RemoteSignerError } from '../src/remote-signer.js';
 
 const ORIGIN = 'https://agent-signing.moltnet.internal';
 const identity = {
+  protocolVersion: 1 as const,
   agentName: 'legreffier',
-  identityId: 'id',
+  subjectId: 'agent-id',
+  subjectType: 'agent' as const,
   publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
   fingerprint: '1671-B080-99BF-4270',
   gitName: 'LeGreffier',
@@ -164,6 +166,17 @@ describe('createRemoteSigner', () => {
     await expect(
       createRemoteSigner({ url: ORIGIN, fetch: huge.fetchImpl }),
     ).rejects.toMatchObject({ code: 'response_too_large' });
+  });
+
+  it('rejects legacy signer identity responses without a protocol version', async () => {
+    const { protocolVersion: _, ...legacyIdentity } = identity;
+    const legacy = fakeFetch({
+      '/identity': () => ({ status: 200, body: legacyIdentity }),
+    });
+
+    await expect(
+      createRemoteSigner({ url: ORIGIN, fetch: legacy.fetchImpl }),
+    ).rejects.toMatchObject({ code: 'invalid_identity', status: 502 });
   });
 
   it('times out and honours caller abort', async () => {

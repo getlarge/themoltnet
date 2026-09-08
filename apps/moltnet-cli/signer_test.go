@@ -55,7 +55,7 @@ func newFakeBroker(t *testing.T) *fakeBroker {
 	seed, _ := base64.StdEncoding.DecodeString(kp.PrivateKey)
 	b := &fakeBroker{
 		identity: SignerIdentity{
-			AgentName: "legreffier", IdentityID: "id-1", PublicKey: kp.PublicKey,
+			ProtocolVersion: 1, AgentName: "legreffier", SubjectID: "agent-1", SubjectType: SubjectTypeAgent, PublicKey: kp.PublicKey,
 			Fingerprint: kp.Fingerprint, GitName: "LeGreffier", GitEmail: "l@x",
 		},
 		gitStatus: http.StatusOK,
@@ -116,19 +116,44 @@ func TestResolveSignerRejectsPlaintextNonLoopbackURL(t *testing.T) {
 	}
 }
 
+func TestRemoteSignerRejectsLegacyIdentityProtocol(t *testing.T) {
+	kp, _ := GenerateKeyPair()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"identityId":  "legacy-identity",
+			"publicKey":   kp.PublicKey,
+			"fingerprint": kp.Fingerprint,
+		})
+	}))
+	defer server.Close()
+	signer, err := newRemoteSigner(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = signer.Identity(context.Background())
+
+	if err == nil || !strings.Contains(err.Error(), "protocol version 0 is unsupported") {
+		t.Fatalf("expected explicit protocol mismatch, got %v", err)
+	}
+}
+
 func TestResolveSignerFallsBackToLocalSeed(t *testing.T) {
 	t.Setenv(signerURLEnv, "")
 	kp, _ := GenerateKeyPair()
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "x", Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, credPath); err != nil {
+	if _, err := WriteConfigTo(&CredentialsFile{SubjectID: "agent-id", SubjectType: SubjectTypeAgent, Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, credPath); err != nil {
 		t.Fatal(err)
 	}
 	signer, err := resolveSigner(credPath)
 	if err != nil {
 		t.Fatalf("resolveSigner: %v", err)
 	}
-	id, _ := signer.Identity(context.Background())
-	if id.Fingerprint != kp.Fingerprint {
+	id, err := signer.Identity(context.Background())
+	if err != nil {
+		t.Fatalf("Identity: %v", err)
+	}
+	if id.SubjectID != "agent-id" || id.SubjectType != SubjectTypeAgent || id.Fingerprint != kp.Fingerprint {
 		t.Fatalf("unexpected identity %+v", id)
 	}
 }
@@ -286,7 +311,7 @@ func TestSSHKeyExportWritesPublicKeyOnlyUnderRemoteSigner(t *testing.T) {
 	kp, _ := GenerateKeyPair()
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "x", Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, credPath); err != nil {
+	if _, err := WriteConfigTo(&CredentialsFile{SubjectID: "agent-id", SubjectType: SubjectTypeAgent, Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, credPath); err != nil {
 		t.Fatal(err)
 	}
 	if err := runSSHKeyExportCmd(io.Discard, credPath, filepath.Join(dir, "ssh")); err != nil {
@@ -344,7 +369,7 @@ func TestRemoteSignerRejectsMismatchedEchoedRequestID(t *testing.T) {
 	_ = seed
 	mux := http.NewServeMux()
 	mux.HandleFunc("/identity", func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(SignerIdentity{AgentName: "a", IdentityID: "id", PublicKey: kp.PublicKey, Fingerprint: kp.Fingerprint, GitName: "A", GitEmail: "a@x"})
+		_ = json.NewEncoder(w).Encode(SignerIdentity{ProtocolVersion: 1, AgentName: "a", SubjectID: "agent-id", SubjectType: SubjectTypeAgent, PublicKey: kp.PublicKey, Fingerprint: kp.Fingerprint, GitName: "A", GitEmail: "a@x"})
 	})
 	mux.HandleFunc("/sign-diary-entry", func(w http.ResponseWriter, _ *http.Request) {
 		// Echo a different id than requested.
@@ -367,7 +392,7 @@ func TestResolveSignerUsesPrivateKeyReference(t *testing.T) {
 	t.Setenv(signerURLEnv, "")
 	t.Setenv(identitySeedEnvKey, seed)
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
-	creds := &CredentialsFile{IdentityID: "id", Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
+	creds := &CredentialsFile{SubjectID: "agent-id", SubjectType: SubjectTypeAgent, Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
 		PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey}}}
 	if _, err := WriteConfigTo(creds, credPath); err != nil {
 		t.Fatal(err)
@@ -395,7 +420,7 @@ func TestResolveSignerRejectsSeedThatDoesNotDerivePublicKey(t *testing.T) {
 	_, otherPub := testSeedAndPublicKey(t)
 	t.Setenv(signerURLEnv, "")
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
-	creds := &CredentialsFile{IdentityID: "id", Keys: CredentialsKeys{PublicKey: otherPub, Fingerprint: "fp", PrivateKey: seed}}
+	creds := &CredentialsFile{SubjectID: "agent-id", SubjectType: SubjectTypeAgent, Keys: CredentialsKeys{PublicKey: otherPub, Fingerprint: "fp", PrivateKey: seed}}
 	if _, err := WriteConfigTo(creds, credPath); err != nil {
 		t.Fatal(err)
 	}

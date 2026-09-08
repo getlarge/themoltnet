@@ -47,8 +47,10 @@ function assertIdentity(value: unknown): AgentIdentity {
   const candidate = value as Partial<AgentIdentity> | null;
   if (
     !candidate ||
+    candidate.protocolVersion !== 1 ||
     !isString(candidate.agentName) ||
-    !isString(candidate.identityId) ||
+    !isString(candidate.subjectId) ||
+    candidate.subjectType !== 'agent' ||
     !isString(candidate.publicKey) ||
     !candidate.publicKey.startsWith('ed25519:') ||
     !isString(candidate.fingerprint) ||
@@ -58,8 +60,10 @@ function assertIdentity(value: unknown): AgentIdentity {
     throw new RemoteSignerError('invalid_identity', 502);
   }
   return {
+    protocolVersion: 1,
     agentName: candidate.agentName,
-    identityId: candidate.identityId,
+    subjectId: candidate.subjectId,
+    subjectType: 'agent',
     publicKey: candidate.publicKey,
     fingerprint: candidate.fingerprint,
     gitName: candidate.gitName,

@@ -5,8 +5,10 @@ import { toSSHPublicKey } from './ssh.js';
  * projected into a sandbox guest; nothing here can sign.
  */
 export interface AgentIdentity {
+  protocolVersion: 1;
   agentName: string;
-  identityId: string;
+  subjectId: string;
+  subjectType: 'agent';
   /** `ed25519:<base64>` */
   publicKey: string;
   fingerprint: string;
