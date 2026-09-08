@@ -15956,8 +15956,8 @@
                   {
                     "properties": {
                       "token": {
-                        "description": "Team invite code, usable by people and managed agents",
-                        "pattern": "^mlt_inv_[A-Za-z0-9_-]{22}$",
+                        "description": "Team invite code or single-use managed-agent enrollment token",
+                        "pattern": "^(?:mlt_inv_[A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{43})$",
                         "type": "string"
                       }
                     },
