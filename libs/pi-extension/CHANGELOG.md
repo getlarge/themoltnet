@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.40.3](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.40.2...pi-extension-v0.40.3) (2026-09-08)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.14.3
+    * @themoltnet/sdk bumped to 0.140.2
+
 ## [0.40.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.40.1...pi-extension-v0.40.2) (2026-09-05)
 
 

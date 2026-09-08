@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.54.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.53.0...agent-daemon-v0.54.0) (2026-09-08)
+
+
+### Features
+
+* **agent-daemon:** run on an agent key only, retiring OAuth2 ([95d33d0](https://github.com/getlarge/themoltnet/commit/95d33d0cf60fbd705898939d3aa55e4c2f4cb0c2)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+* **agent-daemon:** upgrade bundle installs to the real latest ([05c8e07](https://github.com/getlarge/themoltnet/commit/05c8e07e3265b2130f612ef28169cde45e131906))
+* **agent-daemon:** upgrade bundle installs to the real latest ([d107532](https://github.com/getlarge/themoltnet/commit/d107532c4bcd5f2457e98e7eee34a077a7c6d9e4))
+* **cli:** default --agent-id from whoami; make the daemon key failure recoverable ([d7e3ebb](https://github.com/getlarge/themoltnet/commit/d7e3ebb49da84f2da16e35815e578970e9f30011))
+* **cli:** default --agent-id to the authenticated agent ([9b0dec2](https://github.com/getlarge/themoltnet/commit/9b0dec2196219f9a72cb94d6aa927db2382d06e7))
+* **identity:** centralize local identity store ([3256fdd](https://github.com/getlarge/themoltnet/commit/3256fdd9009484760edf2b55e857ae014f6ec9c3))
+* run the daemon on an agent key only; cap what DCR can grant ([2be632f](https://github.com/getlarge/themoltnet/commit/2be632f2766733dfef4ea604062acfe31d4b28f7))
+
+
+### Bug Fixes
+
+* **agent-daemon:** resolve install shim and ask npm for npm installs ([237a615](https://github.com/getlarge/themoltnet/commit/237a61500941298b36f0c09e6614f538a2c40a19))
+* **agent-daemon:** resolve the agent key explicitly instead of ambiently ([5380ead](https://github.com/getlarge/themoltnet/commit/5380ead0a64b0c86282221ab1b4052298a7026f6)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+* **cli:** accept a seed reference in init-from-env, and test the wrapper guards ([139743c](https://github.com/getlarge/themoltnet/commit/139743cf8831dfe00c4800ee435d832206fae830)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+* **cli:** address review findings on the central identity store ([a05e554](https://github.com/getlarge/themoltnet/commit/a05e5543b2b3ef6d1d56f13d3196fc010f4a00b6))
+* **cli:** close central-store guard bypass and scope activation ([62fb948](https://github.com/getlarge/themoltnet/commit/62fb948d9a5c9958136e4df9438c01b5d46dd70b))
+* **cli:** correct install detection, upgrade commands and update source ([3d7c7f8](https://github.com/getlarge/themoltnet/commit/3d7c7f8d1bf552fef950740c5ec6b6488ca05724))
+* close the DCR fail-open, the unrepairable init, and the proposer scope gap ([fb85d7d](https://github.com/getlarge/themoltnet/commit/fb85d7d426e51744863e4c9236c3af2f53c4b6b0)), closes [#2160](https://github.com/getlarge/themoltnet/issues/2160)
+* **daemon:** converge on one config root and adopt legacy state ([0cd956e](https://github.com/getlarge/themoltnet/commit/0cd956ef0e256c9c2b851a642deeabe8ae2e0f88))
+* **daemon:** drop the ignored XDG parameter from resolveAgentServerRoot ([d36fa51](https://github.com/getlarge/themoltnet/commit/d36fa513090ed670d1bb2c603d377911664f3840))
+* **daemon:** honour an explicit --agent-root again ([3e805dd](https://github.com/getlarge/themoltnet/commit/3e805dd032cee2a73e6998d27f270668b87cd9d9))
+* **daemon:** satisfy identity store contract ([acc81e5](https://github.com/getlarge/themoltnet/commit/acc81e53ea87ec27cdbfa22c47389dd5b7f8285b))
+* **daemon:** separate the identity dir from the root that owns it ([2d10482](https://github.com/getlarge/themoltnet/commit/2d104829611b4aeddeeb0718a54b76f668ee8729))
+* **runtime:** close the selector, path-contract and adoption gaps ([8a23ebf](https://github.com/getlarge/themoltnet/commit/8a23ebff480210de9ed4f80fe11775538ea2438c))
+* **runtime:** keep central identity resolution back-compatible ([0c6eea1](https://github.com/getlarge/themoltnet/commit/0c6eea14047d60c37b1575bee132a63956c4a5e0))
+* **runtime:** resolve central identities ([b4067b1](https://github.com/getlarge/themoltnet/commit/b4067b1731cc9973d7cd10afa503a8ed75b3e0c8))
+* **runtime:** resolve central identities ([0baa4a4](https://github.com/getlarge/themoltnet/commit/0baa4a49c78bed0451875a4bb3711182fc62003a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.46.0
+    * @themoltnet/pi-runtime bumped to 0.14.3
+    * @themoltnet/sdk bumped to 0.140.2
+
 ## [0.53.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.52.0...agent-daemon-v0.53.0) (2026-09-05)
 
 
