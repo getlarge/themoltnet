@@ -18,7 +18,7 @@ import {
   createNodeSecretProviderRegistry,
 } from '@themoltnet/sdk/node';
 
-import { assessIdentityPin, type IdentityPin } from './identity-pin.js';
+import { assessAgentStartupPin, type AgentStartupPin } from './identity-pin.js';
 
 /**
  * Where an operator goes after the daemon refuses to start. The published site
@@ -138,7 +138,7 @@ export interface StartupWhoamiSource {
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
   teamId?: string;
-  expectedIdentity?: IdentityPin;
+  expectedAgent?: AgentStartupPin;
 }): Promise<Whoami> {
   let whoami: Whoami;
   const maxAttempts = 3;
@@ -160,10 +160,10 @@ export async function validateStartupBinding(options: {
   if (!assessment.ok) {
     throw new Error(`Daemon startup validation failed: ${assessment.reason}`);
   }
-  const expected = options.expectedIdentity;
-  if (expected && !assessIdentityPin(whoami, expected).ok) {
+  const expected = options.expectedAgent;
+  if (expected && !assessAgentStartupPin(whoami, expected).ok) {
     throw new Error(
-      'Daemon startup validation failed: authenticated identity does not match the Agent Server activation.',
+      'Daemon startup validation failed: authenticated agent does not match the Agent Server activation.',
     );
   }
   return whoami;

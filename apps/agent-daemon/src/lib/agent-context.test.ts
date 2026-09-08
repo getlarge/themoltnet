@@ -436,9 +436,9 @@ describe('validateStartupBinding', () => {
     scopes: ['agent:profile'],
     subjectType: 'agent',
   };
-  const expectedIdentity = {
+  const expectedAgent = {
     subjectId: 'agent-1',
-    identityId: 'id-1',
+    subjectType: 'agent' as const,
     publicKey: 'pk-1',
     fingerprint: 'fp-1',
   };
@@ -448,13 +448,13 @@ describe('validateStartupBinding', () => {
       validateStartupBinding({
         agent: stubAgent(() => Promise.resolve(pinnedWhoami)),
         teamId: TEAM_A,
-        expectedIdentity,
+        expectedAgent,
       }),
     ).resolves.toEqual(pinnedWhoami);
   });
 
   it.each([
-    ['identity id', { identityId: 'id-2' }],
+    ['subject id', { subjectId: 'agent-2' }],
     ['public key', { publicKey: 'pk-2' }],
     ['fingerprint', { fingerprint: 'fp-2' }],
   ])(
@@ -465,11 +465,37 @@ describe('validateStartupBinding', () => {
         validateStartupBinding({
           agent: stubAgent(() => Promise.resolve(whoami)),
           teamId: TEAM_A,
-          expectedIdentity,
+          expectedAgent,
         }),
       ).rejects.toThrow('does not match the Agent Server activation');
     },
   );
+
+  it('rejects a non-agent before comparing its canonical subject pin', async () => {
+    await expect(
+      validateStartupBinding({
+        agent: stubAgent(() =>
+          Promise.resolve({ ...pinnedWhoami, subjectType: 'human' }),
+        ),
+        teamId: TEAM_A,
+        expectedAgent,
+      }),
+    ).rejects.toThrow('must authenticate as an agent');
+  });
+
+  it('validates a legacy expected identity pin against whoami.identityId', async () => {
+    await expect(
+      validateStartupBinding({
+        agent: stubAgent(() => Promise.resolve(pinnedWhoami)),
+        teamId: TEAM_A,
+        expectedAgent: {
+          identityId: 'id-1',
+          publicKey: 'pk-1',
+          fingerprint: 'fp-1',
+        },
+      }),
+    ).resolves.toEqual(pinnedWhoami);
+  });
 
   it('propagates non-auth errors unchanged', async () => {
     const boom = new Error('network down');

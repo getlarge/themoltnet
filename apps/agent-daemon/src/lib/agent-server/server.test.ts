@@ -862,7 +862,9 @@ describe('agent server providers and runs', () => {
       'file:identity/FP-1/seed',
     );
     expect(options.env['MOLTNET_SECRET_ROOT']).toBe(store.secretsDir);
-    expect(options.env['MOLTNET_EXPECTED_IDENTITY_ID']).toBe('id-1');
+    expect(options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe('agent-1');
+    expect(options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe('agent');
+    expect(options.env['MOLTNET_EXPECTED_IDENTITY_ID']).toBeUndefined();
     expect(options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');
     expect(options.env['MOLTNET_EXPECTED_FINGERPRINT']).toBe('FP-1');
     expect(options.env['MOLTNET_PROVIDER_OLLAMA_API_KEY']).toBe(
@@ -1247,9 +1249,15 @@ describe('agent server providers and runs', () => {
     expect(spawned[0]?.options.env['MOLTNET_CLIENT_SECRET']).toBe(
       'resolved-external-secret',
     );
-    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_IDENTITY_ID']).toBe(
-      'external-id',
+    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe(
+      'agent-1',
     );
+    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe(
+      'agent',
+    );
+    expect(
+      spawned[0]?.options.env['MOLTNET_EXPECTED_IDENTITY_ID'],
+    ).toBeUndefined();
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_FINGERPRINT']).toBe('fp');
   });

@@ -9,7 +9,7 @@ import {
   type DaemonCredentialSource,
   detectCredentialSource,
 } from './lib/agent-context.js';
-import type { IdentityPin } from './lib/identity-pin.js';
+import type { AgentStartupPin } from './lib/identity-pin.js';
 
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
@@ -57,14 +57,14 @@ export interface DaemonConfig {
   credentialEnforcement: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
-  /** Identity pin supplied by the local Agent Server. */
-  expectedIdentity?: IdentityPin;
+  /** Subject pin supplied by the local Agent Server. */
+  expectedAgent?: AgentStartupPin;
 }
 
 export function loadConfig(): DaemonConfig {
   assertSingleCredentialForm('MOLTNET_AGENT_KEY', 'MOLTNET_AGENT_KEY_REF');
   assertSingleCredentialForm('MOLTNET_PRIVATE_KEY', 'MOLTNET_PRIVATE_KEY_REF');
-  const expectedIdentity = readExpectedIdentity();
+  const expectedAgent = readExpectedAgent();
   return {
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
@@ -84,20 +84,37 @@ export function loadConfig(): DaemonConfig {
       'MOLTNET_TRACE_IDLE_POLLING',
       process.env['MOLTNET_TRACE_IDLE_POLLING'],
     ),
-    ...(expectedIdentity ? { expectedIdentity } : {}),
+    ...(expectedAgent ? { expectedAgent } : {}),
   };
 }
 
-function readExpectedIdentity(): DaemonConfig['expectedIdentity'] {
+function readExpectedAgent(): DaemonConfig['expectedAgent'] {
+  const subjectId = process.env['MOLTNET_EXPECTED_SUBJECT_ID']?.trim() ?? '';
+  const subjectType =
+    process.env['MOLTNET_EXPECTED_SUBJECT_TYPE']?.trim() ?? '';
   const identityId = process.env['MOLTNET_EXPECTED_IDENTITY_ID']?.trim() ?? '';
   const publicKey = process.env['MOLTNET_EXPECTED_PUBLIC_KEY']?.trim() ?? '';
   const fingerprint = process.env['MOLTNET_EXPECTED_FINGERPRINT']?.trim() ?? '';
-  const present = [identityId, publicKey, fingerprint].filter(Boolean).length;
-  if (present === 0) return undefined;
-  if (present !== 3) {
+  const canonicalPresent = [subjectId, subjectType].filter(Boolean).length;
+  if (canonicalPresent > 0 && identityId) {
     throw new Error(
-      'MOLTNET_EXPECTED_IDENTITY_ID, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT must be set together',
+      'MOLTNET_EXPECTED_SUBJECT_ID/TYPE cannot be combined with legacy MOLTNET_EXPECTED_IDENTITY_ID',
     );
+  }
+  const present = [subjectId || identityId, publicKey, fingerprint].filter(
+    Boolean,
+  ).length;
+  if (present === 0) return undefined;
+  if (present !== 3 || (canonicalPresent > 0 && canonicalPresent !== 2)) {
+    throw new Error(
+      'MOLTNET_EXPECTED_SUBJECT_ID, MOLTNET_EXPECTED_SUBJECT_TYPE, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT must be set together',
+    );
+  }
+  if (canonicalPresent > 0) {
+    if (subjectType !== 'agent') {
+      throw new Error('MOLTNET_EXPECTED_SUBJECT_TYPE must be agent');
+    }
+    return { subjectId, subjectType, publicKey, fingerprint };
   }
   return { identityId, publicKey, fingerprint };
 }

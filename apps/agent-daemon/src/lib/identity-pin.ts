@@ -5,6 +5,17 @@ export interface IdentityPin {
   fingerprint: string;
 }
 
+/** Canonical startup pin projected by the Agent Server. */
+export interface SubjectPin {
+  subjectId: string;
+  subjectType: 'agent';
+  publicKey: string;
+  fingerprint: string;
+}
+
+/** Compatibility shape accepted for one release from older Agent Servers. */
+export type AgentStartupPin = SubjectPin | IdentityPin;
+
 export type IdentityPinAssessment =
   | { ok: true }
   | {
@@ -29,3 +40,34 @@ export function assessIdentityPin(
   }
   return { ok: true };
 }
+
+export function assessAgentStartupPin(
+  current: Partial<IdentityPin> & {
+    subjectId?: string;
+    subjectType?: string;
+  },
+  expected: AgentStartupPin,
+): IdentityPinAssessment | SubjectPinAssessment {
+  if ('subjectId' in expected) {
+    for (const [field, label] of [
+      ['subjectId', 'subject id'],
+      ['subjectType', 'subject type'],
+      ['publicKey', 'public key'],
+      ['fingerprint', 'fingerprint'],
+    ] as const) {
+      if (!current[field] || current[field] !== expected[field]) {
+        return { ok: false, field, label };
+      }
+    }
+    return { ok: true };
+  }
+  return assessIdentityPin(current, expected);
+}
+
+export type SubjectPinAssessment =
+  | { ok: true }
+  | {
+      ok: false;
+      field: 'subjectId' | 'subjectType' | 'publicKey' | 'fingerprint';
+      label: 'subject id' | 'subject type' | 'public key' | 'fingerprint';
+    };
