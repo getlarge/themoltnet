@@ -108,8 +108,8 @@ beforeEach(() => {
   });
   registerMock.mockResolvedValue({
     identity: {
-      agentId: 'agent-1',
-      identityId: 'identity-1',
+      subjectId: 'agent-1',
+      subjectType: 'agent',
       publicKey: 'ed25519:public',
       privateKey: 'private-seed',
       fingerprint: 'FP-1',
@@ -164,8 +164,8 @@ describe('managed agent server agents', () => {
       await finish;
       return {
         identity: {
-          agentId: 'agent-1',
-          identityId: 'identity-1',
+          subjectId: 'agent-1',
+          subjectType: 'agent' as const,
           publicKey: 'ed25519:public',
           privateKey: 'private-seed',
           fingerprint: 'FP-1',

@@ -120,7 +120,7 @@ export async function createManagedAgent(
     );
   }
   const releaseAlias = reserveAlias(store, alias);
-  let registeredIdentityId: string | undefined;
+  let registered = false;
   try {
     let apiUrl: string;
     try {
@@ -149,19 +149,18 @@ export async function createManagedAgent(
     }
 
     const now = new Date().toISOString();
-    const { agentId, identityId, fingerprint, publicKey, privateKey } =
-      result.identity;
-    registeredIdentityId = identityId;
+    const { subjectId, fingerprint, publicKey, privateKey } = result.identity;
+    registered = true;
     const agentKeyReference = {
       provider: FILE_SECRET_PROVIDER,
-      key: agentKeyKey(agentId),
+      key: agentKeyKey(subjectId),
     };
     const seedReference = {
       provider: FILE_SECRET_PROVIDER,
       key: identitySeedKey(fingerprint),
     };
     const config: MoltNetConfig = {
-      subject_id: agentId,
+      subject_id: subjectId,
       subject_type: 'agent',
       registered_at: now,
       agent_key_ref: agentKeyReference,
@@ -213,7 +212,7 @@ export async function createManagedAgent(
     return { activation, config, ...(boundTeamId ? { boundTeamId } : {}) };
   } catch (cause) {
     if (
-      !registeredIdentityId &&
+      !registered &&
       cause instanceof MoltNetError &&
       cause.statusCode !== undefined &&
       cause.statusCode >= 400 &&
@@ -229,8 +228,8 @@ export async function createManagedAgent(
     if (store.hasPendingRegistration(alias)) {
       throw new AgentServerIdentityError(
         'registration_incomplete',
-        registeredIdentityId
-          ? `identity "${registeredIdentityId}" was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
+        registered
+          ? `the remote agent was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
           : `registration for "${alias}" may be incomplete; inspect the remote API before changing its pending Agent Server record`,
         { cause },
       );

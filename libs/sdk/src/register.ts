@@ -52,14 +52,9 @@ export interface RegisterResult {
     publicKey: string;
     privateKey: string;
     fingerprint: string;
-    /**
-     * Internal `agents.id` — the durable principal. Every `agentId` parameter
-     * and Keto subject means this one; it is minted independently of Ory and
-     * survives an identity being recreated.
-     */
-    agentId: string;
-    /** Bound Kratos identity. Re-linkable, so never derive state from it. */
-    identityId: string;
+    /** Internal `agents.id` — the durable principal. */
+    subjectId: string;
+    subjectType: 'agent';
   };
   credentials: RegistrationCredentials;
   mcpConfig: McpConfig;
@@ -182,8 +177,8 @@ export async function register(
       publicKey: keyPair.publicKey,
       privateKey: keyPair.privateKey,
       fingerprint: data.fingerprint,
-      agentId: data.agentId,
-      identityId: data.identityId,
+      subjectId: data.agentId,
+      subjectType: 'agent',
     },
     credentials: data.credential,
     mcpConfig: buildMcpConfig(apiUrl, data.credential),
