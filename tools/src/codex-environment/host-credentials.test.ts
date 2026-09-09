@@ -82,14 +82,14 @@ describe('hostAuthenticationCapability', () => {
     expect(body).toEqual({
       authenticated: true,
       agentSubject: true,
-      identityMatched: true,
+      subjectBindingMatched: true,
     });
     expect(JSON.stringify(body)).not.toContain(identity.subjectId);
     expect(JSON.stringify(body)).not.toContain(identity.publicKey);
     expect(agent.agents.whoami).toHaveBeenCalledOnce();
   });
 
-  it('reports an identity mismatch without returning either identity', async () => {
+  it('reports a subject binding mismatch without exposing either binding', async () => {
     const { router } = createRouter({
       ...identity,
       subjectId: 'other-agent',
@@ -107,7 +107,7 @@ describe('hostAuthenticationCapability', () => {
     expect(await response.json()).toEqual({
       authenticated: true,
       agentSubject: true,
-      identityMatched: false,
+      subjectBindingMatched: false,
     });
   });
 });

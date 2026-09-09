@@ -52,7 +52,7 @@ const evidence: CodexGondolinEvidence = {
     credentialPreflight: 'ready',
     authenticatedHostCall: true,
     authenticatedAgentSubject: true,
-    authenticatedIdentityMatched: true,
+    authenticatedSubjectBindingMatched: true,
     gitCommitSignatureVerified: true,
     allowedOperations: [
       'agent-signing/sign-git-commit',

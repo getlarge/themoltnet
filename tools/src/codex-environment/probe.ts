@@ -420,14 +420,14 @@ try {
     `${GUEST_CLI} capability call host-auth-check whoami --json '{}' > host-auth.json`,
     `grep -q '"authenticated": true' host-auth.json`,
     `grep -q '"agentSubject": true' host-auth.json`,
-    `grep -q '"identityMatched": true' host-auth.json`,
+    `grep -q '"subjectBindingMatched": true' host-auth.json`,
     `git init -q signed-repo`,
     `cd signed-repo`,
     `git commit -q -S --allow-empty -m 'signed through host capability'`,
     `git verify-commit HEAD`,
     `cd ..`,
     `if ${GUEST_CLI} capability call agent-signing sign-diary-entry --json '{"signingRequestId":"11111111-2222-4333-8444-555555555555"}' >/dev/null 2>&1; then exit 23; fi`,
-    `printf 'authenticated-host-call=true\\nagent-subject=true\\nidentity-matched=true\\ngit-signature-verified=true\\ndenied-operation=true\\n' > ${shellQuote(capabilityProofPath)}`,
+    `printf 'authenticated-host-call=true\\nagent-subject=true\\nsubject-binding-matched=true\\ngit-signature-verified=true\\ndenied-operation=true\\n' > ${shellQuote(capabilityProofPath)}`,
     `printf 'private-key-files=' >> ${shellQuote(capabilityProofPath)}`,
     `find /home/agent -name id_ed25519 -type f 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
     `printf '\\ncredential-files=' >> ${shellQuote(capabilityProofPath)}`,
@@ -558,8 +558,8 @@ const evidence: CodexGondolinEvidence = {
     authenticatedHostCall:
       capabilityProof['authenticated-host-call'] === 'true',
     authenticatedAgentSubject: capabilityProof['agent-subject'] === 'true',
-    authenticatedIdentityMatched:
-      capabilityProof['identity-matched'] === 'true',
+    authenticatedSubjectBindingMatched:
+      capabilityProof['subject-binding-matched'] === 'true',
     gitCommitSignatureVerified:
       capabilityProof['git-signature-verified'] === 'true',
     allowedOperations: capabilityEvents

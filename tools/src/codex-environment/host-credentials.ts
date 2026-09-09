@@ -68,7 +68,7 @@ export const hostAuthenticationCapability = defineHostCapability({
         {
           authenticated: Type.Literal(true),
           agentSubject: Type.Boolean(),
-          identityMatched: Type.Boolean(),
+          subjectBindingMatched: Type.Boolean(),
         },
         { additionalProperties: false },
       ),
@@ -80,7 +80,7 @@ export const hostAuthenticationCapability = defineHostCapability({
         return {
           authenticated: true as const,
           agentSubject: whoami.subjectType === 'agent',
-          identityMatched:
+          subjectBindingMatched:
             whoami.subjectId === context.identity.subjectId &&
             whoami.publicKey === context.identity.publicKey &&
             whoami.fingerprint === context.identity.fingerprint,
