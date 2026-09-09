@@ -159,6 +159,7 @@ assertTargetMatchesDatabase({
   databaseUrl: process.env.DATABASE_URL,
   targetUrl: base,
   targetName: 'Hydra',
+  allowProxiedDatabase: args.allowProxiedDatabase,
 });
 
 const mapping = loadMapping();

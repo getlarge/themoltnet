@@ -31,6 +31,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
     flag,
     concurrency: Math.max(1, Number(flag('--concurrency', '8'))),
     statePath: (fallback) => flag('--state', fallback),
+    allowProxiedDatabase: argv.includes('--allow-proxied-database'),
   };
 }
 
@@ -44,10 +45,20 @@ const isLocal = (host) => LOCAL_HOSTS.includes(host) || host.endsWith('.local');
  * Refuse to mutate a REMOTE Ory using ids read from a LOCAL database.
  *
  * A rehearsal restores production into a throwaway container on 127.0.0.1
- * while the Ory URL still points at production. Dry-running that way is
- * harmless and useful; applying it would write ids that exist only in the
- * container, leaving every principal authorized against nothing. The
- * combination is never legitimate, so it is rejected rather than warned about.
+ * while the Ory URL still points at production. Applying that way would write
+ * ids that exist only in the container, leaving every principal authorized
+ * against nothing.
+ *
+ * The hostname is only a proxy for the real question — "is this database the
+ * one behind that Ory project?" — and it gets the maintenance window itself
+ * WRONG: production is reached through `flyctl mpg proxy` on 127.0.0.1, which
+ * is indistinguishable from a throwaway container by hostname alone. So the
+ * check stays default-deny and `--allow-proxied-database` is the operator's
+ * explicit statement that the local port is a tunnel to the real database.
+ *
+ * It is deliberately a flag and not an auto-detect: the failure it prevents is
+ * silent and unrecoverable, so it should cost a deliberate keystroke and land
+ * in the window's shell history.
  *
  * The reverse (remote database, local Ory) is a rehearsal reading production
  * read-only, so it is allowed.
@@ -57,19 +68,30 @@ export function assertTargetMatchesDatabase({
   databaseUrl,
   targetUrl,
   targetName,
+  allowProxiedDatabase = false,
 }) {
   if (!apply) return;
   const dbHost = new URL(databaseUrl).hostname;
   const targetHost = new URL(targetUrl).hostname;
-  if (isLocal(dbHost) && !isLocal(targetHost)) {
-    console.error(
-      `Refusing to apply: DATABASE_URL points at ${dbHost} (local) while ` +
-        `${targetName} points at ${targetHost} (remote). The ids read from a ` +
-        'local copy do not describe that deployment, so applying would act on ' +
-        'live state using unrelated data.',
+  if (!isLocal(dbHost) || isLocal(targetHost)) return;
+
+  if (allowProxiedDatabase) {
+    console.warn(
+      `--allow-proxied-database: treating ${dbHost} as a tunnel to the ` +
+        `database behind ${targetHost}. Verify that is true before continuing.`,
     );
-    process.exit(1);
+    return;
   }
+
+  console.error(
+    `Refusing to apply: DATABASE_URL points at ${dbHost} (local) while ` +
+      `${targetName} points at ${targetHost} (remote). The ids read from a ` +
+      'local copy do not describe that deployment, so applying would act on ' +
+      'live state using unrelated data.\n' +
+      'If this local port is a proxy to that deployment (for example ' +
+      '`flyctl mpg proxy`), re-run with --allow-proxied-database.',
+  );
+  process.exit(1);
 }
 
 // ── HTTP ─────────────────────────────────────────────────────────────────────

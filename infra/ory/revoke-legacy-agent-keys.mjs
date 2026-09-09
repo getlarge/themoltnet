@@ -265,6 +265,7 @@ assertTargetMatchesDatabase({
   databaseUrl: process.env.DATABASE_URL,
   targetUrl: base,
   targetName: 'Talos',
+  allowProxiedDatabase: args.allowProxiedDatabase,
 });
 
 const { agentIds, byIdentityId } = loadPrincipals();

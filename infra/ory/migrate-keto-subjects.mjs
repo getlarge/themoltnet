@@ -236,6 +236,7 @@ assertTargetMatchesDatabase({
   databaseUrl: process.env.DATABASE_URL,
   targetUrl: writeBase,
   targetName: 'the Keto write API',
+  allowProxiedDatabase: args.allowProxiedDatabase,
 });
 
 const mapping = loadMapping();
