@@ -63,12 +63,11 @@
  * dismiss, not code to change — removing them entirely would mean printing
  * nothing an operator could act on.
  */
-import { execFileSync } from 'node:child_process';
-
 import {
   assertTargetMatchesDatabase,
   openCheckpoint,
   parseArgs,
+  psqlRows,
   pooled,
   request,
 } from './lib/maintenance.mjs';
@@ -111,15 +110,7 @@ function loadPrincipals() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
 
-  const query = (sql) =>
-    execFileSync('psql', [url, '-At', '-F', ',', '-c', sql], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => line.split(','));
+  const query = (sql) => psqlRows(sql, url);
 
   return {
     agentIds: new Set(query('SELECT id FROM agents').map(([id]) => id)),

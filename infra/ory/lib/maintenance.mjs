@@ -15,6 +15,7 @@
  * Dependency-free by design. These run as `node infra/ory/<script>.mjs` from
  * the repo root, where nothing from the workspace resolves.
  */
+import { execFileSync } from 'node:child_process';
 import { appendFileSync, closeSync, openSync, readFileSync } from 'node:fs';
 
 // ── Arguments ────────────────────────────────────────────────────────────────
@@ -33,6 +34,60 @@ export function parseArgs(argv = process.argv.slice(2)) {
     statePath: (fallback) => flag('--state', fallback),
     allowProxiedDatabase: argv.includes('--allow-proxied-database'),
   };
+}
+
+// ── Database ─────────────────────────────────────────────────────────────────
+
+/**
+ * Run a query through `psql`, with the connection passed in the ENVIRONMENT.
+ *
+ * Never as argv. `execFileSync` embeds the full command in the Error it throws,
+ * so a URL argument puts the database password into any stack trace, CI log or
+ * terminal transcript the failure reaches — and the failure is the likely case,
+ * since these scripts run against a schema that may not be migrated yet. The
+ * same leak already happened once through `run-psql.mjs`.
+ *
+ * `psql` reads PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE, and the environment
+ * of a child process is not echoed on failure.
+ *
+ * Rows come back as arrays of column strings; `-At -F ,` keeps that simple, so
+ * callers must not select values containing commas.
+ */
+export function psqlRows(sql, databaseUrl = process.env.DATABASE_URL) {
+  if (!databaseUrl) throw new Error('DATABASE_URL is required');
+  const url = new URL(databaseUrl);
+  const env = {
+    ...process.env,
+    PGHOST: url.hostname,
+    PGPORT: url.port || '5432',
+    PGUSER: decodeURIComponent(url.username),
+    PGPASSWORD: decodeURIComponent(url.password),
+    PGDATABASE: url.pathname.replace(/^\//, ''),
+  };
+  if (url.searchParams.get('sslmode')) {
+    env.PGSSLMODE = url.searchParams.get('sslmode');
+  }
+
+  try {
+    return execFileSync('psql', ['-At', '-F', ',', '-c', sql], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env,
+    })
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => line.split(','));
+  } catch (error) {
+    // Re-throw without the argv/stdio the driver attaches, so nothing about
+    // the connection can reach a log even though the URL is no longer in it.
+    const detail = String(error?.stderr ?? '')
+      .trim()
+      .split('\n')
+      .slice(-3)
+      .join(' ');
+    throw new Error(`psql failed: ${detail || 'no stderr'}`);
+  }
 }
 
 // ── Safety ───────────────────────────────────────────────────────────────────

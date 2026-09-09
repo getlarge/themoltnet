@@ -29,12 +29,11 @@
  *   DATABASE_URL=... ORY_PROJECT_URL=... ORY_PROJECT_API_KEY=... \
  *     node infra/ory/backfill-hydra-agent-id.mjs [--apply] [--repair]
  */
-import { execFileSync } from 'node:child_process';
-
 import {
   assertTargetMatchesDatabase,
   openCheckpoint,
   parseArgs,
+  psqlRows,
   pooled,
   request,
 } from './lib/maintenance.mjs';
@@ -54,16 +53,7 @@ if (!base || !apiKey) {
 const headers = { Authorization: `Bearer ${apiKey}` };
 
 function query(sql) {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL is required');
-  return execFileSync('psql', [url, '-At', '-F', ',', '-c', sql], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-    .trim()
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => line.split(','));
+  return psqlRows(sql);
 }
 
 /**
@@ -91,16 +81,7 @@ function loadMapping() {
 
 /** Every agents.id, so a backfilled value can be proven to resolve. */
 function loadAgentIds() {
-  const url = process.env.DATABASE_URL;
-  return new Set(
-    execFileSync('psql', [url, '-At', '-c', 'SELECT id FROM agents'], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-      .trim()
-      .split('\n')
-      .filter(Boolean),
-  );
+  return new Set(psqlRows('SELECT id FROM agents').map(([id]) => id));
 }
 
 /**
