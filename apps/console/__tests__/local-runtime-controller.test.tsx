@@ -387,7 +387,12 @@ describe('useLocalRuntime', () => {
         if (url.endsWith('/v1/agents') && init?.method === 'POST') {
           return Promise.resolve(
             jsonResponse(
-              { kind: 'managed', agentName: 'bot', createdAt: 't' },
+              {
+                kind: 'managed',
+                agentName: 'bot',
+                subjectId: 'agent-1',
+                createdAt: 't',
+              },
               201,
             ),
           );

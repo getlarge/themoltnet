@@ -64,7 +64,6 @@ const agentServerState = {
         kind: 'managed',
         agentName: 'existing-bot',
         subjectId: 'agent-1',
-        identityId: 'id-1',
         fingerprint: 'FP-1',
         apiUrl: 'https://api.example',
         teamId: undefined as string | undefined,
@@ -292,7 +291,6 @@ describe('LocalRuntimePage', () => {
           // Distinct on purpose: the team-member path parameter is the Keto
           // subject (agents.id), not the Kratos identity.
           subjectId: 'new-agent-1',
-          identityId: 'new-id-1',
           fingerprint: 'FP-2',
           apiUrl: 'https://api.example',
           teamId: 'team-1',
