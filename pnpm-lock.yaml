@@ -2403,9 +2403,9 @@ importers:
 
   libs/n8n-nodes-moltnet:
     devDependencies:
-      '@hey-api/openapi-ts':
-        specifier: 'catalog:'
-        version: 0.89.2(magicast@0.3.5)(typescript@5.9.3)
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@n8n/node-cli':
         specifier: 'catalog:'
         version: 0.45.5(de4df2a4f0643aae692099d9291cdda3)
@@ -18822,7 +18822,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   '@vitest/utils@3.2.4':
     dependencies:
