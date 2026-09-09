@@ -15,6 +15,18 @@ func (p *subjectDeleteFailureProvider) Delete(string) error {
 	return errors.New("keyring unavailable")
 }
 
+type subjectStoreFailureProvider struct {
+	*memorySecretProvider
+	failKey string
+}
+
+func (p *subjectStoreFailureProvider) Set(key, value string) error {
+	if key == p.failKey {
+		return errors.New("keyring unavailable")
+	}
+	return p.memorySecretProvider.Set(key, value)
+}
+
 func writeSubjectMigrationFixture(t *testing.T, apiURL, publicKey, fingerprint string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "moltnet.json")
@@ -158,6 +170,56 @@ func TestSubjectAnchorMigrationRejectsDestinationConflictBeforeRewrite(t *testin
 	}
 	if provider.values[OAuth2SecretKey("legacy-identity", "client")] != "oauth-secret" {
 		t.Fatal("legacy source was removed after destination conflict")
+	}
+}
+
+func TestSubjectAnchorMigrationRetainsPartialCopyForRetry(t *testing.T) {
+	const subjectID = "00000000-0000-4000-8000-000000000217"
+	path := writeSubjectMigrationFixture(t, "https://api.example.test", "ed25519:public", "FINGERPRINT")
+	original, _ := os.ReadFile(path)
+	provider := &subjectStoreFailureProvider{
+		memorySecretProvider: &memorySecretProvider{values: map[string]string{
+			OAuth2SecretKey("legacy-identity", "client"): "oauth-secret",
+			AgentKeyKey("legacy-identity"):               "agent-secret",
+		}},
+		failKey: AgentKeyKey(subjectID),
+	}
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, provider)
+	verified := &subjectVerification{SubjectID: subjectID, SubjectType: SubjectTypeAgent, PublicKey: "ed25519:public", Fingerprint: "FINGERPRINT"}
+	migrations := []configMigration{newSubjectAnchorMigration(verified)}
+	plan, err := buildConfigMigrationPlan(path, osKeyringProviderName, migrations)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+
+	err = runAndPrintConfigMigrationPlan(&output, plan, osKeyringProviderName, registry, migrations)
+	if err == nil {
+		t.Fatal("partial destination copy unexpectedly succeeded")
+	}
+	var result configMigrationRunOutput
+	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Failure == nil || result.Failure.Stage != "ensure_destinations" ||
+		!result.Failure.Retryable || result.Failure.ManualRecoveryRequired ||
+		!result.Changed || result.ManualRecoveryRequired {
+		t.Fatalf("failure envelope = %+v", result)
+	}
+	current, _ := os.ReadFile(path)
+	if string(current) != string(original) {
+		t.Fatal("credentials changed after a partial destination copy")
+	}
+	if provider.values[OAuth2SecretKey(subjectID, "client")] != "oauth-secret" {
+		t.Fatal("first canonical copy was not retained for retry")
+	}
+	if _, exists := provider.values[AgentKeyKey(subjectID)]; exists {
+		t.Fatal("failed canonical copy unexpectedly exists")
+	}
+	if provider.values[OAuth2SecretKey("legacy-identity", "client")] != "oauth-secret" ||
+		provider.values[AgentKeyKey("legacy-identity")] != "agent-secret" {
+		t.Fatal("legacy sources were removed before the canonical config was durable")
 	}
 }
 

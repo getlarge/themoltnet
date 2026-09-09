@@ -320,7 +320,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Create a config in .moltnet/<agent>/ structure with git identity
 	config := &CredentialsFile{
-		SubjectID:   "roundtrip-id",
+		SubjectID:   testSubjectID,
 		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "rt-client",
@@ -402,7 +402,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 		t.Fatalf("failed to read reconstructed config: %v", err)
 	}
 
-	if reconstructed.SubjectID != "roundtrip-id" {
+	if reconstructed.SubjectID != testSubjectID {
 		t.Errorf("subject_id mismatch: got %q", reconstructed.SubjectID)
 	}
 	if reconstructed.OAuth2.ClientID != "rt-client" {

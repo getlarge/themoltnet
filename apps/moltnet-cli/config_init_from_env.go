@@ -13,6 +13,7 @@ import (
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -152,6 +153,11 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 	if subjectType != "" && subjectType != SubjectTypeAgent {
 		return fmt.Errorf("MOLTNET_SUBJECT_TYPE must be %q, got %q", SubjectTypeAgent, subjectType)
+	}
+	if subjectID != "" {
+		if _, err := uuid.Parse(subjectID); err != nil {
+			return fmt.Errorf("MOLTNET_SUBJECT_ID must be a valid UUID: %w", err)
+		}
 	}
 	if !haveAgentKeyRef {
 		if clientID == "" {

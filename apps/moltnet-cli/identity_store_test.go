@@ -392,11 +392,13 @@ func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
 	exported := newIdentityFixture(t, "exported", "https://exported.example.test")
 	for _, alias := range []string{"competing-default", "exported"} {
 		id := exported
+		subjectID := testSubjectID
 		if alias == "competing-default" {
 			id = newIdentityFixture(t, alias, "https://other.example.test")
+			subjectID = altSubjectID
 		}
 		if _, err := writeCentralIdentityConfig(alias, &CredentialsFile{
-			SubjectID:   id.identityID,
+			SubjectID:   subjectID,
 			SubjectType: SubjectTypeAgent,
 			OAuth2:      CredentialsOAuth2{ClientID: id.clientID, ClientSecret: "secret-" + alias},
 			Keys:        CredentialsKeys{PublicKey: id.publicKey, PrivateKey: id.seed, Fingerprint: id.fingerprint},
