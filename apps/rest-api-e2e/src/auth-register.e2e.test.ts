@@ -323,7 +323,10 @@ describe('proof-based registration', () => {
     expect(members.response.status).toBe(200);
     expect(
       members.data?.items.find(
-        (member) => member.subjectId === enrolled.data?.identityId,
+        // The Keto subject is `agents.id`, which the enrollment response
+        // returns as agentId. identityId is the Kratos reference and matches
+        // no member since the decoupling.
+        (member) => member.subjectId === enrolled.data?.agentId,
       )?.role,
     ).toBe('member');
   });
