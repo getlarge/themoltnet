@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.93.0](https://github.com/getlarge/themoltnet/compare/cli-v1.92.1...cli-v1.93.0) (2026-09-09)
+
+
+### Features
+
+* **cli:** manage runtime policies from the CLI ([7e80fca](https://github.com/getlarge/themoltnet/commit/7e80fcaf72333eb76bbe460bb0f121273feba718))
+* **cli:** manage runtime policies from the CLI ([6709267](https://github.com/getlarge/themoltnet/commit/6709267a9b02c3b37c7f77d6e44d444cd0088c5d))
+
+
+### Bug Fixes
+
+* **cli:** address review on runtime-policy commands ([1f7b26c](https://github.com/getlarge/themoltnet/commit/1f7b26cde46621480b5f2e7c058e374c4ca053cf))
+
 ## [1.92.1](https://github.com/getlarge/themoltnet/compare/cli-v1.92.0...cli-v1.92.1) (2026-09-08)
 
 
