@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.6...n8n-nodes-moltnet-v0.4.0) (2026-09-09)
+
+
+### Features
+
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+
+
+### Bug Fixes
+
+* **tests:** assert human Keto subjects on humans.id, and regenerate n8n types ([9b8a21d](https://github.com/getlarge/themoltnet/commit/9b8a21d51b9d5c9f2c06781e07132cf834998b5d))
+
 ## [0.3.6](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.5...n8n-nodes-moltnet-v0.3.6) (2026-09-03)
 
 

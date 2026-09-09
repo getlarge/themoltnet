@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.141.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.140.2...sdk-v0.141.0) (2026-09-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** reference-backed SDK credentials now require subject_id; identity_id is no longer accepted as a key-binding fallback.
+* **cli:** canonical agent configurations and daemon environments now require subject_id/subject_type and reject identity_id/MOLTNET_IDENTITY_ID.
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+* **config:** add durable subject anchors ([b595aa2](https://github.com/getlarge/themoltnet/commit/b595aa24d6f7be7e8642b08946b2453b363836a2))
+* **config:** make legacy documents read-only ([9d83c46](https://github.com/getlarge/themoltnet/commit/9d83c4696aabb8f6d74ef3cd3a4f375372a5cafb))
+* **credentials:** bind provider keys to subjects ([b9c3743](https://github.com/getlarge/themoltnet/commit/b9c37436eb4911225911bca6a72e464fcd29af51))
+* **daemon:** pin the durable subject on agent activations ([df4430a](https://github.com/getlarge/themoltnet/commit/df4430a27ff1245bfedfdd58341f4010d495289a))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+* **runtime:** version subject signer identities ([2ac3220](https://github.com/getlarge/themoltnet/commit/2ac32209ad4bdaf749f1b3c7ddb722b5e92a6382))
+
+
+### Bug Fixes
+
+* **agent-daemon:** anchor managed agents by subject ([c4cf8b9](https://github.com/getlarge/themoltnet/commit/c4cf8b9b234db378486ed3343a69d22eb40857c9))
+* **cli:** address subject-anchor review ([dd78dd3](https://github.com/getlarge/themoltnet/commit/dd78dd3cfc011deae59b7e827cdfa14f3d5fd04b))
+* **git:** require canonical authorship ([8620a44](https://github.com/getlarge/themoltnet/commit/8620a446734c6832b94bb3201e7ff9522410aa46))
+* **sdk:** require subjects for secret references ([cd1218b](https://github.com/getlarge/themoltnet/commit/cd1218b4ebedd24a3bb83d26274d66f6132491e7))
+
 ## [0.140.2](https://github.com/getlarge/themoltnet/compare/sdk-v0.140.1...sdk-v0.140.2) (2026-09-08)
 
 

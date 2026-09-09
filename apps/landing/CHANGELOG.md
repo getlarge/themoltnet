@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/landing-v0.11.3...landing-v0.12.0) (2026-09-09)
+
+
+### Features
+
+* **auth:** expose agentId on AgentPrincipal and fix creator lookups ([723e636](https://github.com/getlarge/themoltnet/commit/723e63688d82a648182cda3cae139e9f5ba92c37))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+
+
+### Bug Fixes
+
+* **console,landing:** address the durable subject in the UI surfaces ([250d353](https://github.com/getlarge/themoltnet/commit/250d3538826d495df57cd9a726fc34bdadc3af90))
+
 ## [0.11.3](https://github.com/getlarge/themoltnet/compare/landing-v0.11.2...landing-v0.11.3) (2026-09-09)
 
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.28.4...github-agent-v1.0.0) (2026-09-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** canonical agent configurations and daemon environments now require subject_id/subject_type and reject identity_id/MOLTNET_IDENTITY_ID.
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+
+
+### Bug Fixes
+
+* **cli:** address subject-anchor review ([dd78dd3](https://github.com/getlarge/themoltnet/commit/dd78dd3cfc011deae59b7e827cdfa14f3d5fd04b))
+* **git:** require canonical authorship ([8620a44](https://github.com/getlarge/themoltnet/commit/8620a446734c6832b94bb3201e7ff9522410aa46))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.141.0
+
 ## [0.28.4](https://github.com/getlarge/themoltnet/compare/github-agent-v0.28.3...github-agent-v0.28.4) (2026-09-08)
 
 

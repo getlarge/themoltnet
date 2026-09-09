@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.46.0...agent-runtime-v1.0.0) (2026-09-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** canonical agent configurations and daemon environments now require subject_id/subject_type and reject identity_id/MOLTNET_IDENTITY_ID.
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+* **runtime:** version subject signer identities ([2ac3220](https://github.com/getlarge/themoltnet/commit/2ac32209ad4bdaf749f1b3c7ddb722b5e92a6382))
+
+
+### Bug Fixes
+
+* **cli:** address subject-anchor review ([dd78dd3](https://github.com/getlarge/themoltnet/commit/dd78dd3cfc011deae59b7e827cdfa14f3d5fd04b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.141.0
+
 ## [0.46.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.45.3...agent-runtime-v0.46.0) (2026-09-08)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.14.3...pi-runtime-v0.15.0) (2026-09-09)
+
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.0
+    * @themoltnet/sdk bumped to 0.141.0
+
 ## [0.14.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.14.2...pi-runtime-v0.14.3) (2026-09-08)
 
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/console-v0.12.1...console-v0.13.0) (2026-09-09)
+
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+
+
+### Bug Fixes
+
+* **console,landing:** address the durable subject in the UI surfaces ([250d353](https://github.com/getlarge/themoltnet/commit/250d3538826d495df57cd9a726fc34bdadc3af90))
+* **console:** validate canonical agent subjects ([350d7d5](https://github.com/getlarge/themoltnet/commit/350d7d5577f1d5a6b24ceb295d05317ffe8dd9fe))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.9.0
+    * @themoltnet/sdk bumped to 0.141.0
+
 ## [0.12.1](https://github.com/getlarge/themoltnet/compare/console-v0.12.0...console-v0.12.1) (2026-09-08)
 
 
