@@ -710,7 +710,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       hasPrivateKey: true,
     });
     const view = created.data!;
-    expect(view.identityId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(view.subjectId).toMatch(/^[0-9a-f-]{36}$/);
     expect(view.fingerprint).toMatch(/^[0-9A-F]{4}(-[0-9A-F]{4}){3}$/);
     // Presence booleans only — never key material or reference strings.
     expect(Object.keys(created.data!)).not.toEqual(
