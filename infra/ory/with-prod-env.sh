@@ -63,10 +63,23 @@ exec npx --yes dotenvx run --quiet \
     url.port = process.env.MOLTNET_PROXY_PORT;
     url.searchParams.set("sslmode", "disable");
 
+    // Both forms, deliberately. The Node scripts read DATABASE_URL and
+    // translate it themselves; `psql` and every other libpq client ignore
+    // DATABASE_URL entirely and read PG* — without these a bare psql silently
+    // falls back to a local socket instead of the tunnel.
     const [cmd, ...rest] = process.argv.slice(1);
     const result = spawnSync(cmd, rest, {
       stdio: "inherit",
-      env: { ...process.env, DATABASE_URL: url.toString() },
+      env: {
+        ...process.env,
+        DATABASE_URL: url.toString(),
+        PGHOST: url.hostname,
+        PGPORT: url.port,
+        PGUSER: decodeURIComponent(url.username),
+        PGPASSWORD: decodeURIComponent(url.password),
+        PGDATABASE: url.pathname.replace(/^\//, ""),
+        PGSSLMODE: url.searchParams.get("sslmode") ?? "disable",
+      },
     });
     process.exit(result.status ?? 1);
   ' "$@"
