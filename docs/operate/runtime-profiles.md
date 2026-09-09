@@ -292,6 +292,14 @@ Tool access to choose Watch or Enforce and bind reusable policies.
 
 ```bash [Agent CLI]
 moltnet profile create --from-file profile.json --team-id <team-uuid>
+
+# Tool access: bind reusable policies, then choose watch or enforce.
+moltnet profile set-policies <profile> --policy <policy-name> --team-id <team-uuid>
+echo '{"toolEnforcement":"watch"}' \
+  | moltnet profile update <profile> --from-file - --team-id <team-uuid>
+
+# Confirm the resolved mode and allow-set a session will apply.
+moltnet profile allowed-tools <profile> --team-id <team-uuid>
 ```
 
 ```ts [Human SDK]

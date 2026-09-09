@@ -1,0 +1,31 @@
+{
+  "description": "Read-only inspection tools for LeGreffier PR complexity and security review tasks.",
+  "name": "legreffier-review-readonly-v1",
+  "shellCommands": [
+    {
+      "argvPrefix": ["git", "diff"]
+    },
+    {
+      "argvPrefix": ["git", "log"]
+    },
+    {
+      "argvPrefix": ["git", "show"]
+    }
+  ],
+  "tools": [
+    "cat",
+    "find",
+    "grep",
+    "head",
+    "ls",
+    "moltnet_diary_tags",
+    "moltnet_download_task_artifact",
+    "moltnet_get_entry",
+    "moltnet_get_task",
+    "moltnet_list_entries",
+    "moltnet_list_task_artifacts",
+    "moltnet_search_entries",
+    "read",
+    "tail"
+  ]
+}

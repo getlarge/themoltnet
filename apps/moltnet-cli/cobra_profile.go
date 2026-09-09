@@ -21,6 +21,9 @@ the token's current team when the flag is omitted.`,
 	profileCmd.AddCommand(newProfileCreateCmd())
 	profileCmd.AddCommand(newProfileUpdateCmd())
 	profileCmd.AddCommand(newProfileDeleteCmd())
+	profileCmd.AddCommand(newProfilePoliciesCmd())
+	profileCmd.AddCommand(newProfileSetPoliciesCmd())
+	profileCmd.AddCommand(newProfileAllowedToolsCmd())
 	return profileCmd
 }
 
