@@ -204,6 +204,10 @@ func printConfigMigrationPreflightFailure(w io.Writer, plan configMigrationPlan,
 		plan,
 		migrationStageError("verify_subject", configmigrate.FailureState{}, err),
 	)
+	// Credential resolvers normalize provider failures before they reach this
+	// boundary, so the authentication cause is safe and tells the operator what
+	// must be fixed without exposing a resolved secret.
+	failure.Message += ": " + err.Error()
 	if printErr := printJSONTo(w, configMigrationRunOutput{Plan: plan, Failure: failure}); printErr != nil {
 		return errors.Join(err, printErr)
 	}

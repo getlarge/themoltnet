@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -271,12 +272,18 @@ func TestConfigMigrateReportsSubjectAuthenticationFailureAsRunOutput(t *testing.
 	if err == nil {
 		t.Fatal("subject authentication unexpectedly succeeded")
 	}
+	if !strings.Contains(err.Error(), "verify config identity") {
+		t.Fatalf("command error omitted the authentication cause: %v", err)
+	}
 	var result configMigrationRunOutput
 	if jsonErr := json.Unmarshal(output.Bytes(), &result); jsonErr != nil {
 		t.Fatalf("failure output is not JSON: %v\n%s", jsonErr, output.String())
 	}
 	if result.Failure == nil || result.Failure.Stage != "verify_subject" {
 		t.Fatalf("failure = %+v", result.Failure)
+	}
+	if !strings.Contains(result.Failure.Message, "verify config identity") {
+		t.Fatalf("failure omitted the authentication cause: %+v", result.Failure)
 	}
 }
 
