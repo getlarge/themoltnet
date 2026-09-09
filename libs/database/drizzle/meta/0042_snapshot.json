@@ -4,222 +4,6 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.agent_enrollments": {
-      "name": "agent_enrollments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "team_id": {
-          "name": "team_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "creator_agent_id": {
-          "name": "creator_agent_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "creator_human_id": {
-          "name": "creator_human_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "redeemed_at": {
-          "name": "redeemed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "resulting_agent_id": {
-          "name": "resulting_agent_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "agent_enrollments_token_hash_idx": {
-          "name": "agent_enrollments_token_hash_idx",
-          "columns": [
-            {
-              "expression": "token_hash",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_enrollments_team_idx": {
-          "name": "agent_enrollments_team_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_enrollments_creator_agent_idx": {
-          "name": "agent_enrollments_creator_agent_idx",
-          "columns": [
-            {
-              "expression": "creator_agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "creator_agent_id IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_enrollments_creator_human_idx": {
-          "name": "agent_enrollments_creator_human_idx",
-          "columns": [
-            {
-              "expression": "creator_human_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "creator_human_id IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_enrollments_pending_expiry_idx": {
-          "name": "agent_enrollments_pending_expiry_idx",
-          "columns": [
-            {
-              "expression": "expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "redeemed_at IS NULL AND revoked_at IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "agent_enrollments_team_id_teams_id_fk": {
-          "name": "agent_enrollments_team_id_teams_id_fk",
-          "tableFrom": "agent_enrollments",
-          "tableTo": "teams",
-          "columnsFrom": [
-            "team_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "agent_enrollments_creator_agent_id_agents_id_fk": {
-          "name": "agent_enrollments_creator_agent_id_agents_id_fk",
-          "tableFrom": "agent_enrollments",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "creator_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "agent_enrollments_creator_human_id_humans_id_fk": {
-          "name": "agent_enrollments_creator_human_id_humans_id_fk",
-          "tableFrom": "agent_enrollments",
-          "tableTo": "humans",
-          "columnsFrom": [
-            "creator_human_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "agent_enrollments_resulting_agent_id_agents_id_fk": {
-          "name": "agent_enrollments_resulting_agent_id_agents_id_fk",
-          "tableFrom": "agent_enrollments",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "resulting_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "agent_enrollments_creator_xor": {
-          "name": "agent_enrollments_creator_xor",
-          "value": "(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)"
-        },
-        "agent_enrollments_redemption_result_pair": {
-          "name": "agent_enrollments_redemption_result_pair",
-          "value": "(redeemed_at IS NULL) = (resulting_agent_id IS NULL)"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.agents": {
       "name": "agents",
       "schema": "",
@@ -1700,12 +1484,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "agent_identity_id": {
-          "name": "agent_identity_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "signature": {
           "name": "signature",
           "type": "text",
@@ -1718,6 +1496,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
@@ -1725,7 +1509,7 @@
           "name": "executor_manifest_registrations_agent_idx",
           "columns": [
             {
-              "expression": "agent_identity_id",
+              "expression": "agent_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1757,12 +1541,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "executor_manifest_registrations_agent_identity_id_agents_id_fk": {
-          "name": "executor_manifest_registrations_agent_identity_id_agents_id_fk",
+        "executor_manifest_registrations_agent_id_agents_id_fk": {
+          "name": "executor_manifest_registrations_agent_id_agents_id_fk",
           "tableFrom": "executor_manifest_registrations",
           "tableTo": "agents",
           "columnsFrom": [
-            "agent_identity_id"
+            "agent_id"
           ],
           "columnsTo": [
             "id"
@@ -1772,11 +1556,11 @@
         }
       },
       "compositePrimaryKeys": {
-        "executor_manifest_registrations_fingerprint_agent_identity_id_pk": {
-          "name": "executor_manifest_registrations_fingerprint_agent_identity_id_pk",
+        "executor_manifest_registrations_fingerprint_agent_id_pk": {
+          "name": "executor_manifest_registrations_fingerprint_agent_id_pk",
           "columns": [
             "fingerprint",
-            "agent_identity_id"
+            "agent_id"
           ]
         }
       },
