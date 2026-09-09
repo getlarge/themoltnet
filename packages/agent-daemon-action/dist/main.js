@@ -39578,7 +39578,7 @@ function requireId(value, name) {
 	return trimmed;
 }
 function requireSubjectId(ids) {
-	return requireId(ids.subjectId ?? ids.identityId, "subjectId");
+	return requireId(ids.subjectId, "subjectId");
 }
 /** Canonical provider key for a credential kind bound to this agent. */
 function expectedSecretKey(kind, ids) {
@@ -39630,12 +39630,6 @@ function warnLegacyCredentialFieldOnce(field) {
 function warnLegacyCredentialOnce(kind) {
 	warnLegacyCredentialFieldOnce(LEGACY_FIELDS[kind]);
 }
-function warnLegacyIdentityBindingOnce() {
-	const field = "identity_id credential binding";
-	if (warned.has(field)) return;
-	warned.add(field);
-	console.warn("Warning: an identity_id-bound secret reference is deprecated; run 'moltnet config migrate' before the next major SDK release.");
-}
 /**
 * Resolve through the registry, normalizing any provider failure into a
 * value-free `provider_failure` error. Provider messages are retained only
@@ -39659,11 +39653,9 @@ async function resolveOAuth2ClientSecret(config, registry) {
 	const reference = oauth2.client_secret_ref;
 	if (hasLegacy && reference) throw new CredentialResolutionError(kind, "ambiguous", "config must set exactly one of client_secret or client_secret_ref");
 	if (reference) {
-		if (!config.subject_id && config.identity_id) warnLegacyIdentityBindingOnce();
 		try {
 			assertSecretReferenceBinding(kind, reference, {
 				subjectId: config.subject_id,
-				identityId: config.identity_id,
 				clientId: oauth2.client_id
 			});
 		} catch (cause) {
@@ -39685,12 +39677,8 @@ async function resolveAgentKey(config, registry) {
 	const kind = "agent-key";
 	const reference = config.agent_key_ref;
 	if (!reference) return null;
-	if (!config.subject_id && config.identity_id) warnLegacyIdentityBindingOnce();
 	try {
-		assertSecretReferenceBinding(kind, reference, {
-			subjectId: config.subject_id,
-			identityId: config.identity_id
-		});
+		assertSecretReferenceBinding(kind, reference, { subjectId: config.subject_id });
 	} catch (cause) {
 		throw new CredentialResolutionError(kind, "unbound", cause.message);
 	}
@@ -39771,7 +39759,7 @@ async function resolveConnection(options) {
 		try {
 			agentKey = await resolveAgentKey(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
 		} catch (error) {
-			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "Agent key reference is not bound to this MoltNet identity." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "Agent key reference is not bound to this MoltNet subject." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
 			throw new MoltNetError("Unable to resolve agent_key_ref.", {
 				code: "NO_CREDENTIALS",
 				detail: error instanceof Error ? error.message : String(error)
@@ -39790,7 +39778,7 @@ async function resolveConnection(options) {
 		try {
 			clientSecret = await resolveOAuth2ClientSecret(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
 		} catch (error) {
-			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "OAuth2 secret reference is not bound to this MoltNet identity and client." : "Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "OAuth2 secret reference is not bound to this MoltNet subject and client." : "Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
 			throw new MoltNetError("Unable to resolve OAuth2 client secret.", {
 				code: "NO_CREDENTIALS",
 				detail: error instanceof Error ? error.message : String(error)
