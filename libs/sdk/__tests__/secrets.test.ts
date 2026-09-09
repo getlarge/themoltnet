@@ -314,7 +314,7 @@ describe('credential binding table', () => {
   it('derives stable keys per kind', () => {
     expect(
       expectedSecretKey('oauth2-client-secret', {
-        identityId: 'id',
+        subjectId: 'id',
         clientId: 'c',
       }),
     ).toBe('oauth2/id/c');
@@ -390,20 +390,19 @@ describe('agent key binding and env reference parsing', () => {
     ).toThrow(/cannot use the env provider/);
   });
 
-  it('prefers the durable subject over a legacy identity binding', () => {
+  it('requires the durable subject for subject-bound keys', () => {
     expect(
       expectedSecretKey('oauth2-client-secret', {
         subjectId: 'subject-1',
-        identityId: 'legacy-identity',
         clientId: 'client-1',
       }),
     ).toBe('oauth2/subject-1/client-1');
     expect(
       expectedSecretKey('agent-key', {
         subjectId: 'subject-1',
-        identityId: 'legacy-identity',
       }),
     ).toBe('agent-key/subject-1');
+    expect(() => expectedSecretKey('agent-key', {})).toThrow(/subjectId/);
   });
 
   it('parses <provider>:<key> references and rejects malformed ones', () => {

@@ -55,16 +55,6 @@ export function warnLegacyCredentialOnce(kind: CredentialKind): void {
   warnLegacyCredentialFieldOnce(LEGACY_FIELDS[kind]);
 }
 
-function warnLegacyIdentityBindingOnce(): void {
-  const field = 'identity_id credential binding';
-  if (warned.has(field)) return;
-  warned.add(field);
-  // eslint-disable-next-line no-console
-  console.warn(
-    "Warning: an identity_id-bound secret reference is deprecated; run 'moltnet config migrate' before the next major SDK release.",
-  );
-}
-
 /** Test hook — module-internal, not part of the published SDK surface. */
 export function resetLegacyCredentialWarnings(): void {
   warned.clear();
@@ -121,13 +111,9 @@ export async function resolveOAuth2ClientSecret(
     );
   }
   if (reference) {
-    if (!config.subject_id && config.identity_id) {
-      warnLegacyIdentityBindingOnce();
-    }
     try {
       assertSecretReferenceBinding(kind, reference, {
         subjectId: config.subject_id,
-        identityId: config.identity_id,
         clientId: oauth2.client_id,
       });
     } catch (cause) {
@@ -240,13 +226,9 @@ export async function resolveAgentKey(
   const kind: CredentialKind = 'agent-key';
   const reference = config.agent_key_ref;
   if (!reference) return null;
-  if (!config.subject_id && config.identity_id) {
-    warnLegacyIdentityBindingOnce();
-  }
   try {
     assertSecretReferenceBinding(kind, reference, {
       subjectId: config.subject_id,
-      identityId: config.identity_id,
     });
   } catch (cause) {
     throw new CredentialResolutionError(

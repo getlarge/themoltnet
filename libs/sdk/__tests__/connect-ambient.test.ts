@@ -138,7 +138,8 @@ describe('connectAmbient', () => {
 
   it('should connect with config file', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
       keys: {
@@ -161,7 +162,8 @@ describe('connectAmbient', () => {
 
   it('resolves a config secret reference only when connecting', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       oauth2: {
         client_id: 'cfg-id',
@@ -192,7 +194,8 @@ describe('connectAmbient', () => {
 
   it('never resolves an arbitrary config-selected secret for an arbitrary origin', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       oauth2: {
         client_id: 'cfg-id',
@@ -218,7 +221,8 @@ describe('connectAmbient', () => {
 
   it('rejects config that contains plaintext and a secret reference', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       oauth2: {
         client_id: 'cfg-id',
@@ -256,7 +260,8 @@ describe('connectAmbient', () => {
       apiUrl: undefined,
     });
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
       keys: {
@@ -525,7 +530,8 @@ describe('connect (agent-key references)', () => {
 
   it('connects an agent-key-only config and trusts its endpoint', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
@@ -544,9 +550,10 @@ describe('connect (agent-key references)', () => {
     await expect(agentOpts.auth!()).resolves.toBe('ak_cfg');
   });
 
-  it('rejects a config agent_key_ref bound to another identity', async () => {
+  it('rejects a config agent_key_ref bound to another subject', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'memory', key: 'agent-key/other' },
       oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
@@ -579,7 +586,8 @@ describe('connect (agent-key references)', () => {
       apiUrl: 'http://remote.example.test',
     });
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
       oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
@@ -600,7 +608,8 @@ describe('connect (agent-key references)', () => {
 
   it('rejects a config agent_key_ref that names the env provider', async () => {
     mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
+      subject_id: 'id-1',
+      subject_type: 'agent',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
       oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },

@@ -273,8 +273,6 @@ export type CredentialKind =
 export interface CredentialBindingIds {
   /** Durable MoltNet subject. Canonical credential bindings use this value. */
   subjectId?: string;
-  /** Temporary compatibility input for pre-subject config documents. */
-  identityId?: string;
   clientId?: string;
   fingerprint?: string;
 }
@@ -370,7 +368,7 @@ function requireId(value: string | undefined, name: string): string {
 }
 
 function requireSubjectId(ids: CredentialBindingIds): string {
-  return requireId(ids.subjectId ?? ids.identityId, 'subjectId');
+  return requireId(ids.subjectId, 'subjectId');
 }
 
 /** Canonical provider key for a credential kind bound to this agent. */
@@ -418,11 +416,11 @@ export function assertSecretReferenceBinding(
 
 export function assertOAuth2SecretReferenceBinding(
   reference: SecretReference,
-  identityId: string,
+  subjectId: string,
   clientId: string,
 ): void {
   assertSecretReferenceBinding('oauth2-client-secret', reference, {
-    identityId,
+    subjectId,
     clientId,
   });
 }

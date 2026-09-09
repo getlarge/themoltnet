@@ -198,7 +198,7 @@ describe('resolveOAuth2ClientSecret', () => {
     const error = await failure(
       resolveOAuth2ClientSecret(
         {
-          identity_id: 'id',
+          subject_id: 'id',
           oauth2: {
             client_id: 'c',
             client_secret_ref: { provider: 'memory', key: 'oauth2/id/c' },
@@ -251,7 +251,7 @@ describe('resolveOAuth2ClientSecret', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
-  it('warns once when resolving legacy identity-bound references', async () => {
+  it('rejects legacy identity-bound references', async () => {
     const registry = registryWith({ 'oauth2/id/c': 'secret' });
     const config = {
       identity_id: 'id',
@@ -261,13 +261,11 @@ describe('resolveOAuth2ClientSecret', () => {
       },
     };
 
-    await resolveOAuth2ClientSecret(config, registry);
-    await resolveOAuth2ClientSecret(config, registry);
+    const error = await failure(resolveOAuth2ClientSecret(config, registry));
 
-    expect(console.warn).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(console.warn).mock.calls[0]?.[0]).toContain(
-      'identity_id-bound secret reference',
-    );
+    expect(error.code).toBe('unbound');
+    expect(error.message).toContain('subjectId');
+    expect(console.warn).not.toHaveBeenCalled();
   });
 
   it('resolves a canonical subject-bound OAuth2 reference', async () => {
@@ -296,7 +294,7 @@ describe('resolveOAuth2ClientSecret', () => {
     const error = await failure(
       resolveOAuth2ClientSecret(
         {
-          identity_id: 'id',
+          subject_id: 'id',
           oauth2: {
             client_id: 'c',
             client_secret_ref: { provider: 'memory', key: 'oauth2/other/c' },
@@ -313,13 +311,11 @@ describe('resolveAgentKey and resolveEnvSecretReference', () => {
   it('returns null without a reference and the key with a bound one', async () => {
     const registry = registryWith({ 'agent-key/id-1': ' ak_secret ' });
 
-    await expect(
-      resolveAgentKey({ identity_id: 'id-1' }, registry),
-    ).resolves.toBeNull();
+    await expect(resolveAgentKey({}, registry)).resolves.toBeNull();
     await expect(
       resolveAgentKey(
         {
-          identity_id: 'id-1',
+          subject_id: 'id-1',
           agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
         },
         registry,
@@ -356,7 +352,7 @@ describe('resolveAgentKey and resolveEnvSecretReference', () => {
         await failure(
           resolveAgentKey(
             {
-              identity_id: 'id-1',
+              subject_id: 'id-1',
               agent_key_ref: { provider: 'memory', key: 'agent-key/other' },
             },
             registry,
@@ -369,7 +365,7 @@ describe('resolveAgentKey and resolveEnvSecretReference', () => {
         await failure(
           resolveAgentKey(
             {
-              identity_id: 'id-1',
+              subject_id: 'id-1',
               agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
             },
             registry,
