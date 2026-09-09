@@ -1367,3 +1367,99 @@ func TestPackListRejectsDiaryIDAndContainsEntryTogether(t *testing.T) {
 		t.Errorf("expected error to mention both selector flags, got: %v", err)
 	}
 }
+
+// --- Runtime-policy command tree ---
+//
+// The business-logic tests call run*Cmd directly, so they cannot catch a
+// command that was never registered, a wrong Args arity, a missing required
+// flag, or a --policy flag declared as String rather than StringArray. These
+// exercise the assembled root command instead.
+
+func TestPolicyCommandsAreRegistered(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "policy", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"create", "delete", "get", "list", "update"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected 'policy %s' in help, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestProfilePolicyBindingCommandsAreRegistered(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "profile", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"policies", "set-policies", "allowed-tools"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected 'profile %s' in help, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestPolicyCreateRequiresFromFile(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "policy", "create", "--team-id", testPolicyTeam.String())
+	if err == nil {
+		t.Fatal("expected an error when --from-file is missing")
+	}
+	if !strings.Contains(err.Error(), "from-file") {
+		t.Errorf("expected the error to name --from-file, got: %v", err)
+	}
+}
+
+func TestPolicyGetRequiresExactlyOneArgument(t *testing.T) {
+	t.Parallel()
+	for name, args := range map[string][]string{
+		"no argument":   {"policy", "get"},
+		"two arguments": {"policy", "get", "a", "b"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			if _, _, err := executeCommand(root, args...); err == nil {
+				t.Fatalf("expected an arity error for %v", args)
+			}
+		})
+	}
+}
+
+// --policy must be a repeatable StringArray: declared as a plain String, the
+// second occurrence would silently overwrite the first and bind one policy
+// where two were asked for.
+func TestProfileSetPoliciesAcceptsRepeatedPolicyFlag(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	cmd, _, err := root.Find([]string{"profile", "set-policies"})
+	if err != nil {
+		t.Fatalf("find set-policies: %v", err)
+	}
+	if err := cmd.Flags().Parse([]string{"--policy", "one", "--policy", "two"}); err != nil {
+		t.Fatalf("parse repeated --policy: %v", err)
+	}
+	values, err := cmd.Flags().GetStringArray("policy")
+	if err != nil {
+		t.Fatalf("--policy is not a StringArray: %v", err)
+	}
+	if len(values) != 2 || values[0] != "one" || values[1] != "two" {
+		t.Fatalf("expected [one two], got %v", values)
+	}
+}
+
+func TestProfileSetPoliciesHasClearFlag(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	cmd, _, err := root.Find([]string{"profile", "set-policies"})
+	if err != nil {
+		t.Fatalf("find set-policies: %v", err)
+	}
+	if cmd.Flags().Lookup("clear") == nil {
+		t.Fatal("expected a --clear flag on profile set-policies")
+	}
+}

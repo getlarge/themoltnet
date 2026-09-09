@@ -4,7 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const policyTeamFlagUsage = "Team UUID that owns the policy (required: runtime policies are team-scoped)"
+const (
+	policyTeamFlagUsage  = "Team UUID that owns the policy (required: runtime policies are team-scoped)"
+	profileTeamFlagUsage = "Team UUID that owns the profile and its policies (required: policy endpoints are team-scoped)"
+)
 
 func newPolicyCmd() *cobra.Command {
 	policyCmd := &cobra.Command{
@@ -18,13 +21,15 @@ The end-to-end workflow is:
 
   1. moltnet policy create --from-file policy.json --team-id <uuid>
   2. moltnet profile set-policies <profile> --policy <name> --team-id <uuid>
-  3. moltnet profile update <profile> --from-file enforcement.json
+  3. moltnet profile update <profile> --from-file enforcement.json --team-id <uuid>
   4. moltnet profile allowed-tools <profile> --team-id <uuid>
 
 Step 3 sets toolEnforcement to off, watch, or enforce. "watch" logs what a
-session would have been denied without blocking it, which is the safe way to
-learn a real allow-set before switching to "enforce". Step 4 resolves what will
-actually be enforced, because bindings and mode are set independently.
+session would have been denied but still runs it, so it measures rather than
+constrains: use it to learn an allow-set you have not measured, keep the window
+short, and rely on the profile's sandbox policy for containment meanwhile. Step
+4 resolves what will actually be enforced, because bindings and mode are set
+independently.
 
 Unlike runtime profiles, every policy endpoint requires the team header, so
 --team-id is mandatory rather than falling back to the token's current team.`,
@@ -185,7 +190,7 @@ func newProfilePoliciesCmd() *cobra.Command {
 			return runProfilePoliciesCmd(cmd.OutOrStdout(), apiURL, credPath, args[0], teamID)
 		},
 	}
-	cmd.Flags().String("team-id", "", policyTeamFlagUsage)
+	cmd.Flags().String("team-id", "", profileTeamFlagUsage)
 	return cmd
 }
 
@@ -213,12 +218,12 @@ confirm the result with "moltnet profile allowed-tools".`,
 			teamID, _ := cmd.Flags().GetString("team-id")
 			policies, _ := cmd.Flags().GetStringArray("policy")
 			clear, _ := cmd.Flags().GetBool("clear")
-			return runProfileSetPoliciesCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), apiURL, credPath, args[0], policies, clear, teamID)
+			return runProfileSetPoliciesCmd(cmd.ErrOrStderr(), apiURL, credPath, args[0], policies, clear, teamID)
 		},
 	}
 	cmd.Flags().StringArray("policy", nil, "Policy id or name to bind; repeat for several")
 	cmd.Flags().Bool("clear", false, "Unbind every policy from the profile")
-	cmd.Flags().String("team-id", "", policyTeamFlagUsage)
+	cmd.Flags().String("team-id", "", profileTeamFlagUsage)
 	return cmd
 }
 
@@ -241,6 +246,6 @@ bound while enforcement is off, or enforcement on with nothing bound.`,
 			return runProfileAllowedToolsCmd(cmd.OutOrStdout(), apiURL, credPath, args[0], teamID)
 		},
 	}
-	cmd.Flags().String("team-id", "", policyTeamFlagUsage)
+	cmd.Flags().String("team-id", "", profileTeamFlagUsage)
 	return cmd
 }

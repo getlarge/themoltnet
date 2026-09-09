@@ -176,8 +176,11 @@ func TestPolicyCommandsRequireTeamID(t *testing.T) {
 		"update": func() error {
 			return runPolicyUpdateCmd(io.Discard, apiSrv.URL, credPath, testPolicyName, policyFile, "")
 		},
-		"delete":        func() error { return runPolicyDeleteCmd(io.Discard, apiSrv.URL, credPath, testPolicyName, "") },
-		"policies":      func() error { return runProfilePoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName, "") },
+		"delete":   func() error { return runPolicyDeleteCmd(io.Discard, apiSrv.URL, credPath, testPolicyName, "") },
+		"policies": func() error { return runProfilePoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName, "") },
+		"set-policies": func() error {
+			return runProfileSetPoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName, []string{testPolicyName}, false, "")
+		},
 		"allowed-tools": func() error { return runProfileAllowedToolsCmd(io.Discard, apiSrv.URL, credPath, testProfileName, "") },
 	}
 
@@ -211,6 +214,9 @@ func TestPolicyGetResolvesNameToID(t *testing.T) {
 	}
 	if handler.getParams.PolicyId != testPolicyOtherID {
 		t.Fatalf("expected policy id %s, got %s", testPolicyOtherID, handler.getParams.PolicyId)
+	}
+	if handler.getParams.XMoltnetTeamID != testPolicyTeam {
+		t.Fatalf("expected team header %s, got %s", testPolicyTeam, handler.getParams.XMoltnetTeamID)
 	}
 }
 
@@ -281,6 +287,9 @@ func TestPolicyUpdateSendsAddRemovePatch(t *testing.T) {
 	if handler.updateParams.PolicyId != testPolicyID {
 		t.Fatalf("expected policy id %s, got %s", testPolicyID, handler.updateParams.PolicyId)
 	}
+	if handler.updateParams.XMoltnetTeamID != testPolicyTeam {
+		t.Fatalf("expected team header %s, got %s", testPolicyTeam, handler.updateParams.XMoltnetTeamID)
+	}
 	body := handler.updateBody.Value
 	if len(body.AddTools) != 1 || body.AddTools[0] != "glob" {
 		t.Fatalf("expected addTools [glob], got %v", body.AddTools)
@@ -305,6 +314,9 @@ func TestPolicyDeleteResolvesNameToID(t *testing.T) {
 	if handler.deleteParams.PolicyId != testPolicyID {
 		t.Fatalf("expected policy id %s, got %s", testPolicyID, handler.deleteParams.PolicyId)
 	}
+	if handler.deleteParams.XMoltnetTeamID != testPolicyTeam {
+		t.Fatalf("expected team header %s, got %s", testPolicyTeam, handler.deleteParams.XMoltnetTeamID)
+	}
 }
 
 func TestProfileSetPoliciesResolvesEveryPolicyName(t *testing.T) {
@@ -313,7 +325,7 @@ func TestProfileSetPoliciesResolvesEveryPolicyName(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileSetPoliciesCmd(io.Discard, io.Discard, apiSrv.URL, credPath, testProfileName,
+	err := runProfileSetPoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName,
 		[]string{testPolicyName, testPolicyOtherName}, false, testPolicyTeam.String())
 
 	// Assert
@@ -322,6 +334,9 @@ func TestProfileSetPoliciesResolvesEveryPolicyName(t *testing.T) {
 	}
 	if handler.setPoliciesParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.setPoliciesParams.ProfileId)
+	}
+	if handler.setPoliciesParams.XMoltnetTeamID != testPolicyTeam {
+		t.Fatalf("expected team header %s, got %s", testPolicyTeam, handler.setPoliciesParams.XMoltnetTeamID)
 	}
 	ids := handler.setPoliciesBody.Value.PolicyIds
 	if len(ids) != 2 || ids[0] != testPolicyID || ids[1] != testPolicyOtherID {
@@ -337,7 +352,7 @@ func TestProfileSetPoliciesRequiresExplicitClear(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileSetPoliciesCmd(io.Discard, io.Discard, apiSrv.URL, credPath, testProfileName, nil, false, testPolicyTeam.String())
+	err := runProfileSetPoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName, nil, false, testPolicyTeam.String())
 
 	// Assert
 	if err == nil {
@@ -357,7 +372,7 @@ func TestProfileSetPoliciesClearSendsEmptySet(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileSetPoliciesCmd(io.Discard, io.Discard, apiSrv.URL, credPath, testProfileName, nil, true, testPolicyTeam.String())
+	err := runProfileSetPoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName, nil, true, testPolicyTeam.String())
 
 	// Assert
 	if err != nil {
@@ -374,7 +389,7 @@ func TestProfileSetPoliciesRejectsClearWithPolicy(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
 	// Act
-	err := runProfileSetPoliciesCmd(io.Discard, io.Discard, apiSrv.URL, credPath, testProfileName,
+	err := runProfileSetPoliciesCmd(io.Discard, apiSrv.URL, credPath, testProfileName,
 		[]string{testPolicyName}, true, testPolicyTeam.String())
 
 	// Assert
@@ -420,5 +435,8 @@ func TestProfilePoliciesPassesProfileAndTeam(t *testing.T) {
 	}
 	if handler.boundParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.boundParams.ProfileId)
+	}
+	if handler.boundParams.XMoltnetTeamID != testPolicyTeam {
+		t.Fatalf("expected team header %s, got %s", testPolicyTeam, handler.boundParams.XMoltnetTeamID)
 	}
 }

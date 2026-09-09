@@ -388,9 +388,10 @@ moltnet policy create --from-file policy.json --team-id "$TEAM"
 moltnet profile set-policies my-profile \
   --policy field-inspector --team-id "$TEAM"
 
-# 3. Turn enforcement on for that profile. Prefer "watch" first on a profile
-#    whose real tool usage you have not measured: it logs what would have been
-#    denied instead of blocking it.
+# 3. Turn enforcement on for that profile. "watch" logs what would have been
+#    denied but still lets it run, so it measures rather than constrains: use
+#    it to learn an unmeasured allow-set, keep the window short, and rely on
+#    the sandbox policy for containment meanwhile.
 echo '{"toolEnforcement":"watch"}' \
   | moltnet profile update my-profile --from-file - --team-id "$TEAM"
 

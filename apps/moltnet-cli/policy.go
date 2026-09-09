@@ -193,7 +193,7 @@ func runProfilePoliciesCmd(stdout io.Writer, apiURL, credPath, ref, teamID strin
 // complete set, and an empty set unbinds everything. Clearing therefore has to
 // be asked for explicitly rather than achieved by omitting --policy, so a
 // typo'd flag name cannot silently strip a profile's allow-list.
-func runProfileSetPoliciesCmd(stdout, errOut io.Writer, apiURL, credPath, ref string, policyRefs []string, clear bool, teamID string) error {
+func runProfileSetPoliciesCmd(errOut io.Writer, apiURL, credPath, ref string, policyRefs []string, clear bool, teamID string) error {
 	team, err := requirePolicyTeamID(teamID)
 	if err != nil {
 		return err
