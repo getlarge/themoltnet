@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.54.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.54.1...rest-api-v0.54.2) (2026-09-09)
+
+
+### Bug Fixes
+
+* **api:** regenerate OpenAPI spec to drop stale agent-enrollment paths ([471d01a](https://github.com/getlarge/themoltnet/commit/471d01a6828e672ff7fa37a0960b0d22095f9620))
+* **landing:** publish stable download pins ([e537e25](https://github.com/getlarge/themoltnet/commit/e537e25f6e72147f3ed65ad1a61b4746cdeef76f))
+
 ## [0.54.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.54.0...rest-api-v0.54.1) (2026-09-08)
 
 
