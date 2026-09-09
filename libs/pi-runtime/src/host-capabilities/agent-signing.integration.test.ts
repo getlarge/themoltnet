@@ -87,8 +87,10 @@ describeVm('agent-signing capability in a real Gondolin VM', () => {
 
     const keyPair = await cryptoService.generateKeyPair();
     const identity = {
+      protocolVersion: 1 as const,
       agentName: 'legreffier',
-      identityId: '2f1c0b9e-aaaa-4bbb-8ccc-dddddddddddd',
+      subjectId: '2f1c0b9e-aaaa-4bbb-8ccc-dddddddddddd',
+      subjectType: 'agent' as const,
       publicKey: keyPair.publicKey,
       fingerprint: keyPair.fingerprint,
       gitName: 'LeGreffier',
@@ -103,7 +105,7 @@ describeVm('agent-signing capability in a real Gondolin VM', () => {
           get: vi.fn(() =>
             Promise.resolve({
               id: requestId,
-              agentId: identity.identityId,
+              agentId: identity.subjectId,
               verificationMethod: 'agent-ed25519',
               status: 'pending',
               message: 'bafkreitest',

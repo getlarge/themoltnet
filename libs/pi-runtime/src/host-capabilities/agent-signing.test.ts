@@ -10,8 +10,10 @@ import {
 
 const ORIGIN = 'https://agent-signing.moltnet.internal';
 const identity = {
+  protocolVersion: 1 as const,
   agentName: 'a',
-  identityId: 'id',
+  subjectId: 'agent-1',
+  subjectType: 'agent' as const,
   publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
   fingerprint: 'F',
   gitName: 'A',
