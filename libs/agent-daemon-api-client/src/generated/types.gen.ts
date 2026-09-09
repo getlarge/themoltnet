@@ -12,9 +12,8 @@ export type AgentServerAgent = {
   fingerprint?: string;
   hasAgentKey?: boolean;
   hasPrivateKey?: boolean;
-  identityId?: string;
   kind: 'managed' | 'external';
-  subjectId?: string;
+  subjectId: string;
   teamId?: string;
 };
 

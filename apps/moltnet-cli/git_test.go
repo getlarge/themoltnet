@@ -167,7 +167,7 @@ func TestRunGitSetupRejectsIdentityControlCharacters(t *testing.T) {
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	if _, err := WriteConfigTo(&CredentialsFile{
 		SubjectID: "identity",
-		SSH:        &SSHSection{PublicKeyPath: pubKeyPath},
+		SSH:       &SSHSection{PublicKeyPath: pubKeyPath},
 	}, credPath); err != nil {
 		t.Fatal(err)
 	}

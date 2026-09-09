@@ -319,7 +319,7 @@ func TestEnvCheckPass(t *testing.T) {
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		SubjectID: "test-identity",
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
 	}, filepath.Join(agentDir, "moltnet.json"))
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
@@ -405,7 +405,7 @@ func TestStartDryRun(t *testing.T) {
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		SubjectID: "test-identity",
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
 	}, filepath.Join(agentDir, "moltnet.json"))
 	gitconfig := filepath.Join(agentDir, "gitconfig")
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='"+gitconfig+"'\n"), 0o644)
@@ -440,7 +440,7 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		SubjectID: "test-identity",
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "target-secret"},
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "target-secret"},
 	}, filepath.Join(agentDir, "moltnet.json"))
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o644)
 

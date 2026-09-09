@@ -444,7 +444,7 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	defer apiSrv.Close()
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
 	creds := &CredentialsFile{
-		SubjectID:  "id-1",
+		SubjectID:   "id-1",
 		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: "agent-key.other"},
 		OAuth2:      CredentialsOAuth2{ClientID: "c", ClientSecret: "s"},
 		Endpoints:   CredentialsEndpoints{API: apiSrv.URL},
