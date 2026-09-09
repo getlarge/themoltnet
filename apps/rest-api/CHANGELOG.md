@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.55.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.54.2...rest-api-v0.55.0) (2026-09-09)
+
+
+### Features
+
+* **api:** expose the durable principal id on whoami and registration ([f404411](https://github.com/getlarge/themoltnet/commit/f404411b55182757c05ea80eaba18a1a2e286dac))
+* **auth:** expose agentId on AgentPrincipal and fix creator lookups ([723e636](https://github.com/getlarge/themoltnet/commit/723e63688d82a648182cda3cae139e9f5ba92c37))
+* **auth:** use internal principal IDs as Keto subjects ([9cdab23](https://github.com/getlarge/themoltnet/commit/9cdab23abd12adcc5d601742a70034da145f241f))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+* **rest-api:** create the agent before its Kratos identity in registration ([6f2d2ff](https://github.com/getlarge/themoltnet/commit/6f2d2fff6566e4c1e8ba5c493d6e7b9d1f23cb8a))
+
+
+### Bug Fixes
+
+* **api:** authorize team and group member changes against the caller ([7cf043c](https://github.com/getlarge/themoltnet/commit/7cf043c09edf7471ba5b03990c2a47bad8448b05))
+* **api:** compare signing-request ownership against the Kratos identity ([0fd9120](https://github.com/getlarge/themoltnet/commit/0fd9120694431fc20366f93383f1ca2714b4d5b3))
+* **api:** resolve diary listing and pack provenance from the principal id ([58a27fa](https://github.com/getlarge/themoltnet/commit/58a27fafe70587078c77a0804ea3f214a1ba4060))
+* **auth,ory:** address review — conflated fixture, Hydra SSRF, wrong docs ([af7158e](https://github.com/getlarge/themoltnet/commit/af7158e5990c3ee7365d073e4f55c6458606d7da))
+* **auth:** resolve agents by internal id where the caller passes a subject ([ed12b34](https://github.com/getlarge/themoltnet/commit/ed12b34787923ef0f7285c926af8b39404c2ce84))
+* **auth:** resolve the Talos agent-key actor as agents.id ([f73905a](https://github.com/getlarge/themoltnet/commit/f73905abeba12cc1890c96fb82e9563a7fe9ecfd))
+* **recovery,ory:** recover agents whose Kratos identity was relinked ([4ac118a](https://github.com/getlarge/themoltnet/commit/4ac118ac3e061524d0b395e3fb4d0453cfa11f1c))
+* **rest-api,auth:** validate founding members, centralise the principal map ([64f49e0](https://github.com/getlarge/themoltnet/commit/64f49e01888a2b709f4c83a7baf2a13a7a442ac6))
+* **rest-api:** compensate only the resources a registration created ([1af4512](https://github.com/getlarge/themoltnet/commit/1af45129fac2dad4ce1bca06a5828bf182a6e060))
+* **rest-api:** resolve team members through identity_id, not the Keto subject ([e4b90a0](https://github.com/getlarge/themoltnet/commit/e4b90a02e1841ed373c15d808422c775c4647bcb))
+* **tests:** assert human Keto subjects on humans.id, and regenerate n8n types ([9b8a21d](https://github.com/getlarge/themoltnet/commit/9b8a21d51b9d5c9f2c06781e07132cf834998b5d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.9.0
+
 ## [0.54.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.54.1...rest-api-v0.54.2) (2026-09-09)
 
 

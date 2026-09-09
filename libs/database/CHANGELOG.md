@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/database-v0.8.0...database-v0.9.0) (2026-09-09)
+
+
+### Features
+
+* **auth:** expose agentId on AgentPrincipal and fix creator lookups ([723e636](https://github.com/getlarge/themoltnet/commit/723e63688d82a648182cda3cae139e9f5ba92c37))
+* **auth:** use internal principal IDs as Keto subjects ([9cdab23](https://github.com/getlarge/themoltnet/commit/9cdab23abd12adcc5d601742a70034da145f241f))
+* **database:** give agents a fresh internal id instead of seeding from identity ([ac0c1d5](https://github.com/getlarge/themoltnet/commit/ac0c1d571bd769d6367199cc90583172547ec77f))
+* **database:** make agents.id the internal primary key ([faae794](https://github.com/getlarge/themoltnet/commit/faae79407c53df5b69e7a187b2c3e5f5fd9d6113))
+* **database:** rename agent_identity_id to agent_id in migration 0041 ([d94cc26](https://github.com/getlarge/themoltnet/commit/d94cc264b4ebe818ecb61edbb426d31a9af38958))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+* **rest-api:** create the agent before its Kratos identity in registration ([6f2d2ff](https://github.com/getlarge/themoltnet/commit/6f2d2fff6566e4c1e8ba5c493d6e7b9d1f23cb8a))
+
+
+### Bug Fixes
+
+* **auth,ory:** address review — conflated fixture, Hydra SSRF, wrong docs ([af7158e](https://github.com/getlarge/themoltnet/commit/af7158e5990c3ee7365d073e4f55c6458606d7da))
+* **database:** drop agent foreign keys by discovered name in migration 0041 ([32e373e](https://github.com/getlarge/themoltnet/commit/32e373e81ee18ac2d6134fa5348c69342afae55d))
+* **database:** give 0042 a timestamp after the migration it now follows ([b74ee4f](https://github.com/getlarge/themoltnet/commit/b74ee4f060a7d5dc204aef50222009d4f6e6d6b8))
+* **database:** never rebind an agent on a fingerprint conflict ([ae13323](https://github.com/getlarge/themoltnet/commit/ae13323899745828d1f1056ac59d1ea1698584f4))
+* **database:** reconcile the 0042 snapshot with its new base ([288d373](https://github.com/getlarge/themoltnet/commit/288d37347526ad7fcc01c81a4baae7de77d3c4fb))
+* **database:** repoint diary_search's author join at agents.id ([5fb1f39](https://github.com/getlarge/themoltnet/commit/5fb1f39632726861078b1caef04e2211cf12c285))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/database-v0.7.0...database-v0.8.0) (2026-09-04)
 
 

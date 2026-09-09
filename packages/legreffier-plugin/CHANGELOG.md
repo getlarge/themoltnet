@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.3.1...legreffier-plugin-v0.4.0) (2026-09-09)
+
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+* **runtime:** project canonical subject env ([2f28b5e](https://github.com/getlarge/themoltnet/commit/2f28b5ecc4c3573960ed5114242d8fc032f1eec5))
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.3.0...legreffier-plugin-v0.3.1) (2026-09-08)
 
 

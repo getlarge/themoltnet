@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.0.0](https://github.com/getlarge/themoltnet/compare/cli-v1.93.0...cli-v2.0.0) (2026-09-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** canonical agent configurations and daemon environments now require subject_id/subject_type and reject identity_id/MOLTNET_IDENTITY_ID.
+
+### Features
+
+* **cli:** anchor agents init to subjects ([2d350f7](https://github.com/getlarge/themoltnet/commit/2d350f76a244189520d4bfb4344a36d234afae95))
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+* **cli:** migrate configs to subject anchors ([53ba6d3](https://github.com/getlarge/themoltnet/commit/53ba6d34bd5cf1f7aeb62474da63a1331264909b))
+* **config:** add durable subject anchors ([b595aa2](https://github.com/getlarge/themoltnet/commit/b595aa24d6f7be7e8642b08946b2453b363836a2))
+* **config:** make env bundles subject-canonical ([a8645b3](https://github.com/getlarge/themoltnet/commit/a8645b30e831112759f2364e2f597d2178d4ffd5))
+* **credentials:** bind provider keys to subjects ([b9c3743](https://github.com/getlarge/themoltnet/commit/b9c37436eb4911225911bca6a72e464fcd29af51))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+* **runtime:** version subject signer identities ([2ac3220](https://github.com/getlarge/themoltnet/commit/2ac32209ad4bdaf749f1b3c7ddb722b5e92a6382))
+
+
+### Bug Fixes
+
+* **activation:** pin durable agent subjects ([2bdbf97](https://github.com/getlarge/themoltnet/commit/2bdbf979c98fcd3c5def36b29354e014ac9afca9))
+* **cli:** address subject-anchor review ([dd78dd3](https://github.com/getlarge/themoltnet/commit/dd78dd3cfc011deae59b7e827cdfa14f3d5fd04b))
+* **cli:** compile the Go client against the new principal contract ([541ad74](https://github.com/getlarge/themoltnet/commit/541ad747712d17f92095ea099eae00d19e2bb11c))
+* **cli:** preserve subject migration failure cause ([15ca00d](https://github.com/getlarge/themoltnet/commit/15ca00d1c74df9f85cfb37c29e507bba27eaca9f))
+* **cli:** validate canonical subject bundles ([4a31ff6](https://github.com/getlarge/themoltnet/commit/4a31ff6beccbf05667775e400a2d34b679a22947))
+* **config:** authenticate relocation collisions ([69e6f29](https://github.com/getlarge/themoltnet/commit/69e6f291a03db1abfe87e53e52588e5d87f4f88f))
+* **credentials:** bind recovery to subjects ([ec1be31](https://github.com/getlarge/themoltnet/commit/ec1be31fe3268f2e453a71339a6795297c8c8779))
+* **credentials:** store agent keys by subject ([a926e81](https://github.com/getlarge/themoltnet/commit/a926e81ea2036df49cc4b077877a43b0ea2def0b))
+* **e2e:** use the durable subject in the C++, console and Go CLI suites ([9f44e7e](https://github.com/getlarge/themoltnet/commit/9f44e7eeb0d8224c99cb5b5d5a31363270c8aaf2))
+* reconcile subject anchor with updated base ([03f6060](https://github.com/getlarge/themoltnet/commit/03f6060731cfd0bb45e41a820865babdf8a9e826))
+* regenerate subject-only bindings ([6cc0cca](https://github.com/getlarge/themoltnet/commit/6cc0ccaa91e5258a79b8978541fcb904ebf15e47))
+
 ## [1.93.0](https://github.com/getlarge/themoltnet/compare/cli-v1.92.1...cli-v1.93.0) (2026-09-09)
 
 

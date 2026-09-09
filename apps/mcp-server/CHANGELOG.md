@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.23.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.22.3...mcp-server-v0.23.0) (2026-09-09)
+
+
+### Features
+
+* **api:** expose the durable principal id on whoami and registration ([f404411](https://github.com/getlarge/themoltnet/commit/f404411b55182757c05ea80eaba18a1a2e286dac))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+* **mcp-server:** carry subjectType through whoami and the identity resource ([b59b874](https://github.com/getlarge/themoltnet/commit/b59b87450c99fd452f906b555ecc121589f42d39))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.9.0
+
 ## [0.22.3](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.22.2...mcp-server-v0.22.3) (2026-09-04)
 
 

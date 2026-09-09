@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.68.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.67.1...moltnet-api-client-v1.68.0) (2026-09-09)
+
+
+### Features
+
+* **api:** expose the durable principal id on whoami and registration ([f404411](https://github.com/getlarge/themoltnet/commit/f404411b55182757c05ea80eaba18a1a2e286dac))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+
+
+### Bug Fixes
+
+* **tests:** seed agent fixtures with an explicit id, not the identity ([2a2051a](https://github.com/getlarge/themoltnet/commit/2a2051a99e7d4a4332e3735b5e13dae597e35ac9))
+
+
+### Codegen
+
+* **api:** regenerate OpenAPI spec and clients for agentId ([793bcfa](https://github.com/getlarge/themoltnet/commit/793bcfa4fc319e6135499cda9fd4ef327095e72d))
+
 ## [1.67.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.67.0...moltnet-api-client-v1.67.1) (2026-09-04)
 
 

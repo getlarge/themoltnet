@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.55.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.54.0...agent-daemon-v0.55.0) (2026-09-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** canonical agent configurations and daemon environments now require subject_id/subject_type and reject identity_id/MOLTNET_IDENTITY_ID.
+
+### Features
+
+* **cli:** anchor credentials to durable agent subjects ([29f062e](https://github.com/getlarge/themoltnet/commit/29f062ed50c6099fedb8d1d2be0345b9505bd4d5))
+* **daemon:** pin the durable subject on agent activations ([df4430a](https://github.com/getlarge/themoltnet/commit/df4430a27ff1245bfedfdd58341f4010d495289a))
+* decouple MoltNet principals from Ory Kratos identity IDs ([395823d](https://github.com/getlarge/themoltnet/commit/395823da4550fe66af2fc189b1bf3ef4fa6a464b))
+* **runtime:** version subject signer identities ([2ac3220](https://github.com/getlarge/themoltnet/commit/2ac32209ad4bdaf749f1b3c7ddb722b5e92a6382))
+
+
+### Bug Fixes
+
+* **agent-daemon:** anchor managed agents by subject ([c4cf8b9](https://github.com/getlarge/themoltnet/commit/c4cf8b9b234db378486ed3343a69d22eb40857c9))
+* **agent-daemon:** pin child runs by subject ([26ae7f8](https://github.com/getlarge/themoltnet/commit/26ae7f89ef8be52719298827b488a9b5b86952ac))
+* **cli:** address subject-anchor review ([dd78dd3](https://github.com/getlarge/themoltnet/commit/dd78dd3cfc011deae59b7e827cdfa14f3d5fd04b))
+* **git:** require canonical authorship ([8620a44](https://github.com/getlarge/themoltnet/commit/8620a446734c6832b94bb3201e7ff9522410aa46))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.0
+    * @themoltnet/pi-runtime bumped to 0.15.0
+    * @themoltnet/sdk bumped to 0.141.0
+
 ## [0.54.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.53.0...agent-daemon-v0.54.0) (2026-09-08)
 
 
