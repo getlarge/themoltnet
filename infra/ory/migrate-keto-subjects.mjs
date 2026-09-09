@@ -49,12 +49,11 @@
  * the SOURCE tuple, so pointing a second run at a previous window's state
  * file silently skips work. Use a fresh path per maintenance window.
  */
-import { execFileSync } from 'node:child_process';
-
 import {
   assertTargetMatchesDatabase,
   openCheckpoint,
   parseArgs,
+  psqlRows,
   pooled,
   request,
 } from './lib/maintenance.mjs';
@@ -111,17 +110,7 @@ function loadMapping() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
 
-  const query = (sql) =>
-    new Map(
-      execFileSync('psql', [url, '-At', '-F', ',', '-c', sql], {
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
-        .trim()
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => line.split(',')),
-    );
+  const query = (sql) => new Map(psqlRows(sql, url));
 
   return {
     Agent: query(
