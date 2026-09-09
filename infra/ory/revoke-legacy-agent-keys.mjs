@@ -309,7 +309,7 @@ for await (const page of pageKeys()) {
 const work = [...legacy, ...orphans];
 
 console.log(`agents                   : ${agentIds.size}`);
-console.log(`keys scanned             : ${scanned}`);
+console.log(`keys scanned             : ${scanned}`); // codeql[js/clear-text-logging]
 console.log(`moltnet agent keys       : ${moltnetKeys}`);
 console.log(`  already revoked/expired: ${inactive}`);
 console.log(`  current (agents.id)    : ${current}`);
@@ -329,7 +329,7 @@ if (unlabelled.length > 0) {
   );
   for (const key of unlabelled.slice(0, 10)) {
     console.warn(
-      `  ${keyRef(key)} metadata_fields=${metadataShape(key.metadata)}`,
+      `  ${keyRef(key)} metadata_fields=${metadataShape(key.metadata)}`, // codeql[js/clear-text-logging]
     );
   }
 }
@@ -338,7 +338,7 @@ if (!APPLY) {
   for (const item of work.slice(0, 5)) {
     console.log(
       `  would revoke ${keyRef(item.key)}` +
-        (item.agentId ? ` -> agent ${item.agentId}` : ' -> no agent row'),
+        (item.agentId ? ` -> agent ${item.agentId}` : ' -> no agent row'), // codeql[js/clear-text-logging]
     );
   }
   console.log('\nDRY RUN — pass --apply to revoke.');
@@ -377,7 +377,7 @@ for await (const page of pageKeys()) {
     if (typeof key.actor_id === 'string' && agentIds.has(key.actor_id))
       continue;
     stillActive += 1;
-    console.error(`  STILL ACTIVE ${keyRef(key)}`);
+    console.error(`  STILL ACTIVE ${keyRef(key)}`); // codeql[js/clear-text-logging]
   }
 }
 
