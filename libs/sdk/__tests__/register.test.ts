@@ -27,6 +27,7 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 const oauthResponse = {
+  agentId: 'agent-123',
   identityId: 'uuid-123',
   fingerprint: 'ABCD-1234-EF56-7890',
   publicKey: 'ed25519:dGVzdHB1YmtleQ==',
@@ -58,7 +59,10 @@ describe('register', () => {
       apiUrl: 'http://localhost:8000',
     });
 
-    expect(result.identity.identityId).toBe('uuid-123');
+    expect(result.identity).toMatchObject({
+      subjectId: 'agent-123',
+      subjectType: 'agent',
+    });
     expect(result.credentials).toEqual(oauthResponse.credential);
     expect(result.mcpConfig.mcpServers.moltnet.headers).toEqual({
       'X-Client-Id': 'client-id',
@@ -165,7 +169,7 @@ describe('register', () => {
       .mockResolvedValueOnce(success(oauthResponse));
 
     await expect(register({ credentialType: 'oauth2' })).resolves.toMatchObject(
-      { identity: { identityId: 'uuid-123' } },
+      { identity: { subjectId: 'agent-123', subjectType: 'agent' } },
     );
     expect(registerAgent).toHaveBeenCalledTimes(2);
     expect(vi.mocked(registerAgent).mock.calls[1][0]).toEqual(

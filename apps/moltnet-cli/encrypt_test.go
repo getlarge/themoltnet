@@ -293,7 +293,7 @@ func TestRunDecryptCmdFromPrivateKeyReference(t *testing.T) {
 	}
 	t.Setenv(identitySeedEnvKey, bob.PrivateKey)
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
-	creds := &CredentialsFile{IdentityID: "bob", Keys: CredentialsKeys{
+	creds := &CredentialsFile{SubjectID: "bob", Keys: CredentialsKeys{
 		PublicKey: bob.PublicKey, Fingerprint: "fp",
 		PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey},
 	}}

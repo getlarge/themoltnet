@@ -13,7 +13,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import type { AgentIdentity } from '@moltnet/crypto-service';
+import {
+  AGENT_SIGNING_PROTOCOL_VERSION,
+  type AgentIdentity,
+} from '@moltnet/crypto-service';
 import {
   createHostCapabilityRouter,
   createLocalSeedSigner,
@@ -184,6 +187,11 @@ const agentConfig = await readConfig(agentDirectory);
 if (!agentConfig) {
   throw new Error(`credential preflight failed: required_binding_missing`);
 }
+if (!agentConfig.subject_id || agentConfig.subject_type !== 'agent') {
+  throw new Error(
+    'credential preflight failed: legacy config must be migrated first',
+  );
+}
 const credentialPreflight = preflightBrokeredHostCredential(
   agentConfig,
   process.env,
@@ -203,15 +211,22 @@ const hostAgent = await connect({
   clientSecret: brokeredClientSecret,
   apiUrl: agentConfig.endpoints.api,
 });
+const gitName = agentConfig.git?.name?.trim();
+const gitEmail = agentConfig.git?.email?.trim();
+if (!gitName || !gitEmail) {
+  throw new Error(
+    'credential preflight failed: configure git.name and git.email before running the probe',
+  );
+}
 const agentIdentity: AgentIdentity = {
+  protocolVersion: AGENT_SIGNING_PROTOCOL_VERSION,
   agentName,
-  identityId: agentConfig.identity_id,
+  subjectId: agentConfig.subject_id,
+  subjectType: agentConfig.subject_type,
   publicKey: agentConfig.keys.public_key,
   fingerprint: agentConfig.keys.fingerprint,
-  gitName: agentConfig.git?.name ?? agentName,
-  gitEmail:
-    agentConfig.git?.email ??
-    `${agentConfig.identity_id}+${agentName}[bot]@users.noreply.github.com`,
+  gitName,
+  gitEmail,
 };
 // Resolve once: keys.private_key_ref may point at a keyring or file secret.
 const hostPrivateKeySeed = await resolveIdentitySeed(
@@ -405,14 +420,14 @@ try {
     `${GUEST_CLI} capability call host-auth-check whoami --json '{}' > host-auth.json`,
     `grep -q '"authenticated": true' host-auth.json`,
     `grep -q '"agentSubject": true' host-auth.json`,
-    `grep -q '"identityMatched": true' host-auth.json`,
+    `grep -q '"subjectBindingMatched": true' host-auth.json`,
     `git init -q signed-repo`,
     `cd signed-repo`,
     `git commit -q -S --allow-empty -m 'signed through host capability'`,
     `git verify-commit HEAD`,
     `cd ..`,
     `if ${GUEST_CLI} capability call agent-signing sign-diary-entry --json '{"signingRequestId":"11111111-2222-4333-8444-555555555555"}' >/dev/null 2>&1; then exit 23; fi`,
-    `printf 'authenticated-host-call=true\\nagent-subject=true\\nidentity-matched=true\\ngit-signature-verified=true\\ndenied-operation=true\\n' > ${shellQuote(capabilityProofPath)}`,
+    `printf 'authenticated-host-call=true\\nagent-subject=true\\nsubject-binding-matched=true\\ngit-signature-verified=true\\ndenied-operation=true\\n' > ${shellQuote(capabilityProofPath)}`,
     `printf 'private-key-files=' >> ${shellQuote(capabilityProofPath)}`,
     `find /home/agent -name id_ed25519 -type f 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
     `printf '\\ncredential-files=' >> ${shellQuote(capabilityProofPath)}`,
@@ -543,8 +558,8 @@ const evidence: CodexGondolinEvidence = {
     authenticatedHostCall:
       capabilityProof['authenticated-host-call'] === 'true',
     authenticatedAgentSubject: capabilityProof['agent-subject'] === 'true',
-    authenticatedIdentityMatched:
-      capabilityProof['identity-matched'] === 'true',
+    authenticatedSubjectBindingMatched:
+      capabilityProof['subject-binding-matched'] === 'true',
     gitCommitSignatureVerified:
       capabilityProof['git-signature-verified'] === 'true',
     allowedOperations: capabilityEvents

@@ -617,8 +617,8 @@ func TestPendingConfigMigrationNoticeIsAdvisoryOnly(t *testing.T) {
 	for range 3 {
 		runNextConfigMigration(t, credentialsPath, registry)
 	}
-	if notice := pendingConfigMigrationNotice(credentialsPath); notice != "" {
-		t.Fatalf("fully migrated config still notices: %q", notice)
+	if notice := pendingConfigMigrationNotice(credentialsPath); !strings.Contains(notice, subjectAnchorMigrationID) {
+		t.Fatalf("legacy identity should advertise the final subject migration: %q", notice)
 	}
 }
 

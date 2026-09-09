@@ -39321,6 +39321,62 @@ var _decodeOptions = {
 _decodeOptions.tags[CID_CBOR_TAG] = cidDecoder;
 ({ ..._decodeOptions }), _decodeOptions.tags.slice();
 new TextEncoder().encode("SSHSIG");
+//#endregion
+//#region ../../libs/agent-config/src/config.ts
+function oauth2SecretKey(subjectId, clientId) {
+	return `oauth2/${subjectId}/${clientId}`;
+}
+function identitySeedKey(fingerprint) {
+	return `identity/${fingerprint}/seed`;
+}
+function agentKeyKey(subjectId) {
+	return `agent-key/${subjectId}`;
+}
+function getConfigDir() {
+	return join(homedir(), ".config", "moltnet");
+}
+/**
+* The one identity-alias grammar. Must stay identical to agentNamePattern in
+* apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
+* is a directory name in a store all three write, so a value one accepts and
+* another rejects makes an identity unreadable by half the system.
+*/
+var identitiesDirName = "identities";
+var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+function assertIdentityAlias(alias) {
+	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
+	return alias;
+}
+function getIdentityDir(alias) {
+	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
+}
+/** Resolve an explicit credentials directory, active identity, or default. */
+async function resolveConfigDir(configDir) {
+	if (configDir) return configDir;
+	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+	if (!alias) try {
+		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
+		const selector = JSON.parse(content);
+		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
+		alias = selector.default_identity?.trim();
+	} catch (error) {
+		if (error.code === "ENOENT") return null;
+		throw error;
+	}
+	return alias ? getIdentityDir(alias) : null;
+}
+async function readConfig(configDir) {
+	const dir = await resolveConfigDir(configDir);
+	if (!dir) return null;
+	return readConfigFile(join(dir, "moltnet.json"));
+}
+async function readConfigFile(path) {
+	try {
+		return JSON.parse(await readFile(path, "utf-8"));
+	} catch {
+		return null;
+	}
+}
 var OS_KEYRING_SECRET_PROVIDER = "os-keyring";
 var READ_ONLY_CAPABILITIES = Object.freeze({
 	read: true,
@@ -39489,19 +39545,10 @@ var CREDENTIAL_ENV_KEYS = Object.freeze({
 	"agent-key": "MOLTNET_AGENT_KEY"
 });
 var BINDING_MESSAGES = Object.freeze({
-	"oauth2-client-secret": "OAuth2 secret reference is not bound to this MoltNet identity and client",
+	"oauth2-client-secret": "OAuth2 secret reference is not bound to this MoltNet subject and client",
 	"identity-seed": "Identity seed reference is not bound to this MoltNet identity",
-	"agent-key": "Agent key reference is not bound to this MoltNet identity"
+	"agent-key": "Agent key reference is not bound to this MoltNet subject"
 });
-function oauth2SecretKey(identityId, clientId) {
-	return `oauth2/${identityId}/${clientId}`;
-}
-function identitySeedKey(fingerprint) {
-	return `identity/${fingerprint}/seed`;
-}
-function agentKeyKey(agentId) {
-	return `agent-key/${agentId}`;
-}
 var PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
 var SECRET_REFERENCE_MESSAGE = "Secret reference must be <provider>:<key> with a lowercase provider name";
 function normalizeSecretReference(reference) {
@@ -39515,7 +39562,7 @@ function normalizeSecretReference(reference) {
 }
 /**
 * Parse the `<provider>:<key>` form used by environment references such as
-* `MOLTNET_AGENT_KEY_REF=file:agent-key.identity-1`. The first colon splits.
+* `MOLTNET_AGENT_KEY_REF=file:agent-key.subject-1`. The first colon splits.
 */
 function parseSecretReferenceString(value) {
 	const trimmed = value.trim();
@@ -39530,12 +39577,15 @@ function requireId(value, name) {
 	if (!trimmed) throw new Error(`Credential binding requires ${name}`);
 	return trimmed;
 }
+function requireSubjectId(ids) {
+	return requireId(ids.subjectId, "subjectId");
+}
 /** Canonical provider key for a credential kind bound to this agent. */
 function expectedSecretKey(kind, ids) {
 	switch (kind) {
-		case "oauth2-client-secret": return oauth2SecretKey(requireId(ids.identityId, "identityId"), requireId(ids.clientId, "clientId"));
+		case "oauth2-client-secret": return oauth2SecretKey(requireSubjectId(ids), requireId(ids.clientId, "clientId"));
 		case "identity-seed": return identitySeedKey(requireId(ids.fingerprint, "fingerprint"));
-		case "agent-key": return agentKeyKey(requireId(ids.identityId, "identityId"));
+		case "agent-key": return agentKeyKey(requireSubjectId(ids));
 	}
 }
 /** Binding check for a MoltNet-owned credential kind from the table above. */
@@ -39605,7 +39655,7 @@ async function resolveOAuth2ClientSecret(config, registry) {
 	if (reference) {
 		try {
 			assertSecretReferenceBinding(kind, reference, {
-				identityId: config.identity_id,
+				subjectId: config.subject_id,
 				clientId: oauth2.client_id
 			});
 		} catch (cause) {
@@ -39628,7 +39678,7 @@ async function resolveAgentKey(config, registry) {
 	const reference = config.agent_key_ref;
 	if (!reference) return null;
 	try {
-		assertSecretReferenceBinding(kind, reference, { identityId: config.identity_id });
+		assertSecretReferenceBinding(kind, reference, { subjectId: config.subject_id });
 	} catch (cause) {
 		throw new CredentialResolutionError(kind, "unbound", cause.message);
 	}
@@ -39651,53 +39701,6 @@ async function resolveEnvSecretReference(raw, registry) {
 	}
 	if (!value) throw new Error(`Secret reference ${reference.provider}:${reference.key} resolved to an empty value`);
 	return value;
-}
-//#endregion
-//#region ../../libs/agent-config/src/config.ts
-function getConfigDir() {
-	return join(homedir(), ".config", "moltnet");
-}
-/**
-* The one identity-alias grammar. Must stay identical to agentNamePattern in
-* apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
-* is a directory name in a store all three write, so a value one accepts and
-* another rejects makes an identity unreadable by half the system.
-*/
-var identitiesDirName = "identities";
-var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
-function assertIdentityAlias(alias) {
-	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
-	return alias;
-}
-function getIdentityDir(alias) {
-	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
-}
-/** Resolve an explicit credentials directory, active identity, or default. */
-async function resolveConfigDir(configDir) {
-	if (configDir) return configDir;
-	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
-	if (!alias) try {
-		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
-		const selector = JSON.parse(content);
-		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
-		alias = selector.default_identity?.trim();
-	} catch (error) {
-		if (error.code === "ENOENT") return null;
-		throw error;
-	}
-	return alias ? getIdentityDir(alias) : null;
-}
-async function readConfig(configDir) {
-	const dir = await resolveConfigDir(configDir);
-	if (!dir) return null;
-	return readConfigFile(join(dir, "moltnet.json"));
-}
-async function readConfigFile(path) {
-	try {
-		return JSON.parse(await readFile(path, "utf-8"));
-	} catch {
-		return null;
-	}
 }
 //#endregion
 //#region ../../libs/sdk/src/connect-ambient.ts
@@ -39756,7 +39759,7 @@ async function resolveConnection(options) {
 		try {
 			agentKey = await resolveAgentKey(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
 		} catch (error) {
-			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "Agent key reference is not bound to this MoltNet identity." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "Agent key reference is not bound to this MoltNet subject." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
 			throw new MoltNetError("Unable to resolve agent_key_ref.", {
 				code: "NO_CREDENTIALS",
 				detail: error instanceof Error ? error.message : String(error)
@@ -39775,7 +39778,7 @@ async function resolveConnection(options) {
 		try {
 			clientSecret = await resolveOAuth2ClientSecret(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
 		} catch (error) {
-			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "OAuth2 secret reference is not bound to this MoltNet identity and client." : "Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "OAuth2 secret reference is not bound to this MoltNet subject and client." : "Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
 			throw new MoltNetError("Unable to resolve OAuth2 client secret.", {
 				code: "NO_CREDENTIALS",
 				detail: error instanceof Error ? error.message : String(error)

@@ -12,7 +12,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 
 	config := CredentialsFile{
-		IdentityID:   "uuid-from-moltnet",
+		SubjectID:    "uuid-from-moltnet",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c1", ClientSecret: "s1"},
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
@@ -29,8 +29,8 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	if read == nil {
 		t.Fatal("expected non-nil")
 	}
-	if read.IdentityID != "uuid-from-moltnet" {
-		t.Errorf("identity_id: got %s, want uuid-from-moltnet", read.IdentityID)
+	if read.SubjectID != "uuid-from-moltnet" {
+		t.Errorf("identity_id: got %s, want uuid-from-moltnet", read.SubjectID)
 	}
 }
 
@@ -45,7 +45,7 @@ func TestReadConfigDoesNotDiscoverLegacyGlobalDocument(t *testing.T) {
 	}
 
 	config := CredentialsFile{
-		IdentityID:   "uuid-from-legacy",
+		SubjectID:    "uuid-from-legacy",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c1", ClientSecret: "s1"},
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
@@ -71,14 +71,14 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 	}
 
 	legacy := CredentialsFile{
-		IdentityID:   "uuid-old",
+		SubjectID:    "uuid-old",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c1", ClientSecret: "s1"},
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
 		Endpoints:    CredentialsEndpoints{API: "https://api.test", MCP: "https://api.test/mcp"},
 	}
 	modern := CredentialsFile{
-		IdentityID:   "uuid-new",
+		SubjectID:    "uuid-new",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c2", ClientSecret: "s2"},
 		Keys:         CredentialsKeys{PublicKey: "pk2", PrivateKey: "sk2", Fingerprint: "fp2"},
@@ -98,8 +98,8 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 	if read == nil {
 		t.Fatal("expected non-nil")
 	}
-	if read.IdentityID != "uuid-new" {
-		t.Errorf("should select central identity: got %s, want uuid-new", read.IdentityID)
+	if read.SubjectID != "uuid-new" {
+		t.Errorf("should select central identity: got %s, want uuid-new", read.SubjectID)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestWriteConfig(t *testing.T) {
 	t.Setenv("HOME", tmpDir)
 
 	config := &CredentialsFile{
-		IdentityID:   "uuid-write-test",
+		SubjectID:    "uuid-write-test",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c1", ClientSecret: "s1"},
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
@@ -165,7 +165,7 @@ func TestOptionalSections(t *testing.T) {
 	}
 
 	config := &CredentialsFile{
-		IdentityID:   "uuid-sections",
+		SubjectID:    "uuid-sections",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c1", ClientSecret: "s1"},
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
@@ -237,7 +237,7 @@ func TestOptionalSections_OmitEmpty(t *testing.T) {
 	}
 
 	config := &CredentialsFile{
-		IdentityID:   "uuid-no-sections",
+		SubjectID:    "uuid-no-sections",
 		RegisteredAt: "2026-01-01T00:00:00Z",
 		OAuth2:       CredentialsOAuth2{ClientID: "c1", ClientSecret: "s1"},
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},

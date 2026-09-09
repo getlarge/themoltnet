@@ -35,16 +35,17 @@ describe('resolveDaemonAgentIdentity', () => {
     expect(readConfigMock).toHaveBeenCalledWith('/agent');
   });
 
-  it('never reads host config when configless and derives the bot address', async () => {
+  it('uses a local-only default when a configless task has no Git authorship', async () => {
     const identity = await resolveDaemonAgentIdentity({
       agentName: 'legreffier',
       whoami,
       credentialSource: 'environment',
       agentDir: '/agent',
     });
-    expect(identity.gitEmail).toBe(
-      'id-1+legreffier[bot]@users.noreply.github.com',
-    );
+    expect(identity).toMatchObject({
+      gitName: 'legreffier',
+      gitEmail: 'legreffier@localhost.invalid',
+    });
     expect(readConfigMock).not.toHaveBeenCalled();
   });
 

@@ -35,7 +35,7 @@ func TestRunGitSetup(t *testing.T) {
 	// Write credentials file with SSH section
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent-12345678",
+		SubjectID: "test-agent-12345678",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -57,6 +57,8 @@ func TestRunGitSetup(t *testing.T) {
 	// Act
 	err = runGitSetup([]string{
 		"--credentials", credPath,
+		"--name", "MoltNet Test Agent",
+		"--email", "test-agent@example.test",
 	})
 	if err != nil {
 		t.Fatalf("runGitSetup: %v", err)
@@ -77,12 +79,11 @@ func TestRunGitSetup(t *testing.T) {
 		}
 	}
 
-	// Verify default name/email in gitconfig
-	if !strings.Contains(gitconfig, "name = moltnet-agent-test-age") {
-		t.Errorf("gitconfig missing expected default name, got:\n%s", gitconfig)
+	if !strings.Contains(gitconfig, "name = MoltNet Test Agent") {
+		t.Errorf("gitconfig missing expected name, got:\n%s", gitconfig)
 	}
-	if !strings.Contains(gitconfig, "email = test-agent-12345678@agents.themolt.net") {
-		t.Errorf("gitconfig missing expected default email, got:\n%s", gitconfig)
+	if !strings.Contains(gitconfig, "email = test-agent@example.test") {
+		t.Errorf("gitconfig missing expected email, got:\n%s", gitconfig)
 	}
 
 	// Assert: allowed_signers file exists with correct content
@@ -92,7 +93,7 @@ func TestRunGitSetup(t *testing.T) {
 		t.Fatalf("read allowed_signers: %v", err)
 	}
 	signers := string(signersData)
-	if !strings.Contains(signers, "test-agent-12345678@agents.themolt.net") {
+	if !strings.Contains(signers, "test-agent@example.test") {
 		t.Errorf("allowed_signers missing email, got: %s", signers)
 	}
 	if !strings.Contains(signers, "ssh-ed25519") {
@@ -110,8 +111,8 @@ func TestRunGitSetup(t *testing.T) {
 	if updatedCreds.Git == nil {
 		t.Fatal("git section not written to config")
 	}
-	if updatedCreds.Git.Name != "moltnet-agent-test-age" {
-		t.Errorf("git name = %q, want %q", updatedCreds.Git.Name, "moltnet-agent-test-age")
+	if updatedCreds.Git.Name != "MoltNet Test Agent" {
+		t.Errorf("git name = %q, want %q", updatedCreds.Git.Name, "MoltNet Test Agent")
 	}
 	if !updatedCreds.Git.Signing {
 		t.Error("git signing should be true")
@@ -127,7 +128,7 @@ func TestRunGitSetup_NoSSH(t *testing.T) {
 	// Write credentials file without SSH section
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -165,8 +166,8 @@ func TestRunGitSetupRejectsIdentityControlCharacters(t *testing.T) {
 	}
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "identity",
-		SSH:        &SSHSection{PublicKeyPath: pubKeyPath},
+		SubjectID: "identity",
+		SSH:       &SSHSection{PublicKeyPath: pubKeyPath},
 	}, credPath); err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +202,7 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 
 	credPath := filepath.Join(tmpDir, "moltnet.json")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",

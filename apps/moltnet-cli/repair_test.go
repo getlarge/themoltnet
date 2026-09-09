@@ -78,7 +78,8 @@ func TestLoadAndValidate_ValidConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test-agent-12345678",
+		SubjectID:   "test-agent-12345678",
+		SubjectType: SubjectTypeAgent,
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -116,7 +117,7 @@ func TestLoadAndValidate_MissingFields(t *testing.T) {
 		fields[iss.Field] = true
 	}
 
-	for _, required := range []string{"identity_id", "keys.public_key", "keys.private_key", "endpoints.api"} {
+	for _, required := range []string{"subject_id", "keys.public_key", "keys.private_key", "endpoints.api"} {
 		if !fields[required] {
 			t.Errorf("expected warning for %s, not found in issues", required)
 		}
@@ -127,7 +128,7 @@ func TestLoadAndValidate_FixesMissingMCP(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -162,7 +163,7 @@ func TestLoadAndValidate_StaleSSHPaths(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -204,7 +205,7 @@ func TestLoadAndValidate_IgnoresCredentialsJSON(t *testing.T) {
 	}
 
 	creds := CredentialsFile{
-		IdentityID: "legacy-agent",
+		SubjectID: "legacy-agent",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -229,7 +230,7 @@ func TestRunConfigRepair_DryRun(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -261,7 +262,7 @@ func TestRunConfigRepair_AppliesFixes(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -291,7 +292,7 @@ func TestLoadAndValidate_EnvAuthorshipInvalid(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -329,7 +330,7 @@ func TestLoadAndValidate_EnvMissingHumanIdentity(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",
@@ -367,7 +368,7 @@ func TestLoadAndValidate_EnvValidAuthorship(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	creds := CredentialsFile{
-		IdentityID: "test",
+		SubjectID: "test",
 		Keys: CredentialsKeys{
 			PublicKey:  "ed25519:abc=",
 			PrivateKey: "abc=",

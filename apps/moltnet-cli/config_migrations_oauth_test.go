@@ -24,14 +24,11 @@ func TestMigrateAdvisoryIsTerminalGatedAndOnErrOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	legacy := filepath.Join(bundle, "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: identity.identityID,
-		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "s"},
-		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-		Endpoints:  CredentialsEndpoints{API: identity.api},
-	}, legacy); err != nil {
-		t.Fatal(err)
-	}
+	legacyConfig := legacyCredentialsForTest(identity.identityID)
+	legacyConfig.OAuth2 = CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "s"}
+	legacyConfig.Keys = CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint}
+	legacyConfig.Endpoints = CredentialsEndpoints{API: identity.api}
+	writeLegacyConfigForTest(t, legacy, identity.identityID, legacyConfig)
 
 	// A non-default destination skips relocation, which is what triggers the
 	// advisory. errOut is a buffer, so it is not a terminal.

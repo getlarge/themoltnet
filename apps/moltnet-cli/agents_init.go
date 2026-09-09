@@ -43,16 +43,18 @@ type agentsInitOpts struct {
 }
 
 type agentsInitState struct {
-	WorkflowID             string `json:"workflowId"`
-	ManifestURL            string `json:"manifestUrl"`
-	Phase                  string `json:"phase"`
-	AppID                  string `json:"appId,omitempty"`
-	AppSlug                string `json:"appSlug,omitempty"`
-	SealedGitHubPrivateKey string `json:"sealedGitHubPrivateKey,omitempty"`
-	IdentityID             string `json:"identityId,omitempty"`
-	ClientID               string `json:"clientId,omitempty"`
-	SealedClientSecret     string `json:"sealedClientSecret,omitempty"`
-	InstallationID         string `json:"installationId,omitempty"`
+	WorkflowID             string      `json:"workflowId"`
+	ManifestURL            string      `json:"manifestUrl"`
+	Phase                  string      `json:"phase"`
+	AppID                  string      `json:"appId,omitempty"`
+	AppSlug                string      `json:"appSlug,omitempty"`
+	SealedGitHubPrivateKey string      `json:"sealedGitHubPrivateKey,omitempty"`
+	SubjectID              string      `json:"subjectId,omitempty"`
+	SubjectType            SubjectType `json:"subjectType,omitempty"`
+	LegacyIdentityID       string      `json:"identityId,omitempty"`
+	ClientID               string      `json:"clientId,omitempty"`
+	SealedClientSecret     string      `json:"sealedClientSecret,omitempty"`
+	InstallationID         string      `json:"installationId,omitempty"`
 }
 
 type githubManifestCredentials struct {
@@ -222,7 +224,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		if !ok || installationID == "" {
 			return fmt.Errorf("completed onboarding did not include a GitHub installation ID")
 		}
-		state.IdentityID = identityID
+		state.LegacyIdentityID = identityID
 		state.ClientID = clientID
 		state.SealedClientSecret = sealedSecret
 		state.InstallationID = installationID
@@ -236,14 +238,25 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	if err != nil {
 		return fmt.Errorf("decrypt checkpointed OAuth2 client secret: %w", err)
 	}
+	verified, err := verifyAgentsInitSubject(ctx, apiURL, configPath, state, clientSecret)
+	if err != nil {
+		return err
+	}
+	state.SubjectID = verified.SubjectID
+	state.SubjectType = verified.SubjectType
+	state.LegacyIdentityID = ""
+	if err := writeAgentsInitState(statePath, state); err != nil {
+		return err
+	}
 	oauthRef := SecretReference{
 		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey(state.IdentityID, state.ClientID),
+		Key:      OAuth2SecretKey(state.SubjectID, state.ClientID),
 	}
 	if err := provider.Set(oauthRef.Key, clientSecret); err != nil {
 		return fmt.Errorf("store OAuth2 client secret: %w", err)
 	}
-	creds.IdentityID = state.IdentityID
+	creds.SubjectID = state.SubjectID
+	creds.SubjectType = state.SubjectType
 	creds.OAuth2 = CredentialsOAuth2{ClientID: state.ClientID, ClientSecretRef: &oauthRef}
 	creds.RegisteredAt = time.Now().UTC().Format(time.RFC3339Nano)
 	creds.GitHub.InstallationID = state.InstallationID
@@ -566,7 +579,7 @@ func preflightAgentInitKeyring(provider OSKeyringSecretProvider) error {
 }
 
 func agentInitRemoteComplete(creds *CredentialsFile) bool {
-	return creds != nil && creds.IdentityID != "" && creds.OAuth2.ClientID != "" &&
+	return creds != nil && creds.SubjectID != "" && creds.SubjectType == SubjectTypeAgent && creds.OAuth2.ClientID != "" &&
 		creds.GitHub != nil && creds.GitHub.AppID != "" && creds.GitHub.InstallationID != ""
 }
 
@@ -587,7 +600,7 @@ func readAgentsInitState(path string) (*agentsInitState, error) {
 	}
 	if state.Phase == "" {
 		switch {
-		case state.IdentityID != "" || state.ClientID != "" || state.InstallationID != "":
+		case state.SubjectID != "" || state.LegacyIdentityID != "" || state.ClientID != "" || state.InstallationID != "":
 			state.Phase = agentsInitPhaseRemoteComplete
 		case state.AppID != "":
 			state.Phase = agentsInitPhaseGitHubApp
@@ -606,13 +619,53 @@ func readAgentsInitState(path string) (*agentsInitState, error) {
 		}
 	case agentsInitPhaseRemoteComplete:
 		if state.AppID == "" || state.AppSlug == "" || state.SealedGitHubPrivateKey == "" ||
-			state.IdentityID == "" || state.ClientID == "" || state.SealedClientSecret == "" || state.InstallationID == "" {
+			!agentsInitStateHasSubjectAnchor(&state) || state.ClientID == "" || state.SealedClientSecret == "" || state.InstallationID == "" {
 			return nil, fmt.Errorf("remote-complete initialization checkpoint is incomplete")
 		}
 	default:
 		return nil, fmt.Errorf("initialization state has unknown phase %q", state.Phase)
 	}
 	return &state, nil
+}
+
+func agentsInitStateHasSubjectAnchor(state *agentsInitState) bool {
+	canonical := strings.TrimSpace(state.SubjectID) != "" && state.SubjectType == SubjectTypeAgent
+	legacy := strings.TrimSpace(state.LegacyIdentityID) != "" && state.SubjectID == "" && state.SubjectType == ""
+	return canonical || legacy
+}
+
+func verifyAgentsInitSubject(
+	ctx context.Context,
+	apiURL, configPath string,
+	state *agentsInitState,
+	clientSecret string,
+) (*subjectVerification, error) {
+	tm := NewTokenManager(apiURL, state.ClientID, clientSecret)
+	client, err := newBearerClient(apiURL, func(context.Context) (string, error) {
+		return tm.GetToken()
+	}, newAPIHTTPClient())
+	if err != nil {
+		return nil, fmt.Errorf("verify onboarding credential: %w", err)
+	}
+	whoami, err := fetchAgentWhoami(ctx, client)
+	if err != nil {
+		return nil, fmt.Errorf("verify onboarding credential: %w", err)
+	}
+	if legacyIdentityID := strings.TrimSpace(state.LegacyIdentityID); legacyIdentityID != "" &&
+		whoami.IdentityId.String() != legacyIdentityID {
+		return nil, fmt.Errorf(
+			"verify onboarding credential: checkpoint identity_id %s does not match authenticated identity %s",
+			legacyIdentityID,
+			whoami.IdentityId.String(),
+		)
+	}
+	verified, err := verifyAuthenticatedSubject(configPath, &CredentialsFile{
+		SubjectID: state.SubjectID, SubjectType: state.SubjectType,
+	}, whoami, true)
+	if err != nil {
+		return nil, fmt.Errorf("verify onboarding credential: %w", err)
+	}
+	return verified, nil
 }
 
 func writeAgentsInitState(path string, state *agentsInitState) error {

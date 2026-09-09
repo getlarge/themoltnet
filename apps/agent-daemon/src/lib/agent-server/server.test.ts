@@ -123,12 +123,10 @@ async function fixture(
     capabilities: READ_ONLY_CAPABILITIES,
     read: (key) =>
       Promise.resolve(
-        key === 'oauth2/external-id/client' ? 'resolved-external-secret' : null,
+        key === 'oauth2/agent-1/client' ? 'resolved-external-secret' : null,
       ),
     probe: (key) =>
-      Promise.resolve(
-        key === 'oauth2/external-id/client' ? 'present' : 'absent',
-      ),
+      Promise.resolve(key === 'oauth2/agent-1/client' ? 'present' : 'absent'),
   });
   const spawnImpl: SpawnImpl = (command, args, options) => {
     const child = new FakeChild();
@@ -212,9 +210,10 @@ async function fixture(
 
 function activateManaged(store: AgentServerStore, boundTeamId?: string): void {
   store.writeAgentConfig('course-bot', {
-    identity_id: 'id-1',
+    subject_id: 'agent-1',
+    subject_type: 'agent',
     registered_at: 't',
-    agent_key_ref: { provider: 'file', key: 'agent-key/id-1' },
+    agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
     keys: {
       public_key: 'pk',
       fingerprint: 'FP-1',
@@ -229,7 +228,6 @@ function activateManaged(store: AgentServerStore, boundTeamId?: string): void {
     source: 'managed',
     alias: 'course-bot',
     subjectId: 'agent-1',
-    identityId: 'id-1',
     publicKey: 'pk',
     fingerprint: 'FP-1',
     ...(boundTeamId ? { boundTeamId } : {}),
@@ -857,12 +855,13 @@ describe('agent server providers and runs', () => {
       '--task-types',
       'freeform',
     ]);
-    expect(options.env['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/id-1');
+    expect(options.env['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
     expect(options.env['MOLTNET_PRIVATE_KEY_REF']).toBe(
       'file:identity/FP-1/seed',
     );
     expect(options.env['MOLTNET_SECRET_ROOT']).toBe(store.secretsDir);
-    expect(options.env['MOLTNET_EXPECTED_IDENTITY_ID']).toBe('id-1');
+    expect(options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe('agent-1');
+    expect(options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe('agent');
     expect(options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');
     expect(options.env['MOLTNET_EXPECTED_FINGERPRINT']).toBe('FP-1');
     expect(options.env['MOLTNET_PROVIDER_OLLAMA_API_KEY']).toBe(
@@ -1095,7 +1094,7 @@ describe('agent server providers and runs', () => {
     expect(childEnv).not.toHaveProperty('ANTHROPIC_API_KEY');
     expect(childEnv).not.toHaveProperty('DATABASE_URL');
     expect(childEnv).not.toHaveProperty('PI_AUTH_JSON');
-    expect(childEnv['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/id-1');
+    expect(childEnv['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
   });
 
   it('caps active child logs at the configured byte budget', async () => {
@@ -1186,13 +1185,14 @@ describe('agent server providers and runs', () => {
     writeFileSync(
       configPath,
       JSON.stringify({
-        identity_id: 'external-id',
+        subject_id: 'agent-1',
+        subject_type: 'agent',
         registered_at: 't',
         oauth2: {
           client_id: 'client',
           client_secret_ref: {
             provider: 'memory',
-            key: 'oauth2/external-id/client',
+            key: 'oauth2/agent-1/client',
           },
         },
         keys: {
@@ -1210,7 +1210,6 @@ describe('agent server providers and runs', () => {
       source: 'external',
       alias: 'console-alias',
       subjectId: 'agent-1',
-      identityId: 'external-id',
       publicKey: 'pk',
       fingerprint: 'fp',
       createdAt: 't',
@@ -1247,8 +1246,11 @@ describe('agent server providers and runs', () => {
     expect(spawned[0]?.options.env['MOLTNET_CLIENT_SECRET']).toBe(
       'resolved-external-secret',
     );
-    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_IDENTITY_ID']).toBe(
-      'external-id',
+    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe(
+      'agent-1',
+    );
+    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe(
+      'agent',
     );
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_FINGERPRINT']).toBe('fp');

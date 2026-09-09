@@ -84,7 +84,10 @@ export async function resolveThroughRegistry(
 }
 
 export async function resolveOAuth2ClientSecret(
-  config: Pick<MoltNetConfig, 'identity_id' | 'oauth2'>,
+  config: Pick<MoltNetConfig, 'oauth2'> & {
+    subject_id?: string;
+    identity_id?: string;
+  },
   registry: SecretProviderRegistry,
 ): Promise<string> {
   const kind: CredentialKind = 'oauth2-client-secret';
@@ -110,7 +113,7 @@ export async function resolveOAuth2ClientSecret(
   if (reference) {
     try {
       assertSecretReferenceBinding(kind, reference, {
-        identityId: config.identity_id,
+        subjectId: config.subject_id,
         clientId: oauth2.client_id,
       });
     } catch (cause) {
@@ -214,7 +217,10 @@ export async function resolveIdentitySeed(
  * the config has no reference (callers then fall back to OAuth2).
  */
 export async function resolveAgentKey(
-  config: Pick<MoltNetConfig, 'identity_id' | 'agent_key_ref'>,
+  config: Pick<MoltNetConfig, 'agent_key_ref'> & {
+    subject_id?: string;
+    identity_id?: string;
+  },
   registry: SecretProviderRegistry,
 ): Promise<string | null> {
   const kind: CredentialKind = 'agent-key';
@@ -222,7 +228,7 @@ export async function resolveAgentKey(
   if (!reference) return null;
   try {
     assertSecretReferenceBinding(kind, reference, {
-      identityId: config.identity_id,
+      subjectId: config.subject_id,
     });
   } catch (cause) {
     throw new CredentialResolutionError(

@@ -151,7 +151,7 @@ async function resolveConnection(
       ) {
         throw new MoltNetError(
           error.code === 'unbound'
-            ? 'Agent key reference is not bound to this MoltNet identity.'
+            ? 'Agent key reference is not bound to this MoltNet subject.'
             : 'Invalid agent_key_ref: the reference resolved to an empty value.',
           { code: 'INVALID_CONFIG' },
         );
@@ -187,7 +187,7 @@ async function resolveConnection(
       ) {
         throw new MoltNetError(
           error.code === 'unbound'
-            ? 'OAuth2 secret reference is not bound to this MoltNet identity and client.'
+            ? 'OAuth2 secret reference is not bound to this MoltNet subject and client.'
             : 'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
           { code: 'INVALID_CONFIG' },
         );

@@ -16,8 +16,8 @@ export const COMMON_OPTIONAL_FLAGS = `\
   --git-author <"Name <email>">
                               Non-secret git identity projected into the
                               guest for host-brokered commit signing. Default:
-                              host git config (OAuth2) or
-                              <identityId>+<agent>[bot]@users.noreply.github.com.
+                              host git config. Configless agent-key runs must
+                              provide this flag or MOLTNET_GIT_AUTHOR.
                               Env: MOLTNET_GIT_AUTHOR.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.

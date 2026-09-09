@@ -35,6 +35,10 @@ func defaultConfigMigrations(destination string) []configMigration {
 	}
 }
 
+func subjectAwareConfigMigrations(destination string) []configMigration {
+	return append(defaultConfigMigrations(destination), newSubjectAnchorMigration(nil))
+}
+
 // validateMigrationDestination rejects destinations that cannot receive
 // secrets before any credentials are read.
 func validateMigrationDestination(registry *SecretProviderRegistry, destination string) (string, error) {
@@ -138,7 +142,7 @@ func runConfigMigrateCmd(w, errOut io.Writer, credPath, generatePath, runPath, d
 		destination,
 		dryRun,
 		registry,
-		defaultConfigMigrations(destination),
+		subjectAwareConfigMigrations(destination),
 	)
 }
 
@@ -168,7 +172,11 @@ func runConfigMigrateCmdWithRegistry(
 		if filepath.Clean(plan.CredentialsPath) != filepath.Clean(credentialsPath) {
 			return fmt.Errorf("migration plan targets %s, not %s", plan.CredentialsPath, credentialsPath)
 		}
-		return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, migrations)
+		boundMigrations, err := bindSubjectMigrationPlan(plan, credentialsPath, secretProviders, migrations)
+		if err != nil {
+			return printConfigMigrationPreflightFailure(w, plan, err)
+		}
+		return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, boundMigrations)
 	}
 
 	plan, err := buildConfigMigrationPlan(credentialsPath, destination, migrations)
@@ -184,7 +192,26 @@ func runConfigMigrateCmdWithRegistry(
 		}
 		return printJSONTo(w, plan)
 	}
+	migrations, err = bindSubjectMigrationPlan(plan, credentialsPath, secretProviders, migrations)
+	if err != nil {
+		return printConfigMigrationPreflightFailure(w, plan, err)
+	}
 	return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, migrations)
+}
+
+func printConfigMigrationPreflightFailure(w io.Writer, plan configMigrationPlan, err error) error {
+	failure := configmigrate.FailureFromError(
+		plan,
+		migrationStageError("verify_subject", configmigrate.FailureState{}, err),
+	)
+	// Credential resolvers normalize provider failures before they reach this
+	// boundary, so the authentication cause is safe and tells the operator what
+	// must be fixed without exposing a resolved secret.
+	failure.Message += ": " + err.Error()
+	if printErr := printJSONTo(w, configMigrationRunOutput{Plan: plan, Failure: failure}); printErr != nil {
+		return errors.Join(err, printErr)
+	}
+	return errors.New(failure.Message)
 }
 
 func runAndPrintConfigMigrationPlan(
@@ -199,6 +226,15 @@ func runAndPrintConfigMigrationPlan(
 		Plan:    plan,
 		Applied: applied,
 		Changed: len(applied) > 0,
+	}
+	var cleanupErr *subjectCleanupError
+	if errors.As(err, &cleanupErr) {
+		output.Applied = []string{subjectAnchorMigrationID}
+		output.Changed = true
+		output.ManualRecoveryRequired = true
+		output.Warnings = []string{cleanupErr.Error()}
+		output.NextMigration = nextPendingMigration(plan.CredentialsPath, destination, migrations)
+		return printJSONTo(w, output)
 	}
 	if err == nil && len(applied) > 0 {
 		output.NextMigration = nextPendingMigration(plan.CredentialsPath, destination, migrations)
@@ -226,6 +262,34 @@ func applyConfigMigrationPlan(
 	migrations []configMigration,
 ) ([]string, error) {
 	return newConfigMigrationEngine(migrations, destination).Apply(plan, secretProviders)
+}
+
+func bindSubjectMigrationPlan(plan configMigrationPlan, credentialsPath string, registry *SecretProviderRegistry, migrations []configMigration) ([]configMigration, error) {
+	if len(plan.Migrations) == 0 || plan.Migrations[0].ID != subjectAnchorMigrationID {
+		return migrations, nil
+	}
+	creds, err := ReadConfigFrom(credentialsPath)
+	if err != nil {
+		return nil, fmt.Errorf("read credentials for subject migration: %w", err)
+	}
+	if creds == nil {
+		return nil, fmt.Errorf("read credentials for subject migration: config not found at %s", credentialsPath)
+	}
+	apiURL := strings.TrimSpace(creds.Endpoints.API)
+	if apiURL == "" {
+		return nil, fmt.Errorf("subject migration requires endpoints.api")
+	}
+	verified, err := verifyConfigIdentityAgainstServer(apiURL, credentialsPath, creds, registry, true)
+	if err != nil {
+		return nil, err
+	}
+	bound := append([]configMigration(nil), migrations...)
+	for index := range bound {
+		if bound[index].ID == subjectAnchorMigrationID {
+			bound[index] = newSubjectAnchorMigration(verified)
+		}
+	}
+	return bound, nil
 }
 
 func writeConfigMigrationPlan(path string, plan configMigrationPlan) error {
@@ -264,7 +328,7 @@ func pendingConfigMigrationNotice(explicitCredentialsPath string) string {
 	destination := defaultMigrationDestination
 	// Applies() reads only the credentials document, never the engine
 	// parameters, so detection does not depend on where secrets would land.
-	next := nextPendingMigration(credentialsPath, destination, defaultConfigMigrations(destination))
+	next := nextPendingMigration(credentialsPath, destination, subjectAwareConfigMigrations(destination))
 	if next == nil {
 		return ""
 	}

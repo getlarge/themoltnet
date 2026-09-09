@@ -7,32 +7,34 @@ import (
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
-// identityVerification is the result of checking the locally stored identity
-// metadata against the server's record for the authenticating credential.
-type identityVerification struct {
-	IdentityID  string
+// subjectVerification is the server record for the authenticating credential.
+// SubjectID and SubjectType are the durable authorization anchor. The identity
+// and key fields are current, rotatable attributes returned for callers that
+// need to refresh derived local metadata.
+type subjectVerification struct {
+	SubjectID   string
+	SubjectType SubjectType
 	PublicKey   string
 	Fingerprint string
 }
 
-// verifyIdentityAgainstServer confirms that the identity metadata in
-// moltnet.json is the one the MoltNet API associates with the credential that
-// just authenticated.
+// verifyIdentityAgainstServer confirms that the subject tuple in moltnet.json
+// is the one the MoltNet API associates with the credential that authenticated.
 //
 // The local document is not authoritative. An actor who can edit it can point
-// the alias at a different identity ID, public key, or fingerprint, and nothing
-// local can tell: the file is trusted by the same OS user that owns the
-// provider. The server's record is the authority, so activation asks it.
+// the alias at a different subject, and nothing local can tell: the file is
+// trusted by the same OS user that owns the provider. The server's record is
+// the authority, so activation asks it.
 //
 // One nuance the issue's wording glosses over: this cannot run "before any
 // secret resolution", because asking the server who we are requires
 // authenticating, which resolves a credential. The circularity is unavoidable.
-// What it does buy is that the *identity* metadata — the fingerprint that gets
-// pinned into the activation cache, and the public key a signature is later
-// checked against — is confirmed against the server before any of it is trusted
-// or any seed material is used to sign.
+// What it does buy is that the durable subject is confirmed against the server
+// before it is pinned, while current identity/key metadata can be refreshed as
+// rotatable attributes.
 //
 // It authenticates through newAuthenticatedClient, so it uses whichever
 // credential the agent actually uses for API calls: an agent_key_ref in
@@ -40,7 +42,7 @@ type identityVerification struct {
 // credential than the one the agent works with would check the wrong binding,
 // and #2160/#2171 move the daemon to an agent key only. The cost is that a
 // keyring-backed agent_key_ref must be resolvable for a refresh to succeed.
-func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile) (*identityVerification, error) {
+func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile) (*subjectVerification, error) {
 	client, err := newAuthenticatedClient(apiURL, credentialsPath)
 	if err != nil {
 		return nil, fmt.Errorf("verify identity: %w", err)
@@ -50,59 +52,89 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
 
-	serverIdentityID := whoami.IdentityId.String()
+	return verifyAuthenticatedSubject(credentialsPath, creds, whoami, true)
+}
+
+// verifyConfigIdentityAgainstServer is the migration variant of identity
+// verification. It resolves only references from the supplied document and
+// registry, preventing an ambient agent-key override from authenticating a
+// different subject while the plan is being bound.
+func verifyConfigIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, registry *SecretProviderRegistry, verifySigningKey bool) (*subjectVerification, error) {
+	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
+	if err != nil {
+		return nil, fmt.Errorf("verify config identity: %w", err)
+	}
+	whoami, err := fetchAgentWhoami(context.Background(), client)
+	if err != nil {
+		return nil, fmt.Errorf("verify config identity: %w", err)
+	}
+	return verifyAuthenticatedSubject(credentialsPath, creds, whoami, verifySigningKey)
+}
+
+// verifyAuthenticatedSubject is shared by activation and config migration so
+// their definition of the durable binding cannot drift. Legacy documents have
+// no subject tuple to compare; authentication supplies it. Canonical documents
+// must match it exactly. Ory identity may rotate independently, but the local
+// signing key must match the authenticated agent because the corresponding
+// private seed cannot be recovered from the server record.
+func verifyAuthenticatedSubject(
+	credentialsPath string,
+	creds *CredentialsFile,
+	whoami *moltnetapi.Whoami,
+	verifySigningKey bool,
+) (*subjectVerification, error) {
+	serverSubjectID := whoami.SubjectId.String()
+	serverSubjectType := SubjectType(whoami.SubjectType)
 	serverPublicKey := strings.TrimSpace(whoami.PublicKey.Or(""))
 	serverFingerprint := strings.TrimSpace(whoami.Fingerprint.Or(""))
+	if whoami.SubjectId == uuid.Nil {
+		return nil, fmt.Errorf("verify identity: the server returned no subject_id for this credential")
+	}
+	if serverSubjectType != SubjectTypeAgent {
+		return nil, fmt.Errorf(
+			"verify identity: the credential authenticated as %q, not as an agent",
+			whoami.SubjectType,
+		)
+	}
 
-	// Compare the key material, and only the key material.
-	//
-	// identity_id is deliberately not compared. It is the Ory identity record's
-	// ID, an attribute of the identity rather than the identity itself: a
-	// relink changes it server-side while the keypair — the thing that actually
-	// proves who this is — stays exactly the same. Comparing it turned a
-	// routine relink into a hard activation failure on a credential that
-	// authenticates correctly and signs correctly.
-	//
-	// It is also not repairable by rewriting the document, which is the obvious
-	// thing to reach for: OAuth2SecretKey and AgentKeyKey derive provider keys
-	// from identity_id, so changing it in place orphans the keyring entries
-	// holding the secrets. Moving them is a migration (see the subject-anchor
-	// work), not something activation should attempt.
-	//
-	// The server's identity_id is still pinned into the cache as reported
-	// provenance; nothing compares it there either.
-	for _, field := range []struct {
-		name   string
-		local  string
-		server string
-	}{
-		{"public key", strings.TrimSpace(creds.Keys.PublicKey), serverPublicKey},
-		{"fingerprint", strings.TrimSpace(creds.Keys.Fingerprint), serverFingerprint},
-	} {
-		if field.server == "" {
+	localSubjectID := strings.TrimSpace(creds.SubjectID)
+	localSubjectType := creds.SubjectType
+	if localSubjectID != "" || localSubjectType != "" {
+		if localSubjectID == "" || localSubjectType != SubjectTypeAgent {
 			return nil, fmt.Errorf(
-				"verify identity: the server returned no %s for this credential", field.name,
+				"verify identity: %s has an incomplete or unsupported subject anchor",
+				credentialsPath,
 			)
 		}
-		if field.local == "" {
-			continue
-		}
-		if field.local != field.server {
+		if localSubjectID != serverSubjectID {
 			return nil, fmt.Errorf(
-				"verify identity: local %s does not match the server record for this credential.\n"+
+				"verify identity: local subject_id does not match the server record for this credential.\n"+
 					"  local:  %s\n"+
 					"  server: %s\n"+
-					"The identity document at %s carries different key material than the "+
-					"credential authenticates as. Re-run `moltnet config migrate` against the "+
-					"intended bundle, or select the correct identity with "+
-					"`moltnet config identity select <alias>`.",
-				field.name, field.local, field.server, credentialsPath,
+					"Select the correct identity with `moltnet config identity select <alias>`.",
+				localSubjectID, serverSubjectID,
 			)
 		}
 	}
+	if serverPublicKey == "" || serverFingerprint == "" {
+		return nil, fmt.Errorf(
+			"verify identity: the server returned no public key or fingerprint for this credential",
+		)
+	}
+	if verifySigningKey {
+		localPublicKey := strings.TrimSpace(creds.Keys.PublicKey)
+		localFingerprint := strings.TrimSpace(creds.Keys.Fingerprint)
+		if localPublicKey != "" && localPublicKey != serverPublicKey {
+			return nil, fmt.Errorf("verify identity: local public key does not match the authenticated agent")
+		}
+		if localFingerprint != "" && localFingerprint != serverFingerprint {
+			return nil, fmt.Errorf("verify identity: local fingerprint does not match the authenticated agent")
+		}
+	}
 
-	return &identityVerification{
-		IdentityID:  serverIdentityID,
+	return &subjectVerification{
+		SubjectID:   serverSubjectID,
+		SubjectType: serverSubjectType,
 		PublicKey:   serverPublicKey,
 		Fingerprint: serverFingerprint,
 	}, nil

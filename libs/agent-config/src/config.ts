@@ -65,8 +65,21 @@ export type GitHubConfig =
       private_key_ref: SecretReference;
     };
 
+export type AgentSubjectType = 'agent';
+
+export function oauth2SecretKey(subjectId: string, clientId: string): string {
+  return `oauth2/${subjectId}/${clientId}`;
+}
+
+export function identitySeedKey(fingerprint: string): string {
+  return `identity/${fingerprint}/seed`;
+}
+
+export function agentKeyKey(subjectId: string): string {
+  return `agent-key/${subjectId}`;
+}
+
 interface MoltNetConfigBase {
-  identity_id: string;
   registered_at: string;
   keys: KeysConfig;
   endpoints: { api: string; mcp: string };
@@ -81,14 +94,61 @@ interface MoltNetConfigBase {
 }
 
 /**
+ * The durable local anchor. Canonical documents use the MoltNet subject;
+ * identity_id is accepted only while the explicit compatibility reader ships.
+ */
+export interface CanonicalMoltNetConfigAnchor {
+  subject_id: string;
+  subject_type: AgentSubjectType;
+  identity_id?: never;
+}
+
+export interface LegacyMoltNetConfigAnchor {
+  subject_id?: never;
+  subject_type?: never;
+  identity_id: string;
+}
+
+export type MoltNetConfigAnchor =
+  | CanonicalMoltNetConfigAnchor
+  | LegacyMoltNetConfigAnchor;
+
+/**
  * A canonical profile must contain at least one authentication mechanism.
  * Profiles may contain both during credential transitions.
  */
+type MoltNetAuthenticationConfig =
+  | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
+  | { agent_key_ref?: SecretReference; oauth2: OAuth2Config };
+
 export type MoltNetConfig = MoltNetConfigBase &
-  (
-    | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
-    | { agent_key_ref?: SecretReference; oauth2: OAuth2Config }
-  );
+  CanonicalMoltNetConfigAnchor &
+  MoltNetAuthenticationConfig;
+
+export type CanonicalMoltNetConfig = MoltNetConfig;
+
+export type LegacyMoltNetConfig = MoltNetConfigBase &
+  LegacyMoltNetConfigAnchor &
+  MoltNetAuthenticationConfig;
+
+/** Temporary compatibility shape returned by readers during the migration release. */
+type ReadMoltNetConfig = MoltNetConfig | LegacyMoltNetConfig;
+
+export function isCanonicalConfig(
+  config: ReadMoltNetConfig,
+): config is MoltNetConfig {
+  return Boolean(config.subject_id?.trim()) && config.subject_type === 'agent';
+}
+
+export function assertCanonicalConfig(
+  config: ReadMoltNetConfig,
+): asserts config is MoltNetConfig {
+  if (!isCanonicalConfig(config)) {
+    throw new Error(
+      'legacy config is read-only; run `moltnet config migrate` before writing',
+    );
+  }
+}
 
 export function getConfigDir(): string {
   // One root, shared with the Go CLI's GetConfigDir and the daemon's
@@ -228,7 +288,7 @@ function readIdentitySelectorSync(): IdentitySelector | null {
 
 export async function readConfig(
   configDir?: string,
-): Promise<MoltNetConfig | null> {
+): Promise<ReadMoltNetConfig | null> {
   // Deliberately no fallback to the pre-central-store `<config>/moltnet.json`.
   // The Go CLI never reads it, so a fallback here gave one contract two
   // behaviours: the CLI reported no identity while the SDK and daemon silently
@@ -239,9 +299,9 @@ export async function readConfig(
   return readConfigFile(join(dir, 'moltnet.json'));
 }
 
-async function readConfigFile(path: string): Promise<MoltNetConfig | null> {
+async function readConfigFile(path: string): Promise<ReadMoltNetConfig | null> {
   try {
-    return JSON.parse(await readFile(path, 'utf-8')) as MoltNetConfig;
+    return JSON.parse(await readFile(path, 'utf-8')) as ReadMoltNetConfig;
   } catch {
     return null;
   }
@@ -251,6 +311,7 @@ export async function writeConfig(
   config: MoltNetConfig,
   configDir?: string,
 ): Promise<string> {
+  assertCanonicalConfig(config);
   const dir = await resolveConfigDir(configDir);
   if (!dir) {
     throw new Error(
@@ -325,6 +386,7 @@ export async function updateConfigSection(
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
   }
+  assertCanonicalConfig(config);
   const existing =
     (config[section] as Record<string, unknown> | undefined) ?? {};
   Object.assign(config, {
@@ -342,6 +404,7 @@ export async function updateOAuth2Config(
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
   }
+  assertCanonicalConfig(config);
   const plaintext = oauth2.client_secret?.trim();
   const reference = oauth2.client_secret_ref;
   if (!oauth2.client_id.trim() || Boolean(plaintext) === Boolean(reference)) {
@@ -362,6 +425,7 @@ export async function updateKeysConfig(
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
   }
+  assertCanonicalConfig(config);
   const plaintext = keys.private_key?.trim();
   const reference = keys.private_key_ref;
   if (!keys.public_key.trim() || Boolean(plaintext) === Boolean(reference)) {
@@ -382,6 +446,7 @@ export async function updateGitHubConfig(
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
   }
+  assertCanonicalConfig(config);
   const path = github.private_key_path?.trim();
   const reference = github.private_key_ref;
   if (!github.app_id.trim() || Boolean(path) === Boolean(reference)) {

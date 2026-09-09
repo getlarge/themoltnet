@@ -43,16 +43,25 @@ describe('loadConfig observability settings', () => {
     );
   });
 
-  it('loads Agent Server identity pins atomically', () => {
-    vi.stubEnv('MOLTNET_EXPECTED_IDENTITY_ID', 'id-1');
+  it('loads Agent Server subject pins atomically', () => {
+    vi.stubEnv('MOLTNET_EXPECTED_SUBJECT_ID', 'agent-1');
     expect(() => loadConfig()).toThrow('must be set together');
 
+    vi.stubEnv('MOLTNET_EXPECTED_SUBJECT_TYPE', 'agent');
     vi.stubEnv('MOLTNET_EXPECTED_PUBLIC_KEY', 'pk-1');
     vi.stubEnv('MOLTNET_EXPECTED_FINGERPRINT', 'fp-1');
-    expect(loadConfig().expectedIdentity).toEqual({
-      identityId: 'id-1',
+    expect(loadConfig().expectedAgent).toEqual({
+      subjectId: 'agent-1',
+      subjectType: 'agent',
       publicKey: 'pk-1',
       fingerprint: 'fp-1',
     });
+  });
+
+  it('rejects the obsolete identity pin instead of silently disabling pinning', () => {
+    vi.stubEnv('MOLTNET_EXPECTED_IDENTITY_ID', 'identity-1');
+    expect(() => loadConfig()).toThrow(
+      'MOLTNET_EXPECTED_IDENTITY_ID is no longer supported',
+    );
   });
 });

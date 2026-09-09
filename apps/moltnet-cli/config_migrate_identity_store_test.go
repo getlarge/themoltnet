@@ -17,16 +17,15 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 	}
 	legacyPath := filepath.Join(home, "repo", ".moltnet", "legacy", "moltnet.json")
 	identity := newIdentityFixture(t, "legacy", "https://legacy.example.test")
-	legacy := &CredentialsFile{
-		IdentityID: identity.identityID,
-		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
-		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-		Endpoints:  CredentialsEndpoints{API: identity.api},
-		Git:        &GitSection{Name: "Legacy Bot", Email: "legacy@example.test"},
-	}
+	legacy := legacyCredentialsForTest(identity.identityID)
+	legacy.OAuth2 = CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"}
+	legacy.Keys = CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint}
+	legacy.Endpoints = CredentialsEndpoints{API: identity.api}
+	legacy.Git = &GitSection{Name: "Legacy Bot", Email: "legacy@example.test"}
 	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
 		t.Fatal(err)
 	}
+	addLegacyIdentityToConfigFile(t, legacyPath, identity.identityID)
 	if err := os.WriteFile(filepath.Join(filepath.Dir(legacyPath), "env"), []byte("GIT_CONFIG_GLOBAL='/old/repository/gitconfig'\nCUSTOM_VALUE='kept'\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +38,7 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 		t.Fatalf("migration result = %#v", result)
 	}
 	target, _ := identityCredentialsPath("legacy")
-	if copied, err := ReadConfigFrom(target); err != nil || copied.IdentityID != legacy.IdentityID {
+	if copied, err := ReadConfigFrom(target); err != nil || copied.legacyIdentityID != identity.identityID {
 		t.Fatalf("copied config = %#v, %v", copied, err)
 	} else {
 		if copied.SSH == nil || filepath.Dir(copied.SSH.PublicKeyPath) != filepath.Join(filepath.Dir(target), "ssh") {
@@ -72,37 +71,6 @@ func TestMigrateLegacyIdentityStoreRequiresNameOutsideLegacyLayout(t *testing.T)
 	result, err := migrateLegacyIdentityStore(path, "external", true)
 	if err != nil || result["alias"] != "external" {
 		t.Fatalf("named migration = %#v, %v", result, err)
-	}
-}
-
-func TestMigrateLegacyIdentityStoreInfersAliasFromDaemonAgentDocument(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	legacyPath := filepath.Join(home, ".config", "moltnet", "agents", "daemon-agent.json")
-	identity := newIdentityFixture(t, "daemon-agent", "https://daemon.example.test")
-	legacy := &CredentialsFile{
-		IdentityID: identity.identityID,
-		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "daemon-secret"},
-		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
-		Endpoints:  CredentialsEndpoints{API: identity.api},
-	}
-	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
-		t.Fatal(err)
-	}
-
-	result, err := migrateLegacyIdentityStore(legacyPath, "", false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result["alias"] != "daemon-agent" {
-		t.Fatalf("migration result = %#v", result)
-	}
-	target, err := identityCredentialsPath("daemon-agent")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if copied, err := ReadConfigFrom(target); err != nil || copied == nil || copied.IdentityID != legacy.IdentityID {
-		t.Fatalf("migrated daemon document = %#v, %v", copied, err)
 	}
 }
 
@@ -156,16 +124,16 @@ func TestMigrateIdentityStoreKeepsStagingPathsOutOfOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 	credsPath := filepath.Join(bundle, "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "11111111-1111-4111-8111-111111111111",
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "secret"},
-		Keys: CredentialsKeys{
-			PublicKey:   testPublicKey,
-			PrivateKey:  testPrivateKey,
-			Fingerprint: "SHA256:stagingfingerprint",
-		},
-		Endpoints: CredentialsEndpoints{API: "https://api.example.test"},
-	}, credsPath); err != nil {
+	creds := legacyCredentialsForTest("11111111-1111-4111-8111-111111111111")
+	creds.OAuth2 = CredentialsOAuth2{ClientID: "cid", ClientSecret: "secret"}
+	creds.Keys = CredentialsKeys{
+		PublicKey:   testPublicKey,
+		PrivateKey:  testPrivateKey,
+		Fingerprint: "SHA256:stagingfingerprint",
+	}
+	creds.Endpoints = CredentialsEndpoints{API: "https://api.example.test"}
+	creds.Git = &GitSection{Name: "LeGreffier", Email: "legreffier@example.test"}
+	if _, err := WriteConfigTo(creds, credsPath); err != nil {
 		t.Fatal(err)
 	}
 

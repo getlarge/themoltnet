@@ -1,6 +1,7 @@
-import type {
-  AgentIdentity,
-  AgentSigningCapability,
+import {
+  AGENT_SIGNING_PROTOCOL_VERSION,
+  type AgentIdentity,
+  type AgentSigningCapability,
 } from '@moltnet/crypto-service/agent-signing';
 
 /** Error raised when the signing broker refuses or fails an operation. */
@@ -47,8 +48,10 @@ function assertIdentity(value: unknown): AgentIdentity {
   const candidate = value as Partial<AgentIdentity> | null;
   if (
     !candidate ||
+    candidate.protocolVersion !== AGENT_SIGNING_PROTOCOL_VERSION ||
     !isString(candidate.agentName) ||
-    !isString(candidate.identityId) ||
+    !isString(candidate.subjectId) ||
+    candidate.subjectType !== 'agent' ||
     !isString(candidate.publicKey) ||
     !candidate.publicKey.startsWith('ed25519:') ||
     !isString(candidate.fingerprint) ||
@@ -58,8 +61,10 @@ function assertIdentity(value: unknown): AgentIdentity {
     throw new RemoteSignerError('invalid_identity', 502);
   }
   return {
+    protocolVersion: AGENT_SIGNING_PROTOCOL_VERSION,
     agentName: candidate.agentName,
-    identityId: candidate.identityId,
+    subjectId: candidate.subjectId,
+    subjectType: 'agent',
     publicKey: candidate.publicKey,
     fingerprint: candidate.fingerprint,
     gitName: candidate.gitName,

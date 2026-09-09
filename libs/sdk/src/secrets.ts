@@ -1,5 +1,13 @@
+import {
+  agentKeyKey,
+  identitySeedKey,
+  oauth2SecretKey,
+} from '@moltnet/agent-config';
+
 import { readEnvironmentVariable } from './config.js';
 import type { SecretReference } from './credentials.js';
+
+export { agentKeyKey, identitySeedKey, oauth2SecretKey };
 
 export const ENVIRONMENT_SECRET_PROVIDER = 'env';
 export const OS_KEYRING_SECRET_PROVIDER = 'os-keyring';
@@ -263,7 +271,8 @@ export type CredentialKind =
   | 'agent-key';
 
 export interface CredentialBindingIds {
-  identityId?: string;
+  /** Durable MoltNet subject. Canonical credential bindings use this value. */
+  subjectId?: string;
   clientId?: string;
   fingerprint?: string;
 }
@@ -311,25 +320,11 @@ export const CREDENTIAL_ENV_KEYS: Readonly<Record<CredentialKind, string>> =
 const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
   Object.freeze({
     'oauth2-client-secret':
-      'OAuth2 secret reference is not bound to this MoltNet identity and client',
+      'OAuth2 secret reference is not bound to this MoltNet subject and client',
     'identity-seed':
       'Identity seed reference is not bound to this MoltNet identity',
-    'agent-key': 'Agent key reference is not bound to this MoltNet identity',
+    'agent-key': 'Agent key reference is not bound to this MoltNet subject',
   });
-
-export function oauth2SecretKey(identityId: string, clientId: string): string {
-  return `oauth2/${identityId}/${clientId}`;
-}
-
-export function identitySeedKey(fingerprint: string): string {
-  return `identity/${fingerprint}/seed`;
-}
-
-export function agentKeyKey(agentId: string): string {
-  // Derivation string unchanged — renaming the parameter must not re-key
-  // secrets already stored under this prefix.
-  return `agent-key/${agentId}`;
-}
 
 const PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
 const SECRET_REFERENCE_MESSAGE =
@@ -346,7 +341,7 @@ function normalizeSecretReference(reference: SecretReference): SecretReference {
 
 /**
  * Parse the `<provider>:<key>` form used by environment references such as
- * `MOLTNET_AGENT_KEY_REF=file:agent-key.identity-1`. The first colon splits.
+ * `MOLTNET_AGENT_KEY_REF=file:agent-key.subject-1`. The first colon splits.
  */
 export function parseSecretReferenceString(value: string): SecretReference {
   const trimmed = value.trim();
@@ -372,6 +367,10 @@ function requireId(value: string | undefined, name: string): string {
   return trimmed;
 }
 
+function requireSubjectId(ids: CredentialBindingIds): string {
+  return requireId(ids.subjectId, 'subjectId');
+}
+
 /** Canonical provider key for a credential kind bound to this agent. */
 export function expectedSecretKey(
   kind: CredentialKind,
@@ -380,13 +379,13 @@ export function expectedSecretKey(
   switch (kind) {
     case 'oauth2-client-secret':
       return oauth2SecretKey(
-        requireId(ids.identityId, 'identityId'),
+        requireSubjectId(ids),
         requireId(ids.clientId, 'clientId'),
       );
     case 'identity-seed':
       return identitySeedKey(requireId(ids.fingerprint, 'fingerprint'));
     case 'agent-key':
-      return agentKeyKey(requireId(ids.identityId, 'identityId'));
+      return agentKeyKey(requireSubjectId(ids));
   }
 }
 
@@ -417,11 +416,11 @@ export function assertSecretReferenceBinding(
 
 export function assertOAuth2SecretReferenceBinding(
   reference: SecretReference,
-  identityId: string,
+  subjectId: string,
   clientId: string,
 ): void {
   assertSecretReferenceBinding('oauth2-client-secret', reference, {
-    identityId,
+    subjectId,
     clientId,
   });
 }

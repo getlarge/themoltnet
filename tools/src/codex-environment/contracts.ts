@@ -106,7 +106,7 @@ export interface CodexGondolinEvidence {
     credentialPreflight: CredentialPreflightReason;
     authenticatedHostCall: boolean;
     authenticatedAgentSubject: boolean;
-    authenticatedIdentityMatched: boolean;
+    authenticatedSubjectBindingMatched: boolean;
     gitCommitSignatureVerified: boolean;
     allowedOperations: string[];
     deniedOperations: string[];
@@ -160,7 +160,7 @@ export function compatibilityProbePassed(
     evidence.hostCredentialCapability.credentialPreflight === 'ready' &&
     evidence.hostCredentialCapability.authenticatedHostCall &&
     evidence.hostCredentialCapability.authenticatedAgentSubject &&
-    evidence.hostCredentialCapability.authenticatedIdentityMatched &&
+    evidence.hostCredentialCapability.authenticatedSubjectBindingMatched &&
     evidence.hostCredentialCapability.gitCommitSignatureVerified &&
     evidence.hostCredentialCapability.allowedOperations.includes(
       'host-auth-check/whoami',

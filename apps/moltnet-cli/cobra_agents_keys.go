@@ -168,7 +168,7 @@ rotate itself — so authenticate with OAuth2, another key, or as a team manager
 // provider and moltnet.json gains agent_key_ref instead of the secret being
 // printed.
 func addAgentKeyStoreFlags(cmd *cobra.Command) {
-	cmd.Flags().Bool("store", false, "Store the secret in a provider under agent-key/<identity_id> and set agent_key_ref in the credentials file instead of printing it")
+	cmd.Flags().Bool("store", false, "Store the secret in a provider under agent-key/<subject_id> and set agent_key_ref in the credentials file instead of printing it")
 	cmd.Flags().String("destination", defaultMigrationDestination, "Secret provider used by --store (os-keyring, or file with MOLTNET_SECRET_ROOT_WRITABLE=1)")
 }
 

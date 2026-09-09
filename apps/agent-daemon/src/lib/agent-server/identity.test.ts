@@ -60,7 +60,8 @@ function freshStore(): AgentServerStore {
 
 function externalConfig(overrides: Partial<MoltNetConfig> = {}): MoltNetConfig {
   return {
-    identity_id: 'identity-1',
+    subject_id: 'agent-1',
+    subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00Z',
     oauth2: { client_id: 'client', client_secret: 'oauth-secret' },
     keys: {
@@ -108,7 +109,7 @@ beforeEach(() => {
   registerMock.mockResolvedValue({
     identity: {
       subjectId: 'agent-1',
-      identityId: 'identity-1',
+      subjectType: 'agent',
       publicKey: 'ed25519:public',
       privateKey: 'private-seed',
       fingerprint: 'FP-1',
@@ -164,7 +165,7 @@ describe('managed agent server agents', () => {
       return {
         identity: {
           subjectId: 'agent-1',
-          identityId: 'identity-1',
+          subjectType: 'agent' as const,
           publicKey: 'ed25519:public',
           privateKey: 'private-seed',
           fingerprint: 'FP-1',
@@ -209,9 +210,10 @@ describe('managed agent server agents', () => {
 
     expect(result.config.registered_at).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
     expect(result.config).toEqual({
-      identity_id: 'identity-1',
+      subject_id: 'agent-1',
+      subject_type: 'agent',
       registered_at: result.config.registered_at,
-      agent_key_ref: { provider: 'file', key: 'agent-key/identity-1' },
+      agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
       keys: {
         public_key: 'ed25519:public',
         fingerprint: 'FP-1',
@@ -232,7 +234,6 @@ describe('managed agent server agents', () => {
       alias: 'course-bot',
       source: 'managed',
       subjectId: 'agent-1',
-      identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
     });
@@ -283,7 +284,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'team-bot',
-        registry({ 'agent-key/identity-1': 'agent-key-secret' }),
+        registry({ 'agent-key/agent-1': 'agent-key-secret' }),
         registry(),
       ),
     ).rejects.toThrow('team binding does not match');
@@ -307,7 +308,8 @@ describe('managed agent server agents', () => {
       }),
     ).rejects.toMatchObject({ code: 'registration_incomplete' });
     expect(store.readAgentConfig('partial')).toMatchObject({
-      identity_id: 'identity-1',
+      subject_id: 'agent-1',
+      subject_type: 'agent',
     });
     expect(store.hasPendingRegistration('partial')).toBe(true);
     await expect(
@@ -322,7 +324,7 @@ describe('managed agent server agents', () => {
     await expect(
       reconcileManagedRegistration(store, secrets, 'partial', 'resume'),
     ).resolves.toMatchObject({
-      activation: { alias: 'partial', identityId: 'identity-1' },
+      activation: { alias: 'partial', subjectId: 'agent-1' },
     });
     expect(store.hasPendingRegistration('partial')).toBe(false);
     expect(registerMock).toHaveBeenCalledTimes(1);
@@ -455,7 +457,7 @@ describe('managed agent server agents', () => {
         api: 'https://custom.example',
         mcp: 'https://custom.example/mcp',
       },
-      agent_key_ref: { provider: 'file', key: 'agent-key/identity-1' },
+      agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
       keys: {
         public_key: 'ed25519:public',
         fingerprint: 'FP-1',
@@ -466,7 +468,6 @@ describe('managed agent server agents', () => {
       alias: 'managed',
       source: 'managed',
       subjectId: 'agent-1',
-      identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
       createdAt: 't',
@@ -477,7 +478,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'managed',
-        registry({ 'agent-key/identity-1': 'resolved-agent-key' }),
+        registry({ 'agent-key/agent-1': 'resolved-agent-key' }),
         registry(),
       ),
     ).resolves.toMatchObject({ activation: { alias: 'managed' } });
@@ -501,7 +502,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'managed',
-        registry({ 'agent-key/identity-1': 'resolved-agent-key' }),
+        registry({ 'agent-key/agent-1': 'resolved-agent-key' }),
         registry(),
       ),
     ).rejects.toThrow('API endpoint does not match its pinned activation');
@@ -569,7 +570,6 @@ describe('external agent server agents', () => {
       configPath: join(configDir, 'moltnet.json'),
       apiUrl: 'https://api.themolt.net',
       subjectId: 'agent-1',
-      identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
     });
@@ -582,10 +582,10 @@ describe('external agent server agents', () => {
     );
   });
 
-  it('rejects attach-time identity mismatches', async () => {
+  it('rejects attach-time subject mismatches', async () => {
     const store = freshStore();
     const configDir = writeExternalConfig(
-      externalConfig({ identity_id: 'different' }),
+      externalConfig({ subject_id: 'different' }),
     );
 
     await expect(
@@ -600,7 +600,7 @@ describe('external agent server agents', () => {
   });
 
   it.each([
-    ['identity id', { identity_id: 'changed' }],
+    ['subject id', { subject_id: 'changed' }],
     [
       'public key',
       {
@@ -666,7 +666,6 @@ describe('external agent server agents', () => {
   });
 
   it.each([
-    ['identity id', { identityId: 'changed' }],
     ['public key', { publicKey: 'changed' }],
     ['fingerprint', { fingerprint: 'changed' }],
   ])('rejects a run-time whoami %s mismatch', async (_field, change) => {
@@ -686,6 +685,52 @@ describe('external agent server agents', () => {
       verifyAgentActivation(store, 'external', registry(), registry()),
     ).rejects.toMatchObject({
       code: 'verification_failed',
+    });
+  });
+
+  it('accepts an Ory relink and refreshes rotated signing metadata', async () => {
+    const store = freshStore();
+    const configDir = writeExternalConfig(externalConfig());
+    await attachExternalAgent(store, registry(), {
+      name: 'external',
+      configDir,
+    });
+    writeFileSync(
+      join(configDir, 'moltnet.json'),
+      JSON.stringify(
+        externalConfig({
+          keys: {
+            public_key: 'rotated-public',
+            private_key: 'rotated-seed',
+            fingerprint: 'ROTATED-FP',
+          },
+        }),
+      ),
+    );
+    connectMock.mockResolvedValueOnce({
+      agents: {
+        whoami: vi.fn().mockResolvedValue({
+          ...whoami,
+          identityId: 'replacement-identity',
+          publicKey: 'rotated-public',
+          fingerprint: 'ROTATED-FP',
+        }),
+      },
+    });
+
+    await expect(
+      verifyAgentActivation(store, 'external', registry(), registry()),
+    ).resolves.toMatchObject({
+      activation: {
+        subjectId: 'agent-1',
+        publicKey: 'rotated-public',
+        fingerprint: 'ROTATED-FP',
+      },
+    });
+    expect(store.readActivation('external')).toMatchObject({
+      subjectId: 'agent-1',
+      publicKey: 'rotated-public',
+      fingerprint: 'ROTATED-FP',
     });
   });
 

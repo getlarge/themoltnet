@@ -45,7 +45,8 @@ describe('credentials / config', () => {
   }
 
   const sampleConfig: MoltNetConfig = {
-    identity_id: 'uuid-123',
+    subject_id: 'uuid-123',
+    subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00.000Z',
     oauth2: {
       client_id: 'client-id',
@@ -76,9 +77,14 @@ describe('credentials / config', () => {
       // Arrange
       const dir = configDir();
       await mkdir(dir, { recursive: true });
+      const {
+        subject_id: _subjectId,
+        subject_type: _subjectType,
+        ...rest
+      } = sampleConfig;
       await writeFile(
         join(dir, 'moltnet.json'),
-        JSON.stringify(sampleConfig, null, 2),
+        JSON.stringify({ ...rest, identity_id: 'legacy-identity' }, null, 2),
       );
 
       // Act
@@ -87,7 +93,7 @@ describe('credentials / config', () => {
 
       // Assert
       expect(result).not.toBeNull();
-      expect(result!.identity_id).toBe('uuid-123');
+      expect(result!.identity_id).toBe('legacy-identity');
       expect(result!.oauth2?.client_id).toBe('client-id');
     });
 
@@ -112,8 +118,8 @@ describe('credentials / config', () => {
       const dir = configDir();
       await mkdir(dir, { recursive: true });
 
-      const oldConfig = { ...sampleConfig, identity_id: 'old-uuid' };
-      const newConfig = { ...sampleConfig, identity_id: 'new-uuid' };
+      const oldConfig = { ...sampleConfig, subject_id: 'old-uuid' };
+      const newConfig = { ...sampleConfig, subject_id: 'new-uuid' };
 
       await writeFile(
         join(dir, 'credentials.json'),
@@ -130,7 +136,7 @@ describe('credentials / config', () => {
 
       // Assert
       expect(result).not.toBeNull();
-      expect(result!.identity_id).toBe('new-uuid');
+      expect(result!.subject_id).toBe('new-uuid');
     });
 
     it('returns null when neither file exists', async () => {
@@ -154,7 +160,7 @@ describe('credentials / config', () => {
       );
 
       const { readConfig } = await import('../src/credentials.js');
-      expect((await readConfig())?.identity_id).toBe('uuid-123');
+      expect((await readConfig())?.subject_id).toBe('uuid-123');
     });
   });
 
@@ -168,7 +174,8 @@ describe('credentials / config', () => {
       expect(path).toBe(join(configDir(), 'moltnet.json'));
       const content = await readFile(path, 'utf-8');
       const parsed = JSON.parse(content);
-      expect(parsed.identity_id).toBe('uuid-123');
+      expect(parsed.subject_id).toBe('uuid-123');
+      expect(parsed).not.toHaveProperty('identity_id');
     });
 
     it.runIf(process.platform !== 'win32')(
@@ -239,7 +246,7 @@ describe('credentials / config', () => {
         public_key_path: '/path/to/pub',
       });
       // Original fields preserved
-      expect(result!.identity_id).toBe('uuid-123');
+      expect(result!.subject_id).toBe('uuid-123');
     });
   });
 });

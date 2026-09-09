@@ -399,7 +399,7 @@ func TestSignAndCreateEntry_Unsigned(t *testing.T) {
 func TestResolveSignerRejectsMissingKeyBeforeAPISideEffects(t *testing.T) {
 	t.Setenv(signerURLEnv, "")
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "x"}, credPath); err != nil {
+	if _, err := WriteConfigTo(&CredentialsFile{SubjectID: "x"}, credPath); err != nil {
 		t.Fatal(err)
 	}
 	_, err := resolveSigner(credPath)

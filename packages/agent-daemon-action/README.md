@@ -124,9 +124,10 @@ environment; it does not and cannot choose a GitHub Environment.
 
 **An agent key is required.** The daemon accepts no other credential
 (#2160): OAuth2 client credentials carry the full 17-scope agent grant against
-a six-scope need, and `config init-from-env` writes no `agent_key_ref` for the
-daemon to use. The action fails immediately, naming the command that mints a
-key, rather than letting that surface later as a daemon startup error.
+a six-scope need, and a config materialized from OAuth variables does not gain
+an `agent_key_ref` from a literal `MOLTNET_AGENT_KEY`. The action fails
+immediately, naming the command that mints a key, rather than letting that
+surface later as a daemon startup error.
 
 Provide the key as either `MOLTNET_AGENT_KEY` (the secret) or
 `MOLTNET_AGENT_KEY_REF` (a `<provider>:<key>` reference), and the base64
@@ -160,7 +161,8 @@ routing](#multi-agent-routing) below.
 | `MOLTNET_AGENT_NAME`                                                                                                                  | variable | Agent name (matches `.moltnet/<name>/`).                                                                                                                                                                                                          |
 | `MOLTNET_AGENT_KEY`                                                                                                                   | secret   | **Required** (or `MOLTNET_AGENT_KEY_REF`). Revocable agent bearer key, preferably bound to `MOLTNET_TEAM_ID`. The daemon accepts no other credential; OAuth fields cannot replace it. Mutually exclusive with the `_REF` form.                    |
 | `MOLTNET_AGENT_KEY_REF`                                                                                                               | config   | `<provider>:<key>` reference to the agent key, resolved through the host secret provider. Alternative to `MOLTNET_AGENT_KEY`; setting both is rejected.                                                                                           |
-| `MOLTNET_IDENTITY_ID`                                                                                                                 | secret   | Agent's MoltNet identity UUID.                                                                                                                                                                                                                    |
+| `MOLTNET_SUBJECT_ID`                                                                                                                  | secret   | Durable MoltNet agent ID (`agents.id`) used as the local config and credential anchor.                                                                                                                                                            |
+| `MOLTNET_SUBJECT_TYPE`                                                                                                                | variable | Must be `agent` when `MOLTNET_SUBJECT_ID` is set.                                                                                                                                                                                                 |
 | `MOLTNET_CLIENT_ID`                                                                                                                   | secret   | OAuth2 client id. The SDK reads it from env and runs the client_credentials flow.                                                                                                                                                                 |
 | `MOLTNET_CLIENT_SECRET`                                                                                                               | secret   | OAuth2 client secret.                                                                                                                                                                                                                             |
 | `MOLTNET_PUBLIC_KEY`                                                                                                                  | secret   | Agent's Ed25519 public key (PEM).                                                                                                                                                                                                                 |

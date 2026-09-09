@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { resolveAgentIdentity } from './agent-identity.js';
 
 const whoami = {
-  identityId: 'id-1',
+  subjectId: 'agent-1',
+  subjectType: 'agent',
   publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
   fingerprint: '1671-B080-99BF-4270',
 };
@@ -23,7 +24,7 @@ describe('resolveAgentIdentity', () => {
     });
   });
 
-  it('falls back to host git config, then to the derived bot email', () => {
+  it('uses existing host git config and only defaults missing authorship', () => {
     expect(
       resolveAgentIdentity({
         agentName: 'legreffier',
@@ -31,13 +32,11 @@ describe('resolveAgentIdentity', () => {
         hostGit: { name: 'LeGreffier', email: 'h@x' },
       }),
     ).toMatchObject({ gitName: 'LeGreffier', gitEmail: 'h@x' });
-    expect(resolveAgentIdentity({ agentName: 'legreffier', whoami })).toEqual({
-      agentName: 'legreffier',
-      identityId: 'id-1',
-      publicKey: whoami.publicKey,
-      fingerprint: whoami.fingerprint,
+    expect(
+      resolveAgentIdentity({ agentName: 'legreffier', whoami }),
+    ).toMatchObject({
       gitName: 'legreffier',
-      gitEmail: 'id-1+legreffier[bot]@users.noreply.github.com',
+      gitEmail: 'legreffier@localhost.invalid',
     });
   });
 
@@ -77,7 +76,24 @@ describe('resolveAgentIdentity', () => {
       }),
     ).toThrow(/git author/);
     expect(() =>
-      resolveAgentIdentity({ agentName: 'a', whoami: { identityId: 'x' } }),
+      resolveAgentIdentity({
+        agentName: 'a',
+        whoami: { subjectId: 'x', subjectType: 'agent' },
+      }),
     ).toThrow(/publicKey/);
+  });
+
+  it('returns the versioned canonical subject shape', () => {
+    expect(
+      resolveAgentIdentity({
+        agentName: 'legreffier',
+        whoami,
+        hostGit: { name: 'LeGreffier', email: 'h@x' },
+      }),
+    ).toMatchObject({
+      protocolVersion: 1,
+      subjectId: 'agent-1',
+      subjectType: 'agent',
+    });
   });
 });

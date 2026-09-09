@@ -314,7 +314,7 @@ describe('credential binding table', () => {
   it('derives stable keys per kind', () => {
     expect(
       expectedSecretKey('oauth2-client-secret', {
-        identityId: 'id',
+        subjectId: 'id',
         clientId: 'c',
       }),
     ).toBe('oauth2/id/c');
@@ -360,7 +360,7 @@ describe('credential binding table', () => {
 });
 
 describe('agent key binding and env reference parsing', () => {
-  it('binds agent keys to the identity id', () => {
+  it('binds agent keys to the durable subject id', () => {
     expect(agentKeyKey('id-1')).toBe('agent-key/id-1');
     for (const reference of [
       { provider: 'os-keyring', key: 'agent-key/id-1' },
@@ -368,7 +368,7 @@ describe('agent key binding and env reference parsing', () => {
     ]) {
       expect(() =>
         assertSecretReferenceBinding('agent-key', reference, {
-          identityId: 'id-1',
+          subjectId: 'id-1',
         }),
       ).not.toThrow();
     }
@@ -376,7 +376,7 @@ describe('agent key binding and env reference parsing', () => {
       assertSecretReferenceBinding(
         'agent-key',
         { provider: 'os-keyring', key: 'agent-key/other' },
-        { identityId: 'id-1' },
+        { subjectId: 'id-1' },
       ),
     ).toThrow(/not bound/);
     // The env provider is unreachable for config-bound agent keys (the
@@ -385,9 +385,24 @@ describe('agent key binding and env reference parsing', () => {
       assertSecretReferenceBinding(
         'agent-key',
         { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
-        { identityId: 'id-1' },
+        { subjectId: 'id-1' },
       ),
     ).toThrow(/cannot use the env provider/);
+  });
+
+  it('requires the durable subject for subject-bound keys', () => {
+    expect(
+      expectedSecretKey('oauth2-client-secret', {
+        subjectId: 'subject-1',
+        clientId: 'client-1',
+      }),
+    ).toBe('oauth2/subject-1/client-1');
+    expect(
+      expectedSecretKey('agent-key', {
+        subjectId: 'subject-1',
+      }),
+    ).toBe('agent-key/subject-1');
+    expect(() => expectedSecretKey('agent-key', {})).toThrow(/subjectId/);
   });
 
   it('parses <provider>:<key> references and rejects malformed ones', () => {

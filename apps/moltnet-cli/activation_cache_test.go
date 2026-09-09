@@ -522,7 +522,8 @@ func setupActivationCacheFixtureWithIdentity(
 	}
 	server, identityAnswer := startActivationIdentityServer(t)
 	creds := CredentialsFile{
-		IdentityID: fixtureIdentityID,
+		SubjectID:   fixtureSubjectID,
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     "cid",
 			ClientSecret: "secret",
@@ -586,14 +587,14 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	// is the reference that has to resolve. The OAuth2 secret stays keyring-
 	// backed and is only recorded, which keeps os-keyring covered as a provider
 	// name without needing a keyring on CI.
-	storeFixtureFileSecret(t, AgentKeyKey(fixtureIdentityID), "fixture-agent-key")
+	storeFixtureFileSecret(t, AgentKeyKey(fixtureSubjectID), "fixture-agent-key")
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2.ClientSecret = ""
-		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "os-keyring", Key: OAuth2SecretKey(fixtureIdentityID, "cid")}
+		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "os-keyring", Key: OAuth2SecretKey(fixtureSubjectID, "cid")}
 		creds.Keys.PrivateKey = ""
 		creds.Keys.PrivateKeyRef = &SecretReference{Provider: "file", Key: IdentitySeedKey("SHA256:testfingerprint")}
 		creds.GitHub = &GitHubSection{AppID: "123", InstallationID: "456", PrivateKeyPath: filepath.Join(dir, "app.pem")}
-		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureIdentityID)}
+		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureSubjectID)}
 	})
 
 	var out bytes.Buffer
@@ -689,9 +690,9 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 	// File-backed so refresh can authenticate with it without a keyring;
 	// os-keyring recording stays covered by
 	// TestAgentsActivationRecordsPerKindCredentialProviders.
-	storeFixtureFileSecret(t, AgentKeyKey(fixtureIdentityID), "fixture-agent-key")
+	storeFixtureFileSecret(t, AgentKeyKey(fixtureSubjectID), "fixture-agent-key")
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
-		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureIdentityID)}
+		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureSubjectID)}
 	})
 	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
@@ -760,24 +761,16 @@ func TestAgentsActivationValidateWithoutJSONStaysQuietOnStdout(t *testing.T) {
 	}
 }
 
-func TestAgentsActivationRefreshRejectsServerIdentityMismatch(t *testing.T) {
-	// Arrange: the local document claims a fingerprint the server does not
-	// attribute to this credential — the exact case a local-only check cannot
-	// catch, because whoever edited the file is trusted by the filesystem.
+func TestAgentsActivationRefreshRejectsServerSubjectMismatch(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		mutate  func(*activationIdentityResponse)
 		wantMsg string
 	}{
 		{
-			name:    "fingerprint",
-			mutate:  func(a *activationIdentityResponse) { a.Fingerprint = "SHA256:someoneelse" },
-			wantMsg: "local fingerprint does not match",
-		},
-		{
-			name:    "public key",
-			mutate:  func(a *activationIdentityResponse) { a.PublicKey = "ed25519:someoneelse" },
-			wantMsg: "local public key does not match",
+			name:    "subject id",
+			mutate:  func(a *activationIdentityResponse) { a.SubjectID = "00000000-0000-4000-8000-0000000000bb" },
+			wantMsg: "local subject_id does not match",
 		},
 		{
 			name:    "human subject",
@@ -794,7 +787,7 @@ func TestAgentsActivationRefreshRejectsServerIdentityMismatch(t *testing.T) {
 
 			// Assert.
 			if err == nil {
-				t.Fatal("expected refresh to reject an identity the server does not confirm")
+				t.Fatal("expected refresh to reject a subject the server does not confirm")
 			}
 			if !strings.Contains(err.Error(), tc.wantMsg) {
 				t.Fatalf("error = %v, want it to mention %q", err, tc.wantMsg)
@@ -803,7 +796,49 @@ func TestAgentsActivationRefreshRejectsServerIdentityMismatch(t *testing.T) {
 	}
 }
 
-func TestAgentsActivationRefreshPinsVerifiedIdentity(t *testing.T) {
+func TestAgentsActivationRefreshAllowsRotatedOryIdentityOnly(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		mutate func(*activationIdentityResponse)
+	}{
+		{name: "identity id", mutate: func(a *activationIdentityResponse) {
+			a.IdentityID = "00000000-0000-4000-8000-0000000000bb"
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir, _, identity := setupActivationCacheFixtureWithIdentity(t)
+			tc.mutate(identity)
+			if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+				t.Fatalf("refresh after rotation: %v", err)
+			}
+			if _, err := os.Stat(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")); err != nil {
+				t.Fatalf("rotation did not produce a refreshed cache: %v", err)
+			}
+		})
+	}
+}
+
+func TestAgentsActivationRefreshRejectsSigningKeyMismatch(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		mutate  func(*activationIdentityResponse)
+		wantMsg string
+	}{
+		{name: "public key", mutate: func(a *activationIdentityResponse) { a.PublicKey = "ed25519:rotated" }, wantMsg: "local public key"},
+		{name: "fingerprint", mutate: func(a *activationIdentityResponse) { a.Fingerprint = "SHA256:rotated" }, wantMsg: "local fingerprint"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, identity := setupActivationCacheFixtureWithIdentity(t)
+			tc.mutate(identity)
+			err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+			if err == nil || !strings.Contains(err.Error(), tc.wantMsg) {
+				t.Fatalf("error = %v, want %q", err, tc.wantMsg)
+			}
+		})
+	}
+}
+
+func TestAgentsActivationRefreshPinsVerifiedSubject(t *testing.T) {
 	// Arrange.
 	dir := setupActivationCacheFixture(t)
 
@@ -822,20 +857,38 @@ func TestAgentsActivationRefreshPinsVerifiedIdentity(t *testing.T) {
 	if err := json.Unmarshal(data, &cache); err != nil {
 		t.Fatalf("unmarshal cache: %v", err)
 	}
-	if cache.VerifiedIdentityID != fixtureIdentityID {
-		t.Fatalf("verifiedIdentityId = %q, want %q", cache.VerifiedIdentityID, fixtureIdentityID)
+	if cache.VerifiedSubjectID != fixtureSubjectID {
+		t.Fatalf("verifiedSubjectId = %q, want %q", cache.VerifiedSubjectID, fixtureSubjectID)
 	}
-	if cache.VerifiedPublicKey != "ed25519:public" {
-		t.Fatalf("verifiedPublicKey = %q", cache.VerifiedPublicKey)
+	if cache.VerifiedSubjectType != SubjectTypeAgent {
+		t.Fatalf("verifiedSubjectType = %q", cache.VerifiedSubjectType)
 	}
-	if cache.IdentityVerifiedAt == "" {
-		t.Fatal("identityVerifiedAt is empty")
+	if cache.SubjectVerifiedAt == "" {
+		t.Fatal("subjectVerifiedAt is empty")
 	}
 }
 
-func TestAgentsActivationRefreshRejectsStaleEnvFingerprint(t *testing.T) {
-	// Arrange: a stale MOLTNET_FINGERPRINT would previously be pinned into the
-	// cache as though it had been checked.
+func TestAgentsActivationRefreshUpgradesLegacyIdentityPin(t *testing.T) {
+	dir := setupActivationCacheFixture(t)
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.SubjectID = ""
+		creds.SubjectType = ""
+	})
+	addLegacyIdentityToConfigFile(t, filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "moltnet.json"), fixtureIdentityID)
+
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+		t.Fatalf("refresh legacy config: %v", err)
+	}
+	cache, err := readActivationCache(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cache.VerifiedSubjectID != fixtureSubjectID || cache.VerifiedSubjectType != SubjectTypeAgent {
+		t.Fatalf("legacy config pinned %+v", cache)
+	}
+}
+
+func TestAgentsActivationRefreshReplacesStaleEnvFingerprint(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
 	body, err := os.ReadFile(envPath)
@@ -850,12 +903,15 @@ func TestAgentsActivationRefreshRejectsStaleEnvFingerprint(t *testing.T) {
 	// Act.
 	err = runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
 
-	// Assert.
-	if err == nil {
-		t.Fatal("expected a stale MOLTNET_FINGERPRINT to be rejected")
+	if err != nil {
+		t.Fatalf("refresh with stale environment fingerprint: %v", err)
 	}
-	if !strings.Contains(err.Error(), "but the server reports") {
-		t.Fatalf("error = %v", err)
+	cache, err := readActivationCache(filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cache.Fingerprint != "SHA256:testfingerprint" {
+		t.Fatalf("fingerprint = %q", cache.Fingerprint)
 	}
 }
 
@@ -882,7 +938,7 @@ func TestAgentsActivationRefreshResolvesOSKeyringAgentKey(t *testing.T) {
 	// Arrange.
 	dir := setupActivationCacheFixture(t)
 	provider := OSKeyringSecretProvider{}
-	key := AgentKeyKey(fixtureIdentityID)
+	key := AgentKeyKey(fixtureSubjectID)
 	if err := provider.Set(key, "fixture-agent-key"); err != nil {
 		t.Fatalf("store agent key in the OS keyring: %v", err)
 	}
@@ -997,7 +1053,7 @@ func TestAgentsActivationValidateRejectsUnverifiedCache(t *testing.T) {
 	if err := json.Unmarshal(raw, &cache); err != nil {
 		t.Fatal(err)
 	}
-	delete(cache, "verifiedIdentityId")
+	delete(cache, "verifiedSubjectId")
 	patched, err := json.Marshal(cache)
 	if err != nil {
 		t.Fatal(err)

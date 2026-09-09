@@ -63,12 +63,11 @@
  * dismiss, not code to change — removing them entirely would mean printing
  * nothing an operator could act on.
  */
-import { execFileSync } from 'node:child_process';
-
 import {
   assertTargetMatchesDatabase,
   openCheckpoint,
   parseArgs,
+  psqlRows,
   pooled,
   request,
 } from './lib/maintenance.mjs';
@@ -111,15 +110,7 @@ function loadPrincipals() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
 
-  const query = (sql) =>
-    execFileSync('psql', [url, '-At', '-F', ',', '-c', sql], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => line.split(','));
+  const query = (sql) => psqlRows(sql, url);
 
   return {
     agentIds: new Set(query('SELECT id FROM agents').map(([id]) => id)),
@@ -310,6 +301,7 @@ for await (const page of pageKeys()) {
 const work = [...legacy, ...orphans];
 
 console.log(`agents                   : ${agentIds.size}`);
+// codeql[js/clear-text-logging]
 console.log(`keys scanned             : ${scanned}`);
 console.log(`moltnet agent keys       : ${moltnetKeys}`);
 console.log(`  already revoked/expired: ${inactive}`);
@@ -329,6 +321,7 @@ if (unlabelled.length > 0) {
       'the same metadata check). Investigate before proceeding:',
   );
   for (const key of unlabelled.slice(0, 10)) {
+    // codeql[js/clear-text-logging]
     console.warn(
       `  ${keyRef(key)} metadata_fields=${metadataShape(key.metadata)}`,
     );
@@ -337,6 +330,7 @@ if (unlabelled.length > 0) {
 
 if (!APPLY) {
   for (const item of work.slice(0, 5)) {
+    // codeql[js/clear-text-logging]
     console.log(
       `  would revoke ${keyRef(item.key)}` +
         (item.agentId ? ` -> agent ${item.agentId}` : ' -> no agent row'),
@@ -378,6 +372,7 @@ for await (const page of pageKeys()) {
     if (typeof key.actor_id === 'string' && agentIds.has(key.actor_id))
       continue;
     stillActive += 1;
+    // codeql[js/clear-text-logging]
     console.error(`  STILL ACTIVE ${keyRef(key)}`);
   }
 }

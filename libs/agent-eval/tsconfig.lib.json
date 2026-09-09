@@ -24,7 +24,7 @@
       "path": "../runtime-profiles/tsconfig.lib.json"
     },
     {
-      "path": "../sdk/tsconfig.lib.json"
+      "path": "../agent-config/tsconfig.lib.json"
     },
     {
       "path": "../tasks/tsconfig.lib.json"

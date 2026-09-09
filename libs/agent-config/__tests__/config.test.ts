@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readdir, readFile, stat } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type GitHubConfig,
   type KeysConfig,
+  type LegacyMoltNetConfig,
   type MoltNetConfig,
   updateConfigSection,
   updateGitHubConfig,
@@ -17,7 +25,8 @@ import {
 
 function config(): MoltNetConfig {
   return {
-    identity_id: 'identity',
+    subject_id: 'subject-1',
+    subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00Z',
     oauth2: { client_id: 'client', client_secret: 'plaintext' },
     keys: { public_key: 'pub', private_key: 'priv', fingerprint: 'fp' },
@@ -29,6 +38,21 @@ function config(): MoltNetConfig {
 }
 
 describe('OAuth2 config updates', () => {
+  it('round-trips a canonical subject anchor without identity_id', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const path = await writeConfig(config(), dir);
+    const stored = JSON.parse(await readFile(path, 'utf8')) as Record<
+      string,
+      unknown
+    >;
+
+    expect(stored).toMatchObject({
+      subject_id: 'subject-1',
+      subject_type: 'agent',
+    });
+    expect(stored).not.toHaveProperty('identity_id');
+  });
+
   it('round-trips an agent-key-only config without an OAuth2 section', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     const { oauth2: _oauth2, ...agentKeyOnly } = config();
@@ -38,7 +62,7 @@ describe('OAuth2 config updates', () => {
         ...agentKeyOnly,
         agent_key_ref: {
           provider: 'file',
-          key: 'agent-key/identity',
+          key: 'agent-key/subject-1',
         },
       },
       dir,
@@ -48,7 +72,7 @@ describe('OAuth2 config updates', () => {
     expect(stored.oauth2).toBeUndefined();
     expect(stored.agent_key_ref).toEqual({
       provider: 'file',
-      key: 'agent-key/identity',
+      key: 'agent-key/subject-1',
     });
   });
 
@@ -107,10 +131,65 @@ describe('OAuth2 config updates', () => {
     await mkdir(join(blocked, 'moltnet.json'));
 
     await expect(
-      writeConfig({ ...config(), identity_id: 'other' }, blocked),
+      writeConfig({ ...config(), subject_id: 'other' }, blocked),
     ).rejects.toThrow();
     expect(await readFile(join(dir, 'moltnet.json'), 'utf8')).toBe(before);
     expect(await readdir(blocked)).toEqual(['moltnet.json']);
+  });
+
+  it('keeps the legacy read shape out of canonical writers', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const {
+      subject_id: _subjectId,
+      subject_type: _subjectType,
+      ...rest
+    } = config();
+    const legacy: LegacyMoltNetConfig = {
+      ...rest,
+      identity_id: 'legacy-identity',
+    };
+
+    await expect(
+      writeConfig(legacy as unknown as MoltNetConfig, dir),
+    ).rejects.toThrow(/moltnet config migrate/);
+    expect(await readdir(dir)).toEqual([]);
+  });
+
+  it.each([
+    ['section', (dir: string) => updateConfigSection('git', {}, dir)],
+    [
+      'oauth2',
+      (dir: string) =>
+        updateOAuth2Config(
+          { client_id: 'client', client_secret: 'secret' },
+          dir,
+        ),
+    ],
+    [
+      'keys',
+      (dir: string) =>
+        updateKeysConfig(
+          { public_key: 'pub', private_key: 'seed', fingerprint: 'fp' },
+          dir,
+        ),
+    ],
+    [
+      'github',
+      (dir: string) =>
+        updateGitHubConfig(
+          { app_id: '1', installation_id: '2', private_key_path: '/pem' },
+          dir,
+        ),
+    ],
+  ])('keeps legacy configs out of the %s updater', async (_name, update) => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const { subject_id: _id, subject_type: _type, ...rest } = config();
+    await writeFile(
+      join(dir, 'moltnet.json'),
+      JSON.stringify({ ...rest, identity_id: 'legacy-identity' }),
+    );
+
+    await expect(update(dir)).rejects.toThrow(/moltnet config migrate/);
   });
 });
 

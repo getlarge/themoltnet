@@ -297,7 +297,8 @@ export class RunManager {
         );
       }
     }
-    env['MOLTNET_EXPECTED_IDENTITY_ID'] = activation.identityId;
+    env['MOLTNET_EXPECTED_SUBJECT_ID'] = activation.subjectId;
+    env['MOLTNET_EXPECTED_SUBJECT_TYPE'] = 'agent';
     env['MOLTNET_EXPECTED_PUBLIC_KEY'] = activation.publicKey;
     env['MOLTNET_EXPECTED_FINGERPRINT'] = activation.fingerprint;
     env['MOLTNET_SUPERVISED_RUN'] = '1';

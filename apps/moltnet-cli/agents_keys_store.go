@@ -31,7 +31,7 @@ type agentKeyStoreOpts struct {
 // destination or credentials file fails without minting a key.
 type agentKeyStoreTarget struct {
 	credentialsPath string
-	identityID      string
+	subjectID       string
 	ref             SecretReference
 	providers       *SecretProviderRegistry
 	writeRecovery   func(agentKeyRecovery) (string, error)
@@ -87,8 +87,9 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(creds.IdentityID) == "" {
-		return nil, fmt.Errorf("--store requires identity_id in %s", credentialsPath)
+	subjectID, ok := creds.CanonicalSubject()
+	if !ok {
+		return nil, fmt.Errorf("--store requires subject_type=agent and subject_id in %s; run `moltnet config migrate` first", credentialsPath)
 	}
 	writeRecovery := opts.writeRecovery
 	if writeRecovery == nil {
@@ -96,8 +97,8 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	}
 	return &agentKeyStoreTarget{
 		credentialsPath: credentialsPath,
-		identityID:      creds.IdentityID,
-		ref:             SecretReference{Provider: destination, Key: AgentKeyKey(creds.IdentityID)},
+		subjectID:       subjectID,
+		ref:             SecretReference{Provider: destination, Key: AgentKeyKey(subjectID)},
 		providers:       providers,
 		writeRecovery:   writeRecovery,
 	}, nil
@@ -107,8 +108,8 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 // credentials file. Called before the network for create (the flag value) and
 // after for rotate (the server's answer).
 func (t *agentKeyStoreTarget) requireAgentID(agentID string) error {
-	if strings.TrimSpace(agentID) != t.identityID {
-		return fmt.Errorf("--store binds agent_key_ref to identity %s in %s, but the key authenticates agent %s", t.identityID, t.credentialsPath, agentID)
+	if strings.TrimSpace(agentID) != t.subjectID {
+		return fmt.Errorf("--store binds agent_key_ref to subject %s in %s, but the key authenticates agent %s", t.subjectID, t.credentialsPath, agentID)
 	}
 	return nil
 }
@@ -139,7 +140,7 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 	return nil
 }
 
-var errAgentKeyIdentityChanged = errors.New("credentials file identity_id changed since the key was minted")
+var errAgentKeySubjectChanged = errors.New("credentials file subject anchor changed since the key was minted")
 
 func (t *agentKeyStoreTarget) updateCredentials() error {
 	lock, err := safefile.Acquire(t.credentialsPath)
@@ -155,8 +156,8 @@ func (t *agentKeyStoreTarget) updateCredentials() error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(creds.IdentityID) != t.identityID {
-		return errAgentKeyIdentityChanged
+	if subjectID, ok := creds.CanonicalSubject(); !ok || subjectID != t.subjectID {
+		return errAgentKeySubjectChanged
 	}
 	updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
 		refJSON, err := json.Marshal(t.ref)

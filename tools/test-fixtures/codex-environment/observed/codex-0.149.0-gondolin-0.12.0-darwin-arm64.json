@@ -30,7 +30,7 @@
     ],
     "authenticatedAgentSubject": true,
     "authenticatedHostCall": true,
-    "authenticatedIdentityMatched": true,
+    "authenticatedSubjectBindingMatched": true,
     "credentialPreflight": "ready",
     "deniedOperations": ["agent-signing/sign-diary-entry"],
     "gitCommitSignatureVerified": true

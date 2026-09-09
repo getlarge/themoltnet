@@ -23,7 +23,11 @@ fi
 # and the agent directory doesn't exist yet.
 # Set MOLTNET_AGENT_NAME and credential env vars in Claude Code project settings.
 identity="${MOLTNET_ACTIVE_IDENTITY:-${MOLTNET_AGENT_NAME:-}}"
-if [ -n "$identity" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
+if [ -n "$identity" ] && {
+  [ -n "${MOLTNET_SUBJECT_ID:-}" ] ||
+    [ -n "${MOLTNET_SUBJECT_TYPE:-}" ] ||
+    [ -n "${MOLTNET_IDENTITY_ID:-}" ]
+}; then
   # The alias becomes a path segment and is written into a file that is later
   # sourced, so validate it before either use. This is the same grammar the Go
   # CLI enforces (agentNamePattern).

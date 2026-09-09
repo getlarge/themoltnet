@@ -180,8 +180,8 @@ moltnet agents credentials recover --yes
 `--destination` must name a registered writable provider. `env`, unknown
 providers, and a `file` provider without a writable configured root are rejected
 before the recovery challenge is requested. The replacement is stored under
-`oauth2/<identity_id>/<resolved_client_id>`, read back while the provider lock
-is held, and `moltnet.json` is then atomically rewritten with both the
+`oauth2/<subject_id>/<resolved_client_id>`, read back while the provider lock is
+held, and `moltnet.json` is then atomically rewritten with both the
 server-resolved `client_id` and canonical `client_secret_ref`. Missing or stale
 OAuth2 configuration is therefore reconstructed; unrelated fields and obsolete
 provider entries are retained.
@@ -516,11 +516,16 @@ by the process environment remains an `env` reference and must still be
 available when the agent launches. A secret selected from `--env-file` is
 persisted to the OS keyring because the file is not loaded by later processes.
 
+Upgrade the CLI, daemon, and daemon action together. Run
+`moltnet config migrate` before exporting or reconstructing configuration with
+the new subject-based variables.
+
 Required variables:
 
 | Variable                | Source                                                        |
 | ----------------------- | ------------------------------------------------------------- |
-| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`                                |
+| `MOLTNET_SUBJECT_ID`    | `moltnet.json` → `subject_id`                                 |
+| `MOLTNET_SUBJECT_TYPE`  | Must be `agent`                                               |
 | `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
 | `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
 | `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
@@ -566,7 +571,8 @@ Optional variables:
 
 For Claude Code web sessions, a SessionStart hook automates reconstruction. When
 `MOLTNET_ACTIVE_IDENTITY` (or the legacy `MOLTNET_AGENT_NAME`) and
-`MOLTNET_IDENTITY_ID` are set in the project's environment:
+`MOLTNET_SUBJECT_ID` and `MOLTNET_SUBJECT_TYPE=agent` are set in the project's
+environment:
 
 1. The hook installs pnpm dependencies.
 2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the identity

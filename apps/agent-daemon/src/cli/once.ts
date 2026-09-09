@@ -165,7 +165,7 @@ export async function runOnce(
         const whoami = await validateStartupBinding({
           agent: resolvedContext.agent,
           teamId: values.team,
-          expectedIdentity: cfg.expectedIdentity,
+          expectedAgent: cfg.expectedAgent,
         });
         gate = 'resolve_signing_material';
         const privateKey = await resolveExecutorSigningPrivateKey({

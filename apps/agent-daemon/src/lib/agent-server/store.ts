@@ -9,13 +9,12 @@
  *     `MoltNetConfig` documents shared with the released Go CLI;
  *   - `agent-server.json` activations keep aliases and external paths separate;
  *   - secret keys follow the canonical `libs/sdk` naming
- *     (`agent-key/<identityId>`, `identity/<fingerprint>/seed`);
+ *     (`agent-key/<subjectId>`, `identity/<fingerprint>/seed`);
  *   - the index is derived state — identity is re-verified against the API
  *     on activation, never trusted from local metadata alone.
  */
 import { randomBytes } from 'node:crypto';
 import {
-  cpSync,
   lstatSync,
   mkdirSync,
   readdirSync,
@@ -34,7 +33,7 @@ import {
   type MoltNetConfig,
 } from '@themoltnet/sdk';
 
-export const AGENT_SERVER_STATE_VERSION = 1;
+export const AGENT_SERVER_STATE_VERSION = 2;
 export const IDENTITY_SELECTOR_VERSION = 1;
 
 // Imported, not restated. An alias is a directory name in a store the Go CLI,
@@ -90,9 +89,7 @@ export class AgentServerStoreError extends Error {
  * so honouring XDG here gave one application two config roots: on a machine
  * with the variable set, the daemon wrote identities the CLI and SDK could not
  * read. `MOLTNET_AGENT_SERVER_ROOT` remains the explicit escape hatch for a
- * genuinely custom location. The XDG parameter is gone rather than ignored: an
- * accepted-but-discarded argument reads like it still works. Callers adopting
- * state from the old root pass it to ensure() instead.
+ * genuinely custom location.
  */
 export function resolveAgentServerRoot(input: { root?: string }): string {
   const override = input.root?.trim();
@@ -100,39 +97,6 @@ export function resolveAgentServerRoot(input: { root?: string }): string {
   // Delegates to @moltnet/agent-config instead of rebuilding the path, so the
   // daemon cannot drift from the CLI and SDK the way it did with XDG.
   return getConfigDir();
-}
-
-/** The pre-#1834 root that honoured XDG_CONFIG_HOME, if it differs. */
-export function legacyXdgAgentServerRoot(xdgConfigHome: string): string | null {
-  const xdg = xdgConfigHome.trim();
-  if (!xdg) return null;
-  const legacy = join(xdg, 'moltnet');
-  return legacy === resolveAgentServerRoot({}) ? null : legacy;
-}
-
-/** True when a root holds agent-server state worth preserving. */
-function hasAgentServerState(root: string): boolean {
-  // identity-selector.json counts: a root holding only a persisted default is
-  // not empty. Omitting it let adoption treat such a root as free and rename
-  // the legacy tree over it, destroying the operator's selection.
-  for (const child of [
-    'agent-server.json',
-    'identity-selector.json',
-    'identities',
-    'agents',
-  ]) {
-    try {
-      if (readdirSync(join(root, child)).length > 0) return true;
-    } catch {
-      try {
-        readFileSync(join(root, child));
-        return true;
-      } catch {
-        // absent
-      }
-    }
-  }
-  return false;
 }
 
 export interface AgentServerState {
@@ -162,8 +126,7 @@ interface ActivationIdentity {
    * survives the Kratos identity being recreated.
    */
   subjectId: string;
-  /** Identity material pinned after authenticated `whoami`. */
-  identityId: string;
+  /** Current signing material confirmed by authenticated `whoami`. */
   publicKey: string;
   fingerprint: string;
   /** Team binding authenticated through whoami when the activation is made. */
@@ -304,8 +267,7 @@ export class AgentServerStore {
   }
 
   /** Create the directory layout (0700) if missing. Idempotent. */
-  ensure(options: { legacyXdgConfigHome?: string } = {}): this {
-    this.adoptLegacyXdgRoot(options.legacyXdgConfigHome ?? '');
+  ensure(): this {
     for (const dir of [
       this.root,
       this.identitiesDir,
@@ -314,104 +276,7 @@ export class AgentServerStore {
     ]) {
       mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
-    this.migrateLegacyAgentDocuments();
     return this;
-  }
-
-  /**
-   * Adopt state left at the pre-#1834 XDG root.
-   *
-   * The daemon used to resolve `$XDG_CONFIG_HOME/moltnet` while the CLI and SDK
-   * resolved `~/.config/moltnet`. Aligning the root without this would silently
-   * orphan an existing daemon's entire state — it would come up reporting zero
-   * managed agents.
-   */
-  private adoptLegacyXdgRoot(xdgConfigHome: string): void {
-    const legacyRoot = legacyXdgAgentServerRoot(xdgConfigHome);
-    if (!legacyRoot || legacyRoot === this.root) return;
-    if (!hasAgentServerState(legacyRoot)) return;
-
-    if (hasAgentServerState(this.root)) {
-      throw new AgentServerStoreError(
-        'invalid_state',
-        `agent server state exists at both ${legacyRoot} (the pre-1834 ` +
-          `XDG_CONFIG_HOME location) and ${this.root}. The daemon now shares ` +
-          `${this.root} with the CLI and SDK. Merge or remove one of them, or ` +
-          `set MOLTNET_AGENT_SERVER_ROOT to choose explicitly.`,
-      );
-    }
-
-    mkdirSync(resolve(this.root, '..'), { recursive: true, mode: 0o700 });
-
-    // An existing-but-empty target is common (a bare `mkdir -p` from packaging
-    // or a previous partial start) and would make rename fail with ENOTEMPTY
-    // even though there is nothing to lose.
-    try {
-      if (readdirSync(this.root).length === 0)
-        rmSync(this.root, { recursive: true });
-    } catch {
-      // Absent, which is the normal case.
-    }
-
-    try {
-      renameSync(legacyRoot, this.root);
-    } catch (error) {
-      // XDG_CONFIG_HOME frequently points at another filesystem (a tmpfs, a
-      // mounted volume), where rename cannot work at all. Copy then remove, so
-      // adoption does not fail with a raw EXDEV on a perfectly ordinary layout.
-      if ((error as NodeJS.ErrnoException).code !== 'EXDEV') {
-        throw new AgentServerStoreError(
-          'io_error',
-          `could not adopt the pre-1834 agent server state at ${legacyRoot}: ` +
-            `${String((error as Error).message)}. Move it to ${this.root} ` +
-            `manually, or set MOLTNET_AGENT_SERVER_ROOT to choose a root explicitly.`,
-        );
-      }
-      cpSync(legacyRoot, this.root, { recursive: true });
-      rmSync(legacyRoot, { recursive: true, force: true });
-    }
-  }
-
-  /**
-   * Migrate managed documents from the pre-#1834 `agents/<alias>.json` layout
-   * to `identities/<alias>/moltnet.json`. Without this an upgraded daemon sees
-   * zero managed agents and reports a plain "not found".
-   */
-  private migrateLegacyAgentDocuments(): void {
-    const legacyDir = join(this.root, 'agents');
-    let entries: string[];
-    try {
-      entries = readdirSync(legacyDir);
-    } catch {
-      return;
-    }
-
-    for (const entry of entries) {
-      if (!entry.endsWith('.json')) continue;
-      const alias = entry.slice(0, -'.json'.length);
-      if (!NAME_RE.test(alias)) continue;
-
-      const legacyPath = join(legacyDir, entry);
-      const target = this.agentPath(alias);
-      const existing = readJson<MoltNetConfig>(target);
-      if (existing) {
-        // Already migrated (or a genuine conflict). Never clobber the
-        // authoritative document; leave the legacy file for inspection.
-        continue;
-      }
-      const config = readJson<MoltNetConfig>(legacyPath);
-      if (!config) continue;
-      mkdirSync(join(this.identitiesDir, alias), {
-        recursive: true,
-        mode: 0o700,
-      });
-      writeJsonAtomic(target, config);
-      rmSync(legacyPath, { force: true });
-    }
-
-    if (readdirSync(legacyDir).length === 0) {
-      rmSync(legacyDir, { recursive: true, force: true });
-    }
   }
 
   // ── agent-server.json ─────────────────────────────────────────────────────────
@@ -432,19 +297,19 @@ export class AgentServerStore {
     if (!isRecord(state) || state.version !== AGENT_SERVER_STATE_VERSION) {
       throw new AgentServerStoreError(
         'invalid_state',
-        `agent-server.json version ${String(isRecord(state) ? state.version : undefined)} is not supported`,
+        `agent-server.json version ${String(isRecord(state) ? state.version : undefined)} is not supported; move agent-server.json aside, run \`moltnet config migrate\`, then add or attach the agents again`,
       );
     }
     if ('pairedOrigins' in state) {
       throw new AgentServerStoreError(
         'invalid_state',
-        'agent-server.json uses the obsolete pairing format; clear the unreleased agent server store and reconfigure it',
+        'agent-server.json uses the obsolete pairing format; move agent-server.json aside and configure the agent server again',
       );
     }
     if (!isRecord(state.pendingRegistrations) || !isRecord(state.activations)) {
       throw new AgentServerStoreError(
         'invalid_state',
-        'agent-server.json is missing the version 1 activation map; clear the unreleased agent server store and reconfigure it',
+        'agent-server.json is missing the version 2 activation map; move agent-server.json aside, run `moltnet config migrate`, then add or attach the agents again',
       );
     }
     for (const [alias, activation] of Object.entries(state.activations)) {
@@ -828,14 +693,14 @@ function validateActivation(alias: string, value: unknown): void {
   const invalid = (): never => {
     throw new AgentServerStoreError(
       'invalid_state',
-      `activation "${alias}" is not a valid version 1 activation`,
+      `activation "${alias}" is not a valid version 2 activation`,
     );
   };
   if (!isRecord(value)) invalid();
   const activation = value as Record<string, unknown>;
   if (activation.alias !== alias) invalid();
   if (
-    !['identityId', 'publicKey', 'fingerprint', 'createdAt'].every(
+    !['subjectId', 'publicKey', 'fingerprint', 'createdAt'].every(
       (field) =>
         typeof activation[field] === 'string' && activation[field].length > 0,
     )

@@ -9,7 +9,7 @@ import {
   type DaemonCredentialSource,
   detectCredentialSource,
 } from './lib/agent-context.js';
-import type { IdentityPin } from './lib/identity-pin.js';
+import type { SubjectPin } from './lib/identity-pin.js';
 
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
@@ -57,14 +57,14 @@ export interface DaemonConfig {
   credentialEnforcement: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
-  /** Identity pin supplied by the local Agent Server. */
-  expectedIdentity?: IdentityPin;
+  /** Subject pin supplied by the local Agent Server. */
+  expectedAgent?: SubjectPin;
 }
 
 export function loadConfig(): DaemonConfig {
   assertSingleCredentialForm('MOLTNET_AGENT_KEY', 'MOLTNET_AGENT_KEY_REF');
   assertSingleCredentialForm('MOLTNET_PRIVATE_KEY', 'MOLTNET_PRIVATE_KEY_REF');
-  const expectedIdentity = readExpectedIdentity();
+  const expectedAgent = readExpectedAgent();
   return {
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
@@ -84,22 +84,34 @@ export function loadConfig(): DaemonConfig {
       'MOLTNET_TRACE_IDLE_POLLING',
       process.env['MOLTNET_TRACE_IDLE_POLLING'],
     ),
-    ...(expectedIdentity ? { expectedIdentity } : {}),
+    ...(expectedAgent ? { expectedAgent } : {}),
   };
 }
 
-function readExpectedIdentity(): DaemonConfig['expectedIdentity'] {
-  const identityId = process.env['MOLTNET_EXPECTED_IDENTITY_ID']?.trim() ?? '';
-  const publicKey = process.env['MOLTNET_EXPECTED_PUBLIC_KEY']?.trim() ?? '';
-  const fingerprint = process.env['MOLTNET_EXPECTED_FINGERPRINT']?.trim() ?? '';
-  const present = [identityId, publicKey, fingerprint].filter(Boolean).length;
-  if (present === 0) return undefined;
-  if (present !== 3) {
+function readExpectedAgent(): DaemonConfig['expectedAgent'] {
+  if (process.env['MOLTNET_EXPECTED_IDENTITY_ID']?.trim()) {
     throw new Error(
-      'MOLTNET_EXPECTED_IDENTITY_ID, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT must be set together',
+      'MOLTNET_EXPECTED_IDENTITY_ID is no longer supported; set the complete MOLTNET_EXPECTED_SUBJECT_ID, MOLTNET_EXPECTED_SUBJECT_TYPE=agent, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT pin',
     );
   }
-  return { identityId, publicKey, fingerprint };
+  const subjectId = process.env['MOLTNET_EXPECTED_SUBJECT_ID']?.trim() ?? '';
+  const subjectType =
+    process.env['MOLTNET_EXPECTED_SUBJECT_TYPE']?.trim() ?? '';
+  const publicKey = process.env['MOLTNET_EXPECTED_PUBLIC_KEY']?.trim() ?? '';
+  const fingerprint = process.env['MOLTNET_EXPECTED_FINGERPRINT']?.trim() ?? '';
+  const present = [subjectId, subjectType, publicKey, fingerprint].filter(
+    Boolean,
+  ).length;
+  if (present === 0) return undefined;
+  if (present !== 4) {
+    throw new Error(
+      'MOLTNET_EXPECTED_SUBJECT_ID, MOLTNET_EXPECTED_SUBJECT_TYPE, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT must be set together',
+    );
+  }
+  if (subjectType !== 'agent') {
+    throw new Error('MOLTNET_EXPECTED_SUBJECT_TYPE must be agent');
+  }
+  return { subjectId, subjectType, publicKey, fingerprint };
 }
 
 function assertSingleCredentialForm(valueName: string, refName: string): void {
@@ -124,8 +136,6 @@ export interface AgentServerEnvConfig {
   port: string;
   allowedOrigins: string;
   root: string;
-  /** Legacy pre-1834 store root; only used to adopt state left there. */
-  xdgConfigHome: string;
   apiUrl: string;
   logLevel: string;
 }
@@ -135,7 +145,6 @@ export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
     port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',
     allowedOrigins: process.env['MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS'] ?? '',
     root: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
-    xdgConfigHome: process.env['XDG_CONFIG_HOME'] ?? '',
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
   };

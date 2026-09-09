@@ -98,7 +98,8 @@ async function setup(): Promise<void> {
 
   await writeConfig(
     {
-      identity_id: agent.identityId,
+      subject_id: agent.agentId,
+      subject_type: 'agent',
       registered_at: new Date().toISOString(),
       oauth2: {
         client_id: agent.clientId,
@@ -121,7 +122,7 @@ async function setup(): Promise<void> {
   await exportSSHKey({ configDir });
 
   // 4. Write gitconfig via setupGitIdentity (handles allowed_signers + tag signing)
-  const email = `${agent.identityId}+${AGENT_NAME}[bot]@users.noreply.github.com`;
+  const email = `${agent.agentId}+${AGENT_NAME}[bot]@users.noreply.github.com`;
   await setupGitIdentity({ configDir, name: AGENT_NAME, email });
   console.log('[eval-setup] Git identity configured');
 

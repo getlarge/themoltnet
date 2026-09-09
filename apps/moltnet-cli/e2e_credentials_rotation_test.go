@@ -18,7 +18,8 @@ func TestE2E_AgentsCredentialsRotate(t *testing.T) {
 		t.Fatalf("bootstrap dedicated rotation agent: %v", err)
 	}
 	credentialsPath, err := writeE2ECredsFile(&CredentialsFile{
-		IdentityID: agent.IdentityID,
+		SubjectID:   agent.AgentID,
+		SubjectType: SubjectTypeAgent,
 		OAuth2: CredentialsOAuth2{
 			ClientID:     agent.ClientID,
 			ClientSecret: agent.ClientSecret,

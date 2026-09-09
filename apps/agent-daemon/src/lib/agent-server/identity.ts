@@ -15,6 +15,7 @@ import {
   assertTrustedConfigApiUrl,
   deriveMcpUrl,
   identitySeedKey,
+  isCanonicalConfig,
   type MoltNetConfig,
   MoltNetError,
   register,
@@ -120,7 +121,7 @@ export async function createManagedAgent(
     );
   }
   const releaseAlias = reserveAlias(store, alias);
-  let registeredIdentityId: string | undefined;
+  let registered = false;
   try {
     let apiUrl: string;
     try {
@@ -149,18 +150,19 @@ export async function createManagedAgent(
     }
 
     const now = new Date().toISOString();
-    const { identityId, fingerprint, publicKey, privateKey } = result.identity;
-    registeredIdentityId = identityId;
+    const { subjectId, fingerprint, publicKey, privateKey } = result.identity;
+    registered = true;
     const agentKeyReference = {
       provider: FILE_SECRET_PROVIDER,
-      key: agentKeyKey(identityId),
+      key: agentKeyKey(subjectId),
     };
     const seedReference = {
       provider: FILE_SECRET_PROVIDER,
       key: identitySeedKey(fingerprint),
     };
     const config: MoltNetConfig = {
-      identity_id: identityId,
+      subject_id: subjectId,
+      subject_type: 'agent',
       registered_at: now,
       agent_key_ref: agentKeyReference,
       keys: {
@@ -186,16 +188,21 @@ export async function createManagedAgent(
     );
     assertIdentityMatches(
       whoami,
-      { identityId, publicKey, fingerprint },
+      { publicKey, fingerprint },
       'authenticated whoami',
       `new managed agent "${alias}"`,
+    );
+    assertSubjectMatches(
+      whoami,
+      config,
+      'authenticated whoami',
+      `managed config ${store.agentPath(alias)}`,
     );
     const boundTeamId = boundTeamIdFromWhoami(whoami);
     const activation: AgentActivation = {
       alias,
       source: 'managed',
       subjectId: whoami.subjectId,
-      identityId,
       publicKey,
       fingerprint,
       ...(boundTeamId ? { boundTeamId } : {}),
@@ -206,7 +213,7 @@ export async function createManagedAgent(
     return { activation, config, ...(boundTeamId ? { boundTeamId } : {}) };
   } catch (cause) {
     if (
-      !registeredIdentityId &&
+      !registered &&
       cause instanceof MoltNetError &&
       cause.statusCode !== undefined &&
       cause.statusCode >= 400 &&
@@ -222,8 +229,8 @@ export async function createManagedAgent(
     if (store.hasPendingRegistration(alias)) {
       throw new AgentServerIdentityError(
         'registration_incomplete',
-        registeredIdentityId
-          ? `identity "${registeredIdentityId}" was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
+        registered
+          ? `the remote agent was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
           : `registration for "${alias}" may be incomplete; inspect the remote API before changing its pending Agent Server record`,
         { cause },
       );
@@ -299,7 +306,6 @@ export async function reconcileManagedRegistration(
       `pending registration for "${alias}" is missing persisted secret material`,
     );
   }
-  const identity = identityFromConfig(config);
   const apiUrl = requireConfigApiUrl(config, store.agentPath(alias));
   const whoami = await callWhoami(
     connectAgent,
@@ -307,6 +313,13 @@ export async function reconcileManagedRegistration(
     store.agentPath(alias),
     signal,
   );
+  assertSubjectMatches(
+    whoami,
+    config,
+    'authenticated whoami',
+    `pending registration "${alias}" config`,
+  );
+  const identity = identityFromConfig(config);
   assertIdentityMatches(
     whoami,
     identity,
@@ -377,13 +390,17 @@ export async function attachExternalAgent(
       `external config ${configPath}`,
       'authenticated whoami',
     );
+    assertSubjectMatches(
+      whoami,
+      config,
+      'authenticated whoami',
+      `external config ${configPath}`,
+    );
     const boundTeamId = boundTeamIdFromWhoami(whoami);
 
     const activation: AgentActivation = {
       alias,
       source: 'external',
-      // From whoami, not the config: an external moltnet.json predating the
-      // decoupling carries no subject at all.
       subjectId: whoami.subjectId,
       ...identity,
       ...(boundTeamId ? { boundTeamId } : {}),
@@ -405,7 +422,7 @@ export async function attachExternalAgent(
   }
 }
 
-/** Load and authenticate the current config, then compare all pinned fields. */
+/** Load and authenticate the current config, then refresh its derived pin. */
 export async function verifyAgentActivation(
   store: AgentServerStore,
   alias: string,
@@ -430,11 +447,24 @@ export async function verifyAgentActivation(
           connectAgent,
           signal,
         );
+  assertSubjectMatches(
+    verified.whoami,
+    verified.config,
+    'authenticated whoami',
+    `agent "${activation.alias}" config`,
+  );
+  if (verified.whoami.subjectId !== activation.subjectId) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `authenticated whoami subject does not match agent "${activation.alias}" pinned activation`,
+    );
+  }
+  const identity = identityFromConfig(verified.config);
   assertIdentityMatches(
     verified.whoami,
-    activation,
+    identity,
     'authenticated whoami',
-    `agent "${activation.alias}" pinned activation`,
+    `agent "${activation.alias}" config`,
   );
   const boundTeamId = boundTeamIdFromWhoami(verified.whoami);
   if (activation.boundTeamId !== boundTeamId) {
@@ -443,8 +473,18 @@ export async function verifyAgentActivation(
       `authenticated whoami team binding does not match agent "${activation.alias}" pinned activation`,
     );
   }
+  const refreshed = { ...activation, ...identity };
+  if (
+    activation.publicKey !== refreshed.publicKey ||
+    activation.fingerprint !== refreshed.fingerprint
+  ) {
+    store.writeActivation(refreshed);
+    process.stderr.write(
+      `agent-server: refreshed the authenticated signing identity for ${JSON.stringify(activation.alias)}\n`,
+    );
+  }
   return {
-    activation,
+    activation: refreshed,
     config: verified.config,
     ...(boundTeamId ? { boundTeamId } : {}),
   };
@@ -550,12 +590,12 @@ function assertActivatedConfig(
       `agent config at ${configPath} API endpoint does not match its pinned activation`,
     );
   }
-  assertIdentityMatches(
-    identityFromConfig(config),
-    activation,
-    configPath,
-    `agent "${activation.alias}" pinned activation`,
-  );
+  if (config.subject_id !== activation.subjectId) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `agent config at ${configPath} subject does not match its pinned activation`,
+    );
+  }
 }
 
 function requireConfigApiUrl(
@@ -699,20 +739,41 @@ function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
 }
 
 function identityFromConfig(config: MoltNetConfig): IdentityPin {
-  const identityId = config?.identity_id?.trim();
   const publicKey = config?.keys?.public_key?.trim();
   const fingerprint = config?.keys?.fingerprint?.trim();
-  if (!identityId || !publicKey || !fingerprint) {
+  if (!publicKey || !fingerprint) {
     throw new AgentServerIdentityError(
       'verification_failed',
-      'agent config is missing canonical identity_id, keys.public_key, or keys.fingerprint',
+      'agent config is missing keys.public_key or keys.fingerprint',
     );
   }
   return {
-    identityId,
     publicKey,
     fingerprint,
   };
+}
+
+function assertSubjectMatches(
+  current: Pick<Whoami, 'subjectId' | 'subjectType'>,
+  expected: MoltNetConfig,
+  currentLabel: string,
+  expectedLabel: string,
+): void {
+  if (!isCanonicalConfig(expected)) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `${expectedLabel} is missing canonical subject_type=agent and subject_id; run \`moltnet config migrate\` first`,
+    );
+  }
+  if (
+    current.subjectType !== 'agent' ||
+    current.subjectId !== expected.subject_id
+  ) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      `${currentLabel} subject does not match ${expectedLabel}`,
+    );
+  }
 }
 
 function assertIdentityMatches(
@@ -750,7 +811,6 @@ export function publicAgentView(
       kind: 'managed',
       agentName: activation.alias,
       subjectId: activation.subjectId,
-      identityId: activation.identityId,
       fingerprint: activation.fingerprint,
       ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
       apiUrl: activation.apiUrl,
@@ -765,7 +825,6 @@ export function publicAgentView(
     configDir: dirname(activation.configPath),
     ...(activation.apiUrl ? { apiUrl: activation.apiUrl } : {}),
     subjectId: activation.subjectId,
-    identityId: activation.identityId,
     fingerprint: activation.fingerprint,
     ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
     createdAt: activation.createdAt,

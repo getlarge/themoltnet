@@ -1,6 +1,13 @@
 /** Public identity material used to bind a daemon process to one activation. */
 export interface IdentityPin {
-  identityId: string;
+  publicKey: string;
+  fingerprint: string;
+}
+
+/** Canonical startup pin projected by the Agent Server. */
+export interface SubjectPin {
+  subjectId: string;
+  subjectType: 'agent';
   publicKey: string;
   fingerprint: string;
 }
@@ -9,8 +16,8 @@ export type IdentityPinAssessment =
   | { ok: true }
   | {
       ok: false;
-      field: 'identityId' | 'publicKey' | 'fingerprint';
-      label: 'identity id' | 'public key' | 'fingerprint';
+      field: 'publicKey' | 'fingerprint';
+      label: 'public key' | 'fingerprint';
     };
 
 /** Compare every pinned field without choosing a caller-specific error type. */
@@ -19,7 +26,6 @@ export function assessIdentityPin(
   expected: Partial<IdentityPin>,
 ): IdentityPinAssessment {
   for (const [field, label] of [
-    ['identityId', 'identity id'],
     ['publicKey', 'public key'],
     ['fingerprint', 'fingerprint'],
   ] as const) {
@@ -29,3 +35,31 @@ export function assessIdentityPin(
   }
   return { ok: true };
 }
+
+export function assessAgentStartupPin(
+  current: Partial<IdentityPin> & {
+    subjectId?: string;
+    subjectType?: string;
+  },
+  expected: SubjectPin,
+): SubjectPinAssessment {
+  for (const [field, label] of [
+    ['subjectId', 'subject id'],
+    ['subjectType', 'subject type'],
+    ['publicKey', 'public key'],
+    ['fingerprint', 'fingerprint'],
+  ] as const) {
+    if (!current[field] || current[field] !== expected[field]) {
+      return { ok: false, field, label };
+    }
+  }
+  return { ok: true };
+}
+
+export type SubjectPinAssessment =
+  | { ok: true }
+  | {
+      ok: false;
+      field: 'subjectId' | 'subjectType' | 'publicKey' | 'fingerprint';
+      label: 'subject id' | 'subject type' | 'public key' | 'fingerprint';
+    };

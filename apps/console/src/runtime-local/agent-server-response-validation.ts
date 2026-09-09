@@ -14,8 +14,7 @@ export const AgentServerAgentViewSchema = Type.Object({
    * daemon; this schema validates that response, so omitting the field here
    * silently drops it.
    */
-  subjectId: Type.Optional(Type.String()),
-  identityId: Type.Optional(Type.String()),
+  subjectId: Type.String(),
   fingerprint: Type.Optional(Type.String()),
   apiUrl: Type.Optional(Type.String()),
   teamId: Type.Optional(Type.String()),

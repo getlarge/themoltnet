@@ -5,6 +5,7 @@
  */
 
 export {
+  AGENT_SIGNING_PROTOCOL_VERSION,
   type AgentIdentity,
   type AgentSigningCapability,
   allowedSignersLine,

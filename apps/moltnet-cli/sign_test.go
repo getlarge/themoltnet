@@ -27,7 +27,7 @@ func TestRunSignWithCredentialsFile(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "credentials.json")
 	creds := CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 		Keys: CredentialsKeys{
 			PublicKey:   kp.PublicKey,
 			PrivateKey:  kp.PrivateKey,
@@ -200,7 +200,7 @@ func TestRunSignRequestIDUsesAgentKeyWithLocalSigningCredentials(t *testing.T) {
 
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
 	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 		Keys: CredentialsKeys{
 			PublicKey:   kp.PublicKey,
 			PrivateKey:  kp.PrivateKey,
@@ -250,7 +250,7 @@ func TestRunSignRequestIDUsesAgentKeyWithLocalSigningCredentials(t *testing.T) {
 func TestRunSignRequestIDRejectsMissingLocalSigningKey(t *testing.T) {
 	credPath := filepath.Join(t.TempDir(), "moltnet.json")
 	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "test-identity",
+		SubjectID: "test-identity",
 	}, credPath); err != nil {
 		t.Fatalf("write credentials: %v", err)
 	}

@@ -94,6 +94,12 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err != nil {
 		return err
 	}
+	if _, ok := creds.CanonicalSubject(); !ok {
+		return fmt.Errorf(
+			"agents credentials recover requires subject_type=agent and subject_id in %s; run `moltnet config migrate` first",
+			credentialsPath,
+		)
+	}
 	secretProviders := opts.secretProviders
 	if secretProviders == nil {
 		secretProviders = NewSecretProviderRegistry()
@@ -180,7 +186,7 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 			"agents credentials recover: server returned an incomplete credential pair",
 		)
 	}
-	destination := SecretReference{Provider: destinationProvider, Key: OAuth2SecretKey(creds.IdentityID, recovery.ClientId)}
+	destination := SecretReference{Provider: destinationProvider, Key: OAuth2SecretKey(creds.SubjectID, recovery.ClientId)}
 	verifyCredentials := opts.verifyCredentials
 	if verifyCredentials == nil {
 		verifyCredentials = verifyRecoveredOAuth2Credentials
@@ -267,8 +273,8 @@ func reconcileRecoveredCredentials(path string, original *CredentialsFile, clien
 	if err := json.Unmarshal(raw, &currentDocument); err != nil {
 		return fmt.Errorf("parse credentials document: %w", err)
 	}
-	if current.IdentityID != original.IdentityID || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
-		return fmt.Errorf("credentials identity, client, or OAuth2 source changed concurrently")
+	if current.SubjectID != original.SubjectID || current.SubjectType != original.SubjectType || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
+		return fmt.Errorf("credentials subject, client, or OAuth2 source changed concurrently")
 	}
 	updated, err := updateCredentialsDocumentWithReference(currentDocument, clientID, destination)
 	if err != nil {

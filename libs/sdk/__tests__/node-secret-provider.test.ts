@@ -89,7 +89,8 @@ describe('Node secret providers', () => {
   it('resolves referenced and plaintext OAuth2 secrets for Node consumers', async () => {
     keyring.read.mockResolvedValue('resolved-secret');
     const referenced = {
-      identity_id: 'identity',
+      subject_id: 'identity',
+      subject_type: 'agent',
       oauth2: {
         client_id: 'client',
         client_secret_ref: {
@@ -134,7 +135,8 @@ describe('Node secret providers', () => {
     await writeFile(
       join(configDir, 'moltnet.json'),
       JSON.stringify({
-        identity_id: 'identity',
+        subject_id: 'identity',
+        subject_type: 'agent',
         registered_at: '2026-01-01T00:00:00.000Z',
         oauth2: {
           client_id: 'client',

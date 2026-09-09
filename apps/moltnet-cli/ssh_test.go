@@ -107,7 +107,7 @@ func TestRunSSHKeyExport(t *testing.T) {
 
 	// Write a minimal credentials file
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
@@ -173,7 +173,7 @@ func TestRunSSHKeyExportFromPrivateKeyReference(t *testing.T) {
 	t.Setenv(signerURLEnv, "")
 	t.Setenv(identitySeedEnvKey, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
 	creds := CredentialsFile{
-		IdentityID: "test-agent",
+		SubjectID: "test-agent",
 		Keys: CredentialsKeys{
 			PublicKey:     "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
 			Fingerprint:   "TEST-TEST-TEST-TEST",

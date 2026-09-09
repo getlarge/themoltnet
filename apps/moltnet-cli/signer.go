@@ -19,14 +19,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const signerProtocolVersion = 1
+
 // SignerIdentity is the non-secret identity a signer speaks for.
 type SignerIdentity struct {
-	AgentName   string `json:"agentName"`
-	IdentityID  string `json:"identityId"`
-	PublicKey   string `json:"publicKey"`
-	Fingerprint string `json:"fingerprint"`
-	GitName     string `json:"gitName"`
-	GitEmail    string `json:"gitEmail"`
+	ProtocolVersion int         `json:"protocolVersion"`
+	AgentName       string      `json:"agentName"`
+	SubjectID       string      `json:"subjectId"`
+	SubjectType     SubjectType `json:"subjectType"`
+	PublicKey       string      `json:"publicKey"`
+	Fingerprint     string      `json:"fingerprint"`
+	GitName         string      `json:"gitName"`
+	GitEmail        string      `json:"gitEmail"`
 }
 
 // Signer is the seam between key storage and every command that needs a
@@ -76,10 +80,17 @@ func newLocalSeedSigner(creds *CredentialsFile, seed string) *localSeedSigner {
 }
 
 func (s *localSeedSigner) Identity(_ context.Context) (SignerIdentity, error) {
+	if _, ok := s.creds.CanonicalSubject(); !ok {
+		return SignerIdentity{}, errors.New(
+			"local signer requires subject_type=agent and subject_id; run `moltnet config migrate` first",
+		)
+	}
 	id := SignerIdentity{
-		IdentityID:  s.creds.IdentityID,
-		PublicKey:   s.creds.Keys.PublicKey,
-		Fingerprint: s.creds.Keys.Fingerprint,
+		ProtocolVersion: signerProtocolVersion,
+		SubjectID:       s.creds.SubjectID,
+		SubjectType:     s.creds.SubjectType,
+		PublicKey:       s.creds.Keys.PublicKey,
+		Fingerprint:     s.creds.Keys.Fingerprint,
 	}
 	if s.creds.Git != nil {
 		id.GitName = s.creds.Git.Name
@@ -230,7 +241,14 @@ func (s *remoteSigner) Identity(ctx context.Context) (SignerIdentity, error) {
 	if err := s.call(ctx, http.MethodGet, "/identity", nil, &id); err != nil {
 		return SignerIdentity{}, err
 	}
-	if id.PublicKey == "" || id.Fingerprint == "" {
+	if id.ProtocolVersion != signerProtocolVersion {
+		return SignerIdentity{}, fmt.Errorf(
+			"remote signer protocol version %d is unsupported; expected %d; upgrade the CLI and signer together",
+			id.ProtocolVersion,
+			signerProtocolVersion,
+		)
+	}
+	if id.SubjectID == "" || id.SubjectType != SubjectTypeAgent || id.PublicKey == "" || id.Fingerprint == "" {
 		return SignerIdentity{}, errors.New("remote signer identity is incomplete")
 	}
 	s.identity = &id

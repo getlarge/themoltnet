@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   deriveMcpUrl,
   getConfigDir,
+  isCanonicalConfig,
   type MoltNetConfig,
   writeConfig,
 } from './credentials.js';
@@ -41,6 +42,10 @@ export async function repairConfig(opts?: {
   validateConfig(config, issues);
   await checkFilePaths(config, issues);
 
+  if (!isCanonicalConfig(config)) {
+    return { issues, config };
+  }
+
   // Apply auto-fixes
   if (!config.endpoints.mcp && config.endpoints.api) {
     config.endpoints.mcp = deriveMcpUrl(config.endpoints.api);
@@ -60,10 +65,14 @@ export async function repairConfig(opts?: {
 }
 
 function validateConfig(config: MoltNetConfig, issues: ConfigIssue[]): void {
-  if (!config.identity_id) {
+  if (
+    !('subject_id' in config) ||
+    !config.subject_id ||
+    config.subject_type !== 'agent'
+  ) {
     issues.push({
-      field: 'identity_id',
-      problem: 'missing',
+      field: 'subject_id',
+      problem: 'missing or unsupported subject anchor',
       action: 'warning',
     });
   }

@@ -37,6 +37,12 @@ func runConfigExportEnvCmdWithRegistry(
 	if creds == nil {
 		return fmt.Errorf("no config found at %s", credPath)
 	}
+	if _, ok := creds.CanonicalSubject(); !ok {
+		return fmt.Errorf(
+			"config at %s has no canonical agent subject; run `moltnet config migrate` first",
+			credPath,
+		)
+	}
 	includeSecrets := outFile != "" || showSecret
 	clientSecret := ""
 	if includeSecrets {
@@ -63,7 +69,8 @@ func runConfigExportEnvCmdWithRegistry(
 		// would mint new bundles carrying a name nothing reads any more.
 		lines = append(lines, fmt.Sprintf("%s=%s", activeIdentityEnv, agentName))
 	}
-	lines = append(lines, fmt.Sprintf("MOLTNET_IDENTITY_ID=%s", creds.IdentityID))
+	lines = append(lines, fmt.Sprintf("MOLTNET_SUBJECT_ID=%s", creds.SubjectID))
+	lines = append(lines, fmt.Sprintf("MOLTNET_SUBJECT_TYPE=%s", creds.SubjectType))
 	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_ID=%s", creds.OAuth2.ClientID))
 	if includeSecrets {
 		lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", clientSecret))

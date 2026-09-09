@@ -58,7 +58,6 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
   let agentName: string;
   let clientId: string;
   let agentId: string;
-  let identityId: string;
   let clientSecret: string;
   let publicKey: string;
   let privateKey: string;
@@ -77,7 +76,6 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     agentName = creds.name;
     clientId = creds.clientId;
     agentId = creds.agentId;
-    identityId = creds.identityId;
     clientSecret = creds.clientSecret;
     publicKey = creds.keyPair.publicKey;
     privateKey = creds.keyPair.privateKey;
@@ -107,11 +105,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       agent,
       agentRoot,
       agentName,
-      // #2163 split these: the key is issued FOR the internal principal, so
-      // this is agents.id. identityId below stays the Kratos reference, which
-      // the keyring path and moltnet.json still anchor on.
       agentId,
-      identityId,
       teamId,
       apiUrl: harness.restApiUrl,
       publicKey,

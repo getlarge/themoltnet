@@ -9,8 +9,10 @@ import { cryptoService } from '../src/crypto.service.js';
 import { toSSHPublicKey } from '../src/ssh.js';
 
 const identity = {
+  protocolVersion: 1 as const,
   agentName: 'legreffier',
-  identityId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
+  subjectId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
+  subjectType: 'agent' as const,
   publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
   fingerprint: '1671-B080-99BF-4270',
   gitName: 'LeGreffier',
