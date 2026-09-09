@@ -124,16 +124,16 @@ func TestMigrateIdentityStoreKeepsStagingPathsOutOfOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 	credsPath := filepath.Join(bundle, "moltnet.json")
-	if _, err := WriteConfigTo(&CredentialsFile{
-		IdentityID: "11111111-1111-4111-8111-111111111111",
-		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "secret"},
-		Keys: CredentialsKeys{
-			PublicKey:   testPublicKey,
-			PrivateKey:  testPrivateKey,
-			Fingerprint: "SHA256:stagingfingerprint",
-		},
-		Endpoints: CredentialsEndpoints{API: "https://api.example.test"},
-	}, credsPath); err != nil {
+	creds := legacyCredentialsForTest("11111111-1111-4111-8111-111111111111")
+	creds.OAuth2 = CredentialsOAuth2{ClientID: "cid", ClientSecret: "secret"}
+	creds.Keys = CredentialsKeys{
+		PublicKey:   testPublicKey,
+		PrivateKey:  testPrivateKey,
+		Fingerprint: "SHA256:stagingfingerprint",
+	}
+	creds.Endpoints = CredentialsEndpoints{API: "https://api.example.test"}
+	creds.Git = &GitSection{Name: "LeGreffier", Email: "legreffier@example.test"}
+	if _, err := WriteConfigTo(creds, credsPath); err != nil {
 		t.Fatal(err)
 	}
 
