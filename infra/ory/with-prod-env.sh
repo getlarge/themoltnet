@@ -51,35 +51,4 @@ export MOLTNET_PROXY_PORT="$PROXY_PORT"
 
 exec npx --yes dotenvx run --quiet \
   --env-file "$ENV_FILE" --env-file env.public -- \
-  node -e '
-    const { spawnSync } = require("node:child_process");
-    const raw = process.env.DATABASE_URL;
-    if (!raw || raw.startsWith("encrypted:")) {
-      console.error("FATAL: DATABASE_URL did not decrypt. Is .env.keys present?");
-      process.exit(1);
-    }
-    const url = new URL(raw);
-    url.hostname = "127.0.0.1";
-    url.port = process.env.MOLTNET_PROXY_PORT;
-    url.searchParams.set("sslmode", "disable");
-
-    // Both forms, deliberately. The Node scripts read DATABASE_URL and
-    // translate it themselves; `psql` and every other libpq client ignore
-    // DATABASE_URL entirely and read PG* — without these a bare psql silently
-    // falls back to a local socket instead of the tunnel.
-    const [cmd, ...rest] = process.argv.slice(1);
-    const result = spawnSync(cmd, rest, {
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        DATABASE_URL: url.toString(),
-        PGHOST: url.hostname,
-        PGPORT: url.port,
-        PGUSER: decodeURIComponent(url.username),
-        PGPASSWORD: decodeURIComponent(url.password),
-        PGDATABASE: url.pathname.replace(/^\//, ""),
-        PGSSLMODE: url.searchParams.get("sslmode") ?? "disable",
-      },
-    });
-    process.exit(result.status ?? 1);
-  ' "$@"
+  node "$(dirname "$0")/lib/with-prod-env.mjs" "$@"
