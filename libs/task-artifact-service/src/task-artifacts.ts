@@ -37,7 +37,7 @@ export interface TaskArtifactServiceDeps {
 }
 
 export interface TaskArtifactSubject {
-  identityId: string;
+  subjectId: string;
   subjectNs: KetoNamespace;
 }
 
@@ -149,7 +149,7 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
     async upload(input: UploadTaskArtifactInput): Promise<TaskArtifact> {
       await requireTeamAccess(deps, input);
       const attempt = await assertTaskAttemptInTeam(deps, input);
-      if (attempt.claimedByAgentId !== input.identityId) {
+      if (attempt.claimedByAgentId !== input.subjectId) {
         throw new TaskArtifactServiceError(
           403,
           'Only the claiming agent may upload task artifacts',
@@ -168,7 +168,7 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
         );
       }
       const task = await assertTaskInTeam(deps, input);
-      assertActiveTaskLease(task, input.identityId);
+      assertActiveTaskLease(task, input.subjectId);
       const staged = await stageArtifactUpload(input.body, {
         maxBytes: deps.taskArtifactMaxBytes,
       });
@@ -181,8 +181,8 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           input,
         );
         const latestTask = await assertTaskInTeam(deps, input);
-        assertActiveTaskLease(latestTask, input.identityId);
-        if (latestAttempt.claimedByAgentId !== input.identityId) {
+        assertActiveTaskLease(latestTask, input.subjectId);
+        if (latestAttempt.claimedByAgentId !== input.subjectId) {
           throw new TaskArtifactServiceError(
             403,
             'Only the claiming agent may upload task artifacts',
@@ -193,7 +193,7 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
           cid: staged.cid,
           contentEncoding: input.contentEncoding ?? null,
           contentType: input.contentType,
-          createdByAgentId: input.identityId,
+          createdByAgentId: input.subjectId,
           kind: input.kind,
           objectKey,
           sha256: staged.sha256,
@@ -440,8 +440,8 @@ export function serializeTaskArtifact(artifact: TaskArtifact) {
   };
 }
 
-function assertActiveTaskLease(task: Task, identityId: string): void {
-  if (task.claimAgentId !== identityId) {
+function assertActiveTaskLease(task: Task, subjectId: string): void {
+  if (task.claimAgentId !== subjectId) {
     throw new TaskArtifactServiceError(
       403,
       'Only the active claiming agent may upload task artifacts',
@@ -461,7 +461,7 @@ async function requireTeamAccess(
 ) {
   const canAccess = await deps.permissionChecker.canAccessTeam(
     input.teamId,
-    input.identityId,
+    input.subjectId,
     input.subjectNs,
   );
   if (!canAccess) {
@@ -501,7 +501,7 @@ async function requireTaskReadAccess(
 ) {
   const canView = await deps.permissionChecker.canViewTask(
     input.taskId,
-    input.identityId,
+    input.subjectId,
     input.subjectNs,
   );
   if (!canView) {

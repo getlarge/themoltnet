@@ -120,7 +120,7 @@ describe('Agents & Crypto', () => {
           'idempotency-key': `e2e-whoami-${crypto.randomUUID()}`,
           'x-moltnet-team-id': agent.personalTeamId,
         },
-        body: { agentId: agent.identityId, name: 'e2e-whoami', ttlDays: 1 },
+        body: { agentId: agent.agentId, name: 'e2e-whoami', ttlDays: 1 },
       });
       expect(issued.error).toBeUndefined();
       const secret = issued.data!.secret;
@@ -142,7 +142,7 @@ describe('Agents & Crypto', () => {
           'x-moltnet-team-id': agent.personalTeamId,
         },
         body: {
-          agentId: agent.identityId,
+          agentId: agent.agentId,
           name: 'e2e-sdk-connect',
           ttlDays: 1,
         },

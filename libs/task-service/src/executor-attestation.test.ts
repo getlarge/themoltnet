@@ -207,8 +207,8 @@ describe('verifyExecutorForPhase agent-signed enforcement', () => {
       upsertExecutorManifest,
     } as unknown as TaskRepository;
     const agentRepository = {
-      findByIdentityId: vi.fn().mockResolvedValue({
-        identityId: callerId,
+      findById: vi.fn().mockResolvedValue({
+        id: callerId,
         publicKey: keys.publicKey,
       }),
     } as unknown as AgentRepository;
@@ -294,14 +294,9 @@ describe('registered executor manifests', () => {
         return Promise.resolve();
       });
     const upsertExecutorManifestRegistration = vi
-      .fn<
-        (input: {
-          fingerprint: string;
-          agentIdentityId: string;
-        }) => Promise<void>
-      >()
-      .mockImplementation(({ fingerprint, agentIdentityId }) => {
-        registrations.add(`${fingerprint}:${agentIdentityId}`);
+      .fn<(input: { fingerprint: string; agentId: string }) => Promise<void>>()
+      .mockImplementation(({ fingerprint, agentId }) => {
+        registrations.add(`${fingerprint}:${agentId}`);
         return Promise.resolve();
       });
     const taskRepository = {
@@ -315,20 +310,20 @@ describe('registered executor manifests', () => {
       ),
       upsertExecutorManifestRegistration,
       findExecutorManifestRegistration: vi.fn(
-        (fingerprint: string, agentIdentityId: string) =>
+        (fingerprint: string, agentId: string) =>
           Promise.resolve(
-            registrations.has(`${fingerprint}:${agentIdentityId}`)
-              ? { fingerprint, agentIdentityId }
+            registrations.has(`${fingerprint}:${agentId}`)
+              ? { fingerprint, agentId }
               : null,
           ),
       ),
       upsertExecutorManifestVerification: vi.fn().mockResolvedValue(undefined),
     } as unknown as TaskRepository;
     const agentRepository = {
-      findByIdentityId: vi.fn((identityId: string) =>
+      findById: vi.fn((agentId: string) =>
         Promise.resolve(
-          identityId === callerId
-            ? { identityId, publicKey: keys.publicKey }
+          agentId === callerId
+            ? { id: agentId, publicKey: keys.publicKey }
             : null,
         ),
       ),

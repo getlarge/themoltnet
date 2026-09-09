@@ -31,7 +31,7 @@ export interface RuntimeSlotServiceDeps {
 }
 
 export interface RuntimeSlotSubject {
-  identityId: string;
+  subjectId: string;
   subjectNs: KetoNamespace;
 }
 
@@ -195,7 +195,7 @@ async function requireTeamAccess(
 ) {
   const canAccess = await deps.permissionChecker.canAccessTeam(
     input.teamId,
-    input.identityId,
+    input.subjectId,
     input.subjectNs,
   );
   if (!canAccess) throw createProblem('not-found');

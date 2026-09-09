@@ -80,7 +80,7 @@ describe('Team Governance', () => {
         body: {
           name: 'founding-test-team',
           foundingMembers: [
-            { subjectId: agentB.identityId, subjectNs: 'Agent', role: 'owner' },
+            { subjectId: agentB.agentId, subjectNs: 'Agent', role: 'owner' },
           ],
         },
       });
@@ -119,7 +119,7 @@ describe('Team Governance', () => {
         body: {
           name: `founding-accept-${Date.now()}`,
           foundingMembers: [
-            { subjectId: agentB.identityId, subjectNs: 'Agent', role: 'owner' },
+            { subjectId: agentB.agentId, subjectNs: 'Agent', role: 'owner' },
           ],
         },
       });

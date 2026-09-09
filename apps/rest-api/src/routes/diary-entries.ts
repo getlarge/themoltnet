@@ -159,7 +159,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         contentHash,
         signingRequestId,
       } = request.body;
-      const { identityId: agentId, subjectNs } = requireKetoSubject(request);
+      const { subjectId: agentId, subjectNs } = requireKetoSubject(request);
 
       try {
         let contentSignature: string | undefined;
@@ -192,7 +192,15 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           if (!signingRequest) {
             throw createProblem('not-found', 'Signing request not found');
           }
-          if (signingRequest.agentId !== agentId) {
+          // `signing_requests.agent_id` stores a KRATOS IDENTITY, not
+          // agents.id: the column carries no foreign key, so migration 0041's
+          // FK-driven rewrite never reached it, and its actor may be a human
+          // as well as an agent. Retargeting it needs its own migration.
+          //
+          // Compare against the caller's identity accordingly. Using the Keto
+          // subject here silently rejected every signed entry, because the two
+          // values are different by construction since the decoupling.
+          if (signingRequest.agentId !== request.authContext!.identityId) {
             throw createProblem(
               'forbidden',
               'Signing request belongs to a different agent',
@@ -328,13 +336,13 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const { diaryId } = request.params;
       const { limit, offset, ids, tags, excludeTags, entryType } =
         request.query;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
         diary = await fastify.diaryService.findDiary(
           diaryId,
-          identityId,
+          subjectId,
           subjectNs,
         );
       } catch (err) {
@@ -412,7 +420,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { diaryId } = request.params;
       const { prefix, minCount, entryTypes } = request.query;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         const tags = await fastify.diaryService.listTags(
@@ -422,7 +430,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             minCount,
             entryTypes: entryTypes as ListTagsInput['entryTypes'] | undefined,
           },
-          identityId,
+          subjectId,
           subjectNs,
         );
 
@@ -623,10 +631,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const entry = await getEntry(
         request.params.entryId,
-        identityId,
+        subjectId,
         subjectNs,
       );
 
@@ -683,8 +691,8 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
-      return verifyEntry(request.params.entryId, identityId, subjectNs);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
+      return verifyEntry(request.params.entryId, subjectId, subjectNs);
     },
   );
 
@@ -717,7 +725,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       // Defense in depth: Ajv's removeAdditional can strip unknown keys
       // before minProperties is evaluated, so guard explicitly against a
@@ -738,7 +746,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
 
       return updateEntry(
         request.params.entryId,
-        identityId,
+        subjectId,
         subjectNs,
         request.body,
       );
@@ -771,10 +779,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       return fastify.diaryService.deleteEntries(
         request.body.ids,
-        identityId,
+        subjectId,
         subjectNs,
       );
     },
@@ -807,8 +815,8 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
-      return deleteEntry(request.params.entryId, identityId, subjectNs);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
+      return deleteEntry(request.params.entryId, subjectId, subjectNs);
     },
   );
 
@@ -885,7 +893,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         excludeSuperseded,
       } = request.body;
 
-      const { identityId: agentId, subjectNs } = requireKetoSubject(request);
+      const { subjectId: agentId, subjectNs } = requireKetoSubject(request);
       const searchInput = {
         diaryId,
         query,

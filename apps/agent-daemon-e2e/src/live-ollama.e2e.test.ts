@@ -57,6 +57,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
   let diaryId: string;
   let agentName: string;
   let clientId: string;
+  let agentId: string;
   let identityId: string;
   let clientSecret: string;
   let publicKey: string;
@@ -75,6 +76,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     const creds = await harness.createAgent('e2e-live-ollama-daemon');
     agentName = creds.name;
     clientId = creds.clientId;
+    agentId = creds.agentId;
     identityId = creds.identityId;
     clientSecret = creds.clientSecret;
     publicKey = creds.keyPair.publicKey;
@@ -105,9 +107,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       agent,
       agentRoot,
       agentName,
-      // Same value until #2163 splits agents.id from identity_id; passed
-      // separately so that rebase has to choose one for each.
-      agentId: identityId,
+      // #2163 split these: the key is issued FOR the internal principal, so
+      // this is agents.id. identityId below stays the Kratos reference, which
+      // the keyring path and moltnet.json still anchor on.
+      agentId,
       identityId,
       teamId,
       apiUrl: harness.restApiUrl,

@@ -167,7 +167,7 @@ describe('Task Analytics API', () => {
       auth: () => proposer.accessToken,
       path: { id: diaryId },
       body: {
-        subjectId: claimer.identityId,
+        subjectId: claimer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
@@ -310,7 +310,7 @@ describe('Task Analytics API', () => {
         auth: () => proposer.accessToken,
         path: { id: diaryId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: claimer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -488,7 +488,7 @@ describe('Task Analytics API', () => {
             auth: () => proposer.accessToken,
             headers: { 'x-moltnet-team-id': teamId },
             query: {
-              claimedByAgentIds: [claimer.identityId],
+              claimedByAgentIds: [claimer.agentId],
               completedAfter,
               completedBefore,
               diaryIds: [diaryId, diaryId, otherDiary!.id],
@@ -576,7 +576,7 @@ describe('Task Analytics API', () => {
         auth: () => proposer.accessToken,
         path: { id: diaryId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: claimer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },

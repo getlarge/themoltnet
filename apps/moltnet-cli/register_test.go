@@ -47,6 +47,7 @@ func TestDoRegisterSelfOAuth2(t *testing.T) {
 		assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
+			"agentId":     "00000000-0000-4000-a000-000000000123",
 			"identityId":  "00000000-0000-0000-0000-000000000123",
 			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
 			"credential": map[string]any{"type": "oauth2", "clientId": "client-id", "clientSecret": "client-secret"},
@@ -76,6 +77,7 @@ func TestDoRegisterSelfAgentKey(t *testing.T) {
 		assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
+			"agentId":     "00000000-0000-4000-a000-000000000123",
 			"identityId":  "00000000-0000-0000-0000-000000000123",
 			"fingerprint": "ABCD-1234-EF56-7890",
 			"publicKey":   body.PublicKey,

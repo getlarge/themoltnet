@@ -114,7 +114,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { name, visibility } = request.body;
 
       const teamId = request.authContext!.currentTeamId;
@@ -128,7 +128,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       // Diary creation requires Team.write (owners/managers), not just Team.access
       const canWrite = await fastify.permissionChecker.canWriteTeam(
         teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canWrite) {
@@ -186,8 +186,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      // listDiaries resolves teams through Keto (listTeamIdsBySubject), so its
+      // first argument is the Keto subject — `agents.id` / `humans.id`. Passing
+      // the Kratos identity here matched no tuple and listed nothing.
+      const { subjectId } = requireKetoSubject(request);
       const rows = await fastify.diaryService.listDiaries(
-        request.authContext!.identityId,
+        subjectId,
         request.authContext!.currentTeamId ?? undefined,
       );
       const items = await batchInflateRowsWithCreator(rows, fastify);
@@ -224,11 +228,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       try {
         const diary = await fastify.diaryService.findDiary(
           id,
-          identityId,
+          subjectId,
           subjectNs,
         );
         return await rowToResponseWithCreator(diary, fastify);
@@ -279,7 +283,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       // Defense in depth: Ajv's removeAdditional can strip unknown keys
       // before minProperties is evaluated, so guard explicitly against a
@@ -297,7 +301,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       try {
         const diary = await fastify.diaryService.updateDiary(
           id,
-          identityId,
+          subjectId,
           subjectNs,
           request.body,
         );
@@ -343,12 +347,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         const deleted = await fastify.diaryService.deleteDiary(
           id,
-          identityId,
+          subjectId,
           subjectNs,
         );
 
@@ -394,11 +398,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs: callerNs } =
+        requireKetoSubject(request);
 
       const canManage = await fastify.permissionChecker.canManageDiary(
         id,
-        identityId,
+        callerId,
         callerNs,
       );
       if (!canManage) {
@@ -483,11 +488,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
 
       const canRead = await fastify.permissionChecker.canReadDiary(
         id,
-        identityId,
+        subjectId,
         callerNs,
       );
       if (!canRead) {
@@ -533,11 +538,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs: callerNs } =
+        requireKetoSubject(request);
 
       const canManage = await fastify.permissionChecker.canManageDiary(
         id,
-        identityId,
+        callerId,
         callerNs,
       );
       if (!canManage) {
@@ -597,12 +603,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       // Must have diary manage permission
       const canManage = await fastify.permissionChecker.canManageDiary(
         id,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -610,7 +616,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       // Load diary to get teamId
       let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
-        diary = await fastify.diaryService.findDiary(id, identityId, subjectNs);
+        diary = await fastify.diaryService.findDiary(id, subjectId, subjectNs);
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;
@@ -619,7 +625,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       // Also require manage permission on the source team
       const canManageSourceTeam = await fastify.permissionChecker.canManageTeam(
         diary.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManageSourceTeam) throw createProblem('forbidden');
@@ -650,7 +656,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           sourceTeamId: diary.teamId,
           destinationTeamId,
           workflowId,
-          initiatedBy: identityId,
+          initiatedBy: subjectId,
           expiresAt,
         });
       } catch (err) {
@@ -716,12 +722,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId } = request.authContext!;
+      const { subjectId } = requireKetoSubject(request);
 
       // Find teams where caller is owner
       const teamRoles =
         await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
-          identityId,
+          subjectId,
         );
       const ownedTeamIds = teamRoles
         .filter((r) => r.relation === TeamRelation.Owners)
@@ -769,7 +775,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { transferId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const transfer =
         await fastify.diaryTransferRepository.findById(transferId);
@@ -780,7 +786,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       // Must be owner of destination team
       const canManage = await fastify.permissionChecker.canManageTeam(
         transfer.destinationTeamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -844,7 +850,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { transferId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const transfer =
         await fastify.diaryTransferRepository.findById(transferId);
@@ -854,7 +860,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const canManage = await fastify.permissionChecker.canManageTeam(
         transfer.destinationTeamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');

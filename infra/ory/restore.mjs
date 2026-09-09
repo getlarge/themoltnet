@@ -237,7 +237,6 @@ function extractBundle({ archivePath, destDir }) {
   });
 }
 
-
 /**
  * Preflight tenant check.
  *
@@ -318,9 +317,10 @@ function parseNextPageToken(linkHeader) {
   for (const part of linkHeader.split(',')) {
     const match = part.match(/<([^>]+)>\s*;\s*rel="next"/);
     if (!match) continue;
-    const token = new URL(match[1], 'https://placeholder.invalid').searchParams.get(
-      'page_token',
-    );
+    const token = new URL(
+      match[1],
+      'https://placeholder.invalid',
+    ).searchParams.get('page_token');
     if (token) return token;
   }
 
@@ -342,7 +342,9 @@ async function listTargetIdentities() {
     const query = new URLSearchParams({ page_size: '500' });
     if (pageToken) query.set('page_token', pageToken);
 
-    const { data, nextPageToken } = await oryFetch(`/admin/identities?${query}`);
+    const { data, nextPageToken } = await oryFetch(
+      `/admin/identities?${query}`,
+    );
     identities.push(...(Array.isArray(data) ? data : (data?.identities ?? [])));
 
     if (!nextPageToken || nextPageToken === pageToken) break;
@@ -401,7 +403,9 @@ function sanitizeCredentials(credentials) {
       .map((provider) => ({
         provider: provider.provider,
         subject: provider.subject,
-        ...(provider.organization ? { organization: provider.organization } : {}),
+        ...(provider.organization
+          ? { organization: provider.organization }
+          : {}),
       }));
     if (providers.length > 0) out.oidc = { config: { providers } };
   }
@@ -540,8 +544,12 @@ async function main() {
   const targetIdentities = await listTargetIdentities();
   const targetKeys = new Set(targetIdentities.map(identityKey));
 
-  const missing = backupIdentities.filter((i) => !targetKeys.has(identityKey(i)));
-  const conflicting = backupIdentities.filter((i) => targetKeys.has(identityKey(i)));
+  const missing = backupIdentities.filter(
+    (i) => !targetKeys.has(identityKey(i)),
+  );
+  const conflicting = backupIdentities.filter((i) =>
+    targetKeys.has(identityKey(i)),
+  );
 
   log('');
   log(`Identities currently in target: ${targetIdentities.length}`);
@@ -554,8 +562,12 @@ async function main() {
     log('Kratos enforces unique credential identifiers, so they are skipped.');
     log('Delete the live identity first if you want the backup copy restored:');
     for (const identity of conflicting) {
-      const live = targetIdentities.find((t) => identityKey(t) === identityKey(identity));
-      log(`  ${identityKey(identity)}  backup=${identity.id}  live=${live?.id}`);
+      const live = targetIdentities.find(
+        (t) => identityKey(t) === identityKey(identity),
+      );
+      log(
+        `  ${identityKey(identity)}  backup=${identity.id}  live=${live?.id}`,
+      );
     }
   }
 
@@ -588,8 +600,7 @@ async function main() {
     return;
   }
 
-  const toImport =
-    args.limit === null ? missing : missing.slice(0, args.limit);
+  const toImport = args.limit === null ? missing : missing.slice(0, args.limit);
 
   log('');
   if (args.limit !== null) {
@@ -619,7 +630,9 @@ async function main() {
       human_id: identity.metadata_public?.human_id ?? null,
     });
 
-    log(`  [${index}/${toImport.length}] ${identityKey(identity)}: ${identity.id} -> ${created.id}`);
+    log(
+      `  [${index}/${toImport.length}] ${identityKey(identity)}: ${identity.id} -> ${created.id}`,
+    );
   }
 
   const after = await listTargetIdentities();
@@ -632,7 +645,9 @@ async function main() {
   log(`Target now has ${after.length} identities.`);
   log(`ID mapping written to ${args.mapOut}`);
   log('');
-  log('NEXT: identity IDs changed. Remap references before the system is consistent:');
+  log(
+    'NEXT: identity IDs changed. Remap references before the system is consistent:',
+  );
   log('  - Postgres: agents.identity_id (PK) and humans.identity_id');
   log('  - Keto    : tuples addressing Agent:<old_identity_id>');
 }

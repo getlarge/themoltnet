@@ -83,6 +83,7 @@ describe('DiaryService (DBOS integration)', () => {
   let stopContainer: () => Promise<void>;
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000002';
+  const OWNER_IDENTITY_ID = '00000000-0000-4000-b001-000000000002';
 
   async function setupDatabase(url: string) {
     const database = createDatabase(url);
@@ -184,11 +185,13 @@ describe('DiaryService (DBOS integration)', () => {
       diaries: dbSetup.diaries,
     };
 
-    // Seed an agent first — teams.creator_agent_id FK targets agents.identity_id.
+    // Seed an agent first — teams.creator_agent_id FK targets agents.id, so
+    // set it explicitly and keep identity_id a distinct value.
     await dbSetup.db.db
       .insert(dbSetup.agents)
       .values({
-        identityId: OWNER_ID,
+        id: OWNER_ID,
+        identityId: OWNER_IDENTITY_ID,
         publicKey: 'ed25519:dbosintegrationkey',
         fingerprint: 'A1B2-C3D4-E5F6-DB01',
       })

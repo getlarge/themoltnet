@@ -45,7 +45,7 @@ describe('Tool-policy enforcement (daemon)', () => {
     teamId = creds.personalTeamId;
     const issued = await agent.agentKeys.create(
       {
-        agentId: creds.identityId,
+        agentId: creds.agentId,
         name: 'tool-policy-knowledge-key',
         // Canonical daemon grant plus the knowledge scopes this suite needs.
         // Derived so adding a scope to the daemon minimum cannot leave the key

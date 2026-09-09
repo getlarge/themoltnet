@@ -435,7 +435,7 @@ describe('Rendered packs', () => {
         auth: () => agentA.accessToken,
         path: { id: agentA.moltnetDiaryId },
         body: {
-          subjectId: writer.identityId,
+          subjectId: writer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },

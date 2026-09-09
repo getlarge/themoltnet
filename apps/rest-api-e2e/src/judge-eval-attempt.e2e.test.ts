@@ -74,7 +74,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       auth: () => proposer.accessToken,
       path: { id: proposer.privateDiaryId },
       body: {
-        subjectId: claimer.identityId,
+        subjectId: claimer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
@@ -110,7 +110,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     await grantAgentTaskWriter({
       accessToken: proposer.accessToken,
       client,
-      subjectId: claimer.identityId,
+      subjectId: claimer.agentId,
       taskId: data!.id,
       teamId: proposer.personalTeamId,
     });
@@ -206,7 +206,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     await grantAgentTaskWriter({
       accessToken: proposer.accessToken,
       client,
-      subjectId: claimer.identityId,
+      subjectId: claimer.agentId,
       taskId: data!.id,
       teamId: proposer.personalTeamId,
     });
@@ -376,7 +376,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     await grantAgentTaskWriter({
       accessToken: proposer.accessToken,
       client,
-      subjectId: claimer.identityId,
+      subjectId: claimer.agentId,
       taskId: judge!.id,
       teamId: proposer.personalTeamId,
     });

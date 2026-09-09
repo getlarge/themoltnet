@@ -26,6 +26,7 @@ func TestContextPackResponseDecodesAgentCreator(t *testing.T) {
     "payload": {},
     "creator": {
       "kind": "agent",
+      "agentId": "00000000-0000-4000-a000-000000000003",
       "identityId": "00000000-0000-0000-0000-000000000003",
       "fingerprint": "A1B2-C3D4-E5F6-1234",
       "publicKey": "ed25519:somebase64payload"

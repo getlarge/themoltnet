@@ -8,6 +8,7 @@ vi.mock('@themoltnet/sdk', () => ({ readConfig: readConfigMock }));
 import { resolveDaemonAgentIdentity } from './agent-identity.js';
 
 const whoami: Whoami = {
+  subjectId: 'agent-1',
   identityId: 'id-1',
   subjectType: 'agent',
   publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',

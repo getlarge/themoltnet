@@ -140,14 +140,51 @@ async function grantTeamRole(
   }
 }
 
+/**
+ * Resolve the Kratos identity behind each Keto subject.
+ *
+ * Keto subjects are INTERNAL ids (`agents.id` / `humans.id`), which Kratos has
+ * never heard of. Passing them straight to `listIdentities` matches nothing,
+ * so every member degrades to a truncated-UUID display name with no email —
+ * silently, because a miss is indistinguishable from a deleted identity. The
+ * mapping has to come from our own tables first.
+ *
+ * A subject whose `identity_id` is null (never bound, or unlinked by an
+ * identity-restore) has no Kratos record by definition and keeps the fallback.
+ */
 async function resolveMembers(
-  identityApi: IdentityApi,
+  deps: {
+    identityApi: IdentityApi;
+    agentRepository: FastifyInstance['agentRepository'];
+    humanRepository: FastifyInstance['humanRepository'];
+  },
   members: KetoMember[],
   log: FastifyInstance['log'],
 ): Promise<EnrichedMember[]> {
   if (members.length === 0) return [];
 
   const subjectIds = members.map((m) => m.subjectId);
+  const humanIds = members
+    .filter((m) => m.subjectNs === 'Human')
+    .map((m) => m.subjectId);
+  const agentIds = members
+    .filter((m) => m.subjectNs !== 'Human')
+    .map((m) => m.subjectId);
+
+  const identityIdBySubject = new Map<string, string>();
+  const [agents, humans] = await Promise.all([
+    agentIds.length > 0
+      ? deps.agentRepository.findByIds(agentIds)
+      : new Map<string, { identityId: string | null }>(),
+    humanIds.length > 0
+      ? deps.humanRepository.findByIds(humanIds)
+      : new Map<string, { identityId: string | null }>(),
+  ]);
+  for (const [subjectId, principal] of [...agents, ...humans]) {
+    if (principal.identityId) {
+      identityIdBySubject.set(subjectId, principal.identityId);
+    }
+  }
 
   const identityMap = new Map<
     string,
@@ -158,22 +195,28 @@ async function resolveMembers(
     }
   >();
 
-  try {
-    const identities = await identityApi.listIdentities({ ids: subjectIds });
-    for (const identity of identities) {
-      identityMap.set(identity.id, {
-        schemaId: identity.schema_id,
-        traits: (identity.traits as Record<string, unknown>) ?? {},
-        metadataPublic:
-          (identity.metadata_public as Record<string, unknown>) ?? null,
+  const identityIds = [...identityIdBySubject.values()];
+  if (identityIds.length > 0) {
+    try {
+      const identities = await deps.identityApi.listIdentities({
+        ids: identityIds,
       });
+      for (const identity of identities) {
+        identityMap.set(identity.id, {
+          schemaId: identity.schema_id,
+          traits: (identity.traits as Record<string, unknown>) ?? {},
+          metadataPublic:
+            (identity.metadata_public as Record<string, unknown>) ?? null,
+        });
+      }
+    } catch (err) {
+      log.warn({ err, subjectIds }, 'team.resolve_members_kratos_failed');
     }
-  } catch (err) {
-    log.warn({ err, subjectIds }, 'team.resolve_members_kratos_failed');
   }
 
   return members.map((m) => {
-    const identity = identityMap.get(m.subjectId);
+    const identityId = identityIdBySubject.get(m.subjectId);
+    const identity = identityId ? identityMap.get(identityId) : undefined;
     const subjectType = m.subjectNs === 'Human' ? 'human' : 'agent';
 
     if (!identity) {
@@ -207,6 +250,60 @@ async function resolveMembers(
       fingerprint,
     };
   });
+}
+
+/**
+ * Reject founding members whose subject does not exist.
+ *
+ * `foundingMembers[].subjectId` is an internal `agents.id` / `humans.id`. It
+ * used to be the Kratos identity, and the two were the same value, so a client
+ * holding an identity could pass it and the team worked. Since the decoupling
+ * the identity resolves to nothing here — and nothing downstream notices: the
+ * team is created in `founding` status, an acceptance row is seeded for a
+ * subject that cannot authenticate, and the team can never reach `active`
+ * because that owner will never accept. The caller gets a 201.
+ *
+ * A team that is permanently stuck is worse than a rejected request, so the
+ * targets are resolved up front, before the team row exists. Callers get the
+ * durable id from `whoami.subjectId` for themselves and from
+ * `GET /teams/:id/members` for others.
+ */
+async function assertFoundingMembersResolve(
+  fastify: FastifyInstance,
+  members: ReadonlyArray<{ subjectId: string; subjectNs: string }>,
+): Promise<void> {
+  const humanIds = members
+    .filter((m) => m.subjectNs === 'Human')
+    .map((m) => m.subjectId);
+  const agentIds = members
+    .filter((m) => m.subjectNs !== 'Human')
+    .map((m) => m.subjectId);
+
+  const [agents, humans] = await Promise.all([
+    agentIds.length > 0
+      ? fastify.agentRepository.findByIds(agentIds)
+      : new Map<string, unknown>(),
+    humanIds.length > 0
+      ? fastify.humanRepository.findByIds(humanIds)
+      : new Map<string, unknown>(),
+  ]);
+
+  const unknown = members.filter((m) =>
+    m.subjectNs === 'Human'
+      ? !humans.has(m.subjectId)
+      : !agents.has(m.subjectId),
+  );
+  if (unknown.length === 0) return;
+
+  throw createProblem(
+    'validation-failed',
+    `No ${unknown.length === 1 ? 'principal exists' : 'principals exist'} for ` +
+      `founding member(s): ${unknown
+        .map((m) => `${m.subjectNs}:${m.subjectId}`)
+        .join(', ')}. subjectId must be the internal MoltNet id — ` +
+      'whoami.subjectId for yourself, GET /teams/:id/members for others — ' +
+      'not an Ory identity id.',
+  );
 }
 
 function getAuthContext(request: FastifyRequest) {
@@ -250,7 +347,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { name, foundingMembers } = request.body;
 
       if (
@@ -266,6 +363,12 @@ export function teamRoutes(fastify: FastifyInstance) {
       }
 
       const creator = authContextToCreator(request);
+
+      // Before any row is written: a team created around an unresolvable
+      // owner can never be activated or cleaned up by its caller.
+      if (foundingMembers && foundingMembers.length > 0) {
+        await assertFoundingMembersResolve(fastify, foundingMembers);
+      }
 
       if (!foundingMembers || foundingMembers.length === 0) {
         // Instant active team — original behavior
@@ -283,12 +386,12 @@ export function teamRoutes(fastify: FastifyInstance) {
         try {
           await fastify.relationshipWriter.grantTeamOwners(
             team.id,
-            identityId,
+            subjectId,
             subjectNs,
           );
         } catch (err) {
           request.log.error(
-            { teamId: team.id, identityId, err },
+            { teamId: team.id, subjectId, err },
             'team.keto_grant_owner_failed',
           );
           try {
@@ -321,8 +424,8 @@ export function teamRoutes(fastify: FastifyInstance) {
       // workflow seeds their acceptance row and grants their Keto tuple.
       const creatorNs = subjectNs === KetoNamespace.Human ? 'Human' : 'Agent';
       const allFoundingMembers: typeof foundingMembers = [
-        { subjectId: identityId, subjectNs: creatorNs, role: 'owner' },
-        ...foundingMembers.filter((m) => m.subjectId !== identityId),
+        { subjectId: subjectId, subjectNs: creatorNs, role: 'owner' },
+        ...foundingMembers.filter((m) => m.subjectId !== subjectId),
       ];
 
       // Start workflow non-blocking — it grants Keto roles + seeds acceptance rows.
@@ -332,7 +435,7 @@ export function teamRoutes(fastify: FastifyInstance) {
         const workflowHandle = await DBOS.startWorkflow(
           teamFoundingWorkflow.foundTeam,
           { workflowID: `founding-${team.id}` },
-        )(team.id, identityId, creatorNs, allFoundingMembers);
+        )(team.id, subjectId, creatorNs, allFoundingMembers);
         workflowId = workflowHandle.workflowID;
       } catch (err) {
         request.log.error(
@@ -381,7 +484,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const authContext = getAuthContext(request);
-      const { identityId } = authContext;
+      const { subjectId } = requireKetoSubject(request);
       const credentialTeamId =
         authContext.subjectType === 'agent' &&
         authContext.credentialBinding?.bindingScope === 'team'
@@ -391,7 +494,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       // Single Keto call: get all team IDs + roles for this subject
       const allTeamRoles =
         await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
-          identityId,
+          subjectId,
         );
       const teamRoles = credentialTeamId
         ? allTeamRoles.filter(({ teamId }) => teamId === credentialTeamId)
@@ -447,11 +550,11 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
@@ -461,7 +564,11 @@ export function teamRoutes(fastify: FastifyInstance) {
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
       const enrichedMembers = await resolveMembers(
-        fastify.identityApi,
+        {
+          identityApi: fastify.identityApi,
+          agentRepository: fastify.agentRepository,
+          humanRepository: fastify.humanRepository,
+        },
         members,
         request.log,
       );
@@ -505,11 +612,11 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canManage = await fastify.permissionChecker.canManageTeam(
         id,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -573,18 +680,22 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
       const enrichedMembers = await resolveMembers(
-        fastify.identityApi,
+        {
+          identityApi: fastify.identityApi,
+          agentRepository: fastify.agentRepository,
+          humanRepository: fastify.humanRepository,
+        },
         members,
         request.log,
       );
@@ -619,12 +730,12 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           id,
-          identityId,
+          callerId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -706,12 +817,12 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           id,
-          identityId,
+          callerId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -788,12 +899,12 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           id,
-          identityId,
+          subjectId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -851,12 +962,12 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           id,
-          identityId,
+          subjectId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -904,12 +1015,12 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, inviteId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           id,
-          identityId,
+          subjectId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -950,7 +1061,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs: ns } = requireKetoSubject(request);
+      const { subjectId, subjectNs: ns } = requireKetoSubject(request);
       const { code } = request.body;
 
       const invite = await fastify.teamRepository.findInviteByCode(code);
@@ -982,7 +1093,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       const existingMembers = await fastify.relationshipReader.listTeamMembers(
         invite.teamId,
       );
-      const existingMember = resolveManagedMember(existingMembers, identityId);
+      const existingMember = resolveManagedMember(existingMembers, subjectId);
       if (
         existingMember?.currentRole === TEAM_ROLE.Owner ||
         existingMember?.currentRole === invite.role
@@ -1002,7 +1113,7 @@ export function teamRoutes(fastify: FastifyInstance) {
           await grantTeamRole(
             fastify,
             invite.teamId,
-            identityId,
+            subjectId,
             existingMember.subjectNs,
             invite.role,
           );
@@ -1010,14 +1121,14 @@ export function teamRoutes(fastify: FastifyInstance) {
           await grantTeamRole(
             fastify,
             invite.teamId,
-            identityId,
+            subjectId,
             ns,
             invite.role,
           );
         }
       } catch (err) {
         request.log.error(
-          { teamId: invite.teamId, identityId, inviteId: invite.id, err },
+          { teamId: invite.teamId, subjectId, inviteId: invite.id, err },
           'team.join_keto_grant_failed — invite claimed but Keto write failed',
         );
         try {
@@ -1068,7 +1179,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId } = getAuthContext(request);
+      const { subjectId } = requireKetoSubject(request);
 
       const team = await fastify.teamRepository.findById(id);
       if (!team) throw createProblem('not-found');
@@ -1076,7 +1187,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       // Always check membership first — prevents existence oracle for non-members
       const acceptances =
         await fastify.teamRepository.listFoundingAcceptances(id);
-      const myAcceptance = acceptances.find((a) => a.subjectId === identityId);
+      const myAcceptance = acceptances.find((a) => a.subjectId === subjectId);
       if (!myAcceptance) throw createProblem('not-found');
 
       const alreadyAccepted = myAcceptance.status === 'accepted';
@@ -1089,7 +1200,7 @@ export function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('team-not-founding');
       }
       if (!alreadyAccepted) {
-        await fastify.teamRepository.acceptFoundingMember(id, identityId);
+        await fastify.teamRepository.acceptFoundingMember(id, subjectId);
       }
 
       // Check if all owners have accepted — send event if so

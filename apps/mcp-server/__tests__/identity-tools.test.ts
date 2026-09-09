@@ -34,6 +34,8 @@ describe('Identity tools', () => {
     it('returns identity when authenticated', async () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
+          subjectId: 'agent-123',
+          subjectType: 'agent',
           identityId: 'id-123',
           clientId: 'client-abc',
           publicKey: 'pk-abc',
@@ -48,12 +50,21 @@ describe('Identity tools', () => {
       expect(parsed).toMatchObject({
         authenticated: true,
         identity: {
+          // Distinct from identityId on purpose: the durable principal id and
+          // the re-linkable Kratos reference are two different things.
+          subjectId: 'agent-123',
+          subjectType: 'agent',
           identityId: 'id-123',
           clientId: 'client-abc',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
         },
       });
+      // toMatchObject ignores absent keys, so assert the discriminator is
+      // actually emitted rather than silently undefined.
+      expect((parsed.identity as Record<string, unknown>).subjectType).toBe(
+        'agent',
+      );
       expect(parsed).not.toHaveProperty('profile');
       expect(result.structuredContent).toEqual(parsed);
     });

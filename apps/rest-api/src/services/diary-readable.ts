@@ -18,12 +18,12 @@ export function createAssertDiaryReadable(
   logger?: Logger,
 ): (
   diaryId: string,
-  identityId: string,
+  subjectId: string,
   subjectNs: KetoNamespace,
 ) => Promise<void> {
-  return async (diaryId, identityId, subjectNs) => {
+  return async (diaryId, subjectId, subjectNs) => {
     try {
-      await diaryService.findDiary(diaryId, identityId, subjectNs);
+      await diaryService.findDiary(diaryId, subjectId, subjectNs);
     } catch (err) {
       if (!(err instanceof DiaryServiceError)) {
         throw err;

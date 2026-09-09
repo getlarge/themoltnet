@@ -241,6 +241,7 @@ describe('AgentServerStore', () => {
     store.writeActivation({
       alias: 'agent',
       source: 'managed',
+      subjectId: 'agent-1',
       identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
@@ -267,6 +268,7 @@ describe('AgentServerStore', () => {
     });
     const base = {
       source: 'managed' as const,
+      subjectId: 'agent-1',
       identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
@@ -339,6 +341,7 @@ describe('AgentServerStore', () => {
     store.writeActivation({
       alias: 'external',
       source: 'external',
+      subjectId: 'agent-1',
       identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',
@@ -386,6 +389,7 @@ describe('AgentServerStore', () => {
     const store = freshStore();
     const activation = {
       alias: 'broken',
+      subjectId: 'agent-1',
       identityId: 'id',
       publicKey: 'pk',
       fingerprint: 'fp',

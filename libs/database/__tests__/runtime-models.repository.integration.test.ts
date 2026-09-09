@@ -33,6 +33,8 @@ describe('runtime model catalog reconciliation', () => {
   let repo: ReturnType<typeof createRuntimeModelRepository>;
   let db: ReturnType<typeof createDatabase>['db'];
   const agentId = '10000000-0000-4000-a000-000000000001';
+  // Independent of agentId since the decoupling — see agents.identity_id.
+  const agentIdentityId = '10000000-0000-4000-a001-000000000001';
   const teamId = '20000000-0000-4000-a000-000000000001';
 
   beforeAll(async () => {
@@ -62,8 +64,8 @@ describe('runtime model catalog reconciliation', () => {
     });
 
     await db.execute(
-      sql`INSERT INTO agents (identity_id, public_key, fingerprint)
-       VALUES (${agentId}, 'ed25519:catalog-test', 'CATA-LOG0-0000-0001')`,
+      sql`INSERT INTO agents (id, identity_id, public_key, fingerprint)
+       VALUES (${agentId}, ${agentIdentityId}, 'ed25519:catalog-test', 'CATA-LOG0-0000-0001')`,
     );
     await db.execute(
       sql`INSERT INTO teams (id, name, creator_agent_id)

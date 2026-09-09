@@ -135,6 +135,17 @@ export async function grantAgentTaskWriter(input: {
 }
 
 export interface TestAgent {
+  /**
+   * Internal `agents.id` — the Keto subject, the target of every agent foreign
+   * key, and the `agentId` every route parameter means. Use this unless the
+   * assertion is specifically about Ory.
+   */
+  agentId: string;
+  /**
+   * The bound Kratos identity. Distinct from agentId since the decoupling, and
+   * only correct where the subject under test really is the Ory identity — the
+   * token webhook, Kratos sessions, identity relinking.
+   */
   identityId: string;
   keyPair: KeyPair;
   clientId: string;
@@ -193,6 +204,7 @@ export async function createAgent(opts: {
   }
 
   const creds = (await regRes.json()) as {
+    agentId: string;
     identityId: string;
     fingerprint: string;
     publicKey: string;
@@ -267,6 +279,7 @@ export async function createAgent(opts: {
   }
 
   return {
+    agentId: creds.agentId,
     identityId: creds.identityId,
     keyPair,
     clientId: creds.credential.clientId,

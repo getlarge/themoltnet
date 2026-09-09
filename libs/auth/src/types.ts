@@ -26,6 +26,11 @@ interface BaseAuthContext {
 export interface AgentAuthContext extends BaseAuthContext {
   /** Subject type — determines Keto namespace for permission checks. */
   subjectType: 'agent';
+  /**
+   * Internal `agents.id` — the Keto subject and the target of every agent
+   * foreign key. Stable across Kratos identity recreation, unlike identityId.
+   */
+  agentId: string;
   publicKey: string;
   fingerprint: string;
   clientId: string;

@@ -234,7 +234,7 @@ describe('Teams', () => {
 
       expect(response.status).toBe(200);
       const memberB = data!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB).toBeDefined();
       expect(memberB!.role).toBe('member');
@@ -313,7 +313,7 @@ describe('Teams', () => {
       });
 
       const memberB = members!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB).toBeDefined();
       expect(memberB!.role).toBe('manager');
@@ -323,7 +323,7 @@ describe('Teams', () => {
       const { data, error, response } = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.identityId },
+        path: { id: teamId, subjectId: agentB.agentId },
         body: { role: 'member' },
       });
 
@@ -338,7 +338,7 @@ describe('Teams', () => {
       });
 
       const memberB = members!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB!.role).toBe('member');
     });
@@ -365,7 +365,7 @@ describe('Teams', () => {
       const { data, error } = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.identityId },
+        path: { id: teamId, subjectId: agentB.agentId },
         body: { role: 'executor' },
       });
       expect(error).toBeUndefined();
@@ -376,7 +376,7 @@ describe('Teams', () => {
         path: { id: teamId },
       });
       expect(
-        members!.items.find((member) => member.subjectId === agentB.identityId)
+        members!.items.find((member) => member.subjectId === agentB.agentId)
           ?.role,
       ).toBe('executor');
     });
@@ -420,7 +420,7 @@ describe('Teams', () => {
       });
 
       const memberB = members!.items.find(
-        (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+        (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
       expect(memberB).toBeDefined();
       expect(memberB!.role).toBe('member');
@@ -430,7 +430,7 @@ describe('Teams', () => {
       const { response } = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentA.identityId },
+        path: { id: teamId, subjectId: agentA.agentId },
         body: { role: 'manager' },
       });
 
@@ -459,10 +459,29 @@ describe('Teams', () => {
       });
       expect(humanJoin.response.status).toBe(200);
 
+      // Enrichment, not just membership. The Keto subject is `humans.id`,
+      // which Kratos has never heard of, so the route must translate it
+      // through `humans.identity_id` before reading traits. Without that
+      // translation the lookup misses and the member degrades silently to a
+      // truncated-UUID display name with no email — indistinguishable from a
+      // deleted identity, and invisible to any assertion on role alone
+      // (#2163). `humanId` and `identityId` differ, so a lookup on the wrong
+      // one cannot accidentally pass.
+      const enriched = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+      const humanMember = enriched.data?.items.find(
+        (member) => member.subjectId === human.humanId,
+      );
+      expect(humanMember?.email).toBe(human.email);
+      expect(humanMember?.displayName).toBe(human.username);
+
       const assignment = await updateTeamMemberRole({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: human.identityId },
+        path: { id: teamId, subjectId: human.humanId },
         body: { role: 'executor' },
       });
       expect(assignment.response.status).toBe(400);
@@ -493,7 +512,7 @@ describe('Teams', () => {
           name: `human-executor-founding-${Date.now()}`,
           foundingMembers: [
             {
-              subjectId: human.identityId,
+              subjectId: human.humanId,
               subjectNs: 'Human',
               role: 'executor',
             },
@@ -536,7 +555,7 @@ describe('Teams', () => {
       const { response } = await removeTeamMember({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.identityId },
+        path: { id: teamId, subjectId: agentB.agentId },
       });
 
       expect(response.status).toBe(200);
@@ -546,7 +565,7 @@ describe('Teams', () => {
       const { response } = await removeTeamMember({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentA.identityId },
+        path: { id: teamId, subjectId: agentA.agentId },
       });
 
       expect(response.status).toBe(400);

@@ -62,7 +62,14 @@ export interface AgentKeySubject {
   credentialKeyId?: string;
   /** Binding of the Talos credential authorizing this request; absent for OAuth. */
   credentialBindingScope?: 'identity' | 'team';
-  identityId: string;
+  /**
+   * The CALLER's internal principal id — `agents.id` or `humans.id`, per
+   * `subjectType`. Not named agentId precisely because a human may hold an
+   * agent key operation, and a humans.id in a field promising agents.id is the
+   * ambiguity this refactor exists to remove. Distinct from the `agentId`
+   * inputs below, which name the TARGET agent a key is issued for.
+   */
+  subjectId: string;
   scopes: string[];
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
@@ -517,7 +524,7 @@ async function canManageAllTeamKeys(
 ): Promise<boolean> {
   return deps.permissionChecker.canManageTeamCredentials(
     teamId,
-    subject.identityId,
+    subject.subjectId,
     subject.subjectNs,
   );
 }
@@ -531,14 +538,14 @@ async function assertCanManageAgentKey(
   if (binding.bindingScope === 'identity') {
     if (
       subject.subjectType === 'agent' &&
-      subject.identityId === agentId &&
+      subject.subjectId === agentId &&
       subject.credentialBindingScope !== 'team'
     ) {
       return;
     }
     throw createProblem('forbidden');
   }
-  if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
+  if (subject.subjectType === 'agent' && subject.subjectId === agentId) return;
   if (await canManageAllTeamKeys(deps, subject, binding.teamId)) return;
   throw createProblem('forbidden');
 }
@@ -557,7 +564,7 @@ async function assertCanManageExistingAgentKey(
       subject.scopes.includes('key:manage');
     if (
       subject.subjectType === 'agent' &&
-      subject.identityId === agentId &&
+      subject.subjectId === agentId &&
       subject.credentialBindingScope !== 'team' &&
       (isAuthorizingCredential || canManageSiblings)
     ) {
@@ -565,7 +572,7 @@ async function assertCanManageExistingAgentKey(
     }
     throw createProblem('not-found');
   }
-  if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
+  if (subject.subjectType === 'agent' && subject.subjectId === agentId) return;
   if (await canManageAllTeamKeys(deps, subject, binding.teamId)) return;
   throw createProblem('not-found');
 }
@@ -580,7 +587,10 @@ async function assertCurrentAgentMember(
     agentId,
     KetoNamespace.Agent,
   );
-  const agent = await deps.agentRepository.findByIdentityId(agentId);
+  // agents.id — the same value passed to isTeamMember above, not a Kratos
+  // identity. Resolving it by identity matched nothing once the two diverged,
+  // so this assertion rejected every legitimate target agent.
+  const agent = await deps.agentRepository.findById(agentId);
   if (!isAgentMember || !agent) {
     throw createValidationProblem(
       [
@@ -618,17 +628,17 @@ async function resolveListQuery(
     ) {
       throw createProblem('forbidden');
     }
-    if (input.agentId && input.agentId !== input.subject.identityId) {
+    if (input.agentId && input.agentId !== input.subject.subjectId) {
       throw createProblem('forbidden');
     }
     const cursorQuery = {
-      actorId: input.subject.identityId,
+      actorId: input.subject.subjectId,
       bindingScope: 'identity' as const,
       status: input.status ?? null,
       teamId: null,
     };
     return {
-      agentFilter: input.subject.identityId,
+      agentFilter: input.subject.subjectId,
       cursorQuery,
       limit: input.limit ?? DEFAULT_LIST_LIMIT,
       pageToken: decodeCursor(input.cursor, cursorQuery),
@@ -645,12 +655,12 @@ async function resolveListQuery(
   if (
     !canManageAll &&
     input.agentId &&
-    input.agentId !== input.subject.identityId
+    input.agentId !== input.subject.subjectId
   ) {
     throw createProblem('forbidden');
   }
 
-  const agentFilter = canManageAll ? input.agentId : input.subject.identityId;
+  const agentFilter = canManageAll ? input.agentId : input.subject.subjectId;
   const cursorQuery = {
     actorId: agentFilter ?? null,
     bindingScope: 'team' as const,
@@ -771,7 +781,7 @@ async function scanAgentKeyPages(
     {
       action: 'list',
       ...bindingLogFields(expectedBinding),
-      actorId: input.subject.identityId,
+      actorId: input.subject.subjectId,
       scannedCount,
       matchedCount: items.length,
       talosCalls,

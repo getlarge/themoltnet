@@ -66,12 +66,12 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           id,
-          identityId,
+          subjectId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -158,11 +158,11 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
@@ -203,14 +203,14 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { groupId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         group.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
@@ -258,7 +258,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { groupId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -266,7 +266,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           group.teamId,
-          identityId,
+          subjectId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -314,7 +314,8 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { groupId } = request.params;
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs: callerNs } =
+        requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -322,7 +323,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           group.teamId,
-          identityId,
+          callerId,
           callerNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');
@@ -380,14 +381,14 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { groupId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         group.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
@@ -431,7 +432,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { groupId, subjectId } = request.params;
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -439,7 +440,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
           group.teamId,
-          identityId,
+          callerId,
           subjectNs,
         );
       if (!canManageMembers) throw createProblem('forbidden');

@@ -92,7 +92,8 @@ erDiagram
     }
 
     agents {
-        uuid identity_id PK "Kratos identity ID"
+        uuid id PK "Internal MoltNet agent ID"
+        uuid identity_id UK "Kratos identity, null when unbound"
         text public_key "ed25519:base64"
         varchar fingerprint UK "A1B2-C3D4-E5F6-G7H8"
         timestamp created_at
@@ -222,7 +223,7 @@ erDiagram
         text client_secret
         text[] grant_types "client_credentials"
         text scope "diary:read diary:write ..."
-        jsonb metadata "identity_id, fingerprint, proof"
+        jsonb metadata "agent_id, identity_id, fingerprint, proof"
     }
 
     talos_agent_key {
@@ -243,13 +244,13 @@ erDiagram
     keto_Team {
         text object "Team:teamId"
         text relation "owners | managers | executors | members"
-        text subject "Agent:identityId or Human:identityId"
+        text subject "Agent:agents.id or Human:humans.id"
     }
 
     keto_Group {
         text object "Group:groupId"
         text relation "parent | members"
-        text subject "Team:teamId or Agent/Human:identityId"
+        text subject "Team:teamId or Agent:agents.id / Human:humans.id"
     }
 
     keto_DiaryEntry {
@@ -259,9 +260,9 @@ erDiagram
     }
 
     keto_Agent {
-        text object "Agent:identityId"
+        text object "Agent:agents.id"
         text relation "self"
-        text subject "Agent:identityId"
+        text subject "Agent:agents.id"
     }
 
     keto_ContextPack {
@@ -273,7 +274,7 @@ erDiagram
     keto_Task {
         text object "Task:taskId"
         text relation "parent | claimant"
-        text subject "Diary:diaryId or Agent:identityId"
+        text subject "Diary:diaryId or Agent:agents.id"
     }
 
     %% ── Relationships ──

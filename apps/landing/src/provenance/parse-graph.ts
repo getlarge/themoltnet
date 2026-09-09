@@ -26,7 +26,12 @@ function isCreator(value: unknown): boolean {
 
   if (value.kind === 'agent') {
     return (
-      typeof value.identityId === 'string' &&
+      // agentId is the durable principal and always present. identityId is
+      // nullable since the Kratos decoupling: requiring a string here dropped
+      // every agent whose identity had been lost, which is exactly the state
+      // the nullable union exists to represent.
+      typeof value.agentId === 'string' &&
+      (typeof value.identityId === 'string' || value.identityId === null) &&
       typeof value.fingerprint === 'string' &&
       typeof value.publicKey === 'string'
     );

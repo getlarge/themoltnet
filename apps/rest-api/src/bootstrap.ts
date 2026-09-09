@@ -698,16 +698,26 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     talosIssuer: oryUrls.talosAdminUrl,
     remoteRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
     talosApi: oryClients.apiKeys,
-    resolveTalosAgent: async (identityId, signal) => {
-      const [agent, identity] = await Promise.all([
-        agentRepository.findByIdentityId(identityId),
-        oryClients.identity.getIdentity(
-          { id: identityId },
-          signal ? { signal } : undefined,
-        ),
-      ]);
-      if (!agent || identity.state !== 'active') return null;
+    resolveTalosAgent: async (actorId, signal) => {
+      // Talos `actor_id` is an agents.id: agent-key issuance writes
+      // `actor_id: input.agentId` (agent-key-service.ts), and the routes pass
+      // the internal id there. Resolving it as a Kratos identity matched
+      // nothing once the two diverged, which rejected every agent-key request.
+      //
+      // Sequential rather than parallel: the identity to check is only known
+      // after the agent row is read.
+      const agent = await agentRepository.findById(actorId);
+      // No live identity means no liveness signal to check, so the key is not
+      // honoured. This keeps the previous gate exactly as strict; widening it
+      // to identity-less agents is a separate decision.
+      if (!agent?.identityId) return null;
+      const identity = await oryClients.identity.getIdentity(
+        { id: agent.identityId },
+        signal ? { signal } : undefined,
+      );
+      if (identity.state !== 'active') return null;
       return {
+        agentId: agent.id,
         identityId: agent.identityId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
@@ -781,21 +791,19 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     tokenValidator,
     sessionResolver,
     teamResolver: {
-      // subjectId is the Kratos identity_id from the JWT/session. For agents
-      // it IS the FK target on teams.creator_agent_id. For humans it is
-      // NOT the FK target — teams.creator_human_id references humans.id,
-      // which we have to look up via humans.identityId.
+      // subjectId is the Keto subject, which since #2163 is the INTERNAL id
+      // (`agents.id` / `humans.id`) — not the Kratos identity. Both are direct
+      // FK targets (teams.creator_agent_id, teams.creator_human_id), so no
+      // identity lookup is involved on either side.
       findPersonalTeamId: async (subjectId: string) => {
         const agentTeam = await teamRepository.findPersonalByCreator({
           kind: 'agent',
           id: subjectId,
         });
         if (agentTeam) return agentTeam.id;
-        const human = await humanRepository.findByIdentityId(subjectId);
-        if (!human) return null;
         const humanTeam = await teamRepository.findPersonalByCreator({
           kind: 'human',
-          id: human.id,
+          id: subjectId,
         });
         return humanTeam?.id ?? null;
       },

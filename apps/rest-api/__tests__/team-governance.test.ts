@@ -556,6 +556,34 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
     );
   });
 
+  it('authorizes the caller, not the member being changed', async () => {
+    // Regression: `subjectId` is a path parameter naming the TARGET member.
+    // Authorizing with it instead of the caller let any authenticated caller
+    // promote or demote anyone the target was allowed to manage. The other
+    // tests here stub canManageTeamMembers to true, so only asserting the
+    // argument catches it.
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'members',
+      },
+    ]);
+
+    await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'manager' },
+    });
+
+    expect(mocks.permissionChecker.canManageTeamMembers).toHaveBeenCalledWith(
+      TEAM_ID,
+      OWNER_ID,
+      'Agent',
+    );
+  });
+
   it('demotes a manager to member', async () => {
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([
       {

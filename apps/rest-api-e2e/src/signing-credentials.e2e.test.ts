@@ -92,17 +92,17 @@ describe('Signing credential and delegated request lifecycle', () => {
     });
     await relationships.grantTeamMembers(
       requester.personalTeamId,
-      signer.identityId,
+      signer.humanId,
       KetoNamespace.Human,
     );
     await relationships.grantTeamMembers(
       otherTeamOwner.personalTeamId,
-      signer.identityId,
+      signer.humanId,
       KetoNamespace.Human,
     );
     await relationships.grantTeamManagers(
       requester.personalTeamId,
-      approver.identityId,
+      approver.humanId,
       KetoNamespace.Human,
     );
 
@@ -263,7 +263,7 @@ describe('Signing credential and delegated request lifecycle', () => {
     });
     expect(created.error).toBeUndefined();
     expect(created.data!.requestedBy).toEqual({
-      id: requester.identityId,
+      id: requester.agentId,
       type: 'agent',
     });
 

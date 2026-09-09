@@ -81,12 +81,12 @@ describe.skipIf(process.env.MOLTNET_PREVIEW_SIGN_HARDWARE !== '1')(
       );
       await relationships.grantTeamMembers(
         requester.personalTeamId,
-        signer.identityId,
+        signer.humanId,
         KetoNamespace.Human,
       );
       await relationships.grantTeamManagers(
         requester.personalTeamId,
-        approver.identityId,
+        approver.humanId,
         KetoNamespace.Human,
       );
 

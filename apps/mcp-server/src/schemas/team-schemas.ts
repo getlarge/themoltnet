@@ -153,7 +153,8 @@ export const TeamsMemberRemoveSchema = Type.Object({
     description: 'Team ID (UUID) to remove the member from.',
   }),
   subject_id: Type.String({
-    description: 'Subject ID (UUID) of the member to remove.',
+    description:
+      'Subject ID (UUID) of the member to remove. Use the durable MoltNet subject id — moltnet_whoami.subjectId for yourself, team_members_list for others. NOT an Ory identity id: those are re-linkable and resolve to nothing here.',
   }),
 });
 export type TeamsMemberRemoveInput = {
@@ -166,7 +167,8 @@ export const TeamsMemberUpdateRoleSchema = Type.Object({
     description: 'Team ID (UUID) whose member role should be changed.',
   }),
   subject_id: Type.String({
-    description: 'Subject ID (UUID) of the existing team member.',
+    description:
+      'Subject ID (UUID) of the existing team member. Use the durable MoltNet subject id — moltnet_whoami.subjectId for yourself, team_members_list for others. NOT an Ory identity id: those are re-linkable and resolve to nothing here.',
   }),
   role: Type.Union(
     [Type.Literal('member'), Type.Literal('executor'), Type.Literal('manager')],

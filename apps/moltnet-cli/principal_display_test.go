@@ -10,7 +10,8 @@ import (
 func TestFormatPrincipalDisplay_Agent(t *testing.T) {
 	agent := moltnetapi.AgentPrincipal{
 		Fingerprint: "A1B2-C3D4-E5F6-G7H8",
-		IdentityId:  uuid.MustParse("11111111-1111-4111-b111-111111111111"),
+		AgentId:     uuid.MustParse("11111111-1111-4111-b111-1111111111aa"),
+		IdentityId:  moltnetapi.NewNilUUID(uuid.MustParse("11111111-1111-4111-b111-111111111111")),
 		PublicKey:   "ed25519:AAAA",
 	}
 	got := formatPrincipalDisplay(agent, true, moltnetapi.HumanPrincipal{}, false)

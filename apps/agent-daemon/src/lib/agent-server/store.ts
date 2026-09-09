@@ -156,6 +156,12 @@ export interface PendingRegistration {
 
 interface ActivationIdentity {
   alias: string;
+  /**
+   * Internal `agents.id`, pinned from authenticated `whoami`. The durable
+   * principal: every `agentId` parameter and Keto subject means this, and it
+   * survives the Kratos identity being recreated.
+   */
+  subjectId: string;
   /** Identity material pinned after authenticated `whoami`. */
   identityId: string;
   publicKey: string;

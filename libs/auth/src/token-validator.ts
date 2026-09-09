@@ -68,6 +68,8 @@ export interface TokenValidatorConfig {
 }
 
 export interface TalosAgentIdentity {
+  /** Internal `agents.id` — used as the Keto subject. */
+  agentId: string;
   identityId: string;
   publicKey: string;
   fingerprint: string;
@@ -338,8 +340,24 @@ function extractAuthContextFromClaims(
     return null;
   }
 
+  // agents.id is a fresh UUID, unrelated to the Kratos identity, so there is
+  // no way to derive it here — libs/auth has no database access. A token
+  // minted before the webhook emitted moltnet:agent_id therefore cannot be
+  // resolved to a Keto subject, and falling back to identityId would authorize
+  // the request against a subject the Keto rewrite has just retired: the agent
+  // authenticates and matches nothing.
+  //
+  // Fail closed instead. The deployment already requires a maintenance window
+  // (migration + Keto rewrite); flushing the OAuth2 grant cache during it is
+  // what guarantees no pre-change token outlives the change.
+  const agentId = claims['moltnet:agent_id'] as string | undefined;
+  if (!agentId) {
+    return null;
+  }
+
   return {
     subjectType: 'agent',
+    agentId,
     identityId,
     publicKey,
     fingerprint,
@@ -394,6 +412,14 @@ async function fetchClientMetadata(
 
     const metaPublicKey = metadata.public_key;
     const metaFingerprint = metadata.fingerprint;
+    // Same reasoning as the JWT path: agents.id cannot be derived from the
+    // identity, so a client that predates the agent_id backfill is not
+    // resolvable. The backfill is a required deployment step.
+    const metaAgentId = metadata.agent_id;
+    if (!metaAgentId) {
+      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
+      return null;
+    }
 
     if (!metaPublicKey || !metaFingerprint) {
       metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
@@ -403,6 +429,7 @@ async function fetchClientMetadata(
     metrics?.recordUpstreamRequest('oauth2.client_metadata', 'success');
     return {
       subjectType: 'agent',
+      agentId: metaAgentId,
       identityId: metaIdentityId,
       publicKey: metaPublicKey,
       fingerprint: metaFingerprint,
@@ -592,7 +619,10 @@ export function createTokenValidator(
           remoteMetrics,
         );
       }
-      if (!agent || agent.identityId !== result.actor_id) {
+      // actor_id is the agent's internal id, so verify the resolver returned
+      // the agent Talos actually named. Comparing the Kratos identity here
+      // rejected every key once the two values diverged.
+      if (!agent || agent.agentId !== result.actor_id) {
         remoteMetrics.recordUpstreamRequest(
           'talos.agent_resolution',
           'invalid',
@@ -631,6 +661,7 @@ export function createTokenValidator(
       return {
         context: {
           subjectType: 'agent',
+          agentId: agent.agentId,
           identityId: agent.identityId,
           publicKey: agent.publicKey,
           fingerprint: agent.fingerprint,

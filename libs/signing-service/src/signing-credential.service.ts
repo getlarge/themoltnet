@@ -12,10 +12,12 @@ import {
 } from '@moltnet/signing-workflows';
 
 import {
+  actorPrincipal,
   asSigningMethodJson,
   mapWorkflowError,
   namespace,
   requireHuman,
+  subjectId,
 } from './signing-service.shared.js';
 import type { SigningServiceDeps } from './signing-service.types.js';
 import { SigningServiceError } from './signing-service-error.js';
@@ -30,7 +32,7 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
   async function canManage(actor: AuthContext, teamId: string) {
     return deps.permissionChecker.canManageTeamCredentials(
       teamId,
-      actor.identityId,
+      subjectId(actor),
       namespace(actor),
     );
   }
@@ -52,7 +54,8 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
       if (
         !(await deps.permissionChecker.canAccessTeam(
           input.teamId,
-          actor.identityId,
+          // requireHuman narrowed this actor, so the subject is humans.id.
+          subjectId(actor),
           KetoNamespace.Human,
         ))
       ) {
@@ -288,13 +291,7 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
           'Team credential management permission is required',
         );
       }
-      const actor = {
-        kind: input.actor.subjectType,
-        id:
-          input.actor.subjectType === 'human'
-            ? input.actor.humanId
-            : input.actor.identityId,
-      } as const;
+      const actor = actorPrincipal(input.actor);
       const result = await deps.transactionRunner.runInTransaction(
         () =>
           deps.signingCredentialRepository.transition({

@@ -203,15 +203,27 @@
       "AgentPrincipal": {
         "additionalProperties": false,
         "properties": {
+          "agentId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
           "fingerprint": {
             "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
             "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
             "type": "string"
           },
           "identityId": {
-            "description": "UUID v4 identifier",
-            "format": "uuid",
-            "type": "string"
+            "anyOf": [
+              {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "kind": {
             "enum": [
@@ -227,6 +239,7 @@
         },
         "required": [
           "kind",
+          "agentId",
           "identityId",
           "fingerprint",
           "publicKey"
@@ -1130,15 +1143,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -1154,6 +1179,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -1286,15 +1312,27 @@
                   {
                     "additionalProperties": false,
                     "properties": {
+                      "agentId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
                       "fingerprint": {
                         "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                         "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                         "type": "string"
                       },
                       "identityId": {
-                        "description": "UUID v4 identifier",
-                        "format": "uuid",
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "kind": {
                         "enum": [
@@ -1310,6 +1348,7 @@
                     },
                     "required": [
                       "kind",
+                      "agentId",
                       "identityId",
                       "fingerprint",
                       "publicKey"
@@ -1487,15 +1526,27 @@
                   {
                     "additionalProperties": false,
                     "properties": {
+                      "agentId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
                       "fingerprint": {
                         "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                         "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                         "type": "string"
                       },
                       "identityId": {
-                        "description": "UUID v4 identifier",
-                        "format": "uuid",
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "kind": {
                         "enum": [
@@ -1511,6 +1562,7 @@
                     },
                     "required": [
                       "kind",
+                      "agentId",
                       "identityId",
                       "fingerprint",
                       "publicKey"
@@ -2618,15 +2670,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -2642,6 +2706,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -2791,15 +2856,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -2815,6 +2892,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -2999,15 +3077,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -3023,6 +3113,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -3209,15 +3300,27 @@
                   {
                     "additionalProperties": false,
                     "properties": {
+                      "agentId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
                       "fingerprint": {
                         "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                         "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                         "type": "string"
                       },
                       "identityId": {
-                        "description": "UUID v4 identifier",
-                        "format": "uuid",
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "kind": {
                         "enum": [
@@ -3233,6 +3336,7 @@
                     },
                     "required": [
                       "kind",
+                      "agentId",
                       "identityId",
                       "fingerprint",
                       "publicKey"
@@ -5794,15 +5898,27 @@
           {
             "additionalProperties": false,
             "properties": {
+              "agentId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
               "fingerprint": {
                 "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                 "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                 "type": "string"
               },
               "identityId": {
-                "description": "UUID v4 identifier",
-                "format": "uuid",
-                "type": "string"
+                "anyOf": [
+                  {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "kind": {
                 "enum": [
@@ -5818,6 +5934,7 @@
             },
             "required": [
               "kind",
+              "agentId",
               "identityId",
               "fingerprint",
               "publicKey"
@@ -6277,15 +6394,27 @@
                                 {
                                   "additionalProperties": false,
                                   "properties": {
+                                    "agentId": {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
                                     "fingerprint": {
                                       "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                                       "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                                       "type": "string"
                                     },
                                     "identityId": {
-                                      "description": "UUID v4 identifier",
-                                      "format": "uuid",
-                                      "type": "string"
+                                      "anyOf": [
+                                        {
+                                          "description": "UUID v4 identifier",
+                                          "format": "uuid",
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
                                     },
                                     "kind": {
                                       "enum": [
@@ -6301,6 +6430,7 @@
                                   },
                                   "required": [
                                     "kind",
+                                    "agentId",
                                     "identityId",
                                     "fingerprint",
                                     "publicKey"
@@ -6407,15 +6537,27 @@
                             {
                               "additionalProperties": false,
                               "properties": {
+                                "agentId": {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
                                 "fingerprint": {
                                   "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                                   "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                                   "type": "string"
                                 },
                                 "identityId": {
-                                  "description": "UUID v4 identifier",
-                                  "format": "uuid",
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "kind": {
                                   "enum": [
@@ -6431,6 +6573,7 @@
                               },
                               "required": [
                                 "kind",
+                                "agentId",
                                 "identityId",
                                 "fingerprint",
                                 "publicKey"
@@ -6599,15 +6742,27 @@
                             {
                               "additionalProperties": false,
                               "properties": {
+                                "agentId": {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
                                 "fingerprint": {
                                   "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                                   "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                                   "type": "string"
                                 },
                                 "identityId": {
-                                  "description": "UUID v4 identifier",
-                                  "format": "uuid",
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "description": "UUID v4 identifier",
+                                      "format": "uuid",
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "kind": {
                                   "enum": [
@@ -6623,6 +6778,7 @@
                               },
                               "required": [
                                 "kind",
+                                "agentId",
                                 "identityId",
                                 "fingerprint",
                                 "publicKey"
@@ -7168,6 +7324,10 @@
       },
       "RegisterResponse": {
         "properties": {
+          "agentId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "credential": {
             "anyOf": [
               {
@@ -7190,6 +7350,7 @@
           }
         },
         "required": [
+          "agentId",
           "identityId",
           "fingerprint",
           "publicKey",
@@ -7289,15 +7450,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -7313,6 +7486,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -7485,15 +7659,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -7509,6 +7695,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -7617,15 +7804,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -7641,6 +7840,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -10380,15 +10580,27 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "fingerprint": {
                     "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                     "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                     "type": "string"
                   },
                   "identityId": {
-                    "description": "UUID v4 identifier",
-                    "format": "uuid",
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "kind": {
                     "enum": [
@@ -10404,6 +10616,7 @@
                 },
                 "required": [
                   "kind",
+                  "agentId",
                   "identityId",
                   "fingerprint",
                   "publicKey"
@@ -14607,6 +14820,10 @@
             },
             "type": "array"
           },
+          "subjectId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "subjectType": {
             "anyOf": [
               {
@@ -14625,6 +14842,7 @@
           }
         },
         "required": [
+          "subjectId",
           "identityId",
           "subjectType"
         ],
@@ -23882,15 +24100,27 @@
                                           {
                                             "additionalProperties": false,
                                             "properties": {
+                                              "agentId": {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
                                               "fingerprint": {
                                                 "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                                                 "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                                                 "type": "string"
                                               },
                                               "identityId": {
-                                                "description": "UUID v4 identifier",
-                                                "format": "uuid",
-                                                "type": "string"
+                                                "anyOf": [
+                                                  {
+                                                    "description": "UUID v4 identifier",
+                                                    "format": "uuid",
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
                                               },
                                               "kind": {
                                                 "enum": [
@@ -23906,6 +24136,7 @@
                                             },
                                             "required": [
                                               "kind",
+                                              "agentId",
                                               "identityId",
                                               "fingerprint",
                                               "publicKey"
@@ -24012,15 +24243,27 @@
                                       {
                                         "additionalProperties": false,
                                         "properties": {
+                                          "agentId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
                                           "fingerprint": {
                                             "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                                             "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                                             "type": "string"
                                           },
                                           "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
+                                            "anyOf": [
+                                              {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "kind": {
                                             "enum": [
@@ -24036,6 +24279,7 @@
                                         },
                                         "required": [
                                           "kind",
+                                          "agentId",
                                           "identityId",
                                           "fingerprint",
                                           "publicKey"
@@ -24204,15 +24448,27 @@
                                       {
                                         "additionalProperties": false,
                                         "properties": {
+                                          "agentId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
                                           "fingerprint": {
                                             "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
                                             "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
                                             "type": "string"
                                           },
                                           "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
+                                            "anyOf": [
+                                              {
+                                                "description": "UUID v4 identifier",
+                                                "format": "uuid",
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "kind": {
                                             "enum": [
@@ -24228,6 +24484,7 @@
                                         },
                                         "required": [
                                           "kind",
+                                          "agentId",
                                           "identityId",
                                           "fingerprint",
                                           "publicKey"

@@ -21,7 +21,7 @@ import {
 
 const TEAM_ID = 'team-1';
 const AGENT_SUBJECT: RuntimePolicySubject = {
-  identityId: 'agent-1',
+  subjectId: 'agent-1',
   creatorId: 'agent-1',
   subjectNs: KetoNamespace.Agent,
   subjectType: 'agent',
@@ -375,7 +375,7 @@ describe('createRuntimePolicyService', () => {
         name: 'ci',
         tools: [],
         subject: {
-          identityId: 'kratos-human-9',
+          subjectId: 'kratos-human-9',
           creatorId: 'human-9',
           subjectNs: KetoNamespace.Human,
           subjectType: 'human',

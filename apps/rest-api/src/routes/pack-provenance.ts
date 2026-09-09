@@ -34,7 +34,7 @@ interface BuildPackProvenanceGraphOptions {
   fastify: FastifyInstance;
   rootPack: ContextPackWithCreator;
   depth: number;
-  identityId: string;
+  subjectId: string;
   subjectNs: KetoNamespace;
 }
 
@@ -42,7 +42,7 @@ export async function buildPackProvenanceGraph({
   fastify,
   rootPack,
   depth,
-  identityId,
+  subjectId,
   subjectNs,
 }: BuildPackProvenanceGraphOptions): Promise<ProvenanceGraph> {
   const packs = new Map<string, ContextPackWithCreator>();
@@ -76,7 +76,7 @@ export async function buildPackProvenanceGraph({
 
   const visible = await fastify.permissionChecker.canReadPacks(
     Array.from(packs.keys()),
-    identityId,
+    subjectId,
     subjectNs,
   );
   const visiblePackIds = Array.from(packs.keys()).filter(

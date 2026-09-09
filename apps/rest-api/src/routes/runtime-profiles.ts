@@ -260,10 +260,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const teamId = requireCurrentTeamId(request, 'runtime profiles');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
@@ -301,10 +301,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'runtime profiles');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -400,10 +400,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         request.params.profileId,
       );
       if (!row) throw createProblem('not-found');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         row.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
@@ -443,10 +443,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         request.params.profileId,
       );
       if (!existing) throw createProblem('not-found');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -567,10 +567,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         request.params.profileId,
       );
       if (!row) throw createProblem('not-found');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         row.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');

@@ -274,6 +274,15 @@ function applyAuthContext(
   request.authContext = authContext;
   setRequestContextField('identityId', authContext.identityId);
   setRequestContextField('subjectType', authContext.subjectType);
+  // Log the internal principal ID alongside the Kratos identity: it is the
+  // Keto subject and the FK target, so it is what a permission or ownership
+  // investigation actually needs. During the 2026-09-04 incident the logs
+  // carried only identityId, which by then resolved to nothing.
+  if (authContext.subjectType === 'agent') {
+    setRequestContextField('agentId', authContext.agentId);
+  } else {
+    setRequestContextField('humanId', authContext.humanId);
+  }
   if (authContext.clientId)
     setRequestContextField('clientId', authContext.clientId);
   if (authContext.currentTeamId)
@@ -292,6 +301,9 @@ function applyAuthContext(
   const bindings: Record<string, string> = {
     identityId: authContext.identityId,
     subjectType: authContext.subjectType,
+    ...(authContext.subjectType === 'agent'
+      ? { agentId: authContext.agentId }
+      : { humanId: authContext.humanId }),
   };
   if (authContext.clientId) bindings.clientId = authContext.clientId;
   if (authContext.currentTeamId)
@@ -372,9 +384,27 @@ async function resolveTeamContext(
       authContext.subjectType === 'human'
         ? KetoNamespace.Human
         : KetoNamespace.Agent;
+    // Keto subjects are internal IDs, never Kratos identities: an identity can
+    // be recreated, and a subject that moves with it silently detaches the
+    // principal from every permission it holds.
+    //
+    // Both namespaces need their Keto tuples rewritten, and
+    // infra/ory/migrate-keto-subjects.mjs does both in one pass: agents.id is
+    // a fresh UUID (seeding was considered and rejected), so the Agent: tuples
+    // move off the identity, and the Human: tuples move from identity_id to
+    // humans.id. Neither half is optional — this line reads humans.id for a
+    // human caller, so shipping it without the Human rewrite leaves existing
+    // humans authenticated and 403 on every team-scoped check. Until both
+    // rewrites run, the principal authenticates but resolves no permissions,
+    // which is why the migration and the rewrites share one maintenance
+    // window.
+    const subjectId =
+      authContext.subjectType === 'human'
+        ? authContext.humanId
+        : authContext.agentId;
     const canAccess = await request.server.permissionChecker.canAccessTeam(
       teamId,
-      authContext.identityId,
+      subjectId,
       subjectNs,
     );
     if (!canAccess) {

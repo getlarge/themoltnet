@@ -49,7 +49,7 @@ func newRecordingAPI(t *testing.T) *recordingAPI {
 		api.authHeaders = append(api.authHeaders, r.Header.Get("Authorization"))
 		api.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"identityId":"00000000-0000-0000-0000-000000000000","subjectType":"agent","scopes":[]}`))
+		_, _ = w.Write([]byte(`{"subjectId":"00000000-0000-4000-a000-0000000000aa","identityId":"00000000-0000-0000-0000-000000000000","subjectType":"agent","scopes":[]}`))
 	})
 	api.server = httptest.NewServer(mux)
 	t.Cleanup(api.server.Close)
@@ -164,7 +164,10 @@ func newSigningAPI(t *testing.T) *signingAPI {
 		publicKey, fingerprint := api.authPublicKey, api.authFingerprint
 		api.mu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"identityId":"44444444-4444-4444-8444-444444444444",` +
+		// subjectId is required and is NOT the identity: distinct values here so
+		// a reader of the wrong field cannot pass.
+		_, _ = w.Write([]byte(`{"subjectId":"44444444-4444-4444-8444-4444444444aa",` +
+			`"identityId":"44444444-4444-4444-8444-444444444444",` +
 			`"subjectType":"agent","scopes":["agent:profile"],` +
 			`"publicKey":"` + publicKey + `","fingerprint":"` + fingerprint + `"}`))
 	})

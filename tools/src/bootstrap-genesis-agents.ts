@@ -205,8 +205,12 @@ async function main(): Promise<void> {
     }
 
     // Output credentials JSON to stdout
+    // This stdout is machine-readable and consumed by the Go CLI e2e setup, so
+    // the durable subject has to travel with the identity: agentId is what
+    // every --agent-id flag and Keto subject means.
     const output = result.agents.map((a) => ({
       name: a.name,
+      agentId: a.agentId,
       identityId: a.identityId,
       fingerprint: a.keyPair.fingerprint,
       publicKey: a.keyPair.publicKey,

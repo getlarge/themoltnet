@@ -86,7 +86,7 @@ export interface ContextPackServiceDeps {
    */
   assertDiaryReadable: (
     diaryId: string,
-    identityId: string,
+    subjectId: string,
     subjectNs: PackActor['subjectNs'],
   ) => Promise<void>;
   logger?: { error: (obj: Record<string, unknown>, msg: string) => void };
@@ -133,7 +133,7 @@ export class ContextPackService {
 
     const allowed = await this.deps.permissionChecker.canViewEntry(
       input.entryId,
-      input.actor.identityId,
+      input.actor.subjectId,
       input.actor.subjectNs,
     );
     if (!allowed) {
@@ -178,7 +178,7 @@ export class ContextPackService {
 
     const readablePacks = await this.deps.permissionChecker.canReadPacks(
       result.items.map((pack) => pack.id),
-      actor.identityId,
+      actor.subjectId,
       actor.subjectNs,
     );
     const visibleItems = result.items.filter(
@@ -314,7 +314,7 @@ export class ContextPackService {
 
     await this.deps.assertDiaryReadable(
       input.diaryId,
-      input.actor.identityId,
+      input.actor.subjectId,
       input.actor.subjectNs,
     );
 
@@ -329,7 +329,7 @@ export class ContextPackService {
     try {
       allowed = await this.deps.permissionChecker.canReadPacks(
         packs.map((p) => p.id),
-        input.actor.identityId,
+        input.actor.subjectId,
         input.actor.subjectNs,
       );
     } catch (error) {
@@ -337,7 +337,7 @@ export class ContextPackService {
         {
           err: error,
           diaryId: input.diaryId,
-          identityId: input.actor.identityId,
+          subjectId: input.actor.subjectId,
           packCount: packs.length,
         },
         'Failed to check pack read permissions',
@@ -417,7 +417,7 @@ export class ContextPackService {
 
     await this.deps.assertDiaryReadable(
       input.diaryId,
-      input.actor.identityId,
+      input.actor.subjectId,
       input.actor.subjectNs,
     );
 
@@ -436,7 +436,7 @@ export class ContextPackService {
     try {
       allowed = await this.deps.permissionChecker.canReadPacks(
         sourcePackIds,
-        input.actor.identityId,
+        input.actor.subjectId,
         input.actor.subjectNs,
       );
     } catch (error) {
@@ -444,7 +444,7 @@ export class ContextPackService {
         {
           err: error,
           diaryId: input.diaryId,
-          identityId: input.actor.identityId,
+          subjectId: input.actor.subjectId,
           sourcePackIdCount: sourcePackIds.length,
         },
         'Failed to check rendered pack read permissions',
@@ -507,7 +507,7 @@ export class ContextPackService {
   ): Promise<void> {
     const allowed = await this.deps.permissionChecker.canReadPack(
       packId,
-      actor.identityId,
+      actor.subjectId,
       actor.subjectNs,
     );
     if (!allowed) {

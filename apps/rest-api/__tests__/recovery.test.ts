@@ -29,6 +29,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_RECOVERY_SECRET,
   TEST_SECURITY_OPTIONS,
@@ -209,7 +210,9 @@ describe('Recovery routes', () => {
           mockIdentityClient.createRecoveryCodeForIdentity,
         ).toHaveBeenCalledWith({
           createRecoveryCodeForIdentityBody: {
-            identity_id: OWNER_ID,
+            // Ory's own API — this one really does take a Kratos identity,
+            // not the internal agents.id.
+            identity_id: OWNER_IDENTITY_ID,
             flow_type: 'api',
           },
         });
@@ -596,6 +599,118 @@ describe('Recovery routes', () => {
             client_secret: expect.any(String),
           }),
         });
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it('recovers a client whose stored identity died and was relinked', async () => {
+      // The 2026-09-04 cohort: the agent was relinked to a NEW Kratos identity,
+      // so `agents.identity_id` moved on while its OAuth2 client still names
+      // the dead one. Requiring `metadata.identity_id === agent.identityId`
+      // hid exactly the client recovery exists to find, and the Hydra backfill
+      // cannot repair it either — it joins on that same dead identity. The key
+      // pair is what actually identifies the agent here, and the caller has
+      // already proved possession of it.
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockResolvedValue(true);
+
+      const listOAuth2ClientsRaw = vi.fn().mockResolvedValueOnce(
+        page([
+          {
+            client_id: 'relinked-legacy-uuid',
+            client_name: `Agent: ${agent.fingerprint}`,
+            metadata: {
+              // Neither identifier matches the agent's current row.
+              identity_id: 'dead-identity-from-the-incident',
+              public_key: agent.publicKey,
+              fingerprint: agent.fingerprint,
+            },
+          },
+        ]),
+      );
+      const testApp = await createCredentialsApp({
+        getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+        listOAuth2ClientsRaw,
+        setOAuth2Client: vi.fn(),
+      });
+
+      try {
+        const challenge = generateRecoveryChallenge(
+          agent.publicKey,
+          'credentials',
+        );
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: {
+            challenge,
+            hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+            signature: 'some-sig',
+            publicKey: agent.publicKey,
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json().clientId).toBe('relinked-legacy-uuid');
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it("ignores a client bearing another agent's durable id", async () => {
+      // agent_id is the strongest handle, so a mismatch must veto the client
+      // even when name, key and fingerprint all line up.
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockResolvedValue(true);
+
+      const listOAuth2ClientsRaw = vi.fn().mockResolvedValueOnce(
+        page([
+          {
+            client_id: 'someone-elses',
+            client_name: `Agent: ${agent.fingerprint}`,
+            metadata: {
+              agent_id: 'a-different-agents-durable-id',
+              identity_id: agent.identityId,
+              public_key: agent.publicKey,
+              fingerprint: agent.fingerprint,
+            },
+          },
+        ]),
+      );
+      const testApp = await createCredentialsApp({
+        getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+        listOAuth2ClientsRaw,
+        setOAuth2Client: vi.fn(),
+      });
+
+      try {
+        const challenge = generateRecoveryChallenge(
+          agent.publicKey,
+          'credentials',
+        );
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: {
+            challenge,
+            hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+            signature: 'some-sig',
+            publicKey: agent.publicKey,
+          },
+        });
+
+        expect(response.statusCode).toBe(404);
       } finally {
         await testApp.close();
       }

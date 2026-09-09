@@ -47,6 +47,13 @@ export interface BootstrapConfig {
 
 export interface GenesisAgent {
   name: string;
+  /**
+   * Internal `agents.id` — the Keto subject, the creator FK target, and what
+   * every `agentId` parameter means. Distinct from identityId since the
+   * decoupling; consumers that key on a principal want this one.
+   */
+  agentId: string;
+  /** The bound Kratos identity. Only correct where Ory itself is the subject. */
   identityId: string;
   keyPair: KeyPair;
   clientId: string;
@@ -241,15 +248,19 @@ async function createGenesisAgent(opts: {
   opts.log(`  Kratos identity created: ${identityId}`);
 
   // 3. Insert into agents table directly for deterministic genesis setup.
-  await opts.agentRepository.upsert({
+  //    The row's own id — not the Kratos identity — is what every reference
+  //    below uses: the creator foreign keys target agents.id, and the Keto
+  //    subject is agents.id since the decoupling.
+  const agent = await opts.agentRepository.upsert({
     identityId,
     publicKey: keyPair.publicKey,
     fingerprint: keyPair.fingerprint,
   });
-  opts.log(`  Inserted into agents`);
+  const agentId = agent.id;
+  opts.log(`  Inserted into agents: ${agentId}`);
 
   // 4. Register self-relationship in Keto for permissions
-  await opts.relationshipWriter.registerAgent(identityId);
+  await opts.relationshipWriter.registerAgent(agentId);
   opts.log(`  Registered in Keto`);
 
   // 5. Create personal team + private diary (mirrors registration workflow)
@@ -258,13 +269,13 @@ async function createGenesisAgent(opts: {
   const personalTeam = await opts.teamRepository.create({
     name: keyPair.fingerprint,
     personal: true,
-    creator: { kind: 'agent', id: identityId },
+    creator: { kind: 'agent', id: agentId },
     status: 'active',
   });
   try {
     await opts.relationshipWriter.grantTeamOwners(
       personalTeam.id,
-      identityId,
+      agentId,
       KetoNamespace.Agent,
     );
   } catch (err) {
@@ -274,7 +285,7 @@ async function createGenesisAgent(opts: {
   opts.log(`  Personal team created: ${personalTeam.id}`);
 
   const privateDiary = await opts.diaryRepository.create({
-    creator: { kind: 'agent', id: identityId },
+    creator: { kind: 'agent', id: agentId },
     name: 'Private',
     visibility: 'private',
     teamId: personalTeam.id,
@@ -300,6 +311,9 @@ async function createGenesisAgent(opts: {
       scope: opts.scopes,
       metadata: {
         type: 'moltnet_agent',
+        // agent_id is what the token webhook resolves on; identity_id is kept
+        // as the Ory binding only.
+        agent_id: agentId,
         identity_id: identityId,
         public_key: keyPair.publicKey,
         fingerprint: keyPair.fingerprint,
@@ -337,6 +351,7 @@ async function createGenesisAgent(opts: {
 
   return {
     name: opts.name,
+    agentId,
     identityId,
     keyPair,
     clientId: oauthClient.client_id,

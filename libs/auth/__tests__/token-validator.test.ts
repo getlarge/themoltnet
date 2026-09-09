@@ -26,6 +26,11 @@ function createMockTalosApi() {
 
 function createMockTalosAgentResolver() {
   return vi.fn().mockResolvedValue({
+    // Distinct on purpose: agents.id is a fresh UUID unrelated to the Kratos
+    // identity. A fixture that reuses one value cannot catch code that
+    // conflates them — which is how the seeding fallback survived its own
+    // rejection.
+    agentId: VALID_AGENT_ID,
     identityId: VALID_IDENTITY_ID,
     publicKey: 'ed25519:AAAA+/bbbb==',
     fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -41,15 +46,18 @@ function createMockLogger() {
 
 const OPAQUE_TOKEN = 'ory_at_valid_token_123';
 const VALID_CLIENT_ID = 'hydra-client-uuid';
+const VALID_AGENT_ID = '550e8400-e29b-41d4-a716-4466554400aa';
 const VALID_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 const MOLTNET_EXT_CLAIMS = {
+  'moltnet:agent_id': VALID_AGENT_ID,
   'moltnet:identity_id': VALID_IDENTITY_ID,
   'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
   'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
 };
 
 const EXPECTED_AUTH_CONTEXT = {
+  agentId: VALID_AGENT_ID,
   identityId: VALID_IDENTITY_ID,
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -246,6 +254,36 @@ describe('TokenValidator', () => {
         expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledTimes(1);
       });
 
+      it('rejects a token minted before moltnet:agent_id existed', async () => {
+        // agents.id is a fresh UUID, unrelated to the Kratos identity, so a
+        // token without the claim cannot be resolved to a Keto subject.
+        // Falling back to identityId would authorize the request against a
+        // subject the Keto rewrite retired — the agent authenticates and
+        // matches nothing. Fail closed instead.
+        const { 'moltnet:agent_id': _omitted, ...preChangeClaims } =
+          MOLTNET_EXT_CLAIMS;
+        mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read diary:write',
+          sub: VALID_CLIENT_ID,
+          ext: preChangeClaims,
+        });
+        // Client metadata not backfilled either: nothing can supply agents.id.
+        mockOAuth2Api.getOAuth2Client.mockResolvedValue({
+          client_id: VALID_CLIENT_ID,
+          metadata: {
+            identity_id: VALID_IDENTITY_ID,
+            public_key: 'ed25519:AAAA+/bbbb==',
+            fingerprint: 'A1B2-C3D4-E5F6-07A8',
+          },
+        });
+
+        await expect(
+          validator.resolveAuthContext('ory_at_pre_change_token'),
+        ).resolves.toBeNull();
+      });
+
       it('uses introspection for opaque tokens even when no JWKS configured', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
           active: true,
@@ -292,6 +330,7 @@ describe('TokenValidator', () => {
         mockOAuth2Api.getOAuth2Client.mockResolvedValue({
           client_id: VALID_CLIENT_ID,
           metadata: {
+            agent_id: VALID_AGENT_ID,
             identity_id: VALID_IDENTITY_ID,
             public_key: 'ed25519:AAAA+/bbbb==',
             fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -458,7 +497,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-key-123',
         scopes: ['diary:read'],
         metadata: {
@@ -475,6 +514,7 @@ describe('TokenValidator', () => {
 
       expect(result).toEqual({
         subjectType: 'agent',
+        agentId: VALID_AGENT_ID,
         identityId: VALID_IDENTITY_ID,
         publicKey: 'ed25519:AAAA+/bbbb==',
         fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -492,8 +532,9 @@ describe('TokenValidator', () => {
         cacheControl: 'no-store',
         pragma: 'no-cache',
       });
+      // The resolver receives Talos's actor_id, which is agents.id.
       expect(resolveTalosAgent).toHaveBeenCalledWith(
-        VALID_IDENTITY_ID,
+        VALID_AGENT_ID,
         expect.any(AbortSignal),
       );
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
@@ -503,7 +544,7 @@ describe('TokenValidator', () => {
           reason: 'credential_accepted',
           keyId: 'talos-key-123',
           bindingScope: 'team',
-          actorId: VALID_IDENTITY_ID,
+          actorId: VALID_AGENT_ID,
           scopeCount: 1,
         },
         'Talos API key accepted',
@@ -528,7 +569,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-key-123',
         scopes: ['diary:read'],
         metadata: {
@@ -626,7 +667,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-key-123',
         metadata: {
           schema_version: 2,
@@ -643,7 +684,7 @@ describe('TokenValidator', () => {
           credentialType: 'talos-api-key',
           reason: 'agent_not_found_or_inactive',
           keyId: 'talos-key-123',
-          actorId: VALID_IDENTITY_ID,
+          actorId: VALID_AGENT_ID,
         },
         'Talos API key actor rejected',
       );
@@ -705,7 +746,7 @@ describe('TokenValidator', () => {
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
-        actor_id: VALID_IDENTITY_ID,
+        actor_id: VALID_AGENT_ID,
         key_id: 'talos-public-123',
         visibility: 'KEY_VISIBILITY_PUBLIC',
       });

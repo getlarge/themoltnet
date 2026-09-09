@@ -161,12 +161,12 @@ describe('Groups E2E', () => {
           client,
           auth: () => agentA.accessToken,
           path: { groupId },
-          body: { subjectId: agentB.identityId },
+          body: { subjectId: agentB.agentId },
         });
 
         expect(error).toBeUndefined();
         expect(response.status).toBe(201);
-        expect(data!.subjectId).toBe(agentB.identityId);
+        expect(data!.subjectId).toBe(agentB.agentId);
         expect(data!.subjectNs).toBeDefined();
       });
     });
@@ -184,7 +184,7 @@ describe('Groups E2E', () => {
         expect(data!.items).toBeInstanceOf(Array);
 
         const memberB = data!.items.find(
-          (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+          (m: { subjectId: string }) => m.subjectId === agentB.agentId,
         );
         expect(memberB).toBeDefined();
       });
@@ -195,7 +195,7 @@ describe('Groups E2E', () => {
         const { response: removeRes } = await removeGroupMember({
           client,
           auth: () => agentA.accessToken,
-          path: { groupId, subjectId: agentB.identityId },
+          path: { groupId, subjectId: agentB.agentId },
         });
         expect(removeRes.status).toBe(200);
 
@@ -206,7 +206,7 @@ describe('Groups E2E', () => {
           path: { groupId },
         });
         const stillPresent = afterData!.items.find(
-          (m: { subjectId: string }) => m.subjectId === agentB.identityId,
+          (m: { subjectId: string }) => m.subjectId === agentB.agentId,
         );
         expect(stillPresent).toBeUndefined();
       });
@@ -264,7 +264,7 @@ describe('Groups E2E', () => {
         client,
         auth: () => agentA.accessToken,
         path: { groupId: permGroupId },
-        body: { subjectId: agentB.identityId },
+        body: { subjectId: agentB.agentId },
       });
     });
 
@@ -312,7 +312,7 @@ describe('Groups E2E', () => {
           client,
           auth: () => agentC.accessToken,
           path: { groupId: permGroupId },
-          body: { subjectId: agentB.identityId },
+          body: { subjectId: agentB.agentId },
         });
         expect([403, 404]).toContain(response.status);
       });
@@ -330,7 +330,7 @@ describe('Groups E2E', () => {
         const { response } = await removeGroupMember({
           client,
           auth: () => agentC.accessToken,
-          path: { groupId: permGroupId, subjectId: agentB.identityId },
+          path: { groupId: permGroupId, subjectId: agentB.agentId },
         });
         expect([403, 404]).toContain(response.status);
       });
@@ -361,7 +361,7 @@ describe('Groups E2E', () => {
           client,
           auth: () => agentB.accessToken,
           path: { groupId: permGroupId },
-          body: { subjectId: agentA.identityId },
+          body: { subjectId: agentA.agentId },
         });
         expect(response.status).toBe(403);
       });
@@ -370,7 +370,7 @@ describe('Groups E2E', () => {
         const { response } = await removeGroupMember({
           client,
           auth: () => agentB.accessToken,
-          path: { groupId: permGroupId, subjectId: agentB.identityId },
+          path: { groupId: permGroupId, subjectId: agentB.agentId },
         });
         expect(response.status).toBe(403);
       });
@@ -447,7 +447,7 @@ describe('Groups E2E', () => {
         const { response } = await addGroupMember({
           client,
           path: { groupId: permGroupId },
-          body: { subjectId: agentB.identityId },
+          body: { subjectId: agentB.agentId },
         });
         expect(response.status).toBe(401);
       });
@@ -463,7 +463,7 @@ describe('Groups E2E', () => {
       it('remove member rejects without auth — 401', async () => {
         const { response } = await removeGroupMember({
           client,
-          path: { groupId: permGroupId, subjectId: agentB.identityId },
+          path: { groupId: permGroupId, subjectId: agentB.agentId },
         });
         expect(response.status).toBe(401);
       });
@@ -508,7 +508,7 @@ describe('Groups E2E', () => {
           client,
           auth: () => agentA.accessToken,
           path: { groupId: group!.id },
-          body: { subjectId: agentC.identityId },
+          body: { subjectId: agentC.agentId },
         });
         expect(response.status).toBe(404);
 
@@ -566,7 +566,7 @@ describe('Groups E2E', () => {
           client,
           auth: () => agentA.accessToken,
           path: { groupId: gId },
-          body: { subjectId: agentB.identityId },
+          body: { subjectId: agentB.agentId },
         });
 
         // Delete the group

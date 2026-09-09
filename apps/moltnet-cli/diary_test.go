@@ -32,7 +32,8 @@ var testEntryID = uuid.MustParse("00000000-0000-0000-0000-000000000042")
 func testAgentPrincipal() moltnetapi.AgentPrincipal {
 	return moltnetapi.AgentPrincipal{
 		Kind:        moltnetapi.AgentPrincipalKindAgent,
-		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		AgentId:     uuid.MustParse("00000000-0000-4000-a000-000000000099"),
+		IdentityId:  moltnetapi.NewNilUUID(uuid.MustParse("00000000-0000-0000-0000-000000000099")),
 		Fingerprint: "A1B2-C3D4-E5F6-1234",
 		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	}
@@ -151,7 +152,8 @@ func newTestDiary(name string) *moltnetapi.DiaryCatalog {
 	creator := moltnetapi.DiaryCatalogCreator{Type: moltnetapi.AgentPrincipalDiaryCatalogCreator}
 	creator.SetAgentPrincipal(moltnetapi.AgentPrincipal{
 		Kind:        moltnetapi.AgentPrincipalKindAgent,
-		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		AgentId:     uuid.MustParse("00000000-0000-4000-a000-000000000099"),
+		IdentityId:  moltnetapi.NewNilUUID(uuid.MustParse("00000000-0000-0000-0000-000000000099")),
 		Fingerprint: "A1B2-C3D4-E5F6-1234",
 		PublicKey:   "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
 	})

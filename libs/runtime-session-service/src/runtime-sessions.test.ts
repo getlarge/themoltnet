@@ -129,7 +129,7 @@ describe('createRuntimeSessionService', () => {
     await subject.upload({
       attemptN: 1,
       body: Readable.from([content]),
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       query: {
         sessionKind: 'root',
         sourceSlotId: SLOT_ID,
@@ -172,7 +172,7 @@ describe('createRuntimeSessionService', () => {
       subject.upload({
         attemptN: 1,
         body: Readable.from(['{"session":"one"}\n']),
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         query: { sessionKind: 'root' },
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -197,7 +197,7 @@ describe('createRuntimeSessionService', () => {
       subject.upload({
         attemptN: 1,
         body: Readable.from(['{"session":"one"}\n']),
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         query: { sessionKind: 'root' },
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -222,7 +222,7 @@ describe('createRuntimeSessionService', () => {
       subject.upload({
         attemptN: 1,
         body: Readable.from(['{"session":"one"}\n']),
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         query: { sessionKind: 'root' },
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -250,7 +250,7 @@ describe('createRuntimeSessionService', () => {
     await subject.upload({
       attemptN: 1,
       body: Readable.from(['{"session":"repair"}\n']),
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       query: { sessionKind: 'root' },
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -274,7 +274,7 @@ describe('createRuntimeSessionService', () => {
     await subject.upload({
       attemptN: 1,
       body: Readable.from(['{"session":"running"}\n']),
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       query: { sessionKind: 'root' },
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
@@ -307,7 +307,7 @@ describe('createRuntimeSessionService', () => {
       subject.upload({
         attemptN: 1,
         body: Readable.from(['{"session":"stale"}\n']),
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         query: { sessionKind: 'root' },
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
@@ -334,7 +334,7 @@ describe('createRuntimeSessionService', () => {
 
     const result = await subject.download({
       attemptN: 1,
-      identityId: AGENT_ID,
+      subjectId: AGENT_ID,
       subjectNs: KetoNamespace.Agent,
       taskId: TASK_ID,
       teamId: TEAM_ID,
@@ -357,7 +357,7 @@ describe('createRuntimeSessionService', () => {
     await expect(
       subject.download({
         attemptN: 1,
-        identityId: AGENT_ID,
+        subjectId: AGENT_ID,
         subjectNs: KetoNamespace.Agent,
         taskId: TASK_ID,
         teamId: TEAM_ID,

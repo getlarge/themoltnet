@@ -17,7 +17,20 @@ import { FingerprintSchema, PublicKeySchema, UuidSchema } from './schemas.js';
 export const AgentPrincipalSchema = Type.Object(
   {
     kind: Type.Literal('agent'),
-    identityId: UuidSchema,
+    /**
+     * Internal MoltNet agent ID — stable for the life of the agent and the
+     * value every agent foreign key and Keto tuple refers to.
+     */
+    agentId: UuidSchema,
+    /**
+     * Ory Kratos identity bound to this agent, or null when it has none.
+     *
+     * Null is not a registration race (agents are created synchronously, with
+     * no webhook): it means the Kratos identity is gone or not yet
+     * reprovisioned. Keeping this nullable is what stops an identity loss from
+     * turning every read of that agent's resources into a serialization error.
+     */
+    identityId: Type.Union([UuidSchema, Type.Null()]),
     fingerprint: FingerprintSchema,
     publicKey: PublicKeySchema,
   },
@@ -43,7 +56,9 @@ export const HumanPrincipalSchema = Type.Object(
 const AgentPrincipalInlineSchema = Type.Object(
   {
     kind: Type.Literal('agent'),
-    identityId: UuidSchema,
+    // Keep in lockstep with AgentPrincipalSchema above.
+    agentId: UuidSchema,
+    identityId: Type.Union([UuidSchema, Type.Null()]),
     fingerprint: FingerprintSchema,
     publicKey: PublicKeySchema,
   },

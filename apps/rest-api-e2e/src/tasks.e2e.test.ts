@@ -126,7 +126,7 @@ describe('Tasks API', () => {
       auth: () => proposer.accessToken,
       path: { id: proposer.privateDiaryId },
       body: {
-        subjectId: claimer.identityId,
+        subjectId: claimer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
@@ -214,7 +214,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': teamId },
         path: { id: grantTask.id },
         body: {
-          subjectId: taskWriter.identityId,
+          subjectId: taskWriter.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -231,7 +231,7 @@ describe('Tasks API', () => {
       await updateTeamMemberRole({
         client,
         auth: () => proposer.accessToken,
-        path: { id: teamId, subjectId: claimer.identityId },
+        path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'manager' },
       });
       const continuityTask = await createPendingTask('claimant continuity');
@@ -246,7 +246,7 @@ describe('Tasks API', () => {
       await updateTeamMemberRole({
         client,
         auth: () => proposer.accessToken,
-        path: { id: teamId, subjectId: claimer.identityId },
+        path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'member' },
       });
       const postDowngradeTask = await createPendingTask(
@@ -282,7 +282,7 @@ describe('Tasks API', () => {
       headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: taskId },
       body: {
-        subjectId: writer.identityId,
+        subjectId: writer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },
@@ -693,7 +693,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: proposer.privateDiaryId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: claimer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -704,7 +704,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: proposer.privateDiaryId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: claimer.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -756,7 +756,7 @@ describe('Tasks API', () => {
       });
       expect(grants.error).toBeUndefined();
       expect(grants.data!.grants).toContainEqual({
-        subjectId: taskWriter.identityId,
+        subjectId: taskWriter.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       });
@@ -775,7 +775,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: taskId },
         body: {
-          subjectId: taskWriter.identityId,
+          subjectId: taskWriter.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -806,7 +806,7 @@ describe('Tasks API', () => {
         retry: false,
       });
       const body = {
-        subjectId: taskWriter.identityId,
+        subjectId: taskWriter.agentId,
         subjectNs: 'Agent' as const,
         role: 'writer' as const,
       };
@@ -1033,7 +1033,7 @@ describe('Tasks API', () => {
           auth: () => proposer.accessToken,
           headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           query: {
-            claimedByAgentId: claimer.identityId,
+            claimedByAgentId: claimer.agentId,
           },
         });
       expect(claimedFilterError).toBeUndefined();
@@ -1744,7 +1744,7 @@ describe('Tasks API', () => {
       expect(error).toBeUndefined();
       expect(data!.status).toBe('cancelled');
       expect(data!.cancelReason).toBe('walking away from this one');
-      expect(data!.cancelledByAgentId).toBe(claimer.identityId);
+      expect(data!.cancelledByAgentId).toBe(claimer.agentId);
     });
   });
 
@@ -2779,7 +2779,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: taskId },
         body: {
-          subjectId: taskWriter.identityId,
+          subjectId: taskWriter.agentId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -2967,7 +2967,7 @@ describe('Tasks API', () => {
         correlationId: sealed.data!.correlationId!,
         sealedByTaskId: sealed.data!.id,
         sealedByTaskType: sealed.data!.taskType,
-        sealedByAgentId: proposer.identityId,
+        sealedByAgentId: proposer.agentId,
       });
 
       const missingId = '00000000-0000-4000-8000-000000000998';
@@ -3099,14 +3099,14 @@ describe('Tasks API', () => {
             status: 'cancelled',
             completedAt: new Date(),
             cancelReason: 'sealed during delete race',
-            cancelledByAgentId: proposer.identityId,
+            cancelledByAgentId: proposer.agentId,
           })
           .where(eq(tasks.id, task.data!.id));
         await tx.insert(correlationSeals).values({
           correlationId,
           sealedByTaskId: task.data!.id,
           sealedByTaskType: task.data!.taskType,
-          sealedByAgentId: proposer.identityId,
+          sealedByAgentId: proposer.agentId,
         });
       });
 

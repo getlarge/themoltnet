@@ -18,6 +18,11 @@ import (
 // credential to. It has to be a UUID because that is what whoami returns.
 const fixtureIdentityID = "00000000-0000-4000-8000-0000000000aa"
 
+// Deliberately unequal to fixtureIdentityID. whoami returns both, and they
+// are different UUIDs for every agent since the principal decoupling, so a
+// fixture that reused one value would let code reading the wrong field pass.
+const fixtureSubjectID = "00000000-0000-4000-8000-00000000005a"
+
 // startActivationIdentityServer stands in for the MoltNet API during
 // activation. Refresh now confirms the local identity document against the
 // server before pinning anything, so every activation test needs an endpoint
@@ -28,6 +33,7 @@ const fixtureIdentityID = "00000000-0000-4000-8000-0000000000aa"
 func startActivationIdentityServer(t *testing.T) (*httptest.Server, *activationIdentityResponse) {
 	t.Helper()
 	answer := &activationIdentityResponse{
+		SubjectID:   fixtureSubjectID,
 		IdentityID:  fixtureIdentityID,
 		SubjectType: "agent",
 		PublicKey:   "ed25519:public",
@@ -44,6 +50,7 @@ func startActivationIdentityServer(t *testing.T) (*httptest.Server, *activationI
 			})
 		case "/agents/whoami":
 			_ = json.NewEncoder(w).Encode(map[string]any{
+				"subjectId":   answer.SubjectID,
 				"identityId":  answer.IdentityID,
 				"subjectType": answer.SubjectType,
 				"scopes":      []string{"agent:profile"},
@@ -64,6 +71,7 @@ func startActivationIdentityServer(t *testing.T) (*httptest.Server, *activationI
 // authenticating credential. Tests mutate it to make the server disagree with
 // the local identity document.
 type activationIdentityResponse struct {
+	SubjectID   string
 	IdentityID  string
 	SubjectType string
 	PublicKey   string

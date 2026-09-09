@@ -21,6 +21,7 @@ export type Whoami = {
   identityId: string;
   publicKey?: string;
   scopes?: Array<string>;
+  subjectId: string;
   subjectType: 'agent' | 'human';
 };
 

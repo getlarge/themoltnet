@@ -17,9 +17,17 @@ import { RemoteAuthenticationError } from '../src/remote-auth-error.js';
 import type { AuthContext, HumanAuthContext } from '../src/types.js';
 
 const VALID_TOKEN = 'ory_at_valid_token_123';
+// The two ids are deliberately DIFFERENT. They were the same UUID, which made
+// every assertion below pass whether the code reached for the durable
+// `agents.id` or the disposable Kratos identity — the precise conflation this
+// migration exists to break. Several real bugs in #2163 survived a green suite
+// for exactly that reason, so keep them distinct.
+const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
+const AGENT_IDENTITY_ID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 const VALID_AUTH_CONTEXT: AuthContext = {
   subjectType: 'agent',
-  identityId: '550e8400-e29b-41d4-a716-446655440000',
+  agentId: AGENT_ID,
+  identityId: AGENT_IDENTITY_ID,
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: 'hydra-client-uuid',
@@ -29,6 +37,9 @@ const VALID_AUTH_CONTEXT: AuthContext = {
 
 const VALID_SESSION_CONTEXT: HumanAuthContext = {
   subjectType: 'human',
+  // Keto subject for humans is humans.id, which genuinely differs from the
+  // Kratos identity — unlike agents there is no seeding trick.
+  humanId: '770e8400-e29b-41d4-a716-446655440002',
   identityId: '660e8400-e29b-41d4-a716-446655440001',
   clientId: null,
   scopes: ['diary:read', 'diary:write', 'agent:profile', 'team:read'],
@@ -394,7 +405,7 @@ describe('requireAuth preHandler', () => {
     expect(response.json().authContext.currentTeamId).toBe('team-123');
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
-      VALID_AUTH_CONTEXT.identityId,
+      VALID_AUTH_CONTEXT.agentId,
       KetoNamespace.Agent,
     );
   });
@@ -433,7 +444,7 @@ describe('requireAuth preHandler', () => {
     expect(response.json().authContext.currentTeamId).toBe('team-123');
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
-      VALID_AUTH_CONTEXT.identityId,
+      VALID_AUTH_CONTEXT.agentId,
       KetoNamespace.Agent,
     );
   });
@@ -603,6 +614,11 @@ describe('requireAuth preHandler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(observedAlsFields).toMatchObject({
+      // agentId is the durable `agents.id`, identityId the disposable Kratos
+      // one. This asserted `identityId` for both and passed only because the
+      // fixture reused one UUID; an incident correlated on the replaceable id
+      // is exactly what the decoupling has to prevent.
+      agentId: VALID_AUTH_CONTEXT.agentId,
       identityId: VALID_AUTH_CONTEXT.identityId,
       subjectType: 'agent',
       clientId: VALID_AUTH_CONTEXT.clientId,
@@ -614,7 +630,9 @@ describe('requireAuth preHandler', () => {
     // handler via request.log carries the identity child bindings.
     const handlerLog = records.find((r) => r.marker === 'handler');
     expect(handlerLog, 'expected log record from handler').toBeDefined();
+    expect(handlerLog!.agentId).toBe(VALID_AUTH_CONTEXT.agentId);
     expect(handlerLog!.identityId).toBe(VALID_AUTH_CONTEXT.identityId);
+    expect(handlerLog!.agentId).not.toBe(handlerLog!.identityId);
     expect(handlerLog!.subjectType).toBe('agent');
     expect(handlerLog!.clientId).toBe(VALID_AUTH_CONTEXT.clientId);
     expect(handlerLog!.credentialBindingScope).toBe('identity');
@@ -775,7 +793,7 @@ describe('optionalAuth preHandler', () => {
     });
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
-      VALID_SESSION_CONTEXT.identityId,
+      VALID_SESSION_CONTEXT.humanId,
       KetoNamespace.Human,
     );
   });

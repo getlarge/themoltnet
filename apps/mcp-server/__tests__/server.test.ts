@@ -720,7 +720,7 @@ describe('buildApp', () => {
           "name": "diaries_list",
         },
         {
-          "inputSchema": "931465d379b6500f",
+          "inputSchema": "a07962cf1973978d",
           "name": "diary_grants_create",
         },
         {
@@ -728,7 +728,7 @@ describe('buildApp', () => {
           "name": "diary_grants_list",
         },
         {
-          "inputSchema": "49ffda98d75c96ec",
+          "inputSchema": "72126b392875ed2b",
           "name": "diary_grants_revoke",
         },
         {
@@ -832,7 +832,7 @@ describe('buildApp', () => {
           "name": "rendered_packs_update",
         },
         {
-          "inputSchema": "65efc4acfbf380bc",
+          "inputSchema": "194535954bfae8ef",
           "name": "task_grants_create",
         },
         {
@@ -840,7 +840,7 @@ describe('buildApp', () => {
           "name": "task_grants_list",
         },
         {
-          "inputSchema": "4bc9d3ffeed2bad5",
+          "inputSchema": "14336f69cf479daa",
           "name": "task_grants_revoke",
         },
         {
@@ -928,11 +928,11 @@ describe('buildApp', () => {
           "name": "teams_list",
         },
         {
-          "inputSchema": "ef8493794e9a3d9a",
+          "inputSchema": "98ce55fc81b04a9c",
           "name": "teams_member_remove",
         },
         {
-          "inputSchema": "165164f260c99333",
+          "inputSchema": "b13f51052683559e",
           "name": "teams_member_update_role",
         },
       ]

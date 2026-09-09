@@ -80,7 +80,7 @@ describe('tasks_continue server-side validation matrix', () => {
       auth: () => proposer.accessToken,
       path: { id: proposer.privateDiaryId },
       body: {
-        subjectId: claimer.identityId,
+        subjectId: claimer.agentId,
         subjectNs: 'Agent',
         role: 'writer',
       },

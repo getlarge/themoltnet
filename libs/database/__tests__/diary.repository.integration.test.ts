@@ -44,6 +44,10 @@ describe('DiaryRepository (integration)', () => {
   let diaryRepo: ReturnType<typeof createDiaryRepository>;
 
   const CREATED_BY = '00000000-0000-4000-a000-000000000002';
+  // The Kratos identity is deliberately NOT the agent id: since the
+  // decoupling they are independent values, and a fixture that reuses one
+  // for both cannot catch a lookup that resolves the wrong one.
+  const CREATED_BY_IDENTITY_ID = '00000000-0000-4000-a001-000000000002';
   const TEAM_ID = '00000000-0000-4000-b000-000000000002';
 
   beforeAll(async () => {
@@ -53,7 +57,8 @@ describe('DiaryRepository (integration)', () => {
     await sharedDb
       .insert(agents)
       .values({
-        identityId: CREATED_BY,
+        id: CREATED_BY,
+        identityId: CREATED_BY_IDENTITY_ID,
         publicKey: 'ed25519:integration-test',
         fingerprint: 'TEST-DIAR-Y001-0002',
       })
@@ -145,6 +150,10 @@ describe('DiaryEntryRepository (integration)', () => {
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
   const PUBLIC_DIARY_ID = '880e8400-e29b-41d4-a716-446655440005';
   const CREATED_BY = '00000000-0000-4000-a000-000000000001';
+  // The Kratos identity is deliberately NOT the agent id: since the
+  // decoupling they are independent values, and a fixture that reuses one
+  // for both cannot catch a lookup that resolves the wrong one.
+  const CREATED_BY_IDENTITY_ID = '00000000-0000-4000-a001-000000000001';
   const TEAM_ID = '00000000-0000-4000-b000-000000000001';
   const createEntry = (
     input: Omit<
@@ -166,7 +175,8 @@ describe('DiaryEntryRepository (integration)', () => {
     await sharedDb
       .insert(agents)
       .values({
-        identityId: CREATED_BY,
+        id: CREATED_BY,
+        identityId: CREATED_BY_IDENTITY_ID,
         publicKey: 'ed25519:integration-test',
         fingerprint: 'TEST-DIAR-Y001-0001',
       })

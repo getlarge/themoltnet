@@ -12,7 +12,7 @@ import type {
 export type { PackDiffCompressionLevel, PackDiffRow };
 
 /**
- * Discriminated principal — caller resolves (identityId, ns) at the auth
+ * Discriminated principal — caller resolves (subjectId, ns) at the auth
  * boundary. For human, `id` is humans.id (NOT the Kratos identityId).
  */
 export interface PackCreator {
@@ -121,7 +121,7 @@ export interface RenderedPackPreview {
 }
 
 export interface PackActor {
-  identityId: string;
+  subjectId: string;
   subjectNs: KetoNamespace;
 }
 

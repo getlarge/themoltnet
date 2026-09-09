@@ -85,15 +85,15 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 		t.Errorf("joined role: want member got %s", joined.Role)
 	}
 
-	// The grant subject ID is the invitee's Kratos identity ID — Keto uses
-	// identity_id directly as the subject for both team membership and diary
-	// grants. We parse it from the bootstrap output; no ListTeamMembers round
-	// trip is needed (and fingerprint isn't reliably populated there for
-	// bootstrap agents anyway — metadata_public is only set by auth flow
-	// webhooks, which genesis bootstrap bypasses).
-	inviteeAgentID, err := uuid.Parse(inviteeAgent.IdentityID)
+	// The grant subject is the invitee's agents.id. Keto keyed on identity_id
+	// until the decoupling; it no longer does, and team membership now lists
+	// internal principal ids. We parse it from the bootstrap output; no
+	// ListTeamMembers round trip is needed (and fingerprint isn't reliably
+	// populated there for bootstrap agents anyway — metadata_public is only
+	// set by auth flow webhooks, which genesis bootstrap bypasses).
+	inviteeAgentID, err := uuid.Parse(inviteeAgent.AgentID)
 	if err != nil {
-		t.Fatalf("parse invitee identity ID %q: %v", inviteeAgent.IdentityID, err)
+		t.Fatalf("parse invitee agent ID %q: %v", inviteeAgent.AgentID, err)
 	}
 
 	// Sanity-check that the invitee is actually a member now.

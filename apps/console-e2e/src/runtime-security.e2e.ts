@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-import { createTeam, listTeams } from '@moltnet/api-client';
-import { Configuration, FrontendApi } from '@ory/client-fetch';
+import { createTeam, getWhoami, listTeams } from '@moltnet/api-client';
 import { expect, type Page, test } from '@playwright/test';
 
 import { type ConnectedAgent, provisionAgent } from './helpers/agent-seed.js';
@@ -11,7 +10,6 @@ import {
   createTestUser,
   createTokenSessionApiClient,
   expectConsoleOverview,
-  KRATOS_PUBLIC_URL,
   loginViaBrowser,
   registerViaBrowser,
 } from './helpers/index.js';
@@ -45,15 +43,10 @@ test.describe.serial('Runtime security console', () => {
     ).data?.items.find((team) => team.personal);
     if (!personalTeam) throw new Error('expected a personal team');
 
-    const kratos = new FrontendApi(
-      new Configuration({ basePath: KRATOS_PUBLIC_URL }),
-    );
-    const session = await kratos.toSession({
-      xSessionToken: sessionToken,
-    });
-    const humanSubjectId = session.identity?.id;
+    const humanSubjectId = (await getWhoami({ client: humanClient })).data
+      ?.subjectId;
     if (!humanSubjectId) {
-      throw new Error('Kratos session missing identity id');
+      throw new Error('whoami did not return a subject id');
     }
 
     agentCtx = await provisionAgent(`runtime-security-agent-${nonce}`);
@@ -64,7 +57,7 @@ test.describe.serial('Runtime security console', () => {
         foundingMembers: [
           { subjectId: humanSubjectId, subjectNs: 'Human', role: 'owner' },
           {
-            subjectId: agentCtx.genesis.identityId,
+            subjectId: agentCtx.genesis.agentId,
             subjectNs: 'Agent',
             role: 'member',
           },

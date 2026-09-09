@@ -228,6 +228,7 @@ function activateManaged(store: AgentServerStore, boundTeamId?: string): void {
   store.writeActivation({
     source: 'managed',
     alias: 'course-bot',
+    subjectId: 'agent-1',
     identityId: 'id-1',
     publicKey: 'pk',
     fingerprint: 'FP-1',
@@ -1208,6 +1209,7 @@ describe('agent server providers and runs', () => {
     store.writeActivation({
       source: 'external',
       alias: 'console-alias',
+      subjectId: 'agent-1',
       identityId: 'external-id',
       publicKey: 'pk',
       fingerprint: 'fp',

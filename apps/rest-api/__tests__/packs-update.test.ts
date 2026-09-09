@@ -6,6 +6,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
@@ -25,7 +26,8 @@ const MOCK_PACK = {
   payload: {},
   creator: {
     kind: 'agent' as const,
-    identityId: OWNER_ID,
+    agentId: OWNER_ID,
+    identityId: OWNER_IDENTITY_ID,
     fingerprint: 'C212-DAFA-27C5-6C57',
     publicKey: 'ed25519:test',
   },

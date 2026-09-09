@@ -23,11 +23,16 @@ var (
 	e2eDiaryID        uuid.UUID
 	e2eClient         *moltnetapi.Client
 	e2ePersonalTeamID uuid.UUID
+	// agents.id of the bootstrapped genesis agent.
+	e2eAgentID string
 )
 
 // bootstrapAgent holds one element from the JSON array output of `pnpm bootstrap`.
 type bootstrapAgent struct {
-	Name         string `json:"name"`
+	Name string `json:"name"`
+	// AgentID is agents.id — the Keto subject and what every --agent-id flag
+	// and agent foreign key means. IdentityID is only the Ory binding.
+	AgentID      string `json:"agentId"`
 	IdentityID   string `json:"identityId"`
 	Fingerprint  string `json:"fingerprint"`
 	PublicKey    string `json:"publicKey"`
@@ -55,6 +60,8 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "E2E setup: bootstrap failed: %v\n", err)
 		os.Exit(1)
 	}
+
+	e2eAgentID = agent.AgentID
 
 	e2eCreds = &CredentialsFile{
 		IdentityID: agent.IdentityID,

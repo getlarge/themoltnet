@@ -30,10 +30,11 @@ function makeRenderedPackRow(overrides?: Record<string, unknown>) {
       'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     renderMethod: 'pack-to-docs-v1',
     totalTokens: 42,
-    creatorAgentId: 'identity-uuid',
+    creatorAgentId: 'agent-uuid',
     creatorHumanId: null,
     creator: {
       kind: 'agent' as const,
+      agentId: 'agent-uuid',
       identityId: 'identity-uuid',
       fingerprint: 'AAAA-BBBB-CCCC-DDDD',
       publicKey: 'ed25519:abc',
@@ -58,7 +59,7 @@ function makeDeps(
     packType: 'custom' as const,
     params: {},
     payload: {},
-    creatorAgentId: 'identity-uuid',
+    creatorAgentId: 'agent-uuid',
     creatorHumanId: null,
     supersedesPackId: null,
     pinned: false,
@@ -128,7 +129,7 @@ describe('ContextPackService', () => {
 
       const result = await service.listPacksByTeam({
         teamId: 'team-uuid',
-        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
         limit: 20,
         offset: 0,
       });
@@ -155,7 +156,7 @@ describe('ContextPackService', () => {
 
       const result = await service.listPacksByTeam({
         teamId: 'team-uuid',
-        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
       });
 
       expect(result.items).toHaveLength(0);
@@ -174,7 +175,7 @@ describe('ContextPackService', () => {
 
       const result = await service.listPacksByTeam({
         teamId: 'empty-team',
-        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
       });
 
       expect(result.items).toEqual([]);
@@ -187,14 +188,14 @@ describe('ContextPackService', () => {
 
       const withRendered = await service.listPacksByTeam({
         teamId: 'team-uuid',
-        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
         includeRendered: true,
       });
       expect(withRendered.renderedPacks).toBeDefined();
 
       const without = await service.listPacksByTeam({
         teamId: 'team-uuid',
-        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
       });
       expect(without.renderedPacks).toBeUndefined();
     });
@@ -207,7 +208,7 @@ describe('ContextPackService', () => {
 
       const result = await service.listPacksByEntry({
         entryId: 'entry-1',
-        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
         limit: 20,
         offset: 0,
         includeRendered: true,
@@ -218,7 +219,7 @@ describe('ContextPackService', () => {
       );
       expect(deps.permissionChecker.canViewEntry).toHaveBeenCalledWith(
         'entry-1',
-        'identity-uuid',
+        'agent-uuid',
         KetoNamespace.Agent,
       );
       expect(deps.contextPackRepository.findByEntryId).toHaveBeenCalledWith(
@@ -241,7 +242,7 @@ describe('ContextPackService', () => {
         service.listPacksByEntry({
           entryId: 'missing-entry',
           actor: {
-            identityId: 'identity-uuid',
+            identityId: 'agent-uuid',
             subjectNs: KetoNamespace.Agent,
           },
         }),
@@ -261,7 +262,7 @@ describe('ContextPackService', () => {
         service.listPacksByEntry({
           entryId: 'entry-1',
           actor: {
-            identityId: 'identity-uuid',
+            identityId: 'agent-uuid',
             subjectNs: KetoNamespace.Agent,
           },
         }),
@@ -278,7 +279,7 @@ describe('ContextPackService', () => {
         diaryId: 'diary-uuid',
         entries: [{ entryId: 'entry-1', rank: 1 }],
         params: { recipe: 'test' },
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
       expect(result.packCid).toMatch(/^bafyr/);
@@ -296,9 +297,9 @@ describe('ContextPackService', () => {
         diaryId: 'diary-uuid',
         entries: [{ entryId: 'entry-1', rank: 1 }],
         params: { recipe: 'test' },
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
         supersedesPackId: 'pack-uuid',
-        actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+        actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
       });
 
       expect(deps.contextPackRepository.createPack).toHaveBeenCalledWith(
@@ -320,9 +321,9 @@ describe('ContextPackService', () => {
           diaryId: 'diary-uuid',
           entries: [{ entryId: 'entry-1', rank: 1 }],
           params: { recipe: 'test' },
-          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          creator: { kind: 'agent' as const, id: 'agent-uuid' },
           supersedesPackId: 'missing-pack',
-          actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+          actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
         }),
       ).rejects.toThrow(/not found/i);
     });
@@ -346,9 +347,9 @@ describe('ContextPackService', () => {
           diaryId: 'diary-uuid',
           entries: [{ entryId: 'entry-1', rank: 1 }],
           params: { recipe: 'test' },
-          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          creator: { kind: 'agent' as const, id: 'agent-uuid' },
           supersedesPackId: 'other',
-          actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+          actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
         }),
       ).rejects.toThrow(/same diary/i);
     });
@@ -369,9 +370,9 @@ describe('ContextPackService', () => {
           diaryId: 'diary-uuid',
           entries: [{ entryId: 'entry-1', rank: 1 }],
           params: { recipe: 'test' },
-          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          creator: { kind: 'agent' as const, id: 'agent-uuid' },
           supersedesPackId: 'pack-uuid',
-          actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+          actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
         }),
       ).rejects.toThrow(/not authorized/i);
     });
@@ -384,7 +385,7 @@ describe('ContextPackService', () => {
         diaryId: 'diary-uuid',
         entries: [{ entryId: 'entry-1', rank: 1 }],
         params: { recipe: 'test' },
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
       expect(deps.contextPackRepository.createPack).toHaveBeenCalledWith(
@@ -401,7 +402,7 @@ describe('ContextPackService', () => {
         packType: 'custom' as const,
         params: {},
         payload: {},
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
         supersedesPackId: null,
         pinned: false,
         expiresAt: null,
@@ -420,7 +421,7 @@ describe('ContextPackService', () => {
         diaryId: 'diary-uuid',
         entries: [{ entryId: 'entry-1', rank: 1 }],
         params: { recipe: 'test' },
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
       expect(result.packCid).toBeDefined();
@@ -437,7 +438,7 @@ describe('ContextPackService', () => {
         sourcePackId: 'pack-uuid',
         renderedMarkdown: '# Hello\n\nThis is rendered content.',
         renderMethod: 'pack-to-docs-v1',
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
       expect(result.packCid).toMatch(/^bafyr/);
@@ -494,7 +495,7 @@ describe('ContextPackService', () => {
       const createResult = await service.createRenderedPack({
         sourcePackId: 'pack-uuid',
         renderMethod: 'server:pack-to-docs-v1',
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
       expect(
@@ -524,7 +525,7 @@ describe('ContextPackService', () => {
           sourcePackId: 'nonexistent',
           renderedMarkdown: '# Hello',
           renderMethod: 'pack-to-docs-v1',
-          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          creator: { kind: 'agent' as const, id: 'agent-uuid' },
         }),
       ).rejects.toThrow(PackServiceError);
     });
@@ -541,7 +542,7 @@ describe('ContextPackService', () => {
             pinned: false,
             creator: {
               kind: 'agent' as const,
-              identityId: 'identity-uuid',
+              identityId: 'agent-uuid',
               fingerprint: 'AAAA-BBBB-CCCC-DDDD',
               publicKey: 'ed25519:abc',
             },
@@ -555,7 +556,7 @@ describe('ContextPackService', () => {
         sourcePackId: 'pack-uuid',
         renderedMarkdown: '# Hello',
         renderMethod: 'pack-to-docs-v1',
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
       expect(result.id).toBe('existing-rendered');
@@ -571,7 +572,7 @@ describe('ContextPackService', () => {
           sourcePackId: 'pack-uuid',
           renderedMarkdown: '# Hello',
           renderMethod: 'server:pack-to-docs-v1',
-          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          creator: { kind: 'agent' as const, id: 'agent-uuid' },
         }),
       ).rejects.toMatchObject({
         code: 'validation',
@@ -588,7 +589,7 @@ describe('ContextPackService', () => {
         service.createRenderedPack({
           sourcePackId: 'pack-uuid',
           renderMethod: 'agent-refined',
-          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          creator: { kind: 'agent' as const, id: 'agent-uuid' },
         }),
       ).rejects.toMatchObject({
         code: 'validation',
@@ -604,7 +605,7 @@ describe('ContextPackService', () => {
         sourcePackId: 'pack-uuid',
         renderedMarkdown: '# Pinned content',
         renderMethod: 'pack-to-docs-v1',
-        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        creator: { kind: 'agent' as const, id: 'agent-uuid' },
         pinned: true,
       });
 
@@ -622,7 +623,7 @@ describe('ContextPackService', () => {
 
       const result = await service.getPackById({
         packId: 'pack-uuid',
-        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
       });
 
       expect(result.id).toBe('pack-uuid');
@@ -646,7 +647,7 @@ describe('ContextPackService', () => {
       await expect(
         service.getPackById({
           packId: 'pack-uuid',
-          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+          actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toMatchObject({ code: 'forbidden' });
     });
@@ -663,7 +664,7 @@ describe('ContextPackService', () => {
       await expect(
         service.getPackById({
           packId: 'missing',
-          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+          actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toMatchObject({ code: 'not_found' });
     });
@@ -706,7 +707,7 @@ describe('ContextPackService', () => {
 
       const result = await service.listPacksByDiary({
         diaryId: 'diary-uuid',
-        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
       });
 
       expect(deps.assertDiaryReadable).toHaveBeenCalled();
@@ -728,7 +729,7 @@ describe('ContextPackService', () => {
       await expect(
         service.listPacksByDiary({
           diaryId: 'd',
-          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+          actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toMatchObject({ code: 'forbidden' });
     });
@@ -746,7 +747,7 @@ describe('ContextPackService', () => {
 
       const result = await service.getLatestRenderedPack({
         sourcePackId: 'pack-uuid',
-        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
       });
       expect(result.id).toBe('rendered-uuid');
       expect(deps.permissionChecker.canReadPack).toHaveBeenCalled();
@@ -759,7 +760,7 @@ describe('ContextPackService', () => {
       await expect(
         service.getLatestRenderedPack({
           sourcePackId: 'pack-uuid',
-          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+          actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toMatchObject({ code: 'not_found' });
     });
@@ -770,7 +771,7 @@ describe('ContextPackService', () => {
 
       const result = await service.getRenderedPackById({
         renderedPackId: 'rendered-uuid',
-        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
       });
       expect(result.id).toBe('rendered-uuid');
       expect(deps.permissionChecker.canReadPack).toHaveBeenCalledWith(
@@ -807,7 +808,7 @@ describe('ContextPackService', () => {
 
       const result = await service.listRenderedPacksByDiary({
         diaryId: 'diary-uuid',
-        actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+        actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
       });
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe('r1');
@@ -820,7 +821,7 @@ describe('ContextPackService', () => {
 
       await expect(
         service.getPackForProvenance({
-          actor: { identityId: 'me', subjectNs: KetoNamespace.Agent },
+          actor: { subjectId: 'me', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toMatchObject({ code: 'validation' });
     });

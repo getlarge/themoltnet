@@ -11,7 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 interface RuntimePolicySchemaDeps {
-  agents: { identityId: AnyPgColumn };
+  agents: { id: AnyPgColumn };
   humans: { id: AnyPgColumn };
   teams: { id: AnyPgColumn };
 }
@@ -43,7 +43,7 @@ export function defineRuntimePoliciesTable({
       name: varchar('name', { length: 100 }).notNull(),
       description: text('description'),
       createdByAgentId: uuid('created_by_agent_id').references(
-        () => agents.identityId,
+        () => agents.id,
         { onDelete: 'restrict' },
       ),
       createdByHumanId: uuid('created_by_human_id').references(

@@ -62,6 +62,12 @@ export {
   type TeamResolver,
 } from './plugin.js';
 export {
+  type AuthPrincipal,
+  authPrincipal,
+  authPrincipalCreator,
+  type PrincipalSource,
+} from './principal.js';
+export {
   createRelationshipReader,
   type DiaryGrantTuple,
   type GroupMemberTuple,

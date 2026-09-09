@@ -673,9 +673,11 @@ describe('signing credential routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    // The Keto subject for a human is humans.id, not the Kratos identity —
+    // humanAuth deliberately keeps the two distinct.
     expect(
       mocks.relationshipReader.listTeamIdsAndRolesBySubject,
-    ).toHaveBeenCalledWith(OWNER_ID);
+    ).toHaveBeenCalledWith(HUMAN_ID);
   });
 
   it('resolves a group constraint through team-scoped Keto membership', async () => {
@@ -722,8 +724,9 @@ describe('signing credential routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    // humans.id is the Keto subject; OWNER_ID is this fixture's Kratos identity.
     expect(mocks.relationshipReader.listGroupIdsBySubject).toHaveBeenCalledWith(
-      OWNER_ID,
+      HUMAN_ID,
     );
     expect(mocks.groupRepository.findByIds).toHaveBeenCalledWith([GROUP_ID]);
   });

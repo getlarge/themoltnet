@@ -33,7 +33,7 @@ const logger = {
 };
 
 const subject: AgentKeySubject = {
-  identityId: AGENT_ID,
+  subjectId: AGENT_ID,
   scopes: [...AGENT_OAUTH_SCOPES],
   subjectNs: KetoNamespace.Agent,
   subjectType: 'agent',
@@ -68,6 +68,7 @@ describe('agent key service', () => {
   };
   const agentRepository = {
     findByIdentityId: vi.fn(),
+    findById: vi.fn(),
   };
   const permissionChecker = {
     canManageTeamCredentials: vi.fn(),
@@ -84,7 +85,9 @@ describe('agent key service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    agentRepository.findByIdentityId.mockResolvedValue({ id: AGENT_ID });
+    // The target agent resolves by internal id: assertCurrentAgentMember is
+    // handed agents.id, the same value it passes to isTeamMember.
+    agentRepository.findById.mockResolvedValue({ id: AGENT_ID });
     permissionChecker.canManageTeamCredentials.mockResolvedValue(false);
     relationshipReader.isTeamMember.mockResolvedValue(true);
   });

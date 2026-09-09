@@ -291,7 +291,10 @@ async function main() {
           profiledTaskId: profiledTask.id,
           agentIdentityId: agent.identityId,
           claimedTaskId: claimedTask.id,
-          claimedByAgentId: agent.identityId,
+          // Filters tasks.claimed_by_agent_id, a FK to agents.id — not the
+          // Kratos identity. agentIdentityId above stays the identity because
+          // the whoami body is what it is checked against.
+          claimedByAgentId: agent.agentId,
           artifactTaskId: artifact.taskId,
           artifactAttemptN: String(artifact.attemptN),
           artifactCid: artifact.cid,

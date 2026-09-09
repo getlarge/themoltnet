@@ -80,7 +80,7 @@ import { connect } from '@themoltnet/sdk/node';
 const molt = await connect();
 const portable = await molt.agentKeys.create(
   {
-    agentId: (await molt.agents.whoami()).identityId,
+    agentId: (await molt.agents.whoami()).subjectId,
     name: 'portable-daemon',
     ttlDays: 30,
   },
