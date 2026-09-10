@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -924,105 +923,34 @@ func TestEvaluateGitHubGuard_BareWriteWithOpaquePayloadStillDenies(t *testing.T)
 	}
 }
 
-// TestEvaluateGitHubGuard_UnresolvableRepositoryDenies covers the fail-open
-// regression from #2211: a bare write whose target repository cannot be
-// determined must deny, while an ordinary permission-load failure keeps the
-// documented non-strict fallback.
-func TestEvaluateGitHubGuard_UnresolvableRepositoryDenies(t *testing.T) {
+// TestEvaluateGitHubGuard_VerdictIndependentOfRepositoryFlag pins the decision
+// made in #2211: the guard must not derive the authorized repository from argv.
+//
+// An earlier attempt fed `-R`/`--repo` into the permission lookup so it could
+// check per-repository permissions. Because the guard answers a failed lookup
+// by allowing the call, any parsing imprecision became an attribution bypass:
+// crafted text such as `--body "-Rattacker/spoof"` steered which repository's
+// permissions were checked, and matching gh's own flag grammar exactly (last
+// occurrence wins, `--` terminator, per-subcommand short-flag arity) proved
+// unreliable across three attempts. Repository resolution therefore belongs to
+// token minting, where a wrong guess fails safe as a GitHub 403.
+func TestEvaluateGitHubGuard_VerdictIndependentOfRepositoryFlag(t *testing.T) {
 	t.Parallel()
-	command := "gh pr comment 1 --body hi"
+	permissions := guardPermissions(map[string]string{"issues": "write"})
+	baseline := evaluateGitHubGuard(
+		"gh issue comment 1 --body hi", staticGuardContext("agent"), permissions)
 
-	unresolved := func(context.Context, string) (map[string]string, error) {
-		return nil, githubRepositoryUnresolvedError{err: fmt.Errorf("cannot resolve the current Git remote")}
-	}
-	reason := evaluateGitHubGuard(command, staticGuardContext("agent"), unresolved)
-	if reason == "" {
-		t.Fatal("an unresolvable repository must deny, got allow")
-	}
-	if !strings.Contains(reason, "-R owner/repo") {
-		t.Fatalf("deny reason %q does not name the recovery step", reason)
-	}
-
-	transient := func(context.Context, string) (map[string]string, error) {
-		return nil, fmt.Errorf("dial tcp: lookup api.github.com: no such host")
-	}
-	if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), transient); reason != "" {
-		t.Fatalf("a transient failure should keep the non-strict fallback, got deny: %q", reason)
-	}
-}
-
-// TestClassifyGitHubOperationIgnoresRepositoryInFlagValues is the guard-side
-// half of the #2211 spoof: a repository named inside a free-text flag value
-// must never become the repository the guard authorizes against.
-func TestClassifyGitHubOperationIgnoresRepositoryInFlagValues(t *testing.T) {
-	t.Parallel()
-	spoofed := classifyGitHubOperation([]string{"issue", "comment", "1", "--body", "-Rattacker/spoof"})
-	if spoofed.Repository.String() != "" {
-		t.Fatalf("flag value became the authorized repository: %q", spoofed.Repository)
-	}
-
-	real := classifyGitHubOperation([]string{"issue", "comment", "1", "-R", "owner/repo", "--body", "hi"})
-	if real.Repository.String() != "owner/repo" {
-		t.Fatalf("repository = %q, want owner/repo", real.Repository)
-	}
-}
-
-// TestEvaluateGitHubGuard_AmbiguousRepositoryTargetDenies: when the targeted
-// repository cannot be proven, a write denies rather than being authorized
-// against a guessed target. gh's short flags contradict each other across
-// subcommands (-m is --milestone on `pr create`, --merge on `pr merge`), so
-// treating them as value-taking would swallow a real -R and authorize the
-// wrong repository — the same bypass class as #2211, in mirror image.
-func TestEvaluateGitHubGuard_AmbiguousRepositoryTargetDenies(t *testing.T) {
-	t.Parallel()
 	for _, command := range []string{
-		"gh issue comment 1 -Rowner/repo --body hi",
-		"gh pr merge 123 -m -R owner/repo",
-		"gh pr create -b -R owner/repo",
+		"gh issue comment 1 -R other/repo --body hi",
+		"gh issue comment 1 --repo=other/repo --body hi",
+		"gh issue comment 1 -Rother/repo --body hi",
+		`gh issue comment 1 --body "-Rattacker/spoof"`,
+		"gh issue comment 1 -R first/repo -R second/repo --body hi",
+		"gh issue comment 1 --body -- -R attacker/spoof",
 	} {
-		reason := evaluateGitHubGuard(
-			command,
-			staticGuardContext("agent"),
-			guardPermissions(map[string]string{"issues": "write", "pull_requests": "write"}),
-		)
-		if reason == "" {
-			t.Fatalf("%s: an unprovable repository target must deny, got allow", command)
+		if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), permissions); reason != baseline {
+			t.Fatalf("%s: verdict varied with the repository flag\n got: %q\nwant: %q",
+				command, reason, baseline)
 		}
-	}
-}
-
-// Read-only commands never resolve a repository, so an ambiguous -R must not
-// turn them into denials.
-func TestEvaluateGitHubGuard_AmbiguousRepositoryAllowsReadOnly(t *testing.T) {
-	t.Parallel()
-	for _, command := range []string{
-		"gh pr view 1 -w -R owner/repo",
-		"gh issue list -Rowner/repo",
-	} {
-		reason := evaluateGitHubGuard(
-			command,
-			staticGuardContext("agent"),
-			guardPermissions(map[string]string{"issues": "write"}),
-		)
-		if reason != "" {
-			t.Fatalf("%s: read-only command denied: %q", command, reason)
-		}
-	}
-}
-
-// A write whose repository IS provable still reaches the normal decision, so
-// the fail-closed rule has not swallowed the ordinary path.
-func TestEvaluateGitHubGuard_ProvableRepositoryStillDecides(t *testing.T) {
-	t.Parallel()
-	reason := evaluateGitHubGuard(
-		"gh issue comment 1 -R owner/repo --body hi",
-		staticGuardContext("agent"),
-		guardPermissions(map[string]string{"issues": "write"}),
-	)
-	if reason == "" {
-		t.Fatal("a bare write the App can attribute must deny, got allow")
-	}
-	if strings.Contains(reason, "Cannot prove") {
-		t.Fatalf("denied as unprovable rather than on attribution: %q", reason)
 	}
 }

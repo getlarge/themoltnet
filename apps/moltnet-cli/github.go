@@ -529,13 +529,13 @@ func getCachedTokenDetailsForRequest(
 	// Record resolution failures on the same failure path as token failures:
 	// otherwise the negative cache never engaged for what is now the most
 	// likely offline failure, and every call re-paid the full timeout.
-	installation, err := resolveGitHubInstallationCached(ctx, client, appID, source, request.Repository, failureTTL)
+	installationID, err := resolveGitHubInstallationCached(ctx, client, appID, source, request.Repository, failureTTL)
 	if err != nil {
 		recordTokenRefreshFailure(failurePath, failureTTL)
 		return tokenCache{}, err
 	}
 	return getCachedTokenDetailsAtPaths(
-		ctx, client, appID, source, installation.ID, request,
+		ctx, client, appID, source, installationID, request,
 		cachePath, failurePath, failureTTL,
 	)
 }
@@ -603,15 +603,13 @@ func recordTokenRefreshFailure(failurePath string, failureTTL time.Duration) {
 }
 
 // installationCache is the on-disk cache for a repository's App installation.
-// The mapping is stable per (App, repository) and carries the installation's
-// permission set, which is all the guard needs — so the guard no longer mints
-// a full-permission token merely to read permissions off it (#2211).
+// The mapping is stable per (App, repository), so caching it keeps a warm token
+// cache from paying an App-JWT round-trip just to rebuild the cache key (#2211).
 type installationCache struct {
-	AppID       string            `json:"app_id"`
-	Repository  string            `json:"repository"`
-	ID          string            `json:"id"`
-	Permissions map[string]string `json:"permissions"`
-	ResolvedAt  string            `json:"resolved_at"`
+	AppID      string `json:"app_id"`
+	Repository string `json:"repository"`
+	ID         string `json:"id"`
+	ResolvedAt string `json:"resolved_at"`
 }
 
 // resolveGitHubInstallationCached resolves a repository's installation, reusing
@@ -624,39 +622,38 @@ func resolveGitHubInstallationCached(
 	source githubAppKeySource,
 	repository githubRepository,
 	failureTTL time.Duration,
-) (githubInstallation, error) {
+) (string, error) {
 	cachePath, cacheErr := githubInstallationCachePath(source, appID, repository)
 	failurePath := ""
 	if cacheErr == nil {
 		if cached, ok := readUsableInstallationCache(cachePath, appID, repository.String()); ok {
-			return githubInstallation{ID: cached.ID, Permissions: cached.Permissions}, nil
+			return cached.ID, nil
 		}
 		failurePath = strings.TrimSuffix(cachePath, ".json") + ".error.json"
 		// Suppress retries after a recent failure. Resolution is now the most
 		// likely offline failure, so without this every guarded command re-pays
 		// the full permission timeout during an outage (#2211).
 		if suppressed := tokenRefreshSuppressed(failurePath, failureTTL); suppressed != nil {
-			return githubInstallation{}, suppressed
+			return "", suppressed
 		}
 	}
-	installation, err := resolveGitHubInstallation(ctx, client, appID, source, repository)
+	installationID, err := resolveGitHubInstallation(ctx, client, appID, source, repository)
 	if err != nil {
 		if failurePath != "" {
 			recordTokenRefreshFailure(failurePath, failureTTL)
 		}
-		return githubInstallation{}, err
+		return "", err
 	}
 	if cacheErr == nil {
 		_ = os.Remove(failurePath)
 		_ = writeJSONAtomic(cachePath, installationCache{
-			AppID:       appID,
-			Repository:  repository.String(),
-			ID:          installation.ID,
-			Permissions: installation.Permissions,
-			ResolvedAt:  timeNow().UTC().Format(time.RFC3339Nano),
+			AppID:      appID,
+			Repository: repository.String(),
+			ID:         installationID,
+			ResolvedAt: timeNow().UTC().Format(time.RFC3339Nano),
 		})
 	}
-	return installation, nil
+	return installationID, nil
 }
 
 func githubInstallationCachePath(source githubAppKeySource, appID string, repository githubRepository) (string, error) {
@@ -677,8 +674,7 @@ func readUsableInstallationCache(cachePath, appID, repository string) (installat
 	if err := json.Unmarshal(data, &cached); err != nil {
 		return installationCache{}, false
 	}
-	if cached.ID == "" || cached.Permissions == nil ||
-		cached.AppID != appID || cached.Repository != repository {
+	if cached.ID == "" || cached.AppID != appID || cached.Repository != repository {
 		return installationCache{}, false
 	}
 	resolvedAt, err := time.Parse(time.RFC3339Nano, cached.ResolvedAt)
@@ -792,52 +788,40 @@ func githubAppJWT(appID string, source githubAppKeySource) (string, error) {
 	return createAppJWT(appID, privKey)
 }
 
-// githubInstallation is a repository's App installation: its numeric ID and
-// the permission set the App holds on it.
-type githubInstallation struct {
-	ID          string
-	Permissions map[string]string
-}
-
-func resolveGitHubInstallation(ctx context.Context, client *http.Client, appID string, source githubAppKeySource, repository githubRepository) (githubInstallation, error) {
+func resolveGitHubInstallation(ctx context.Context, client *http.Client, appID string, source githubAppKeySource, repository githubRepository) (string, error) {
 	if repository.String() == "" {
-		return githubInstallation{}, fmt.Errorf("GitHub repository is required to resolve an App installation")
+		return "", fmt.Errorf("GitHub repository is required to resolve an App installation")
 	}
 	jwt, err := githubAppJWT(appID, source)
 	if err != nil {
-		return githubInstallation{}, err
+		return "", err
 	}
 	endpoint := fmt.Sprintf("%s/repos/%s/%s/installation", githubAPIBaseURL, url.PathEscape(repository.Owner), url.PathEscape(repository.Name))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return githubInstallation{}, err
+		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	resp, err := client.Do(req)
 	if err != nil {
-		return githubInstallation{}, fmt.Errorf("resolve GitHub App installation for %s: %w", repository, err)
+		return "", fmt.Errorf("resolve GitHub App installation for %s: %w", repository, err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return githubInstallation{}, fmt.Errorf(
+		return "", fmt.Errorf(
 			"GitHub App is not installed for %s (HTTP %d) — install the App on that repository, or pass --repo for one it covers: %s",
 			repository, resp.StatusCode, string(body))
 	}
 	var result struct {
-		ID          int64             `json:"id"`
-		Permissions map[string]string `json:"permissions"`
+		ID int64 `json:"id"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil || result.ID == 0 {
-		return githubInstallation{}, fmt.Errorf("parse GitHub installation response for %s", repository)
+		return "", fmt.Errorf("parse GitHub installation response for %s", repository)
 	}
-	permissions := result.Permissions
-	if permissions == nil {
-		permissions = map[string]string{}
-	}
-	return githubInstallation{ID: strconv.FormatInt(result.ID, 10), Permissions: permissions}, nil
+	return strconv.FormatInt(result.ID, 10), nil
 }
 
 func getInstallationTokenDetailsForRequest(

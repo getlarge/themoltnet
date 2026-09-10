@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -65,10 +64,7 @@ type ghOperation struct {
 	Permission   string
 	HumanVisible bool
 	Description  string
-	Repository   githubRepository
 }
-
-type githubRepositoryContextKey struct{}
 
 type guardVerdict struct {
 	Allow  bool
@@ -335,43 +331,18 @@ func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (ma
 	if err != nil {
 		return nil, err
 	}
-	repository, _ := ctx.Value(githubRepositoryContextKey{}).(githubRepository)
-	if repository.String() == "" {
-		repository, err = resolveGitHubRepository("")
-		if err != nil {
-			// Not knowing the target is not a transient degradation: allowing the
-			// call would let an unattributed write through against an unknown
-			// repository, so this denies even in non-strict mode (#2211).
-			return nil, githubRepositoryUnresolvedError{err: err}
-		}
-	}
-	// Read the permission set off the installation itself. Minting a token to
-	// read it back returned a full-permission secret and wrote it to disk.
-	installation, err := resolveGitHubInstallationCached(
+	details, err := getCachedTokenDetailsFromSource(
 		ctx,
 		&http.Client{Timeout: githubGuardPermissionTimeout},
 		creds.GitHub.AppID,
 		source,
-		repository,
+		creds.GitHub.InstallationID,
 		githubGuardNegativeCacheTTL,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return installation.Permissions, nil
-}
-
-// githubRepositoryUnresolvedError marks a permission-load failure caused by not
-// knowing which repository a command targets, as opposed to a network or
-// credential failure. Only the latter is eligible for the non-strict fail-open.
-type githubRepositoryUnresolvedError struct{ err error }
-
-func (e githubRepositoryUnresolvedError) Error() string {
-	return e.err.Error()
-}
-
-func (e githubRepositoryUnresolvedError) Unwrap() error {
-	return e.err
+	return details.Permissions, nil
 }
 
 // commandInvokesGitHubCLI reports whether the script calls `gh` anywhere,
@@ -571,19 +542,9 @@ func decideGitHubCall(
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubGuardPermissionTimeout)
-	if op.Repository.String() != "" {
-		ctx = context.WithValue(ctx, githubRepositoryContextKey{}, op.Repository)
-	}
 	granted, loadErr := permissions(ctx, guardCtx.CredentialsPath)
 	cancel()
 	if loadErr != nil {
-		var unresolved githubRepositoryUnresolvedError
-		if errors.As(loadErr, &unresolved) {
-			return guardVerdict{
-				Reason: "The target GitHub repository could not be determined (" + unresolved.Error() +
-					"). Re-run from a checkout with a GitHub remote, or pass `-R owner/repo`.",
-			}
-		}
 		if guardCtx.Strict {
 			return guardVerdict{
 				Reason: "GitHub App permissions are unavailable and strict guard mode is enabled. Retry after restoring credentials or network access.",
@@ -1139,23 +1100,6 @@ func tokenCredentialsMatch(args []string, credentialsPath string) bool {
 // classifyGitHubOperation's command taxonomy was audited against gh 2.95.0.
 // Unknown future commands deny so CLI drift cannot silently add a write path.
 func classifyGitHubOperation(args []string) ghOperation {
-	repository, _, err := explicitGitHubRepository(args)
-	op := classifyGitHubOperationWithoutRepository(args)
-	if err != nil {
-		// A target that cannot be proven is exactly when not to guess: deny
-		// rather than authorizing against the current remote (#2211). Read-only
-		// commands are unaffected — they are allowed without resolving a
-		// repository at all, so an ambiguous -R cannot mislead the decision.
-		if op.Kind == ghReadOnly {
-			return op
-		}
-		return ghOperation{Kind: ghUnknown}
-	}
-	op.Repository = repository
-	return op
-}
-
-func classifyGitHubOperationWithoutRepository(args []string) ghOperation {
 	args, rootHelp, ok := stripGitHubGlobalFlags(args)
 	if !ok {
 		return ghOperation{Kind: ghUnknown}

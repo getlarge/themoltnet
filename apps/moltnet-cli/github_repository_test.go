@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -230,103 +229,61 @@ func marshalTestJSON(t *testing.T, value any) string {
 	return string(data)
 }
 
-// TestExplicitGitHubRepositoryIgnoresFlagValues covers the guard-bypass shape
-// from #2211: a free-text flag value that merely looks like a repository flag
-// must not decide which repository is authorized or scoped. Positions whose
-// meaning cannot be proven report ambiguity so callers fail closed.
-func TestExplicitGitHubRepositoryIgnoresFlagValues(t *testing.T) {
+// TestExplicitGitHubRepositoryTakesLastOccurrence pins the minting parser to
+// gh's own precedence: pflag applies the LAST -R/--repo, so taking the first
+// would scope a token to a repository other than the one gh acts on.
+// Verified against gh 2.x: `gh browse -n -R octocat/Hello-World -R cli/cli`
+// resolves cli/cli.
+func TestExplicitGitHubRepositoryTakesLastOccurrence(t *testing.T) {
 	for _, testCase := range []struct {
-		name      string
-		args      []string
-		want      string
-		found     bool
-		ambiguous bool
-		err       bool
+		name  string
+		args  []string
+		want  string
+		found bool
 	}{
 		{
-			name: "body value that looks like an attached repo flag",
-			args: []string{"issue", "comment", "1", "--body", "-Rattacker/spoof"},
-		},
-		{
-			name: "body value that looks like a long repo flag",
-			args: []string{"issue", "comment", "1", "--body", "--repo=attacker/spoof"},
-		},
-		{
-			name: "body value consuming a separated repo flag",
-			args: []string{"issue", "comment", "1", "--body", "-R", "attacker/spoof"},
-		},
-		{
-			name: "repo flag after the end-of-flags terminator",
-			args: []string{"api", "x", "--", "-R", "attacker/spoof"},
-		},
-		{
-			name:      "attached shorthand is ambiguous, not guessed",
-			args:      []string{"issue", "comment", "1", "-Rowner/repo"},
-			ambiguous: true,
-		},
-		{
-			// -m is --milestone (a value) on pr create but --merge (a boolean) on
-			// pr merge, so a following -R cannot be trusted either way.
-			name:      "repo flag after an unknown-arity short flag is ambiguous",
-			args:      []string{"pr", "merge", "123", "-m", "-R", "owner/repo"},
-			ambiguous: true,
-		},
-		{
-			name:      "repo flag after a short free-text flag is ambiguous",
-			args:      []string{"pr", "create", "-b", "-R", "owner/repo"},
-			ambiguous: true,
-		},
-		{
-			name:  "repo flag after a known long boolean still resolves",
-			args:  []string{"pr", "create", "--draft", "-R", "owner/repo"},
-			want:  "owner/repo",
+			name:  "last of two wins",
+			args:  []string{"issue", "comment", "1", "-R", "first/repo", "-R", "second/repo"},
+			want:  "second/repo",
 			found: true,
 		},
 		{
-			name:  "repo flag after a known long value pair still resolves",
-			args:  []string{"issue", "comment", "1", "--body", "text", "-R", "owner/repo"},
-			want:  "owner/repo",
+			name:  "assigned form participates in precedence",
+			args:  []string{"issue", "list", "--repo=first/repo", "-R", "second/repo"},
+			want:  "second/repo",
 			found: true,
 		},
 		{
-			name:  "separated shorthand at a proven position resolves",
+			name:  "single separated form",
 			args:  []string{"issue", "comment", "1", "-R", "owner/repo"},
 			want:  "owner/repo",
 			found: true,
 		},
 		{
-			name:  "long form resolves",
+			name:  "attached form",
+			args:  []string{"issue", "comment", "1", "-Rowner/repo"},
+			want:  "owner/repo",
+			found: true,
+		},
+		{
+			name:  "long form",
 			args:  []string{"issue", "comment", "1", "--repo", "owner/repo"},
 			want:  "owner/repo",
 			found: true,
 		},
 		{
-			name:  "assigned long form resolves",
-			args:  []string{"issue", "comment", "1", "--repo=owner/repo"},
-			want:  "owner/repo",
-			found: true,
+			name:  "no repository flag",
+			args:  []string{"issue", "comment", "1", "--body", "hi"},
+			found: false,
 		},
 		{
-			name:  "unrecognized long assigned flag does not poison the position",
-			args:  []string{"pr", "create", "--some-future-flag=x", "-R", "owner/repo"},
-			want:  "owner/repo",
-			found: true,
+			name:  "after the end-of-flags terminator",
+			args:  []string{"api", "x", "--", "-R", "owner/repo"},
+			found: false,
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			repository, found, err := explicitGitHubRepository(testCase.args)
-			switch {
-			case testCase.ambiguous:
-				if !errors.Is(err, errAmbiguousGitHubRepositoryFlag) {
-					t.Fatalf("expected ambiguity, got repository %q err %v", repository, err)
-				}
-				return
-			case testCase.err:
-				if err == nil {
-					t.Fatalf("expected an error, got repository %q", repository)
-				}
-				return
-			}
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -463,10 +420,10 @@ func TestWarmTokenCacheMakesNoNetworkCall(t *testing.T) {
 	}
 }
 
-// TestInstallationPermissionsNeedNoToken covers the guard reading its
-// permission set off the installation object instead of minting (and caching) a
-// full-permission repository token just to read `.Permissions` back.
-func TestInstallationPermissionsNeedNoToken(t *testing.T) {
+// TestInstallationResolutionIsCached covers the hot-path fix: the repository ->
+// installation mapping is stable, so it must be resolved once and reused rather
+// than re-fetched to rebuild the token cache key on every call.
+func TestInstallationResolutionIsCached(t *testing.T) {
 	keyPath := filepath.Join(t.TempDir(), "app.pem")
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -478,15 +435,12 @@ func TestInstallationPermissionsNeedNoToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var installationRequests, tokenRequests atomic.Int32
+	var installationRequests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodGet && r.URL.Path == "/repos/org/project/installation":
 			installationRequests.Add(1)
-			_, _ = w.Write([]byte(`{"id":101,"permissions":{"issues":"write"}}`))
-		case r.Method == http.MethodPost:
-			tokenRequests.Add(1)
-			http.Error(w, "the guard must not mint a token", http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"id":101}`))
 		default:
 			http.Error(w, r.Method+" "+r.URL.Path, http.StatusNotFound)
 		}
@@ -499,27 +453,66 @@ func TestInstallationPermissionsNeedNoToken(t *testing.T) {
 	source := githubKeySourceFromPath(keyPath)
 	repository := githubRepository{Owner: "org", Name: "project"}
 
-	installation, err := resolveGitHubInstallationCached(
-		context.Background(), server.Client(), "app", source, repository, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if installation.Permissions["issues"] != "write" {
-		t.Fatalf("permissions = %#v, want issues=write", installation.Permissions)
-	}
-	if got := tokenRequests.Load(); got != 0 {
-		t.Fatalf("minted %d tokens to read permissions, want 0", got)
-	}
-
-	// The mapping is cached, so repeat resolutions make no further calls.
-	for range 3 {
-		if _, err := resolveGitHubInstallationCached(
-			context.Background(), server.Client(), "app", source, repository, 0); err != nil {
+	for range 4 {
+		installationID, err := resolveGitHubInstallationCached(
+			context.Background(), server.Client(), "app", source, repository, 0)
+		if err != nil {
 			t.Fatal(err)
+		}
+		if installationID != "101" {
+			t.Fatalf("installation = %q, want 101", installationID)
 		}
 	}
 	if got := installationRequests.Load(); got != 1 {
 		t.Fatalf("installation requests = %d, want 1 (cached)", got)
+	}
+}
+
+// The cache must expire, so a permission or installation change is picked up
+// rather than trusted forever.
+func TestInstallationCacheExpires(t *testing.T) {
+	keyPath := filepath.Join(t.TempDir(), "app.pem")
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{
+		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	source := githubKeySourceFromPath(keyPath)
+	repository := githubRepository{Owner: "org", Name: "project"}
+	cachePath, err := githubInstallationCachePath(source, "app", repository)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeJSONAtomic(cachePath, installationCache{
+		AppID:      "app",
+		Repository: repository.String(),
+		ID:         "101",
+		ResolvedAt: timeNow().UTC().Format(time.RFC3339Nano),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := readUsableInstallationCache(cachePath, "app", repository.String()); !ok {
+		t.Fatal("a fresh record should be usable")
+	}
+
+	originalNow := timeNow
+	defer func() { timeNow = originalNow }()
+	timeNow = func() time.Time { return originalNow().Add(githubInstallationCacheTTL + time.Minute) }
+	if _, ok := readUsableInstallationCache(cachePath, "app", repository.String()); ok {
+		t.Fatal("a record past the TTL must not be reused")
+	}
+
+	timeNow = originalNow
+	// A record for another App or repository is never reused either.
+	if _, ok := readUsableInstallationCache(cachePath, "other-app", repository.String()); ok {
+		t.Fatal("record reused across App IDs")
+	}
+	if _, ok := readUsableInstallationCache(cachePath, "app", "other/repo"); ok {
+		t.Fatal("record reused across repositories")
 	}
 }
 
