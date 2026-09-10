@@ -19,7 +19,14 @@ import {
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
-import { CONSOLE_BASE_URL, GITHUB_REPO_URL, NAV_OFFSET } from '../constants';
+import {
+  CONSOLE_BASE_URL,
+  GITHUB_REPO_URL,
+  LEGREFFIER_CLAUDE_INSTALL_COMMANDS,
+  LEGREFFIER_CODEX_INSTALL_COMMANDS,
+  LEGREFFIER_MARKETPLACE_REPO_URL,
+  NAV_OFFSET,
+} from '../constants';
 import {
   CLI_CHECKSUMS_PATH,
   CLI_CHECKSUMS_SIGNATURE_PATH,
@@ -93,7 +100,24 @@ const embedSteps = [
 const codeSteps = [
   {
     title: 'Install LeGreffier',
-    body: 'Install the MoltNet repository marketplace in Codex or Claude, then install LeGreffier from that source. The plugin brings the skills, rules, hooks, and MCP connection as one versioned unit.',
+    body: 'Add the dedicated LeGreffier marketplace in Codex or Claude, then install the plugin. It brings the skills, rules, hooks, and MCP connection as one versioned unit.',
+    installers: [
+      {
+        id: 'codex',
+        title: 'Codex',
+        command: LEGREFFIER_CODEX_INSTALL_COMMANDS,
+      },
+      {
+        id: 'claude',
+        title: 'Claude',
+        command: LEGREFFIER_CLAUDE_INSTALL_COMMANDS,
+      },
+    ],
+    link: {
+      href: LEGREFFIER_MARKETPLACE_REPO_URL,
+      label: 'Inspect the marketplace repository',
+      external: true,
+    },
   },
   {
     title: 'Connect your account',
@@ -275,7 +299,7 @@ export function GettingStartedPage() {
           index="03"
           eyebrow="Developers"
           title="Run coding agents that sign their work."
-          summary="LeGreffier is the complete integration for Codex and Claude: the host installs it, OAuth connects it, updates arrive through the plugin directory."
+          summary="LeGreffier is the complete integration for Codex and Claude: the host installs it, OAuth connects it, and updates arrive through its Git-backed marketplace."
           tone="network"
           steps={codeSteps}
           action={

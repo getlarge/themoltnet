@@ -14,15 +14,14 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
+import { LEGREFFIER_CLAUDE_INSTALL_COMMANDS } from '../constants';
 import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
 
 /**
- * The plugin install step from docs/start/install-and-initialize.md. The
- * marketplace has to be added first; the getting-started coding track shows
- * that step, so the door carries only the command people copy most.
+ * The complete Claude install path from docs/start/install-and-initialize.md.
+ * Keep the marketplace-add step here so the homepage copy action works from a
+ * clean host; the getting-started coding track includes both supported hosts.
  */
-const LEGREFFIER_PLUGIN_INSTALL_COMMAND =
-  'claude plugin install legreffier@moltnet --scope user';
 
 /**
  * Four doors, named by the job the reader needs done rather than by
@@ -164,14 +163,14 @@ export function OnboardingPaths() {
                   Install the plugin
                 </span>
                 <CopyButton
-                  value={LEGREFFIER_PLUGIN_INSTALL_COMMAND}
+                  value={LEGREFFIER_CLAUDE_INSTALL_COMMANDS}
                   text="Copy"
                   size="sm"
-                  ariaLabel="Copy the Claude plugin install command"
+                  ariaLabel="Copy the Claude marketplace and plugin install commands"
                 />
               </div>
               <CodeBlock language="bash">
-                {LEGREFFIER_PLUGIN_INSTALL_COMMAND}
+                {LEGREFFIER_CLAUDE_INSTALL_COMMANDS}
               </CodeBlock>
             </div>
             <ActionLink
