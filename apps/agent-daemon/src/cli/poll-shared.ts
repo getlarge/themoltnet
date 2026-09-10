@@ -300,11 +300,22 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       throw error;
     }
   })();
+  // Where daemon state lives and what the sandbox mounts. `sync-sessions`
+  // already resolves it this way and states the principle: the cwd default
+  // seeds daemon state dirs, not identity discovery. Credential resolution
+  // keeps following `explicitAgentRootDir`, so this reintroduces no
+  // repository auto-discovery for identities.
+  //
+  // `ctx.agentRootDir` cannot serve here: when --agent-root is omitted it
+  // falls back to the central identity directory, which is outside any
+  // repository, and `dedicated_worktree` tasks discover their main worktree
+  // from the mount path.
+  const daemonRootDir = explicitAgentRootDir ?? process.cwd();
   const resolvedProfiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
     teamId,
-    cwd: ctx.agentRootDir,
+    cwd: daemonRootDir,
   });
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
   const preparedRuntimes = new Map<string, AttestedDaemonRuntime>();

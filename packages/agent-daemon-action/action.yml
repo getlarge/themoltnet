@@ -92,8 +92,11 @@ inputs:
     default: ''
   daemon-version:
     description: >
-      npm semver range for @themoltnet/agent-daemon, or "workspace" to run
-      the daemon source from the checked-out repository with the tsx loader.
+      Agent release version to install, "latest" to track the newest
+      published release, or "workspace" to run the daemon source from the
+      checked-out repository with the tsx loader. This names a release of the
+      signed agent bundle, not an npm package, so it must be an exact version
+      or "latest" — an npm semver range such as "^1.2" will not resolve.
     required: false
     default: 'latest'
   running-timeout-sec:
@@ -696,6 +699,36 @@ runs:
         # TEAM_ID / DIARY_ID via process.env too.
         node "${{ github.action_path }}/dist/main.js"
 
+    # Install the signed agent release bundle. Skipped for `workspace`, which
+    # runs the daemon from the checkout instead.
+    #
+    # The installer is fetched from themolt.net/install rather than read out of
+    # this repository: the release pipeline injects the publisher signing key
+    # and the pinned version into the served copy, so the trust anchor lives in
+    # the script the runner actually executes. The in-repo copy ships those
+    # fields empty and cannot verify anything.
+    #
+    # MOLTNET_AGENT_VERSION overrides the installer's own pin, so the daemon
+    # tracks the newest published release rather than whatever version the
+    # served installer shipped with.
+    - name: Install agent release bundle
+      id: install-daemon
+      if: ${{ inputs.daemon-version != 'workspace' }}
+      shell: bash
+      env:
+        MOLTNET_AGENT_VERSION: ${{ inputs.daemon-version }}
+      run: |
+        set -euo pipefail
+        curl -fsSL https://themolt.net/install | sh
+        bin="$HOME/.local/bin/moltnet-agent"
+        if [ ! -x "$bin" ]; then
+          echo "::error::agent bundle installed but $bin is not executable" >&2
+          exit 1
+        fi
+        echo "MOLTNET_AGENT_BIN=$bin" >> "$GITHUB_ENV"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "::notice::$("$bin" --version 2>/dev/null || echo 'moltnet-agent installed')"
+
     - id: run
       shell: bash
       env:
@@ -757,8 +790,12 @@ runs:
             "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts" \
             "${daemon_args[@]}"
         else
-          npx -y "@themoltnet/agent-daemon@$DAEMON_VERSION" \
-            "${daemon_args[@]}"
+          # The signed release bundle, not the npm package. The bundle ships
+          # its own Node runtime and gondolin natives, so the daemon does not
+          # depend on the runner's Node resolution at task time, and the
+          # archive's checksum is signature-verified by the installer before
+          # anything is unpacked.
+          "$MOLTNET_AGENT_BIN" "${daemon_args[@]}"
         fi
 
     # Save the gondolin snapshot built by the daemon. `if: always()`

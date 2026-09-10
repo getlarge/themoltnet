@@ -62,14 +62,9 @@ func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
 			return err
 		}
 	}
-	sshDir := filepath.Join(configDir, "ssh")
-	if err := os.MkdirAll(sshDir, 0o700); err != nil {
-		return fmt.Errorf("create ssh dir: %w", err)
-	}
-	allowedSignersPath := filepath.Join(sshDir, "allowed_signers")
-	allowedSigners := fmt.Sprintf("%s %s\n", gitEmail, strings.TrimSpace(string(pubKeyContent)))
-	if err := os.WriteFile(allowedSignersPath, []byte(allowedSigners), 0o644); err != nil {
-		return fmt.Errorf("write allowed_signers: %w", err)
+	allowedSignersPath, err := writeAllowedSignersFile(configDir, gitEmail, pubKeyContent)
+	if err != nil {
+		return err
 	}
 
 	gitconfigPath := filepath.Join(configDir, "gitconfig")
@@ -123,6 +118,30 @@ func rejectControlCharacters(label, value string) error {
 
 func validateGitIdentityValue(label, value string) error {
 	return rejectControlCharacters(label, value)
+}
+
+// allowedSignersPathFor returns the canonical allowed_signers location for an
+// identity directory. Signing verification reads this file, so it lives beside
+// the config it belongs to rather than wherever a previous checkout put it.
+func allowedSignersPathFor(configDir string) string {
+	return filepath.Join(configDir, "ssh", "allowed_signers")
+}
+
+// writeAllowedSignersFile writes the single-signer allowed_signers document for
+// an identity and returns its path. `git setup` and `config repair` share it so
+// the two cannot drift in format: git verifies signatures against this exact
+// content, and a mismatch fails verification rather than erroring loudly.
+func writeAllowedSignersFile(configDir, gitEmail string, pubKeyContent []byte) (string, error) {
+	sshDir := filepath.Join(configDir, "ssh")
+	if err := os.MkdirAll(sshDir, 0o700); err != nil {
+		return "", fmt.Errorf("create ssh dir: %w", err)
+	}
+	path := allowedSignersPathFor(configDir)
+	document := fmt.Sprintf("%s %s\n", gitEmail, strings.TrimSpace(string(pubKeyContent)))
+	if err := os.WriteFile(path, []byte(document), 0o644); err != nil {
+		return "", fmt.Errorf("write allowed_signers: %w", err)
+	}
+	return path, nil
 }
 
 func writeGitConfigFile(path string, values map[string]string) error {

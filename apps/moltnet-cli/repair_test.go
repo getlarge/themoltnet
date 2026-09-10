@@ -410,3 +410,162 @@ func writeTestConfig(t *testing.T, dir, filename string, creds CredentialsFile) 
 		t.Fatalf("write: %v", err)
 	}
 }
+
+// --- gpg.ssh.allowedSignersFile ---
+
+// writeSignerFixture builds an identity directory with an exported SSH public
+// key plus a gitconfig whose allowedSignersFile points wherever the caller says.
+func writeSignerFixture(t *testing.T, configDir, signersPath string) (string, *CredentialsFile) {
+	t.Helper()
+	pubKeyPath := filepath.Join(configDir, "ssh", "id_ed25519.pub")
+	if err := os.MkdirAll(filepath.Dir(pubKeyPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(pubKeyPath, []byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITESTKEY\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitconfig := filepath.Join(configDir, "gitconfig")
+	contents := "[user]\n\tsigningkey = " + pubKeyPath +
+		"\n[gpg]\n\tformat = ssh\n[commit]\n\tgpgsign = true\n"
+	if signersPath != "" {
+		contents += "[gpg \"ssh\"]\n\tallowedSignersFile = " + signersPath + "\n"
+	}
+	if err := os.WriteFile(gitconfig, []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	creds := &CredentialsFile{
+		SSH: &SSHSection{PublicKeyPath: pubKeyPath},
+		Git: &GitSection{Name: "LeGreffier", Email: "bot@example.test"},
+	}
+	return gitconfig, creds
+}
+
+func TestConfigsMissingAllowedSigners_DetectsUnsetAndStale(t *testing.T) {
+	// Arrange
+	dir := t.TempDir()
+	missing := filepath.Join(dir, "gone", "ssh", "allowed_signers")
+	gitconfig, _ := writeSignerFixture(t, dir, missing)
+
+	present := filepath.Join(dir, "present")
+	if err := os.WriteFile(present, []byte("bot@example.test ssh-ed25519 AAAA\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	okDir := t.TempDir()
+	okConfig, _ := writeSignerFixture(t, okDir, present)
+
+	// The legacy shape: signs with SSH, but the key was never written.
+	legacyDir := t.TempDir()
+	legacyConfig, _ := writeSignerFixture(t, legacyDir, "")
+
+	// Not an SSH-signing config — repair must leave it alone.
+	unrelated := filepath.Join(t.TempDir(), "gitconfig")
+	if err := os.WriteFile(unrelated, []byte("[user]\n\tname = x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Act
+	broken := configsMissingAllowedSigners([]string{
+		gitconfig,
+		okConfig,
+		legacyConfig,
+		unrelated,
+		filepath.Join(dir, "does-not-exist"),
+	})
+
+	// Assert
+	got := map[string]bool{}
+	for _, p := range broken {
+		got[p] = true
+	}
+	if len(broken) != 2 || !got[gitconfig] || !got[legacyConfig] {
+		t.Fatalf("expected the stale and legacy configs, got %v", broken)
+	}
+}
+
+// The reported symptom: a gitconfig that signs but never had the key written,
+// with a perfectly good allowed_signers sitting unreferenced beside it.
+func TestRepairAllowedSigners_SetsKeyWhenUnset(t *testing.T) {
+	// Arrange
+	dir := t.TempDir()
+	gitconfig, creds := writeSignerFixture(t, dir, "")
+	if got := gitConfigValue(gitconfig, "gpg.ssh.allowedSignersFile"); got != "" {
+		t.Fatalf("fixture should start with the key unset, got %q", got)
+	}
+
+	// Act
+	changed, err := repairAllowedSigners(gitconfig, dir, creds)
+
+	// Assert
+	if err != nil || !changed {
+		t.Fatalf("repairAllowedSigners() changed=%v err=%v", changed, err)
+	}
+	canonical := allowedSignersPathFor(dir)
+	if got := gitConfigValue(gitconfig, "gpg.ssh.allowedSignersFile"); got != canonical {
+		t.Fatalf("expected key set to %s, got %s", canonical, got)
+	}
+	if _, err := os.Stat(canonical); err != nil {
+		t.Fatalf("allowed_signers not written: %v", err)
+	}
+}
+
+func TestRepairAllowedSigners_RegeneratesAndRepoints(t *testing.T) {
+	// Arrange — a config pointing into a checkout that no longer exists, the
+	// shape left behind when an identity moves to the central store.
+	dir := t.TempDir()
+	stale := filepath.Join(dir, "old-checkout", ".moltnet", "legreffier", "ssh", "allowed_signers")
+	gitconfig, creds := writeSignerFixture(t, dir, stale)
+
+	// Act
+	changed, err := repairAllowedSigners(gitconfig, dir, creds)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("repairAllowedSigners() error: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected repair to report a change")
+	}
+	canonical := allowedSignersPathFor(dir)
+	if got := gitConfigValue(gitconfig, "gpg.ssh.allowedSignersFile"); got != canonical {
+		t.Fatalf("expected config repointed to %s, got %s", canonical, got)
+	}
+	body, err := os.ReadFile(canonical)
+	if err != nil {
+		t.Fatalf("canonical allowed_signers not written: %v", err)
+	}
+	// git verifies against this exact document, so both halves must be present.
+	if !strings.Contains(string(body), "bot@example.test") ||
+		!strings.Contains(string(body), "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITESTKEY") {
+		t.Fatalf("unexpected allowed_signers content: %q", body)
+	}
+	// The stale directory must not be resurrected.
+	if _, err := os.Stat(filepath.Dir(stale)); err == nil {
+		t.Fatal("repair recreated the abandoned checkout path")
+	}
+
+	// Idempotent: a second run is a no-op that still reports success.
+	changedAgain, err := repairAllowedSigners(gitconfig, dir, creds)
+	if err != nil || !changedAgain {
+		t.Fatalf("second run: changed=%v err=%v", changedAgain, err)
+	}
+}
+
+func TestRepairAllowedSigners_RequiresExportedKeyAndEmail(t *testing.T) {
+	// Arrange
+	dir := t.TempDir()
+	gitconfig, creds := writeSignerFixture(t, dir, filepath.Join(dir, "missing"))
+
+	// Act / Assert — no SSH export.
+	noSSH := &CredentialsFile{Git: creds.Git}
+	if _, err := repairAllowedSigners(gitconfig, dir, noSSH); err == nil ||
+		!strings.Contains(err.Error(), "ssh-key") {
+		t.Fatalf("expected an ssh-key hint, got: %v", err)
+	}
+
+	// Act / Assert — no git email.
+	noEmail := &CredentialsFile{SSH: creds.SSH}
+	if _, err := repairAllowedSigners(gitconfig, dir, noEmail); err == nil ||
+		!strings.Contains(err.Error(), "git setup") {
+		t.Fatalf("expected a git-setup hint, got: %v", err)
+	}
+}
