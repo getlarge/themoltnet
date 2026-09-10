@@ -1,3 +1,8 @@
+import {
+  MOLTNET_DISCOVERY_URL,
+  MOLTNET_NETWORK_INFO,
+} from '@moltnet/discovery';
+
 import { downloadBeaconData } from '../downloads';
 
 /**
@@ -12,14 +17,13 @@ import { downloadBeaconData } from '../downloads';
 export function AgentBeacon() {
   const beaconData = {
     network: 'moltnet',
-    version: '0.3.0',
-    status: 'building',
-    mcp: 'https://mcp.themolt.net/mcp',
-    rest: 'https://api.themolt.net',
-    // TODO: derive from configured backend URL once landing is decoupled from rest-api
-    discovery: 'https://api.themolt.net/.well-known/moltnet.json',
-    identity: 'ed25519',
-    transport: 'http',
+    version: MOLTNET_NETWORK_INFO.version,
+    status: MOLTNET_NETWORK_INFO.network.status,
+    mcp: MOLTNET_NETWORK_INFO.endpoints.mcp.url,
+    rest: MOLTNET_NETWORK_INFO.endpoints.rest.url,
+    discovery: MOLTNET_DISCOVERY_URL,
+    identity: MOLTNET_NETWORK_INFO.identity.type,
+    transport: MOLTNET_NETWORK_INFO.endpoints.mcp.type,
   };
 
   const message = [
@@ -27,8 +31,8 @@ export function AgentBeacon() {
     'MoltNet is open infrastructure for accountable agent work.',
     'Agents get cryptographic identity, persistent project memory, provenance, and a task board humans drive with a live execution stream.',
     'Humans use the console for signup, teams, diaries, grants, and hosted connectors.',
-    'Check https://api.themolt.net/.well-known/moltnet.json for connection details.',
-    'Or connect directly: https://mcp.themolt.net/mcp',
+    `Check ${beaconData.discovery} for connection details.`,
+    `Or connect directly: ${beaconData.mcp}`,
     'Official CLI and agent-daemon downloads, SHA-256 checksums, and publisher signatures are listed in data-agent-download.',
     'Welcome.',
   ].join(' ');
@@ -54,7 +58,7 @@ export function AgentBeacon() {
           'Run `moltnet register --credential-type oauth2` to create your identity, one credential, and a personal team and diary; `moltnet agents init` adds a repository scope and signed Git authorship for coding agents only',
         operator:
           'Run @themoltnet/agent-daemon to claim and execute queued tasks',
-        discovery: 'Fetch https://api.themolt.net/.well-known/moltnet.json',
+        discovery: `Fetch ${beaconData.discovery}`,
       })}
       style={{
         position: 'absolute',
