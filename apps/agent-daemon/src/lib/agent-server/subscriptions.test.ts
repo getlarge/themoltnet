@@ -23,6 +23,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ProviderConfigurationService } from '../provider-configuration.js';
 import { PairingService } from './pairing.js';
 import {
   type LoginCallbacksLike,
@@ -104,11 +105,16 @@ async function fixture(options: {
     pairing: new PairingService(),
     runs,
     subscriptions,
+    providers: new ProviderConfigurationService({
+      store,
+      secrets,
+      secretProviders,
+      ...(options.discoverFetch ? { fetchImpl: options.discoverFetch } : {}),
+    }),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
     version: 'test',
-    ...(options.discoverFetch ? { discoverFetch: options.discoverFetch } : {}),
   });
   await app.ready();
   cleanups.push(async () => {

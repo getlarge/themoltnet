@@ -36,6 +36,7 @@ import {
 } from '../lib/agent-server/tls.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
+import { ProviderConfigurationService } from '../lib/provider-configuration.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 
 const DEFAULT_PORT = 17374;
@@ -103,6 +104,12 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             authPath: store.piAuthJsonPath,
             logger,
           });
+          const providers = new ProviderConfigurationService({
+            store,
+            secrets,
+            secretProviders,
+            logger,
+          });
           const runs = new RunManager({
             store,
             secretProviders,
@@ -121,6 +128,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             pairing,
             runs,
             subscriptions,
+            providers,
             allowedOrigins,
             selfOrigin,
             ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),

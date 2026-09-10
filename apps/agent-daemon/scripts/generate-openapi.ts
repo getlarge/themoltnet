@@ -37,6 +37,7 @@ async function main(): Promise<void> {
     pairing: stub(),
     runs: stub(),
     subscriptions: stub(),
+    providers: stub(),
     allowedOrigins: ['https://console.themolt.net'],
     defaultApiUrl: 'https://api.themolt.net',
     version: '0.0.0',

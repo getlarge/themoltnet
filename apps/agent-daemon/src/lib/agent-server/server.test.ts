@@ -27,6 +27,7 @@ import { FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ProviderConfigurationService } from '../provider-configuration.js';
 import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
@@ -193,6 +194,14 @@ async function fixture(
       listProviders: () => [],
       runLogin: () => Promise.resolve(),
       isConnected: () => false,
+    }),
+    providers: new ProviderConfigurationService({
+      store,
+      secrets,
+      secretProviders,
+      ...(serverOptions.discoverFetch
+        ? { fetchImpl: serverOptions.discoverFetch }
+        : {}),
     }),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',

@@ -27,10 +27,12 @@ import {
 import { dirname } from 'node:path';
 
 import {
-  ModelRuntime,
+  type ModelRuntime,
   readStoredCredential,
 } from '@earendil-works/pi-coding-agent';
 import { lockSync } from 'proper-lockfile';
+
+import { OAuthProviderService } from '../oauth-provider.js';
 
 const LOGIN_TTL_MS = 10 * 60 * 1000;
 /** How long `start()` waits for the flow to surface a URL / device code. */
@@ -106,6 +108,8 @@ export interface ProviderLoginServiceOptions {
   isConnected?: (providerId: string) => boolean;
   /** Initialized Pi runtime. Production uses `ProviderLoginService.create`. */
   modelRuntime?: ModelRuntime;
+  /** Shared OAuth operations. Production uses `ProviderLoginService.create`. */
+  oauthProviders?: OAuthProviderService;
   logger?: ProviderLoginLogger;
   now?: () => number;
 }
@@ -131,13 +135,15 @@ export class ProviderLoginService {
   }
 
   static async create(
-    options: Omit<ProviderLoginServiceOptions, 'modelRuntime'>,
+    options: Omit<
+      ProviderLoginServiceOptions,
+      'modelRuntime' | 'oauthProviders'
+    >,
   ): Promise<ProviderLoginService> {
-    const modelRuntime = await ModelRuntime.create({
+    const oauthProviders = await OAuthProviderService.create({
       authPath: options.authPath,
-      refreshOnCreate: false,
     });
-    return new ProviderLoginService({ ...options, modelRuntime });
+    return new ProviderLoginService({ ...options, oauthProviders });
   }
 
   private now(): number {
@@ -147,13 +153,15 @@ export class ProviderLoginService {
   private providers(): { id: string; name: string }[] {
     const providers = this.options.listProviders
       ? this.options.listProviders()
-      : this.runtime()
-          .getProviders()
-          .filter((provider) => provider.auth.oauth !== undefined)
-          .map((provider) => ({
-            id: provider.id,
-            name: provider.name,
-          }));
+      : this.options.oauthProviders
+        ? this.options.oauthProviders.list()
+        : this.runtime()
+            .getProviders()
+            .filter((provider) => provider.auth.oauth !== undefined)
+            .map((provider) => ({
+              id: provider.id,
+              name: provider.name,
+            }));
     return providers.filter(
       (provider) => !EXCLUDED_SUBSCRIPTION_PROVIDERS.has(provider.id),
     );
@@ -161,6 +169,13 @@ export class ProviderLoginService {
 
   private connected(providerId: string): boolean {
     if (this.options.isConnected) return this.options.isConnected(providerId);
+    if (this.options.oauthProviders) {
+      return (
+        this.options.oauthProviders
+          .list()
+          .find((provider) => provider.id === providerId)?.connected ?? false
+      );
+    }
     try {
       return (
         readStoredCredential(providerId, this.options.authPath) !== undefined
@@ -309,10 +324,17 @@ export class ProviderLoginService {
 
     const runLogin =
       this.options.runLogin ??
-      ((id: string, loginCallbacks: LoginCallbacksLike) =>
-        this.runtime()
+      ((id: string, loginCallbacks: LoginCallbacksLike) => {
+        if (this.options.oauthProviders) {
+          return this.options.oauthProviders.login(
+            id,
+            toAuthInteraction(loginCallbacks),
+          );
+        }
+        return this.runtime()
           .login(id, 'oauth', toAuthInteraction(loginCallbacks))
-          .then(() => undefined));
+          .then(() => undefined);
+      });
 
     const completion = runLogin(providerId, callbacks).then(
       () => {
