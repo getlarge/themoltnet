@@ -15,6 +15,7 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { DCR_MAX_SCOPES } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createMcpTestHarness, type McpTestHarness } from './setup.js';
@@ -40,6 +41,68 @@ describe('MCP Server E2E', () => {
       const body = await response.json();
       expect(body.status).toBe('ok');
       expect(body.timestamp).toBeDefined();
+    });
+  });
+
+  // ── OAuth discovery metadata ─────────────────────────────────
+
+  describe('OAuth discovery metadata', () => {
+    /**
+     * A client that gets a 401 is pointed at the protected resource document
+     * by the WWW-Authenticate challenge. Without `scopes_supported` there it
+     * has no way to learn which scopes to request, and one that declines to
+     * guess authorizes with bare OIDC scopes — then fails every tool whose
+     * REST route requires a capability scope such as `team:read`.
+     *
+     * These assertions run against the built image, so they also cover the
+     * packaging path the unit tests cannot reach.
+     */
+    it.each([
+      '/.well-known/oauth-protected-resource',
+      '/.well-known/oauth-protected-resource/mcp',
+    ])('advertises the full scope set at %s', async (path) => {
+      const response = await fetch(`${harness.mcpBaseUrl}${path}`);
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.resource).toBeDefined();
+      expect(body.authorization_servers).toBeInstanceOf(Array);
+      expect(body.scopes_supported).toEqual([...DCR_MAX_SCOPES]);
+      expect(body.scopes_supported).toContain('team:read');
+    });
+
+    it('points the 401 challenge at a document naming the scopes', async () => {
+      const response = await fetch(`${harness.mcpBaseUrl}/mcp`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'discovery-probe', version: '0' },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(401);
+      const challenge = response.headers.get('www-authenticate');
+      expect(challenge).toContain('resource_metadata=');
+
+      const metadataUrl = challenge?.match(/resource_metadata="([^"]+)"/)?.[1];
+      expect(metadataUrl).toBeDefined();
+
+      // Follow the pointer the way a conformant client would, resolving it
+      // against the harness origin rather than whatever host it advertises.
+      const advertised = new URL(metadataUrl as string);
+      const followed = await fetch(
+        `${harness.mcpBaseUrl}${advertised.pathname}`,
+      );
+
+      expect(followed.status).toBe(200);
+      expect((await followed.json()).scopes_supported).toContain('team:read');
     });
   });
 

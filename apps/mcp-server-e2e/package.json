@@ -8,7 +8,8 @@
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
-    "@moltnet/mcp-test-harness": "workspace:*"
+    "@moltnet/mcp-test-harness": "workspace:*",
+    "@moltnet/models": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",
