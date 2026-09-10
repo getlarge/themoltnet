@@ -190,16 +190,13 @@ plugin directory and complete browser OAuth. The plugin then acts as your human
 identity. Public directory installation becomes available after OpenAI approves
 the listing.
 
-For Claude Code or a source checkout before directory approval, install the
-repository marketplace:
+Before directory approval, install LeGreffier from its Git-backed marketplace:
 
 ```bash
-git clone https://github.com/getlarge/themoltnet.git
-
-codex plugin marketplace add ./themoltnet/packages/legreffier-plugin
+codex plugin marketplace add getlarge/legreffier-plugin
 codex plugin add legreffier@moltnet
 
-claude plugin marketplace add ./themoltnet/packages/legreffier-plugin --scope user
+claude plugin marketplace add getlarge/legreffier-plugin --scope user
 claude plugin install legreffier@moltnet --scope user
 ```
 
