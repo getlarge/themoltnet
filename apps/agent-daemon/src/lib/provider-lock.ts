@@ -35,8 +35,16 @@ async function withNamedProviderLock<T>(
 ): Promise<T> {
   const locksDir = join(root, 'locks');
   mkdirSync(locksDir, { recursive: true, mode: 0o700 });
+  let compromised: Error | undefined;
   const release = await lock(locksDir, {
     lockfilePath: join(locksDir, `${name}.lock`),
+    // Agent Server may be shut down while an upstream OAuth flow is still
+    // unwinding. Do not let proper-lockfile's background update throw an
+    // uncaught exception if the daemon root is removed during that window;
+    // surface the compromise through the operation promise instead.
+    onCompromised: (error) => {
+      compromised = error;
+    },
     realpath: false,
     retries: {
       forever: true,
@@ -47,8 +55,14 @@ async function withNamedProviderLock<T>(
     },
   });
   try {
-    return await work();
+    const result = await work();
+    if (compromised) throw compromised;
+    return result;
   } finally {
-    await release();
+    try {
+      await release();
+    } catch (error) {
+      if (!compromised) throw error;
+    }
   }
 }

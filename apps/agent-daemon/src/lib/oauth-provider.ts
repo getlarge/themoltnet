@@ -52,12 +52,18 @@ export class OAuthProviderService {
           provider.auth.oauth !== undefined &&
           !EXCLUDED_OAUTH_PROVIDERS.has(provider.id),
       )
-      .map((provider) => ({
-        id: provider.id,
-        name: provider.name,
-        connected:
-          readStoredCredential(provider.id, this.authPath) !== undefined,
-      }));
+      .map((provider) => {
+        let connected = false;
+        try {
+          connected =
+            readStoredCredential(provider.id, this.authPath) !== undefined;
+        } catch {
+          // A malformed or temporarily unreadable auth store must not make
+          // provider discovery unavailable. This matches Agent Server's
+          // previous behavior: report the provider as disconnected.
+        }
+        return { id: provider.id, name: provider.name, connected };
+      });
   }
 
   async login(

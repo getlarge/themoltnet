@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -50,6 +50,21 @@ describe('OAuthProviderService', () => {
     ]);
   });
 
+  it('reports providers as disconnected when the credential store is malformed', async () => {
+    const path = authPath();
+    mkdirSync(join(path, '..'), { recursive: true });
+    writeFileSync(path, '{not-json');
+    const service = await OAuthProviderService.create({
+      authPath: path,
+      modelRuntime: runtime(),
+    });
+
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: false },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
+    ]);
+  });
+
   it('uses ModelRuntime for login and logout', async () => {
     const loginCheck = vi.fn().mockResolvedValue({});
     const logoutCheck = vi.fn().mockResolvedValue(undefined);
@@ -76,16 +91,15 @@ describe('OAuthProviderService', () => {
     const firstStarted = new Promise<void>((resolve) => {
       markFirstStarted = resolve;
     });
-    const firstRuntime = runtime({
-      login: vi.fn(() => {
-        markFirstStarted();
-        return new Promise((resolve) => {
-          finish = () => {
-            resolve({});
-          };
-        });
-      }),
+    const firstLogin = vi.fn<ModelRuntime['login']>(() => {
+      markFirstStarted();
+      return new Promise((resolve) => {
+        finish = () => {
+          resolve({ type: 'api_key', key: 'test' });
+        };
+      });
     });
+    const firstRuntime = runtime({ login: firstLogin });
     const logoutCheck = vi.fn().mockResolvedValue(undefined);
     const secondRuntime = runtime({ logout: logoutCheck });
     const first = await OAuthProviderService.create({
