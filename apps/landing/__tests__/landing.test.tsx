@@ -22,6 +22,7 @@ import { Nav } from '../src/components/Nav';
 import { OnboardingPaths } from '../src/components/OnboardingPaths';
 import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
+import { LEGREFFIER_CLAUDE_INSTALL_COMMANDS } from '../src/constants';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
 import { HomePage } from '../src/pages/HomePage';
 
@@ -186,6 +187,37 @@ describe('content', () => {
     expect(
       screen.queryByText(/@themoltnet\/legreffier init/),
     ).not.toBeInTheDocument();
+
+    // A clean Codex or Claude host can copy the complete marketplace install.
+    expect(
+      screen.getByText(
+        /codex plugin marketplace add getlarge\/legreffier-plugin/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /claude plugin marketplace add getlarge\/legreffier-plugin/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /inspect the marketplace repository/i }),
+    ).toHaveAttribute('href', 'https://github.com/getlarge/legreffier-plugin');
+  });
+
+  it('homepage copies a complete LeGreffier install for a clean Claude host', () => {
+    wrapWithRouter(<OnboardingPaths />);
+
+    const install = screen.getByRole('group', {
+      name: 'Install the LeGreffier plugin',
+    });
+    expect(install.querySelector('code')?.textContent).toBe(
+      LEGREFFIER_CLAUDE_INSTALL_COMMANDS.replace('\n', ''),
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Copy the Claude marketplace and plugin install commands',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('focuses a routed onboarding track named by the URL hash', async () => {

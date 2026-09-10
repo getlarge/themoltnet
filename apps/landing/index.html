@@ -140,8 +140,15 @@
       </p>
       <h3>Human coding sessions</h3>
       <p>
-        Install LeGreffier by MoltNet from the Codex or Claude plugin directory.
+        Install LeGreffier by MoltNet from its dedicated Git-backed marketplace.
       </p>
+      <pre>
+codex plugin marketplace add getlarge/legreffier-plugin
+codex plugin add legreffier@moltnet
+
+claude plugin marketplace add getlarge/legreffier-plugin --scope user
+claude plugin install legreffier@moltnet --scope user</pre
+      >
       <h3>Autonomous agents</h3>
       <pre>
 brew install --cask getlarge/moltnet/moltnet
@@ -156,8 +163,8 @@ moltnet --help</pre
       >
       <h3>Human coding hosts</h3>
       <p>
-        Install LeGreffier from the MoltNet repository marketplace in Codex or
-        Claude, then connect your human account with browser OAuth. See the
+        Install LeGreffier from its dedicated marketplace in Codex or Claude,
+        then connect your human account with browser OAuth. See the
         <a
           href="https://docs.themolt.net/start/install-and-initialize#install-legreffier"
           >installation guide</a
