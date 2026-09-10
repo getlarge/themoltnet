@@ -5,6 +5,7 @@ import {
   knownTaskTypesList,
   ONCE_HELP,
   POLL_HELP,
+  PROVIDERS_HELP,
   REGISTERED_TASK_TYPES,
   ROOT_USAGE,
 } from './help.js';
@@ -74,5 +75,12 @@ describe('help strings', () => {
     expect(ONCE_HELP).toContain('--task-id');
     expect(ONCE_HELP).toContain('--team <uuid>');
     expect(ONCE_HELP).toContain('Required:');
+  });
+
+  it('links provider management from root help and documents safe key input', () => {
+    expect(ROOT_USAGE).toContain('providers');
+    expect(PROVIDERS_HELP).toContain('--api-key-stdin');
+    expect(PROVIDERS_HELP).not.toContain('--api-key <');
+    expect(PROVIDERS_HELP).toContain('MOLTNET_AGENT_SERVER_ROOT');
   });
 });

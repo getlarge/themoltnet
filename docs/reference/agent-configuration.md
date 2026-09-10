@@ -387,7 +387,7 @@ It is also separate from Pi model/auth config. Local daemon runs use repo-local
 `.pi` as `PI_CODING_AGENT_DIR` by default, so `.pi/settings.json` and
 `.pi/models.json` describe which LLM providers/models Pi can resolve, while
 `.pi/auth.json` remains local-only. See
-[Running Agents: Pi model and auth config](../operate/running-agents.md#pi-model-and-auth-config).
+[Running Agents: Repository Pi config](../operate/running-agents.md#repository-pi-config).
 
 ## Portable agent paths
 

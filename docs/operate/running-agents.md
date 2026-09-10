@@ -97,6 +97,7 @@ Subcommands:
 | Command         | Purpose                                                             |
 | --------------- | ------------------------------------------------------------------- |
 | `server`        | Run the foreground loopback companion used by the Console.          |
+| `providers`     | Manage local provider endpoints and subscription sign-ins.          |
 | `poll`          | Long-running worker that claims tasks as they appear.               |
 | `once`          | Claim and execute one known task id, then exit.                     |
 | `drain`         | Claim currently available work until the queue is empty, then exit. |
@@ -122,6 +123,81 @@ npx @themoltnet/agent-daemon poll \
 In OAuth2 mode the daemon resolves API and MCP endpoints from the selected
 agent's `moltnet.json`. Agent-key mode deliberately does not read that file and
 requires `MOLTNET_API_URL` to select the API explicitly.
+
+## Provider Management
+
+`moltnet-agent providers` manages the same user-level provider store as the
+Agent Server, without starting the server or opening the Console. The default
+root is `~/.config/moltnet`; use `--root <path>` for an isolated store or set
+`MOLTNET_AGENT_SERVER_ROOT` for an environment-wide override.
+
+Configured endpoints and Pi's dynamically advertised OAuth providers appear in
+one listing:
+
+```bash
+moltnet-agent providers list
+moltnet-agent providers list --json
+```
+
+JSON output has stable `configuredProviders` and `oauthProviders` keys. Provider
+configuration stores only secret references. To configure an API key, pipe it
+through stdin so it never appears in shell history or the process argument list.
+
+### Local Ollama
+
+Configure the OpenAI-compatible endpoint, then discover and save its models:
+
+```bash
+moltnet-agent providers set ollama \
+  --base-url http://localhost:11434/v1
+moltnet-agent providers discover ollama --save
+```
+
+`--api` defaults to `openai-completions`. Repeating `--model` replaces the model
+list explicitly; `--clear-models` empties it. When updating an existing
+provider, omitted URL, API kind, models, and credentials remain unchanged.
+
+### Ollama Cloud
+
+Cloud uses a separate provider id and endpoint:
+
+```bash
+printf '%s' "$OLLAMA_API_KEY" | moltnet-agent providers set ollama-cloud \
+  --base-url https://ollama.com/v1 \
+  --api-key-stdin
+
+moltnet-agent providers discover ollama-cloud --save
+```
+
+Discovery merges the OpenAI-compatible model response with Ollama's tag
+response, so cloud-only tags such as `gemma4:31b-cloud` are retained.
+
+### Claude and Codex subscriptions
+
+Use Pi's provider-owned OAuth flow instead of editing `pi/auth.json`:
+
+```bash
+moltnet-agent providers login anthropic
+moltnet-agent providers login openai-codex
+```
+
+The terminal prints authorization URLs and device codes, opens a browser only
+for an OAuth authorization URL, and forwards provider prompts. When a provider
+offers several login methods, pass its advertised method id with
+`--auth-method <method-id>`. Ctrl-C aborts the flow without replacing an
+existing credential.
+
+To disconnect a subscription or remove a configured endpoint, confirm the
+interactive prompt or pass `--yes` in automation:
+
+```bash
+moltnet-agent providers logout anthropic
+moltnet-agent providers remove ollama-cloud --yes
+```
+
+Logout calls Pi's credential manager and removes only that provider's Pi
+credential. Removing a configured endpoint removes its locally stored API key;
+it does not affect OAuth credentials.
 
 ## Model Catalog
 
@@ -164,11 +240,12 @@ curl -sS -X POST -H "Authorization: Bearer $MOLTNET_TOKEN" \
   "$MOLTNET_API_URL/runtime-models"
 ```
 
-## Pi Model And Auth Config
+## Repository Pi Config
 
-The daemon runs Pi headlessly through `@themoltnet/pi-runtime`. For local daemon
-runs, it defaults `PI_CODING_AGENT_DIR` to repo-local `.pi` unless you set it
-explicitly.
+The daemon runs Pi headlessly through `@themoltnet/pi-runtime`. Agent
+Server-managed runs use the provider store above. Direct repository runs still
+default `PI_CODING_AGENT_DIR` to repo-local `.pi` unless you set it explicitly;
+this preserves configless CI and existing checked-in model catalogs.
 
 Recommended split:
 
@@ -179,7 +256,9 @@ Recommended split:
 | `.pi/auth.json`     | no      | Local subscription OAuth/API-key auth blob.        |
 
 If `.pi/auth.json` is absent, Pi reads provider keys from environment variables
-named by `.pi/models.json`, for example `OLLAMA_API_KEY`.
+named by `.pi/models.json`, for example `OLLAMA_API_KEY`. For user-level Claude
+or Codex subscriptions, prefer `moltnet-agent providers login` over editing an
+auth file by hand.
 
 ## Sandbox Policy
 

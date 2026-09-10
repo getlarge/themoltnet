@@ -23,6 +23,8 @@
 | List rendered packs            | `moltnet rendered-pack list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`                                                                             |
 | Inspect rendered pack          | `moltnet rendered-pack get --id <rendered-pack-id>`                                                                                                                  |
 | Start eval daemon              | `npx @themoltnet/agent-daemon@latest poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" --profile eval-runner --task-types run_eval,judge_eval_attempt`    |
+| List local model providers     | `moltnet-agent providers list`; see [Provider Management](../operate/running-agents.md#provider-management)                                                          |
+| Connect Claude or Codex        | `moltnet-agent providers login anthropic` or `moltnet-agent providers login openai-codex`                                                                            |
 | Start pack fidelity daemon     | `npx @themoltnet/agent-daemon@latest poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" --profile pack-judge --task-types judge_pack`                      |
 | Set rendered pack description  | `moltnet rendered-pack update --id <rendered-pack-id> --description "Use when ..."`                                                                                  |
 | Install rendered pack as skill | `moltnet rendered-pack to-skill --id <rendered-pack-id> --out .claude/skills`                                                                                        |
