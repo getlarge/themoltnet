@@ -37,6 +37,26 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	if err != nil {
 		return fmt.Errorf("identity environment not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
 	}
+	resolvedContext, err := resolveContextBinding(agentDir, "")
+	if err != nil {
+		return err
+	}
+	if resolvedContext.Binding == nil && contextCommandInteractive(cmd) {
+		teamID, diaryID, setupErr := guidedContextBinding(cmd, agentDir)
+		if setupErr != nil {
+			return setupErr
+		}
+		resolvedContext, setupErr = setContextBinding(agentDir, "", contextBinding{TeamID: teamID, DiaryID: diaryID}, false, "")
+		if setupErr != nil {
+			return setupErr
+		}
+	}
+	if resolvedContext.Binding == nil {
+		return fmt.Errorf("context_binding_missing: run 'moltnet context set --team-id <team> --diary-id <diary>' or 'moltnet context set --default'")
+	}
+	vars["MOLTNET_TEAM_ID"] = resolvedContext.Binding.TeamID
+	vars["MOLTNET_DIARY_ID"] = resolvedContext.Binding.DiaryID
+	vars["MOLTNET_CONTEXT_KEY"] = resolvedContext.Key
 	credentialVars, err := resolveAgentOAuth2Environment(agentDir, agentName, registry)
 	if err != nil {
 		return err

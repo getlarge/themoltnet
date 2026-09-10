@@ -19,9 +19,9 @@ import (
 // Version 5 moves activation state into the selected central identity. Older
 // repository-bound cache files deliberately fail validation rather than being
 // discovered or reused.
-const activationCacheVersion = 7
+const activationCacheVersion = 8
 
-var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
+var requiredActivationInputs = []string{"contexts", "credentials", "env", "gitconfig", "sshPublicKey"}
 
 type activationCache struct {
 	Version              int               `json:"version"`
@@ -29,6 +29,8 @@ type activationCache struct {
 	Fingerprint          string            `json:"fingerprint"`
 	DiaryID              string            `json:"diaryId,omitempty"`
 	TeamID               string            `json:"teamId,omitempty"`
+	ContextKey           string            `json:"contextKey"`
+	ContextSource        string            `json:"contextSource"`
 	GitConfigGlobal      string            `json:"gitConfigGlobal"`
 	CredentialsPath      string            `json:"credentialsPath"`
 	AuthorshipMode       string            `json:"authorshipMode"`
@@ -68,6 +70,8 @@ type activationValidationResult struct {
 	Fingerprint                string            `json:"fingerprint,omitempty"`
 	DiaryID                    string            `json:"diaryId,omitempty"`
 	TeamID                     string            `json:"teamId,omitempty"`
+	ContextKey                 string            `json:"contextKey,omitempty"`
+	ContextSource              string            `json:"contextSource,omitempty"`
 	CredentialsPath            string            `json:"credentialsPath,omitempty"`
 	GitConfigGlobal            string            `json:"gitConfigGlobal,omitempty"`
 	AuthorshipMode             string            `json:"authorshipMode,omitempty"`
@@ -88,6 +92,7 @@ type activationContext struct {
 	EnvPath   string
 	EnvVars   map[string]string
 	CachePath string
+	Context   resolvedActivationBinding
 }
 
 func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) error {
@@ -118,6 +123,16 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) e
 	if err != nil {
 		return err
 	}
+	if ctx.Context.Binding == nil {
+		result := invalidActivation("context_binding_missing", nil)
+		if err := printActivationValidationResult(w, result, jsonOut); err != nil {
+			return err
+		}
+		if jsonOut {
+			return nil
+		}
+		return fmt.Errorf("context_binding_missing: run 'moltnet context set' or 'moltnet context set --default'")
+	}
 	cache, err := buildActivationCache(ctx)
 	if err != nil {
 		return err
@@ -126,6 +141,9 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) e
 	// is shared with warm validate, which is offline by contract, so the server
 	// check and the pins it produces belong here and nowhere else.
 	if err := verifyAndPinIdentity(ctx, cache); err != nil {
+		return err
+	}
+	if err := verifyContextBindingOnline(ctx.AgentDir, *ctx.Context.Binding); err != nil {
 		return err
 	}
 	if err := writeActivationCache(ctx.CachePath, cache); err != nil {
@@ -165,12 +183,17 @@ func resolveActivationContext(identity string) (*activationContext, error) {
 			return nil, fmt.Errorf("read env file: %w", err)
 		}
 	}
+	resolvedContext, err := resolveContextBinding(agentDir, "")
+	if err != nil {
+		return nil, err
+	}
 	return &activationContext{
 		AgentDir:  agentDir,
 		AgentName: agentName,
 		EnvPath:   envPath,
 		EnvVars:   envVars,
-		CachePath: filepath.Join(agentDir, "activation-cache.json"),
+		CachePath: activationCachePathForContext(agentDir, resolvedContext.Key),
+		Context:   resolvedContext,
 	}, nil
 }
 
@@ -202,6 +225,9 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error 
 }
 
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {
+	if ctx.Context.Binding == nil {
+		return nil, fmt.Errorf("context_binding_missing: run 'moltnet context set' or 'moltnet context set --default'")
+	}
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
@@ -249,6 +275,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		filepath.Join("ssh", "id_ed25519.pub"),
 	)
 	for name, path := range map[string]string{
+		"contexts":     contextStorePath(ctx.AgentDir),
 		"env":          ctx.EnvPath,
 		"gitconfig":    gitconfigPath,
 		"credentials":  credentialsPath,
@@ -266,8 +293,10 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		Version:              activationCacheVersion,
 		AgentName:            ctx.AgentName,
 		Fingerprint:          fingerprint,
-		DiaryID:              ctx.EnvVars["MOLTNET_DIARY_ID"],
-		TeamID:               ctx.EnvVars["MOLTNET_TEAM_ID"],
+		DiaryID:              ctx.Context.Binding.DiaryID,
+		TeamID:               ctx.Context.Binding.TeamID,
+		ContextKey:           ctx.Context.Key,
+		ContextSource:        ctx.Context.Source,
 		GitConfigGlobal:      relativeToRepo(ctx.AgentDir, gitconfigPath),
 		CredentialsPath:      relativeToRepo(ctx.AgentDir, credentialsPath),
 		AuthorshipMode:       authorshipMode,
@@ -285,6 +314,9 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 }
 
 func validateActivationCache(ctx *activationContext) (*activationValidationResult, error) {
+	if ctx.Context.Binding == nil {
+		return invalidActivation("context_binding_missing", nil), nil
+	}
 	cache, err := readActivationCache(ctx.CachePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -302,6 +334,9 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	}
 	if cache.AgentName != ctx.AgentName {
 		return invalidActivation("agent_mismatch", nil), nil
+	}
+	if cache.ContextKey != ctx.Context.Key {
+		return invalidActivation("repo_mismatch", nil), nil
 	}
 	current, err := buildActivationCache(ctx)
 	if err != nil {
@@ -413,6 +448,8 @@ func activationMetadataEqual(cached, current *activationCache) bool {
 		cached.Fingerprint == current.Fingerprint &&
 		cached.DiaryID == current.DiaryID &&
 		cached.TeamID == current.TeamID &&
+		cached.ContextKey == current.ContextKey &&
+		cached.ContextSource == current.ContextSource &&
 		cached.GitConfigGlobal == current.GitConfigGlobal &&
 		cached.CredentialsPath == current.CredentialsPath &&
 		cached.AuthorshipMode == current.AuthorshipMode &&
@@ -433,6 +470,8 @@ func activationResultFromCache(cache *activationCache) activationValidationResul
 		Fingerprint:                cache.Fingerprint,
 		DiaryID:                    cache.DiaryID,
 		TeamID:                     cache.TeamID,
+		ContextKey:                 cache.ContextKey,
+		ContextSource:              cache.ContextSource,
 		CredentialsPath:            cache.CredentialsPath,
 		GitConfigGlobal:            cache.GitConfigGlobal,
 		AuthorshipMode:             cache.AuthorshipMode,
@@ -461,6 +500,9 @@ func readActivationCache(path string) (*activationCache, error) {
 }
 
 func writeActivationCache(path string, cache *activationCache) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create activation cache directory: %w", err)
+	}
 	data, err := json.MarshalIndent(cache, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal activation cache: %w", err)

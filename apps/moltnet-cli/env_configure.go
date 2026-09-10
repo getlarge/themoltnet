@@ -47,6 +47,41 @@ func runEnvConfigureCmd(cmd *cobra.Command, opts envConfigureOptions, changed fu
 		return err
 	}
 	envPath := filepath.Join(agentDir, "env")
+	contextChanged := changed("team-id") || changed("diary-id") || opts.ClearTeamID || opts.ClearDiaryID
+	if contextChanged {
+		if opts.ClearTeamID || opts.ClearDiaryID {
+			if _, err := clearContextBinding(agentDir, "", false, ""); err != nil {
+				return err
+			}
+		} else {
+			resolved, err := resolveContextBinding(agentDir, "")
+			if err != nil {
+				return err
+			}
+			binding := contextBinding{TeamID: opts.TeamID, DiaryID: opts.DiaryID}
+			if resolved.Binding != nil {
+				if binding.TeamID == "" {
+					binding.TeamID = resolved.Binding.TeamID
+				}
+				if binding.DiaryID == "" {
+					binding.DiaryID = resolved.Binding.DiaryID
+				}
+			}
+			if binding.TeamID == "" || binding.DiaryID == "" {
+				legacy, _ := parseEnvFile(envPath)
+				binding.TeamID = firstNonEmpty(binding.TeamID, legacy["MOLTNET_TEAM_ID"])
+				binding.DiaryID = firstNonEmpty(binding.DiaryID, legacy["MOLTNET_DIARY_ID"])
+			}
+			// Preserve the legacy ability to update these flags independently. As
+			// soon as both values are available, persist the complete pair in the
+			// current first-class context as well.
+			if binding.TeamID != "" && binding.DiaryID != "" {
+				if _, err := setContextBinding(agentDir, "", binding, false, ""); err != nil {
+					return fmt.Errorf("configure current context: %w", err)
+				}
+			}
+		}
+	}
 
 	updates := map[string]*string{}
 	set := func(flag, key, value string, clear bool) {

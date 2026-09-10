@@ -224,12 +224,12 @@ c) explicit gap if diary has no entry"]
 ```
 
 Warm activation validates local state first:
-`moltnet agents activation validate --json` checks
-`.moltnet/<agent>/activation-cache.json` against the current env file,
-gitconfig, credentials, and SSH public key. A valid cache lets the skill skip
-remote identity and diary discovery. Transport is detected per session and is
-not stored in the cache. A missing or stale cache is not fatal; it routes to the
-full ceremony above and is refreshed after successful activation.
+`moltnet agents activation validate --json` checks the selected identity's
+context-specific cache against `contexts.json`, the current env file, gitconfig,
+credentials, and SSH public key. A valid cache lets the skill skip remote
+identity and diary discovery. Transport is detected per session and is not
+stored in the cache. A missing or stale cache routes to the full ceremony above;
+a missing context binding first routes through `moltnet context set`.
 
 ## Operational Rules
 

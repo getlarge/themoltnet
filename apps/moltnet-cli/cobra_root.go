@@ -81,6 +81,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newCompletionCmd())
 	rootCmd.AddCommand(newUseCmd())
 	rootCmd.AddCommand(newEnvCmd())
+	rootCmd.AddCommand(newContextCmd())
 	rootCmd.AddCommand(newSecretsCmd())
 	rootCmd.AddCommand(newStartCmd())
 

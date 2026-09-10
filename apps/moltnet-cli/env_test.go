@@ -320,7 +320,14 @@ func TestEnvCheckPass(t *testing.T) {
 	_, _ = WriteConfigTo(&CredentialsFile{
 		SubjectID: "test-identity",
 		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+		GitHub: &GitHubSection{
+			AppID:         "test-agent",
+			PrivateKeyRef: &SecretReference{Provider: "file", Key: "fixture"},
+		},
 	}, filepath.Join(agentDir, "moltnet.json"))
+	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{TeamID: contextTestTeam, DiaryID: contextTestDiary}}); err != nil {
+		t.Fatal(err)
+	}
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644)
@@ -347,7 +354,17 @@ func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := WriteConfigTo(&CredentialsFile{SubjectID: "test-identity", OAuth2: CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"}}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+	if _, err := WriteConfigTo(&CredentialsFile{
+		SubjectID: "test-identity",
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+		GitHub: &GitHubSection{
+			AppID:         "test-agent",
+			PrivateKeyRef: &SecretReference{Provider: "file", Key: "fixture"},
+		},
+	}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{TeamID: contextTestTeam, DiaryID: contextTestDiary}}); err != nil {
 		t.Fatal(err)
 	}
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
@@ -398,11 +415,21 @@ func TestEnvCheckMissingVars(t *testing.T) {
 
 // --- start command tests ---
 
+func writeStartTestContext(t *testing.T, agentDir string) {
+	t.Helper()
+	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{
+		TeamID: contextTestTeam, DiaryID: contextTestDiary,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestStartDryRun(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
+	writeStartTestContext(t, agentDir)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		SubjectID: "test-identity",
 		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
@@ -438,6 +465,7 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	t.Setenv("HOME", dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
+	writeStartTestContext(t, agentDir)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		SubjectID: "test-identity",
 		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "target-secret"},
@@ -478,6 +506,7 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	writeStartTestContext(t, agentDir)
 	key := OAuth2SecretKey("identity-123", "client-456")
 	if _, err := WriteConfigTo(&CredentialsFile{
 		SubjectID: "identity-123",
