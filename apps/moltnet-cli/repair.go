@@ -47,6 +47,18 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		})
 	}
 
+	// Detect SSH-signing configs that cannot verify: gpg.ssh.allowedSignersFile
+	// unset (legacy configs predating the key) or naming a file that is gone
+	// (an identity that moved out of a checkout).
+	signerPaths := configsMissingAllowedSigners(candidates)
+	for _, p := range signerPaths {
+		issues = append(issues, ConfigIssue{
+			Field:   "git-config",
+			Problem: fmt.Sprintf("gpg.ssh.allowedSignersFile is unset or missing in %s", p),
+			Action:  "fixed",
+		})
+	}
+
 	if len(issues) == 0 {
 		fmt.Fprintln(os.Stderr, "Config is valid, no issues found.")
 		return nil
@@ -86,6 +98,19 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 		if changed {
 			fmt.Fprintf(os.Stderr, "  [fixed] added credential helper reset to %s\n", p)
+			fixed++
+		}
+	}
+
+	// Regenerate the signer document and repoint the config at it.
+	for _, p := range signerPaths {
+		changed, err := repairAllowedSigners(p, filepath.Dir(resolvedPath), creds)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  [warning] could not restore allowed_signers for %s: %v\n", p, err)
+			continue
+		}
+		if changed {
+			fmt.Fprintf(os.Stderr, "  [fixed] configured gpg.ssh.allowedSignersFile in %s\n", p)
 			fixed++
 		}
 	}
@@ -324,6 +349,99 @@ func gitConfigCandidates(creds *CredentialsFile) []string {
 		paths = append(paths, creds.Git.ConfigPath)
 	}
 	return paths
+}
+
+// gitConfigValue reads one key from a git config file, returning "" when the
+// key is unset or the file cannot be parsed.
+func gitConfigValue(gitConfigPath, key string) string {
+	out, err := exec.Command("git", "config", "--file", gitConfigPath, "--get", key).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// signsWithSSH reports whether a git config actually performs SSH signing, so
+// repair only touches configs where a signer document is meaningful and leaves
+// unrelated git configs alone.
+func signsWithSSH(gitConfigPath string) bool {
+	if !strings.EqualFold(gitConfigValue(gitConfigPath, "gpg.format"), "ssh") {
+		return false
+	}
+	if gitConfigValue(gitConfigPath, "user.signingkey") != "" {
+		return true
+	}
+	return strings.EqualFold(gitConfigValue(gitConfigPath, "commit.gpgsign"), "true") ||
+		strings.EqualFold(gitConfigValue(gitConfigPath, "tag.gpgsign"), "true")
+}
+
+// configsMissingAllowedSigners returns SSH-signing configs that cannot verify a
+// signature, because gpg.ssh.allowedSignersFile is either unset or names a file
+// that is not there.
+//
+// Both shapes produce the same per-command complaint —
+// "gpg.ssh.allowedSignersFile needs to be configured and exist" — on every
+// verification rather than once at setup, so operators experience it as
+// constant noise long after the cause.
+//
+// Unset is the older of the two: gitconfigs written before the key was emitted
+// sign commits happily and can never verify them, with a perfectly good
+// allowed_signers sitting unreferenced beside them. A stale path is the newer
+// shape, left by an identity that moved out of a checkout.
+func configsMissingAllowedSigners(candidates []string) []string {
+	var broken []string
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err != nil {
+			continue
+		}
+		if !signsWithSSH(p) {
+			continue
+		}
+		configured := gitConfigValue(p, "gpg.ssh.allowedSignersFile")
+		if configured != "" {
+			if _, err := os.Stat(configured); err == nil {
+				continue
+			}
+		}
+		broken = append(broken, p)
+	}
+	return broken
+}
+
+// repairAllowedSigners regenerates the canonical allowed_signers document for
+// the identity being repaired and repoints the git config at it.
+//
+// It rewrites the path rather than recreating the file where the config
+// happens to point: a stale path is usually a directory that no longer exists,
+// and recreating a signer document inside an abandoned checkout would leave the
+// identity split across two locations.
+func repairAllowedSigners(gitConfigPath, configDir string, creds *CredentialsFile) (bool, error) {
+	if creds.SSH == nil || strings.TrimSpace(creds.SSH.PublicKeyPath) == "" {
+		return false, fmt.Errorf("SSH keys not exported — run 'moltnet ssh-key' first")
+	}
+	if creds.Git == nil || strings.TrimSpace(creds.Git.Email) == "" {
+		return false, fmt.Errorf("git email is not configured — run 'moltnet git setup' first")
+	}
+	pubKeyContent, err := os.ReadFile(creds.SSH.PublicKeyPath)
+	if err != nil {
+		return false, fmt.Errorf("read SSH public key: %w", err)
+	}
+	canonical, err := writeAllowedSignersFile(configDir, strings.TrimSpace(creds.Git.Email), pubKeyContent)
+	if err != nil {
+		return false, err
+	}
+	if gitConfigValue(gitConfigPath, "gpg.ssh.allowedSignersFile") == canonical {
+		return true, nil
+	}
+	command := exec.Command(
+		"git", "config", "--file", gitConfigPath, "gpg.ssh.allowedSignersFile", canonical,
+	)
+	if output, commandErr := command.CombinedOutput(); commandErr != nil {
+		return false, fmt.Errorf(
+			"set gpg.ssh.allowedSignersFile: %w: %s", commandErr, strings.TrimSpace(string(output)),
+		)
+	}
+	return true, nil
 }
 
 // pollutedGitConfigs returns the subset of paths that exist and contain an
