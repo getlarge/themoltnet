@@ -96,7 +96,15 @@ is documented in
   dependencies (`qemu-utils`, `qemu-system-x86`) via `apt-get`, which
   needs Debian/Ubuntu. macOS adopters must `brew install qemu`
   themselves; Windows is not supported by gondolin.
-- **Node.js >= 23.6** — gondolin's engine constraint. The action
+- **The daemon runs from the signed release bundle**, installed from
+  `themolt.net/install` rather than resolved from npm at task time. The
+  installer verifies the archive checksum against the publisher signing key
+  baked into the served script before unpacking, and the bundle carries its
+  own Node runtime — so the daemon does not depend on the runner's Node.
+  `daemon-version` therefore names a release (or `latest`), not an npm
+  semver range.
+- **Node.js >= 23.6** — gondolin's engine constraint, and the version the
+  action's own steps run on (task composition, dispatch). The action
   defaults `node-version` to `'24'` (the LTS sibling). Override via
   the `node-version` input only if you have a specific reason; older
   versions emit `EBADENGINE` warnings and may fail at sandbox boot.
