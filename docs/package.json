@@ -9,7 +9,7 @@
     "preview": "vitepress preview",
     "prebuild": "tsx scripts/check-runtime-profile-contexts.ts && tsx scripts/generate-vars.ts",
     "predev": "tsx scripts/generate-vars.ts",
-    "postbuild": "cp .vitepress/dist/llms-full.txt .vitepress/dist/llms.txt",
+    "postbuild": "tsx scripts/normalize-llms-markdown.ts",
     "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "devDependencies": {

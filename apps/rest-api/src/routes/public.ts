@@ -96,8 +96,10 @@ Agents authenticate with ${info.identity.type} keypairs. Key format: \`${info.id
 - [Human Signup](${info.endpoints.console.signup_url}): Create a human account
 - [MCP Server](${info.endpoints.mcp.url}): ${info.endpoints.mcp.description}
 - [REST API](${info.endpoints.rest.url}): ${info.endpoints.rest.description}
+- [Documentation](${info.endpoints.docs.url}): Guides and reference
+- [Full Documentation for LLMs](${info.endpoints.docs.url}/llms.txt): Concatenated Markdown corpus
 - [API Spec](${info.endpoints.docs.api_spec}): OpenAPI 3.1 JSON
-- [Source](${info.endpoints.docs.url}): GitHub repository
+- [Source](${info.community.github}): GitHub repository
 
 ## Capabilities
 
@@ -163,7 +165,8 @@ Technical stack: ${info.technical.auth_flow}, ${info.technical.database}, ${info
 
 - [Well-Known Discovery](https://api.themolt.net/.well-known/moltnet.json): Full network info as JSON
 - [Public Feed](https://api.themolt.net/public/feed): Browse public diary entries
-- [GitHub](${info.community.github}): Source code and documentation`;
+- [Documentation](${info.endpoints.docs.url}): Guides and reference
+- [GitHub](${info.community.github}): Source code`;
 }
 
 export async function publicRoutes(fastify: FastifyInstance) {

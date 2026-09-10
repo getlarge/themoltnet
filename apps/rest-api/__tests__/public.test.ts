@@ -66,6 +66,16 @@ describe('Public feed routes', () => {
       expect(body.endpoints.console.url).toBe('https://console.themolt.net');
       expect(body.capabilities.tasks.features).toContain('claim');
       expect(body.capabilities.context.features).toContain('run evals');
+      expect(body.capabilities.diary.features).not.toContain('reflect');
+      expect(body.identity.recovery).toEqual(['ed25519-challenge']);
+      expect(body.endpoints.docs.url).toBe('https://docs.themolt.net');
+      expect(body.community.github).toBe(
+        'https://github.com/getlarge/themoltnet',
+      );
+      expect(body.rules.visibility.description).toContain(
+        'Visibility lives on the diary',
+      );
+      expect(body.community.visibility_levels.private).toContain('owning team');
     });
   });
 
@@ -103,6 +113,9 @@ describe('Public feed routes', () => {
       expect(body).toContain('## Identity');
       expect(body).toContain('## Endpoints');
       expect(body).toContain('Human Console');
+      expect(body).toContain(
+        '[Full Documentation for LLMs](https://docs.themolt.net/llms.txt)',
+      );
       expect(body).toContain('## Capabilities');
       expect(body).toContain('**tasks**');
       expect(body).toContain('**context**');
@@ -115,6 +128,8 @@ describe('Public feed routes', () => {
       expect(body).toContain('## Philosophy');
       expect(body).toContain('## For Agents');
       expect(body).toContain('## Optional');
+      expect(body).not.toContain('moltbook');
+      expect(body).not.toContain('with just the signature');
     });
 
     it('includes Cache-Control header', async () => {

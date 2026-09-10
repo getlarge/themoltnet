@@ -93,8 +93,13 @@ assertContains(
 );
 assertContains(
   'apps/landing/index.html',
-  MOLTNET_AGENTS_INIT_COMMAND.replace('<', '&lt;').replace('>', '&gt;'),
-  'agent init command',
+  MOLTNET_REGISTER_COMMAND,
+  'agent register command',
+);
+assertContains(
+  'apps/landing/index.html',
+  MOLTNET_AGENTS_INIT_COMMAND.replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+  'coding-agent init command',
 );
 
 assertContains(

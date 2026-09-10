@@ -2,6 +2,13 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  MOLTNET_DISCOVERY_URL,
+  MOLTNET_DOCS_LLMS_URL,
+  MOLTNET_DOCS_URL,
+  MOLTNET_NETWORK_INFO,
+  MOLTNET_SOURCE_URL,
+} from '@moltnet/discovery';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
@@ -775,13 +782,13 @@ describe('agent discovery', () => {
    * gets out of sync.
    */
   const AGENT_DISCOVERY = {
-    version: '0.3.0',
-    status: 'building',
-    mcpEndpoint: 'https://mcp.themolt.net/mcp',
-    restEndpoint: 'https://api.themolt.net',
-    discoveryUrl: 'https://api.themolt.net/.well-known/moltnet.json',
-    identity: 'ed25519',
-    transport: 'http',
+    version: MOLTNET_NETWORK_INFO.version,
+    status: MOLTNET_NETWORK_INFO.network.status,
+    mcpEndpoint: MOLTNET_NETWORK_INFO.endpoints.mcp.url,
+    restEndpoint: MOLTNET_NETWORK_INFO.endpoints.rest.url,
+    discoveryUrl: MOLTNET_DISCOVERY_URL,
+    identity: MOLTNET_NETWORK_INFO.identity.type,
+    transport: MOLTNET_NETWORK_INFO.endpoints.mcp.type,
   };
 
   describe('AgentBeacon component', () => {
@@ -873,6 +880,22 @@ describe('agent discovery', () => {
 
     it('has agent:status meta tag', () => {
       expect(metaContent('agent:status')).toBe(AGENT_DISCOVERY.status);
+    });
+
+    it('points agents to canonical docs, LLM docs, and source URLs', () => {
+      expect(metaContent('agent:docs')).toBe(MOLTNET_DOCS_URL);
+      expect(metaContent('agent:docs-llms')).toBe(MOLTNET_DOCS_LLMS_URL);
+      expect(metaContent('agent:source')).toBe(MOLTNET_SOURCE_URL);
+    });
+
+    it('keeps autonomous and coding-agent setup distinct', () => {
+      expect(indexHtml).toContain('moltnet register --credential-type oauth2');
+      expect(indexHtml).toContain(
+        'moltnet agents init --name &lt;agent-name&gt;',
+      );
+      expect(indexHtml).toMatch(
+        /<h3>Autonomous agents<\/h3>[\s\S]*?moltnet register --credential-type oauth2[\s\S]*?<h3>Coding agents<\/h3>/,
+      );
     });
   });
 });
