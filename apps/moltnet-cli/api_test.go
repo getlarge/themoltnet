@@ -269,8 +269,17 @@ func TestNewAuthenticatedClientBlankAgentKeyFallsBackToOAuth(t *testing.T) {
 	}
 }
 
-func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.T) {
-	t.Setenv(agentKeyEnv, "rejected-agent-key")
+func TestNewAuthenticatedClientPrefersOAuthOverEnvironmentAgentKey(t *testing.T) {
+	t.Setenv(agentKeyEnv, "unused-agent-key")
+
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000006")
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: wantID},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
 
 	tokenCalls := 0
 	var authorization string
@@ -286,14 +295,7 @@ func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.
 			return
 		}
 		authorization = r.Header.Get("Authorization")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
-			"type":   "about:blank",
-			"title":  "Unauthorized",
-			"status": http.StatusUnauthorized,
-			"code":   "UNAUTHORIZED",
-		})
+		generated.ServeHTTP(w, r)
 	}))
 	defer apiSrv.Close()
 
@@ -302,20 +304,45 @@ func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.
 	if err != nil {
 		t.Fatalf("newAuthenticatedClient() error: %v", err)
 	}
-	res, err := client.GetWhoami(context.Background())
-	if err != nil {
+	if _, err := client.GetWhoami(context.Background()); err != nil {
 		t.Fatalf("GetWhoami() transport error: %v", err)
 	}
-	if tokenCalls != 0 {
-		t.Errorf("OAuth token calls = %d, want 0", tokenCalls)
+	if tokenCalls != 1 {
+		t.Errorf("OAuth token calls = %d, want 1", tokenCalls)
 	}
-	if authorization != "Bearer rejected-agent-key" {
-		t.Errorf("Authorization = %q, want authoritative agent key", authorization)
+	if authorization != "Bearer oauth-access-token" {
+		t.Errorf("Authorization = %q, want authoritative OAuth bearer", authorization)
 	}
-	formatted := formatAPIError(res)
-	if !strings.Contains(formatted.Error(), agentKeyEnv) ||
-		!strings.Contains(formatted.Error(), "OAuth2 fallback is disabled") {
-		t.Errorf("rejection error = %q, want agent-key mode diagnostic", formatted)
+}
+
+func TestNewAuthenticatedClientNeverFallsBackWhenOAuthConfigurationIsIncomplete(t *testing.T) {
+	t.Setenv(agentKeyEnv, "unused-agent-key")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		SubjectID: "id-1",
+		OAuth2:    CredentialsOAuth2{ClientID: "oauth-client"},
+		Endpoints: CredentialsEndpoints{API: "https://api.example.test"},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err == nil || !strings.Contains(err.Error(), "OAuth2 credentials unavailable") {
+		t.Fatalf("expected OAuth2 configuration error, got %v", err)
+	}
+}
+
+func TestNewAuthenticatedClientNeverFallsBackFromMalformedCredentials(t *testing.T) {
+	t.Setenv(agentKeyEnv, "unused-agent-key")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if err := os.WriteFile(credPath, []byte("{not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err == nil || !strings.Contains(err.Error(), "parse config") {
+		t.Fatalf("expected selected credentials error, got %v", err)
 	}
 }
 
@@ -417,7 +444,7 @@ func TestNewAuthenticatedClientRejectsAgentKeyValueAndReferenceTogether(t *testi
 	}
 }
 
-func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing.T) {
+func TestNewAuthenticatedClientPrefersOAuthOverConfigAgentKeyReference(t *testing.T) {
 	t.Setenv(agentKeyEnv, "")
 	t.Setenv(agentKeyRefEnv, "")
 	root := t.TempDir()
@@ -437,6 +464,13 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/oauth2/token" {
 			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "oauth-access-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
 		}
 		authorization = r.Header.Get("Authorization")
 		generated.ServeHTTP(w, r)
@@ -452,14 +486,6 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	if _, err := WriteConfigTo(creds, credPath); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := newAuthenticatedClient(apiSrv.URL, credPath); err == nil || !strings.Contains(err.Error(), "not bound") {
-		t.Fatalf("a reference bound to another identity must be rejected; got err=%v", err)
-	}
-
-	creds.AgentKeyRef = &SecretReference{Provider: fileProviderName, Key: "agent-key.id-1"}
-	if _, err := WriteConfigTo(creds, credPath); err != nil {
-		t.Fatal(err)
-	}
 	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
 	if err != nil {
 		t.Fatalf("newAuthenticatedClient() error: %v", err)
@@ -467,7 +493,7 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	if _, err := client.GetWhoami(context.Background()); err != nil {
 		t.Fatalf("GetWhoami() error: %v", err)
 	}
-	if authorization != "Bearer ak_from_config" || tokenCalls != 0 {
-		t.Fatalf("Authorization = %q, tokenCalls = %d; want the config agent key and no OAuth2 exchange", authorization, tokenCalls)
+	if authorization != "Bearer oauth-access-token" || tokenCalls != 1 {
+		t.Fatalf("Authorization = %q, tokenCalls = %d; want OAuth2 and no agent-key resolution", authorization, tokenCalls)
 	}
 }

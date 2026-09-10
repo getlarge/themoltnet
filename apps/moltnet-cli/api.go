@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -76,13 +77,24 @@ func newBearerClient(
 // newAuthenticatedClient resolves the CLI authentication mode and returns a
 // fully authenticated generated client.
 //
-// A non-blank MOLTNET_AGENT_KEY (or a MOLTNET_AGENT_KEY_REF resolved through
-// the secret providers) is authoritative: it is sent directly as a static
-// bearer credential and OAuth2 is never attempted as a fallback. This lets
-// API-only commands run without moltnet.json. Otherwise a configured
-// agent_key_ref in moltnet.json is used, and only then the OAuth2
-// client_credentials flow.
+// OAuth2 is authoritative whenever the selected credentials document declares
+// any OAuth2 material. Agent keys remain a secondary path for daemon-projected
+// and intentionally key-only environments, but are considered only when OAuth2
+// is entirely absent. A broken or rejected OAuth2 credential never falls back
+// to an agent key and therefore cannot silently change the active grant.
 func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error) {
+	creds, configErr := loadCredentials(credPath)
+	if configErr == nil && hasOAuth2Configuration(creds) {
+		client, err := newOAuth2AuthenticatedClient(apiURL, creds, NewSecretProviderRegistry())
+		if err != nil {
+			return nil, fmt.Errorf("OAuth2 credentials unavailable: %w", err)
+		}
+		return client, nil
+	}
+	if configErr != nil && !errors.Is(configErr, errCredentialsNotFound) {
+		return nil, fmt.Errorf("OAuth2 credentials unavailable: %w", configErr)
+	}
+
 	agentKey := strings.TrimSpace(os.Getenv(agentKeyEnv))
 	agentKeyRef := strings.TrimSpace(os.Getenv(agentKeyRefEnv))
 	if agentKey != "" && agentKeyRef != "" {
@@ -96,27 +108,27 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 		agentKey = resolved
 	}
 	if agentKey != "" {
-		if err := validateAgentKeyAPIURL(apiURL); err != nil {
-			return nil, err
-		}
-		return newBearerClient(
-			apiURL,
-			func(_ context.Context) (string, error) {
-				return agentKey, nil
-			},
-			newAPIHTTPClient(),
-		)
+		return newAgentKeyAuthenticatedClient(apiURL, agentKey)
 	}
 
-	client, err := newConfigAuthenticatedClient(apiURL, credPath, NewSecretProviderRegistry())
-	if err != nil {
+	if configErr != nil {
 		return nil, fmt.Errorf(
-			"OAuth2 credentials unavailable: %w; set %s for agent-key authentication",
-			err,
+			"OAuth2 credentials unavailable: %w; set %s for key-only authentication",
+			configErr,
 			agentKeyEnv,
 		)
 	}
-	return client, nil
+	configKey, configured, err := resolveAgentKey(creds, NewSecretProviderRegistry())
+	if configured {
+		if err != nil {
+			return nil, fmt.Errorf("resolve agent_key_ref: %w", err)
+		}
+		return newAgentKeyAuthenticatedClient(apiURL, configKey)
+	}
+	return nil, fmt.Errorf(
+		"credentials missing OAuth2 client credentials and agent_key_ref; run 'moltnet register' or set %s for key-only authentication",
+		agentKeyEnv,
+	)
 }
 
 // newConfigAuthenticatedClient authenticates with the credential declared by
@@ -129,21 +141,26 @@ func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProvi
 	if err != nil {
 		return nil, fmt.Errorf("load credentials for authentication: %w", err)
 	}
+	if hasOAuth2Configuration(creds) {
+		return newOAuth2AuthenticatedClient(apiURL, creds, registry)
+	}
 	if configKey, configured, err := resolveAgentKey(creds, registry); configured {
 		if err != nil {
 			return nil, fmt.Errorf("resolve agent_key_ref: %w", err)
 		}
-		if err := validateAgentKeyAPIURL(apiURL); err != nil {
-			return nil, err
-		}
-		return newBearerClient(
-			apiURL,
-			func(_ context.Context) (string, error) { return configKey, nil },
-			newAPIHTTPClient(),
-		)
+		return newAgentKeyAuthenticatedClient(apiURL, configKey)
 	}
-	if creds.OAuth2.ClientID == "" {
-		return nil, fmt.Errorf("credentials missing client_id and agent_key_ref")
+	return nil, fmt.Errorf("credentials missing OAuth2 client credentials and agent_key_ref")
+}
+
+func hasOAuth2Configuration(creds *CredentialsFile) bool {
+	return creds != nil && (strings.TrimSpace(creds.OAuth2.ClientID) != "" ||
+		strings.TrimSpace(creds.OAuth2.ClientSecret) != "" || creds.OAuth2.ClientSecretRef != nil)
+}
+
+func newOAuth2AuthenticatedClient(apiURL string, creds *CredentialsFile, registry *SecretProviderRegistry) (*moltnetapi.Client, error) {
+	if strings.TrimSpace(creds.OAuth2.ClientID) == "" {
+		return nil, fmt.Errorf("OAuth2 credentials missing client_id")
 	}
 	clientSecret, err := resolveOAuth2Secret(creds, registry)
 	if err != nil {
@@ -154,6 +171,17 @@ func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProvi
 		apiURL,
 		func(_ context.Context) (string, error) { return tm.GetToken() },
 		tm.httpClient,
+	)
+}
+
+func newAgentKeyAuthenticatedClient(apiURL, agentKey string) (*moltnetapi.Client, error) {
+	if err := validateAgentKeyAPIURL(apiURL); err != nil {
+		return nil, err
+	}
+	return newBearerClient(
+		apiURL,
+		func(_ context.Context) (string, error) { return agentKey, nil },
+		newAPIHTTPClient(),
 	)
 }
 

@@ -4,12 +4,15 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
+
+var errCredentialsNotFound = errors.New("no credentials found")
 
 func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []string) error {
 	signer, err := resolveSigner(credPath)
@@ -111,7 +114,8 @@ func loadCredentials(path string) (*CredentialsFile, error) {
 	}
 	if creds == nil {
 		return nil, fmt.Errorf(
-			"no credentials found at %s — run 'moltnet register' first",
+			"%w at %s — run 'moltnet register' first",
+			errCredentialsNotFound,
 			resolved,
 		)
 	}

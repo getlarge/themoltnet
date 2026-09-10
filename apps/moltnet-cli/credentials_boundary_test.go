@@ -250,12 +250,10 @@ func TestSignRequestIDUsesActivatedSigner(t *testing.T) {
 	}
 }
 
-// TestEnvironmentAgentKeyGoesToActivatedEndpoint covers the credential-leak
-// half of issue #2129. MOLTNET_AGENT_KEY authenticates without reading any
-// credentials file, so the endpoint resolution is the only thing standing
-// between the key and the wrong host: before the fix, endpoint discovery fell
-// back to the global config while the shell was activated elsewhere.
-func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
+// TestOAuthTakesPrecedenceAtActivatedEndpoint covers both halves of the
+// credential boundary: the activated document selects the endpoint and its
+// OAuth2 credential remains authoritative over an ambient agent key.
+func TestOAuthTakesPrecedenceAtActivatedEndpoint(t *testing.T) {
 	globalAPI := newRecordingAPI(t)
 	activatedAPI := newRecordingAPI(t)
 
@@ -291,8 +289,8 @@ func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
 		t.Fatal("activated endpoint received no requests")
 	}
 	for _, header := range authorizations {
-		if header != "Bearer agent-key-secret" {
-			t.Errorf("Authorization = %q, want the environment agent key", header)
+		if header != "Bearer token" {
+			t.Errorf("Authorization = %q, want the activated identity OAuth2 token", header)
 		}
 	}
 }

@@ -583,18 +583,17 @@ func storeFixtureFileSecret(t *testing.T, key, value string) {
 
 func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	// Refresh authenticates with the agent key in preference to OAuth2, so that
-	// is the reference that has to resolve. The OAuth2 secret stays keyring-
-	// backed and is only recorded, which keeps os-keyring covered as a provider
-	// name without needing a keyring on CI.
-	storeFixtureFileSecret(t, AgentKeyKey(fixtureSubjectID), "fixture-agent-key")
+	// Refresh authenticates with OAuth2 in preference to the agent key, so the
+	// OAuth2 reference must resolve. The unused agent-key reference keeps
+	// os-keyring covered as a provider name without needing a keyring on CI.
+	storeFixtureFileSecret(t, OAuth2SecretKey(fixtureSubjectID, "cid"), "fixture-oauth-secret")
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2.ClientSecret = ""
-		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "os-keyring", Key: OAuth2SecretKey(fixtureSubjectID, "cid")}
+		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "file", Key: OAuth2SecretKey(fixtureSubjectID, "cid")}
 		creds.Keys.PrivateKey = ""
 		creds.Keys.PrivateKeyRef = &SecretReference{Provider: "file", Key: IdentitySeedKey("SHA256:testfingerprint")}
 		creds.GitHub = &GitHubSection{AppID: "123", InstallationID: "456", PrivateKeyPath: filepath.Join(dir, "app.pem")}
-		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureSubjectID)}
+		creds.AgentKeyRef = &SecretReference{Provider: "os-keyring", Key: AgentKeyKey(fixtureSubjectID)}
 	})
 
 	var out bytes.Buffer
@@ -605,11 +604,11 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"oauth2": "os-keyring", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "file"}
+	want := map[string]string{"oauth2": "file", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "os-keyring"}
 	if !maps.Equal(result.CredentialProviders, want) {
 		t.Fatalf("credentialProviders = %v, want %v", result.CredentialProviders, want)
 	}
-	if result.CredentialProvider != "os-keyring" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
+	if result.CredentialProvider != "file" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
 		t.Fatalf("legacy summary fields drifted: %+v", result)
 	}
 	if strings.Contains(out.String(), "identity/SHA256") || strings.Contains(out.String(), "agent-key/") {

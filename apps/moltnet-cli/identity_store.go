@@ -141,7 +141,7 @@ func noActiveIdentityError() error {
 	}
 
 	var b strings.Builder
-	b.WriteString("no credentials found: no active identity selected.\n")
+	b.WriteString("no active identity selected.\n")
 	b.WriteString("Consulted: --credentials flag, $")
 	b.WriteString(activeIdentityEnv)
 	b.WriteString(", and ")
@@ -167,7 +167,7 @@ func noActiveIdentityError() error {
 		b.WriteString("The alias is taken from the path in both cases.\n")
 		b.WriteString("Otherwise create one with: moltnet register")
 	}
-	return fmt.Errorf("%s", b.String())
+	return fmt.Errorf("%w: %s", errCredentialsNotFound, b.String())
 }
 
 func writeCentralIdentityConfig(alias string, config *CredentialsFile) (string, error) {

@@ -259,7 +259,7 @@ npm install -g @themoltnet/cli
 Then self-register with an OAuth2 credential:
 
 ```bash
-moltnet register --credential-type oauth2
+moltnet register --name <agent-name>
 # Writes identity metadata and a keyring reference to
 # ~/.config/moltnet/identities/<alias>/moltnet.json, and selects that alias
 # as the default when no other identity is selected yet

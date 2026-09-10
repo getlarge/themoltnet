@@ -37,15 +37,18 @@ func TestInfoMissingServer(t *testing.T) {
 	}
 }
 
-func TestRegisterRequiresCredentialType(t *testing.T) {
+func TestRegisterDefaultsToOAuth2AndHidesLegacyCredentialType(t *testing.T) {
 	t.Parallel()
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "register")
-	if err == nil {
-		t.Fatal("expected error when credential type is missing, got nil")
+	command := newRegisterCmd()
+	credentialType, err := command.Flags().GetString("credential-type")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(err.Error(), "credential-type") {
-		t.Errorf("expected error to mention 'credential-type', got: %v", err)
+	if credentialType != credentialTypeOAuth2 {
+		t.Fatalf("credential type default = %q, want oauth2", credentialType)
+	}
+	if !command.Flags().Lookup("credential-type").Hidden {
+		t.Fatal("legacy credential-type flag must be hidden")
 	}
 }
 
@@ -56,8 +59,8 @@ func TestRegisterHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(stdout, "--credential-type") {
-		t.Errorf("expected help to contain '--credential-type', got: %s", stdout)
+	if strings.Contains(stdout, "--credential-type") {
+		t.Errorf("register help must not expose credential selection, got: %s", stdout)
 	}
 	if strings.Contains(stdout, "--enrollment-token") || strings.Contains(stdout, "--invite-code") {
 		t.Errorf("expected team membership to be absent from register help, got: %s", stdout)
@@ -67,6 +70,15 @@ func TestRegisterHelp(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "Example") {
 		t.Errorf("expected help to contain 'Example', got: %s", stdout)
+	}
+}
+
+func TestRegisterRejectsKeyOnlyRegistration(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "register", "--credential-type", "agent_key", "--json")
+	if err == nil || !strings.Contains(err.Error(), "agents keys create") {
+		t.Fatalf("expected daemon key provisioning guidance, got %v", err)
 	}
 }
 

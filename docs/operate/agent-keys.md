@@ -274,12 +274,15 @@ MOLTNET_AGENT_KEY="$(cat daemon.key)" \
   moltnet agents keys list --team-id <team-uuid> --status active
 ```
 
-A non-empty `MOLTNET_AGENT_KEY` takes precedence over OAuth2 credentials in
-`moltnet.json`. If the key is invalid, expired, rotated, revoked, or forbidden
-for the requested route, the command fails with the API response; it never falls
-back to OAuth2. Use `--api-url` or `MOLTNET_API_URL` for a non-default API when
-no credentials file is present. The CLI sends agent keys only to HTTPS
-endpoints, except for HTTP loopback addresses used by local development.
+OAuth2 credentials in the selected `moltnet.json` take precedence. The CLI
+considers `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` only when OAuth2 is
+entirely absent, including configless API-only commands. If OAuth2 exists but
+its secret cannot be resolved, its token exchange fails, or the API rejects the
+token, the command fails without trying an agent key. This prevents an ambient
+daemon key from silently changing the acting identity or team. Use `--api-url`
+or `MOLTNET_API_URL` for a non-default API when no credentials file is present.
+The CLI sends agent keys only to HTTPS endpoints, except for HTTP loopback
+addresses used by local development.
 
 Retrieve the secret from a host credential store and scope it to the single CLI
 process where practical. A shell-wide `export` makes the secret available to
@@ -298,7 +301,7 @@ Troubleshooting:
 
 | Symptom                                        | Likely cause and action                                                                                                                                     |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `401` names `MOLTNET_AGENT_KEY`                | Agent-key mode won precedence. Replace an invalid, expired, rotated, or revoked key, or unset the variable to use configured OAuth2 credentials.            |
+| `401` while using a key-only configuration     | Replace an invalid, expired, rotated, or revoked key. If this identity should use OAuth2, run `moltnet register` or `moltnet agents init`.                  |
 | `403` on a team-scoped command                 | The key lacks the route scope or current Keto authorization. A team key may also be bound to another team; use its matching `--team-id`.                    |
 | CLI refuses an insecure API URL                | Use HTTPS. Plain HTTP is accepted only for `localhost` and loopback IP addresses.                                                                           |
 | Signing reports an invalid Ed25519 private key | API authentication succeeded independently, but the local credentials file lacks valid signing material. Run `moltnet register` or `moltnet config repair`. |
@@ -310,11 +313,11 @@ reference in `MOLTNET_AGENT_KEY_REF` (`<provider>:<key>`, for example
 `file:agent-key.identity-1` under `MOLTNET_SECRET_ROOT`, or
 `os-keyring:agent-key/<subject_id>`). Never write the key value into
 `moltnet.json`; a `moltnet.json` may instead carry `agent_key_ref`, which the
-SDK and CLI use ahead of the OAuth2 client credentials and bind to
-`agent-key/<subject_id>`. `moltnet agents keys create|rotate --store` writes
-that reference for you and keeps the secret inside the provider. In `--store`
-mode the secret is never written to stdout or stderr, on success or on any
-failure: if the provider cannot store it, the one-time secret goes to a
+daemon uses and the CLI considers only when OAuth2 is absent. The reference is
+bound to `agent-key/<subject_id>`. `moltnet agents keys create|rotate --store`
+writes that reference for you and keeps the secret inside the provider. In
+`--store` mode the secret is never written to stdout or stderr, on success or on
+any failure: if the provider cannot store it, the one-time secret goes to a
 mode-0600 recovery artifact under the user cache directory
 (`moltnet/recovery/agent-key-recovery-*.json`) and the JSON result names that
 path; if the secret is stored but `moltnet.json` cannot be updated (for example
