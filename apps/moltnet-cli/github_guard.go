@@ -1140,12 +1140,17 @@ func tokenCredentialsMatch(args []string, credentialsPath string) bool {
 // Unknown future commands deny so CLI drift cannot silently add a write path.
 func classifyGitHubOperation(args []string) ghOperation {
 	repository, _, err := explicitGitHubRepository(args)
+	op := classifyGitHubOperationWithoutRepository(args)
 	if err != nil {
-		// An unparseable repository target is exactly when not to guess: deny
-		// rather than silently authorizing against the current remote (#2211).
+		// A target that cannot be proven is exactly when not to guess: deny
+		// rather than authorizing against the current remote (#2211). Read-only
+		// commands are unaffected — they are allowed without resolving a
+		// repository at all, so an ambiguous -R cannot mislead the decision.
+		if op.Kind == ghReadOnly {
+			return op
+		}
 		return ghOperation{Kind: ghUnknown}
 	}
-	op := classifyGitHubOperationWithoutRepository(args)
 	op.Repository = repository
 	return op
 }

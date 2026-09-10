@@ -83,47 +83,99 @@ func resolveGitHubRepository(explicit string) (githubRepository, error) {
 	return parseGitHubRepository(remote)
 }
 
-// ghFlagNeedsValue reports whether a gh flag consumes the argument after it.
-// The repository scan has to skip those values: free text such as
-// `--body "-Rowner/repo"` is a value, not a flag, and reading it as one let
-// crafted text decide which repository the guard authorized against and which
-// repository a token was minted for (#2211).
+// errAmbiguousGitHubRepositoryFlag reports that a `-R`/`--repo` token was found
+// at a position where its meaning cannot be proven: the token before it is a
+// flag whose arity this parser does not know, so the `-R` may be that flag's
+// value rather than a repository selector.
 //
-// A flag written as `--name=value` carries its own value and consumes nothing.
-// Unknown flags are treated as boolean, which stays safe because a target that
-// cannot be determined now denies instead of falling back to the remote.
-func ghFlagNeedsValue(arg string) bool {
-	if _, _, found := strings.Cut(arg, "="); found {
-		return false
-	}
+// gh's short flags are per-subcommand and contradict each other — `-m` is
+// `--milestone` (a value) on `pr create` but `--merge` (a boolean) on
+// `pr merge`; `-w` is `--web` on `pr view` and `--workflow` on `run list`. A
+// single global arity table therefore cannot be right, and guessing is unsafe
+// in both directions: mistaking a value for a flag lets crafted text choose the
+// repository, while mistaking a boolean for a value swallows a real `-R` and
+// authorizes against the wrong one. So ambiguity is reported rather than
+// resolved, and callers fail closed (#2211).
+var errAmbiguousGitHubRepositoryFlag = fmt.Errorf(
+	"cannot prove which repository this command targets: place `-R owner/repo` " +
+		"immediately after the gh subcommand, or use `--repo=owner/repo`")
+
+// ghLongFlagTakesValue lists long flags that always consume the next argument.
+// Long flags do not collide across subcommands the way short flags do, so this
+// table is safe to apply globally.
+func ghLongFlagTakesValue(arg string) bool {
 	switch arg {
-	case "-R", "--repo", "--hostname",
-		"-b", "--body", "--body-file",
-		"-t", "--title", "--template",
-		"-m", "--message", "--notes", "--notes-file", "--subject",
-		"-f", "--raw-field", "-F", "--field", "--input",
-		"-H", "--header", "-X", "--method",
-		"-q", "--jq", "--json", "--cache", "--preview",
-		"-l", "--label", "-a", "--assignee", "-r", "--reviewer",
-		"--milestone", "-p", "--project",
-		"-B", "--base", "--head", "--branch", "--ref", "--sha",
-		"-L", "--limit", "-s", "--state", "-A", "--author", "-S", "--search",
-		"-d", "--description", "-n", "--name", "--value", "--key",
-		"-o", "--output", "--file", "--filename", "--config", "--env",
-		"-w", "--workflow", "--team", "--org", "-u", "--user", "--visibility":
+	case "--repo", "--hostname",
+		"--body", "--body-file", "--title", "--template",
+		"--message", "--notes", "--notes-file", "--subject",
+		"--field", "--raw-field", "--input", "--header", "--method",
+		"--jq", "--json", "--cache", "--preview",
+		"--label", "--add-label", "--remove-label",
+		"--assignee", "--add-assignee", "--remove-assignee",
+		"--reviewer", "--add-reviewer",
+		"--milestone", "--project", "--add-project", "--remove-project",
+		"--base", "--head", "--branch", "--ref", "--sha",
+		"--limit", "--state", "--author", "--search",
+		"--description", "--name", "--value", "--key",
+		"--output", "--file", "--filename", "--config", "--env",
+		"--workflow", "--team", "--org", "--user", "--visibility":
 		return true
 	default:
 		return false
 	}
 }
 
+// ghLongFlagIsBoolean lists long flags that consume nothing. Knowing these
+// keeps a `-R` that follows one from being reported as ambiguous, which is what
+// makes `gh pr create --draft -R owner/repo` resolve instead of denying.
+func ghLongFlagIsBoolean(arg string) bool {
+	switch arg {
+	case "--draft", "--web", "--merge", "--squash", "--rebase",
+		"--delete-branch", "--auto", "--disable-auto", "--admin",
+		"--fill", "--fill-first", "--fill-verbose", "--no-maintainer-edit",
+		"--dry-run", "--force", "--yes", "--confirm", "--clone",
+		"--public", "--private", "--internal", "--push",
+		"--paginate", "--slurp", "--verbose", "--include", "--silent",
+		"--help", "--version":
+		return true
+	default:
+		return false
+	}
+}
+
+// explicitGitHubRepository extracts the repository a gh command explicitly
+// targets. It returns errAmbiguousGitHubRepositoryFlag when the target cannot
+// be proven; callers must fail closed rather than fall back to the remote.
 func explicitGitHubRepository(args []string) (githubRepository, bool, error) {
+	// pendingValue: the current token is the value of the previous flag.
+	// unknownArity: the previous token was a flag of unknown arity, so the
+	// current token may be its value rather than a flag in its own right.
+	pendingValue := false
+	unknownArity := false
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "--" {
 			// Everything after the terminator is positional, never a flag.
 			break
 		}
+		if pendingValue {
+			pendingValue = false
+			continue
+		}
+
+		isRepoFlag := arg == "-R" || arg == "--repo" ||
+			strings.HasPrefix(arg, "--repo=") ||
+			(strings.HasPrefix(arg, "-R") && len(arg) > 2)
+		if unknownArity {
+			if isRepoFlag {
+				return githubRepository{}, false, errAmbiguousGitHubRepositoryFlag
+			}
+			// Not a repository selector, so whichever way the previous flag's
+			// arity fell, this token sits at a flag position again.
+			unknownArity = false
+		}
+
 		var value string
 		switch {
 		case arg == "-R" || arg == "--repo":
@@ -136,13 +188,20 @@ func explicitGitHubRepository(args []string) (githubRepository, bool, error) {
 		case strings.HasPrefix(arg, "-R") && len(arg) > 2:
 			// gh accepts the attached form, but so does any free-text value that
 			// happens to start with -R, and the two are indistinguishable here.
-			// Refuse to guess rather than authorize against the wrong repository.
-			return githubRepository{}, false, fmt.Errorf(
-				"pass the repository as `-R owner/repo` or `--repo=owner/repo`; %q is ambiguous", arg)
+			return githubRepository{}, false, errAmbiguousGitHubRepositoryFlag
+		case ghLongFlagTakesValue(arg):
+			pendingValue = true
+			continue
+		case ghLongFlagIsBoolean(arg):
+			continue
+		case strings.HasPrefix(arg, "--") && strings.Contains(arg, "="):
+			// An unrecognized --name=value carries its own value.
+			continue
+		case strings.HasPrefix(arg, "-") && arg != "-":
+			// Any other flag, including every short flag: arity unknown.
+			unknownArity = true
+			continue
 		default:
-			if ghFlagNeedsValue(arg) {
-				i++
-			}
 			continue
 		}
 		repository, err := parseGitHubRepository(value)

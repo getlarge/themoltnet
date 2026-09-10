@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -231,14 +232,16 @@ func marshalTestJSON(t *testing.T, value any) string {
 
 // TestExplicitGitHubRepositoryIgnoresFlagValues covers the guard-bypass shape
 // from #2211: a free-text flag value that merely looks like a repository flag
-// must not decide which repository is authorized or scoped (#2210 follow-up).
+// must not decide which repository is authorized or scoped. Positions whose
+// meaning cannot be proven report ambiguity so callers fail closed.
 func TestExplicitGitHubRepositoryIgnoresFlagValues(t *testing.T) {
 	for _, testCase := range []struct {
-		name  string
-		args  []string
-		want  string
-		found bool
-		err   bool
+		name      string
+		args      []string
+		want      string
+		found     bool
+		ambiguous bool
+		err       bool
 	}{
 		{
 			name: "body value that looks like an attached repo flag",
@@ -249,46 +252,76 @@ func TestExplicitGitHubRepositoryIgnoresFlagValues(t *testing.T) {
 			args: []string{"issue", "comment", "1", "--body", "--repo=attacker/spoof"},
 		},
 		{
-			name: "title value consuming the next token",
-			args: []string{"pr", "create", "--title", "-R", "--body", "hello/world"},
+			name: "body value consuming a separated repo flag",
+			args: []string{"issue", "comment", "1", "--body", "-R", "attacker/spoof"},
 		},
 		{
 			name: "repo flag after the end-of-flags terminator",
 			args: []string{"api", "x", "--", "-R", "attacker/spoof"},
 		},
 		{
-			name: "attached shorthand is refused rather than guessed",
-			args: []string{"issue", "comment", "1", "-Rowner/repo"},
-			err:  true,
+			name:      "attached shorthand is ambiguous, not guessed",
+			args:      []string{"issue", "comment", "1", "-Rowner/repo"},
+			ambiguous: true,
 		},
 		{
-			name:  "separated shorthand still resolves",
+			// -m is --milestone (a value) on pr create but --merge (a boolean) on
+			// pr merge, so a following -R cannot be trusted either way.
+			name:      "repo flag after an unknown-arity short flag is ambiguous",
+			args:      []string{"pr", "merge", "123", "-m", "-R", "owner/repo"},
+			ambiguous: true,
+		},
+		{
+			name:      "repo flag after a short free-text flag is ambiguous",
+			args:      []string{"pr", "create", "-b", "-R", "owner/repo"},
+			ambiguous: true,
+		},
+		{
+			name:  "repo flag after a known long boolean still resolves",
+			args:  []string{"pr", "create", "--draft", "-R", "owner/repo"},
+			want:  "owner/repo",
+			found: true,
+		},
+		{
+			name:  "repo flag after a known long value pair still resolves",
+			args:  []string{"issue", "comment", "1", "--body", "text", "-R", "owner/repo"},
+			want:  "owner/repo",
+			found: true,
+		},
+		{
+			name:  "separated shorthand at a proven position resolves",
 			args:  []string{"issue", "comment", "1", "-R", "owner/repo"},
 			want:  "owner/repo",
 			found: true,
 		},
 		{
-			name:  "long form still resolves",
+			name:  "long form resolves",
 			args:  []string{"issue", "comment", "1", "--repo", "owner/repo"},
 			want:  "owner/repo",
 			found: true,
 		},
 		{
-			name:  "assigned long form still resolves",
+			name:  "assigned long form resolves",
 			args:  []string{"issue", "comment", "1", "--repo=owner/repo"},
 			want:  "owner/repo",
 			found: true,
 		},
 		{
-			name:  "repo flag after a skipped flag value still resolves",
-			args:  []string{"issue", "comment", "1", "--body", "text", "-R", "owner/repo"},
+			name:  "unrecognized long assigned flag does not poison the position",
+			args:  []string{"pr", "create", "--some-future-flag=x", "-R", "owner/repo"},
 			want:  "owner/repo",
 			found: true,
 		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			repository, found, err := explicitGitHubRepository(testCase.args)
-			if testCase.err {
+			switch {
+			case testCase.ambiguous:
+				if !errors.Is(err, errAmbiguousGitHubRepositoryFlag) {
+					t.Fatalf("expected ambiguity, got repository %q err %v", repository, err)
+				}
+				return
+			case testCase.err:
 				if err == nil {
 					t.Fatalf("expected an error, got repository %q", repository)
 				}

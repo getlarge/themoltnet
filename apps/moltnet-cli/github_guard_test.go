@@ -967,17 +967,62 @@ func TestClassifyGitHubOperationIgnoresRepositoryInFlagValues(t *testing.T) {
 	}
 }
 
-// TestEvaluateGitHubGuard_AmbiguousRepositoryFlagDenies: the attached `-Rx/y`
-// form is indistinguishable from a free-text value, so it denies rather than
-// being authorized against a guessed target.
-func TestEvaluateGitHubGuard_AmbiguousRepositoryFlagDenies(t *testing.T) {
+// TestEvaluateGitHubGuard_AmbiguousRepositoryTargetDenies: when the targeted
+// repository cannot be proven, a write denies rather than being authorized
+// against a guessed target. gh's short flags contradict each other across
+// subcommands (-m is --milestone on `pr create`, --merge on `pr merge`), so
+// treating them as value-taking would swallow a real -R and authorize the
+// wrong repository — the same bypass class as #2211, in mirror image.
+func TestEvaluateGitHubGuard_AmbiguousRepositoryTargetDenies(t *testing.T) {
+	t.Parallel()
+	for _, command := range []string{
+		"gh issue comment 1 -Rowner/repo --body hi",
+		"gh pr merge 123 -m -R owner/repo",
+		"gh pr create -b -R owner/repo",
+	} {
+		reason := evaluateGitHubGuard(
+			command,
+			staticGuardContext("agent"),
+			guardPermissions(map[string]string{"issues": "write", "pull_requests": "write"}),
+		)
+		if reason == "" {
+			t.Fatalf("%s: an unprovable repository target must deny, got allow", command)
+		}
+	}
+}
+
+// Read-only commands never resolve a repository, so an ambiguous -R must not
+// turn them into denials.
+func TestEvaluateGitHubGuard_AmbiguousRepositoryAllowsReadOnly(t *testing.T) {
+	t.Parallel()
+	for _, command := range []string{
+		"gh pr view 1 -w -R owner/repo",
+		"gh issue list -Rowner/repo",
+	} {
+		reason := evaluateGitHubGuard(
+			command,
+			staticGuardContext("agent"),
+			guardPermissions(map[string]string{"issues": "write"}),
+		)
+		if reason != "" {
+			t.Fatalf("%s: read-only command denied: %q", command, reason)
+		}
+	}
+}
+
+// A write whose repository IS provable still reaches the normal decision, so
+// the fail-closed rule has not swallowed the ordinary path.
+func TestEvaluateGitHubGuard_ProvableRepositoryStillDecides(t *testing.T) {
 	t.Parallel()
 	reason := evaluateGitHubGuard(
-		"gh issue comment 1 -Rowner/repo --body hi",
+		"gh issue comment 1 -R owner/repo --body hi",
 		staticGuardContext("agent"),
 		guardPermissions(map[string]string{"issues": "write"}),
 	)
 	if reason == "" {
-		t.Fatal("an ambiguous attached -R must deny, got allow")
+		t.Fatal("a bare write the App can attribute must deny, got allow")
+	}
+	if strings.Contains(reason, "Cannot prove") {
+		t.Fatalf("denied as unprovable rather than on attribution: %q", reason)
 	}
 }
