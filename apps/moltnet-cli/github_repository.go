@@ -48,7 +48,9 @@ func parseGitHubRepository(value string) (githubRepository, error) {
 		return githubRepository{}, fmt.Errorf("remote host %q is not github.com", host)
 	}
 
-	repositoryPath = strings.Trim(strings.TrimSuffix(repositoryPath, ".git"), "/")
+	// Trim the slashes first: a remote written as ".../owner/repo.git/" would
+	// otherwise keep its suffix, because TrimSuffix sees the trailing slash.
+	repositoryPath = strings.TrimSuffix(strings.Trim(repositoryPath, "/"), ".git")
 	parts := strings.Split(repositoryPath, "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" ||
 		parts[0] == "." || parts[1] == "." || parts[0] == ".." || parts[1] == ".." {
@@ -81,22 +83,66 @@ func resolveGitHubRepository(explicit string) (githubRepository, error) {
 	return parseGitHubRepository(remote)
 }
 
+// ghFlagNeedsValue reports whether a gh flag consumes the argument after it.
+// The repository scan has to skip those values: free text such as
+// `--body "-Rowner/repo"` is a value, not a flag, and reading it as one let
+// crafted text decide which repository the guard authorized against and which
+// repository a token was minted for (#2211).
+//
+// A flag written as `--name=value` carries its own value and consumes nothing.
+// Unknown flags are treated as boolean, which stays safe because a target that
+// cannot be determined now denies instead of falling back to the remote.
+func ghFlagNeedsValue(arg string) bool {
+	if _, _, found := strings.Cut(arg, "="); found {
+		return false
+	}
+	switch arg {
+	case "-R", "--repo", "--hostname",
+		"-b", "--body", "--body-file",
+		"-t", "--title", "--template",
+		"-m", "--message", "--notes", "--notes-file", "--subject",
+		"-f", "--raw-field", "-F", "--field", "--input",
+		"-H", "--header", "-X", "--method",
+		"-q", "--jq", "--json", "--cache", "--preview",
+		"-l", "--label", "-a", "--assignee", "-r", "--reviewer",
+		"--milestone", "-p", "--project",
+		"-B", "--base", "--head", "--branch", "--ref", "--sha",
+		"-L", "--limit", "-s", "--state", "-A", "--author", "-S", "--search",
+		"-d", "--description", "-n", "--name", "--value", "--key",
+		"-o", "--output", "--file", "--filename", "--config", "--env",
+		"-w", "--workflow", "--team", "--org", "-u", "--user", "--visibility":
+		return true
+	default:
+		return false
+	}
+}
+
 func explicitGitHubRepository(args []string) (githubRepository, bool, error) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
+		if arg == "--" {
+			// Everything after the terminator is positional, never a flag.
+			break
+		}
 		var value string
 		switch {
 		case arg == "-R" || arg == "--repo":
 			if i+1 >= len(args) {
 				return githubRepository{}, false, fmt.Errorf("%s requires owner/repo", arg)
 			}
-			i++
-			value = args[i]
+			value = args[i+1]
 		case strings.HasPrefix(arg, "--repo="):
 			value = strings.TrimPrefix(arg, "--repo=")
 		case strings.HasPrefix(arg, "-R") && len(arg) > 2:
-			value = strings.TrimPrefix(arg, "-R")
+			// gh accepts the attached form, but so does any free-text value that
+			// happens to start with -R, and the two are indistinguishable here.
+			// Refuse to guess rather than authorize against the wrong repository.
+			return githubRepository{}, false, fmt.Errorf(
+				"pass the repository as `-R owner/repo` or `--repo=owner/repo`; %q is ambiguous", arg)
 		default:
+			if ghFlagNeedsValue(arg) {
+				i++
+			}
 			continue
 		}
 		repository, err := parseGitHubRepository(value)
@@ -143,6 +189,27 @@ func githubTokenRequestForGHArgs(args []string) (githubTokenRequest, error) {
 		request.Permissions = map[string]string{op.Permission: "write"}
 	}
 	return request, nil
+}
+
+// githubRepositoryForCredentialRequest resolves the repository a Git
+// credential request is for. Git only sends `path=` when
+// credential.useHttpPath is set, and gitconfigs written before that key was
+// installed do not have it, so an absent path resolves from the current remote
+// rather than failing the push (#2211).
+func githubRepositoryForCredentialRequest(host, requestPath string) (githubRepository, error) {
+	if normalized := strings.ToLower(strings.TrimSpace(host)); normalized != "" && normalized != "github.com" {
+		return githubRepository{}, fmt.Errorf("credential host %q is not github.com", host)
+	}
+	if strings.TrimSpace(requestPath) == "" {
+		repository, err := resolveGitHubRepository("")
+		if err != nil {
+			return githubRepository{}, fmt.Errorf(
+				"Git did not send a repository path and the current remote could not be resolved: %w "+
+					"(run `moltnet github setup` to enable credential.useHttpPath)", err)
+		}
+		return repository, nil
+	}
+	return githubRepositoryFromCredentialPath(host, requestPath)
 }
 
 func githubRepositoryFromCredentialPath(host, requestPath string) (githubRepository, error) {

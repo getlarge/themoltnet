@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -920,5 +921,63 @@ func TestEvaluateGitHubGuard_BareWriteWithOpaquePayloadStillDenies(t *testing.T)
 	}
 	if !strings.Contains(reason, "issues:write") {
 		t.Fatalf("expected issues:write in denial, got: %s", reason)
+	}
+}
+
+// TestEvaluateGitHubGuard_UnresolvableRepositoryDenies covers the fail-open
+// regression from #2211: a bare write whose target repository cannot be
+// determined must deny, while an ordinary permission-load failure keeps the
+// documented non-strict fallback.
+func TestEvaluateGitHubGuard_UnresolvableRepositoryDenies(t *testing.T) {
+	t.Parallel()
+	command := "gh pr comment 1 --body hi"
+
+	unresolved := func(context.Context, string) (map[string]string, error) {
+		return nil, githubRepositoryUnresolvedError{err: fmt.Errorf("cannot resolve the current Git remote")}
+	}
+	reason := evaluateGitHubGuard(command, staticGuardContext("agent"), unresolved)
+	if reason == "" {
+		t.Fatal("an unresolvable repository must deny, got allow")
+	}
+	if !strings.Contains(reason, "-R owner/repo") {
+		t.Fatalf("deny reason %q does not name the recovery step", reason)
+	}
+
+	transient := func(context.Context, string) (map[string]string, error) {
+		return nil, fmt.Errorf("dial tcp: lookup api.github.com: no such host")
+	}
+	if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), transient); reason != "" {
+		t.Fatalf("a transient failure should keep the non-strict fallback, got deny: %q", reason)
+	}
+}
+
+// TestClassifyGitHubOperationIgnoresRepositoryInFlagValues is the guard-side
+// half of the #2211 spoof: a repository named inside a free-text flag value
+// must never become the repository the guard authorizes against.
+func TestClassifyGitHubOperationIgnoresRepositoryInFlagValues(t *testing.T) {
+	t.Parallel()
+	spoofed := classifyGitHubOperation([]string{"issue", "comment", "1", "--body", "-Rattacker/spoof"})
+	if spoofed.Repository.String() != "" {
+		t.Fatalf("flag value became the authorized repository: %q", spoofed.Repository)
+	}
+
+	real := classifyGitHubOperation([]string{"issue", "comment", "1", "-R", "owner/repo", "--body", "hi"})
+	if real.Repository.String() != "owner/repo" {
+		t.Fatalf("repository = %q, want owner/repo", real.Repository)
+	}
+}
+
+// TestEvaluateGitHubGuard_AmbiguousRepositoryFlagDenies: the attached `-Rx/y`
+// form is indistinguishable from a free-text value, so it denies rather than
+// being authorized against a guessed target.
+func TestEvaluateGitHubGuard_AmbiguousRepositoryFlagDenies(t *testing.T) {
+	t.Parallel()
+	reason := evaluateGitHubGuard(
+		"gh issue comment 1 -Rowner/repo --body hi",
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"issues": "write"}),
+	)
+	if reason == "" {
+		t.Fatal("an ambiguous attached -R must deny, got allow")
 	}
 }
