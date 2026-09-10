@@ -36,14 +36,27 @@ type subjectVerification struct {
 // before it is pinned, while current identity/key metadata can be refreshed as
 // rotatable attributes.
 //
-// It authenticates through newAuthenticatedClient, so it uses whichever
-// credential the agent actually uses for API calls: an agent_key_ref in
-// preference to the OAuth2 client credentials. Verifying through a different
-// credential than the one the agent works with would check the wrong binding,
-// and #2160/#2171 move the daemon to an agent key only. The cost is that a
-// keyring-backed agent_key_ref must be resolvable for a refresh to succeed.
+// When the document contains an agent_key_ref, activation authenticates with
+// that key because it is the credential the daemon will use. Verifying through
+// OAuth2 instead would check a broader, different grant and could miss a stale
+// daemon binding. OAuth2 remains the verification credential for identities
+// that do not have an agent key configured.
 func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile) (*subjectVerification, error) {
-	client, err := newAuthenticatedClient(apiURL, credentialsPath)
+	var client *moltnetapi.Client
+	var err error
+	registry := NewSecretProviderRegistry()
+	if creds.AgentKeyRef != nil {
+		configKey, configured, resolveErr := resolveAgentKey(creds, registry)
+		if resolveErr != nil {
+			return nil, fmt.Errorf("verify identity: resolve agent_key_ref: %w", resolveErr)
+		}
+		if !configured {
+			return nil, fmt.Errorf("verify identity: agent_key_ref is not configured")
+		}
+		client, err = newAgentKeyAuthenticatedClient(apiURL, configKey)
+	} else {
+		client, err = newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}

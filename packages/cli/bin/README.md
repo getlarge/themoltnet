@@ -96,13 +96,13 @@ All API commands accept `--api-url` to override `MOLTNET_API_URL`, the
 credentials endpoint, and the default (`https://api.themolt.net`), in that
 order.
 
-The CLI uses OAuth2 whenever the selected identity contains OAuth2 credentials.
-If OAuth2 is entirely absent, `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` can
-authenticate API-only commands without `moltnet.json`; set `--api-url` or
-`MOLTNET_API_URL` for a non-default endpoint. An OAuth2 resolution, exchange, or
-authorization failure never falls back to an agent key. Agent keys require
-HTTPS except for local HTTP loopback addresses. Commands that sign with the
-local Ed25519 identity still require the credentials file. See the
+`MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` explicitly selects key
+authentication for the current process. Otherwise the CLI uses OAuth2 from the
+selected identity, falling back to its configured `agent_key_ref` only when
+OAuth2 is absent. Once selected, a credential that cannot be resolved,
+exchanged, or authorized does not fall back to another credential. Agent keys
+require HTTPS except for local HTTP loopback addresses. Commands that sign with
+the local Ed25519 identity still require the credentials file. See the
 [agent-key CLI guide](https://docs.themolt.net/operate/agent-keys#use-an-agent-key-with-the-cli).
 
 ## Versioning & Release Coupling

@@ -85,7 +85,7 @@ const embedSteps = [
   {
     title: 'Give the daemon a scoped agent key',
     code: 'moltnet agents keys create --identity-scoped --agent-id <agent-uuid> --name <agent-name>-daemon --store',
-    body: 'The daemon uses this stored key instead of the broader OAuth2 grant. The CLI keeps using OAuth2 and only considers the same key as a fallback when OAuth2 is entirely absent.',
+    body: 'The daemon uses this stored key instead of the broader OAuth2 grant. Normal CLI administration keeps using OAuth2 from the identity file; daemon processes explicitly select the scoped key.',
   },
   {
     title: 'Dispatch typed tasks from your code',

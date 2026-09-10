@@ -274,12 +274,12 @@ MOLTNET_AGENT_KEY="$(cat daemon.key)" \
   moltnet agents keys list --team-id <team-uuid> --status active
 ```
 
-OAuth2 credentials in the selected `moltnet.json` take precedence. The CLI
-considers `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` only when OAuth2 is
-entirely absent, including configless API-only commands. If OAuth2 exists but
-its secret cannot be resolved, its token exchange fails, or the API rejects the
-token, the command fails without trying an agent key. This prevents an ambient
-daemon key from silently changing the acting identity or team. Use `--api-url`
+Setting `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` explicitly selects key
+authentication for that process, even when the selected `moltnet.json` also
+contains OAuth2 credentials. Without either environment variable, OAuth2 in the
+selected document takes precedence over its configured `agent_key_ref`. Once a
+mode is selected, resolution, token exchange, and authorization failures are
+terminal; the CLI does not retry with a different acting grant. Use `--api-url`
 or `MOLTNET_API_URL` for a non-default API when no credentials file is present.
 The CLI sends agent keys only to HTTPS endpoints, except for HTTP loopback
 addresses used by local development.

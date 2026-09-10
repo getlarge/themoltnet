@@ -77,24 +77,11 @@ func newBearerClient(
 // newAuthenticatedClient resolves the CLI authentication mode and returns a
 // fully authenticated generated client.
 //
-// OAuth2 is authoritative whenever the selected credentials document declares
-// any OAuth2 material. Agent keys remain a secondary path for daemon-projected
-// and intentionally key-only environments, but are considered only when OAuth2
-// is entirely absent. A broken or rejected OAuth2 credential never falls back
-// to an agent key and therefore cannot silently change the active grant.
+// An explicitly supplied agent key is authoritative for the current process.
+// Otherwise OAuth2 from the selected credentials document is preferred over a
+// configured agent_key_ref. Once a mode is selected, resolution or
+// authentication failures do not fall back to another credential.
 func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error) {
-	creds, configErr := loadCredentials(credPath)
-	if configErr == nil && hasOAuth2Configuration(creds) {
-		client, err := newOAuth2AuthenticatedClient(apiURL, creds, NewSecretProviderRegistry())
-		if err != nil {
-			return nil, fmt.Errorf("OAuth2 credentials unavailable: %w", err)
-		}
-		return client, nil
-	}
-	if configErr != nil && !errors.Is(configErr, errCredentialsNotFound) {
-		return nil, fmt.Errorf("OAuth2 credentials unavailable: %w", configErr)
-	}
-
 	agentKey := strings.TrimSpace(os.Getenv(agentKeyEnv))
 	agentKeyRef := strings.TrimSpace(os.Getenv(agentKeyRefEnv))
 	if agentKey != "" && agentKeyRef != "" {
@@ -109,6 +96,18 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 	}
 	if agentKey != "" {
 		return newAgentKeyAuthenticatedClient(apiURL, agentKey)
+	}
+
+	creds, configErr := loadCredentials(credPath)
+	if configErr == nil && hasOAuth2Configuration(creds) {
+		client, err := newOAuth2AuthenticatedClient(apiURL, creds, NewSecretProviderRegistry())
+		if err != nil {
+			return nil, fmt.Errorf("OAuth2 credentials unavailable: %w", err)
+		}
+		return client, nil
+	}
+	if configErr != nil && !errors.Is(configErr, errCredentialsNotFound) {
+		return nil, fmt.Errorf("load credentials for authentication: %w", configErr)
 	}
 
 	if configErr != nil {

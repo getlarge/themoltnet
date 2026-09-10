@@ -250,10 +250,10 @@ func TestSignRequestIDUsesActivatedSigner(t *testing.T) {
 	}
 }
 
-// TestOAuthTakesPrecedenceAtActivatedEndpoint covers both halves of the
-// credential boundary: the activated document selects the endpoint and its
-// OAuth2 credential remains authoritative over an ambient agent key.
-func TestOAuthTakesPrecedenceAtActivatedEndpoint(t *testing.T) {
+// TestEnvironmentAgentKeyGoesToActivatedEndpoint covers the credential-leak
+// half of issue #2129: an explicit agent key may override authentication, but
+// the activated document still selects the endpoint it is sent to.
+func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
 	globalAPI := newRecordingAPI(t)
 	activatedAPI := newRecordingAPI(t)
 
@@ -289,9 +289,12 @@ func TestOAuthTakesPrecedenceAtActivatedEndpoint(t *testing.T) {
 		t.Fatal("activated endpoint received no requests")
 	}
 	for _, header := range authorizations {
-		if header != "Bearer token" {
-			t.Errorf("Authorization = %q, want the activated identity OAuth2 token", header)
+		if header != "Bearer agent-key-secret" {
+			t.Errorf("Authorization = %q, want the explicit agent key", header)
 		}
+	}
+	if _, clientIDs := activatedAPI.snapshot(); len(clientIDs) != 0 {
+		t.Errorf("OAuth2 token exchanges = %d, want 0", len(clientIDs))
 	}
 }
 
