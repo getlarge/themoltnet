@@ -213,8 +213,8 @@ export async function resolveIdentitySeed(
 }
 
 /**
- * Resolve a team-bound agent key from `agent_key_ref`. Returns `null` when
- * the config has no reference (callers then fall back to OAuth2).
+ * Resolve an agent key from `agent_key_ref`. Returns `null` when the config
+ * has no reference; the caller decides whether another auth mode is valid.
  */
 export async function resolveAgentKey(
   config: Pick<MoltNetConfig, 'agent_key_ref'> & {

@@ -103,23 +103,28 @@ func readPayload(args []string) (string, error) {
 // credentials file is an error, never a reason to fall back to the global
 // config.
 func loadCredentials(path string) (*CredentialsFile, error) {
+	creds, _, err := loadCredentialsWithPath(path)
+	return creds, err
+}
+
+func loadCredentialsWithPath(path string) (*CredentialsFile, string, error) {
 	resolved, err := resolveCredentialsPath(path)
 	if err != nil {
-		return nil, fmt.Errorf("read credentials: %w", err)
+		return nil, "", fmt.Errorf("read credentials: %w", err)
 	}
 
 	creds, err := ReadConfigFrom(resolved)
 	if err != nil {
-		return nil, fmt.Errorf("read credentials: %w", err)
+		return nil, resolved, fmt.Errorf("read credentials at %s: %w", resolved, err)
 	}
 	if creds == nil {
-		return nil, fmt.Errorf(
+		return nil, resolved, fmt.Errorf(
 			"%w at %s — run 'moltnet register' first",
 			errCredentialsNotFound,
 			resolved,
 		)
 	}
-	return creds, nil
+	return creds, resolved, nil
 }
 
 func validateSigningSeed(seed string) error {

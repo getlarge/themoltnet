@@ -455,6 +455,12 @@ describe('connect (agent-key mode)', () => {
     );
   });
 
+  it('reports a malformed selected config as INVALID_CONFIG', async () => {
+    mockReadConfig.mockRejectedValueOnce(new SyntaxError('Unexpected token'));
+
+    await expect(connect()).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+  });
+
   it('does not read config in key mode', async () => {
     mockReadEnvCredentials.mockReturnValue({
       clientId: undefined,

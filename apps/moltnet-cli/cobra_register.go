@@ -19,8 +19,8 @@ diary. To join another team afterward, run moltnet teams join --code <mlt_inv_co
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credentialType, _ := cmd.Flags().GetString("credential-type")
-			if credentialType != credentialTypeOAuth2 {
-				return fmt.Errorf("moltnet register creates OAuth2 credentials; register first, then use 'moltnet agents keys create' for moltnet-agent")
+			if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
+				return fmt.Errorf("unsupported credential type %q: expected oauth2 or agent_key", credentialType)
 			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			noMCP, _ := cmd.Flags().GetBool("no-mcp")

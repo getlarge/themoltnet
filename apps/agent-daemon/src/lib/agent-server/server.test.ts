@@ -19,6 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 
+import { cryptoService } from '@moltnet/crypto-service';
 import {
   READ_ONLY_CAPABILITIES,
   SecretProviderRegistry,
@@ -123,10 +124,18 @@ async function fixture(
     capabilities: READ_ONLY_CAPABILITIES,
     read: (key) =>
       Promise.resolve(
-        key === 'oauth2/agent-1/client' ? 'resolved-external-secret' : null,
+        key === 'oauth2/agent-1/client'
+          ? 'resolved-external-secret'
+          : key === 'agent-key/agent-1'
+            ? 'resolved-external-agent-key'
+            : null,
       ),
     probe: (key) =>
-      Promise.resolve(key === 'oauth2/agent-1/client' ? 'present' : 'absent'),
+      Promise.resolve(
+        key === 'oauth2/agent-1/client' || key === 'agent-key/agent-1'
+          ? 'present'
+          : 'absent',
+      ),
   });
   const spawnImpl: SpawnImpl = (command, args, options) => {
     const child = new FakeChild();
@@ -1178,6 +1187,7 @@ describe('agent server providers and runs', () => {
   it('launches an external alias from the exact configured agent directory', async () => {
     const { app, store, spawned } = await fixture();
     const token = await pair(app);
+    const signing = await cryptoService.generateKeyPair();
     const agentRoot = join(store.root, 'external-root');
     const configDir = join(agentRoot, '.moltnet', 'configured-name');
     const configPath = join(configDir, 'moltnet.json');
@@ -1195,10 +1205,14 @@ describe('agent server providers and runs', () => {
             key: 'oauth2/agent-1/client',
           },
         },
+        agent_key_ref: {
+          provider: 'memory',
+          key: 'agent-key/agent-1',
+        },
         keys: {
-          public_key: 'pk',
-          private_key: 'seed',
-          fingerprint: 'fp',
+          public_key: signing.publicKey,
+          private_key: signing.privateKey,
+          fingerprint: signing.fingerprint,
         },
         endpoints: {
           api: 'http://127.0.0.1:4000',
@@ -1210,8 +1224,8 @@ describe('agent server providers and runs', () => {
       source: 'external',
       alias: 'console-alias',
       subjectId: 'agent-1',
-      publicKey: 'pk',
-      fingerprint: 'fp',
+      publicKey: signing.publicKey,
+      fingerprint: signing.fingerprint,
       createdAt: 't',
       configPath,
       configApiUrl: 'http://127.0.0.1:4000',
@@ -1236,24 +1250,29 @@ describe('agent server providers and runs', () => {
       },
     });
 
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode, response.body).toBe(201);
     expect(spawned[0]?.args).toContain('configured-name');
     expect(spawned[0]?.args).toContain(agentRoot);
     expect(spawned[0]?.options.env['MOLTNET_API_URL']).toBe(
       'http://127.0.0.1:4000',
     );
-    expect(spawned[0]?.options.env['MOLTNET_CLIENT_ID']).toBe('client');
-    expect(spawned[0]?.options.env['MOLTNET_CLIENT_SECRET']).toBe(
-      'resolved-external-secret',
+    expect(spawned[0]?.options.env['MOLTNET_AGENT_KEY']).toBe(
+      'resolved-external-agent-key',
     );
+    expect(spawned[0]?.options.env['MOLTNET_CLIENT_ID']).toBeUndefined();
+    expect(spawned[0]?.options.env['MOLTNET_CLIENT_SECRET']).toBeUndefined();
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe(
       'agent-1',
     );
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe(
       'agent',
     );
-    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');
-    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_FINGERPRINT']).toBe('fp');
+    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe(
+      signing.publicKey,
+    );
+    expect(spawned[0]?.options.env['MOLTNET_EXPECTED_FINGERPRINT']).toBe(
+      signing.fingerprint,
+    );
   });
 
   it('rejects runs for unknown agents and invalid specs', async () => {

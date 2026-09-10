@@ -128,7 +128,15 @@ async function resolveConnection(
   //    interactive/admin credential and precedes a configured agent_key_ref.
   //    An OAuth2 resolution failure is terminal; it never falls through to a
   //    different acting grant.
-  const config = await readConfig(options.configDir);
+  let config: Awaited<ReturnType<typeof readConfig>>;
+  try {
+    config = await readConfig(options.configDir);
+  } catch (error) {
+    throw new MoltNetError('Unable to read the selected MoltNet config.', {
+      code: 'INVALID_CONFIG',
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
   const configOAuth2 = config?.oauth2;
   const hasConfigOAuth2 = Boolean(
     configOAuth2 &&
@@ -136,7 +144,7 @@ async function resolveConnection(
       configOAuth2.client_secret?.trim() ||
       configOAuth2.client_secret_ref),
   );
-  if (hasConfigOAuth2 && configOAuth2) {
+  if (config && hasConfigOAuth2 && configOAuth2) {
     const clientId = configOAuth2.client_id?.trim();
     if (!clientId) {
       throw new MoltNetError('Invalid OAuth2 config: client_id is required.', {

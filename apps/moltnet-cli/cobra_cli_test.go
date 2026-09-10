@@ -73,12 +73,12 @@ func TestRegisterHelp(t *testing.T) {
 	}
 }
 
-func TestRegisterRejectsKeyOnlyRegistration(t *testing.T) {
+func TestRegisterRejectsUnknownCredentialType(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "register", "--credential-type", "agent_key", "--json")
-	if err == nil || !strings.Contains(err.Error(), "agents keys create") {
-		t.Fatalf("expected daemon key provisioning guidance, got %v", err)
+	_, _, err := executeCommand(root, "register", "--credential-type", "password", "--json")
+	if err == nil || !strings.Contains(err.Error(), `unsupported credential type "password"`) {
+		t.Fatalf("expected value-specific credential type error, got %v", err)
 	}
 }
 

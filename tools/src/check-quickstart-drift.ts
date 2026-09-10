@@ -43,6 +43,13 @@ function assertNotContains(file: string, snippet: string, label: string): void {
   }
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
 // Install/register commands were migrated from README.md to the docs site
 // as part of the README slim-down. Canonical location is now the SDK &
 // Integrations page.
@@ -93,12 +100,12 @@ assertContains(
 );
 assertContains(
   'apps/landing/index.html',
-  MOLTNET_REGISTER_COMMAND,
+  escapeHtml(MOLTNET_REGISTER_COMMAND),
   'agent register command',
 );
 assertContains(
   'apps/landing/index.html',
-  MOLTNET_AGENTS_INIT_COMMAND.replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+  escapeHtml(MOLTNET_AGENTS_INIT_COMMAND),
   'coding-agent init command',
 );
 

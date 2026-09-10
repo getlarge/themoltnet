@@ -261,6 +261,19 @@ explicit `identity` marker and reject that header. Responses discriminate on
 follows the same shape under `credentialBinding`, with `boundTeamId` present
 only for team keys.
 
+## Upgrade note: explicit selection and mixed configs
+
+`moltnet register` now creates OAuth2 credentials by default, with no credential
+choice in the normal onboarding flow. Existing non-interactive daemon bootstrap
+automation may continue to use the hidden `--credential-type agent_key` option.
+
+For the CLI and SDK, an explicitly supplied agent key still wins. Otherwise,
+OAuth2 wins over `agent_key_ref` when both appear in the selected
+`moltnet.json`; a failure of the selected credential is terminal. The agent
+daemon remains key-only and requires `agent_key_ref` for an attached external
+config. Before upgrading a mixed configuration, confirm that its OAuth2 client
+and daemon key authenticate as the same subject.
+
 ## Use an agent key with the CLI
 
 Set `MOLTNET_AGENT_KEY` to authenticate API-backed CLI commands with the issued

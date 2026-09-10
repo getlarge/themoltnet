@@ -98,50 +98,41 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 		return newAgentKeyAuthenticatedClient(apiURL, agentKey)
 	}
 
-	creds, configErr := loadCredentials(credPath)
-	if configErr == nil && hasOAuth2Configuration(creds) {
-		client, err := newOAuth2AuthenticatedClient(apiURL, creds, NewSecretProviderRegistry())
-		if err != nil {
-			return nil, fmt.Errorf("OAuth2 credentials unavailable: %w", err)
-		}
+	client, err := newConfigAuthenticatedClient(apiURL, credPath, NewSecretProviderRegistry())
+	if err == nil {
 		return client, nil
 	}
-	if configErr != nil && !errors.Is(configErr, errCredentialsNotFound) {
-		return nil, fmt.Errorf("load credentials for authentication: %w", configErr)
-	}
-
-	if configErr != nil {
+	if errors.Is(err, errCredentialsNotFound) {
 		return nil, fmt.Errorf(
-			"OAuth2 credentials unavailable: %w; set %s for key-only authentication",
-			configErr,
+			"no credentials found: %w; set %s for key-only authentication",
+			err,
 			agentKeyEnv,
 		)
 	}
-	configKey, configured, err := resolveAgentKey(creds, NewSecretProviderRegistry())
-	if configured {
-		if err != nil {
-			return nil, fmt.Errorf("resolve agent_key_ref: %w", err)
-		}
-		return newAgentKeyAuthenticatedClient(apiURL, configKey)
-	}
-	return nil, fmt.Errorf(
-		"credentials missing OAuth2 client credentials and agent_key_ref; run 'moltnet register' or set %s for key-only authentication",
-		agentKeyEnv,
-	)
+	return nil, err
 }
 
 // newConfigAuthenticatedClient authenticates with the credential declared by
 // one exact config document. Unlike newAuthenticatedClient it deliberately
 // ignores process-wide MOLTNET_AGENT_KEY overrides: config migration must prove
 // which subject the document itself belongs to, not which subject happens to
-// be active in the caller's environment.
+// be active in the caller's environment. Within the document, any declared
+// OAuth2 material selects OAuth2 ahead of agent_key_ref and fails closed.
 func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProviderRegistry) (*moltnetapi.Client, error) {
-	creds, err := loadCredentials(credPath)
+	creds, resolvedPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {
 		return nil, fmt.Errorf("load credentials for authentication: %w", err)
 	}
 	if hasOAuth2Configuration(creds) {
-		return newOAuth2AuthenticatedClient(apiURL, creds, registry)
+		client, oauthErr := newOAuth2AuthenticatedClient(apiURL, creds, registry)
+		if oauthErr != nil {
+			skipped := ""
+			if creds.AgentKeyRef != nil {
+				skipped = "; OAuth2 was selected and agent_key_ref was not attempted"
+			}
+			return nil, fmt.Errorf("OAuth2 selected from %s%s: %w", resolvedPath, skipped, oauthErr)
+		}
+		return client, nil
 	}
 	if configKey, configured, err := resolveAgentKey(creds, registry); configured {
 		if err != nil {
@@ -158,6 +149,9 @@ func hasOAuth2Configuration(creds *CredentialsFile) bool {
 }
 
 func newOAuth2AuthenticatedClient(apiURL string, creds *CredentialsFile, registry *SecretProviderRegistry) (*moltnetapi.Client, error) {
+	if err := validateCredentialAPIURL(apiURL); err != nil {
+		return nil, err
+	}
 	if strings.TrimSpace(creds.OAuth2.ClientID) == "" {
 		return nil, fmt.Errorf("OAuth2 credentials missing client_id")
 	}
@@ -174,7 +168,7 @@ func newOAuth2AuthenticatedClient(apiURL string, creds *CredentialsFile, registr
 }
 
 func newAgentKeyAuthenticatedClient(apiURL, agentKey string) (*moltnetapi.Client, error) {
-	if err := validateAgentKeyAPIURL(apiURL); err != nil {
+	if err := validateCredentialAPIURL(apiURL); err != nil {
 		return nil, err
 	}
 	return newBearerClient(
@@ -184,15 +178,14 @@ func newAgentKeyAuthenticatedClient(apiURL, agentKey string) (*moltnetapi.Client
 	)
 }
 
-// validateAgentKeyAPIURL prevents a long-lived agent key from being sent over
-// plaintext transport. HTTP remains available for local development and e2e
-// stacks on loopback only.
-func validateAgentKeyAPIURL(apiURL string) error {
+// validateCredentialAPIURL prevents long-lived credentials from being sent
+// over plaintext transport. HTTP remains available for local development and
+// e2e stacks on loopback only.
+func validateCredentialAPIURL(apiURL string) error {
 	parsed, err := url.Parse(apiURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return fmt.Errorf(
-			"%s requires an absolute API URL, got %q",
-			agentKeyEnv,
+			"credentials require an absolute API URL, got %q",
 			apiURL,
 		)
 	}
@@ -209,8 +202,7 @@ func validateAgentKeyAPIURL(apiURL string) error {
 		}
 	}
 	return fmt.Errorf(
-		"%s refuses to send an agent key to insecure API URL %q; use HTTPS or an HTTP loopback address",
-		agentKeyEnv,
+		"refusing to send credentials to insecure API URL %q; use HTTPS or an HTTP loopback address",
 		apiURL,
 	)
 }
