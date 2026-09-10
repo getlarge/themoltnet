@@ -25,16 +25,21 @@ func newGitHubCmd() *cobra.Command {
 
 	// credential-helper subcommand
 	credHelperCmd := &cobra.Command{
-		Use:     "credential-helper",
+		Use:     "credential-helper [get|store|erase]",
 		Short:   "Git credential helper for GitHub App authentication",
 		Example: `  moltnet github credential-helper`,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && args[0] != "get" {
+				return nil
+			}
 			credPath, _ := cmd.Flags().GetString("credentials")
-			return runGitHubCredentialHelperCmd(credPath)
+			return runGitHubCredentialHelperIOCmd(credPath, cmd.InOrStdin(), cmd.OutOrStdout())
 		},
 	}
 
 	// token subcommand
+	var tokenRepository string
 	tokenCmd := &cobra.Command{
 		Use:   "token",
 		Short: "Print a GitHub App installation access token",
@@ -42,9 +47,10 @@ func newGitHubCmd() *cobra.Command {
   moltnet github token --credentials /path/to/moltnet.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
-			return runGitHubTokenCmd(credPath)
+			return runGitHubTokenForRepositoryCmd(credPath, tokenRepository)
 		},
 	}
+	tokenCmd.Flags().StringVarP(&tokenRepository, "repo", "R", "", "Target GitHub repository (owner/repo); defaults to the current Git remote")
 
 	guardCmd := &cobra.Command{
 		Use:   "guard",

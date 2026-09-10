@@ -64,7 +64,10 @@ type ghOperation struct {
 	Permission   string
 	HumanVisible bool
 	Description  string
+	Repository   githubRepository
 }
+
+type githubRepositoryContextKey struct{}
 
 type guardVerdict struct {
 	Allow  bool
@@ -331,12 +334,19 @@ func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (ma
 	if err != nil {
 		return nil, err
 	}
-	details, err := getCachedTokenDetailsFromSource(
+	repository, _ := ctx.Value(githubRepositoryContextKey{}).(githubRepository)
+	if repository.String() == "" {
+		repository, err = resolveGitHubRepository("")
+		if err != nil {
+			return nil, err
+		}
+	}
+	details, err := getCachedTokenDetailsForRequest(
 		ctx,
 		&http.Client{Timeout: githubGuardPermissionTimeout},
 		creds.GitHub.AppID,
 		source,
-		creds.GitHub.InstallationID,
+		githubTokenRequest{Repository: repository},
 		githubGuardNegativeCacheTTL,
 	)
 	if err != nil {
@@ -542,6 +552,9 @@ func decideGitHubCall(
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubGuardPermissionTimeout)
+	if op.Repository.String() != "" {
+		ctx = context.WithValue(ctx, githubRepositoryContextKey{}, op.Repository)
+	}
 	granted, loadErr := permissions(ctx, guardCtx.CredentialsPath)
 	cancel()
 	if loadErr != nil {
@@ -1100,6 +1113,13 @@ func tokenCredentialsMatch(args []string, credentialsPath string) bool {
 // classifyGitHubOperation's command taxonomy was audited against gh 2.95.0.
 // Unknown future commands deny so CLI drift cannot silently add a write path.
 func classifyGitHubOperation(args []string) ghOperation {
+	repository, _, _ := explicitGitHubRepository(args)
+	op := classifyGitHubOperationWithoutRepository(args)
+	op.Repository = repository
+	return op
+}
+
+func classifyGitHubOperationWithoutRepository(args []string) ghOperation {
 	args, rootHelp, ok := stripGitHubGlobalFlags(args)
 	if !ok {
 		return ghOperation{Kind: ghUnknown}

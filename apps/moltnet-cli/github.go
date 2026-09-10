@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
@@ -8,15 +10,18 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -223,22 +228,55 @@ func lookupBotUser(appSlug string) (int64, string, error) {
 
 // runGitHubCredentialHelperCmd is the flag-free business logic for github credential-helper.
 func runGitHubCredentialHelperCmd(credPath string) error {
+	return runGitHubCredentialHelperIOCmd(credPath, os.Stdin, os.Stdout)
+}
+
+func runGitHubCredentialHelperIOCmd(credPath string, in io.Reader, out io.Writer) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
-
-	token, err := mintGitHubAppToken(creds, credPath)
+	if creds.GitHub == nil {
+		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
+	}
+	requestValues := map[string]string{}
+	decoder := bufio.NewScanner(io.LimitReader(in, 64<<10))
+	for decoder.Scan() {
+		line := decoder.Text()
+		if line == "" {
+			break
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if ok {
+			requestValues[key] = value
+		}
+	}
+	if err := decoder.Err(); err != nil {
+		return fmt.Errorf("read Git credential request: %w", err)
+	}
+	repository, err := githubRepositoryFromCredentialPath(requestValues["host"], requestValues["path"])
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("username=x-access-token\npassword=%s\n", token)
+	token, err := mintGitHubAppTokenForRequest(creds, credPath, githubTokenRequest{
+		Repository:  repository,
+		Permissions: map[string]string{"contents": "write"},
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(out, "username=x-access-token\npassword=%s\n", token)
 	return nil
 }
 
 // runGitHubTokenCmd is the flag-free business logic for github token.
 func runGitHubTokenCmd(credPath string) error {
+	return runGitHubTokenForRepositoryCmd(credPath, "")
+}
+
+func runGitHubTokenForRepositoryCmd(credPath, repositoryValue string) error {
 	path := credPath
 	if path == "" {
 		path = os.Getenv("MOLTNET_CREDENTIALS_PATH")
@@ -249,7 +287,17 @@ func runGitHubTokenCmd(credPath string) error {
 		return err
 	}
 
-	token, err := mintGitHubAppToken(creds, path)
+	repository, repositoryErr := resolveGitHubRepository(repositoryValue)
+	var token string
+	if repositoryErr != nil && strings.TrimSpace(repositoryValue) == "" && creds.GitHub != nil && creds.GitHub.InstallationID != "" {
+		// Backward compatibility for callers outside a Git checkout. The stored
+		// installation is a hint only; repository-aware callers never use it.
+		token, err = mintGitHubAppToken(creds, path)
+	} else if repositoryErr != nil {
+		return repositoryErr
+	} else {
+		token, err = mintGitHubAppTokenForRequest(creds, path, githubTokenRequest{Repository: repository})
+	}
 	if err != nil {
 		return err
 	}
@@ -268,6 +316,8 @@ type tokenCache struct {
 	Permissions    map[string]string `json:"permissions"`
 	AppID          string            `json:"app_id,omitempty"`
 	InstallationID string            `json:"installation_id,omitempty"`
+	Repository     string            `json:"repository,omitempty"`
+	PermissionSet  string            `json:"permission_set,omitempty"`
 }
 
 type tokenRefreshFailure struct {
@@ -389,13 +439,31 @@ func getCachedTokenDetailsFromSource(
 	installationID string,
 	failureTTL time.Duration,
 ) (tokenCache, error) {
-	cachePath := tokenCachePath(source.cacheDir)
+	return getCachedTokenDetailsAtPaths(ctx, client, appID, source, installationID, githubTokenRequest{}, tokenCachePath(source.cacheDir), tokenRefreshFailurePath(source.cacheDir), failureTTL)
+}
+
+func getCachedTokenDetailsAtPaths(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	installationID string,
+	request githubTokenRequest,
+	cachePath, failurePath string,
+	failureTTL time.Duration,
+) (tokenCache, error) {
+	repository := request.Repository.String()
+	permissionSet := request.permissionKey()
+	if repository == "" && len(request.Permissions) == 0 {
+		permissionSet = "" // legacy single-installation cache compatibility
+	}
 
 	// Try reading cache — only a record minted for this App/installation counts.
 	if data, err := os.ReadFile(cachePath); err == nil {
 		var cached tokenCache
 		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" &&
-			cached.AppID == appID && cached.InstallationID == installationID {
+			cached.AppID == appID && cached.InstallationID == installationID &&
+			cached.Repository == repository && cached.PermissionSet == permissionSet {
 			expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
 			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) && cached.Permissions != nil {
 				return cached, nil
@@ -404,7 +472,7 @@ func getCachedTokenDetailsFromSource(
 	}
 
 	if failureTTL > 0 {
-		if data, err := os.ReadFile(tokenRefreshFailurePath(source.cacheDir)); err == nil {
+		if data, err := os.ReadFile(failurePath); err == nil {
 			var failed tokenRefreshFailure
 			if json.Unmarshal(data, &failed) == nil {
 				failedAt, parseErr := time.Parse(time.RFC3339Nano, failed.FailedAt)
@@ -416,11 +484,11 @@ func getCachedTokenDetailsFromSource(
 	}
 
 	// Cache miss or expired — fetch fresh token
-	details, err := getInstallationTokenDetailsFromSource(ctx, client, appID, source, installationID)
+	details, err := getInstallationTokenDetailsForRequest(ctx, client, appID, source, installationID, request)
 	if err != nil {
 		if failureTTL > 0 {
 			_ = writeJSONAtomic(
-				tokenRefreshFailurePath(source.cacheDir),
+				failurePath,
 				tokenRefreshFailure{FailedAt: timeNow().UTC().Format(time.RFC3339Nano)},
 			)
 		}
@@ -430,10 +498,37 @@ func getCachedTokenDetailsFromSource(
 	// Write cache (best-effort), bound to this App/installation
 	details.AppID = appID
 	details.InstallationID = installationID
+	details.Repository = repository
+	details.PermissionSet = permissionSet
 	_ = writeJSONAtomic(cachePath, details)
-	_ = os.Remove(tokenRefreshFailurePath(source.cacheDir))
+	_ = os.Remove(failurePath)
 
 	return details, nil
+}
+
+func getCachedTokenDetailsForRequest(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	request githubTokenRequest,
+	failureTTL time.Duration,
+) (tokenCache, error) {
+	installationID, err := resolveGitHubInstallation(ctx, client, appID, source, request.Repository)
+	if err != nil {
+		return tokenCache{}, err
+	}
+	keyMaterial := strings.Join([]string{appID, installationID, request.Repository.String(), request.permissionKey()}, "\x00")
+	digest := sha256.Sum256([]byte(keyMaterial))
+	cacheDir := filepath.Join(source.cacheDir, "gh-token-cache")
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+		return tokenCache{}, fmt.Errorf("create GitHub token cache: %w", err)
+	}
+	key := hex.EncodeToString(digest[:])
+	return getCachedTokenDetailsAtPaths(
+		ctx, client, appID, source, installationID, request,
+		filepath.Join(cacheDir, key+".json"), filepath.Join(cacheDir, key+".error.json"), failureTTL,
+	)
 }
 
 // mintGitHubAppToken returns a cached or fresh installation token for the
@@ -450,6 +545,20 @@ func mintGitHubAppToken(creds *CredentialsFile, credPath string) (string, error)
 		source,
 		creds.GitHub.InstallationID,
 		0,
+	)
+	if err != nil {
+		return "", err
+	}
+	return details.Token, nil
+}
+
+func mintGitHubAppTokenForRequest(creds *CredentialsFile, credPath string, request githubTokenRequest) (string, error) {
+	source, err := githubKeySourceFromCredentials(creds, credPath, NewSecretProviderRegistry())
+	if err != nil {
+		return "", err
+	}
+	details, err := getCachedTokenDetailsForRequest(
+		context.Background(), http.DefaultClient, creds.GitHub.AppID, source, request, 0,
 	)
 	if err != nil {
 		return "", err
@@ -511,28 +620,94 @@ func getInstallationTokenDetailsFromSource(
 	source githubAppKeySource,
 	installationID string,
 ) (tokenCache, error) {
+	return getInstallationTokenDetailsForRequest(ctx, client, appID, source, installationID, githubTokenRequest{})
+}
+
+func githubAppJWT(appID string, source githubAppKeySource) (string, error) {
 	pemData, err := source.loadPEM()
 	if err != nil {
-		return tokenCache{}, err
+		return "", err
 	}
 	privKey, err := parseRSAPrivateKey(pemData)
 	if err != nil {
-		return tokenCache{}, err
+		return "", err
 	}
+	return createAppJWT(appID, privKey)
+}
 
-	jwt, err := createAppJWT(appID, privKey)
+func resolveGitHubInstallation(ctx context.Context, client *http.Client, appID string, source githubAppKeySource, repository githubRepository) (string, error) {
+	if repository.String() == "" {
+		return "", fmt.Errorf("GitHub repository is required to resolve an App installation")
+	}
+	jwt, err := githubAppJWT(appID, source)
+	if err != nil {
+		return "", err
+	}
+	endpoint := fmt.Sprintf("%s/repos/%s/%s/installation", githubAPIBaseURL, url.PathEscape(repository.Owner), url.PathEscape(repository.Name))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+jwt)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("resolve GitHub App installation for %s: %w", repository, err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub App is not installed for %s (HTTP %d): %s", repository, resp.StatusCode, string(body))
+	}
+	var result struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil || result.ID == 0 {
+		return "", fmt.Errorf("parse GitHub installation response for %s", repository)
+	}
+	return strconv.FormatInt(result.ID, 10), nil
+}
+
+func getInstallationTokenDetailsForRequest(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	installationID string,
+	request githubTokenRequest,
+) (tokenCache, error) {
+	jwt, err := githubAppJWT(appID, source)
 	if err != nil {
 		return tokenCache{}, err
 	}
+	payload := struct {
+		Repositories []string          `json:"repositories,omitempty"`
+		Permissions  map[string]string `json:"permissions,omitempty"`
+	}{Permissions: request.Permissions}
+	if request.Repository.Name != "" {
+		payload.Repositories = []string{request.Repository.Name}
+	}
+	bodyReader := io.Reader(nil)
+	if len(payload.Repositories) > 0 || len(payload.Permissions) > 0 {
+		encoded, err := json.Marshal(payload)
+		if err != nil {
+			return tokenCache{}, err
+		}
+		bodyReader = bytes.NewReader(encoded)
+	}
 
 	url := fmt.Sprintf("%s/app/installations/%s/access_tokens", githubAPIBaseURL, installationID)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bodyReader)
 	if err != nil {
 		return tokenCache{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if bodyReader != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -645,7 +820,11 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 		return fmt.Errorf("moltnet github exec: GitHub App not configured — add 'github' section to moltnet.json")
 	}
 
-	token, err := mintGitHubAppToken(creds, path)
+	request, err := githubTokenRequestForGHArgs(args[1:])
+	if err != nil {
+		return fmt.Errorf("moltnet github exec: cannot resolve target repository: %w", err)
+	}
+	token, err := mintGitHubAppTokenForRequest(creds, path, request)
 	if err != nil {
 		return fmt.Errorf("moltnet github exec: cannot mint GitHub App token: %w", err)
 	}

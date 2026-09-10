@@ -98,6 +98,13 @@ func TestEnsureGitHubCredentialConfigIsIdempotentAndQuotesPath(t *testing.T) {
 	if len(values) != 2 || values[0] != "" || !strings.Contains(values[1], `'\''`) {
 		t.Fatalf("helper values = %#v, want reset then shell-quoted command", values)
 	}
+	usePath, err := gitConfigGetAll(gitConfigPath, "credential.https://github.com.useHttpPath")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !equalStrings(usePath, []string{"true"}) {
+		t.Fatalf("credential useHttpPath = %#v, want true", usePath)
+	}
 }
 
 func TestNeedsHelperReset(t *testing.T) {
