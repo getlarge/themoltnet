@@ -34,6 +34,7 @@ import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
 import { installToolAnnotationPolicy } from './tool-annotations.js';
 import type { McpDeps } from './types.js';
+import { registerWellKnownMetadata } from './well-known-metadata.js';
 
 const OPENAI_APPS_CHALLENGE_PATH = '/.well-known/openai-apps-challenge';
 
@@ -175,6 +176,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   deps.consoleBaseUrl = config.CONSOLE_BASE_URL;
 
   registerMcpCors(app);
+
+  // Must precede the MCP plugin: it patches that plugin's well-known routes.
+  registerWellKnownMetadata(app);
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing
   if (observability?.fastifyOtelPlugin) {

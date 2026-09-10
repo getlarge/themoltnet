@@ -2,7 +2,11 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
+import {
+  DCR_MAX_SCOPES,
+  MCP_CLIENT_SCOPES,
+  MCP_M2M_SCOPES,
+} from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
@@ -1190,6 +1194,84 @@ describe('buildApp', () => {
     });
 
     expect(secondDelete.statusCode).toBe(404);
+
+    await app.close();
+  });
+});
+
+describe('OAuth protected resource metadata', () => {
+  /**
+   * Exercises the real `@getlarge/fastify-mcp` routes rather than a stub, so
+   * this fails if the plugin ever changes their path, encapsulation or
+   * serialization in a way the onSend patch no longer reaches. The unit test in
+   * well-known-metadata.test.ts cannot catch that: it owns its own stub.
+   */
+  async function buildAuthenticatedApp() {
+    return buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+        AUTH_ENABLED: true,
+        ORY_PROJECT_URL: 'https://hydra.example.com',
+        MCP_RESOURCE_URI: 'https://mcp.example.test',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+  }
+
+  it.each([
+    '/.well-known/oauth-protected-resource',
+    '/.well-known/oauth-protected-resource/mcp',
+  ])('advertises scopes_supported at %s', async (url) => {
+    // Arrange
+    const app = await buildAuthenticatedApp();
+
+    // Act
+    const response = await app.inject({ method: 'GET', url });
+
+    // Assert
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.scopes_supported).toEqual([...DCR_MAX_SCOPES]);
+    expect(body.authorization_servers).toEqual(['https://hydra.example.com']);
+
+    await app.close();
+  });
+
+  it('advertises team:read, whose absence left connector tokens unable to read teams', async () => {
+    // Arrange
+    const app = await buildAuthenticatedApp();
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/.well-known/oauth-protected-resource',
+    });
+
+    // Assert
+    expect(JSON.parse(response.body).scopes_supported).toContain('team:read');
+
+    await app.close();
+  });
+
+  it("does not leave the plugin's fabricated scopes on the OIDC document", async () => {
+    // Arrange
+    const app = await buildAuthenticatedApp();
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/.well-known/openid-configuration/mcp',
+    });
+
+    // Assert
+    if (response.statusCode === 200) {
+      const body = JSON.parse(response.body);
+      expect(body.scopes_supported).toEqual([...DCR_MAX_SCOPES]);
+      expect(body.scopes_supported).not.toContain('mcp:resources');
+    }
 
     await app.close();
   });
