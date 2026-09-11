@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -133,5 +135,62 @@ func TestDoRegisterErrors(t *testing.T) {
 	}
 	if _, err := DoRegister(server.URL, "password"); err == nil {
 		t.Fatal("expected credential type validation error")
+	}
+}
+
+func TestReportRegistrationStoredPublishesAliasBestEffort(t *testing.T) {
+	const mcpNotice = "MCP config not written"
+	tests := []struct {
+		name        string
+		unreachable bool
+		noMCP       bool
+		wantStderr  []string
+		wantAbsent  []string
+	}{
+		{
+			name:       "publication succeeds",
+			wantStderr: []string{"Published network alias reg-agent", mcpNotice},
+		},
+		{
+			name:        "publication failure still completes registration",
+			unreachable: true,
+			wantStderr: []string{
+				"Warning: network alias publication failed",
+				"Recover with: moltnet config identity publish reg-agent",
+				mcpNotice,
+			},
+		},
+		{
+			name:       "no MCP notice when disabled",
+			noMCP:      true,
+			wantStderr: []string{"Published network alias reg-agent"},
+			wantAbsent: []string{mcpNotice},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			f := newPublishFixture(t, "reg-agent")
+			apiURL := f.server.URL
+			if tt.unreachable {
+				apiURL = "http://127.0.0.1:1"
+			}
+			var stderr bytes.Buffer
+
+			// Act
+			reportRegistrationStored(&stderr, apiURL, f.path, "reg-agent", tt.noMCP)
+
+			// Assert
+			for _, want := range tt.wantStderr {
+				if !strings.Contains(stderr.String(), want) {
+					t.Fatalf("stderr missing %q:\n%s", want, stderr.String())
+				}
+			}
+			for _, absent := range tt.wantAbsent {
+				if strings.Contains(stderr.String(), absent) {
+					t.Fatalf("stderr unexpectedly contains %q:\n%s", absent, stderr.String())
+				}
+			}
+		})
 	}
 }

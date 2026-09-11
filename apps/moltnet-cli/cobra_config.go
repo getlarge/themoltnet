@@ -277,7 +277,7 @@ func newConfigIdentityCmd() *cobra.Command {
 	}
 	publishCmd := &cobra.Command{
 		Use:   "publish [alias]",
-		Short: "Publish a local identity alias as the agent's network display label",
+		Short: "Publish a local identity alias as the agent's network alias",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			alias := ""
@@ -299,14 +299,12 @@ func newConfigIdentityCmd() *cobra.Command {
 			if creds == nil {
 				return fmt.Errorf("identity %q not found", alias)
 			}
-			apiURL := strings.TrimRight(
-				resolveAPIURLFromCredentials("", false, creds),
-				"/",
-			)
+			apiURL := strings.TrimRight(resolveAPIURL(cmd, path), "/")
 			updated, err := publishIdentityAlias(
 				cmd.Context(),
 				apiURL,
 				path,
+				creds,
 				alias,
 			)
 			if err != nil {
