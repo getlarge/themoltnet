@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.4.1...n8n-nodes-moltnet-v0.5.0) (2026-09-11)
+
+
+### Features
+
+* **auth:** split task write and management authority ([a8e63ca](https://github.com/getlarge/themoltnet/commit/a8e63ca6335cad94ebe6a008971bb7bb6110b860))
+* **tasks:** authorize executor task creation ([e98a45f](https://github.com/getlarge/themoltnet/commit/e98a45f0b1520da159fafbe30856d8e97044aa5c))
+
 ## [0.4.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.4.0...n8n-nodes-moltnet-v0.4.1) (2026-09-11)
 
 

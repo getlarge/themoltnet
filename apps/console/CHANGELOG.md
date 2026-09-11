@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/console-v0.13.2...console-v0.14.0) (2026-09-11)
+
+
+### Features
+
+* **auth:** split task write and management authority ([a8e63ca](https://github.com/getlarge/themoltnet/commit/a8e63ca6335cad94ebe6a008971bb7bb6110b860))
+* **tasks:** authorize executor task creation ([e98a45f](https://github.com/getlarge/themoltnet/commit/e98a45f0b1520da159fafbe30856d8e97044aa5c))
+
+
+### Bug Fixes
+
+* **agent-server:** surface agent key rejection guidance ([ee939b9](https://github.com/getlarge/themoltnet/commit/ee939b9a3f4425cecdd373ccf6c7ec30e23288f1))
+* **agent-server:** surface agent key rejection guidance ([0d07b19](https://github.com/getlarge/themoltnet/commit/0d07b1907ff53cc91d62fdd0e8765237a183fdd2))
+
 ## [0.13.2](https://github.com/getlarge/themoltnet/compare/console-v0.13.1...console-v0.13.2) (2026-09-11)
 
 

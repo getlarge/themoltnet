@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.13.5...node-red-contrib-core-v0.14.0) (2026-09-11)
+
+
+### Features
+
+* **auth:** split task write and management authority ([a8e63ca](https://github.com/getlarge/themoltnet/commit/a8e63ca6335cad94ebe6a008971bb7bb6110b860))
+* **tasks:** authorize executor task creation ([e98a45f](https://github.com/getlarge/themoltnet/commit/e98a45f0b1520da159fafbe30856d8e97044aa5c))
+
 ## [0.13.5](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.13.4...node-red-contrib-core-v0.13.5) (2026-09-11)
 
 

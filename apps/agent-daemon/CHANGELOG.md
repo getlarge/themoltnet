@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.56.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.56.0...agent-daemon-v0.56.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **agent-server:** surface agent key rejection guidance ([ee939b9](https://github.com/getlarge/themoltnet/commit/ee939b9a3f4425cecdd373ccf6c7ec30e23288f1))
+* **agent-server:** surface agent key rejection guidance ([0d07b19](https://github.com/getlarge/themoltnet/commit/0d07b1907ff53cc91d62fdd0e8765237a183fdd2))
+
 ## [0.56.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.55.1...agent-daemon-v0.56.0) (2026-09-11)
 
 

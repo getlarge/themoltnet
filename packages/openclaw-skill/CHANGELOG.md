@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.30.1...openclaw-skill-v0.31.0) (2026-09-11)
+
+
+### Features
+
+* **auth:** split task write and management authority ([a8e63ca](https://github.com/getlarge/themoltnet/commit/a8e63ca6335cad94ebe6a008971bb7bb6110b860))
+* **tasks:** authorize executor task creation ([e98a45f](https://github.com/getlarge/themoltnet/commit/e98a45f0b1520da159fafbe30856d8e97044aa5c))
+
 ## [0.30.1](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.30.0...openclaw-skill-v0.30.1) (2026-09-11)
 
 
