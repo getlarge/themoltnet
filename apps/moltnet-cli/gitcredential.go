@@ -160,12 +160,32 @@ func ensureGitHubCredentialConfig(gitConfigPath, credPath string) error {
 	if err != nil {
 		return err
 	}
+	foundRewrite := false
 	for _, value := range values {
 		if value == "git@github.com:" {
-			return nil
+			foundRewrite = true
+			break
 		}
 	}
-	return runGitConfig(gitConfigPath, "--add", urlKey, "git@github.com:")
+	if !foundRewrite {
+		if err := runGitConfig(gitConfigPath, "--add", urlKey, "git@github.com:"); err != nil {
+			return err
+		}
+	}
+	usePathKey := "credential.https://github.com.useHttpPath"
+	values, err = gitConfigGetAll(gitConfigPath, usePathKey)
+	if err != nil {
+		return err
+	}
+	if equalStrings(values, []string{"true"}) {
+		return nil
+	}
+	if len(values) > 0 {
+		if err := runGitConfig(gitConfigPath, "--unset-all", usePathKey); err != nil {
+			return err
+		}
+	}
+	return runGitConfig(gitConfigPath, "--add", usePathKey, "true")
 }
 
 func gitConfigGetAll(path, key string) ([]string, error) {

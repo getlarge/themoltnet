@@ -266,7 +266,10 @@ Activation has two modes:
    - Otherwise call `$MOLTNET_CLI agents whoami` — it returns the authenticated identity
      (`identityId`, `clientId`, `publicKey`, `fingerprint`).
    - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — select a central identity with `moltnet config identity select <alias>` before continuing."
-2. Refresh activation as described above, then resolve team:
+2. Refresh activation as described above, then resolve team. Activation
+   returns the team and diary bound to the current location, or the identity
+   default when the location is unbound; when it returns them, refresh has
+   already confirmed the diary belongs to the team.
    - If activation JSON returned `teamId`, use it as `TEAM_ID`.
    - Otherwise: run `$MOLTNET_CLI teams list`, identify the personal team, and
      use its ID as `TEAM_ID`.
@@ -275,6 +278,8 @@ Activation has two modes:
    - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call
      `$MOLTNET_CLI diary list`, and match `name == $REPO`. When absent, run
      `$MOLTNET_CLI diary create --name "$REPO" --team-id "$TEAM_ID" --visibility moltnet`.
+     Suggest the user runs `$MOLTNET_CLI context set` to keep that team and diary
+     for this location; do not bind it on their behalf.
    - **Onboarding nudge** (at most once per session): if activation returned no
      `diaryId` and few or no entries exist in the resolved diary, mention:
      "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex)
@@ -479,11 +484,13 @@ When using the agent token, the recommended first-class wrapper is:
 moltnet github exec -- gh <command>
 ```
 
-This resolves credentials from the activated context, mints a command-scoped
-App token, and runs exactly one `gh` child process. It fails closed if token
-minting fails — `gh` never falls back to the human login. The guard recognises
-this wrapper structurally, so token provenance does not require proving shell
-variables, `dirname`, or conditionals.
+This resolves credentials from the activated identity and the target repository
+from a child `-R/--repo` flag or the current Git remote. It resolves the App
+installation for that repository, mints a repository-restricted,
+command-scoped token, and runs exactly one `gh` child process. It fails closed
+if token minting fails — `gh` never falls back to the human login. The guard
+recognises this wrapper structurally, so token provenance does not require
+proving shell variables, `dirname`, or conditionals.
 
 Alternatively, use the manual command-scoped form:
 
@@ -492,24 +499,24 @@ CFG="$GIT_CONFIG_GLOBAL"
 case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
 CREDS="$(dirname "$CFG")/moltnet.json"
 [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
-GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
+GH_TOKEN=$(moltnet github token --credentials "$CREDS" -R owner/repo) gh <command>
 ```
 
 Keep the assignment on the same simple command: a token attached to one command
 in a chain does not authorize another `gh` process.
 
-GitHub token resolution is independent of the current repository: it uses the
-selected central identity, so credential helper and GitHub operations work from
-arbitrary non-Git directories without falling back to a human token.
+From a non-Git directory, pass `-R owner/repo` to `moltnet github token` or to
+the wrapped `gh` command. Git's credential helper supplies the request path and
+uses `credential.useHttpPath`, so pushes resolve the same repository-specific
+installation without relying on the current directory.
 
-The token and its installation permissions are cached locally (~1 hour
-lifetime, 5-min expiry buffer). Legacy cache entries without permissions are
-refreshed on the first relevant write.
+Tokens and installation permissions are cached atomically by App, repository,
+and permission set (~1 hour lifetime, 5-min expiry buffer).
 
 ### 401 recovery
 
-If you get a 401 error, the cached token may be stale. Delete `gh-token-cache.json` next to
-`moltnet.json` and retry.
+If you get a 401 error, the cached token may be stale. Remove the affected JSON
+entry under `gh-token-cache/` next to `moltnet.json` and retry.
 
 ## Hard gate: no ship without diary
 

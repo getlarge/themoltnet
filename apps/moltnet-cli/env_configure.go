@@ -47,7 +47,6 @@ func runEnvConfigureCmd(cmd *cobra.Command, opts envConfigureOptions, changed fu
 		return err
 	}
 	envPath := filepath.Join(agentDir, "env")
-
 	updates := map[string]*string{}
 	set := func(flag, key, value string, clear bool) {
 		if changed(flag) {

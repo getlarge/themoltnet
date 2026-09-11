@@ -922,3 +922,35 @@ func TestEvaluateGitHubGuard_BareWriteWithOpaquePayloadStillDenies(t *testing.T)
 		t.Fatalf("expected issues:write in denial, got: %s", reason)
 	}
 }
+
+// TestEvaluateGitHubGuard_VerdictIndependentOfRepositoryFlag pins the decision
+// made in #2211: the guard must not derive the authorized repository from argv.
+//
+// An earlier attempt fed `-R`/`--repo` into the permission lookup so it could
+// check per-repository permissions. Because the guard answers a failed lookup
+// by allowing the call, any parsing imprecision became an attribution bypass:
+// crafted text such as `--body "-Rattacker/spoof"` steered which repository's
+// permissions were checked, and matching gh's own flag grammar exactly (last
+// occurrence wins, `--` terminator, per-subcommand short-flag arity) proved
+// unreliable across three attempts. Repository resolution therefore belongs to
+// token minting, where a wrong guess fails safe as a GitHub 403.
+func TestEvaluateGitHubGuard_VerdictIndependentOfRepositoryFlag(t *testing.T) {
+	t.Parallel()
+	permissions := guardPermissions(map[string]string{"issues": "write"})
+	baseline := evaluateGitHubGuard(
+		"gh issue comment 1 --body hi", staticGuardContext("agent"), permissions)
+
+	for _, command := range []string{
+		"gh issue comment 1 -R other/repo --body hi",
+		"gh issue comment 1 --repo=other/repo --body hi",
+		"gh issue comment 1 -Rother/repo --body hi",
+		`gh issue comment 1 --body "-Rattacker/spoof"`,
+		"gh issue comment 1 -R first/repo -R second/repo --body hi",
+		"gh issue comment 1 --body -- -R attacker/spoof",
+	} {
+		if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), permissions); reason != baseline {
+			t.Fatalf("%s: verdict varied with the repository flag\n got: %q\nwant: %q",
+				command, reason, baseline)
+		}
+	}
+}

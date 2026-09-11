@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
@@ -8,15 +10,18 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -198,7 +203,7 @@ func lookupBotUser(appSlug string) (int64, string, error) {
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := githubHTTPClient().Do(req)
 	if err != nil {
 		return 0, "", fmt.Errorf("GitHub API request: %w", err)
 	}
@@ -223,22 +228,55 @@ func lookupBotUser(appSlug string) (int64, string, error) {
 
 // runGitHubCredentialHelperCmd is the flag-free business logic for github credential-helper.
 func runGitHubCredentialHelperCmd(credPath string) error {
+	return runGitHubCredentialHelperIOCmd(credPath, os.Stdin, os.Stdout)
+}
+
+func runGitHubCredentialHelperIOCmd(credPath string, in io.Reader, out io.Writer) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
-
-	token, err := mintGitHubAppToken(creds, credPath)
+	if creds.GitHub == nil {
+		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
+	}
+	requestValues := map[string]string{}
+	decoder := bufio.NewScanner(io.LimitReader(in, 64<<10))
+	for decoder.Scan() {
+		line := decoder.Text()
+		if line == "" {
+			break
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if ok {
+			requestValues[key] = value
+		}
+	}
+	if err := decoder.Err(); err != nil {
+		return fmt.Errorf("read Git credential request: %w", err)
+	}
+	repository, err := githubRepositoryForCredentialRequest(requestValues["host"], requestValues["path"])
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("username=x-access-token\npassword=%s\n", token)
+	token, err := mintGitHubAppTokenForRequest(creds, credPath, githubTokenRequest{
+		Repository:  repository,
+		Permissions: map[string]string{"contents": "write"},
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(out, "username=x-access-token\npassword=%s\n", token)
 	return nil
 }
 
 // runGitHubTokenCmd is the flag-free business logic for github token.
 func runGitHubTokenCmd(credPath string) error {
+	return runGitHubTokenForRepositoryCmd(credPath, "")
+}
+
+func runGitHubTokenForRepositoryCmd(credPath, repositoryValue string) error {
 	path := credPath
 	if path == "" {
 		path = os.Getenv("MOLTNET_CREDENTIALS_PATH")
@@ -249,7 +287,17 @@ func runGitHubTokenCmd(credPath string) error {
 		return err
 	}
 
-	token, err := mintGitHubAppToken(creds, path)
+	repository, repositoryErr := resolveGitHubRepository(repositoryValue)
+	var token string
+	if repositoryErr != nil && strings.TrimSpace(repositoryValue) == "" && creds.GitHub != nil && creds.GitHub.InstallationID != "" {
+		// Backward compatibility for callers outside a Git checkout. The stored
+		// installation is a hint only; repository-aware callers never use it.
+		token, err = mintGitHubAppToken(creds, path)
+	} else if repositoryErr != nil {
+		return repositoryErr
+	} else {
+		token, err = mintGitHubAppTokenForRequest(creds, path, githubTokenRequest{Repository: repository})
+	}
 	if err != nil {
 		return err
 	}
@@ -268,6 +316,8 @@ type tokenCache struct {
 	Permissions    map[string]string `json:"permissions"`
 	AppID          string            `json:"app_id,omitempty"`
 	InstallationID string            `json:"installation_id,omitempty"`
+	Repository     string            `json:"repository,omitempty"`
+	PermissionSet  string            `json:"permission_set,omitempty"`
 }
 
 type tokenRefreshFailure struct {
@@ -337,12 +387,27 @@ func tokenRefreshFailurePath(cacheDir string) string {
 // timeNow is a seam for tests.
 var timeNow = time.Now
 
+// githubHTTPTimeout bounds every GitHub call made outside the guard.
+// githubHTTPClient() has no timeout, so a DNS or proxy stall used to hang the
+// credential helper — and therefore `git push` — indefinitely (#2211).
+const githubHTTPTimeout = 15 * time.Second
+
+// githubInstallationCacheTTL bounds how long a repository's resolved
+// installation and its permission set are reused. It is far shorter than an
+// installation token's own lifetime, so this never widens the window in which
+// a stale permission set is trusted.
+const githubInstallationCacheTTL = 5 * time.Minute
+
+func githubHTTPClient() *http.Client {
+	return &http.Client{Timeout: githubHTTPTimeout}
+}
+
 // getCachedInstallationToken returns a cached token if valid (>5 min remaining),
 // otherwise fetches a new one from the GitHub API and writes the cache.
 func getCachedInstallationToken(appID, privateKeyPath, installationID string) (string, error) {
 	details, err := getCachedInstallationTokenDetails(
 		context.Background(),
-		http.DefaultClient,
+		githubHTTPClient(),
 		appID,
 		privateKeyPath,
 		installationID,
@@ -389,51 +454,234 @@ func getCachedTokenDetailsFromSource(
 	installationID string,
 	failureTTL time.Duration,
 ) (tokenCache, error) {
-	cachePath := tokenCachePath(source.cacheDir)
+	return getCachedTokenDetailsAtPaths(ctx, client, appID, source, installationID, githubTokenRequest{}, tokenCachePath(source.cacheDir), tokenRefreshFailurePath(source.cacheDir), failureTTL)
+}
 
-	// Try reading cache — only a record minted for this App/installation counts.
-	if data, err := os.ReadFile(cachePath); err == nil {
-		var cached tokenCache
-		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" &&
-			cached.AppID == appID && cached.InstallationID == installationID {
-			expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
-			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) && cached.Permissions != nil {
-				return cached, nil
-			}
-		}
+func getCachedTokenDetailsAtPaths(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	installationID string,
+	request githubTokenRequest,
+	cachePath, failurePath string,
+	failureTTL time.Duration,
+) (tokenCache, error) {
+	repository := request.Repository.String()
+	permissionSet := request.permissionKey()
+	if repository == "" && len(request.Permissions) == 0 {
+		permissionSet = "" // legacy single-installation cache compatibility
 	}
 
-	if failureTTL > 0 {
-		if data, err := os.ReadFile(tokenRefreshFailurePath(source.cacheDir)); err == nil {
-			var failed tokenRefreshFailure
-			if json.Unmarshal(data, &failed) == nil {
-				failedAt, parseErr := time.Parse(time.RFC3339Nano, failed.FailedAt)
-				if parseErr == nil && timeNow().Before(failedAt.Add(failureTTL)) {
-					return tokenCache{}, fmt.Errorf("GitHub token refresh is temporarily suppressed after a recent failure")
-				}
-			}
-		}
+	// Only a record minted for this App/installation counts.
+	if cached, ok := readUsableTokenCache(cachePath, appID, repository, permissionSet); ok &&
+		cached.InstallationID == installationID {
+		return cached, nil
+	}
+
+	if suppressed := tokenRefreshSuppressed(failurePath, failureTTL); suppressed != nil {
+		return tokenCache{}, suppressed
 	}
 
 	// Cache miss or expired — fetch fresh token
-	details, err := getInstallationTokenDetailsFromSource(ctx, client, appID, source, installationID)
+	details, err := getInstallationTokenDetailsForRequest(ctx, client, appID, source, installationID, request)
 	if err != nil {
-		if failureTTL > 0 {
-			_ = writeJSONAtomic(
-				tokenRefreshFailurePath(source.cacheDir),
-				tokenRefreshFailure{FailedAt: timeNow().UTC().Format(time.RFC3339Nano)},
-			)
-		}
+		recordTokenRefreshFailure(failurePath, failureTTL)
 		return tokenCache{}, err
 	}
 
 	// Write cache (best-effort), bound to this App/installation
 	details.AppID = appID
 	details.InstallationID = installationID
+	details.Repository = repository
+	details.PermissionSet = permissionSet
 	_ = writeJSONAtomic(cachePath, details)
-	_ = os.Remove(tokenRefreshFailurePath(source.cacheDir))
+	_ = os.Remove(failurePath)
 
 	return details, nil
+}
+
+func getCachedTokenDetailsForRequest(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	request githubTokenRequest,
+	failureTTL time.Duration,
+) (tokenCache, error) {
+	// The installation is deliberately NOT part of the key: it is stable per
+	// (App, repository), and keying on it put a network round-trip in front of
+	// every warm cache hit, including on the guard's hot path (#2211).
+	cacheDir, key, err := githubTokenCacheKey(source, appID, request)
+	if err != nil {
+		return tokenCache{}, err
+	}
+	cachePath := filepath.Join(cacheDir, key+".json")
+	failurePath := filepath.Join(cacheDir, key+".error.json")
+
+	if cached, ok := readUsableTokenCache(cachePath, appID, request.Repository.String(), request.permissionKey()); ok {
+		return cached, nil
+	}
+	if suppressed := tokenRefreshSuppressed(failurePath, failureTTL); suppressed != nil {
+		return tokenCache{}, suppressed
+	}
+
+	// Record resolution failures on the same failure path as token failures:
+	// otherwise the negative cache never engaged for what is now the most
+	// likely offline failure, and every call re-paid the full timeout.
+	installationID, err := resolveGitHubInstallationCached(ctx, client, appID, source, request.Repository, failureTTL)
+	if err != nil {
+		recordTokenRefreshFailure(failurePath, failureTTL)
+		return tokenCache{}, err
+	}
+	return getCachedTokenDetailsAtPaths(
+		ctx, client, appID, source, installationID, request,
+		cachePath, failurePath, failureTTL,
+	)
+}
+
+// githubTokenCacheKey derives the per-request cache directory and key.
+func githubTokenCacheKey(source githubAppKeySource, appID string, request githubTokenRequest) (string, string, error) {
+	keyMaterial := strings.Join([]string{appID, request.Repository.String(), request.permissionKey()}, "\x00")
+	digest := sha256.Sum256([]byte(keyMaterial))
+	cacheDir := filepath.Join(source.cacheDir, "gh-token-cache")
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+		return "", "", fmt.Errorf("create GitHub token cache: %w", err)
+	}
+	return cacheDir, hex.EncodeToString(digest[:]), nil
+}
+
+// readUsableTokenCache returns a cached record only when it was minted for this
+// App, repository and permission set and still has comfortable life left.
+func readUsableTokenCache(cachePath, appID, repository, permissionSet string) (tokenCache, bool) {
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		return tokenCache{}, false
+	}
+	var cached tokenCache
+	if err := json.Unmarshal(data, &cached); err != nil {
+		return tokenCache{}, false
+	}
+	if cached.Token == "" || cached.ExpiresAt == "" || cached.Permissions == nil {
+		return tokenCache{}, false
+	}
+	if cached.AppID != appID || cached.Repository != repository || cached.PermissionSet != permissionSet {
+		return tokenCache{}, false
+	}
+	expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
+	if err != nil || !timeNow().Add(5*time.Minute).Before(expiresAt) {
+		return tokenCache{}, false
+	}
+	return cached, true
+}
+
+// tokenRefreshSuppressed reports the recent-failure short circuit, if armed.
+func tokenRefreshSuppressed(failurePath string, failureTTL time.Duration) error {
+	if failureTTL <= 0 {
+		return nil
+	}
+	data, err := os.ReadFile(failurePath)
+	if err != nil {
+		return nil
+	}
+	var failed tokenRefreshFailure
+	if json.Unmarshal(data, &failed) != nil {
+		return nil
+	}
+	failedAt, err := time.Parse(time.RFC3339Nano, failed.FailedAt)
+	if err != nil || !timeNow().Before(failedAt.Add(failureTTL)) {
+		return nil
+	}
+	return fmt.Errorf("GitHub token refresh is temporarily suppressed after a recent failure")
+}
+
+func recordTokenRefreshFailure(failurePath string, failureTTL time.Duration) {
+	if failureTTL <= 0 {
+		return
+	}
+	_ = writeJSONAtomic(failurePath, tokenRefreshFailure{FailedAt: timeNow().UTC().Format(time.RFC3339Nano)})
+}
+
+// installationCache is the on-disk cache for a repository's App installation.
+// The mapping is stable per (App, repository), so caching it keeps a warm token
+// cache from paying an App-JWT round-trip just to rebuild the cache key (#2211).
+type installationCache struct {
+	AppID      string `json:"app_id"`
+	Repository string `json:"repository"`
+	ID         string `json:"id"`
+	ResolvedAt string `json:"resolved_at"`
+}
+
+// resolveGitHubInstallationCached resolves a repository's installation, reusing
+// a cached mapping for githubInstallationCacheTTL so a warm path makes no
+// network call at all.
+func resolveGitHubInstallationCached(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	repository githubRepository,
+	failureTTL time.Duration,
+) (string, error) {
+	cachePath, cacheErr := githubInstallationCachePath(source, appID, repository)
+	failurePath := ""
+	if cacheErr == nil {
+		if cached, ok := readUsableInstallationCache(cachePath, appID, repository.String()); ok {
+			return cached.ID, nil
+		}
+		failurePath = strings.TrimSuffix(cachePath, ".json") + ".error.json"
+		// Suppress retries after a recent failure. Resolution is now the most
+		// likely offline failure, so without this every guarded command re-pays
+		// the full permission timeout during an outage (#2211).
+		if suppressed := tokenRefreshSuppressed(failurePath, failureTTL); suppressed != nil {
+			return "", suppressed
+		}
+	}
+	installationID, err := resolveGitHubInstallation(ctx, client, appID, source, repository)
+	if err != nil {
+		if failurePath != "" {
+			recordTokenRefreshFailure(failurePath, failureTTL)
+		}
+		return "", err
+	}
+	if cacheErr == nil {
+		_ = os.Remove(failurePath)
+		_ = writeJSONAtomic(cachePath, installationCache{
+			AppID:      appID,
+			Repository: repository.String(),
+			ID:         installationID,
+			ResolvedAt: timeNow().UTC().Format(time.RFC3339Nano),
+		})
+	}
+	return installationID, nil
+}
+
+func githubInstallationCachePath(source githubAppKeySource, appID string, repository githubRepository) (string, error) {
+	digest := sha256.Sum256([]byte(strings.Join([]string{appID, repository.String()}, "\x00")))
+	cacheDir := filepath.Join(source.cacheDir, "gh-token-cache")
+	if err := os.MkdirAll(cacheDir, 0o700); err != nil {
+		return "", fmt.Errorf("create GitHub token cache: %w", err)
+	}
+	return filepath.Join(cacheDir, "installation-"+hex.EncodeToString(digest[:])+".json"), nil
+}
+
+func readUsableInstallationCache(cachePath, appID, repository string) (installationCache, bool) {
+	data, err := os.ReadFile(cachePath)
+	if err != nil {
+		return installationCache{}, false
+	}
+	var cached installationCache
+	if err := json.Unmarshal(data, &cached); err != nil {
+		return installationCache{}, false
+	}
+	if cached.ID == "" || cached.AppID != appID || cached.Repository != repository {
+		return installationCache{}, false
+	}
+	resolvedAt, err := time.Parse(time.RFC3339Nano, cached.ResolvedAt)
+	if err != nil || !timeNow().Before(resolvedAt.Add(githubInstallationCacheTTL)) {
+		return installationCache{}, false
+	}
+	return cached, true
 }
 
 // mintGitHubAppToken returns a cached or fresh installation token for the
@@ -445,11 +693,25 @@ func mintGitHubAppToken(creds *CredentialsFile, credPath string) (string, error)
 	}
 	details, err := getCachedTokenDetailsFromSource(
 		context.Background(),
-		http.DefaultClient,
+		githubHTTPClient(),
 		creds.GitHub.AppID,
 		source,
 		creds.GitHub.InstallationID,
 		0,
+	)
+	if err != nil {
+		return "", err
+	}
+	return details.Token, nil
+}
+
+func mintGitHubAppTokenForRequest(creds *CredentialsFile, credPath string, request githubTokenRequest) (string, error) {
+	source, err := githubKeySourceFromCredentials(creds, credPath, NewSecretProviderRegistry())
+	if err != nil {
+		return "", err
+	}
+	details, err := getCachedTokenDetailsForRequest(
+		context.Background(), githubHTTPClient(), creds.GitHub.AppID, source, request, 0,
 	)
 	if err != nil {
 		return "", err
@@ -462,7 +724,7 @@ func mintGitHubAppToken(creds *CredentialsFile, credPath string) (string, error)
 func getInstallationToken(appID, privateKeyPath, installationID string) (string, string, error) {
 	details, err := getInstallationTokenDetails(
 		context.Background(),
-		http.DefaultClient,
+		githubHTTPClient(),
 		appID,
 		privateKeyPath,
 		installationID,
@@ -511,28 +773,96 @@ func getInstallationTokenDetailsFromSource(
 	source githubAppKeySource,
 	installationID string,
 ) (tokenCache, error) {
+	return getInstallationTokenDetailsForRequest(ctx, client, appID, source, installationID, githubTokenRequest{})
+}
+
+func githubAppJWT(appID string, source githubAppKeySource) (string, error) {
 	pemData, err := source.loadPEM()
 	if err != nil {
-		return tokenCache{}, err
+		return "", err
 	}
 	privKey, err := parseRSAPrivateKey(pemData)
 	if err != nil {
-		return tokenCache{}, err
+		return "", err
 	}
+	return createAppJWT(appID, privKey)
+}
 
-	jwt, err := createAppJWT(appID, privKey)
+func resolveGitHubInstallation(ctx context.Context, client *http.Client, appID string, source githubAppKeySource, repository githubRepository) (string, error) {
+	if repository.String() == "" {
+		return "", fmt.Errorf("GitHub repository is required to resolve an App installation")
+	}
+	jwt, err := githubAppJWT(appID, source)
+	if err != nil {
+		return "", err
+	}
+	endpoint := fmt.Sprintf("%s/repos/%s/%s/installation", githubAPIBaseURL, url.PathEscape(repository.Owner), url.PathEscape(repository.Name))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+jwt)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("resolve GitHub App installation for %s: %w", repository, err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf(
+			"GitHub App is not installed for %s (HTTP %d) — install the App on that repository, or pass --repo for one it covers: %s",
+			repository, resp.StatusCode, string(body))
+	}
+	var result struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil || result.ID == 0 {
+		return "", fmt.Errorf("parse GitHub installation response for %s", repository)
+	}
+	return strconv.FormatInt(result.ID, 10), nil
+}
+
+func getInstallationTokenDetailsForRequest(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	installationID string,
+	request githubTokenRequest,
+) (tokenCache, error) {
+	jwt, err := githubAppJWT(appID, source)
 	if err != nil {
 		return tokenCache{}, err
 	}
+	payload := struct {
+		Repositories []string          `json:"repositories,omitempty"`
+		Permissions  map[string]string `json:"permissions,omitempty"`
+	}{Permissions: request.Permissions}
+	if request.Repository.Name != "" {
+		payload.Repositories = []string{request.Repository.Name}
+	}
+	bodyReader := io.Reader(nil)
+	if len(payload.Repositories) > 0 || len(payload.Permissions) > 0 {
+		encoded, err := json.Marshal(payload)
+		if err != nil {
+			return tokenCache{}, err
+		}
+		bodyReader = bytes.NewReader(encoded)
+	}
 
 	url := fmt.Sprintf("%s/app/installations/%s/access_tokens", githubAPIBaseURL, installationID)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bodyReader)
 	if err != nil {
 		return tokenCache{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if bodyReader != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -645,7 +975,11 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 		return fmt.Errorf("moltnet github exec: GitHub App not configured — add 'github' section to moltnet.json")
 	}
 
-	token, err := mintGitHubAppToken(creds, path)
+	request, err := githubTokenRequestForGHArgs(args[1:])
+	if err != nil {
+		return fmt.Errorf("moltnet github exec: cannot resolve target repository: %w", err)
+	}
+	token, err := mintGitHubAppTokenForRequest(creds, path, request)
 	if err != nil {
 		return fmt.Errorf("moltnet github exec: cannot mint GitHub App token: %w", err)
 	}
@@ -658,5 +992,11 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if hint := request.execFailureHint(); hint != "" {
+			fmt.Fprintln(stderr, hint)
+		}
+		return err
+	}
+	return nil
 }

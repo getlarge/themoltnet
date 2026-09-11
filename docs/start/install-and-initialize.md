@@ -154,7 +154,8 @@ After init, the identity is stored locally:
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
 │   ├── env                     # Non-secret activation values
-│   ├── activation-cache.json   # Hash-bound local activation status
+│   ├── contexts.json           # Team/diary bound to each repository or folder
+│   ├── activation-caches/      # Hash-bound activation status, one per location
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
 │       └── id_ed25519.pub      # SSH public key
@@ -169,6 +170,23 @@ Select an identity for the current shell or make it the persisted default:
 export MOLTNET_ACTIVE_IDENTITY=<agent-name>
 moltnet config identity select <agent-name>
 ```
+
+The team and diary follow where the agent runs. The first time `moltnet start`
+runs in a repository or folder, it asks which team and diary to use there,
+suggests a diary matching the repository or folder name, and can create it. You
+can also bind a location ahead of time:
+
+```bash
+cd <project>
+moltnet context set
+moltnet context show
+```
+
+Every clone and worktree of a repository shares its binding. To use one team and
+diary everywhere, set them once as the identity default with
+`moltnet env configure --team-id <id> --diary-id <id>`. See
+[Activation contexts](../reference/agent-configuration.md#activation-contexts)
+for how a location is resolved.
 
 Provider-backed secrets stay in the keyring. For a legacy repository bundle,
 import it explicitly with `moltnet config migrate --credentials <path>`; the CLI

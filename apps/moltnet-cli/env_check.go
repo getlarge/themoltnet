@@ -35,9 +35,6 @@ func runEnvCheckCmd(cmd *cobra.Command, identityFlag string) error {
 		checkFile bool
 	}{
 		{prefix + "_CLIENT_ID", false},
-		{prefix + "_GITHUB_APP_ID", false},
-		{prefix + "_GITHUB_APP_PRIVATE_KEY_PATH", true},
-		{prefix + "_GITHUB_APP_INSTALLATION_ID", false},
 		{"GIT_CONFIG_GLOBAL", true},
 	}
 	if _, err := resolveAgentOAuth2Environment(agentDir, agentName, NewSecretProviderRegistry()); err != nil {
@@ -66,15 +63,23 @@ func runEnvCheckCmd(cmd *cobra.Command, identityFlag string) error {
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ %s\n", r.key)
 		}
 	}
+	creds, configErr := ReadConfigFrom(filepath.Join(agentDir, "moltnet.json"))
+	if configErr != nil || creds == nil || creds.GitHub == nil || creds.GitHub.AppID == "" || (creds.GitHub.PrivateKeyPath == "" && creds.GitHub.PrivateKeyRef == nil) {
+		fmt.Fprintln(cmd.OutOrStdout(), "✗ GitHub App identity/private key is not configured")
+		failed = true
+	} else {
+		fmt.Fprintln(cmd.OutOrStdout(), "✓ GitHub App identity/private key configured (installation resolves per repository)")
+	}
 
-	// Recommended vars
-	recommended := []string{"MOLTNET_DIARY_ID"}
-	for _, key := range recommended {
-		if _, ok := vars[key]; !ok {
-			fmt.Fprintf(cmd.OutOrStdout(), "⚠ %s not set (optional — skill will auto-discover from repo)\n", key)
-		} else {
-			fmt.Fprintf(cmd.OutOrStdout(), "✓ %s\n", key)
-		}
+	resolvedContext, contextErr := resolveContextBinding(agentDir, "")
+	if contextErr != nil {
+		fmt.Fprintf(cmd.OutOrStdout(), "✗ activation context → %v\n", contextErr)
+		failed = true
+	} else if resolvedContext.Binding == nil {
+		// Not a failure: team and diary are optional, as they always were.
+		fmt.Fprintf(cmd.OutOrStdout(), "⚠ no team/diary for %s — run 'moltnet context set' to bind this location\n", resolvedContext.Key)
+	} else {
+		fmt.Fprintf(cmd.OutOrStdout(), "✓ context %s → team %s, diary %s (%s)\n", resolvedContext.Key, resolvedContext.Binding.TeamID, resolvedContext.Binding.DiaryID, resolvedContext.Source)
 	}
 
 	// Authorship vars
