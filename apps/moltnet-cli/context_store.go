@@ -10,29 +10,64 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
+
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
 const contextStoreVersion = 1
+
+const maxContextStoreBytes = 1 << 20
+
+// A resolved context comes from exactly one of two places, and both are
+// reported so the user can always see which one applied.
+const (
+	// contextSourceLocation: a binding stored for this location.
+	contextSourceLocation = "location"
+	// contextSourceIdentityDefault: no binding for this location, so the
+	// identity-wide MOLTNET_TEAM_ID / MOLTNET_DIARY_ID from the identity env
+	// file apply — the same values used before per-location contexts existed.
+	contextSourceIdentityDefault = "identity-default"
+)
 
 type contextBinding struct {
 	TeamID  string `json:"teamId"`
 	DiaryID string `json:"diaryId"`
 }
 
+// contextStore maps a location key to its team/diary binding.
+//
+// A location is the normalized Git remote when the directory is inside a
+// repository that has one, and the canonical directory otherwise. There is
+// deliberately no ancestor lookup, no directory override, and no stored
+// default: one location has one key and one lookup, so there is no precedence
+// between bindings to get wrong. The identity-wide default stays where it has
+// always lived, in the identity env file.
 type contextStore struct {
-	Version      int                       `json:"version"`
-	Default      *contextBinding           `json:"default,omitempty"`
-	Repositories map[string]contextBinding `json:"repositories,omitempty"`
-	Directories  map[string]contextBinding `json:"directories,omitempty"`
+	Version  int                       `json:"version"`
+	Contexts map[string]contextBinding `json:"contexts,omitempty"`
 }
 
-type resolvedActivationBinding struct {
-	Key       string
-	Source    string
-	Directory string
-	Binding   *contextBinding
+type resolvedContextBinding struct {
+	Key string
+	// Source is contextSourceLocation, contextSourceIdentityDefault, or empty
+	// when neither applies.
+	Source  string
+	Binding *contextBinding
+}
+
+func (r resolvedContextBinding) teamID() string {
+	if r.Binding == nil {
+		return ""
+	}
+	return r.Binding.TeamID
+}
+
+func (r resolvedContextBinding) diaryID() string {
+	if r.Binding == nil {
+		return ""
+	}
+	return r.Binding.DiaryID
 }
 
 func contextStorePath(agentDir string) string {
@@ -40,41 +75,57 @@ func contextStorePath(agentDir string) string {
 }
 
 func readContextStore(agentDir string) (*contextStore, error) {
-	data, err := os.ReadFile(contextStorePath(agentDir))
+	path := contextStorePath(agentDir)
+	data, err := safefile.ReadBoundedRegularFile(path, maxContextStoreBytes)
 	if errors.Is(err, os.ErrNotExist) {
 		return &contextStore{Version: contextStoreVersion}, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("read context store: %w", err)
+		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
 	var store contextStore
 	if err := json.Unmarshal(data, &store); err != nil {
-		return nil, fmt.Errorf("parse context store: %w", err)
+		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 	if store.Version != contextStoreVersion {
-		return nil, fmt.Errorf("unsupported contexts.json version %d", store.Version)
+		return nil, fmt.Errorf("%s has version %d, but this CLI understands version %d; it was likely written by a newer moltnet release", path, store.Version, contextStoreVersion)
 	}
 	return &store, nil
 }
 
-func writeContextStore(agentDir string, store *contextStore) error {
-	store.Version = contextStoreVersion
-	if len(store.Repositories) == 0 {
-		store.Repositories = nil
+// updateContextStore applies mutate as one read-modify-write under the store's
+// writer lock, so concurrent `context set` / `clear` runs cannot drop each
+// other's bindings.
+func updateContextStore(agentDir string, mutate func(*contextStore)) error {
+	lock, err := safefile.Acquire(contextStorePath(agentDir))
+	if err != nil {
+		return err
 	}
-	if len(store.Directories) == 0 {
-		store.Directories = nil
+	defer lock.Close()
+	store, err := readContextStore(agentDir)
+	if err != nil {
+		return err
+	}
+	mutate(store)
+	store.Version = contextStoreVersion
+	if len(store.Contexts) == 0 {
+		store.Contexts = nil
 	}
 	data, err := json.MarshalIndent(store, "", "  ")
 	if err != nil {
 		return err
 	}
-	if err := writeFileAtomic(contextStorePath(agentDir), append(data, '\n')); err != nil {
+	if err := lock.Write(append(data, '\n')); err != nil {
 		return fmt.Errorf("write context store: %w", err)
 	}
 	return nil
 }
 
+// normalizeGitRemoteKey reduces a remote URL to a provider-neutral key, so
+// every clone and worktree of one repository shares one binding. Credentials,
+// protocol, port, a trailing slash and a `.git` suffix are dropped, and the
+// key is lowercased because hosts and the common forges treat repository
+// paths case-insensitively.
 func normalizeGitRemoteKey(raw string) (string, error) {
 	value := strings.TrimSpace(raw)
 	if value == "" {
@@ -93,7 +144,9 @@ func normalizeGitRemoteKey(raw string) (string, error) {
 		return "", fmt.Errorf("cannot parse Git remote %q", raw)
 	}
 	host := strings.ToLower(parsed.Hostname())
-	repositoryPath := strings.Trim(strings.TrimSuffix(parsed.EscapedPath(), ".git"), "/")
+	// Trim the slashes first: "…/repo.git/" would otherwise keep its suffix,
+	// because TrimSuffix sees the trailing slash.
+	repositoryPath := strings.TrimSuffix(strings.Trim(parsed.EscapedPath(), "/"), ".git")
 	decoded, err := url.PathUnescape(repositoryPath)
 	if err != nil {
 		return "", fmt.Errorf("decode Git remote path: %w", err)
@@ -108,7 +161,7 @@ func normalizeGitRemoteKey(raw string) (string, error) {
 	if host == "" || !validPath {
 		return "", fmt.Errorf("Git remote %q has no canonical host/repository path", raw)
 	}
-	return "git:" + host + "/" + decoded, nil
+	return "git:" + host + "/" + strings.ToLower(decoded), nil
 }
 
 var contextWorkingDirectory = os.Getwd
@@ -147,49 +200,56 @@ func gitRemoteKeyAt(directory string) (string, bool) {
 	return key, err == nil
 }
 
-func nearestDirectoryBinding(directory string, bindings map[string]contextBinding) (string, contextBinding, bool) {
-	for current := directory; ; current = filepath.Dir(current) {
-		if binding, ok := bindings[current]; ok {
-			return current, binding, true
-		}
-		parent := filepath.Dir(current)
-		if parent == current {
-			break
-		}
-	}
-	return "", contextBinding{}, false
-}
-
-func resolveContextBinding(agentDir, directory string) (resolvedActivationBinding, error) {
+// contextLocationKey returns the key for directory (or the working directory):
+// its normalized Git remote, or "dir:" plus the canonical directory outside a
+// repository.
+func contextLocationKey(directory string) (string, error) {
 	canonical, err := canonicalDirectory(directory)
 	if err != nil {
-		return resolvedActivationBinding{}, err
+		return "", err
+	}
+	if key, ok := gitRemoteKeyAt(canonical); ok {
+		return key, nil
+	}
+	return "dir:" + canonical, nil
+}
+
+// identityDefaultBinding returns the identity-wide team/diary pair from the
+// identity env file, when both are set.
+func identityDefaultBinding(agentDir string) (contextBinding, bool) {
+	env, err := parseEnvFile(filepath.Join(agentDir, "env"))
+	if err != nil {
+		return contextBinding{}, false
+	}
+	binding := contextBinding{
+		TeamID:  strings.TrimSpace(env["MOLTNET_TEAM_ID"]),
+		DiaryID: strings.TrimSpace(env["MOLTNET_DIARY_ID"]),
+	}
+	if binding.TeamID == "" || binding.DiaryID == "" {
+		return contextBinding{}, false
+	}
+	return binding, true
+}
+
+// resolveContextBinding resolves the team/diary for directory: the binding
+// stored for its location if there is one, otherwise the identity default.
+func resolveContextBinding(agentDir, directory string) (resolvedContextBinding, error) {
+	key, err := contextLocationKey(directory)
+	if err != nil {
+		return resolvedContextBinding{}, err
 	}
 	store, err := readContextStore(agentDir)
 	if err != nil {
-		return resolvedActivationBinding{}, err
+		return resolvedContextBinding{}, err
 	}
-	if boundDirectory, binding, ok := nearestDirectoryBinding(canonical, store.Directories); ok {
+	if binding, ok := store.Contexts[key]; ok {
 		copy := binding
-		return resolvedActivationBinding{Key: "dir:" + boundDirectory, Source: "directory", Directory: boundDirectory, Binding: &copy}, nil
+		return resolvedContextBinding{Key: key, Source: contextSourceLocation, Binding: &copy}, nil
 	}
-	if key, ok := gitRemoteKeyAt(canonical); ok {
-		if binding, found := store.Repositories[key]; found {
-			copy := binding
-			return resolvedActivationBinding{Key: key, Source: "repository", Binding: &copy}, nil
-		}
-		if store.Default != nil {
-			copy := *store.Default
-			return resolvedActivationBinding{Key: key, Source: "default", Binding: &copy}, nil
-		}
-		return resolvedActivationBinding{Key: key}, nil
+	if binding, ok := identityDefaultBinding(agentDir); ok {
+		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding}, nil
 	}
-	key := "dir:" + canonical
-	if store.Default != nil {
-		copy := *store.Default
-		return resolvedActivationBinding{Key: key, Source: "default", Binding: &copy}, nil
-	}
-	return resolvedActivationBinding{Key: key}, nil
+	return resolvedContextBinding{Key: key}, nil
 }
 
 func activationCachePathForContext(agentDir, contextKey string) string {
@@ -204,104 +264,43 @@ func validateContextBinding(binding contextBinding) error {
 	return nil
 }
 
-func setContextBinding(agentDir, directory string, binding contextBinding, makeDefault bool, directoryOverride string) (resolvedActivationBinding, error) {
+// setContextBinding binds directory's location (the working directory when
+// empty) to binding.
+func setContextBinding(agentDir, directory string, binding contextBinding) (resolvedContextBinding, error) {
 	if err := validateContextBinding(binding); err != nil {
-		return resolvedActivationBinding{}, err
+		return resolvedContextBinding{}, err
 	}
-	store, err := readContextStore(agentDir)
+	key, err := contextLocationKey(directory)
 	if err != nil {
-		return resolvedActivationBinding{}, err
+		return resolvedContextBinding{}, err
 	}
-	if makeDefault {
-		copy := binding
-		store.Default = &copy
-		if err := writeContextStore(agentDir, store); err != nil {
-			return resolvedActivationBinding{}, err
+	if err := updateContextStore(agentDir, func(store *contextStore) {
+		if store.Contexts == nil {
+			store.Contexts = map[string]contextBinding{}
 		}
-		return resolvedActivationBinding{Key: "default", Source: "default", Binding: &copy}, nil
-	}
-	if directoryOverride != "" {
-		canonical, err := canonicalDirectory(directoryOverride)
-		if err != nil {
-			return resolvedActivationBinding{}, err
-		}
-		if store.Directories == nil {
-			store.Directories = map[string]contextBinding{}
-		}
-		store.Directories[canonical] = binding
-		if err := writeContextStore(agentDir, store); err != nil {
-			return resolvedActivationBinding{}, err
-		}
-		copy := binding
-		return resolvedActivationBinding{Key: "dir:" + canonical, Source: "directory", Directory: canonical, Binding: &copy}, nil
-	}
-	canonical, err := canonicalDirectory(directory)
-	if err != nil {
-		return resolvedActivationBinding{}, err
-	}
-	if key, ok := gitRemoteKeyAt(canonical); ok {
-		if store.Repositories == nil {
-			store.Repositories = map[string]contextBinding{}
-		}
-		store.Repositories[key] = binding
-		if err := writeContextStore(agentDir, store); err != nil {
-			return resolvedActivationBinding{}, err
-		}
-		copy := binding
-		return resolvedActivationBinding{Key: key, Source: "repository", Binding: &copy}, nil
-	}
-	if store.Directories == nil {
-		store.Directories = map[string]contextBinding{}
-	}
-	store.Directories[canonical] = binding
-	if err := writeContextStore(agentDir, store); err != nil {
-		return resolvedActivationBinding{}, err
+		store.Contexts[key] = binding
+	}); err != nil {
+		return resolvedContextBinding{}, err
 	}
 	copy := binding
-	return resolvedActivationBinding{Key: "dir:" + canonical, Source: "directory", Directory: canonical, Binding: &copy}, nil
+	return resolvedContextBinding{Key: key, Source: contextSourceLocation, Binding: &copy}, nil
 }
 
-func clearContextBinding(agentDir, directory string, clearDefault bool, directoryOverride string) (string, error) {
-	store, err := readContextStore(agentDir)
+// clearContextBinding removes the binding for directory's location. It reports
+// whether one existed, so callers never announce a change that did not happen.
+func clearContextBinding(agentDir, directory string) (string, bool, error) {
+	key, err := contextLocationKey(directory)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	if clearDefault {
-		store.Default = nil
-		return "default", writeContextStore(agentDir, store)
+	removed := false
+	if err := updateContextStore(agentDir, func(store *contextStore) {
+		if _, ok := store.Contexts[key]; ok {
+			delete(store.Contexts, key)
+			removed = true
+		}
+	}); err != nil {
+		return "", false, err
 	}
-	canonical, err := canonicalDirectory(firstNonEmpty(directoryOverride, directory))
-	if err != nil {
-		return "", err
-	}
-	if directoryOverride != "" {
-		delete(store.Directories, canonical)
-		return "dir:" + canonical, writeContextStore(agentDir, store)
-	}
-	resolved, err := resolveContextBinding(agentDir, canonical)
-	if err != nil {
-		return "", err
-	}
-	if resolved.Source == "directory" {
-		delete(store.Directories, resolved.Directory)
-		return resolved.Key, writeContextStore(agentDir, store)
-	}
-	if key, ok := gitRemoteKeyAt(canonical); ok {
-		delete(store.Repositories, key)
-		return key, writeContextStore(agentDir, store)
-	}
-	delete(store.Directories, canonical)
-	return "dir:" + canonical, writeContextStore(agentDir, store)
-}
-
-func contextStoreKeys(store *contextStore) []string {
-	keys := make([]string, 0, len(store.Repositories)+len(store.Directories))
-	for key := range store.Repositories {
-		keys = append(keys, key)
-	}
-	for key := range store.Directories {
-		keys = append(keys, "dir:"+key)
-	}
-	sort.Strings(keys)
-	return keys
+	return key, removed, nil
 }

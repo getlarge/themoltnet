@@ -325,9 +325,7 @@ func TestEnvCheckPass(t *testing.T) {
 			PrivateKeyRef: &SecretReference{Provider: "file", Key: "fixture"},
 		},
 	}, filepath.Join(agentDir, "moltnet.json"))
-	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{TeamID: contextTestTeam, DiaryID: contextTestDiary}}); err != nil {
-		t.Fatal(err)
-	}
+	writeStartTestContext(t, agentDir)
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644)
@@ -364,9 +362,7 @@ func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 	}, filepath.Join(agentDir, "moltnet.json")); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{TeamID: contextTestTeam, DiaryID: contextTestDiary}}); err != nil {
-		t.Fatal(err)
-	}
+	writeStartTestContext(t, agentDir)
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	if err := os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -415,11 +411,13 @@ func TestEnvCheckMissingVars(t *testing.T) {
 
 // --- start command tests ---
 
+// writeStartTestContext binds the working directory's location — the one
+// start, activation and env check resolve — through the real write path.
 func writeStartTestContext(t *testing.T, agentDir string) {
 	t.Helper()
-	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{
+	if _, err := setContextBinding(agentDir, "", contextBinding{
 		TeamID: contextTestTeam, DiaryID: contextTestDiary,
-	}}); err != nil {
+	}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -624,5 +622,98 @@ func TestStartMissingEnvFile(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "env") {
 		t.Errorf("expected error about env file, got: %v", err)
+	}
+}
+
+// setupStartUnboundFixture builds an identity with no location binding, run
+// from a plain folder, with envExtra appended to the identity env file.
+func setupStartUnboundFixture(t *testing.T, envExtra string) string {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := WriteConfigTo(&CredentialsFile{
+		SubjectID: "test-identity",
+		OAuth2:    CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
+	}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	gitconfig := filepath.Join(agentDir, "gitconfig")
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte("GIT_CONFIG_GLOBAL='"+gitconfig+"'\n"+envExtra), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	location := t.TempDir()
+	original := contextWorkingDirectory
+	contextWorkingDirectory = func() (string, error) { return location, nil }
+	t.Cleanup(func() { contextWorkingDirectory = original })
+	return location
+}
+
+// Upgrading must never stop an agent from starting. A launch that cannot ask
+// for a binding keeps the identity default, exactly as before per-location
+// contexts existed, and says which one applied.
+func TestStartUnboundLocationUsesIdentityDefault(t *testing.T) {
+	location := setupStartUnboundFixture(t, fmt.Sprintf("MOLTNET_TEAM_ID='%s'\nMOLTNET_DIARY_ID='%s'\n", contextTestTeam, contextTestDiary))
+	root := NewRootCmd("test", "")
+	stdout, stderr, err := executeCommand(root, "start", "echo", "--identity", "test-agent", "--dry-run")
+	if err != nil {
+		t.Fatalf("start must not fail on an unbound location: %v", err)
+	}
+	if !strings.Contains(stdout, "MOLTNET_TEAM_ID="+contextTestTeam) || !strings.Contains(stdout, "MOLTNET_DIARY_ID="+contextTestDiary) {
+		t.Fatalf("identity default was not exported: %s", stdout)
+	}
+	canonical, err := canonicalDirectory(location)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, "MOLTNET_CONTEXT_KEY=dir:"+canonical) {
+		t.Fatalf("context key for the location was not exported: %s", stdout)
+	}
+	// Assert the identity-default branch specifically: the env IDs reach the
+	// child either way (start exports the env file), so the notice is the only
+	// observable proof that resolution fell back to the identity default.
+	if !strings.Contains(stderr, "using the identity default") || strings.Contains(stderr, "no identity default") {
+		t.Fatalf("expected the identity-default notice, got stderr: %q", stderr)
+	}
+}
+
+// With neither a location binding nor an identity default, start still
+// launches — team and diary were always optional — and says nothing is set.
+func TestStartWithNoContextAtAllStillStarts(t *testing.T) {
+	setupStartUnboundFixture(t, "")
+	root := NewRootCmd("test", "")
+	stdout, stderr, err := executeCommand(root, "start", "echo", "--identity", "test-agent", "--dry-run")
+	if err != nil {
+		t.Fatalf("start must not fail without any team or diary: %v", err)
+	}
+	if strings.Contains(stdout, "MOLTNET_DIARY_ID=") {
+		t.Fatalf("no diary should be exported: %s", stdout)
+	}
+	if !strings.Contains(stderr, "no identity default") {
+		t.Fatalf("expected a notice that nothing is set, got stderr: %q", stderr)
+	}
+}
+
+// A location binding wins over the identity default and needs no notice.
+func TestStartBoundLocationOverridesIdentityDefault(t *testing.T) {
+	setupStartUnboundFixture(t, fmt.Sprintf("MOLTNET_TEAM_ID='%s'\nMOLTNET_DIARY_ID='%s'\n", contextTestTeam, contextTestDiary))
+	agentDir := filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "identities", "test-agent")
+	bound := "00000000-0000-4000-8000-000000000003"
+	if _, err := setContextBinding(agentDir, "", contextBinding{TeamID: contextTestTeam, DiaryID: bound}); err != nil {
+		t.Fatal(err)
+	}
+	root := NewRootCmd("test", "")
+	stdout, stderr, err := executeCommand(root, "start", "echo", "--identity", "test-agent", "--dry-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdout, "MOLTNET_DIARY_ID="+bound) {
+		t.Fatalf("location binding did not override the identity default: %s", stdout)
+	}
+	if strings.Contains(stderr, "notice:") {
+		t.Fatalf("a bound location needs no notice, got stderr: %q", stderr)
 	}
 }

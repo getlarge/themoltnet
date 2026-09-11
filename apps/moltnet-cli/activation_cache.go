@@ -21,7 +21,11 @@ import (
 // discovered or reused.
 const activationCacheVersion = 8
 
-var requiredActivationInputs = []string{"contexts", "credentials", "env", "gitconfig", "sshPublicKey"}
+// contexts.json is deliberately not a hashed input. The resolved team, diary,
+// context key and source are compared field by field in
+// activationMetadataEqual, so binding one location does not invalidate the
+// warm cache of every other location.
+var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
 type activationCache struct {
 	Version              int               `json:"version"`
@@ -92,7 +96,7 @@ type activationContext struct {
 	EnvPath   string
 	EnvVars   map[string]string
 	CachePath string
-	Context   resolvedActivationBinding
+	Context   resolvedContextBinding
 }
 
 func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) error {
@@ -123,16 +127,6 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) e
 	if err != nil {
 		return err
 	}
-	if ctx.Context.Binding == nil {
-		result := invalidActivation("context_binding_missing", nil)
-		if err := printActivationValidationResult(w, result, jsonOut); err != nil {
-			return err
-		}
-		if jsonOut {
-			return nil
-		}
-		return fmt.Errorf("context_binding_missing: run 'moltnet context set' or 'moltnet context set --default'")
-	}
 	cache, err := buildActivationCache(ctx)
 	if err != nil {
 		return err
@@ -143,8 +137,10 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) e
 	if err := verifyAndPinIdentity(ctx, cache); err != nil {
 		return err
 	}
-	if err := verifyContextBindingOnline(ctx.AgentDir, *ctx.Context.Binding); err != nil {
-		return err
+	if ctx.Context.Binding != nil {
+		if err := verifyContextBindingOnline(ctx.AgentDir, *ctx.Context.Binding); err != nil {
+			return err
+		}
 	}
 	if err := writeActivationCache(ctx.CachePath, cache); err != nil {
 		return err
@@ -225,9 +221,6 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error 
 }
 
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {
-	if ctx.Context.Binding == nil {
-		return nil, fmt.Errorf("context_binding_missing: run 'moltnet context set' or 'moltnet context set --default'")
-	}
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
@@ -275,7 +268,6 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		filepath.Join("ssh", "id_ed25519.pub"),
 	)
 	for name, path := range map[string]string{
-		"contexts":     contextStorePath(ctx.AgentDir),
 		"env":          ctx.EnvPath,
 		"gitconfig":    gitconfigPath,
 		"credentials":  credentialsPath,
@@ -293,8 +285,8 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		Version:              activationCacheVersion,
 		AgentName:            ctx.AgentName,
 		Fingerprint:          fingerprint,
-		DiaryID:              ctx.Context.Binding.DiaryID,
-		TeamID:               ctx.Context.Binding.TeamID,
+		DiaryID:              ctx.Context.diaryID(),
+		TeamID:               ctx.Context.teamID(),
 		ContextKey:           ctx.Context.Key,
 		ContextSource:        ctx.Context.Source,
 		GitConfigGlobal:      relativeToRepo(ctx.AgentDir, gitconfigPath),
@@ -314,9 +306,6 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 }
 
 func validateActivationCache(ctx *activationContext) (*activationValidationResult, error) {
-	if ctx.Context.Binding == nil {
-		return invalidActivation("context_binding_missing", nil), nil
-	}
 	cache, err := readActivationCache(ctx.CachePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

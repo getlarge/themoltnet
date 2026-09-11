@@ -133,7 +133,7 @@ func TestAgentsActivationRejectsCacheCopiedFromAnotherRepository(t *testing.T) {
 		AgentDir:  agentDir,
 		AgentName: "test-agent",
 		CachePath: cachePath,
-		Context: resolvedActivationBinding{
+		Context: resolvedContextBinding{
 			Key:     "git:github.com/right/repository",
 			Binding: &contextBinding{TeamID: contextTestTeam, DiaryID: contextTestDiary},
 		},
@@ -558,12 +558,6 @@ func setupActivationCacheFixtureWithIdentity(
 	}
 	env := "MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'\nMOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'\nGIT_CONFIG_GLOBAL='gitconfig'\n"
 	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := writeContextStore(agentDir, &contextStore{Default: &contextBinding{
-		TeamID:  "00000000-0000-4000-8000-000000000011",
-		DiaryID: "00000000-0000-4000-8000-000000000001",
-	}}); err != nil {
 		t.Fatal(err)
 	}
 	server, identityAnswer := startActivationIdentityServer(t)
@@ -1199,5 +1193,58 @@ func TestAgentsActivationRefreshAcceptsRelinkedIdentityID(t *testing.T) {
 	// Assert.
 	if err != nil {
 		t.Fatalf("refresh rejected a relinked identity_id with matching key material: %v", err)
+	}
+}
+
+func useActivationTestLocation(t *testing.T) {
+	t.Helper()
+	location := t.TempDir()
+	original := contextWorkingDirectory
+	contextWorkingDirectory = func() (string, error) { return location, nil }
+	t.Cleanup(func() { contextWorkingDirectory = original })
+}
+
+// The online check must reject a diary that belongs to a different team than
+// the one bound. The fixture server reports diary …0001 as owned by team
+// …0011; without a mismatch case, disabling the check went unnoticed.
+func TestAgentsActivationRefreshRejectsDiaryFromAnotherTeam(t *testing.T) {
+	dir := setupActivationCacheFixture(t)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
+	useActivationTestLocation(t)
+	if _, err := setContextBinding(agentDir, "", contextBinding{
+		TeamID:  "00000000-0000-4000-8000-000000000099",
+		DiaryID: "00000000-0000-4000-8000-000000000001",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", false)
+	if err == nil || !strings.Contains(err.Error(), "belongs to team") {
+		t.Fatalf("refresh must reject a diary from another team, got: %v", err)
+	}
+}
+
+// `moltnet agents init` finishes with exactly this call. A fresh identity has
+// no team or diary yet, so refresh must succeed without one instead of making
+// init report failure after it has already succeeded.
+func TestAgentsActivationRefreshWithoutAnyContextSucceeds(t *testing.T) {
+	dir := setupActivationCacheFixture(t)
+	envPath := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "env")
+	raw, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept []string
+	for _, line := range strings.Split(string(raw), "\n") {
+		if strings.HasPrefix(line, "MOLTNET_TEAM_ID=") || strings.HasPrefix(line, "MOLTNET_DIARY_ID=") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	if err := os.WriteFile(envPath, []byte(strings.Join(kept, "\n")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	useActivationTestLocation(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", false); err != nil {
+		t.Fatalf("refresh without a team or diary must succeed (agents init depends on it): %v", err)
 	}
 }

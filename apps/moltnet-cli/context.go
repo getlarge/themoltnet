@@ -19,21 +19,18 @@ import (
 )
 
 type contextCommandOptions struct {
-	Identity  string
-	TeamID    string
-	DiaryID   string
-	Directory string
-	Default   bool
-	JSON      bool
+	Identity string
+	TeamID   string
+	DiaryID  string
+	JSON     bool
 }
 
 type contextShowResult struct {
-	ContextKey      string `json:"contextKey"`
-	Identity        string `json:"identity"`
-	TeamID          string `json:"teamId,omitempty"`
-	DiaryID         string `json:"diaryId,omitempty"`
-	Source          string `json:"source,omitempty"`
-	LegacyAvailable bool   `json:"legacyAvailable,omitempty"`
+	ContextKey string `json:"contextKey"`
+	Identity   string `json:"identity"`
+	Source     string `json:"source,omitempty"`
+	TeamID     string `json:"teamId,omitempty"`
+	DiaryID    string `json:"diaryId,omitempty"`
 }
 
 func contextIdentity(identity string) (string, string, error) {
@@ -50,7 +47,7 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	if err != nil {
 		return err
 	}
-	resolved, err := resolveContextBinding(agentDir, opts.Directory)
+	resolved, err := resolveContextBinding(agentDir, "")
 	if err != nil {
 		return err
 	}
@@ -58,19 +55,13 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	if resolved.Binding != nil {
 		result.TeamID = resolved.Binding.TeamID
 		result.DiaryID = resolved.Binding.DiaryID
-	} else {
-		env, _ := parseEnvFile(filepath.Join(agentDir, "env"))
-		result.LegacyAvailable = env["MOLTNET_TEAM_ID"] != "" || env["MOLTNET_DIARY_ID"] != ""
 	}
 	if opts.JSON {
 		return json.NewEncoder(cmd.OutOrStdout()).Encode(result)
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Context:  %s\nIdentity: %s\n", result.ContextKey, result.Identity)
+	fmt.Fprintf(cmd.OutOrStdout(), "Location: %s\nIdentity: %s\n", result.ContextKey, result.Identity)
 	if resolved.Binding == nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none")
-		if result.LegacyAvailable {
-			fmt.Fprintln(cmd.OutOrStdout(), "Legacy team/diary settings are available. Run 'moltnet context set' to bind them explicitly; they were not promoted automatically.")
-		}
+		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none — run 'moltnet context set' to bind this location")
 		return nil
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "Source:   %s\nTeam:     %s\nDiary:    %s\n", result.Source, result.TeamID, result.DiaryID)
@@ -78,9 +69,6 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 }
 
 func runContextSetCmd(cmd *cobra.Command, opts contextCommandOptions) error {
-	if opts.Default && opts.Directory != "" {
-		return fmt.Errorf("--default and --directory are mutually exclusive")
-	}
 	alias, agentDir, err := contextIdentity(opts.Identity)
 	if err != nil {
 		return err
@@ -90,34 +78,35 @@ func runContextSetCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	}
 	if opts.TeamID == "" {
 		if !contextCommandInteractive(cmd) {
-			return fmt.Errorf("context binding requires --team-id and --diary-id in non-interactive use")
+			return fmt.Errorf("context set requires --team-id and --diary-id in non-interactive use")
 		}
 		opts.TeamID, opts.DiaryID, err = guidedContextBinding(cmd, agentDir)
 		if err != nil {
 			return err
 		}
 	}
-	resolved, err := setContextBinding(agentDir, "", contextBinding{TeamID: opts.TeamID, DiaryID: opts.DiaryID}, opts.Default, opts.Directory)
+	resolved, err := setContextBinding(agentDir, "", contextBinding{TeamID: opts.TeamID, DiaryID: opts.DiaryID})
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Set %s context %s for %s (team %s, diary %s)\n", resolved.Source, resolved.Key, alias, opts.TeamID, opts.DiaryID)
+	fmt.Fprintf(cmd.OutOrStdout(), "Bound %s for %s (team %s, diary %s)\n", resolved.Key, alias, opts.TeamID, opts.DiaryID)
 	return nil
 }
 
 func runContextClearCmd(cmd *cobra.Command, opts contextCommandOptions) error {
-	if opts.Default && opts.Directory != "" {
-		return fmt.Errorf("--default and --directory are mutually exclusive")
-	}
 	alias, agentDir, err := contextIdentity(opts.Identity)
 	if err != nil {
 		return err
 	}
-	key, err := clearContextBinding(agentDir, "", opts.Default, opts.Directory)
+	key, removed, err := clearContextBinding(agentDir, "")
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Cleared context %s for %s\n", key, alias)
+	if !removed {
+		fmt.Fprintf(cmd.OutOrStdout(), "No binding for %s; nothing to clear (the identity default still applies)\n", key)
+		return nil
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Cleared %s for %s\n", key, alias)
 	return nil
 }
 
@@ -127,22 +116,19 @@ func contextCommandInteractive(cmd *cobra.Command) bool {
 }
 
 func guidedContextBinding(cmd *cobra.Command, agentDir string) (string, string, error) {
-	legacy, _ := parseEnvFile(filepath.Join(agentDir, "env"))
-	legacyTeam := strings.TrimSpace(legacy["MOLTNET_TEAM_ID"])
-	legacyDiary := strings.TrimSpace(legacy["MOLTNET_DIARY_ID"])
 	reader := bufio.NewReader(cmd.InOrStdin())
-	if legacyTeam != "" && legacyDiary != "" {
-		choice, err := promptChoice(cmd.OutOrStdout(), reader, "Legacy team and diary settings were found", 2, func(index int) string {
+	if identityDefault, ok := identityDefaultBinding(agentDir); ok {
+		choice, err := promptChoice(cmd.OutOrStdout(), reader, "This identity's default team and diary are set", 2, func(index int) string {
 			if index == 0 {
-				return "Use them for this binding"
+				return fmt.Sprintf("Use them for this location (team %s, diary %s)", identityDefault.TeamID, identityDefault.DiaryID)
 			}
-			return "Choose a binding online"
+			return "Choose a team and diary online"
 		})
 		if err != nil {
 			return "", "", err
 		}
 		if choice == 0 {
-			return legacyTeam, legacyDiary, nil
+			return identityDefault.TeamID, identityDefault.DiaryID, nil
 		}
 	}
 	credentialsPath := filepath.Join(agentDir, "moltnet.json")

@@ -238,13 +238,14 @@ The CLI resolves the installation for the target repository through GitHub, then
 mints a token restricted to that repository and the required permission set.
 Tokens and permission evidence are written atomically under
 `~/.config/moltnet/identities/<alias>/gh-token-cache/`, keyed by App,
-installation, repository, and permissions. A configured installation ID is only
-a compatibility hint for legacy calls made outside a repository. Refresh
-failures are cached for 30 seconds to avoid retry storms. Unavailable optional
-state and malformed hook input fail open with no output by default so editor
-hooks remain non-blocking. Set `MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes
-when permission state is unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an
-emergency editor-session kill switch.
+repository, and permissions; the repository's installation is resolved on a
+cache miss and cached separately. A configured installation ID is only a
+compatibility hint for legacy calls made outside a repository. Refresh failures
+are cached for 30 seconds to avoid retry storms. Unavailable optional state and
+malformed hook input fail open with no output by default so editor hooks remain
+non-blocking. Set `MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes when permission
+state is unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an emergency
+editor-session kill switch.
 
 For writes supported by the App, scope its token to the single command:
 
@@ -294,45 +295,49 @@ active identity, and execs the target binary with the correct environment.
 
 ### Activation contexts
 
-The selected identity stores team/diary mappings in the versioned
-`~/.config/moltnet/identities/<alias>/contexts.json`. Resolution uses the first
-match in this order:
+A context is the team and diary an agent works in, chosen by **where the command
+runs**:
 
-1. an explicit directory override for the current folder or worktree;
-2. the normalized Git remote (`git:<host>/<namespace>/<repository>`);
-3. the nearest configured ancestor directory outside Git;
-4. the identity-wide default binding.
+- inside a Git repository, the location is its normalized remote
+  (`git:<host>/<namespace>/<repository>`), so every clone, worktree, and
+  subdirectory of one repository shares a context;
+- anywhere else, the location is the directory itself.
 
-The remote key is provider-neutral and strips protocol, credentials, port, and
-the `.git` suffix. Clones and ordinary worktrees of the same remote therefore
-share a binding, while `--directory <path>` can give one worktree an explicit
-override. A non-Git folder inherits its nearest directory binding.
+Each location has one lookup and one of two answers:
+
+| Source             | Meaning                                                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `location`         | a binding stored for this location in `~/.config/moltnet/identities/<alias>/contexts.json`                                      |
+| `identity-default` | no binding here, so the identity's `MOLTNET_TEAM_ID` / `MOLTNET_DIARY_ID` from its `env` file apply, exactly as they always did |
+
+A binding never reaches past its own location: binding a folder does not change
+the repositories inside it. The remote key drops protocol, credentials, port, a
+trailing slash, and the `.git` suffix, and is lowercased.
 
 ```bash
-moltnet context show
-moltnet context set                         # guided picker
-moltnet context set --team-id <id> --diary-id <id>
-moltnet context set --default --team-id <id> --diary-id <id>
-moltnet context set --directory <path> --team-id <id> --diary-id <id>
-moltnet context clear                       # current explicit binding
-moltnet context clear --default
+moltnet context show                               # what applies here, and where it comes from
+moltnet context set                                # guided picker for this location
+moltnet context set --team-id <id> --diary-id <id> # non-interactive
+moltnet context clear                              # remove this location's binding
 ```
 
-Legacy team/diary values in `env` are reported and offered during guided setup,
-but are never promoted automatically.
-`moltnet env configure --team-id ... --diary-id ...` remains compatible and also
-writes the current context. Interactive `moltnet start` opens guided setup when
-no binding resolves; non-interactive activation returns
-`context_binding_missing` with the commands needed to configure one.
+When `moltnet start` runs somewhere with no binding and can prompt, it asks for
+one and pre-selects the identity default. When it cannot prompt (CI, headless),
+it keeps the identity default and prints a one-line notice naming the location.
+Team and diary stay optional: with neither a binding nor an identity default,
+`start` and activation still run. `--dry-run` never prompts or writes.
 
-After the first successful activation, LeGreffier uses a separate cache for each
-resolved context under
-`~/.config/moltnet/identities/<alias>/activation-caches/`. Defaults do not merge
-those caches: every repository or folder keeps its own cache key. Warm
-activation validates local input hashes offline. Refresh verifies the selected
-identity and confirms that the diary belongs to the configured team online. A
-cache copied from another hosted repository is rejected as `repo_mismatch`.
-Transport remains session-local and is not stored in the cache.
+A binding routes work; it is not a trust boundary. A repository is recognised by
+its `origin` URL, which the working tree controls, so a clone that points
+`origin` at another repository resolves to that repository's context.
+
+After the first successful activation, LeGreffier keeps one cache per location
+under `~/.config/moltnet/identities/<alias>/activation-caches/`. Warm activation
+validates local inputs offline. Refresh verifies the selected identity and, when
+a team and diary are set, confirms online that the diary belongs to that team.
+Binding one location does not invalidate another location's cache. A cache
+copied from another location is rejected as `repo_mismatch`. Transport remains
+session-local and is not stored in the cache.
 
 ### Identity verification
 
@@ -389,16 +394,18 @@ The env file is written by `moltnet agents init` and regenerated by
   from `moltnet.json` at launch
 - `MOLTNET_FINGERPRINT` is written from `moltnet.json` so warm activation can
   skip `whoami`
-- Legacy user-managed team/diary keys and custom vars are preserved
-- `moltnet env configure` updates authorship values and delegates complete
-  team/diary pairs to the current activation context
+- User-managed keys are preserved: `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID` (the
+  identity default used wherever no location is bound), custom vars
+- `moltnet env configure` updates the identity default team/diary and authorship
+  values atomically; per-location bindings are managed with `moltnet context`
 
 Team onboarding flow:
 
 1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
-3. Each dev runs `moltnet context set --identity <alias>` and selects the shared
-   diary. Automation can pass `--team-id` and `--diary-id` instead.
+3. Each dev runs `moltnet context set --identity <alias>` inside the project and
+   selects the shared diary. Automation can pass `--team-id` and `--diary-id`
+   instead.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
@@ -408,9 +415,13 @@ For the full ordering, including human ownership, agent onboarding, Tasks, and
 Solo flow:
 
 1. `moltnet agents init --name <agent>`
-2. `moltnet context set --default`
-3. `moltnet env check`
-4. `moltnet start claude`
+2. `moltnet env check`
+3. `moltnet start claude` — the first run in each location asks which team and
+   diary to use
+
+To use one team and diary everywhere, set them once as the identity default with
+`moltnet env configure --team-id <id> --diary-id <id>`; each new location then
+pre-selects them.
 
 ## How the runtime consumes this identity
 

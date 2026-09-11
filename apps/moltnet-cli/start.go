@@ -41,21 +41,31 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	if err != nil {
 		return err
 	}
-	if resolvedContext.Binding == nil && contextCommandInteractive(cmd) {
+	// Ask for a binding wherever this runs without one — but only when it can
+	// ask, and never on a dry run, which must not write anything. A launch that
+	// cannot ask keeps the identity default, exactly as before per-location
+	// contexts existed, so upgrading never stops an agent from starting.
+	if resolvedContext.Source != contextSourceLocation && !dryRun && contextCommandInteractive(cmd) {
 		teamID, diaryID, setupErr := guidedContextBinding(cmd, agentDir)
 		if setupErr != nil {
 			return setupErr
 		}
-		resolvedContext, setupErr = setContextBinding(agentDir, "", contextBinding{TeamID: teamID, DiaryID: diaryID}, false, "")
+		resolvedContext, setupErr = setContextBinding(agentDir, "", contextBinding{TeamID: teamID, DiaryID: diaryID})
 		if setupErr != nil {
 			return setupErr
 		}
 	}
-	if resolvedContext.Binding == nil {
-		return fmt.Errorf("context_binding_missing: run 'moltnet context set --team-id <team> --diary-id <diary>' or 'moltnet context set --default'")
+	switch resolvedContext.Source {
+	case contextSourceLocation:
+	case contextSourceIdentityDefault:
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s; using the identity default team and diary (run 'moltnet context set' to bind this location)\n", resolvedContext.Key)
+	default:
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s and no identity default team and diary are set (run 'moltnet context set' to bind this location)\n", resolvedContext.Key)
 	}
-	vars["MOLTNET_TEAM_ID"] = resolvedContext.Binding.TeamID
-	vars["MOLTNET_DIARY_ID"] = resolvedContext.Binding.DiaryID
+	if resolvedContext.Binding != nil {
+		vars["MOLTNET_TEAM_ID"] = resolvedContext.Binding.TeamID
+		vars["MOLTNET_DIARY_ID"] = resolvedContext.Binding.DiaryID
+	}
 	vars["MOLTNET_CONTEXT_KEY"] = resolvedContext.Key
 	credentialVars, err := resolveAgentOAuth2Environment(agentDir, agentName, registry)
 	if err != nil {

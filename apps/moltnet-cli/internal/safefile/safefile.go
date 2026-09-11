@@ -124,6 +124,15 @@ func (l *Lock) Replace(expected, updated []byte, limit int64) error {
 	return writeLocked(l.path, updated)
 }
 
+// Write atomically replaces the locked file, creating it when it does not
+// exist yet. It is the write half of a read-modify-write performed under one
+// held lock: Replace needs an existing file to compare against, and the
+// package-level Write acquires the lock itself, which would block on a lock
+// the caller already holds.
+func (l *Lock) Write(data []byte) error {
+	return writeLocked(l.path, data)
+}
+
 // Write atomically replaces path while holding the shared CLI writer lock.
 func Write(path string, data []byte) error {
 	lock, err := Acquire(path)
