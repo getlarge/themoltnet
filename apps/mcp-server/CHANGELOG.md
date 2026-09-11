@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.23.0...mcp-server-v0.23.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **mcp-server:** advertise supported scopes in OAuth discovery metadata ([34cbf70](https://github.com/getlarge/themoltnet/commit/34cbf706bfe6ecdd3a0fa4ca12669dbd73bd2712))
+* **mcp-server:** advertise supported scopes in OAuth discovery metadata ([ac3a6bf](https://github.com/getlarge/themoltnet/commit/ac3a6bf1c88e896045c27dcc2e8349527c39649e))
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.22.3...mcp-server-v0.23.0) (2026-09-09)
 
 

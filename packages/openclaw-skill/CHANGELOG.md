@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.1](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.30.0...openclaw-skill-v0.30.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **cli:** make OAuth2 the default authentication path ([086f990](https://github.com/getlarge/themoltnet/commit/086f990e74170966c1097fdb3438117005dd52df))
+* **cli:** prefer OAuth2 over agent keys ([e5aa870](https://github.com/getlarge/themoltnet/commit/e5aa870460a331da860cde22316c7a6743fd2bef))
+
 ## [0.30.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.29.0...openclaw-skill-v0.30.0) (2026-08-14)
 
 

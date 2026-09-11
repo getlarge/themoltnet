@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.4.0...n8n-nodes-moltnet-v0.4.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **auth:** align credential selection boundaries ([da5c039](https://github.com/getlarge/themoltnet/commit/da5c039b6ea8a87528534e6fbca4e923f13e7cc5))
+* **cli:** make OAuth2 the default authentication path ([086f990](https://github.com/getlarge/themoltnet/commit/086f990e74170966c1097fdb3438117005dd52df))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.6...n8n-nodes-moltnet-v0.4.0) (2026-09-09)
 
 

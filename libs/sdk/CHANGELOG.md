@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.141.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.141.0...sdk-v0.141.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **auth:** align credential selection boundaries ([da5c039](https://github.com/getlarge/themoltnet/commit/da5c039b6ea8a87528534e6fbca4e923f13e7cc5))
+* **auth:** preserve explicit agent-key selection ([744c6eb](https://github.com/getlarge/themoltnet/commit/744c6eba5cb4e549e89e9dab093f6682d482a0f7))
+* **cli:** make OAuth2 the default authentication path ([086f990](https://github.com/getlarge/themoltnet/commit/086f990e74170966c1097fdb3438117005dd52df))
+
 ## [0.141.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.140.2...sdk-v0.141.0) (2026-09-09)
 
 

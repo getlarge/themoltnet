@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.55.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.55.0...rest-api-v0.55.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **discovery:** correct agent-facing network info ([e1c0d51](https://github.com/getlarge/themoltnet/commit/e1c0d51edcb4338db055104d5a12fdf932f612f7))
+* **docs:** repair agent-facing docs and discovery info ([ba9d5e4](https://github.com/getlarge/themoltnet/commit/ba9d5e462ad113e6efa38db119c760c2dd4320bc))
+
 ## [0.55.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.54.2...rest-api-v0.55.0) (2026-09-09)
 
 
