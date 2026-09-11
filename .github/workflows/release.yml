@@ -1749,6 +1749,92 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}" --draft=false
 
+      # getlarge/legreffier-plugin is the Git-installable marketplace that
+      # `codex|claude plugin marketplace add getlarge/legreffier-plugin` clones.
+      # It is generated from this package: the tree is assembled from the same
+      # dist/ the attested archive above was built from, committed on top of
+      # main and tagged with the plugin version. Unlike the APT repository it is
+      # text that users install from and may pin, so it keeps its history rather
+      # than being force-pushed. The whole tree is replaced on every release, so
+      # a hand edit made there is overwritten — visibly, in that release's
+      # commit diff, rather than lost to a force-push. Like the APT step it runs after
+      # the GitHub release is public and is idempotent — an unchanged tree adds
+      # no commit and an existing tag is left alone — so a rerun is safe and a
+      # flaky push never holds the release hostage.
+      - name: Generate GitHub App token for the plugin marketplace repository
+        if: ${{ !inputs.dry-run }}
+        uses: actions/create-github-app-token@v3
+        id: marketplace-token
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: legreffier-plugin
+
+      - name: Publish plugin marketplace repository
+        if: ${{ !inputs.dry-run }}
+        env:
+          MARKETPLACE_TOKEN: ${{ steps.marketplace-token.outputs.token }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+        run: |
+          set -euo pipefail
+          # retry <label> <command...>: three attempts with a short backoff for
+          # the network calls (clone, push) only.
+          retry() {
+            local label="$1" attempt=1
+            shift
+            until "$@"; do
+              if [ "$attempt" -ge 3 ]; then
+                echo "::error::${label} failed after ${attempt} attempts"
+                return 1
+              fi
+              echo "::warning::${label} failed (attempt ${attempt}/3); retrying in $((attempt * 15))s"
+              sleep $((attempt * 15))
+              attempt=$((attempt + 1))
+            done
+          }
+          VERSION=$(node -p "require('./packages/legreffier-plugin/package.json').version")
+          SOURCE_SHA=$(git rev-parse HEAD)
+          TREE="$RUNNER_TEMP/legreffier-plugin-tree"
+          node packages/legreffier-plugin/scripts/build-marketplace.mjs "$TREE"
+
+          REPO="$RUNNER_TEMP/legreffier-plugin"
+          clone_marketplace() {
+            rm -rf "$REPO"
+            git clone --quiet \
+              "https://x-access-token:${MARKETPLACE_TOKEN}@github.com/getlarge/legreffier-plugin.git" "$REPO"
+          }
+          retry "clone legreffier-plugin" clone_marketplace
+
+          # Replace every tracked path with the release build; only .git stays.
+          find "$REPO" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$TREE"/. "$REPO"/
+          cd "$REPO"
+          # Pin identity and signing so the result never depends on ambient git
+          # configuration: a runner or local config with tag.gpgSign set turns a
+          # lightweight tag into a signed one that needs a message, and fails.
+          GIT_ID=(-c user.name='MoltNet Release Signing' -c user.email='legreffier@themolt.net'
+            -c commit.gpgSign=false -c tag.gpgSign=false)
+          git add -A
+          if git diff --cached --quiet; then
+            echo "getlarge/legreffier-plugin already matches ${RELEASE_TAG}"
+          else
+            git "${GIT_ID[@]}" commit --quiet \
+              -m "release: legreffier plugin v${VERSION}" \
+              -m "Generated from getlarge/themoltnet ${RELEASE_TAG} (${SOURCE_SHA})."
+            retry "push legreffier-plugin" git push --quiet origin HEAD:main
+          fi
+
+          MARKETPLACE_TAG="v${VERSION}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${MARKETPLACE_TAG}" >/dev/null; then
+            echo "getlarge/legreffier-plugin already has ${MARKETPLACE_TAG}"
+          else
+            git "${GIT_ID[@]}" tag --annotate "$MARKETPLACE_TAG" \
+              -m "legreffier plugin v${VERSION}" \
+              -m "Generated from getlarge/themoltnet ${RELEASE_TAG} (${SOURCE_SHA})."
+            retry "push ${MARKETPLACE_TAG}" git push --quiet origin "refs/tags/${MARKETPLACE_TAG}"
+          fi
+
   release-skill:
     name: Release OpenClaw Skill
     needs: resolve-publish

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const plugin = join(root, 'plugins', 'legreffier');
+const marketplaceSource = process.argv[2] ?? root;
 const temporary = await mkdtemp(join(tmpdir(), 'legreffier-plugin-'));
 const codexHome = join(temporary, 'codex');
 const claudeHome = join(temporary, 'claude');
@@ -46,15 +47,19 @@ const assertIncludes = (output, expected, label) => {
 };
 
 try {
-  run('codex', ['plugin', 'marketplace', 'add', root, '--json'], {
+  run('codex', ['plugin', 'marketplace', 'add', marketplaceSource, '--json'], {
     CODEX_HOME: codexHome,
   });
   run('codex', ['plugin', 'add', 'legreffier@moltnet', '--json'], {
     CODEX_HOME: codexHome,
   });
-  run('claude', ['plugin', 'marketplace', 'add', root, '--scope', 'user'], {
-    CLAUDE_CONFIG_DIR: claudeHome,
-  });
+  run(
+    'claude',
+    ['plugin', 'marketplace', 'add', marketplaceSource, '--scope', 'user'],
+    {
+      CLAUDE_CONFIG_DIR: claudeHome,
+    },
+  );
   run(
     'claude',
     ['plugin', 'install', 'legreffier@moltnet', '--scope', 'user'],

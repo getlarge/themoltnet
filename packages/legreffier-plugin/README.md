@@ -36,6 +36,18 @@ checksum, records GitHub build provenance, and only then publishes the draft
 GitHub release. Codex, ChatGPT, and Claude releases must use that exact tagged
 artifact; never submit a mutable branch or rebuild a published version.
 
+The same release then publishes
+[`getlarge/legreffier-plugin`](https://github.com/getlarge/legreffier-plugin),
+the Git-installable marketplace that
+`codex|claude plugin marketplace add getlarge/legreffier-plugin` clones. That
+repository is generated: `scripts/build-marketplace.mjs` assembles it from the
+same `dist/` the archive was built from, adding the Codex manifest at
+`.agents/plugins/marketplace.json`, the marketplace README from
+`marketplace/README.md`, the smoke test, and the license. The release bot
+commits it on top of `main` and tags it `v<version>`. Change the marketplace
+here, never in that repository: every release replaces the whole tree, so a
+hand edit there is overwritten, visibly in the release commit's diff.
+
 Directory publication is deliberately separate from artifact publication:
 
 1. Download and verify the archive for the GitHub tag.
