@@ -1,4 +1,4 @@
-import { KetoNamespace } from '@moltnet/auth';
+import { KetoNamespace, PermissionCheckUnavailableError } from '@moltnet/auth';
 import {
   computeBytesCid,
   computeExecutorManifestCid,
@@ -1373,12 +1373,46 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
   });
 
   it('reports a missing diary after team proposal authority succeeds', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockResolvedValue({
+      canProposeForTeam: true,
+      canReadDiary: false,
+    });
     mocks.diaryRepository.findById.mockResolvedValue(null);
 
     await expect(
       service.create(judgeCreateInput() as never),
     ).rejects.toMatchObject({ code: 'not_found', message: 'Diary not found' });
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('reports permission-check failures as unavailable', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockRejectedValue(
+      new PermissionCheckUnavailableError(),
+    );
+
+    await expect(
+      service.create(judgeCreateInput() as never),
+    ).rejects.toMatchObject({
+      code: 'unavailable',
+      message: 'Task authorization service unavailable',
+    });
+  });
+
+  it('keeps team denial ahead of a failed diary lookup', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockResolvedValue({
+      canProposeForTeam: false,
+      canReadDiary: false,
+    });
+    mocks.diaryRepository.findById.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+
+    await expect(
+      service.create(judgeCreateInput() as never),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Not authorized to create tasks for this team',
+    });
   });
 
   it('requires read permission on an existing provenance diary', async () => {

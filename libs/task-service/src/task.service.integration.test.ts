@@ -154,8 +154,6 @@ function createIntegrationDeps() {
         deleteBySealingTaskId: vi.fn(() => Promise.resolve(null)),
       },
       permissionChecker: {
-        canWriteTeam: vi.fn(() => Promise.resolve(true)),
-        canWriteDiary: vi.fn(() => Promise.resolve(true)),
         checkTaskCreatePermissions: vi.fn(() =>
           Promise.resolve({
             canProposeForTeam: true,

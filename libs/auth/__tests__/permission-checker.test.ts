@@ -4,6 +4,7 @@ import { KetoNamespace } from '../src/keto-constants.js';
 import {
   createPermissionChecker,
   type PermissionChecker,
+  PermissionCheckUnavailableError,
 } from '../src/permission-checker.js';
 
 interface MockPermissionApi {
@@ -111,7 +112,9 @@ describe('PermissionChecker', () => {
         subjectSetRelation: '',
       });
     });
+  });
 
+  describe('task creation permissions', () => {
     it('checks task creation authority in one ordered batch', async () => {
       mockPermissionApi.batchCheckPermission.mockResolvedValue({
         results: [{ allowed: true }, { allowed: false }],
@@ -156,9 +159,13 @@ describe('PermissionChecker', () => {
         },
       });
       expect(mockPermissionApi.checkPermission).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.objectContaining({ relation: 'read' }),
+        'keto.batch_permission_denied',
+      );
     });
 
-    it('fails closed for an errored task creation tuple', async () => {
+    it('reports an errored task creation tuple as unavailable', async () => {
       mockPermissionApi.batchCheckPermission.mockResolvedValue({
         results: [
           { allowed: true },
@@ -173,10 +180,7 @@ describe('PermissionChecker', () => {
           AGENT_ID,
           KetoNamespace.Agent,
         ),
-      ).resolves.toEqual({
-        canProposeForTeam: true,
-        canReadDiary: false,
-      });
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
           namespace: 'Diary',
@@ -188,7 +192,7 @@ describe('PermissionChecker', () => {
       expect(mockPermissionApi.checkPermission).not.toHaveBeenCalled();
     });
 
-    it('fails both task creation permissions closed when the batch rejects', async () => {
+    it('reports a rejected task creation batch as unavailable', async () => {
       mockPermissionApi.batchCheckPermission.mockRejectedValue(
         new Error('Keto unavailable'),
       );
@@ -200,12 +204,28 @@ describe('PermissionChecker', () => {
           OTHER_AGENT_ID,
           KetoNamespace.Human,
         ),
-      ).resolves.toEqual({
-        canProposeForTeam: false,
-        canReadDiary: false,
-      });
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledOnce();
       expect(mockPermissionApi.checkPermission).not.toHaveBeenCalled();
+    });
+
+    it('reports a short task creation batch as unavailable', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [{ allowed: true }],
+      });
+
+      await expect(
+        checker.checkTaskCreatePermissions(
+          TEAM_ID,
+          DIARY_ID,
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
+      expect(logger.warn).toHaveBeenCalledWith(
+        { expected: 2, actual: 1 },
+        'keto.batch_permission_result_count_mismatch',
+      );
     });
   });
 

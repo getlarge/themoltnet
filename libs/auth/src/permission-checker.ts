@@ -31,6 +31,13 @@ export interface PermissionCheckerLogger {
   child(bindings: Record<string, unknown>): PermissionCheckerLogger;
 }
 
+export class PermissionCheckUnavailableError extends Error {
+  constructor() {
+    super('Permission service unavailable');
+    this.name = 'PermissionCheckUnavailableError';
+  }
+}
+
 export interface PermissionChecker {
   canReadDiary(
     diaryId: string,
@@ -245,7 +252,25 @@ async function batchCheckPermissions(
     };
   }>,
 ): Promise<boolean[]> {
-  if (tuples.length === 0) return [];
+  return (await batchCheckPermissionsWithStatus(permissionApi, logger, tuples))
+    .permissions;
+}
+
+async function batchCheckPermissionsWithStatus(
+  permissionApi: PermissionApi,
+  logger: PermissionCheckerLogger,
+  tuples: Array<{
+    namespace: string;
+    object: string;
+    relation: string;
+    subject_set: {
+      namespace: string;
+      object: string;
+      relation: string;
+    };
+  }>,
+): Promise<{ permissions: boolean[]; hadErrors: boolean }> {
+  if (tuples.length === 0) return { permissions: [], hadErrors: false };
 
   try {
     const data = await permissionApi.batchCheckPermission({
@@ -254,9 +279,19 @@ async function batchCheckPermissions(
       },
     });
 
-    return data.results.map((result, index) => {
+    let hadErrors = data.results.length !== tuples.length;
+    if (hadErrors) {
+      logger.warn(
+        { expected: tuples.length, actual: data.results.length },
+        'keto.batch_permission_result_count_mismatch',
+      );
+    }
+
+    const permissions = tuples.map((tuple, index) => {
+      const result = data.results[index];
+      if (!result) return false;
       if (result.error) {
-        const tuple = tuples[index];
+        hadErrors = true;
         logger.warn(
           {
             error: result.error,
@@ -270,8 +305,21 @@ async function batchCheckPermissions(
         );
         return false;
       }
+      if (!result.allowed) {
+        logger.debug(
+          {
+            namespace: tuple.namespace,
+            object: tuple.object,
+            relation: tuple.relation,
+            subjectNs: tuple.subject_set.namespace,
+            subjectId: tuple.subject_set.object,
+          },
+          'keto.batch_permission_denied',
+        );
+      }
       return result.allowed;
     });
+    return { permissions, hadErrors };
   } catch (err) {
     logger.warn(
       {
@@ -286,7 +334,7 @@ async function batchCheckPermissions(
       },
       'keto.batch_permission_check_failed',
     );
-    return tuples.map(() => false);
+    return { permissions: tuples.map(() => false), hadErrors: true };
   }
 }
 
@@ -704,8 +752,10 @@ export function createPermissionChecker(
       canProposeForTeam: boolean;
       canReadDiary: boolean;
     }> {
-      const [canProposeForTeam = false, canReadDiary = false] =
-        await batchCheckPermissions(permissionApi, log, [
+      const { permissions, hadErrors } = await batchCheckPermissionsWithStatus(
+        permissionApi,
+        log,
+        [
           {
             namespace: KetoNamespace.Team,
             object: teamId,
@@ -726,7 +776,12 @@ export function createPermissionChecker(
               relation: '',
             },
           },
-        ]);
+        ],
+      );
+
+      if (hadErrors) throw new PermissionCheckUnavailableError();
+
+      const [canProposeForTeam = false, canReadDiary = false] = permissions;
 
       return { canProposeForTeam, canReadDiary };
     },

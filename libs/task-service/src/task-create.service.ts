@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
+import { PermissionCheckUnavailableError } from '@moltnet/auth';
 import type { ExecutorTrustLevel } from '@moltnet/crypto-service';
 import {
   computeJsonCid,
@@ -152,7 +153,7 @@ export function createTaskCreateService(
         ]);
       }
 
-      const [createPermissions, diary] = await Promise.all([
+      const [permissionResult, diaryResult] = await Promise.allSettled([
         permissionChecker.checkTaskCreatePermissions(
           input.teamId,
           input.diaryId,
@@ -161,6 +162,21 @@ export function createTaskCreateService(
         ),
         diaryRepository.findById(input.diaryId),
       ]);
+
+      if (permissionResult.status === 'rejected') {
+        if (
+          permissionResult.reason instanceof PermissionCheckUnavailableError
+        ) {
+          throw new TaskServiceError(
+            'unavailable',
+            'Task authorization service unavailable',
+          );
+        }
+        throw permissionResult.reason;
+      }
+
+      const createPermissions = permissionResult.value;
+      // Check team authority first so unauthorized callers cannot probe diaries.
       if (!createPermissions.canProposeForTeam) {
         throw new TaskServiceError(
           'forbidden',
@@ -168,6 +184,8 @@ export function createTaskCreateService(
         );
       }
 
+      if (diaryResult.status === 'rejected') throw diaryResult.reason;
+      const diary = diaryResult.value;
       if (!diary) {
         throw new TaskServiceError('not_found', 'Diary not found');
       }
