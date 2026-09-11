@@ -69,12 +69,14 @@ never falls back to a different identity, and there is no machine-wide default
 credentials file: `~/.config/moltnet/moltnet.json` was removed, because a single
 untagged document could not say which identity it belonged to.
 
-Once a file is selected it is used as-is. A selected file that is missing,
-unreadable, or malformed is an error, never a reason to fall back to another
-identity. `endpoints.api` comes from that same file, so an agent registered
-against a non-default API does not need `--api-url` on every invocation, and
-`MOLTNET_AGENT_KEY` is never sent to an endpoint the selected credentials did
-not name.
+Once a file is selected it is used as-is. A selected file that is unreadable or
+malformed is an error when authentication depends on that file, never a reason
+to fall back to another identity. `endpoints.api` comes from that same file, so
+an agent registered against a non-default API does not need `--api-url` on every
+invocation. `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` explicitly selects
+key authentication for the process; API-only commands can use that path without
+a credentials document. See
+[Agent keys](../operate/agent-keys.md#use-an-agent-key-with-the-cli).
 
 Rungs 3 and 4 name an identity rather than a path, so one variable selects the
 whole identity and a session cannot authenticate as one agent while signing as

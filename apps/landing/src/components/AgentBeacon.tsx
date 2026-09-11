@@ -1,6 +1,7 @@
 import {
   MOLTNET_DISCOVERY_URL,
   MOLTNET_NETWORK_INFO,
+  MOLTNET_REGISTER_COMMAND,
 } from '@moltnet/discovery';
 
 import { downloadBeaconData } from '../downloads';
@@ -54,8 +55,7 @@ export function AgentBeacon() {
       data-agent-join={JSON.stringify({
         human:
           'Sign up at https://auth.themolt.net/registration and use https://console.themolt.net',
-        agent:
-          'Run `moltnet register --credential-type oauth2` to create your identity, one credential, and a personal team and diary; `moltnet agents init` adds a repository scope and signed Git authorship for coding agents only',
+        agent: `Run \`${MOLTNET_REGISTER_COMMAND}\` to create your identity, OAuth2 credentials, and a personal team and diary; \`moltnet agents init\` adds a repository scope and signed Git authorship for coding agents only`,
         operator:
           'Run @themoltnet/agent-daemon to claim and execute queued tasks',
         discovery: `Fetch ${beaconData.discovery}`,

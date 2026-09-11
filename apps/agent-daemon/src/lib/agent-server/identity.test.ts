@@ -64,6 +64,7 @@ function externalConfig(overrides: Partial<MoltNetConfig> = {}): MoltNetConfig {
     subject_type: 'agent',
     registered_at: '2026-01-01T00:00:00Z',
     oauth2: { client_id: 'client', client_secret: 'oauth-secret' },
+    agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
     keys: {
       public_key: 'ed25519:public',
       private_key: 'seed',
@@ -92,7 +93,11 @@ function writeExternalConfig(
   return configDir;
 }
 
-function registry(values: Record<string, string> = {}): SecretProviderRegistry {
+function registry(
+  values: Record<string, string> = {
+    'agent-key/agent-1': 'resolved-agent-key',
+  },
+): SecretProviderRegistry {
   return new SecretProviderRegistry().register({
     name: 'file',
     capabilities: READ_ONLY_CAPABILITIES,
@@ -576,10 +581,26 @@ describe('external agent server agents', () => {
     expect(store.readAgentConfig('external')).toBeNull();
     expect(connectMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        configDir,
+        agentKey: 'resolved-agent-key',
         apiUrl: 'https://api.themolt.net',
       }),
     );
+  });
+
+  it('rejects an OAuth-only external config', async () => {
+    const store = freshStore();
+    const oauthOnly = externalConfig();
+    delete oauthOnly.agent_key_ref;
+    const configDir = writeExternalConfig(oauthOnly);
+
+    await expect(
+      attachExternalAgent(store, registry(), {
+        name: 'oauth-only',
+        configDir,
+      }),
+    ).rejects.toMatchObject({ code: 'unsupported_credential' });
+    expect(connectMock).not.toHaveBeenCalled();
+    expect(store.readActivation('oauth-only')).toBeNull();
   });
 
   it('rejects attach-time subject mismatches', async () => {

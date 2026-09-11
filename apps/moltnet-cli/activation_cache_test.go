@@ -49,8 +49,12 @@ func startActivationIdentityServer(t *testing.T) (*httptest.Server, *activationI
 				"expires_in":   3600,
 			})
 		case "/agents/whoami":
+			subjectID := answer.SubjectID
+			if r.Header.Get("Authorization") == "Bearer fixture-agent-key" && answer.AgentKeySubjectID != "" {
+				subjectID = answer.AgentKeySubjectID
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"subjectId":   answer.SubjectID,
+				"subjectId":   subjectID,
 				"identityId":  answer.IdentityID,
 				"subjectType": answer.SubjectType,
 				"scopes":      []string{"agent:profile"},
@@ -71,11 +75,12 @@ func startActivationIdentityServer(t *testing.T) (*httptest.Server, *activationI
 // authenticating credential. Tests mutate it to make the server disagree with
 // the local identity document.
 type activationIdentityResponse struct {
-	SubjectID   string
-	IdentityID  string
-	SubjectType string
-	PublicKey   string
-	Fingerprint string
+	SubjectID         string
+	AgentKeySubjectID string
+	IdentityID        string
+	SubjectType       string
+	PublicKey         string
+	Fingerprint       string
 }
 
 func TestAgentsActivationValidateMissingCache(t *testing.T) {
@@ -583,14 +588,13 @@ func storeFixtureFileSecret(t *testing.T, key, value string) {
 
 func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	// Refresh authenticates with the agent key in preference to OAuth2, so that
-	// is the reference that has to resolve. The OAuth2 secret stays keyring-
-	// backed and is only recorded, which keeps os-keyring covered as a provider
-	// name without needing a keyring on CI.
+	// Refresh validates both configured credentials, so both references must
+	// resolve before their provider names can be reported.
 	storeFixtureFileSecret(t, AgentKeyKey(fixtureSubjectID), "fixture-agent-key")
+	storeFixtureFileSecret(t, OAuth2SecretKey(fixtureSubjectID, "cid"), "oauth-secret")
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2.ClientSecret = ""
-		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "os-keyring", Key: OAuth2SecretKey(fixtureSubjectID, "cid")}
+		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "file", Key: OAuth2SecretKey(fixtureSubjectID, "cid")}
 		creds.Keys.PrivateKey = ""
 		creds.Keys.PrivateKeyRef = &SecretReference{Provider: "file", Key: IdentitySeedKey("SHA256:testfingerprint")}
 		creds.GitHub = &GitHubSection{AppID: "123", InstallationID: "456", PrivateKeyPath: filepath.Join(dir, "app.pem")}
@@ -605,11 +609,11 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{"oauth2": "os-keyring", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "file"}
+	want := map[string]string{"oauth2": "file", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "file"}
 	if !maps.Equal(result.CredentialProviders, want) {
 		t.Fatalf("credentialProviders = %v, want %v", result.CredentialProviders, want)
 	}
-	if result.CredentialProvider != "os-keyring" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
+	if result.CredentialProvider != "file" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
 		t.Fatalf("legacy summary fields drifted: %+v", result)
 	}
 	if strings.Contains(out.String(), "identity/SHA256") || strings.Contains(out.String(), "agent-key/") {
@@ -627,6 +631,21 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	want = map[string]string{"oauth2": "legacy-plaintext", "identitySeed": "legacy-plaintext", "githubApp": "absent", "agentKey": "absent"}
 	if !maps.Equal(result.CredentialProviders, want) {
 		t.Fatalf("legacy credentialProviders = %v, want %v", result.CredentialProviders, want)
+	}
+}
+
+func TestAgentsActivationRejectsDualCredentialsForDifferentSubjects(t *testing.T) {
+	dir, _, answer := setupActivationCacheFixtureWithIdentity(t)
+	storeFixtureFileSecret(t, AgentKeyKey(fixtureSubjectID), "fixture-agent-key")
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureSubjectID)}
+	})
+	answer.AgentKeySubjectID = "00000000-0000-4000-8000-0000000000bb"
+
+	var out bytes.Buffer
+	err := runAgentsActivationRefreshCmd(&out, "test-agent", true)
+	if err == nil || !strings.Contains(err.Error(), "daemon identity") {
+		t.Fatalf("expected dual-credential subject mismatch, got %v", err)
 	}
 }
 

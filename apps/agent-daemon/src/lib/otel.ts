@@ -1,7 +1,7 @@
 /**
  * OTel SDK bootstrap for the agent daemon.
  *
- *   const shutdown = await initWorkerOtel({ serviceName, agentDir });
+ *   const shutdown = await initWorkerOtel({ serviceName, agent });
  *   try { ... } finally { await shutdown(); }
  *
  * No-op when MOLTNET_OTEL_ENDPOINT is unset — `@opentelemetry/api` falls
@@ -23,25 +23,14 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 import type { Agent } from '@themoltnet/sdk';
-import {
-  connect,
-  createNodeSecretProviderRegistry,
-} from '@themoltnet/sdk/node';
 
 export interface InitWorkerOtelOptions {
   serviceName: string;
   serviceVersion?: string;
   environment?: string;
   /**
-   * Path to the agent's MoltNet credentials dir (containing moltnet.json).
-   * When omitted, no auth header is sent — only safe against an
-   * unauthenticated receiver (e.g. local :4318), never the public one.
-   */
-  agentDir?: string;
-  /**
-   * Already-authenticated host agent. Daemon callers should pass this so
-   * telemetry authentication follows the selected daemon auth mode without
-   * reconnecting through config files.
+   * Already-authenticated host agent. Daemon callers pass this so telemetry
+   * authentication cannot independently re-resolve ambient credentials.
    */
   agent?: Pick<Agent, 'getToken'>;
   /**
@@ -56,12 +45,12 @@ export interface InitWorkerOtelOptions {
 
 export type OtelShutdown = () => Promise<void>;
 
-export async function initWorkerOtel(
+export function initWorkerOtel(
   options: InitWorkerOtelOptions,
 ): Promise<OtelShutdown> {
   const endpoint = options.endpoint;
   if (!endpoint) {
-    return async () => {};
+    return Promise.resolve(async () => {});
   }
 
   const resource = resourceFromAttributes({
@@ -79,13 +68,7 @@ export async function initWorkerOtel(
   // bearer token is always fresh. TokenManager inside connect() handles
   // caching + refresh.
   let headersFactory: (() => Promise<Record<string, string>>) | undefined;
-  let agent = options.agent;
-  if (!agent && options.agentDir) {
-    agent = await connect({
-      configDir: options.agentDir,
-      secretProviders: createNodeSecretProviderRegistry(),
-    });
-  }
+  const agent = options.agent;
   if (agent) {
     headersFactory = async () => {
       const token = await agent.getToken();
@@ -121,7 +104,7 @@ export async function initWorkerOtel(
   provider.register();
   metrics.setGlobalMeterProvider(meterProvider);
 
-  return async () => {
+  return Promise.resolve(async () => {
     await Promise.all([
       provider.forceFlush().catch((err) => {
         process.stderr.write(
@@ -146,5 +129,5 @@ export async function initWorkerOtel(
         );
       }),
     ]);
-  };
+  });
 }

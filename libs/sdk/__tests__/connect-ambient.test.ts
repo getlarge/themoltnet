@@ -56,7 +56,7 @@ import { CREDENTIAL_SCOPES } from '@moltnet/models';
 import { createAgent } from '../src/agent.js';
 import { readEnvCredentials } from '../src/config.js';
 import { connectAmbient as connect } from '../src/connect-ambient.js';
-import { readConfig } from '../src/credentials.js';
+import { type OAuth2Config, readConfig } from '../src/credentials.js';
 import { MoltNetError } from '../src/errors.js';
 import {
   READ_ONLY_CAPABILITIES,
@@ -408,6 +408,7 @@ describe('connect (agent-key mode)', () => {
     await connect();
 
     expect(MockTokenManager).not.toHaveBeenCalled();
+    expect(mockReadConfig).not.toHaveBeenCalled();
     const agentOpts = mockCreateAgent.mock.calls[0]![0];
     await expect(agentOpts.auth!()).resolves.toBe('env-key');
   });
@@ -452,6 +453,12 @@ describe('connect (agent-key mode)', () => {
     await expect(connect({ agentKey: '   ' })).rejects.toThrow(
       /No credentials found/,
     );
+  });
+
+  it('reports a malformed selected config as INVALID_CONFIG', async () => {
+    mockReadConfig.mockRejectedValueOnce(new SyntaxError('Unexpected token'));
+
+    await expect(connect()).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
   });
 
   it('does not read config in key mode', async () => {
@@ -550,7 +557,7 @@ describe('connect (agent-key references)', () => {
     await expect(agentOpts.auth!()).resolves.toBe('ak_cfg');
   });
 
-  it('rejects a config agent_key_ref bound to another subject', async () => {
+  it('prefers config OAuth2 over a config agent_key_ref', async () => {
     mockReadConfig.mockResolvedValueOnce({
       subject_id: 'id-1',
       subject_type: 'agent',
@@ -561,8 +568,57 @@ describe('connect (agent-key references)', () => {
       endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });
 
+    await connect({
+      secretProviders: memoryRegistry({ 'agent-key/other': 'unused' }),
+    });
+
+    expect(MockTokenManager).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'cfg-id',
+        clientSecret: 'cfg-secret',
+      }),
+    );
+  });
+
+  it('does not fall back to config agent_key_ref after OAuth2 resolution fails', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      subject_id: 'id-1',
+      subject_type: 'agent',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret_ref: { provider: 'memory', key: 'oauth2/id-1/cfg-id' },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+
     await expect(
-      connect({ secretProviders: memoryRegistry({ 'agent-key/other': 'x' }) }),
+      connect({
+        secretProviders: memoryRegistry({ 'agent-key/id-1': 'ak_cfg' }),
+      }),
+    ).rejects.toMatchObject({ code: 'NO_CREDENTIALS' });
+    expect(MockTokenManager).not.toHaveBeenCalled();
+  });
+
+  it('does not fall back to config agent_key_ref when OAuth2 client_id is missing', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      subject_id: 'id-1',
+      subject_type: 'agent',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+      oauth2: {
+        client_secret: 'orphaned-secret',
+      } as unknown as OAuth2Config,
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+
+    await expect(
+      connect({
+        secretProviders: memoryRegistry({ 'agent-key/id-1': 'ak_cfg' }),
+      }),
     ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
     expect(MockTokenManager).not.toHaveBeenCalled();
   });
@@ -590,7 +646,6 @@ describe('connect (agent-key references)', () => {
       subject_type: 'agent',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
-      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
       endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });
@@ -612,7 +667,6 @@ describe('connect (agent-key references)', () => {
       subject_type: 'agent',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
-      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
       endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });

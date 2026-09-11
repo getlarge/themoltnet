@@ -28,7 +28,7 @@ describe('initWorkerOtel', () => {
     await expect(shutdown()).resolves.toBeUndefined();
   });
 
-  it('honors an explicit endpoint without an agentDir (no auth)', async () => {
+  it('honors an explicit endpoint without an agent (no auth)', async () => {
     // The factory registers a provider but doesn't attempt a connect().
     // We don't actually export anything here — the BatchSpanProcessor
     // only flushes on forceFlush() or shutdown(), and we call shutdown

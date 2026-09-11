@@ -28,7 +28,6 @@ import {
   parseSecretReferenceString,
   resolveAgentKey,
   resolveIdentitySeed,
-  resolveOAuth2ClientSecret,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
@@ -271,25 +270,14 @@ export class RunManager {
           config,
           this.options.externalSecretProviders,
         );
-        if (agentKey) {
-          env['MOLTNET_AGENT_KEY'] = agentKey;
-          env['MOLTNET_PRIVATE_KEY'] = await resolveIdentitySeed(
-            config,
-            this.options.externalSecretProviders,
-          );
-        } else if (config.oauth2?.client_secret_ref) {
-          env['MOLTNET_CLIENT_ID'] = config.oauth2.client_id;
-          env['MOLTNET_CLIENT_SECRET'] = await resolveOAuth2ClientSecret(
-            config,
-            this.options.externalSecretProviders,
-          );
+        if (!agentKey) {
+          throw new Error('external daemon config has no agent key');
         }
-        if (!agentKey && config.keys.private_key_ref) {
-          env['MOLTNET_PRIVATE_KEY'] = await resolveIdentitySeed(
-            config,
-            this.options.externalSecretProviders,
-          );
-        }
+        env['MOLTNET_AGENT_KEY'] = agentKey;
+        env['MOLTNET_PRIVATE_KEY'] = await resolveIdentitySeed(
+          config,
+          this.options.externalSecretProviders,
+        );
       } catch {
         throw new AgentServerRunError(
           'invalid_spec',
@@ -584,10 +572,19 @@ export class RunManager {
       }
       return connect({ agentKey, apiUrl: activation.apiUrl });
     }
+    const agentKey = await resolveAgentKey(
+      config,
+      this.options.externalSecretProviders,
+    );
+    if (!agentKey) {
+      throw new AgentServerRunError(
+        'invalid_spec',
+        `external agent "${activation.alias}" has no agent key`,
+      );
+    }
     return connect({
-      configDir: dirname(activation.configPath),
+      agentKey,
       apiUrl: activation.apiUrl ?? activation.configApiUrl,
-      secretProviders: this.options.externalSecretProviders,
     });
   }
 
