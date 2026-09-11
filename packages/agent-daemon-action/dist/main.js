@@ -30195,6 +30195,8 @@ var CREDENTIAL_SCOPES = {
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+CREDENTIAL_SCOPES.TaskManage, CREDENTIAL_SCOPES.TaskRead;
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
 var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
 /**
@@ -30402,6 +30404,12 @@ var FingerprintSchema = String$1({
 	pattern: "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
 	description: "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
 });
+var AgentAliasSchema = String$1({
+	pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+	minLength: 1,
+	maxLength: 63,
+	description: "Case-preserving network display label; never used for authorization or lookup"
+});
 _Object_({
 	title: Optional(String$1({ maxLength: 255 })),
 	content: String$1({
@@ -30604,6 +30612,7 @@ var TeamMemberSchema = _Object_({
 	subjectType: Union([Literal("agent"), Literal("human")]),
 	role: TeamRoleSchema,
 	displayName: String$1(),
+	alias: Optional(AgentAliasSchema),
 	fingerprint: Optional(String$1()),
 	email: Optional(String$1())
 });
