@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"mvdan.cc/sh/v3/shell"
 )
 
 // ConfigIssue represents a single problem found during config validation.
@@ -71,6 +73,25 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 			Problem: fmt.Sprintf("gpg.ssh.allowedSignersFile is unset or missing in %s", p),
 			Action:  "fixed",
 		})
+	}
+
+	// Detect a repository-level MoltNet credential helper bound to another copy
+	// of this identity, typically the bundle a checkout used before the central
+	// identity store. It overrides the identity's own helper, so pushes from the
+	// checkout and all its worktrees keep using the legacy bundle.
+	repoConfig := repositoryGitConfig()
+	legacyHelperCredentials, sameAgent := repositoryHelperCredentials(repoConfig, resolvedPath, creds)
+	if legacyHelperCredentials != "" {
+		issue := ConfigIssue{Field: "git-config", Action: "fixed", Problem: fmt.Sprintf(
+			"the credential helper in %s uses %s, another copy of this identity, instead of %s",
+			repoConfig, legacyHelperCredentials, resolvedPath)}
+		if !sameAgent {
+			issue.Action = "warning"
+			issue.Problem = fmt.Sprintf(
+				"the credential helper in %s uses %s, which is not this identity or cannot be read; left unchanged",
+				repoConfig, legacyHelperCredentials)
+		}
+		issues = append(issues, issue)
 	}
 
 	if len(issues) == 0 {
@@ -138,6 +159,16 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 		if changed {
 			fmt.Fprintf(os.Stderr, "  [fixed] configured gpg.ssh.allowedSignersFile in %s\n", p)
+			fixed++
+		}
+	}
+
+	// Bind the repository's helper to this identity.
+	if legacyHelperCredentials != "" && sameAgent {
+		if err := rebindRepositoryHelper(repoConfig, resolvedPath); err != nil {
+			fmt.Fprintf(os.Stderr, "  [warning] could not update the credential helper in %s: %v\n", repoConfig, err)
+		} else {
+			fmt.Fprintf(os.Stderr, "  [fixed] the credential helper in %s now uses %s\n", repoConfig, resolvedPath)
 			fixed++
 		}
 	}
@@ -428,11 +459,7 @@ func gitConfigCandidates(creds *CredentialsFile, credentialsPath string) []strin
 		}
 		paths = append(paths, candidate)
 	}
-	if out, err := exec.Command("git", "rev-parse", "--git-dir").Output(); err == nil {
-		if gitDir := strings.TrimSpace(string(out)); gitDir != "" {
-			add(filepath.Join(gitDir, "config"))
-		}
-	}
+	add(repositoryGitConfig())
 	if creds.Git != nil {
 		add(creds.Git.ConfigPath)
 	}
@@ -443,6 +470,110 @@ func gitConfigCandidates(creds *CredentialsFile, credentialsPath string) []strin
 		}
 	}
 	return paths
+}
+
+// repositoryGitConfig returns the current repository's shared config file, or
+// "" outside a repository. It uses the common dir so a linked worktree resolves
+// to the config its main checkout shares with it.
+func repositoryGitConfig() string {
+	out, err := exec.Command("git", "rev-parse", "--git-common-dir").Output()
+	if err != nil {
+		return ""
+	}
+	commonDir := strings.TrimSpace(string(out))
+	if commonDir == "" {
+		return ""
+	}
+	absolute, err := filepath.Abs(filepath.Join(commonDir, "config"))
+	if err != nil {
+		return ""
+	}
+	return absolute
+}
+
+// repositoryHelperCredentials inspects the MoltNet credential helpers in a
+// repository config and returns the first --credentials path that names a file
+// other than credentialsPath. sameAgent is true when that file holds the same
+// public key as creds, so it is another copy of this identity and the helper
+// can safely be rebound. A helper with no --credentials resolves the selected
+// identity itself and is not reported.
+func repositoryHelperCredentials(repoConfig, credentialsPath string, creds *CredentialsFile) (named string, sameAgent bool) {
+	if repoConfig == "" {
+		return "", false
+	}
+	values, err := gitConfigGetAll(repoConfig, "credential.https://github.com.helper")
+	if err != nil {
+		return "", false
+	}
+	for _, value := range values {
+		candidate := helperCredentialsArgument(value)
+		if candidate == "" || sameFile(candidate, credentialsPath) {
+			continue
+		}
+		other, err := ReadConfigFrom(candidate)
+		return candidate, err == nil && other != nil && creds.Keys.PublicKey != "" &&
+			other.Keys.PublicKey == creds.Keys.PublicKey
+	}
+	return "", false
+}
+
+// helperCredentialsArgument returns the --credentials argument of a MoltNet
+// credential helper command, or "" for any other helper or when it has none.
+// Git runs a "!"-prefixed helper through the shell, so the value is split and
+// expanded with shell rules against this environment, including the quoting
+// githubCredentialHelperCommand writes. Command substitutions are not run; a
+// helper using one is not reported.
+func helperCredentialsArgument(helper string) string {
+	if !strings.Contains(helper, "github credential-helper") {
+		return ""
+	}
+	fields, err := shell.Fields(strings.TrimPrefix(helper, "!"), nil)
+	if err != nil {
+		return ""
+	}
+	for i, field := range fields {
+		if field == "--credentials" && i+1 < len(fields) {
+			return fields[i+1]
+		}
+		if value, ok := strings.CutPrefix(field, "--credentials="); ok {
+			return value
+		}
+	}
+	return ""
+}
+
+// rebindRepositoryHelper points every MoltNet credential helper in a
+// repository config at credentialsPath. Each value is replaced in place, so the
+// other helper entries (the empty reset in particular) keep their order and the
+// config never passes through a state without a helper.
+func rebindRepositoryHelper(repoConfig, credentialsPath string) error {
+	const key = "credential.https://github.com.helper"
+	values, err := gitConfigGetAll(repoConfig, key)
+	if err != nil {
+		return err
+	}
+	helper, err := githubCredentialHelperCommand(credentialsPath)
+	if err != nil {
+		return err
+	}
+	for _, value := range values {
+		if !strings.Contains(value, "github credential-helper") || value == "!"+helper {
+			continue
+		}
+		if err := runGitConfig(repoConfig, "--fixed-value", "--replace-all", key, "!"+helper, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func sameFile(left, right string) bool {
+	leftInfo, err := os.Stat(left)
+	if err != nil {
+		return false
+	}
+	rightInfo, err := os.Stat(right)
+	return err == nil && os.SameFile(leftInfo, rightInfo)
 }
 
 // gitConfigValue reads one key from a git config file, returning "" when the

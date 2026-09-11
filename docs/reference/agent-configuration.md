@@ -675,7 +675,11 @@ named in `moltnet.json` and the gitconfig beside it, which covers identities
 whose `moltnet.json` still names a location from before the central identity
 store. When the identity's `env` points `GIT_CONFIG_GLOBAL` at that sibling
 gitconfig, repair also rewrites `git.config_path` to match it. Without
-`--credentials`, repair acts on the selected identity. See
+`--credentials`, repair acts on the selected identity. When the current
+repository's own config binds the MoltNet helper to another copy of the same
+identity (the same public key), such as a bundle the checkout used before the
+central identity store, repair rebinds it to the identity; a helper bound to
+another agent is reported and left unchanged. See
 [#1396](https://github.com/getlarge/themoltnet/issues/1396) for background.
 
 Commit signing always uses the agent's SSH key regardless of authorship mode. In
