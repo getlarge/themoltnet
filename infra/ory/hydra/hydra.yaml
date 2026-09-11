@@ -105,6 +105,7 @@ webfinger:
       - task:execute
       - task:manage
       - task:read
+      - task:write
       - team:manage
       - team:read
     # Hydra omits registration_endpoint entirely unless this is set, so local
@@ -137,6 +138,7 @@ oidc:
       - task:execute
       - task:manage
       - task:read
+      - task:write
       - team:manage
       - team:read
 

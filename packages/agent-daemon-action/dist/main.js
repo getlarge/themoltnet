@@ -30189,6 +30189,7 @@ var CREDENTIAL_SCOPES = {
 	TaskExecute: "task:execute",
 	TaskManage: "task:manage",
 	TaskRead: "task:read",
+	TaskWrite: "task:write",
 	TeamManage: "team:manage",
 	TeamRead: "team:read"
 };
@@ -30215,6 +30216,7 @@ var MCP_CLIENT_SCOPES = [
 	CREDENTIAL_SCOPES.TaskExecute,
 	CREDENTIAL_SCOPES.TaskManage,
 	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TaskWrite,
 	CREDENTIAL_SCOPES.TeamManage,
 	CREDENTIAL_SCOPES.TeamRead
 ];

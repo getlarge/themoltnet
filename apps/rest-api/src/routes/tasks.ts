@@ -331,7 +331,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          requiredScopes: ['task:manage'],
+          requiredScopes: ['task:write'],
         },
       },
       schema: {
@@ -732,7 +732,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         auth: {
           credentialBindingScope: 'team',
           deferInaccessibleTeamAuthorization: true,
-          requiredScopes: ['task:manage'],
+          requiredScopes: ['task:write'],
         },
       },
       schema: {

@@ -370,6 +370,15 @@ describe('RelationshipReader (integration)', () => {
       checker.canManageTask(taskId, managerId, KetoNamespace.Human),
     ).resolves.toBe(true);
     await expect(
+      checker.canCancelTask(taskId, teamManagerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canCancelTask(taskId, writerId, KetoNamespace.Agent),
+    ).resolves.toBe(false);
+    await expect(
+      checker.canCancelTask(taskId, claimantId, KetoNamespace.Agent),
+    ).resolves.toBe(false);
+    await expect(
       checker.canClaimTask(taskId, groupWriterId, KetoNamespace.Agent),
     ).resolves.toBe(true);
     await expect(
@@ -378,6 +387,95 @@ describe('RelationshipReader (integration)', () => {
     await expect(
       checker.canViewTask(taskId, diaryOnlyWriterId, KetoNamespace.Agent),
     ).resolves.toBe(false);
+  });
+
+  it('allows owners, managers, and executors to propose tasks but not members or diary-only writers', async () => {
+    const teamId = '990e8400-e29b-41d4-a716-4466554400d0';
+    const diaryId = '990e8400-e29b-41d4-a716-4466554400d1';
+    const ownerId = '990e8400-e29b-41d4-a716-4466554400d2';
+    const managerId = '990e8400-e29b-41d4-a716-4466554400d3';
+    const executorId = '990e8400-e29b-41d4-a716-4466554400d4';
+    const memberId = '990e8400-e29b-41d4-a716-4466554400d5';
+    const diaryOnlyWriterId = '990e8400-e29b-41d4-a716-4466554400d6';
+    const proposalOnlyExecutorId = '990e8400-e29b-41d4-a716-4466554400d7';
+
+    await writeApi.patchRelationships({
+      relationshipPatch: [
+        tuple('Team', teamId, TeamRelation.Owners, 'Agent', ownerId),
+        tuple('Team', teamId, TeamRelation.Managers, 'Agent', managerId),
+        tuple('Team', teamId, TeamRelation.Executors, 'Agent', executorId),
+        tuple(
+          'Team',
+          teamId,
+          TeamRelation.Executors,
+          'Agent',
+          proposalOnlyExecutorId,
+        ),
+        tuple('Team', teamId, TeamRelation.Members, 'Agent', executorId),
+        tuple('Team', teamId, TeamRelation.Members, 'Agent', memberId),
+        tuple('Diary', diaryId, DiaryRelation.Team, 'Team', teamId),
+        tuple(
+          'Diary',
+          diaryId,
+          DiaryRelation.Writers,
+          'Agent',
+          diaryOnlyWriterId,
+        ),
+      ],
+    });
+
+    const checker = createPermissionChecker(permissionApi, {
+      child: () => ({ warn: () => undefined, debug: () => undefined }),
+      warn: () => undefined,
+      debug: () => undefined,
+    } as never);
+
+    for (const subjectId of [ownerId, managerId, executorId]) {
+      await expect(
+        checker.checkTaskCreatePermissions(
+          teamId,
+          diaryId,
+          subjectId,
+          KetoNamespace.Agent,
+        ),
+      ).resolves.toEqual({
+        canProposeForTeam: true,
+        canReadDiary: true,
+      });
+    }
+    await expect(
+      checker.checkTaskCreatePermissions(
+        teamId,
+        diaryId,
+        memberId,
+        KetoNamespace.Agent,
+      ),
+    ).resolves.toEqual({
+      canProposeForTeam: false,
+      canReadDiary: true,
+    });
+    await expect(
+      checker.checkTaskCreatePermissions(
+        teamId,
+        diaryId,
+        diaryOnlyWriterId,
+        KetoNamespace.Agent,
+      ),
+    ).resolves.toEqual({
+      canProposeForTeam: false,
+      canReadDiary: true,
+    });
+    await expect(
+      checker.checkTaskCreatePermissions(
+        teamId,
+        diaryId,
+        proposalOnlyExecutorId,
+        KetoNamespace.Agent,
+      ),
+    ).resolves.toEqual({
+      canProposeForTeam: true,
+      canReadDiary: false,
+    });
   });
 });
 

@@ -182,7 +182,7 @@ describe('task artifact routes', () => {
         '?kind=json&title=result&contentType=application%2Fjson',
     },
     {
-      expectedScope: 'task:manage',
+      expectedScope: 'task:write',
       method: 'PUT',
       providedScope: 'task:execute',
       url: '/task-artifacts/staged?contentType=application%2Fjson',

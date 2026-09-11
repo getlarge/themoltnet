@@ -21,6 +21,7 @@ import {
   claimTask,
   type Client,
   completeTask,
+  createAgentKey,
   createClient,
   createDiary,
   createDiaryGrant,
@@ -175,10 +176,48 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': teamId },
         body: { name: 'executor claim diary', visibility: 'moltnet' },
       });
-      const createPendingTask = async (prompt: string) => {
-        const created = await createTask({
+      const issueTaskKey = async (
+        agent: TestAgent,
+        name: string,
+        scope: 'task:write' | 'task:manage' = 'task:write',
+      ) => {
+        const issued = await createAgentKey({
           client,
           auth: () => proposer.accessToken,
+          headers: {
+            'idempotency-key': `${name}-${randomUUID()}`,
+            'x-moltnet-team-id': teamId,
+          },
+          body: {
+            agentId: agent.agentId,
+            name,
+            scopes: [scope],
+            ttlDays: 1,
+          },
+        });
+        expect(issued.error).toBeUndefined();
+        return issued.data!.secret;
+      };
+      const executorTaskKey = await issueTaskKey(
+        claimer,
+        'executor-task-proposer',
+      );
+      const memberTaskKey = await issueTaskKey(
+        taskWriter,
+        'member-task-proposer',
+      );
+      const executorManageKey = await issueTaskKey(
+        claimer,
+        'executor-task-manager',
+        'task:manage',
+      );
+      const createPendingTask = async (
+        prompt: string,
+        auth: () => string = () => proposer.accessToken,
+      ) => {
+        const created = await createTask({
+          client,
+          auth,
           headers: { 'x-moltnet-team-id': teamId },
           body: {
             taskType: 'curate_pack',
@@ -186,10 +225,36 @@ describe('Tasks API', () => {
             input: { diaryId: diary!.id, taskPrompt: prompt },
           },
         });
-        return created.data!;
+        return created;
       };
 
-      const executorTask = await createPendingTask('executor role claim');
+      const executorProposal = await createPendingTask(
+        'executor agent-key proposal',
+        () => executorTaskKey,
+      );
+      expect(executorProposal.response.status).toBe(201);
+      expect(executorProposal.error).toBeUndefined();
+
+      const manageOnlyProposal = await createPendingTask(
+        'task manage without task write',
+        () => executorManageKey,
+      );
+      expect(manageOnlyProposal.response.status).toBe(403);
+      expect(manageOnlyProposal.error).toMatchObject({
+        detail: 'Missing required scope: task:write',
+      });
+
+      const memberProposal = await createPendingTask(
+        'member agent-key proposal',
+        () => memberTaskKey,
+      );
+      expect(memberProposal.response.status).toBe(403);
+      expect(memberProposal.error).toMatchObject({
+        detail: 'Not authorized to create tasks for this team',
+      });
+
+      const executorTask = (await createPendingTask('executor role claim'))
+        .data!;
       const executorClaim = await claimTask({
         client,
         auth: () => claimer.accessToken,
@@ -199,7 +264,8 @@ describe('Tasks API', () => {
       });
       expect(executorClaim.error).toBeUndefined();
 
-      const grantTask = await createPendingTask('exceptional task grant');
+      const grantTask = (await createPendingTask('exceptional task grant'))
+        .data!;
       const denied = await claimTask({
         client,
         auth: () => taskWriter.accessToken,
@@ -234,7 +300,14 @@ describe('Tasks API', () => {
         path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'manager' },
       });
-      const continuityTask = await createPendingTask('claimant continuity');
+      const managerProposal = await createPendingTask(
+        'manager agent-key proposal',
+        () => executorTaskKey,
+      );
+      expect(managerProposal.response.status).toBe(201);
+      expect(managerProposal.error).toBeUndefined();
+      const continuityTask = (await createPendingTask('claimant continuity'))
+        .data!;
       const claimed = await claimTask({
         client,
         auth: () => claimer.accessToken,
@@ -249,9 +322,9 @@ describe('Tasks API', () => {
         path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'member' },
       });
-      const postDowngradeTask = await createPendingTask(
-        'deny new claim after executor downgrade',
-      );
+      const postDowngradeTask = (
+        await createPendingTask('deny new claim after executor downgrade')
+      ).data!;
       const postDowngradeClaim = await claimTask({
         client,
         auth: () => claimer.accessToken,
@@ -1719,7 +1792,7 @@ describe('Tasks API', () => {
       expect(data!.status).toBe('cancelled');
     });
 
-    it('claimant can cancel their own running task', async () => {
+    it('does not let a claimant cancel their own running task', async () => {
       const { data: proposed } = await propose();
       const taskId = proposed!.id;
       const { data: claimed } = await claim(taskId);
@@ -1732,19 +1805,15 @@ describe('Tasks API', () => {
         body: { leaseTtlSec: 30 },
       });
 
-      // Cancel writes the row synchronously and returns the updated task —
-      // no DBOS workflow round-trip is involved for cancellation, so we
-      // can assert directly on the response without polling.
-      const { data, error } = await cancelTask({
+      const { response, data, error } = await cancelTask({
         client,
         auth: () => claimer.accessToken,
         path: { id: taskId },
         body: { reason: 'walking away from this one' },
       });
-      expect(error).toBeUndefined();
-      expect(data!.status).toBe('cancelled');
-      expect(data!.cancelReason).toBe('walking away from this one');
-      expect(data!.cancelledByAgentId).toBe(claimer.agentId);
+      expect(response.status).toBe(403);
+      expect(data).toBeUndefined();
+      expect(error?.detail).toBe('Not authorized to cancel this task');
     });
   });
 
@@ -2733,7 +2802,7 @@ describe('Tasks API', () => {
   });
 
   describe('DELETE /tasks cleanup', () => {
-    it('does not let a claimant batch-delete a task they were allowed to cancel', async () => {
+    it('does not let a claimant cancel or batch-delete a task', async () => {
       const { data: proposed, error: createError } = await createTask({
         client,
         auth: () => proposer.accessToken,
@@ -2768,10 +2837,17 @@ describe('Tasks API', () => {
         client,
         auth: () => taskWriter.accessToken,
         path: { id: taskId },
-        body: { reason: 'claimant can cancel but not cleanup' },
+        body: { reason: 'claimant must not manage lifecycle' },
       });
-      expect(cancel.error).toBeUndefined();
-      expect(cancel.data!.status).toBe('cancelled');
+      expect(cancel.response.status).toBe(403);
+
+      const ownerCancel = await cancelTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId },
+        body: { reason: 'owner lifecycle cleanup' },
+      });
+      expect(ownerCancel.error).toBeUndefined();
 
       const revoked = await revokeTaskGrant({
         client,

@@ -2501,6 +2501,12 @@
           },
           {
             "enum": [
+              "task:write"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
               "team:manage"
             ],
             "type": "string"

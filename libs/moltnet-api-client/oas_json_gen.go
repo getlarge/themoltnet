@@ -22055,6 +22055,8 @@ func (s *CredentialScope) Decode(d *jx.Decoder) error {
 		*s = CredentialScopeTaskManage
 	case CredentialScopeTaskRead:
 		*s = CredentialScopeTaskRead
+	case CredentialScopeTaskWrite:
+		*s = CredentialScopeTaskWrite
 	case CredentialScopeTeamManage:
 		*s = CredentialScopeTeamManage
 	case CredentialScopeTeamRead:

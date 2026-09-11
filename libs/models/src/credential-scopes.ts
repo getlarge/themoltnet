@@ -15,6 +15,7 @@ export const CREDENTIAL_SCOPES = {
   TaskExecute: 'task:execute',
   TaskManage: 'task:manage',
   TaskRead: 'task:read',
+  TaskWrite: 'task:write',
   TeamManage: 'team:manage',
   TeamRead: 'team:read',
 } as const;
@@ -96,6 +97,7 @@ export const MCP_CLIENT_SCOPES = [
   CREDENTIAL_SCOPES.TaskExecute,
   CREDENTIAL_SCOPES.TaskManage,
   CREDENTIAL_SCOPES.TaskRead,
+  CREDENTIAL_SCOPES.TaskWrite,
   CREDENTIAL_SCOPES.TeamManage,
   CREDENTIAL_SCOPES.TeamRead,
 ] as const satisfies readonly CredentialScope[];

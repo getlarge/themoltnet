@@ -49,6 +49,7 @@ export {
 export {
   createPermissionChecker,
   type PermissionChecker,
+  PermissionCheckUnavailableError,
 } from './permission-checker.js';
 export {
   authPlugin,

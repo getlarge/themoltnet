@@ -50,10 +50,12 @@ export enum TeamRelation {
  */
 export enum TeamPermission {
   ExecuteTasks = 'execute_tasks',
+  ProposeTasks = 'propose_tasks',
   Manage = 'manage',
   ManageCredentials = 'manage_credentials',
   ManageMembers = 'manage_members',
   ManageRuntime = 'manage_runtime',
+  ManageTasks = 'manage_tasks',
   Write = 'write',
   Access = 'access',
 }
@@ -107,7 +109,6 @@ export enum DiaryEntryPermission {
 export enum DiaryPermission {
   Read = 'read',
   Write = 'write',
-  Propose = 'propose',
   Manage = 'manage',
 }
 

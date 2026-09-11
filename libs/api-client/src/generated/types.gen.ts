@@ -616,6 +616,7 @@ export type CredentialScope =
   | 'task:execute'
   | 'task:manage'
   | 'task:read'
+  | 'task:write'
   | 'team:manage'
   | 'team:read';
 

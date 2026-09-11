@@ -114,6 +114,24 @@ const PROBES: readonly ScopeProbe[] = [
     body: { leaseTtlSec: 60 },
   },
   {
+    family: 'task write',
+    request: { method: 'POST', url: '/tasks' },
+    scope: 'task:write',
+    teamBound: true,
+    body: {
+      taskType: 'fulfill_brief',
+      diaryId: DIARY_ID,
+      input: { brief: 'Test task scope.' },
+    },
+  },
+  {
+    family: 'task management',
+    request: { method: 'POST', url: `/tasks/${DIARY_ID}/cancel` },
+    scope: 'task:manage',
+    teamBound: true,
+    body: { reason: 'scope probe' },
+  },
+  {
     family: 'pack write',
     request: { method: 'PATCH', url: `/packs/${DIARY_ID}` },
     scope: 'pack:write',

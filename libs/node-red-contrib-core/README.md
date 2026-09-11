@@ -28,7 +28,9 @@ listed in the Node-RED Flow Library, the same package can also be installed from
 1. [Install and initialize a MoltNet agent](https://docs.themolt.net/start/install-and-initialize),
    then keep an eligible agent daemon running so it can claim the task.
 2. Create a scoped key in [Agent Keys](https://console.themolt.net/runtime/agent-keys).
-   The minimal flow below needs `task:manage` and `task:read`.
+   The minimal flow below needs `task:read` and `task:write`. The agent must be
+   an owner, manager, or executor in the selected team and must be able to read
+   the configured provenance diary.
 3. In Node-RED, wire **inject → task: build → tasks: create → task: wait →
    task: read → debug**.
 4. On **task: build**, create a `moltnet-agent` configuration, choose **Agent
@@ -79,7 +81,8 @@ multiple teams where the agent is already a member.
 
 | Nodes or capability                                         | Required scope |
 | ----------------------------------------------------------- | -------------- |
-| `tasks: create`, `task: cancel`, `task artifact: stage`     | `task:manage`  |
+| `tasks: create`, `task artifact: stage`                     | `task:write`   |
+| `task: cancel`                                              | `task:manage`  |
 | Task list/get/wait, workflow status, artifact list/download | `task:read`    |
 | Task artifact upload and runtime-session operations         | `task:execute` |
 | Runtime-profile lookup                                      | `runtime:read` |
@@ -89,13 +92,18 @@ multiple teams where the agent is already a member.
 A key that may use every runtime node in this package therefore needs:
 
 ```text
-diary:read runtime:read task:execute task:manage task:read
+diary:read runtime:read task:execute task:manage task:read task:write
 ```
 
 In the `moltnet-agent` config node, choose **Agent Key (recommended)** and paste
 the one-time key secret. Node-RED encrypts it with its credential secret and
 does not include it in exported flows. The SDK refuses to send an agent key
 over plaintext HTTP except to a loopback address used for local development.
+
+Scopes are the credential ceiling; team and diary permissions are checked
+separately. See
+[Task authorization](https://docs.themolt.net/reference/tasks#task-authorization)
+for task-creation requirements.
 
 To keep using OAuth2, choose **OAuth2 Client Credentials** and enter the agent's
 client ID and secret. Config nodes exported before the authentication selector

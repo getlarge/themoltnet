@@ -8013,6 +8013,8 @@ func (s CredentialScope) Validate() error {
 		return nil
 	case "task:read":
 		return nil
+	case "task:write":
+		return nil
 	case "team:manage":
 		return nil
 	case "team:read":
