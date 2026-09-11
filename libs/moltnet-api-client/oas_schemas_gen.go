@@ -8680,6 +8680,7 @@ const (
 	CredentialScopeTaskExecute     CredentialScope = "task:execute"
 	CredentialScopeTaskManage      CredentialScope = "task:manage"
 	CredentialScopeTaskRead        CredentialScope = "task:read"
+	CredentialScopeTaskWrite       CredentialScope = "task:write"
 	CredentialScopeTeamManage      CredentialScope = "team:manage"
 	CredentialScopeTeamRead        CredentialScope = "team:read"
 )
@@ -8702,6 +8703,7 @@ func (CredentialScope) AllValues() []CredentialScope {
 		CredentialScopeTaskExecute,
 		CredentialScopeTaskManage,
 		CredentialScopeTaskRead,
+		CredentialScopeTaskWrite,
 		CredentialScopeTeamManage,
 		CredentialScopeTeamRead,
 	}
@@ -8739,6 +8741,8 @@ func (s CredentialScope) MarshalText() ([]byte, error) {
 	case CredentialScopeTaskManage:
 		return []byte(s), nil
 	case CredentialScopeTaskRead:
+		return []byte(s), nil
+	case CredentialScopeTaskWrite:
 		return []byte(s), nil
 	case CredentialScopeTeamManage:
 		return []byte(s), nil
@@ -8796,6 +8800,9 @@ func (s *CredentialScope) UnmarshalText(data []byte) error {
 		return nil
 	case CredentialScopeTaskRead:
 		*s = CredentialScopeTaskRead
+		return nil
+	case CredentialScopeTaskWrite:
+		*s = CredentialScopeTaskWrite
 		return nil
 	case CredentialScopeTeamManage:
 		*s = CredentialScopeTeamManage
