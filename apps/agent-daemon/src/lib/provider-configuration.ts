@@ -81,6 +81,7 @@ export class ProviderConfigurationService {
       secretProviders: SecretProviderRegistry;
       fetchImpl?: typeof fetch;
       logger?: ProviderConfigurationLogger;
+      requestTimeoutMs?: number;
     },
   ) {
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -143,9 +144,15 @@ export class ProviderConfigurationService {
       const key = `pi-provider/${providerId}`;
       let previousSecret: string | undefined;
       if (input.apiKey !== undefined && previous?.apiKeyRef) {
-        previousSecret = await this.options.secretProviders.resolve(
-          parseSecretReferenceString(previous.apiKeyRef),
-        );
+        try {
+          previousSecret = await this.options.secretProviders.resolve(
+            parseSecretReferenceString(previous.apiKeyRef),
+          );
+        } catch {
+          // An unavailable old value must not prevent replacing it. Rollback
+          // can still restore the prior provider reference if persistence
+          // fails, even when the referenced secret was already unavailable.
+        }
       }
       if (input.apiKey !== undefined) {
         await this.options.secrets.write(key, input.apiKey);
@@ -217,9 +224,9 @@ export class ProviderConfigurationService {
       } catch (error) {
         this.logger.warn(
           {
+            ...safeProviderErrorContext(error),
             code: 'agent_server_provider_secret_unavailable',
             providerId,
-            errorType: error instanceof Error ? error.name : typeof error,
           },
           'Provider API key could not be resolved for model discovery',
         );
@@ -242,10 +249,15 @@ export class ProviderConfigurationService {
     ): Promise<unknown> => {
       let response: Response;
       try {
+        const timeout = AbortSignal.timeout(
+          this.options.requestTimeoutMs ?? 10_000,
+        );
         response = await this.fetchImpl(url, {
           headers,
           redirect: 'error',
-          signal: options.signal ?? AbortSignal.timeout(10_000),
+          signal: options.signal
+            ? AbortSignal.any([options.signal, timeout])
+            : timeout,
         });
       } catch (error) {
         const errorType = error instanceof Error ? error.name : typeof error;
@@ -263,15 +275,24 @@ export class ProviderConfigurationService {
       }
       if (!response.ok) {
         failures.push({ kind: 'http', status: response.status });
-        this.logger.info(
-          {
-            code: 'agent_server_provider_discovery_upstream_error',
-            endpoint,
-            providerId,
-            statusCode: response.status,
-          },
-          'Provider model discovery endpoint unavailable',
-        );
+        const context = {
+          code: 'agent_server_provider_discovery_upstream_error',
+          endpoint,
+          providerId,
+          statusCode: response.status,
+        };
+        if (
+          response.status >= 500 ||
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          this.logger.warn(context, 'Provider model discovery was rejected');
+        } else {
+          this.logger.info(
+            context,
+            'Provider model discovery endpoint unavailable',
+          );
+        }
         return null;
       }
       try {
@@ -293,11 +314,13 @@ export class ProviderConfigurationService {
     collector.addOpenAiResponse(
       await tryJson('openai_models', `${baseUrl}/models`),
     );
-    // Ollama Cloud exposes additional cloud-only tags through /api/tags that
-    // are not guaranteed to appear in its OpenAI-compatible /v1/models list.
-    collector.addOllamaResponse(
-      await tryJson('ollama_tags', `${parsed.origin}/api/tags`),
-    );
+    if (isOllamaProvider(providerId, parsed)) {
+      // Ollama Cloud exposes additional cloud-only tags through /api/tags that
+      // are not guaranteed to appear in its OpenAI-compatible model list.
+      collector.addOllamaResponse(
+        await tryJson('ollama_tags', `${parsed.origin}/api/tags`),
+      );
+    }
     const result = collector.result(providerId, failures);
     if (result.discoveredCount > result.models.length) {
       this.logger.warn(
@@ -334,3 +357,50 @@ export function providerView(provider: ProviderEntry): ProviderView {
 }
 
 export { AgentServerModelDiscoveryError };
+
+function isOllamaProvider(providerId: string, baseUrl: URL): boolean {
+  return (
+    providerId === 'ollama' ||
+    providerId.startsWith('ollama-') ||
+    baseUrl.hostname === 'ollama.com' ||
+    baseUrl.port === '11434'
+  );
+}
+
+function safeProviderErrorContext(
+  error: unknown,
+): Record<string, string | number> {
+  const context: Record<string, string | number> = {
+    errorType: error instanceof Error ? error.name : typeof error,
+  };
+  const applicationCode = safeErrorToken(
+    (error as { code?: unknown } | null)?.code,
+  );
+  if (applicationCode) context['applicationCode'] = applicationCode;
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause instanceof Error) {
+    context['causeType'] = cause.name;
+    const causeMessage = safeLogMessage(cause.message);
+    if (causeMessage) context['causeMessage'] = causeMessage;
+  }
+  const fsCode = safeErrorToken((cause as NodeJS.ErrnoException | null)?.code);
+  const syscall = safeErrorToken(
+    (cause as NodeJS.ErrnoException | null)?.syscall,
+  );
+  if (fsCode) context['fsCode'] = fsCode;
+  if (syscall) context['syscall'] = syscall;
+  const causeStatus = (cause as { statusCode?: unknown } | null)?.statusCode;
+  if (typeof causeStatus === 'number') context['causeStatusCode'] = causeStatus;
+  return context;
+}
+
+function safeLogMessage(value: string): string | undefined {
+  const normalized = value.replace(/[\r\n\t]/gu, ' ').trim();
+  return normalized ? normalized.slice(0, 500) : undefined;
+}
+
+function safeErrorToken(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(value)
+    ? value
+    : undefined;
+}

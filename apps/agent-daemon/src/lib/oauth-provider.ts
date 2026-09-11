@@ -1,9 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-import {
-  ModelRuntime,
-  readStoredCredential,
-} from '@earendil-works/pi-coding-agent';
+import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 
 import { withProviderOAuthLock } from './provider-lock.js';
 
@@ -14,6 +12,14 @@ export interface OAuthProviderView {
   name: string;
   connected: boolean;
 }
+
+export interface OAuthProviderLogger {
+  warn(context: Record<string, unknown>, message: string): void;
+}
+
+const silentLogger: OAuthProviderLogger = {
+  warn: () => undefined,
+};
 
 export class OAuthProviderError extends Error {
   override name = 'OAuthProviderError';
@@ -29,11 +35,13 @@ export class OAuthProviderService {
   private constructor(
     readonly authPath: string,
     private readonly runtime: ModelRuntime,
+    private readonly logger: OAuthProviderLogger,
   ) {}
 
   static async create(options: {
     authPath: string;
     modelRuntime?: ModelRuntime;
+    logger?: OAuthProviderLogger;
   }): Promise<OAuthProviderService> {
     const runtime =
       options.modelRuntime ??
@@ -41,29 +49,21 @@ export class OAuthProviderService {
         authPath: options.authPath,
         refreshOnCreate: false,
       }));
-    return new OAuthProviderService(options.authPath, runtime);
+    return new OAuthProviderService(
+      options.authPath,
+      runtime,
+      options.logger ?? silentLogger,
+    );
   }
 
   list(): OAuthProviderView[] {
-    return this.runtime
-      .getProviders()
-      .filter(
-        (provider) =>
-          provider.auth.oauth !== undefined &&
-          !EXCLUDED_OAUTH_PROVIDERS.has(provider.id),
-      )
-      .map((provider) => {
-        let connected = false;
-        try {
-          connected =
-            readStoredCredential(provider.id, this.authPath) !== undefined;
-        } catch {
-          // A malformed or temporarily unreadable auth store must not make
-          // provider discovery unavailable. This matches Agent Server's
-          // previous behavior: report the provider as disconnected.
-        }
-        return { id: provider.id, name: provider.name, connected };
-      });
+    const providers = this.oauthProviders();
+    const connected = this.connectedProviderIds(providers);
+    return providers.map((provider) => ({
+      id: provider.id,
+      name: provider.name,
+      connected: connected.has(provider.id),
+    }));
   }
 
   async login(
@@ -88,11 +88,67 @@ export class OAuthProviderService {
   }
 
   private assertProvider(providerId: string): void {
-    if (!this.list().some((provider) => provider.id === providerId)) {
+    if (!this.oauthProviders().some((provider) => provider.id === providerId)) {
       throw new OAuthProviderError(
         'provider_unknown',
         `"${providerId}" is not a known OAuth provider`,
       );
     }
   }
+
+  private oauthProviders(): { id: string; name: string }[] {
+    return this.runtime
+      .getProviders()
+      .filter(
+        (provider) =>
+          provider.auth.oauth !== undefined &&
+          !EXCLUDED_OAUTH_PROVIDERS.has(provider.id),
+      )
+      .map(({ id, name }) => ({ id, name }));
+  }
+
+  private connectedProviderIds(
+    providers: { id: string }[],
+  ): ReadonlySet<string> {
+    try {
+      const content = readFileSync(this.authPath, 'utf8').replace(
+        /^\uFEFF/u,
+        '',
+      );
+      const parsed = JSON.parse(content) as unknown;
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        throw new Error('Invalid auth.json: expected an object');
+      }
+      return new Set(Object.keys(parsed));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        for (const provider of providers) {
+          this.logger.warn(
+            {
+              event: 'agent-server.subscription_auth_read_failed',
+              providerId: provider.id,
+              ...safeOAuthError(error),
+            },
+            'Could not read subscription authentication state',
+          );
+        }
+      }
+      return new Set();
+    }
+  }
+}
+
+function safeOAuthError(error: unknown): Record<string, string> {
+  const result: Record<string, string> = {
+    errorType: error instanceof Error ? error.name : typeof error,
+  };
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(code)) {
+    result['applicationCode'] = code;
+  }
+  return result;
 }

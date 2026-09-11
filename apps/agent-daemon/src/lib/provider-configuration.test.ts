@@ -14,7 +14,16 @@ afterEach(() => {
   for (const cleanup of cleanups.splice(0)) cleanup();
 });
 
-function fixture(fetchImpl?: typeof fetch) {
+function fixture(
+  options: {
+    fetchImpl?: typeof fetch;
+    logger?: {
+      info: ReturnType<typeof vi.fn>;
+      warn: ReturnType<typeof vi.fn>;
+    };
+    requestTimeoutMs?: number;
+  } = {},
+) {
   const temp = mkdtempSync(join(tmpdir(), 'provider-configuration-'));
   cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
   const store = new AgentServerStore(join(temp, 'moltnet')).ensure();
@@ -24,13 +33,14 @@ function fixture(fetchImpl?: typeof fetch) {
   });
   const secretProviders = new SecretProviderRegistry().register(secrets);
   return {
+    secretProviders,
     store,
     secrets,
     service: new ProviderConfigurationService({
       store,
       secrets,
       secretProviders,
-      ...(fetchImpl ? { fetchImpl } : {}),
+      ...options,
     }),
   };
 }
@@ -86,6 +96,28 @@ describe('ProviderConfigurationService', () => {
     ]);
   });
 
+  it('replaces an API key when the previous referenced secret is unavailable', async () => {
+    const { service, secretProviders, secrets, store } = fixture();
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'old-secret',
+    });
+    await secrets.delete('pi-provider/remote');
+
+    await expect(
+      service.set('remote', { apiKey: 'replacement-secret' }),
+    ).resolves.toMatchObject({ hasApiKey: true });
+    await expect(
+      secretProviders.resolve({
+        provider: 'file',
+        key: 'pi-provider/remote',
+      }),
+    ).resolves.toBe('replacement-secret');
+    expect(store.readProviders()['remote']?.apiKeyRef).toBe(
+      'file:pi-provider/remote',
+    );
+  });
+
   it('merges OpenAI and Ollama discovery and saves only the model patch', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -99,7 +131,7 @@ describe('ProviderConfigurationService', () => {
             JSON.stringify({ data: [{ id: 'shared' }, { id: 'local' }] }),
           );
     });
-    const { service } = fixture(fetchImpl);
+    const { service } = fixture({ fetchImpl });
     await service.set('ollama-cloud', {
       api: 'openai-responses',
       baseUrl: 'https://ollama.com/v1',
@@ -112,11 +144,79 @@ describe('ProviderConfigurationService', () => {
     ).resolves.toEqual({
       models: ['gemma4:31b-cloud', 'local', 'shared'],
     });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(service.list()['ollama-cloud']).toMatchObject({
       api: 'openai-responses',
       baseUrl: 'https://ollama.com/v1',
       hasApiKey: true,
       models: ['gemma4:31b-cloud', 'local', 'shared'],
     });
+  });
+
+  it('does not query Ollama tags for an unrelated provider', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ data: [{ id: 'remote-model' }] })),
+      ),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+    });
+
+    await expect(service.discover('remote')).resolves.toEqual({
+      models: ['remote-model'],
+    });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://provider.example/v1/models',
+      expect.any(Object),
+    );
+  });
+
+  it('keeps the request timeout when a caller supplies a cancellation signal', async () => {
+    const caller = new AbortController();
+    const fetchImpl = vi.fn<typeof fetch>((_input, init) => {
+      const signal = init?.signal;
+      expect(signal).not.toBe(caller.signal);
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener(
+          'abort',
+          () => reject(new Error('request aborted', { cause: signal.reason })),
+          { once: true },
+        );
+      });
+    });
+    const { service } = fixture({ fetchImpl, requestTimeoutMs: 5 });
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+    });
+
+    await expect(
+      service.discover('remote', { signal: caller.signal }),
+    ).rejects.toMatchObject({ name: 'AgentServerModelDiscoveryError' });
+    expect(caller.signal.aborted).toBe(false);
+  });
+
+  it('warns for rejected discovery responses with safe error context', async () => {
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const fetchImpl = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(null, { status: 401 })),
+    );
+    const { service } = fixture({ fetchImpl, logger });
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+    });
+
+    await expect(service.discover('remote')).rejects.toMatchObject({
+      name: 'AgentServerModelDiscoveryError',
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'agent_server_provider_discovery_upstream_error',
+        statusCode: 401,
+      }),
+      'Provider model discovery was rejected',
+    );
   });
 });

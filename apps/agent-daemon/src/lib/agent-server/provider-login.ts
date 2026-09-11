@@ -142,6 +142,7 @@ export class ProviderLoginService {
   ): Promise<ProviderLoginService> {
     const oauthProviders = await OAuthProviderService.create({
       authPath: options.authPath,
+      logger: options.logger,
     });
     return new ProviderLoginService({ ...options, oauthProviders });
   }
@@ -204,6 +205,13 @@ export class ProviderLoginService {
 
   list(): SubscriptionProviderView[] {
     this.sweep();
+    if (
+      this.options.oauthProviders &&
+      !this.options.listProviders &&
+      !this.options.isConnected
+    ) {
+      return this.options.oauthProviders.list();
+    }
     return this.providers().map((provider) => ({
       ...provider,
       connected: this.connected(provider.id),

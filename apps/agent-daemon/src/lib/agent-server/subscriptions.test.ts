@@ -23,6 +23,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { OAuthProviderService } from '../oauth-provider.js';
 import { ProviderConfigurationService } from '../provider-configuration.js';
 import { PairingService } from './pairing.js';
 import {
@@ -182,6 +183,23 @@ function readAuthFile(authPath: string): Record<string, unknown> {
 }
 
 describe('agent server subscriptions', () => {
+  it('reads the shared OAuth provider list once per listing', () => {
+    const list = vi.fn(() => [
+      { id: 'anthropic', name: 'Anthropic', connected: true },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
+    ]);
+    const service = new ProviderLoginService({
+      authPath: '/unused/auth.json',
+      oauthProviders: { list } as unknown as OAuthProviderService,
+    });
+
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: true },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
+    ]);
+    expect(list).toHaveBeenCalledOnce();
+  });
+
   it('adapts the production ModelRuntime OAuth discovery and login callbacks', async () => {
     const authPath = join(
       mkdtempSync(join(tmpdir(), 'serve-subs-runtime-')),

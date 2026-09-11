@@ -54,15 +54,18 @@ async function withNamedProviderLock<T>(
       randomize: true,
     },
   });
+  let outcome: { ok: true; value: T } | { ok: false; error: unknown };
   try {
-    const result = await work();
-    if (compromised) throw compromised;
-    return result;
-  } finally {
-    try {
-      await release();
-    } catch (error) {
-      if (!compromised) throw error;
-    }
+    outcome = { ok: true, value: await work() };
+  } catch (error) {
+    outcome = { ok: false, error };
   }
+  try {
+    await release();
+  } catch (error) {
+    if (!compromised && outcome.ok) outcome = { ok: false, error };
+  }
+  if (!outcome.ok) throw outcome.error;
+  if (compromised) throw compromised;
+  return outcome.value;
 }

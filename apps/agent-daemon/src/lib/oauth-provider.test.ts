@@ -54,8 +54,10 @@ describe('OAuthProviderService', () => {
     const path = authPath();
     mkdirSync(join(path, '..'), { recursive: true });
     writeFileSync(path, '{not-json');
+    const logger = { warn: vi.fn() };
     const service = await OAuthProviderService.create({
       authPath: path,
+      logger,
       modelRuntime: runtime(),
     });
 
@@ -63,6 +65,15 @@ describe('OAuthProviderService', () => {
       { id: 'anthropic', name: 'Anthropic', connected: false },
       { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
     ]);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorType: 'SyntaxError',
+        event: 'agent-server.subscription_auth_read_failed',
+        providerId: 'anthropic',
+      }),
+      'Could not read subscription authentication state',
+    );
   });
 
   it('uses ModelRuntime for login and logout', async () => {
