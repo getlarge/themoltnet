@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.69.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.68.0...moltnet-api-client-v1.69.0) (2026-09-11)
+
+
+### Features
+
+* **tasks:** authorize executor task creation ([e98a45f](https://github.com/getlarge/themoltnet/commit/e98a45f0b1520da159fafbe30856d8e97044aa5c))
+
+
+### Codegen
+
+* **api:** expose task write scope in clients ([45ea9d7](https://github.com/getlarge/themoltnet/commit/45ea9d7eb78e1ab69c575f3d1e4932b78143dbd8))
+
 ## [1.68.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.67.1...moltnet-api-client-v1.68.0) (2026-09-09)
 
 

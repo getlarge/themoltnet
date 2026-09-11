@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.56.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.55.1...rest-api-v0.56.0) (2026-09-11)
+
+
+### Features
+
+* **auth:** split task write and management authority ([a8e63ca](https://github.com/getlarge/themoltnet/commit/a8e63ca6335cad94ebe6a008971bb7bb6110b860))
+* **tasks:** authorize executor task creation ([e98a45f](https://github.com/getlarge/themoltnet/commit/e98a45f0b1520da159fafbe30856d8e97044aa5c))
+* **tasks:** authorize executor task proposals ([1aebce0](https://github.com/getlarge/themoltnet/commit/1aebce07ecd0b835d1dd29697fa9f3346d311988))
+
 ## [0.55.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.55.0...rest-api-v0.55.1) (2026-09-11)
 
 
