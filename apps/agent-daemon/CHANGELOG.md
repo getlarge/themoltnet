@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.55.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.55.0...agent-daemon-v0.55.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **agent-daemon:** seed the mount path from cwd when --agent-root is omitted ([fe1b331](https://github.com/getlarge/themoltnet/commit/fe1b3311d6a74de54e920300504c7b4d67a5e05d))
+* **agent-daemon:** seed the mount path from cwd, and run the signed release bundle ([87a0844](https://github.com/getlarge/themoltnet/commit/87a08440c310b3a3285126de73251240fa67c334))
+* **auth:** align credential selection boundaries ([da5c039](https://github.com/getlarge/themoltnet/commit/da5c039b6ea8a87528534e6fbca4e923f13e7cc5))
+* **cli:** make OAuth2 the default authentication path ([086f990](https://github.com/getlarge/themoltnet/commit/086f990e74170966c1097fdb3438117005dd52df))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.1
+    * @themoltnet/pi-runtime bumped to 0.15.1
+    * @themoltnet/sdk bumped to 0.141.1
+
 ## [0.55.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.54.0...agent-daemon-v0.55.0) (2026-09-09)
 
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.15.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.15.0...pi-runtime-v0.15.1) (2026-09-11)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.1
+    * @themoltnet/sdk bumped to 0.141.1
+
 ## [0.15.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.14.3...pi-runtime-v0.15.0) (2026-09-09)
 
 

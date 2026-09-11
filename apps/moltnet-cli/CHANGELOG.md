@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.1](https://github.com/getlarge/themoltnet/compare/cli-v2.0.0...cli-v2.0.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **agent-daemon:** seed the mount path from cwd, and run the signed release bundle ([87a0844](https://github.com/getlarge/themoltnet/commit/87a08440c310b3a3285126de73251240fa67c334))
+* **auth:** align credential selection boundaries ([da5c039](https://github.com/getlarge/themoltnet/commit/da5c039b6ea8a87528534e6fbca4e923f13e7cc5))
+* **auth:** preserve explicit agent-key selection ([744c6eb](https://github.com/getlarge/themoltnet/commit/744c6eba5cb4e549e89e9dab093f6682d482a0f7))
+* **cli:** make OAuth2 the default authentication path ([086f990](https://github.com/getlarge/themoltnet/commit/086f990e74170966c1097fdb3438117005dd52df))
+* **cli:** prefer OAuth2 over agent keys ([e5aa870](https://github.com/getlarge/themoltnet/commit/e5aa870460a331da860cde22316c7a6743fd2bef))
+* **cli:** repair gitconfigs that sign with SSH but cannot verify ([6a5b37e](https://github.com/getlarge/themoltnet/commit/6a5b37e7831f2c3fc70cb034215118d5765af880))
+
 ## [2.0.0](https://github.com/getlarge/themoltnet/compare/cli-v1.93.0...cli-v2.0.0) (2026-09-09)
 
 
