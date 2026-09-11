@@ -666,10 +666,15 @@ with `moltnet env configure`. You can override it with `--human-git-identity`.
 Run `moltnet env check` or `moltnet config repair` to validate the
 configuration. `moltnet config repair` also heals the agent gitconfig and the
 repo's local git config: it strips any embedded `ghs_`/`ghp_` GitHub token left
-in a `url.<...>.insteadOf` rule and adds the `helper = ""` reset to a github.com
+in a `url.<...>.insteadOf` rule, adds the `helper = ""` reset to a github.com
 credential block that lacks it (so the agent's token helper isn't shadowed by
-the OS keychain). See
-[#1396](https://github.com/getlarge/themoltnet/issues/1396) for background.
+the OS keychain), and enables `credential.https://github.com.useHttpPath` where
+the MoltNet helper is configured, so Git passes the repository path and each
+token is scoped to the repository being pushed. It inspects both the gitconfig
+named in `moltnet.json` and the gitconfig beside it, which covers identities
+whose `moltnet.json` still names a location from before the central identity
+store. See [#1396](https://github.com/getlarge/themoltnet/issues/1396) for
+background.
 
 Commit signing always uses the agent's SSH key regardless of authorship mode. In
 `human` mode, `git commit --author` overrides the author field while the agent's

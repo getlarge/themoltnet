@@ -569,3 +569,156 @@ func TestRepairAllowedSigners_RequiresExportedKeyAndEmail(t *testing.T) {
 		t.Fatalf("expected a git-setup hint, got: %v", err)
 	}
 }
+
+const (
+	moltnetHelperGitconfig = `[credential "https://github.com"]
+	helper =
+	helper = "!moltnet github credential-helper --credentials /x/moltnet.json"
+`
+)
+
+func writeRepairGitconfig(t *testing.T, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "gitconfig")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// Identities set up before useHttpPath was installed lack it, and Git then
+// strips the request path before the helper sees it. Only configs that route
+// github.com through the MoltNet helper are MoltNet's to fix.
+func TestPathlessCredentialHelperConfigs(t *testing.T) {
+	for _, testCase := range []struct {
+		name    string
+		content string
+		flagged bool
+	}{
+		{"moltnet helper without useHttpPath", moltnetHelperGitconfig, true},
+		{"moltnet helper with useHttpPath false", moltnetHelperGitconfig + "\tuseHttpPath = false\n", true},
+		{"moltnet helper with useHttpPath true", moltnetHelperGitconfig + "\tuseHttpPath = true\n", false},
+		{"moltnet helper with useHttpPath yes", moltnetHelperGitconfig + "\tuseHttpPath = yes\n", false},
+		{"a different helper", "[credential \"https://github.com\"]\n\thelper = osxkeychain\n", false},
+		{"no credential section", "[user]\n\tname = someone\n", false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			path := writeRepairGitconfig(t, testCase.content)
+			got := pathlessCredentialHelperConfigs([]string{path})
+			if flagged := len(got) == 1; flagged != testCase.flagged {
+				t.Fatalf("flagged = %v, want %v", flagged, testCase.flagged)
+			}
+		})
+	}
+	if got := pathlessCredentialHelperConfigs([]string{filepath.Join(t.TempDir(), "missing")}); len(got) != 0 {
+		t.Fatalf("a missing config must not be flagged, got %v", got)
+	}
+}
+
+func TestEnsureGitHubCredentialUsePath_IsIdempotent(t *testing.T) {
+	path := writeRepairGitconfig(t, moltnetHelperGitconfig+"\tuseHttpPath = false\n")
+	changed, err := ensureGitHubCredentialUsePath(path)
+	if err != nil || !changed {
+		t.Fatalf("first pass: changed=%v err=%v, want a change", changed, err)
+	}
+	if got := gitConfigValue(path, githubCredentialUsePathKey); got != "true" {
+		t.Fatalf("useHttpPath = %q, want true", got)
+	}
+	changed, err = ensureGitHubCredentialUsePath(path)
+	if err != nil || changed {
+		t.Fatalf("second pass: changed=%v err=%v, want no change", changed, err)
+	}
+	if got := pathlessCredentialHelperConfigs([]string{path}); len(got) != 0 {
+		t.Fatalf("still flagged after the fix: %v", got)
+	}
+}
+
+// End to end through `moltnet config repair`: the agent gitconfig named in
+// moltnet.json gains useHttpPath, and --dry-run reports without writing.
+func TestRunConfigRepair_EnablesUseHTTPPathForTheAgentGitconfig(t *testing.T) {
+	// Run outside any checkout: repair also inspects the current repository's
+	// .git/config, and a test must never touch a real one.
+	t.Chdir(t.TempDir())
+	tmpDir := t.TempDir()
+	gitconfig := writeRepairGitconfig(t, moltnetHelperGitconfig)
+	creds := CredentialsFile{
+		SubjectID: "test",
+		Keys:      CredentialsKeys{PublicKey: "ed25519:abc=", PrivateKey: "abc="},
+		Endpoints: CredentialsEndpoints{API: "https://api.themolt.net", MCP: "https://mcp.themolt.net/mcp"},
+		Git:       &GitSection{ConfigPath: gitconfig},
+	}
+	credPath := filepath.Join(tmpDir, "moltnet.json")
+	writeTestConfig(t, tmpDir, "moltnet.json", creds)
+
+	if err := runConfigRepair([]string{"--credentials", credPath, "--dry-run"}); err != nil {
+		t.Fatalf("dry run: %v", err)
+	}
+	if got := gitConfigValue(gitconfig, githubCredentialUsePathKey); got != "" {
+		t.Fatalf("dry run wrote useHttpPath = %q", got)
+	}
+
+	if err := runConfigRepair([]string{"--credentials", credPath}); err != nil {
+		t.Fatalf("repair: %v", err)
+	}
+	if got := gitConfigValue(gitconfig, githubCredentialUsePathKey); got != "true" {
+		t.Fatalf("useHttpPath = %q after repair, want true", got)
+	}
+}
+
+// Regression: a moltnet.json written before the central identity store can
+// name an older gitconfig. Repair must still fix the gitconfig beside
+// moltnet.json, which is the one the identity env points GIT_CONFIG_GLOBAL at.
+func TestRunConfigRepair_FixesTheIdentityGitconfigWhenConfigPathIsStale(t *testing.T) {
+	t.Chdir(t.TempDir())
+	identityDir := t.TempDir()
+	stale := writeRepairGitconfig(t, "[user]\n\tname = previous-location\n")
+	live := filepath.Join(identityDir, "gitconfig")
+	if err := os.WriteFile(live, []byte(moltnetHelperGitconfig), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	creds := CredentialsFile{
+		SubjectID: "test",
+		Keys:      CredentialsKeys{PublicKey: "ed25519:abc=", PrivateKey: "abc="},
+		Endpoints: CredentialsEndpoints{API: "https://api.themolt.net", MCP: "https://mcp.themolt.net/mcp"},
+		Git:       &GitSection{ConfigPath: stale},
+	}
+	credPath := filepath.Join(identityDir, "moltnet.json")
+	writeTestConfig(t, identityDir, "moltnet.json", creds)
+
+	if err := runConfigRepair([]string{"--credentials", credPath}); err != nil {
+		t.Fatalf("repair: %v", err)
+	}
+	if got := gitConfigValue(live, githubCredentialUsePathKey); got != "true" {
+		t.Fatalf("the identity gitconfig was not fixed: useHttpPath = %q", got)
+	}
+}
+
+func TestGitConfigCandidates_ListsTheIdentityGitconfigOnce(t *testing.T) {
+	t.Chdir(t.TempDir())
+	identityDir := t.TempDir()
+	live := filepath.Join(identityDir, "gitconfig")
+	if err := os.WriteFile(live, []byte(moltnetHelperGitconfig), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	credPath := filepath.Join(identityDir, "moltnet.json")
+	count := func(paths []string, target string) int {
+		n := 0
+		for _, p := range paths {
+			if filepath.Clean(p) == filepath.Clean(target) {
+				n++
+			}
+		}
+		return n
+	}
+
+	upToDate := gitConfigCandidates(&CredentialsFile{Git: &GitSection{ConfigPath: live}}, credPath)
+	if count(upToDate, live) != 1 {
+		t.Fatalf("an up-to-date config_path must list the identity gitconfig once, got %v", upToDate)
+	}
+
+	stale := writeRepairGitconfig(t, "[user]\n\tname = previous-location\n")
+	both := gitConfigCandidates(&CredentialsFile{Git: &GitSection{ConfigPath: stale}}, credPath)
+	if count(both, live) != 1 || count(both, stale) != 1 {
+		t.Fatalf("a stale config_path must list both files once, got %v", both)
+	}
+}

@@ -172,20 +172,50 @@ func ensureGitHubCredentialConfig(gitConfigPath, credPath string) error {
 			return err
 		}
 	}
-	usePathKey := "credential.https://github.com.useHttpPath"
-	values, err = gitConfigGetAll(gitConfigPath, usePathKey)
+	_, err = ensureGitHubCredentialUsePath(gitConfigPath)
+	return err
+}
+
+// githubCredentialUsePathKey makes Git pass the request path to the helper,
+// which is how the helper scopes a token to the repository being accessed.
+// Git strips the path unless this is true, and the helper can then only fall
+// back to the current checkout's remote.
+const githubCredentialUsePathKey = "credential.https://github.com.useHttpPath"
+
+// ensureGitHubCredentialUsePath sets useHttpPath to true, reporting whether it
+// changed anything.
+func ensureGitHubCredentialUsePath(gitConfigPath string) (bool, error) {
+	values, err := gitConfigGetAll(gitConfigPath, githubCredentialUsePathKey)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if equalStrings(values, []string{"true"}) {
-		return nil
+		return false, nil
 	}
 	if len(values) > 0 {
-		if err := runGitConfig(gitConfigPath, "--unset-all", usePathKey); err != nil {
-			return err
+		if err := runGitConfig(gitConfigPath, "--unset-all", githubCredentialUsePathKey); err != nil {
+			return false, err
 		}
 	}
-	return runGitConfig(gitConfigPath, "--add", usePathKey, "true")
+	if err := runGitConfig(gitConfigPath, "--add", githubCredentialUsePathKey, "true"); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// usesMoltnetGitHubHelper reports whether a git config routes github.com
+// credentials through the MoltNet credential helper.
+func usesMoltnetGitHubHelper(gitConfigPath string) bool {
+	values, err := gitConfigGetAll(gitConfigPath, "credential.https://github.com.helper")
+	if err != nil {
+		return false
+	}
+	for _, value := range values {
+		if strings.Contains(value, "github credential-helper") {
+			return true
+		}
+	}
+	return false
 }
 
 func gitConfigGetAll(path, key string) ([]string, error) {

@@ -991,12 +991,33 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 	cmd.Env = append(os.Environ(), "GH_TOKEN="+token)
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	ghStderr := &lineTrackingWriter{w: stderr}
+	cmd.Stderr = ghStderr
 	if err := cmd.Run(); err != nil {
 		if hint := request.execFailureHint(); hint != "" {
+			// gh's JSON error bodies end without a newline; start the hint on
+			// its own line rather than gluing it to the closing brace.
+			if ghStderr.midLine {
+				fmt.Fprintln(stderr)
+			}
 			fmt.Fprintln(stderr, hint)
 		}
 		return err
 	}
 	return nil
+}
+
+// lineTrackingWriter passes writes through and records whether the output so
+// far stopped partway through a line.
+type lineTrackingWriter struct {
+	w       io.Writer
+	midLine bool
+}
+
+func (l *lineTrackingWriter) Write(p []byte) (int, error) {
+	n, err := l.w.Write(p)
+	if n > 0 {
+		l.midLine = p[n-1] != '\n'
+	}
+	return n, err
 }
