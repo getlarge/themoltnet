@@ -30404,9 +30404,8 @@ var FingerprintSchema = String$1({
 	pattern: "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
 	description: "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
 });
-var AGENT_ALIAS_PATTERN = "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$";
 var AgentAliasSchema = String$1({
-	pattern: AGENT_ALIAS_PATTERN,
+	pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
 	minLength: 1,
 	maxLength: 63,
 	description: "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup"
@@ -39348,16 +39347,18 @@ function getConfigDir() {
 	return join(homedir(), ".config", "moltnet");
 }
 /**
-* The one identity-alias grammar, shared with the REST `AgentAliasSchema`
-* through `AGENT_ALIAS_PATTERN` in `@moltnet/models`. Must stay identical to
-* agentNamePattern in apps/moltnet-cli (Go); the daemon's AgentServerStore
-* reuses this constant directly. An alias is a directory name in a store all
-* of them write and the value the CLI publishes as the network alias, so a
-* value one accepts and another rejects makes an identity unreadable by half
-* the system or unpublishable. `identity-alias.test.ts` pins the Go copy.
+* The one identity-alias grammar. Must stay identical to `AGENT_ALIAS_PATTERN`
+* in `@moltnet/models` (the REST `AgentAliasSchema`) and agentNamePattern in
+* apps/moltnet-cli (Go); the daemon's AgentServerStore reuses this constant
+* directly. An alias is a directory name in a store all of them write and the
+* value the CLI publishes as the network alias, so a value one accepts and
+* another rejects makes an identity unreadable by half the system or
+* unpublishable. The literal is repeated rather than imported because this
+* package is bundled into published packages that must not pick up models'
+* typebox dependency; `identity-alias.test.ts` pins all three copies.
 */
 var identitiesDirName = "identities";
-var IDENTITY_ALIAS_PATTERN = new RegExp(AGENT_ALIAS_PATTERN);
+var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
 function assertIdentityAlias(alias) {
 	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
 	return alias;
