@@ -15,6 +15,7 @@ import {
 import {
   AGENT_CREDENTIAL_SCOPES,
   AGENT_OAUTH_SCOPES,
+  credentialScopeSetsEqual,
   READ_ONLY_CREDENTIAL_SCOPES,
   TASK_WORKFLOW_CREDENTIAL_SCOPES,
 } from '@moltnet/models';
@@ -30,6 +31,7 @@ import {
   CopyButton,
   Dialog,
   Input,
+  KeyFingerprint,
   Stack,
   Text,
   useTheme,
@@ -41,7 +43,13 @@ import { getApiClient } from '../api.js';
 import { getApiErrorDetail } from '../api-error.js';
 import { RoleBadge } from '../components/teams/RoleBadge.js';
 import { getConfig } from '../config.js';
-import { canManageRuntime, TEAM_HEADER } from '../team/permissions.js';
+import {
+  canClaimTeamTasks,
+  canManageRuntime,
+  canManageTeam,
+  isTeamMember,
+  TEAM_HEADER,
+} from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 interface CreateKeyForm {
@@ -57,28 +65,33 @@ type KeyPurpose = '' | 'daemon' | 'task-workflow' | 'read-only' | 'custom';
 type TeamMember = ListTeamMembersResponses[200]['items'][number];
 type AgentMember = TeamMember & { subjectType: 'agent' };
 
+// `allowsRole` is the gate; `rolesLabel` only describes it to the operator.
 const PURPOSE_PRESETS = {
   daemon: {
     label: 'Agent daemon',
     scopes: AGENT_CREDENTIAL_SCOPES,
-    roles: ['owner', 'manager', 'executor'],
+    allowsRole: canClaimTeamTasks,
+    rolesLabel: 'owner, manager, executor',
   },
   'task-workflow': {
     label: 'Task workflow',
     scopes: TASK_WORKFLOW_CREDENTIAL_SCOPES,
-    roles: ['owner', 'manager'],
+    allowsRole: canManageTeam,
+    rolesLabel: 'owner, manager',
   },
   'read-only': {
     label: 'Read-only',
     scopes: READ_ONLY_CREDENTIAL_SCOPES,
-    roles: ['owner', 'manager', 'executor', 'member'],
+    allowsRole: isTeamMember,
+    rolesLabel: 'owner, manager, executor, member',
   },
 } as const satisfies Record<
   Exclude<KeyPurpose, '' | 'custom'>,
   {
     label: string;
     scopes: readonly AgentCredentialScope[];
-    roles: readonly string[];
+    allowsRole: (role: string | null | undefined) => boolean;
+    rolesLabel: string;
   }
 >;
 
@@ -607,10 +620,9 @@ function CreateKeyDialog({
       ? PURPOSE_PRESETS[form.purpose]
       : null;
   const roleCompatible = Boolean(
-    selectedAgent &&
-    (!preset ||
-      (preset.roles as readonly string[]).includes(selectedAgent.role)),
+    selectedAgent && (!preset || preset.allowsRole(selectedAgent.role)),
   );
+  const hasScopes = form.scopes.length > 0;
 
   function selectPurpose(purpose: KeyPurpose) {
     if (!purpose || purpose === 'custom') {
@@ -641,9 +653,10 @@ function CreateKeyDialog({
           onChange={(purpose) => selectPurpose(purpose as KeyPurpose)}
           options={[
             { value: '', label: 'Select a purpose' },
-            { value: 'daemon', label: 'Agent daemon' },
-            { value: 'task-workflow', label: 'Task workflow' },
-            { value: 'read-only', label: 'Read-only' },
+            ...Object.entries(PURPOSE_PRESETS).map(([value, { label }]) => ({
+              value,
+              label,
+            })),
             { value: 'custom', label: 'Custom' },
           ]}
         />
@@ -673,8 +686,9 @@ function CreateKeyDialog({
         {selectedAgent && preset && !roleCompatible ? (
           <div role="alert">
             <Text variant="caption" color="warning">
-              {selectedAgent.displayName} currently has the {selectedAgent.role}{' '}
-              role. {preset.label} requires {formatRoleList(preset.roles)}.{' '}
+              {agentIdentityLabel(selectedAgent)} currently has the{' '}
+              {selectedAgent.role} role. {preset.label} requires one of these
+              roles: {preset.rolesLabel}.{' '}
               <Link href={`/teams/${teamId}?tab=members`}>
                 Edit team member roles
               </Link>
@@ -707,6 +721,11 @@ function CreateKeyDialog({
             onFormChange({ ...form, purpose: 'custom', scopes })
           }
         />
+        {form.purpose && !hasScopes ? (
+          <Text variant="caption" color="warning">
+            Select at least one credential scope.
+          </Text>
+        ) : null}
         <Text variant="caption" color="muted">
           Credential scopes and live team roles are separate permission gates.{' '}
           <a href={scopeGuideUrl} target="_blank" rel="noreferrer">
@@ -732,6 +751,7 @@ function CreateKeyDialog({
               !form.purpose ||
               !form.agentId ||
               !form.name.trim() ||
+              !hasScopes ||
               !roleCompatible
             }
           >
@@ -900,16 +920,13 @@ function SelectedAgentSummary({ agent }: { agent: AgentMember }) {
             {shortId(agent.subjectId)}
           </Text>
         </Stack>
-        <Text
-          variant="caption"
-          color="muted"
-          style={{
-            fontFamily: theme.font.family.mono,
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {agent.fingerprint ?? 'Fingerprint unavailable'}
-        </Text>
+        {agent.fingerprint ? (
+          <KeyFingerprint fingerprint={agent.fingerprint} size="sm" />
+        ) : (
+          <Text variant="caption" color="muted">
+            Fingerprint unavailable
+          </Text>
+        )}
       </Stack>
     </div>
   );
@@ -939,50 +956,40 @@ function KeyAgentCell({
         <Text>{agentIdentityLabel(agent)}</Text>
         <RoleBadge role={agent.role} />
       </Stack>
-      <Text
-        variant="caption"
-        color="muted"
-        style={{ fontFamily: theme.font.family.mono }}
-      >
-        {agent.fingerprint ?? shortId(agent.subjectId)}
-      </Text>
+      {agent.fingerprint ? (
+        <KeyFingerprint fingerprint={agent.fingerprint} size="sm" />
+      ) : (
+        <Text
+          variant="caption"
+          color="muted"
+          style={{ fontFamily: theme.font.family.mono }}
+        >
+          {shortId(agent.subjectId)}
+        </Text>
+      )}
     </Stack>
   );
 }
 
+/**
+ * Human-facing name: the self-published alias when there is one, otherwise the
+ * server-derived `displayName` (fingerprint, or an id prefix).
+ */
 function agentIdentityLabel(agent: AgentMember): string {
-  return agent.alias ?? agent.fingerprint ?? shortId(agent.subjectId);
+  return agent.alias ?? agent.displayName;
 }
 
 function agentOptionLabel(agent: AgentMember): string {
-  const identity = agentIdentityLabel(agent);
-  const fingerprint = agent.fingerprint
-    ? agent.alias
-      ? ` · ${agent.fingerprint}`
-      : ''
-    : ' · fingerprint unavailable';
-  return `${identity}${fingerprint} · ${agent.role} · ${shortId(agent.subjectId)}`;
-}
-
-function sameScopes(
-  left: readonly string[],
-  right: readonly string[],
-): boolean {
-  return (
-    left.length === right.length && left.every((scope) => right.includes(scope))
-  );
+  const parts = [agent.displayName, agent.role, shortId(agent.subjectId)];
+  if (agent.alias) parts.unshift(agent.alias);
+  return parts.join(' · ');
 }
 
 function purposeLabelForScopes(scopes: readonly string[]): string {
   for (const preset of Object.values(PURPOSE_PRESETS)) {
-    if (sameScopes(scopes, preset.scopes)) return preset.label;
+    if (credentialScopeSetsEqual(scopes, preset.scopes)) return preset.label;
   }
   return 'Custom';
-}
-
-function formatRoleList(roles: readonly string[]): string {
-  if (roles.length === 1) return `the ${roles[0]} role`;
-  return `one of these roles: ${roles.join(', ')}`;
 }
 
 function RotateKeyDialog({
