@@ -176,7 +176,11 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': teamId },
         body: { name: 'executor claim diary', visibility: 'moltnet' },
       });
-      const issueTaskKey = async (agent: TestAgent, name: string) => {
+      const issueTaskKey = async (
+        agent: TestAgent,
+        name: string,
+        scope: 'task:write' | 'task:manage' = 'task:write',
+      ) => {
         const issued = await createAgentKey({
           client,
           auth: () => proposer.accessToken,
@@ -187,7 +191,7 @@ describe('Tasks API', () => {
           body: {
             agentId: agent.agentId,
             name,
-            scopes: ['task:write'],
+            scopes: [scope],
             ttlDays: 1,
           },
         });
@@ -201,6 +205,11 @@ describe('Tasks API', () => {
       const memberTaskKey = await issueTaskKey(
         taskWriter,
         'member-task-proposer',
+      );
+      const executorManageKey = await issueTaskKey(
+        claimer,
+        'executor-task-manager',
+        'task:manage',
       );
       const createPendingTask = async (
         prompt: string,
@@ -225,6 +234,15 @@ describe('Tasks API', () => {
       );
       expect(executorProposal.response.status).toBe(201);
       expect(executorProposal.error).toBeUndefined();
+
+      const manageOnlyProposal = await createPendingTask(
+        'task manage without task write',
+        () => executorManageKey,
+      );
+      expect(manageOnlyProposal.response.status).toBe(403);
+      expect(manageOnlyProposal.error).toMatchObject({
+        detail: 'Missing required scope: task:write',
+      });
 
       const memberProposal = await createPendingTask(
         'member agent-key proposal',

@@ -245,7 +245,7 @@ Reporters that don't talk to the API (`JsonlTaskReporter`, `StdoutTaskReporter`)
 never abort `cancelSignal` because there's no remote channel for the cancel
 notification. Pairing them with `ApiTaskSource` is unsupported.
 
-**Daemon shutdown is a distinct path from proposer cancel.** When the daemon
+**Daemon shutdown is a distinct path from task cancellation.** When the daemon
 process itself catches `SIGINT`/`SIGTERM`, it does not want to cancel the user's
 task; it wants to stop promptly and let the work be retried. The daemon calls
 `tasks.abortAttempt(taskId, attemptN)` for the active attempt (#1382), which

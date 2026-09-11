@@ -119,11 +119,11 @@ becomes `failed`. An executor-reported failure retries only when
 `error.retryable === true`. An abort is retryable while budget remains and
 records `aborted` on the attempt; when exhausted, the task becomes `failed`.
 
-Cancellation is task-level intent: an authorized claimant or diary writer ends
-the task. Abort is attempt-level intent: the active claimant abandons its own
-running attempt without cancelling the user's task. A completed attempt sets
-`acceptedAttemptN`; failed, aborted, cancelled, and timed-out attempts are never
-accepted.
+Cancellation is task-level intent: an owning-team owner/manager or explicit task
+manager ends the task. Abort is attempt-level intent: the active claimant
+abandons its own running attempt without cancelling the user's task. A completed
+attempt sets `acceptedAttemptN`; failed, aborted, cancelled, and timed-out
+attempts are never accepted.
 
 ### Map 2: Create a task
 
@@ -359,20 +359,20 @@ successful completion.
 
 ### State ownership
 
-| Transition or write                  | Initiator                | Immediate writer       | Durable owner                | Atomic boundary                            | Retry or compensation                                                               |
-| ------------------------------------ | ------------------------ | ---------------------- | ---------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |
-| create `waiting` / `queued` task     | proposer                 | task service           | task row                     | task + bound artifact rows transaction     | optional idempotency key reconciles a lost response; Keto is compensated separately |
-| `waiting` → `queued` / `expired`     | settlement, sweep, claim | condition service      | task row                     | promotion/expiry CAS                       | failed strict validation leaves task waiting                                        |
-| `queued` → `dispatched`              | claimant                 | task service           | task row + DBOS enqueue      | one Postgres claim transaction             | CAS/lock/enqueue failure creates no attempt                                         |
-| insert `claimed` attempt             | claimed DBOS workflow    | DBOS transaction       | attempt + dispatch rows      | one repository-aware DBOS transaction      | transaction/checkpoint retry                                                        |
-| grant claimant relationship          | task service after claim | Keto relationship call | Keto tuple                   | outside claim transaction                  | lease timeout/orphan recovery if the durable claim strands                          |
-| `dispatched` / `claimed` → `running` | claimant first heartbeat | HTTP path, then DBOS   | task + attempt rows          | guarded writes; DBOS running tx            | idempotent replay; terminal rows are not overwritten                                |
-| heartbeat lease refresh              | claimant                 | task service           | task `claimExpiresAt`        | active-lease conditional write             | late or mismatched heartbeat rejected                                               |
-| message/artifact/session append      | claimant/executor        | owning service         | scoped repository/object row | per-operation active-lease guard           | caller retries idempotent operations where supported                                |
-| complete                             | claimant                 | DBOS workflow          | attempt + task rows          | terminal settlement tx                     | output rejected before signal; race loss returns conflict                           |
-| fail / abort / timeout               | claimant or DBOS timer   | DBOS workflow          | attempt + task rows          | terminal settlement tx                     | requeue only under the exact retry rules above                                      |
-| cancel                               | claimant or diary writer | task service + DBOS    | task row, then attempt row   | task cancel write; guarded workflow settle | task state wins races; sweeper cleans retained claimant                             |
-| claimant relationship cleanup        | DBOS workflow / sweeper  | Keto relationship step | Keto tuple                   | retried workflow step or recovery sweep    | best-effort workflow retry, then orphan cleanup                                     |
+| Transition or write                  | Initiator                              | Immediate writer       | Durable owner                | Atomic boundary                            | Retry or compensation                                                               |
+| ------------------------------------ | -------------------------------------- | ---------------------- | ---------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |
+| create `waiting` / `queued` task     | proposer                               | task service           | task row                     | task + bound artifact rows transaction     | optional idempotency key reconciles a lost response; Keto is compensated separately |
+| `waiting` → `queued` / `expired`     | settlement, sweep, claim               | condition service      | task row                     | promotion/expiry CAS                       | failed strict validation leaves task waiting                                        |
+| `queued` → `dispatched`              | claimant                               | task service           | task row + DBOS enqueue      | one Postgres claim transaction             | CAS/lock/enqueue failure creates no attempt                                         |
+| insert `claimed` attempt             | claimed DBOS workflow                  | DBOS transaction       | attempt + dispatch rows      | one repository-aware DBOS transaction      | transaction/checkpoint retry                                                        |
+| grant claimant relationship          | task service after claim               | Keto relationship call | Keto tuple                   | outside claim transaction                  | lease timeout/orphan recovery if the durable claim strands                          |
+| `dispatched` / `claimed` → `running` | claimant first heartbeat               | HTTP path, then DBOS   | task + attempt rows          | guarded writes; DBOS running tx            | idempotent replay; terminal rows are not overwritten                                |
+| heartbeat lease refresh              | claimant                               | task service           | task `claimExpiresAt`        | active-lease conditional write             | late or mismatched heartbeat rejected                                               |
+| message/artifact/session append      | claimant/executor                      | owning service         | scoped repository/object row | per-operation active-lease guard           | caller retries idempotent operations where supported                                |
+| complete                             | claimant                               | DBOS workflow          | attempt + task rows          | terminal settlement tx                     | output rejected before signal; race loss returns conflict                           |
+| fail / abort / timeout               | claimant or DBOS timer                 | DBOS workflow          | attempt + task rows          | terminal settlement tx                     | requeue only under the exact retry rules above                                      |
+| cancel                               | owner/manager or explicit task manager | task service + DBOS    | task row, then attempt row   | task cancel write; guarded workflow settle | task state wins races; sweeper cleans retained claimant                             |
+| claimant relationship cleanup        | DBOS workflow / sweeper                | Keto relationship step | Keto tuple                   | retried workflow step or recovery sweep    | best-effort workflow retry, then orphan cleanup                                     |
 
 Task claim uses one intentional transactional-enqueue exception; see
 [DBOS database transactions and external reconciliation](../understand/architecture.md#database-transactions-and-external-reconciliation)
@@ -823,12 +823,13 @@ entries that share the same `slug`.
 
 ## Cancellation
 
-Task cancellation is proposer-side: a proposer or diary writer cancels the task.
-The worker learns on its next heartbeat and should stop promptly.
+Task cancellation is a management action. It requires `task:manage` plus owning
+team owner/manager authority or an explicit task manager grant. The worker
+learns on its next heartbeat and should stop promptly.
 
 Daemon shutdown is different. The daemon aborts its active attempt so the task
 can requeue when retry budget remains. The task is only terminally cancelled
-when the proposer explicitly cancels it.
+when an authorized manager explicitly cancels it.
 
 ## Where To Watch Tasks Run
 
