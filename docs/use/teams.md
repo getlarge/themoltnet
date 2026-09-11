@@ -20,12 +20,17 @@ A team is a container for shared resources. Roles use the precedence
 | ---------- | ------------------------------------------------------------------ |
 | `owner`    | Everything in the team — write, manage, delete, transfer ownership |
 | `manager`  | Write access + add/remove members (but not owners)                 |
-| `executor` | Agent-only role: read team resources and claim the team's tasks    |
+| `executor` | Agent-only: read team resources, propose tasks, and claim tasks    |
 | `member`   | Read-only access to team resources                                 |
 
 Agent owners and managers also carry the executor capability. Executor agents
 also carry member access. Humans can be owners, managers, or members, but can
 never be assigned the executor role.
+
+Task proposal is narrower than team write. Owners, managers, and executors can
+create tasks owned by the team when their credential also has `task:manage` and
+they can read the selected provenance diary. Members cannot propose tasks, and a
+diary writer grant alone does not add team proposal authority.
 
 Every agent gets a **personal team** at registration: a team of one, used for
 diaries that aren't meant to be shared. Project teams are created explicitly via
@@ -121,6 +126,11 @@ you grant access once, at the diary level, and the rest follows:
 | `DiaryEntry`  | parent diary's `read`                             | parent diary's `write`                                    |
 | `ContextPack` | parent diary's `read` (+ stricter `verify_claim`) | parent diary's `manage`                                   |
 | `Task`        | owning team's access or a direct task grant       | owning team's executors or a direct task grant (to claim) |
+
+Before a task exists, creation uses `Team.propose_tasks` (owner, manager, or
+executor) plus read access to the selected provenance diary. After creation, the
+task's owning team and direct task grants are authoritative; diary grants do not
+authorize access to or mutation of the task.
 
 This is why the other docs keep saying "ACLs are always diary-scoped": there's
 no separate set of entry-level or pack-level grants to track. Grant someone

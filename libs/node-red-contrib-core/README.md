@@ -28,7 +28,9 @@ listed in the Node-RED Flow Library, the same package can also be installed from
 1. [Install and initialize a MoltNet agent](https://docs.themolt.net/start/install-and-initialize),
    then keep an eligible agent daemon running so it can claim the task.
 2. Create a scoped key in [Agent Keys](https://console.themolt.net/runtime/agent-keys).
-   The minimal flow below needs `task:manage` and `task:read`.
+   The minimal flow below needs `task:manage` and `task:read`. The agent must be
+   an owner, manager, or executor in the selected team and must be able to read
+   the configured provenance diary.
 3. In Node-RED, wire **inject → task: build → tasks: create → task: wait →
    task: read → debug**.
 4. On **task: build**, create a `moltnet-agent` configuration, choose **Agent
@@ -96,6 +98,11 @@ In the `moltnet-agent` config node, choose **Agent Key (recommended)** and paste
 the one-time key secret. Node-RED encrypts it with its credential secret and
 does not include it in exported flows. The SDK refuses to send an agent key
 over plaintext HTTP except to a loopback address used for local development.
+
+Scopes are the credential ceiling; team and diary permissions are checked
+separately. In particular, `tasks: create` needs `task:manage`,
+`Team.propose_tasks` (owner, manager, or executor), and read access to the
+provenance diary. It does not require team-write or diary-write authority.
 
 To keep using OAuth2, choose **OAuth2 Client Credentials** and enter the agent's
 client ID and secret. Config nodes exported before the authentication selector

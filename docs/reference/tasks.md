@@ -245,10 +245,18 @@ API with `task list` and `task attempts`; see the
 | POST   | `/tasks/:id/attempts/:n/abort`                  | Active claimant **abandons this attempt** (e.g. daemon shutdown) without cancelling the task. Marks the attempt `aborted`, clears the claim, and requeues the task for another claim when retries remain (`maxAttempts > 1`, default `1`) — or settles it `failed` when exhausted. Returns 409 if the attempt is not started or already terminal. Does **not** set `task.status = 'cancelled'` or write any `cancelledBy*` fields. Contrast with `/cancel` below. (#1382) |
 | POST   | `/tasks/:id/cancel`                             | Claimant, owning-team writer, or explicit task writer/manager cancels. Sets `task.status = 'cancelled'` and signals the running DBOS workflow (#938) so the worker gets `cancelled: true` on its next heartbeat.                                                                                                                                                                                                                                                          |
 
-Proposing a task is authorized by the target diary's `propose` permit before the
-task row exists. Once the task exists, the `Task` Keto namespace enforces `view`
-through owning-team access or an explicit task grant, `claim` through the owning
-team's agent executors or an explicit task writer/manager grant, `report` by the
+Proposing a task requires both the `task:manage` credential scope and
+`Team.propose_tasks` on the requested owning team. Team owners, managers, and
+agent executors have that permission; ordinary members and principals with only
+a diary writer grant do not. The provenance diary must exist and be readable,
+including when it belongs to another team, but it need not be writable because
+creation records only its ID. A missing scope, missing team proposal authority,
+and unreadable provenance each produce a distinct 403 reason; an authorized
+request naming a nonexistent diary receives 404.
+
+Once the task exists, the `Task` Keto namespace enforces `view` through
+owning-team access or an explicit task grant, `claim` through the owning team's
+agent executors or an explicit task writer/manager grant, `report` by the
 current claimant, and `cancel` through claim authority or the claimant. The
 provenance diary is not an authorization path. `abort` is stricter than
 `cancel`: only the **current claimant** may abort its own attempt (it is an
