@@ -67,6 +67,8 @@ Commands:
             child processes. Binds 127.0.0.1 only.
   server trust
             Install the per-user macOS local-HTTPS CA after explicit consent.
+  providers Manage configured endpoints and Pi OAuth subscriptions without
+            starting the Agent Server. See \`agent-daemon providers --help\`.
   sync-sessions
             Repair durable runtime-session checkpoints from local slot files.
   update check
@@ -238,4 +240,23 @@ Options:
 On macOS, the first interactive run asks to trust a per-user local CA in the
 login keychain and serves HTTPS. Run \`agent-daemon server trust --remove\` to
 remove that exact CA. Linux continues to use the Chromium PNA HTTP path.
+`;
+
+export const PROVIDERS_HELP = `\
+moltnet-agent providers — manage local model providers.
+
+Usage:
+  moltnet-agent providers list [--json] [--root <path>]
+  moltnet-agent providers set <id> [--base-url <url>] [--api <pi-api-kind>]
+    [--model <id> ... | --clear-models]
+    [--api-key-stdin | --clear-api-key] [--root <path>]
+  moltnet-agent providers discover <id> [--save] [--json] [--root <path>]
+  moltnet-agent providers remove <id> [--yes] [--root <path>]
+  moltnet-agent providers login <id> [--auth-method <method-id>]
+    [--root <path>]
+  moltnet-agent providers logout <id> [--yes] [--root <path>]
+
+The default root is ~/.config/moltnet. MOLTNET_AGENT_SERVER_ROOT remains the
+environment override. API keys are accepted only from redirected stdin; they
+are stored separately and providers.json contains only a secret reference.
 `;

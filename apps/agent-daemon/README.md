@@ -173,8 +173,13 @@ when broader authority is required.
 
 ### Pi provider auth
 
+Manage user-level endpoints, API-key references, model discovery, and Claude or
+Codex subscription OAuth with `moltnet-agent providers`. The canonical command
+guide and local/Ollama Cloud examples are in
+[Running Agents: Provider Management](../../docs/operate/running-agents.md#provider-management).
+
 The daemon resolves Pi config from the repository-local `.pi` directory by
-default. On startup, if `PI_CODING_AGENT_DIR` is not already set, the daemon
+default for direct runs. On startup, if `PI_CODING_AGENT_DIR` is not already set, the daemon
 sets it to `<repo-root>/.pi` before creating Pi sessions. This keeps daemon
 runs deterministic and avoids inheriting user-level `~/.pi/agent` state.
 

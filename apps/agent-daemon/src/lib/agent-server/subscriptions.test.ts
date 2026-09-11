@@ -23,6 +23,8 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { OAuthProviderService } from '../oauth-provider.js';
+import { ProviderConfigurationService } from '../provider-configuration.js';
 import { PairingService } from './pairing.js';
 import {
   type LoginCallbacksLike,
@@ -104,11 +106,16 @@ async function fixture(options: {
     pairing: new PairingService(),
     runs,
     subscriptions,
+    providers: new ProviderConfigurationService({
+      store,
+      secrets,
+      secretProviders,
+      ...(options.discoverFetch ? { fetchImpl: options.discoverFetch } : {}),
+    }),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
     version: 'test',
-    ...(options.discoverFetch ? { discoverFetch: options.discoverFetch } : {}),
   });
   await app.ready();
   cleanups.push(async () => {
@@ -176,6 +183,23 @@ function readAuthFile(authPath: string): Record<string, unknown> {
 }
 
 describe('agent server subscriptions', () => {
+  it('reads the shared OAuth provider list once per listing', () => {
+    const list = vi.fn(() => [
+      { id: 'anthropic', name: 'Anthropic', connected: true },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
+    ]);
+    const service = new ProviderLoginService({
+      authPath: '/unused/auth.json',
+      oauthProviders: { list } as unknown as OAuthProviderService,
+    });
+
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: true },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
+    ]);
+    expect(list).toHaveBeenCalledOnce();
+  });
+
   it('adapts the production ModelRuntime OAuth discovery and login callbacks', async () => {
     const authPath = join(
       mkdtempSync(join(tmpdir(), 'serve-subs-runtime-')),
@@ -486,6 +510,71 @@ describe('agent server subscriptions', () => {
       }),
       'Subscription login invalidated',
     );
+  });
+
+  it('restores an invalidated credential before a newer OAuth operation runs', async () => {
+    const temp = mkdtempSync(
+      join(tmpdir(), 'agent-server-subscriptions-serialized-'),
+    );
+    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    const authPath = join(temp, 'auth.json');
+    writeAuthFile(authPath, {
+      anthropic: { type: 'api_key', key: 'previous-credential' },
+    });
+    let interaction: Parameters<ModelRuntime['login']>[2] | undefined;
+    let finishLogin!: () => void;
+    const login = vi.fn<ModelRuntime['login']>(
+      (_providerId, _method, nextInteraction) => {
+        interaction = nextInteraction;
+        return new Promise((resolve) => {
+          finishLogin = () => {
+            writeAuthFile(authPath, {
+              anthropic: { type: 'api_key', key: 'late-credential' },
+            });
+            resolve({ type: 'api_key', key: 'late-credential' });
+          };
+        });
+      },
+    );
+    let credentialSeenByLogout: unknown;
+    const logout = vi.fn<ModelRuntime['logout']>(() => {
+      credentialSeenByLogout = readAuthFile(authPath)['anthropic'];
+      return Promise.resolve();
+    });
+    const modelRuntime = {
+      getProviders: () => [
+        { id: 'anthropic', name: 'Anthropic', auth: { oauth: {} } },
+      ],
+      login,
+      logout,
+    } as unknown as ModelRuntime;
+    const oauthProviders = await OAuthProviderService.create({
+      authPath,
+      modelRuntime,
+    });
+    const service = new ProviderLoginService({ authPath, oauthProviders });
+
+    const starting = service.start('anthropic');
+    await vi.waitFor(() => expect(interaction).toBeDefined());
+    interaction?.notify({
+      type: 'auth_url',
+      url: 'https://provider.example/authorize',
+    });
+    await starting;
+    service.cancel('anthropic');
+    const loggingOut = oauthProviders.logout('anthropic');
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 30);
+    });
+    expect(logout).not.toHaveBeenCalled();
+
+    finishLogin();
+    await loggingOut;
+
+    expect(credentialSeenByLogout).toEqual({
+      type: 'api_key',
+      key: 'previous-credential',
+    });
   });
 
   it('expires and aborts pending flows without retaining late credentials', async () => {

@@ -3,6 +3,7 @@ import { pino } from 'pino';
 import { runDrain } from './cli/drain.js';
 import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';
+import { runProviders } from './cli/providers.js';
 import { runAgentServer } from './cli/server.js';
 import { runSyncSessions } from './cli/sync-sessions.js';
 import { loadAgentServerEnvConfig } from './config.js';
@@ -42,6 +43,8 @@ export async function runAgentDaemonCli(options: {
       return runDrain(rest, options.runtime);
     case 'server':
       return runAgentServer(rest);
+    case 'providers':
+      return runProviders(rest);
     case 'sync-sessions':
       return runSyncSessions(rest);
     case 'update':

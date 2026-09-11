@@ -19,15 +19,8 @@ import {
   rejectExplicitCrossSite,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
-import {
-  formatSecretReferenceString,
-  parseSecretReferenceString,
-  type SecretProviderRegistry,
-} from '@themoltnet/sdk';
-import {
-  FILE_SECRET_PROVIDER,
-  type FileSecretProvider,
-} from '@themoltnet/sdk/node';
+import { type SecretProviderRegistry } from '@themoltnet/sdk';
+import { type FileSecretProvider } from '@themoltnet/sdk/node';
 import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
@@ -35,19 +28,18 @@ import Fastify, {
 } from 'fastify';
 
 import {
+  ProviderConfigurationError,
+  type ProviderConfigurationService,
+} from '../provider-configuration.js';
+import { safeErrorContext } from '../safe-error-context.js';
+import {
   AgentServerIdentityError,
   attachExternalAgent,
   createManagedAgent,
   publicAgentView,
   reconcileManagedRegistration,
 } from './identity.js';
-import {
-  AgentServerModelDiscoveryError,
-  type DiscoveryFailure,
-  MAX_DISCOVERED_MODELS,
-  ModelDiscoveryCollector,
-  parseProviderBaseUrl,
-} from './model-discovery.js';
+import { AgentServerModelDiscoveryError } from './model-discovery.js';
 import {
   AgentServerPairingError,
   type PairingService,
@@ -60,13 +52,7 @@ import {
   type ProviderLoginService,
 } from './provider-login.js';
 import { AgentServerRunError, type RunManager } from './runs.js';
-import {
-  type AgentServerStore,
-  AgentServerStoreError,
-  assertProviderEnvName,
-  assertProviderId,
-  type ProviderEntry,
-} from './store.js';
+import { type AgentServerStore, AgentServerStoreError } from './store.js';
 
 export const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const BODY_LIMIT = 64 * 1024;
@@ -154,6 +140,7 @@ export interface BuildAgentServerOptions {
   pairing: PairingService;
   runs: RunManager;
   subscriptions: ProviderLoginService;
+  providers: ProviderConfigurationService;
   allowedOrigins: readonly string[];
   /** The Agent Server base URL origin, so the approval page may CORS to itself. */
   selfOrigin?: string;
@@ -167,8 +154,6 @@ export interface BuildAgentServerOptions {
   shutdownSignal?: AbortSignal;
   /** Override used by focused rate-limit tests. */
   rateLimitMax?: number;
-  /** Injectable for tests: outbound fetch used for provider model discovery. */
-  discoverFetch?: typeof fetch;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
 }
@@ -249,8 +234,12 @@ function requestOperationSignal(
   shutdownSignal?: AbortSignal,
 ): AbortSignal {
   const disconnected = new AbortController();
-  if (request.raw.aborted) disconnected.abort();
-  else request.raw.once('aborted', () => disconnected.abort());
+  if (request.raw.aborted) disconnected.abort({ source: 'request' });
+  else {
+    request.raw.once('aborted', () =>
+      disconnected.abort({ source: 'request' }),
+    );
+  }
   return shutdownSignal
     ? AbortSignal.any([disconnected.signal, shutdownSignal])
     : disconnected.signal;
@@ -454,12 +443,7 @@ function registerStatusRoute(
         agents: store
           .listActivations()
           .map((activation) => publicAgentView(store, activation)),
-        providers: Object.fromEntries(
-          Object.entries(store.readProviders()).map(([id, provider]) => [
-            id,
-            providerView(provider),
-          ]),
-        ),
+        providers: options.providers.list(),
         runs: runViews(runs),
       };
     },
@@ -564,27 +548,12 @@ function registerProviderRoutes(
   options: BuildAgentServerOptions,
   requirePairedOrigin: PairedOriginGuard,
 ): void {
-  const { store } = options;
-  let mutationQueue = Promise.resolve();
-  const serialize = <T>(mutation: () => Promise<T>): Promise<T> => {
-    const result = mutationQueue.then(mutation, mutation);
-    mutationQueue = result.then(
-      () => undefined,
-      () => undefined,
-    );
-    return result;
-  };
   app.get(
     '/v1/providers',
     { schema: AgentServerRouteSchemas.listProviders },
     async (request) => {
       requirePairedOrigin(request);
-      return Object.fromEntries(
-        Object.entries(store.readProviders()).map(([id, provider]) => [
-          id,
-          providerView(provider),
-        ]),
-      );
+      return options.providers.list();
     },
   );
   app.post(
@@ -592,139 +561,12 @@ function registerProviderRoutes(
     { schema: AgentServerRouteSchemas.discoverModels },
     async (request) => {
       requirePairedOrigin(request);
-      const { providerId: rawProviderId } = request.params as {
+      const { providerId } = request.params as {
         providerId: string;
       };
-      const providerId = assertProviderId(rawProviderId);
-      const provider = store.readProviders()[providerId];
-      if (!provider) {
-        throw new AgentServerHttpError(
-          404,
-          'provider_not_found',
-          `provider "${providerId}" was not found`,
-        );
-      }
-      const parsed = parseProviderBaseUrl(provider.baseUrl, providerId);
-      const baseUrl = parsed.href.replace(/\/$/u, '');
-      let apiKey: string | undefined;
-      if (provider.apiKeyRef) {
-        try {
-          apiKey = await options.secretProviders.resolve(
-            parseSecretReferenceString(provider.apiKeyRef),
-          );
-        } catch (error) {
-          request.log.warn(
-            {
-              ...safeErrorContext(error),
-              code: 'agent_server_provider_secret_unavailable',
-              providerId,
-            },
-            'Provider API key could not be resolved for model discovery',
-          );
-          throw new AgentServerHttpError(
-            400,
-            'provider_secret_unavailable',
-            `provider "${providerId}" API key could not be resolved`,
-          );
-        }
-      }
-      const headers: Record<string, string> = apiKey
-        ? { authorization: `Bearer ${apiKey}` }
-        : {};
-      const fetchImpl = options.discoverFetch ?? fetch;
-      const failures: DiscoveryFailure[] = [];
-      const collector = new ModelDiscoveryCollector();
-      const tryJson = async (
-        endpoint: 'openai_models' | 'ollama_tags',
-        url: string,
-      ): Promise<unknown> => {
-        let response: Response;
-        try {
-          response = await fetchImpl(url, {
-            headers,
-            redirect: 'error',
-            signal: AbortSignal.timeout(10_000),
-          });
-        } catch (error) {
-          const errorType = error instanceof Error ? error.name : typeof error;
-          failures.push({ kind: 'network', errorType });
-          request.log.warn(
-            {
-              code: 'agent_server_provider_discovery_request_failed',
-              endpoint,
-              errorType,
-              providerId,
-            },
-            'Provider model discovery request failed',
-          );
-          return null;
-        }
-        if (!response.ok) {
-          failures.push({ kind: 'http', status: response.status });
-          const context = {
-            code: 'agent_server_provider_discovery_upstream_error',
-            endpoint,
-            providerId,
-            statusCode: response.status,
-          };
-          if (
-            response.status >= 500 ||
-            response.status === 401 ||
-            response.status === 403
-          ) {
-            request.log.warn(context, 'Provider model discovery was rejected');
-          } else {
-            request.log.info(
-              context,
-              'Provider model discovery endpoint unavailable',
-            );
-          }
-          return null;
-        }
-        try {
-          return (await response.json()) as unknown;
-        } catch {
-          failures.push({ kind: 'invalid_response' });
-          request.log.warn(
-            {
-              code: 'agent_server_provider_discovery_invalid_json',
-              endpoint,
-              providerId,
-            },
-            'Provider model discovery returned invalid JSON',
-          );
-          return null;
-        }
-      };
-      collector.addOpenAiResponse(
-        await tryJson('openai_models', `${baseUrl}/models`),
-      );
-      if (collector.size === 0) {
-        collector.addOllamaResponse(
-          await tryJson('ollama_tags', `${parsed.origin}/api/tags`),
-        );
-      }
-      const result = collector.result(providerId, failures);
-      if (result.discoveredCount > result.models.length) {
-        request.log.warn(
-          {
-            code: 'agent_server_provider_discovery_truncated',
-            discoveredCount: result.discoveredCount,
-            providerId,
-            returnedCount: MAX_DISCOVERED_MODELS,
-          },
-          'Provider model discovery result was truncated',
-        );
-      }
-      request.log.info(
-        {
-          code: 'agent_server_provider_discovery_completed',
-          modelCount: result.models.length,
-          providerId,
-        },
-        'Provider model discovery completed',
-      );
-      return { models: result.models };
+      return options.providers.discover(providerId, {
+        signal: requestOperationSignal(request, options.shutdownSignal),
+      });
     },
   );
   app.put(
@@ -732,39 +574,20 @@ function registerProviderRoutes(
     { schema: AgentServerRouteSchemas.putProvider, attachValidation: true },
     async (request, reply) => {
       requirePairedOrigin(request);
-      const { providerId: rawProviderId } = request.params as {
+      const { providerId } = request.params as {
         providerId: string;
       };
-      const providerId = assertProviderId(rawProviderId);
       const body = requireBody<Record<string, unknown>>(request);
-      const baseUrl = requireString(body, 'baseUrl');
-      parseProviderBaseUrl(baseUrl, providerId);
-      const entry: ProviderEntry = {
+      const entry = await options.providers.set(providerId, {
         api: requireString(body, 'api'),
-        baseUrl,
-        envName: assertProviderEnvName(
-          providerId,
-          requireString(body, 'envName'),
-        ),
+        baseUrl: requireString(body, 'baseUrl'),
+        envName: requireString(body, 'envName'),
         models: stringArray(body, 'models', { allowEmpty: true }),
-      };
-      const apiKey = optionalString(body, 'apiKey');
-      await serialize(async () => {
-        const providers = store.readProviders();
-        if (apiKey) {
-          const key = `pi-provider/${providerId}`;
-          await options.secrets.write(key, apiKey);
-          entry.apiKeyRef = formatSecretReferenceString({
-            provider: FILE_SECRET_PROVIDER,
-            key,
-          });
-        } else if (providers[providerId]?.apiKeyRef) {
-          entry.apiKeyRef = providers[providerId].apiKeyRef;
-        }
-        providers[providerId] = entry;
-        store.writeProviders(providers);
+        ...(optionalString(body, 'apiKey')
+          ? { apiKey: optionalString(body, 'apiKey') }
+          : {}),
       });
-      return reply.code(200).send(providerView(entry));
+      return reply.code(200).send(entry);
     },
   );
   app.delete(
@@ -772,26 +595,24 @@ function registerProviderRoutes(
     { schema: AgentServerRouteSchemas.deleteProvider, attachValidation: true },
     async (request, reply) => {
       requirePairedOrigin(request);
-      const { providerId: rawProviderId } = request.params as {
+      const { providerId } = request.params as {
         providerId: string;
       };
-      const providerId = assertProviderId(rawProviderId);
-      await serialize(async () => {
-        const providers = store.readProviders();
-        const provider = providers[providerId];
-        if (!provider) {
+      try {
+        await options.providers.remove(providerId);
+      } catch (error) {
+        if (
+          error instanceof ProviderConfigurationError &&
+          error.code === 'provider_not_found'
+        ) {
           throw new AgentServerHttpError(
             404,
             'agent_server_provider_not_found',
-            `Provider ${providerId} was not found`,
+            error.message,
           );
         }
-        if (provider.apiKeyRef) {
-          await options.secrets.delete(`pi-provider/${providerId}`);
-        }
-        delete providers[providerId];
-        store.writeProviders(providers);
-      });
+        throw error;
+      }
       return reply.code(204).send(null);
     },
   );
@@ -1009,52 +830,6 @@ function registerRunLogRoute(
   );
 }
 
-function safeErrorContext(error: unknown): Record<string, string | number> {
-  const context: Record<string, string | number> = {
-    errorType: error instanceof Error ? error.name : typeof error,
-  };
-  const applicationCode = safeErrorToken(
-    (error as { code?: unknown } | null)?.code,
-  );
-  if (applicationCode) context['applicationCode'] = applicationCode;
-  const cause = error instanceof Error ? error.cause : undefined;
-  if (cause instanceof Error) {
-    context['causeType'] = cause.name;
-    const causeMessage = safeLogMessage(cause.message);
-    if (causeMessage) context['causeMessage'] = causeMessage;
-  }
-  const fsCode = safeErrorToken((cause as NodeJS.ErrnoException | null)?.code);
-  const syscall = safeErrorToken(
-    (cause as NodeJS.ErrnoException | null)?.syscall,
-  );
-  if (fsCode) context['fsCode'] = fsCode;
-  if (syscall) context['syscall'] = syscall;
-  const causeStatus = (cause as { statusCode?: unknown } | null)?.statusCode;
-  if (typeof causeStatus === 'number') context['causeStatusCode'] = causeStatus;
-  return context;
-}
-
-function safeLogMessage(value: string): string | undefined {
-  const normalized = value.replace(/[\r\n\t]/gu, ' ').trim();
-  return normalized ? normalized.slice(0, 500) : undefined;
-}
-
-function safeErrorToken(value: unknown): string | undefined {
-  return typeof value === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(value)
-    ? value
-    : undefined;
-}
-
-function providerView(provider: ProviderEntry): Record<string, unknown> {
-  return {
-    api: provider.api,
-    baseUrl: provider.baseUrl,
-    envName: provider.envName,
-    models: provider.models,
-    hasApiKey: Boolean(provider.apiKeyRef),
-  };
-}
-
 function corsHeadersFor(
   request: FastifyRequest,
   options: BuildAgentServerOptions,
@@ -1141,6 +916,13 @@ function normalizeAgentServerError(error: unknown): {
     };
   }
   if (error instanceof AgentServerModelDiscoveryError) {
+    return {
+      statusCode: error.statusCode,
+      code: error.code,
+      message: error.message,
+    };
+  }
+  if (error instanceof ProviderConfigurationError) {
     return {
       statusCode: error.statusCode,
       code: error.code,

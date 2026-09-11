@@ -50,8 +50,10 @@ const OTHER_ORIGIN = 'http://localhost:9999';
 const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
 const PROVIDER_ID = 'e2e-local';
+const CLI_PROVIDER_ID = 'ollama-e2e-cli';
 const MODEL_ID = 'e2e-fake';
 const RAW_API_KEY = 'e2e-secret-key-never-in-config';
+const CLI_RAW_API_KEY = 'e2e-cli-secret-key-never-in-config';
 const STDERR_TAIL_BYTES = 16 * 1024;
 
 function appendStderrTail(current: string, chunk: Buffer): string {
@@ -143,12 +145,15 @@ function navigateTo(url: string): Promise<{ status: number; text: string }> {
 }
 
 /**
- * Spawn `moltnet-agent server` from source. Uses node + tsx's loader flags
- * directly (what the `tsx` CLI does internally) so the supervisor is our
- * direct child: signals reach it unwrapped, and runs it starts re-exec
- * the same absolute loader paths from their own working directory.
+ * Spawn `moltnet-agent` from source. Uses node + tsx's loader flags directly
+ * (what the `tsx` CLI does internally) so server signals reach the direct
+ * child and runs can re-exec the same absolute loader paths from their own
+ * working directory.
  */
-function spawnAgentServer(args: string[]): ChildProcess {
+function spawnAgentCommand(
+  args: string[],
+  stdin: 'ignore' | 'pipe' = 'ignore',
+): ChildProcess {
   // MOLTNET_AGENT_BUNDLE=<payload dir> runs the suite against a built,
   // signed bundle (tools/release/agent-bundle) instead of the source tree:
   // the launcher, the bundled Node runtime, the production dependency
@@ -156,10 +161,10 @@ function spawnAgentServer(args: string[]): ChildProcess {
   // nothing can resolve from the repository by accident.
   const bundle = process.env.MOLTNET_AGENT_BUNDLE;
   if (bundle) {
-    return spawn(join(bundle, 'bin/moltnet-agent'), ['server', ...args], {
+    return spawn(join(bundle, 'bin/moltnet-agent'), args, {
       cwd: '/tmp',
       env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: [stdin, 'pipe', 'pipe'],
     });
   }
   const tsxDist = join(DAEMON_ROOT, 'node_modules/tsx/dist');
@@ -171,11 +176,41 @@ function spawnAgentServer(args: string[]): ChildProcess {
       '--import',
       pathToFileURL(join(tsxDist, 'loader.mjs')).href,
       'src/main.ts',
-      'server',
       ...args,
     ],
-    { cwd: DAEMON_ROOT, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] },
+    { cwd: DAEMON_ROOT, env: process.env, stdio: [stdin, 'pipe', 'pipe'] },
   );
+}
+
+function spawnAgentServer(args: string[]): ChildProcess {
+  return spawnAgentCommand(['server', ...args]);
+}
+
+async function runAgentCommand(
+  args: string[],
+  input?: string,
+): Promise<{ code: number | null; stdout: string; stderr: string }> {
+  const child = spawnAgentCommand(
+    args,
+    input === undefined ? 'ignore' : 'pipe',
+  );
+  const exit = new Promise<number | null>((resolveExit, rejectExit) => {
+    child.once('error', rejectExit);
+    child.once('exit', resolveExit);
+  });
+  let stdout = '';
+  let stderr = '';
+  child.stdout?.setEncoding('utf8');
+  child.stderr?.setEncoding('utf8');
+  child.stdout?.on('data', (chunk: string) => {
+    stdout += chunk;
+  });
+  child.stderr?.on('data', (chunk: string) => {
+    stderr += chunk;
+  });
+  if (input !== undefined) child.stdin?.end(input);
+  const code = await exit;
+  return { code, stdout, stderr };
 }
 
 /** Owns the supervisor process, its bounded diagnostics, and shutdown. */
@@ -497,14 +532,14 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(openai.response.status).toBe(200);
     expect(openai.data).toEqual({ models: [MODEL_ID, 'e2e-other'] });
 
-    const ollamaProvider = 'e2e-discovery-ollama';
+    const ollamaProvider = 'ollama-e2e-discovery';
     const savedOllama = await putAgentServerProvider({
       client: agentServerClient(),
       path: { providerId: ollamaProvider },
       body: {
         api: 'openai-completions',
         baseUrl: `${tagsStub.url}/v1`,
-        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_E2E_DISCOVERY_API_KEY',
         models: [],
       },
     });
@@ -672,6 +707,114 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(await configFilesContaining(agentServerRoot, RAW_API_KEY)).toEqual(
       [],
     );
+  });
+
+  it('shares provider state between the real CLI process and Agent Server', async () => {
+    const set = await runAgentCommand(
+      [
+        'providers',
+        'set',
+        CLI_PROVIDER_ID,
+        '--root',
+        agentServerRoot,
+        '--base-url',
+        `${tagsStub.url}/v1`,
+        '--model',
+        'cli-initial',
+        '--api-key-stdin',
+      ],
+      `${CLI_RAW_API_KEY}\n`,
+    );
+    expect(set.code, set.stderr).toBe(0);
+    expect(JSON.parse(set.stdout)).toMatchObject({
+      id: CLI_PROVIDER_ID,
+      hasApiKey: true,
+      models: ['cli-initial'],
+    });
+    expect(`${set.stdout}${set.stderr}`).not.toContain(CLI_RAW_API_KEY);
+
+    const listedAfterCliSet = await listAgentServerProviders({
+      client: agentServerClient(),
+    });
+    expect(listedAfterCliSet.response.status).toBe(200);
+    expect(listedAfterCliSet.data?.[CLI_PROVIDER_ID]).toMatchObject({
+      baseUrl: `${tagsStub.url}/v1`,
+      hasApiKey: true,
+      models: ['cli-initial'],
+    });
+
+    const discovered = await runAgentCommand([
+      'providers',
+      'discover',
+      CLI_PROVIDER_ID,
+      '--root',
+      agentServerRoot,
+      '--save',
+      '--json',
+    ]);
+    expect(discovered.code, discovered.stderr).toBe(0);
+    expect(JSON.parse(discovered.stdout)).toEqual({
+      models: ['tags-only-model'],
+    });
+
+    const listedAfterDiscovery = await listAgentServerProviders({
+      client: agentServerClient(),
+    });
+    expect(listedAfterDiscovery.data?.[CLI_PROVIDER_ID]?.models).toEqual([
+      'tags-only-model',
+    ]);
+
+    const updatedOverHttp = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: CLI_PROVIDER_ID },
+      body: {
+        api: 'openai-completions',
+        baseUrl: `${tagsStub.url}/v1`,
+        envName: 'MOLTNET_PROVIDER_OLLAMA_E2E_CLI_API_KEY',
+        models: ['http-updated'],
+      },
+    });
+    expect(updatedOverHttp.response.status).toBe(200);
+    expect(updatedOverHttp.data?.hasApiKey).toBe(true);
+
+    const cliList = await runAgentCommand([
+      'providers',
+      'list',
+      '--root',
+      agentServerRoot,
+      '--json',
+    ]);
+    expect(cliList.code, cliList.stderr).toBe(0);
+    const cliListPayload = JSON.parse(cliList.stdout) as {
+      configuredProviders: Record<
+        string,
+        { hasApiKey: boolean; models: string[] }
+      >;
+    };
+    expect(cliListPayload.configuredProviders[CLI_PROVIDER_ID]).toMatchObject({
+      hasApiKey: true,
+      models: ['http-updated'],
+    });
+    expect(`${cliList.stdout}${cliList.stderr}`).not.toContain(CLI_RAW_API_KEY);
+
+    const removed = await runAgentCommand([
+      'providers',
+      'remove',
+      CLI_PROVIDER_ID,
+      '--root',
+      agentServerRoot,
+      '--yes',
+    ]);
+    expect(removed.code, removed.stderr).toBe(0);
+
+    const listedAfterRemove = await listAgentServerProviders({
+      client: agentServerClient(),
+    });
+    expect(listedAfterRemove.response.status).toBe(200);
+    expect(listedAfterRemove.data).not.toHaveProperty(CLI_PROVIDER_ID);
+    expect(
+      await configFilesContaining(agentServerRoot, CLI_RAW_API_KEY),
+    ).toEqual([]);
   });
 
   it('refuses a managed agent without an invitation code', async () => {

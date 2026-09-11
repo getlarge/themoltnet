@@ -28,6 +28,7 @@ import { FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ProviderConfigurationService } from '../provider-configuration.js';
 import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
@@ -202,6 +203,14 @@ async function fixture(
       listProviders: () => [],
       runLogin: () => Promise.resolve(),
       isConnected: () => false,
+    }),
+    providers: new ProviderConfigurationService({
+      store,
+      secrets,
+      secretProviders,
+      ...(serverOptions.discoverFetch
+        ? { fetchImpl: serverOptions.discoverFetch }
+        : {}),
     }),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
@@ -689,6 +698,26 @@ describe('agent server providers and runs', () => {
     expect(existsSync(join(store.secretsDir, 'pi-provider/ollama'))).toBe(
       false,
     );
+  });
+
+  it('preserves the legacy HTTP error code when removing a missing provider', async () => {
+    const { app } = await fixture();
+    const token = await pair(app);
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/v1/providers/missing',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({
+      code: 'agent_server_provider_not_found',
+    });
   });
 
   it('serializes provider updates so concurrent writes cannot drop entries', async () => {

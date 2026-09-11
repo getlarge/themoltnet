@@ -27,15 +27,20 @@ import {
 import { dirname } from 'node:path';
 
 import {
-  ModelRuntime,
+  type ModelRuntime,
   readStoredCredential,
 } from '@earendil-works/pi-coding-agent';
 import { lockSync } from 'proper-lockfile';
 
+import {
+  isOAuthProviderEligible,
+  isOAuthProviderIdEligible,
+  OAuthProviderService,
+} from '../oauth-provider.js';
+
 const LOGIN_TTL_MS = 10 * 60 * 1000;
 /** How long `start()` waits for the flow to surface a URL / device code. */
 const START_INFO_TIMEOUT_MS = 5_000;
-const EXCLUDED_SUBSCRIPTION_PROVIDERS = new Set(['github-copilot']);
 
 export class AgentServerSubscriptionError extends Error {
   override name = 'AgentServerSubscriptionError';
@@ -77,6 +82,8 @@ interface PendingLogin extends SubscriptionLoginView {
   infoArrived: () => void;
   abort: AbortController;
   invalidated: boolean;
+  cleanupUnderProviderLock: boolean;
+  cleanupSucceeded: boolean;
   previousCredential: ReturnType<typeof readStoredCredential>;
 }
 
@@ -106,6 +113,8 @@ export interface ProviderLoginServiceOptions {
   isConnected?: (providerId: string) => boolean;
   /** Initialized Pi runtime. Production uses `ProviderLoginService.create`. */
   modelRuntime?: ModelRuntime;
+  /** Shared OAuth operations. Production uses `ProviderLoginService.create`. */
+  oauthProviders?: OAuthProviderService;
   logger?: ProviderLoginLogger;
   now?: () => number;
 }
@@ -131,13 +140,16 @@ export class ProviderLoginService {
   }
 
   static async create(
-    options: Omit<ProviderLoginServiceOptions, 'modelRuntime'>,
+    options: Omit<
+      ProviderLoginServiceOptions,
+      'modelRuntime' | 'oauthProviders'
+    >,
   ): Promise<ProviderLoginService> {
-    const modelRuntime = await ModelRuntime.create({
+    const oauthProviders = await OAuthProviderService.create({
       authPath: options.authPath,
-      refreshOnCreate: false,
+      logger: options.logger,
     });
-    return new ProviderLoginService({ ...options, modelRuntime });
+    return new ProviderLoginService({ ...options, oauthProviders });
   }
 
   private now(): number {
@@ -147,20 +159,29 @@ export class ProviderLoginService {
   private providers(): { id: string; name: string }[] {
     const providers = this.options.listProviders
       ? this.options.listProviders()
-      : this.runtime()
-          .getProviders()
-          .filter((provider) => provider.auth.oauth !== undefined)
-          .map((provider) => ({
-            id: provider.id,
-            name: provider.name,
-          }));
-    return providers.filter(
-      (provider) => !EXCLUDED_SUBSCRIPTION_PROVIDERS.has(provider.id),
+      : this.options.oauthProviders
+        ? this.options.oauthProviders.list()
+        : this.runtime()
+            .getProviders()
+            .filter(isOAuthProviderEligible)
+            .map((provider) => ({
+              id: provider.id,
+              name: provider.name,
+            }));
+    return providers.filter((provider) =>
+      isOAuthProviderIdEligible(provider.id),
     );
   }
 
   private connected(providerId: string): boolean {
     if (this.options.isConnected) return this.options.isConnected(providerId);
+    if (this.options.oauthProviders) {
+      return (
+        this.options.oauthProviders
+          .list()
+          .find((provider) => provider.id === providerId)?.connected ?? false
+      );
+    }
     try {
       return (
         readStoredCredential(providerId, this.options.authPath) !== undefined
@@ -189,6 +210,13 @@ export class ProviderLoginService {
 
   list(): SubscriptionProviderView[] {
     this.sweep();
+    if (
+      this.options.oauthProviders &&
+      !this.options.listProviders &&
+      !this.options.isConnected
+    ) {
+      return this.options.oauthProviders.list();
+    }
     return this.providers().map((provider) => ({
       ...provider,
       connected: this.connected(provider.id),
@@ -235,6 +263,7 @@ export class ProviderLoginService {
     login.invalidated = true;
     login.abort.abort(new Error(`subscription login ${transition}`));
     const restored = this.restoreCredential(login);
+    login.cleanupSucceeded = restored;
     login.infoArrived();
     this.logger.info(
       {
@@ -289,6 +318,9 @@ export class ProviderLoginService {
       infoArrived,
       abort,
       invalidated: false,
+      cleanupUnderProviderLock:
+        !this.options.runLogin && Boolean(this.options.oauthProviders),
+      cleanupSucceeded: true,
       previousCredential: readStoredCredential(
         providerId,
         this.options.authPath,
@@ -309,10 +341,25 @@ export class ProviderLoginService {
 
     const runLogin =
       this.options.runLogin ??
-      ((id: string, loginCallbacks: LoginCallbacksLike) =>
-        this.runtime()
+      ((id: string, loginCallbacks: LoginCallbacksLike) => {
+        if (this.options.oauthProviders) {
+          return this.options.oauthProviders.login(
+            id,
+            toAuthInteraction(loginCallbacks),
+            {
+              signal: login.abort.signal,
+              onSettledUnderLock: () => {
+                if (login.invalidated) {
+                  login.cleanupSucceeded = this.restoreCredential(login);
+                }
+              },
+            },
+          );
+        }
+        return this.runtime()
           .login(id, 'oauth', toAuthInteraction(loginCallbacks))
-          .then(() => undefined));
+          .then(() => undefined);
+      });
 
     const completion = runLogin(providerId, callbacks).then(
       () => {
@@ -320,7 +367,7 @@ export class ProviderLoginService {
           // Some upstream providers finish after abort. Restore the snapshot
           // again so a late persistence write cannot reconnect a cancelled or
           // expired flow.
-          this.restoreCredential(login);
+          if (!login.cleanupUnderProviderLock) this.restoreCredential(login);
           return;
         }
         if (!this.options.runLogin && !this.connected(providerId)) {
@@ -352,7 +399,7 @@ export class ProviderLoginService {
       },
       (error: unknown) => {
         if (login.invalidated) {
-          this.restoreCredential(login);
+          if (!login.cleanupUnderProviderLock) this.restoreCredential(login);
           return;
         }
         login.status = 'failed';
