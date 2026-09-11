@@ -3,7 +3,11 @@ import type {
   AgentKeyWithSecret,
   TeamAgentKey,
 } from '@moltnet/api-client';
-import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  READ_ONLY_CREDENTIAL_SCOPES,
+  TASK_WORKFLOW_CREDENTIAL_SCOPES,
+} from '@moltnet/models';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   fireEvent,
@@ -33,6 +37,7 @@ const apiMocks = vi.hoisted(() => ({
 
 const queryState = vi.hoisted(() => ({
   role: 'owner' as 'owner' | 'manager' | 'member',
+  agentRole: 'manager' as 'owner' | 'manager' | 'executor' | 'member',
   memberError: null as Error | null,
   keyError: null as Error | null,
   firstPage: { items: [] as unknown[], nextCursor: null as string | null },
@@ -54,8 +59,10 @@ vi.mock('@moltnet/api-client/query', () => ({
       return {
         items: [
           {
-            displayName: 'Agent One',
-            role: 'member',
+            alias: 'Builder.One',
+            displayName: 'Builder.One',
+            fingerprint: 'A1B2-C3D4-E5F6',
+            role: queryState.agentRole,
             subjectId: 'agent-1',
             subjectType: 'agent',
           },
@@ -125,13 +132,7 @@ function makeKey(
   return {
     agentId: 'agent-1',
     teamId: 'team-1',
-    scopes: [
-      'agent:profile',
-      'runtime:read',
-      'task:read',
-      'task:claim',
-      'task:execute',
-    ],
+    scopes: [...AGENT_CREDENTIAL_SCOPES],
     status: 'active',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
@@ -168,6 +169,9 @@ async function openCreateDialog(name = 'production-daemon') {
   await screen.findByText('No matching agent keys');
   fireEvent.click(screen.getAllByRole('button', { name: 'Create key' })[0]);
   const dialog = screen.getByRole('dialog', { name: 'Create agent key' });
+  fireEvent.change(within(dialog).getByLabelText('Credential purpose'), {
+    target: { value: 'daemon' },
+  });
   fireEvent.change(within(dialog).getByLabelText('Key name'), {
     target: { value: name },
   });
@@ -192,11 +196,87 @@ describe('AgentKeysPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryState.role = 'owner';
+    queryState.agentRole = 'manager';
     queryState.memberError = null;
     queryState.keyError = null;
     queryState.firstPage = { items: [], nextCursor: null };
     queryState.nextPage = { items: [], nextCursor: null };
     queryState.queryCalls = [];
+  });
+
+  it('requires an explicit purpose and applies presets exactly', async () => {
+    renderPage();
+    await screen.findByText('No matching agent keys');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Create key' })[0]);
+    const dialog = screen.getByRole('dialog', { name: 'Create agent key' });
+    fireEvent.change(within(dialog).getByLabelText('Key name'), {
+      target: { value: 'workflow-creator' },
+    });
+    expect(
+      within(dialog).getByRole('button', { name: 'Create key' }),
+    ).toBeDisabled();
+    expect(within(dialog).getByText(/0 selected/)).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByLabelText('Credential purpose'), {
+      target: { value: 'task-workflow' },
+    });
+    expect(
+      within(dialog).getByText(
+        `Credential scopes (${TASK_WORKFLOW_CREDENTIAL_SCOPES.length} selected)`,
+      ),
+    ).toBeInTheDocument();
+    for (const scope of TASK_WORKFLOW_CREDENTIAL_SCOPES) {
+      expect(
+        within(dialog).getByRole('checkbox', { name: new RegExp(scope, 'i') }),
+      ).toBeChecked();
+    }
+
+    fireEvent.change(within(dialog).getByLabelText('Credential purpose'), {
+      target: { value: 'read-only' },
+    });
+    expect(
+      within(dialog).getByText(
+        `Credential scopes (${READ_ONLY_CREDENTIAL_SCOPES.length} selected)`,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('switches a modified preset to Custom', async () => {
+    renderPage();
+    const dialog = await openCreateDialog();
+    fireEvent.click(
+      within(dialog).getByText(/Credential scopes \(\d+ selected\)/),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /crypto:sign/i }),
+    );
+    expect(within(dialog).getByLabelText('Credential purpose')).toHaveValue(
+      'custom',
+    );
+  });
+
+  it('gates incompatible purposes by current role and links to role editing', async () => {
+    queryState.agentRole = 'executor';
+    renderPage();
+    await screen.findByText('No matching agent keys');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Create key' })[0]);
+    const dialog = screen.getByRole('dialog', { name: 'Create agent key' });
+    fireEvent.change(within(dialog).getByLabelText('Credential purpose'), {
+      target: { value: 'task-workflow' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Key name'), {
+      target: { value: 'workflow-creator' },
+    });
+
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      /currently has the executor role.*owner, manager/i,
+    );
+    expect(
+      within(dialog).getByRole('link', { name: /edit team member roles/i }),
+    ).toHaveAttribute('href', '/teams/team-1?tab=members');
+    expect(
+      within(dialog).getByRole('button', { name: 'Create key' }),
+    ).toBeDisabled();
   });
 
   it('requires explicit storage acknowledgement before clearing a new secret', async () => {
@@ -514,6 +594,42 @@ describe('AgentKeysPage', () => {
         }),
       ),
     );
+  });
+
+  it('enriches selectors and key rows with stable agent identity and purpose', async () => {
+    queryState.firstPage = {
+      items: [makeKey({ id: 'key-enriched', name: 'enriched-daemon' })],
+      nextCursor: null,
+    };
+
+    renderPage();
+    await screen.findByText('enriched-daemon');
+    expect(screen.getByText('Agent daemon')).toBeInTheDocument();
+    expect(screen.getByText('Builder.One')).toBeInTheDocument();
+    expect(screen.getByText('A1B2-C3D4-E5F6')).toBeInTheDocument();
+    expect(screen.getByText('manager')).toBeInTheDocument();
+    expect(screen.getByLabelText('Agent')).toHaveTextContent(
+      /Builder.One.*A1B2-C3D4-E5F6.*manager.*agent-1/i,
+    );
+  });
+
+  it('marks keys whose agent is no longer a current team member', async () => {
+    queryState.firstPage = {
+      items: [
+        makeKey({
+          agentId: 'departed-agent-id',
+          id: 'key-departed',
+          name: 'departed-key',
+          scopes: ['task:read'],
+        }),
+      ],
+      nextCursor: null,
+    };
+
+    renderPage();
+    await screen.findByText('departed-key');
+    expect(screen.getByText('not a current member')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
   });
 
   it('keeps the lifecycle visible but read-only for team members', async () => {

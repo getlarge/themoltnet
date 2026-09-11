@@ -4,6 +4,7 @@ import {
   type AgentKeyStatus,
   type AgentKeyWithSecret,
   createAgentKey,
+  type ListTeamMembersResponses,
   revokeAgentKey,
   rotateAgentKey,
 } from '@moltnet/api-client';
@@ -11,7 +12,12 @@ import {
   listAgentKeysInfiniteOptions,
   listTeamMembersOptions,
 } from '@moltnet/api-client/query';
-import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from '@moltnet/models';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  READ_ONLY_CREDENTIAL_SCOPES,
+  TASK_WORKFLOW_CREDENTIAL_SCOPES,
+} from '@moltnet/models';
 import {
   useInfiniteQuery,
   useQuery,
@@ -29,20 +35,52 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Link } from 'wouter';
 
 import { getApiClient } from '../api.js';
 import { getApiErrorDetail } from '../api-error.js';
+import { RoleBadge } from '../components/teams/RoleBadge.js';
+import { getConfig } from '../config.js';
 import { canManageRuntime, TEAM_HEADER } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 interface CreateKeyForm {
   agentId: string;
   name: string;
+  purpose: KeyPurpose;
   scopes: AgentCredentialScope[];
   ttlDays: string;
 }
 
 type AgentCredentialScope = (typeof AGENT_OAUTH_SCOPES)[number];
+type KeyPurpose = '' | 'daemon' | 'task-workflow' | 'read-only' | 'custom';
+type TeamMember = ListTeamMembersResponses[200]['items'][number];
+type AgentMember = TeamMember & { subjectType: 'agent' };
+
+const PURPOSE_PRESETS = {
+  daemon: {
+    label: 'Agent daemon',
+    scopes: AGENT_CREDENTIAL_SCOPES,
+    roles: ['owner', 'manager', 'executor'],
+  },
+  'task-workflow': {
+    label: 'Task workflow',
+    scopes: TASK_WORKFLOW_CREDENTIAL_SCOPES,
+    roles: ['owner', 'manager'],
+  },
+  'read-only': {
+    label: 'Read-only',
+    scopes: READ_ONLY_CREDENTIAL_SCOPES,
+    roles: ['owner', 'manager', 'executor', 'member'],
+  },
+} as const satisfies Record<
+  Exclude<KeyPurpose, '' | 'custom'>,
+  {
+    label: string;
+    scopes: readonly AgentCredentialScope[];
+    roles: readonly string[];
+  }
+>;
 
 const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
   'agent:profile': 'Read the authenticated agent profile',
@@ -74,7 +112,8 @@ const CREDENTIAL_SCOPE_OPTIONS = AGENT_OAUTH_SCOPES.map((scope) => ({
 const EMPTY_CREATE_FORM: CreateKeyForm = {
   agentId: '',
   name: '',
-  scopes: [...AGENT_CREDENTIAL_SCOPES],
+  purpose: '',
+  scopes: [],
   ttlDays: '',
 };
 
@@ -90,6 +129,7 @@ const REVOCATION_REASONS: Array<{
 
 export function AgentKeysPage() {
   const theme = useTheme();
+  const scopeGuideUrl = `${getConfig().docsUrl}/operate/agent-keys#choose-scopes-by-job`;
   const queryClient = useQueryClient();
   const { selectedTeam, error: teamError, refreshTeams } = useTeam();
   const teamId = selectedTeam?.id;
@@ -130,12 +170,14 @@ export function AgentKeysPage() {
   const agents = useMemo(
     () =>
       (membersQuery.data?.items ?? [])
-        .filter((member) => member.subjectType === 'agent')
+        .filter(
+          (member): member is AgentMember => member.subjectType === 'agent',
+        )
         .sort((a, b) => a.displayName.localeCompare(b.displayName)),
     [membersQuery.data],
   );
-  const agentNames = useMemo(
-    () => new Map(agents.map((agent) => [agent.subjectId, agent.displayName])),
+  const agentsById = useMemo(
+    () => new Map(agents.map((agent) => [agent.subjectId, agent])),
     [agents],
   );
 
@@ -217,7 +259,6 @@ export function AgentKeysPage() {
     setCreateForm({
       ...EMPTY_CREATE_FORM,
       agentId: agentFilter || agents[0]?.subjectId || '',
-      scopes: [...AGENT_CREDENTIAL_SCOPES],
     });
     setActionError(null);
     setCreateIdempotencyKey(crypto.randomUUID());
@@ -375,6 +416,9 @@ export function AgentKeysPage() {
           <Text color="muted">
             Issue and revoke team-bound credentials for agent runtimes.
           </Text>
+          <a href={scopeGuideUrl} target="_blank" rel="noreferrer">
+            Choose scopes by job
+          </a>
         </Stack>
         <Button
           size="sm"
@@ -395,7 +439,7 @@ export function AgentKeysPage() {
             { value: '', label: 'All team agents' },
             ...agents.map((agent) => ({
               value: agent.subjectId,
-              label: agent.displayName,
+              label: agentOptionLabel(agent),
             })),
           ]}
         />
@@ -432,7 +476,7 @@ export function AgentKeysPage() {
       ) : (
         <KeyTable
           keys={keys}
-          agentNames={agentNames}
+          agentsById={agentsById}
           rotating={isMutating}
           onRotate={openRotateDialog}
           onRevoke={openRevokeDialog}
@@ -490,6 +534,8 @@ export function AgentKeysPage() {
       <CreateKeyDialog
         open={createOpen}
         agents={agents}
+        teamId={teamId}
+        scopeGuideUrl={scopeGuideUrl}
         form={createForm}
         isMutating={isMutating}
         onFormChange={setCreateForm}
@@ -535,6 +581,8 @@ export function AgentKeysPage() {
 function CreateKeyDialog({
   open,
   agents,
+  teamId,
+  scopeGuideUrl,
   form,
   isMutating,
   onFormChange,
@@ -542,13 +590,40 @@ function CreateKeyDialog({
   onSubmit,
 }: {
   open: boolean;
-  agents: Array<{ subjectId: string; displayName: string }>;
+  agents: AgentMember[];
+  teamId: string;
+  scopeGuideUrl: string;
   form: CreateKeyForm;
   isMutating: boolean;
   onFormChange: (form: CreateKeyForm) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
+  const selectedAgent = agents.find(
+    (agent) => agent.subjectId === form.agentId,
+  );
+  const preset =
+    form.purpose && form.purpose !== 'custom'
+      ? PURPOSE_PRESETS[form.purpose]
+      : null;
+  const roleCompatible = Boolean(
+    selectedAgent &&
+    (!preset ||
+      (preset.roles as readonly string[]).includes(selectedAgent.role)),
+  );
+
+  function selectPurpose(purpose: KeyPurpose) {
+    if (!purpose || purpose === 'custom') {
+      onFormChange({ ...form, purpose });
+      return;
+    }
+    onFormChange({
+      ...form,
+      purpose,
+      scopes: [...PURPOSE_PRESETS[purpose].scopes],
+    });
+  }
+
   return (
     <Dialog
       open={open}
@@ -556,16 +631,57 @@ function CreateKeyDialog({
       title="Create agent key"
       width="720px"
     >
-      <Stack gap={4}>
+      <Stack
+        gap={4}
+        style={{ maxHeight: '75dvh', overflowY: 'auto', paddingRight: 2 }}
+      >
+        <SelectField
+          label="Credential purpose"
+          value={form.purpose}
+          onChange={(purpose) => selectPurpose(purpose as KeyPurpose)}
+          options={[
+            { value: '', label: 'Select a purpose' },
+            { value: 'daemon', label: 'Agent daemon' },
+            { value: 'task-workflow', label: 'Task workflow' },
+            { value: 'read-only', label: 'Read-only' },
+            { value: 'custom', label: 'Custom' },
+          ]}
+        />
         <SelectField
           label="Agent"
           value={form.agentId}
           onChange={(agentId) => onFormChange({ ...form, agentId })}
           options={agents.map((agent) => ({
             value: agent.subjectId,
-            label: agent.displayName,
+            label: agentOptionLabel(agent),
           }))}
         />
+        {selectedAgent ? <SelectedAgentSummary agent={selectedAgent} /> : null}
+        {form.purpose === 'task-workflow' ? (
+          <Text variant="caption" color="muted">
+            Create and Wait needs a <code>diaryId</code>. Add{' '}
+            <code>runtime:read</code> only when the workflow uses the
+            runtime-profile picker; changing a preset makes it Custom.
+          </Text>
+        ) : null}
+        {form.purpose === 'custom' ? (
+          <Text variant="caption" color="muted">
+            Custom scopes are still limited by the selected agent’s current team
+            role.
+          </Text>
+        ) : null}
+        {selectedAgent && preset && !roleCompatible ? (
+          <div role="alert">
+            <Text variant="caption" color="warning">
+              {selectedAgent.displayName} currently has the {selectedAgent.role}{' '}
+              role. {preset.label} requires {formatRoleList(preset.roles)}.{' '}
+              <Link href={`/teams/${teamId}?tab=members`}>
+                Edit team member roles
+              </Link>
+              .
+            </Text>
+          </div>
+        ) : null}
         <Input
           label="Key name"
           hint="Use a deployment-specific name, such as production-daemon."
@@ -586,8 +702,18 @@ function CreateKeyDialog({
         />
         <CredentialScopeSelector
           value={form.scopes}
-          onChange={(scopes) => onFormChange({ ...form, scopes })}
+          purpose={form.purpose}
+          onChange={(scopes) =>
+            onFormChange({ ...form, purpose: 'custom', scopes })
+          }
         />
+        <Text variant="caption" color="muted">
+          Credential scopes and live team roles are separate permission gates.{' '}
+          <a href={scopeGuideUrl} target="_blank" rel="noreferrer">
+            Review scope and role guidance
+          </a>
+          .
+        </Text>
         <Stack direction="row" gap={2} justify="flex-end">
           <Button
             variant="ghost"
@@ -601,7 +727,13 @@ function CreateKeyDialog({
             variant="accent"
             size="sm"
             onClick={onSubmit}
-            disabled={isMutating || !form.agentId || !form.name.trim()}
+            disabled={
+              isMutating ||
+              !form.purpose ||
+              !form.agentId ||
+              !form.name.trim() ||
+              !roleCompatible
+            }
           >
             {isMutating ? 'Creating…' : 'Create key'}
           </Button>
@@ -613,9 +745,11 @@ function CreateKeyDialog({
 
 function CredentialScopeSelector({
   value,
+  purpose,
   onChange,
 }: {
   value: AgentCredentialScope[];
+  purpose: KeyPurpose;
   onChange: (value: AgentCredentialScope[]) => void;
 }) {
   const theme = useTheme();
@@ -643,10 +777,12 @@ function CredentialScopeSelector({
       </summary>
       <Stack gap={3} style={{ marginTop: theme.spacing[3] }}>
         <Text variant="caption" color="muted">
-          The daemon minimum is selected by default. A key can receive only
-          scopes held by the credential creating it.
+          {purpose
+            ? 'A key can receive only scopes held by the credential creating it.'
+            : 'Select a credential purpose to load its exact scope set.'}
         </Text>
-        {missingDaemonScopes.length > 0 ? (
+        {(purpose === 'daemon' || purpose === 'custom') &&
+        missingDaemonScopes.length > 0 ? (
           <Text variant="caption" color="warning">
             This key cannot run the agent daemon: it is missing{' '}
             {missingDaemonScopes.join(', ')}. The daemon refuses to start
@@ -654,13 +790,6 @@ function CredentialScopeSelector({
           </Text>
         ) : null}
         <Stack direction="row" gap={2} wrap>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onChange([...AGENT_CREDENTIAL_SCOPES])}
-          >
-            Use daemon minimum
-          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -711,6 +840,7 @@ function CredentialScopeSelector({
                 >
                   <input
                     type="checkbox"
+                    aria-label={`${scope}: ${description}`}
                     checked={checked}
                     onChange={(event) => {
                       const selected = event.target.checked
@@ -748,6 +878,111 @@ function CredentialScopeSelector({
       </Stack>
     </details>
   );
+}
+
+function SelectedAgentSummary({ agent }: { agent: AgentMember }) {
+  const theme = useTheme();
+  return (
+    <div
+      aria-label="Selected agent"
+      style={{
+        padding: theme.spacing[3],
+        border: `1px solid ${theme.color.border.DEFAULT}`,
+        borderRadius: theme.radius.md,
+        background: theme.color.bg.surface,
+      }}
+    >
+      <Stack gap={1}>
+        <Stack direction="row" gap={2} align="center" wrap>
+          <Text weight="medium">{agentIdentityLabel(agent)}</Text>
+          <RoleBadge role={agent.role} />
+          <Text variant="caption" color="muted">
+            {shortId(agent.subjectId)}
+          </Text>
+        </Stack>
+        <Text
+          variant="caption"
+          color="muted"
+          style={{
+            fontFamily: theme.font.family.mono,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {agent.fingerprint ?? 'Fingerprint unavailable'}
+        </Text>
+      </Stack>
+    </div>
+  );
+}
+
+function KeyAgentCell({
+  agent,
+  agentId,
+}: {
+  agent?: AgentMember;
+  agentId: string;
+}) {
+  const theme = useTheme();
+  if (!agent) {
+    return (
+      <Stack gap={1}>
+        <Text color="muted">not a current member</Text>
+        <code title={agentId} style={{ fontFamily: theme.font.family.mono }}>
+          {shortId(agentId)}
+        </code>
+      </Stack>
+    );
+  }
+  return (
+    <Stack gap={1}>
+      <Stack direction="row" gap={2} align="center" wrap>
+        <Text>{agentIdentityLabel(agent)}</Text>
+        <RoleBadge role={agent.role} />
+      </Stack>
+      <Text
+        variant="caption"
+        color="muted"
+        style={{ fontFamily: theme.font.family.mono }}
+      >
+        {agent.fingerprint ?? shortId(agent.subjectId)}
+      </Text>
+    </Stack>
+  );
+}
+
+function agentIdentityLabel(agent: AgentMember): string {
+  return agent.alias ?? agent.fingerprint ?? shortId(agent.subjectId);
+}
+
+function agentOptionLabel(agent: AgentMember): string {
+  const identity = agentIdentityLabel(agent);
+  const fingerprint = agent.fingerprint
+    ? agent.alias
+      ? ` · ${agent.fingerprint}`
+      : ''
+    : ' · fingerprint unavailable';
+  return `${identity}${fingerprint} · ${agent.role} · ${shortId(agent.subjectId)}`;
+}
+
+function sameScopes(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length && left.every((scope) => right.includes(scope))
+  );
+}
+
+function purposeLabelForScopes(scopes: readonly string[]): string {
+  for (const preset of Object.values(PURPOSE_PRESETS)) {
+    if (sameScopes(scopes, preset.scopes)) return preset.label;
+  }
+  return 'Custom';
+}
+
+function formatRoleList(roles: readonly string[]): string {
+  if (roles.length === 1) return `the ${roles[0]} role`;
+  return `one of these roles: ${roles.join(', ')}`;
 }
 
 function RotateKeyDialog({
@@ -840,14 +1075,14 @@ function RevokeKeyDialog({
 
 const KeyTable = memo(function KeyTable({
   keys,
-  agentNames,
+  agentsById,
   rotating,
   onRotate,
   onRevoke,
   canManage,
 }: {
   keys: AgentKey[];
-  agentNames: Map<string, string>;
+  agentsById: Map<string, AgentMember>;
   rotating: boolean;
   onRotate: (key: AgentKey) => void;
   onRevoke: (key: AgentKey) => void;
@@ -878,13 +1113,19 @@ const KeyTable = memo(function KeyTable({
       <table style={styles.table}>
         <thead>
           <tr>
-            {['Name', 'Agent', 'Status', 'Expires', 'Last used', 'Actions'].map(
-              (label) => (
-                <th key={label} scope="col" style={styles.headerCell}>
-                  {label}
-                </th>
-              ),
-            )}
+            {[
+              'Name',
+              'Purpose',
+              'Agent',
+              'Status',
+              'Expires',
+              'Last used',
+              'Actions',
+            ].map((label) => (
+              <th key={label} scope="col" style={styles.headerCell}>
+                {label}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -899,7 +1140,13 @@ const KeyTable = memo(function KeyTable({
                 </Stack>
               </td>
               <td style={styles.bodyCell}>
-                {agentNames.get(key.agentId) ?? shortId(key.agentId)}
+                <Badge>{purposeLabelForScopes(key.scopes ?? [])}</Badge>
+              </td>
+              <td style={styles.bodyCell}>
+                <KeyAgentCell
+                  agent={agentsById.get(key.agentId)}
+                  agentId={key.agentId}
+                />
               </td>
               <td style={styles.bodyCell}>
                 <Badge variant={statusVariant(key.status)}>{key.status}</Badge>
