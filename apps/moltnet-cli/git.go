@@ -16,7 +16,7 @@ import (
 
 // runGitSetupCmd is the flag-free business logic for git setup.
 func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
-	creds, err := loadCredentials(credPath)
+	creds, credPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {
 		return err
 	}
@@ -52,16 +52,10 @@ func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
 		return err
 	}
 
-	// Build allowed_signers — relative to the config file
-	var configDir string
-	if credPath != "" {
-		configDir = filepath.Dir(credPath)
-	} else {
-		configDir, err = GetConfigDir()
-		if err != nil {
-			return err
-		}
-	}
+	// Build allowed_signers beside the identity it belongs to. Without
+	// --credentials that is the selected identity, not the store root: writing
+	// there left moltnet.json naming a gitconfig that sessions never load.
+	configDir := filepath.Dir(credPath)
 	allowedSignersPath, err := writeAllowedSignersFile(configDir, gitEmail, pubKeyContent)
 	if err != nil {
 		return err
@@ -87,14 +81,8 @@ func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
 		Signing:    true,
 		ConfigPath: gitconfigPath,
 	}
-	if credPath != "" {
-		if _, err := WriteConfigTo(creds, credPath); err != nil {
-			return fmt.Errorf("update config: %w", err)
-		}
-	} else {
-		if _, err := WriteConfig(creds); err != nil {
-			return fmt.Errorf("update config: %w", err)
-		}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		return fmt.Errorf("update config: %w", err)
 	}
 
 	fmt.Fprintf(errOut, "Git identity configured:\n")
@@ -159,6 +147,16 @@ func writeGitConfigFile(path string, values map[string]string) error {
 	}
 	defer os.Remove(tempPath)
 	if err := os.Chmod(tempPath, 0o600); err != nil {
+		return err
+	}
+	// Start from the existing gitconfig so only the identity and signing keys
+	// change: it also carries the GitHub credential helper and SSH-to-HTTPS
+	// rewrite that `github setup` installed, and a fresh file dropped them.
+	existing, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.WriteFile(tempPath, existing, 0o600); err != nil {
 		return err
 	}
 	for _, key := range []string{

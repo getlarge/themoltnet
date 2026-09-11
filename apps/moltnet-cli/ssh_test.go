@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -201,5 +202,34 @@ func TestRunSSHKeyExportFromPrivateKeyReference(t *testing.T) {
 	reread, err := ReadConfigFrom(credPath)
 	if err != nil || reread.Keys.PrivateKeyRef == nil || reread.Keys.PrivateKey != "" {
 		t.Fatalf("export must keep the reference form: %+v, %v", reread.Keys, err)
+	}
+}
+
+// Without --credentials, ssh-key must export into the selected identity, not
+// the store root.
+func TestRunSSHKeyExport_WithoutCredentialsUsesTheSelectedIdentity(t *testing.T) {
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityDir := selectTestIdentity(t, CredentialsFile{
+		SubjectID: "test-agent",
+		Keys:      CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint},
+	})
+
+	if err := runSSHKeyExportCmd(io.Discard, "", ""); err != nil {
+		t.Fatalf("ssh-key: %v", err)
+	}
+
+	creds, err := ReadConfigFrom(filepath.Join(identityDir, "moltnet.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(identityDir, "ssh", "id_ed25519.pub")
+	if creds.SSH == nil || creds.SSH.PublicKeyPath != want {
+		t.Fatalf("ssh section = %+v, want public key %s", creds.SSH, want)
+	}
+	if _, err := os.Stat(want); err != nil {
+		t.Fatalf("public key not written to the identity: %v", err)
 	}
 }

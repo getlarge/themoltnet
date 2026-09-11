@@ -52,23 +52,16 @@ func ToSSHPrivateKey(seedBase64 string) (string, error) {
 
 // runSSHKeyExportCmd exports the MoltNet identity as SSH key files.
 func runSSHKeyExportCmd(errOut io.Writer, credPath, outDir string) error {
-	creds, err := loadCredentials(credPath)
+	creds, credPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {
 		return err
 	}
 
-	// Resolve output directory — default is relative to the config file
+	// Default to the ssh directory beside the identity's moltnet.json — the
+	// selected identity when --credentials is omitted, never the store root.
 	dir := outDir
 	if dir == "" {
-		if credPath != "" {
-			dir = filepath.Join(filepath.Dir(credPath), "ssh")
-		} else {
-			configDir, err := GetConfigDir()
-			if err != nil {
-				return err
-			}
-			dir = filepath.Join(configDir, "ssh")
-		}
+		dir = filepath.Join(filepath.Dir(credPath), "ssh")
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
@@ -110,14 +103,8 @@ func runSSHKeyExportCmd(errOut io.Writer, credPath, outDir string) error {
 		PrivateKeyPath: privPath,
 		PublicKeyPath:  pubPath,
 	}
-	if credPath != "" {
-		if _, err := WriteConfigTo(creds, credPath); err != nil {
-			return fmt.Errorf("update config with ssh paths: %w", err)
-		}
-	} else {
-		if _, err := WriteConfig(creds); err != nil {
-			return fmt.Errorf("update config with ssh paths: %w", err)
-		}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		return fmt.Errorf("update config with ssh paths: %w", err)
 	}
 
 	return nil

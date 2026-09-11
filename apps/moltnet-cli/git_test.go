@@ -266,3 +266,75 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 		t.Errorf("git email = %q, want %q", updatedCreds.Git.Email, "bot@example.com")
 	}
 }
+
+// selectTestIdentity stores creds as the selected identity under a temporary
+// HOME and returns its directory, so a command run without --credentials
+// resolves it the way the CLI does for an operator.
+func selectTestIdentity(t *testing.T, creds CredentialsFile) string {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(activeIdentityEnv, "")
+	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
+	identityDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(identityDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	writeTestConfig(t, identityDir, "moltnet.json", creds)
+	if err := writeIdentitySelector("test-agent"); err != nil {
+		t.Fatal(err)
+	}
+	return identityDir
+}
+
+// Without --credentials, git setup must configure the selected identity. It
+// used to write to the store root and record that path in the identity's
+// moltnet.json, which then named a gitconfig sessions never load. It must also
+// keep what `github setup` installed in that gitconfig.
+func TestRunGitSetup_WithoutCredentialsConfiguresTheSelectedIdentity(t *testing.T) {
+	sshDir := t.TempDir()
+	pubKeyPath := filepath.Join(sshDir, "id_ed25519.pub")
+	if err := os.WriteFile(pubKeyPath, []byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtqJ7zOtqQtYqOo0CpvDXNlMhV3HeJDpjrASKGLWdop\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	identityDir := selectTestIdentity(t, CredentialsFile{
+		SubjectID: "test-agent-12345678",
+		Keys:      CredentialsKeys{PublicKey: "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=", PrivateKey: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
+		SSH:       &SSHSection{PublicKeyPath: pubKeyPath},
+	})
+	gitconfigPath := filepath.Join(identityDir, "gitconfig")
+	installed := "[credential \"https://github.com\"]\n\thelper = \n\thelper = !moltnet github credential-helper\n\tuseHttpPath = true\n" +
+		"[url \"https://github.com/\"]\n\tinsteadOf = git@github.com:\n"
+	if err := os.WriteFile(gitconfigPath, []byte(installed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runGitSetupCmd(io.Discard, "", "MoltNet Test Agent", "test-agent@example.test"); err != nil {
+		t.Fatalf("git setup: %v", err)
+	}
+
+	creds, err := ReadConfigFrom(filepath.Join(identityDir, "moltnet.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if creds.Git == nil || creds.Git.ConfigPath != gitconfigPath {
+		t.Fatalf("git section = %+v, want config_path %s", creds.Git, gitconfigPath)
+	}
+	if _, err := os.Stat(filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "gitconfig")); !os.IsNotExist(err) {
+		t.Fatal("git setup wrote a gitconfig to the store root")
+	}
+	for key, want := range map[string]string{
+		"user.email":                        "test-agent@example.test",
+		"gpg.ssh.allowedSignersFile":        filepath.Join(identityDir, "ssh", "allowed_signers"),
+		githubCredentialUsePathKey:          "true",
+		"url.https://github.com/.insteadOf": "git@github.com:",
+	} {
+		if got := gitConfigValue(gitconfigPath, key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+	helpers, err := gitConfigGetAll(gitconfigPath, "credential.https://github.com.helper")
+	if err != nil || !equalStrings(helpers, []string{"", "!moltnet github credential-helper"}) {
+		t.Fatalf("credential helpers = %q (%v), want the reset and the MoltNet helper", helpers, err)
+	}
+}
