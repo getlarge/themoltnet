@@ -15,6 +15,7 @@ import {
 } from 'vitest';
 
 import {
+  createMockAgent,
   createMockServices,
   createTestApp,
   type MockServices,
@@ -203,28 +204,31 @@ describe('GET /teams', () => {
 });
 
 describe('GET /teams/:id/members agent aliases', () => {
-  it('uses the database alias and fingerprint when Kratos metadata is unavailable', async () => {
+  it.each([
+    [
+      'carries the published alias beside the fingerprint',
+      'Workflow.Manager',
+      'managers',
+      'manager',
+    ],
+    ['omits alias when none is published', null, 'members', 'member'],
+  ])('%s', async (_, alias, relation, role) => {
     const mocks = createMockServices();
     const app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-      {
-        subjectId: OTHER_AGENT_ID,
-        subjectNs: 'Agent',
-        relation: 'managers',
-      },
+      { subjectId: OTHER_AGENT_ID, subjectNs: 'Agent', relation },
     ]);
     mocks.agentRepository.findByIds.mockResolvedValue(
       new Map([
         [
           OTHER_AGENT_ID,
-          {
+          createMockAgent({
             id: OTHER_AGENT_ID,
             identityId: null,
-            alias: 'Workflow.Manager',
+            alias,
             fingerprint: 'ABCD-EF01-2345-6789',
-            publicKey: 'ed25519:mockkeypayload',
-          },
+          }),
         ],
       ]),
     );
@@ -237,62 +241,19 @@ describe('GET /teams/:id/members agent aliases', () => {
       });
 
       expect(response.statusCode).toBe(200);
+      // displayName is server-derived (the fingerprint) even when an alias is
+      // published: the alias is self-asserted and not unique, so it must not
+      // stand in for the identifier in pickers.
       expect(response.json().items).toEqual([
         {
           subjectId: OTHER_AGENT_ID,
           subjectType: 'agent',
-          role: 'manager',
-          displayName: 'Workflow.Manager',
-          alias: 'Workflow.Manager',
-          fingerprint: 'ABCD-EF01-2345-6789',
-        },
-      ]);
-    } finally {
-      await app.close();
-    }
-  });
-
-  it('falls back to the database fingerprint when no alias is published', async () => {
-    const mocks = createMockServices();
-    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
-    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-      {
-        subjectId: OTHER_AGENT_ID,
-        subjectNs: 'Agent',
-        relation: 'members',
-      },
-    ]);
-    mocks.agentRepository.findByIds.mockResolvedValue(
-      new Map([
-        [
-          OTHER_AGENT_ID,
-          {
-            id: OTHER_AGENT_ID,
-            identityId: null,
-            alias: null,
-            fingerprint: 'ABCD-EF01-2345-6789',
-            publicKey: 'ed25519:mockkeypayload',
-          },
-        ],
-      ]),
-    );
-
-    try {
-      const response = await app.inject({
-        method: 'GET',
-        url: `/teams/${TEAM_ID}/members`,
-        headers: authHeaders,
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().items[0]).toEqual(
-        expect.objectContaining({
+          role,
           displayName: 'ABCD-EF01-2345-6789',
           fingerprint: 'ABCD-EF01-2345-6789',
-        }),
-      );
-      expect(response.json().items[0]).not.toHaveProperty('alias');
+          ...(alias && { alias }),
+        },
+      ]);
     } finally {
       await app.close();
     }

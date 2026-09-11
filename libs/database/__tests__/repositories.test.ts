@@ -170,6 +170,18 @@ describe('createAgentRepository', () => {
     await expect(repo.updateAlias(AGENT_ID, 'Build.Agent')).resolves.toBeNull();
   });
 
+  it('withdraws the alias when null is written', async () => {
+    const cleared = { id: AGENT_ID, alias: null };
+    db._chain.returning.mockResolvedValue([cleared]);
+
+    const result = await repo.updateAlias(AGENT_ID, null);
+
+    expect(db._chain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ alias: null }),
+    );
+    expect(result).toEqual(cleared);
+  });
+
   it('delete returns true when agent deleted', async () => {
     db._chain.returning.mockResolvedValue([{ identityId: AGENT_ID }]);
 

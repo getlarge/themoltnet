@@ -55,8 +55,9 @@ describe('credential scopes', () => {
 
   it('exports exact job-oriented credential presets', () => {
     expect(TASK_WORKFLOW_CREDENTIAL_SCOPES).toEqual([
-      'task:manage',
+      'agent:profile',
       'task:read',
+      'task:write',
     ]);
     expect(READ_ONLY_CREDENTIAL_SCOPES).toEqual([
       'agent:profile',

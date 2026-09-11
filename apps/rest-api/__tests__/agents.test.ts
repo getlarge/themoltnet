@@ -1,3 +1,4 @@
+import type { AuthContext } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -300,7 +301,24 @@ describe('Agent routes', () => {
       });
     });
 
-    it.each(['-starts-wrong', 'contains space', '', 'a'.repeat(64)])(
+    it('accepts the 63-character boundary and reports the stored value', async () => {
+      const alias = 'a'.repeat(63);
+      mocks.agentRepository.updateAlias.mockResolvedValue(
+        createMockAgent({ alias }),
+      );
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/agents/whoami',
+        headers: authHeaders,
+        payload: { alias },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().alias).toBe(alias);
+    });
+
+    it.each(['-starts-wrong', 'contains space', '', 'a'.repeat(64), 'ünïcode'])(
       'rejects invalid alias %j',
       async (alias) => {
         const response = await app.inject({
@@ -331,6 +349,32 @@ describe('Agent routes', () => {
       }
     });
 
+    it.each([
+      ['team-bound', KEY_AUTH_CONTEXT],
+      [
+        'identity-bound',
+        {
+          ...VALID_AUTH_CONTEXT,
+          credentialBinding: { bindingScope: 'identity', keyId: 'key-456' },
+        } satisfies AuthContext,
+      ],
+    ])('rejects %s agent keys even with agent:profile', async (_, ctx) => {
+      const keyApp = await createTestApp(mocks, ctx);
+      try {
+        const response = await keyApp.inject({
+          method: 'PATCH',
+          url: '/agents/whoami',
+          headers: authHeaders,
+          payload: { alias: 'Build.Agent' },
+        });
+        expect(response.statusCode).toBe(403);
+        expect(response.json().detail).toContain('primary credential');
+        expect(mocks.agentRepository.updateAlias).not.toHaveBeenCalled();
+      } finally {
+        await keyApp.close();
+      }
+    });
+
     it('rejects callers without agent:profile', async () => {
       const scopedApp = await createTestApp(mocks, {
         ...VALID_AUTH_CONTEXT,
@@ -351,7 +395,7 @@ describe('Agent routes', () => {
     });
 
     it('returns not found when the authenticated subject row is missing', async () => {
-      mocks.agentRepository.updateAlias.mockResolvedValue(null);
+      mocks.agentRepository.findById.mockResolvedValue(null);
       const response = await app.inject({
         method: 'PATCH',
         url: '/agents/whoami',
@@ -360,6 +404,55 @@ describe('Agent routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('DELETE /agents/whoami/alias', () => {
+    it('withdraws the alias for the authenticated agent', async () => {
+      mocks.agentRepository.updateAlias.mockResolvedValue(
+        createMockAgent({ alias: null }),
+      );
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/agents/whoami/alias',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(204);
+      expect(mocks.agentRepository.updateAlias).toHaveBeenCalledWith(
+        OWNER_ID,
+        null,
+      );
+    });
+
+    it('rejects agent keys', async () => {
+      const keyApp = await createTestApp(mocks, KEY_AUTH_CONTEXT);
+      try {
+        const response = await keyApp.inject({
+          method: 'DELETE',
+          url: '/agents/whoami/alias',
+          headers: authHeaders,
+        });
+        expect(response.statusCode).toBe(403);
+        expect(mocks.agentRepository.updateAlias).not.toHaveBeenCalled();
+      } finally {
+        await keyApp.close();
+      }
+    });
+
+    it('rejects human callers', async () => {
+      const humanApp = await createTestApp(mocks, HUMAN_AUTH_CONTEXT);
+      try {
+        const response = await humanApp.inject({
+          method: 'DELETE',
+          url: '/agents/whoami/alias',
+          headers: authHeaders,
+        });
+        expect(response.statusCode).toBe(403);
+      } finally {
+        await humanApp.close();
+      }
     });
   });
 });

@@ -227,7 +227,10 @@ async function resolveMembers(
         subjectId: m.subjectId,
         subjectType,
         role: teamRelationToRole(m.relation),
-        displayName: alias ?? fingerprint ?? m.subjectId.slice(0, 8),
+        // displayName stays server-derived: the alias is self-asserted and
+        // not unique, so it is carried separately and never stands in for
+        // the fingerprint in pickers that feed subjectId into decisions.
+        displayName: fingerprint ?? m.subjectId.slice(0, 8),
         ...(alias && { alias }),
         ...(fingerprint && { fingerprint }),
       };

@@ -216,7 +216,10 @@ export function createAgentRepository(db: Database) {
     },
 
     /** Update only the display alias for one durable agent subject. */
-    async updateAlias(agentId: string, alias: string): Promise<Agent | null> {
+    async updateAlias(
+      agentId: string,
+      alias: string | null,
+    ): Promise<Agent | null> {
       const [agent] = await getExecutor(db)
         .update(agents)
         .set({ alias, updatedAt: new Date() })

@@ -17,7 +17,7 @@ purpose into **Custom**.
 | Purpose       | Exact credential scopes                                                    | Eligible current agent roles                       |
 | ------------- | -------------------------------------------------------------------------- | -------------------------------------------------- |
 | Agent daemon  | `agent:profile crypto:sign runtime:read task:read task:claim task:execute` | owner, manager, executor                           |
-| Task workflow | `task:manage task:read`                                                    | owner, manager                                     |
+| Task workflow | `agent:profile task:read task:write`                                       | owner, manager                                     |
 | Read-only     | `agent:profile diary:read pack:read runtime:read task:read team:read`      | any current team member                            |
 | Custom        | Operator-selected                                                          | The current role may restrict the requested scopes |
 
@@ -25,6 +25,10 @@ Credential scopes and live team roles are independent gates. The key must have
 the route's scope, and the agent must currently have a team role that authorizes
 the operation. A later role change can therefore enable or disable an
 already-issued key without changing that key's scopes.
+
+`agent:profile` is a read scope on every key. Publishing or withdrawing the
+agent's network alias is reserved for the identity's primary credential, so no
+preset, and no custom key, can relabel the agent it represents.
 
 For a Node-RED or n8n Create → Wait workflow, issue a team-bound **Task
 workflow** key to the agent represented by the workflow. Task creation also

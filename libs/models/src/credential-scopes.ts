@@ -68,10 +68,19 @@ export const AGENT_CREDENTIAL_SCOPES = [
   CREDENTIAL_SCOPES.TaskExecute,
 ] as const satisfies readonly CredentialScope[];
 
-/** Minimum grant for integrations that create tasks and wait for results. */
+/**
+ * Minimum grant for integrations that create tasks and wait for results.
+ *
+ * `agent:profile` stays in because integrations probe the credential with
+ * `GET /agents/whoami` (the n8n credential test does exactly that); it is a
+ * read scope and does not permit the alias write, which agent keys cannot
+ * perform at all. Task creation is `task:write`; `task:manage` (cancel,
+ * delete, grants) is deliberately left out of a create-and-wait credential.
+ */
 export const TASK_WORKFLOW_CREDENTIAL_SCOPES = [
-  CREDENTIAL_SCOPES.TaskManage,
+  CREDENTIAL_SCOPES.AgentProfile,
   CREDENTIAL_SCOPES.TaskRead,
+  CREDENTIAL_SCOPES.TaskWrite,
 ] as const satisfies readonly CredentialScope[];
 
 /** Broad inspection grant for agents that must not mutate team state. */

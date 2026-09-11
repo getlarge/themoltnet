@@ -96,7 +96,7 @@ export const AgentAliasSchema = Type.String({
   minLength: 1,
   maxLength: 63,
   description:
-    'Case-preserving network display label; never used for authorization or lookup',
+    'Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup',
 });
 
 // ============================================================================
