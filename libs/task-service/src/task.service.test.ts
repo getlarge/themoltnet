@@ -212,14 +212,13 @@ type PermissionCheckerMocks = {
   canAccessTeam: Mock<
     (teamId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
-  canWriteTeam: Mock<
-    (teamId: string, callerId: string, callerNs: string) => Promise<boolean>
-  >;
-  canWriteDiary: Mock<
-    (diaryId: string, callerId: string, callerNs: string) => Promise<boolean>
-  >;
-  canProposeTask: Mock<
-    (diaryId: string, callerId: string, callerNs: string) => Promise<boolean>
+  checkTaskCreatePermissions: Mock<
+    (
+      teamId: string,
+      diaryId: string,
+      callerId: string,
+      callerNs: string,
+    ) => Promise<{ canProposeForTeam: boolean; canReadDiary: boolean }>
   >;
   canViewTask: Mock<
     (taskId: string, callerId: string, callerNs: string) => Promise<boolean>
@@ -283,7 +282,9 @@ interface Mocks {
   taskArtifactRepository: TaskArtifactRepositoryMocks;
   taskInputArtifactObjectStore: TaskInputArtifactObjectStoreMocks;
   diaryRepository: {
-    findById: Mock<(id: string) => Promise<{ id: string; teamId: string }>>;
+    findById: Mock<
+      (id: string) => Promise<{ id: string; teamId: string } | null>
+    >;
   };
   agentRepository: {
     findByIdentityId: Mock<
@@ -592,7 +593,7 @@ function makeMocks(
     },
     diaryRepository: {
       findById: vi
-        .fn<(id: string) => Promise<{ id: string; teamId: string }>>()
+        .fn<(id: string) => Promise<{ id: string; teamId: string } | null>>()
         .mockResolvedValue({ id: DIARY_ID, teamId: TEAM_ID }),
     },
     agentRepository: {
@@ -664,33 +665,22 @@ function makeMocks(
           ) => Promise<boolean>
         >()
         .mockResolvedValue(true),
-      canWriteTeam: vi
+      checkTaskCreatePermissions: vi
         .fn<
           (
             teamId: string,
-            callerId: string,
-            callerNs: string,
-          ) => Promise<boolean>
-        >()
-        .mockResolvedValue(true),
-      canWriteDiary: vi
-        .fn<
-          (
             diaryId: string,
             callerId: string,
             callerNs: string,
-          ) => Promise<boolean>
+          ) => Promise<{
+            canProposeForTeam: boolean;
+            canReadDiary: boolean;
+          }>
         >()
-        .mockResolvedValue(true),
-      canProposeTask: vi
-        .fn<
-          (
-            diaryId: string,
-            callerId: string,
-            callerNs: string,
-          ) => Promise<boolean>
-        >()
-        .mockResolvedValue(true),
+        .mockResolvedValue({
+          canProposeForTeam: true,
+          canReadDiary: true,
+        }),
       canViewTask: vi
         .fn<
           (
@@ -1362,26 +1352,51 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
     );
   });
 
-  it('requires write permission on the owning team before reading the diary', async () => {
-    mocks.permissionChecker.canWriteTeam.mockResolvedValue(false);
+  it('denies missing team proposal authority before reporting a missing diary', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockResolvedValue({
+      canProposeForTeam: false,
+      canReadDiary: false,
+    });
+    mocks.diaryRepository.findById.mockResolvedValue(null);
 
     await expect(
       service.create(judgeCreateInput() as never),
-    ).rejects.toMatchObject({ code: 'forbidden' });
-    expect(mocks.permissionChecker.canWriteDiary).not.toHaveBeenCalled();
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Not authorized to create tasks for this team',
+    });
+    expect(
+      mocks.permissionChecker.checkTaskCreatePermissions,
+    ).toHaveBeenCalledWith(TEAM_ID, DIARY_ID, AGENT_ID, 'agent');
+    expect(mocks.diaryRepository.findById).toHaveBeenCalledWith(DIARY_ID);
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
-  it('requires write permission on the provenance diary', async () => {
-    mocks.permissionChecker.canWriteDiary.mockResolvedValue(false);
+  it('reports a missing diary after team proposal authority succeeds', async () => {
+    mocks.diaryRepository.findById.mockResolvedValue(null);
 
     await expect(
       service.create(judgeCreateInput() as never),
-    ).rejects.toMatchObject({ code: 'forbidden' });
+    ).rejects.toMatchObject({ code: 'not_found', message: 'Diary not found' });
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
-  it('allows an explicitly writable provenance diary owned by another team', async () => {
+  it('requires read permission on an existing provenance diary', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockResolvedValue({
+      canProposeForTeam: true,
+      canReadDiary: false,
+    });
+
+    await expect(
+      service.create(judgeCreateInput() as never),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Not authorized to read task provenance from this diary',
+    });
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('allows a readable provenance diary owned by another team', async () => {
     mocks.diaryRepository.findById.mockResolvedValue({
       id: DIARY_ID,
       teamId: '99999999-9999-4999-8999-999999999999',
@@ -1394,6 +1409,40 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
       task.id,
       TEAM_ID,
     );
+  });
+
+  it('starts diary lookup and the batched permission check concurrently', async () => {
+    let resolvePermissions!: (value: {
+      canProposeForTeam: boolean;
+      canReadDiary: boolean;
+    }) => void;
+    const permissions = new Promise<{
+      canProposeForTeam: boolean;
+      canReadDiary: boolean;
+    }>((resolve) => {
+      resolvePermissions = resolve;
+    });
+    let resolveDiary!: (value: { id: string; teamId: string } | null) => void;
+    const diary = new Promise<{ id: string; teamId: string } | null>(
+      (resolve) => {
+        resolveDiary = resolve;
+      },
+    );
+    mocks.permissionChecker.checkTaskCreatePermissions.mockReturnValue(
+      permissions,
+    );
+    mocks.diaryRepository.findById.mockReturnValue(diary);
+
+    const created = service.create(judgeCreateInput() as never);
+
+    expect(
+      mocks.permissionChecker.checkTaskCreatePermissions,
+    ).toHaveBeenCalledOnce();
+    expect(mocks.diaryRepository.findById).toHaveBeenCalledOnce();
+
+    resolveDiary({ id: DIARY_ID, teamId: TEAM_ID });
+    resolvePermissions({ canProposeForTeam: true, canReadDiary: true });
+    await expect(created).resolves.toMatchObject({ teamId: TEAM_ID });
   });
 
   it('rejects a duplicate judge for the same target attempt and rubric identity', async () => {

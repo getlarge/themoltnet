@@ -156,11 +156,6 @@ export interface PermissionChecker {
     canProposeForTeam: boolean;
     canReadDiary: boolean;
   }>;
-  canProposeTask(
-    diaryId: string,
-    subjectId: string,
-    subjectNs: KetoNamespace,
-  ): Promise<boolean>;
   canClaimTask(
     taskId: string,
     subjectId: string,
@@ -734,22 +729,6 @@ export function createPermissionChecker(
         ]);
 
       return { canProposeForTeam, canReadDiary };
-    },
-
-    canProposeTask(
-      diaryId: string,
-      subjectId: string,
-      subjectNs: KetoNamespace,
-    ): Promise<boolean> {
-      return checkPermission(
-        permissionApi,
-        KetoNamespace.Diary,
-        diaryId,
-        DiaryPermission.Propose,
-        subjectNs,
-        subjectId,
-        log,
-      );
     },
 
     canClaimTask(

@@ -21,6 +21,7 @@ import {
   claimTask,
   type Client,
   completeTask,
+  createAgentKey,
   createClient,
   createDiary,
   createDiaryGrant,
@@ -175,6 +176,32 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': teamId },
         body: { name: 'executor claim diary', visibility: 'moltnet' },
       });
+      const issueTaskKey = async (agent: TestAgent, name: string) => {
+        const issued = await createAgentKey({
+          client,
+          auth: () => proposer.accessToken,
+          headers: {
+            'idempotency-key': `${name}-${randomUUID()}`,
+            'x-moltnet-team-id': teamId,
+          },
+          body: {
+            agentId: agent.agentId,
+            name,
+            scopes: ['task:manage'],
+            ttlDays: 1,
+          },
+        });
+        expect(issued.error).toBeUndefined();
+        return issued.data!.secret;
+      };
+      const executorTaskKey = await issueTaskKey(
+        claimer,
+        'executor-task-proposer',
+      );
+      const memberTaskKey = await issueTaskKey(
+        taskWriter,
+        'member-task-proposer',
+      );
       const createPendingTask = async (prompt: string) => {
         const created = await createTask({
           client,
@@ -188,6 +215,40 @@ describe('Tasks API', () => {
         });
         return created.data!;
       };
+
+      const executorProposal = await createTask({
+        client,
+        auth: () => executorTaskKey,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: {
+          taskType: 'curate_pack',
+          diaryId: diary!.id,
+          input: {
+            diaryId: diary!.id,
+            taskPrompt: 'executor agent-key proposal',
+          },
+        },
+      });
+      expect(executorProposal.response.status).toBe(201);
+      expect(executorProposal.error).toBeUndefined();
+
+      const memberProposal = await createTask({
+        client,
+        auth: () => memberTaskKey,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: {
+          taskType: 'curate_pack',
+          diaryId: diary!.id,
+          input: {
+            diaryId: diary!.id,
+            taskPrompt: 'member agent-key proposal',
+          },
+        },
+      });
+      expect(memberProposal.response.status).toBe(403);
+      expect(memberProposal.error).toMatchObject({
+        detail: 'Not authorized to create tasks for this team',
+      });
 
       const executorTask = await createPendingTask('executor role claim');
       const executorClaim = await claimTask({
@@ -234,6 +295,21 @@ describe('Tasks API', () => {
         path: { id: teamId, subjectId: claimer.agentId },
         body: { role: 'manager' },
       });
+      const managerProposal = await createTask({
+        client,
+        auth: () => executorTaskKey,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: {
+          taskType: 'curate_pack',
+          diaryId: diary!.id,
+          input: {
+            diaryId: diary!.id,
+            taskPrompt: 'manager agent-key proposal',
+          },
+        },
+      });
+      expect(managerProposal.response.status).toBe(201);
+      expect(managerProposal.error).toBeUndefined();
       const continuityTask = await createPendingTask('claimant continuity');
       const claimed = await claimTask({
         client,

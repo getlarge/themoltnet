@@ -152,32 +152,30 @@ export function createTaskCreateService(
         ]);
       }
 
-      const canWriteTeam = await permissionChecker.canWriteTeam(
-        input.teamId,
-        input.callerId,
-        input.callerNs,
-      );
-      if (!canWriteTeam) {
+      const [createPermissions, diary] = await Promise.all([
+        permissionChecker.checkTaskCreatePermissions(
+          input.teamId,
+          input.diaryId,
+          input.callerId,
+          input.callerNs,
+        ),
+        diaryRepository.findById(input.diaryId),
+      ]);
+      if (!createPermissions.canProposeForTeam) {
         throw new TaskServiceError(
           'forbidden',
           'Not authorized to create tasks for this team',
         );
       }
 
-      const diary = await diaryRepository.findById(input.diaryId);
       if (!diary) {
         throw new TaskServiceError('not_found', 'Diary not found');
       }
 
-      const canWriteDiary = await permissionChecker.canWriteDiary(
-        input.diaryId,
-        input.callerId,
-        input.callerNs,
-      );
-      if (!canWriteDiary) {
+      if (!createPermissions.canReadDiary) {
         throw new TaskServiceError(
           'forbidden',
-          'Not authorized to write task provenance to this diary',
+          'Not authorized to read task provenance from this diary',
         );
       }
 

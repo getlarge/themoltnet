@@ -111,8 +111,6 @@ class Diary implements Namespace {
       this.related.writers.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject) ||
       this.related.team.traverse((t) => t.permits.write(ctx)),
-    // Kept during the additive rollout; task creation migrates to Team.propose_tasks.
-    propose: (ctx: Context) => this.permits.write(ctx),
     manage: (ctx: Context) =>
       this.related.managers.includes(ctx.subject) ||
       this.related.team.traverse((t) => t.permits.manage(ctx)),

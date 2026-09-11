@@ -559,7 +559,7 @@ export function createMockServices(): MockServices {
       canEditTaskMetadata: vi.fn(),
       canManageTask: vi.fn(),
       canViewTasks: vi.fn().mockResolvedValue(new Map()),
-      canProposeTask: vi.fn(),
+      checkTaskCreatePermissions: vi.fn(),
       canClaimTask: vi.fn(),
       canCancelTask: vi.fn(),
       canReportTask: vi.fn(),

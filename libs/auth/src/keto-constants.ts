@@ -108,7 +108,6 @@ export enum DiaryEntryPermission {
 export enum DiaryPermission {
   Read = 'read',
   Write = 'write',
-  Propose = 'propose',
   Manage = 'manage',
 }
 
