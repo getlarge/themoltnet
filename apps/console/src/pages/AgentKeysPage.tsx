@@ -59,8 +59,9 @@ const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
   'runtime:read': 'Read runtime configuration',
   'task:claim': 'Claim queued tasks',
   'task:execute': 'Execute and report task attempts',
-  'task:manage': 'Create and cancel tasks',
+  'task:manage': 'Cancel, delete, and manage task grants',
   'task:read': 'Read tasks and attempts',
+  'task:write': 'Create tasks and edit task metadata',
   'team:manage': 'Manage teams and membership',
   'team:read': 'Read teams and membership',
 };

@@ -39,6 +39,7 @@ describe('credential scopes', () => {
       'task:execute',
       'task:manage',
       'task:read',
+      'task:write',
       'team:manage',
       'team:read',
     ]);

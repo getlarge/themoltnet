@@ -126,7 +126,7 @@ export class MoltNetApi implements ICredentialType {
       required: true,
       displayOptions: { show: { authentication: ['agentKey'] } },
       description:
-        'Scoped agent key. For this node, grant agent:profile, task:manage, and task:read.',
+        'Scoped agent key. For this node, grant agent:profile, task:read, and task:write.',
     },
     {
       displayName: 'Client ID',

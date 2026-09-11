@@ -186,7 +186,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         auth: {
           ...deferInaccessibleTeamAuthorization.auth,
           credentialBindingScope: 'team',
-          requiredScopes: ['task:manage'],
+          requiredScopes: ['task:write'],
         },
       },
       schema: {

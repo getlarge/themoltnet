@@ -51,6 +51,11 @@ class Team implements Namespace {
     propose_tasks: (ctx: Context) =>
       this.permits.write(ctx) || this.related.executors.includes(ctx.subject),
 
+    // Cancel/delete tasks and administer their grants.
+    manage_tasks: (ctx: Context) =>
+      this.related.owners.includes(ctx.subject) ||
+      this.related.managers.includes(ctx.subject),
+
     // Read-only access to team resources (all roles)
     access: (ctx: Context) =>
       this.related.owners.includes(ctx.subject) ||
@@ -191,13 +196,10 @@ class Task implements Namespace {
       this.related.writers.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject),
     cancel: (ctx: Context) =>
-      this.related.claimant.includes(ctx.subject) ||
-      this.related.team.traverse((t) => t.permits.write(ctx)) ||
-      this.related.writers.includes(ctx.subject) ||
+      this.related.team.traverse((t) => t.permits.manage_tasks(ctx)) ||
       this.related.managers.includes(ctx.subject),
     delete: (ctx: Context) =>
-      this.related.team.traverse((t) => t.permits.write(ctx)) ||
-      this.related.writers.includes(ctx.subject) ||
+      this.related.team.traverse((t) => t.permits.manage_tasks(ctx)) ||
       this.related.managers.includes(ctx.subject),
     force_delete: (ctx: Context) =>
       this.related.team.traverse((t) => t.permits.manage(ctx)) ||
@@ -207,7 +209,7 @@ class Task implements Namespace {
       this.related.writers.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject),
     manage: (ctx: Context) =>
-      this.related.team.traverse((t) => t.permits.manage(ctx)) ||
+      this.related.team.traverse((t) => t.permits.manage_tasks(ctx)) ||
       this.related.managers.includes(ctx.subject),
     // Covers all claimant-only operations: heartbeat, complete, fail,
     // append messages, list messages. Only the agent holding the lease qualifies.

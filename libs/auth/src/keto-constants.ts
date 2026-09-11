@@ -55,6 +55,7 @@ export enum TeamPermission {
   ManageCredentials = 'manage_credentials',
   ManageMembers = 'manage_members',
   ManageRuntime = 'manage_runtime',
+  ManageTasks = 'manage_tasks',
   Write = 'write',
   Access = 'access',
 }

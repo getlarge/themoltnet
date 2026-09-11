@@ -298,7 +298,7 @@ runs:
         # become agent_key_ref. Fail here with the fix rather than letting a
         # missing key surface as a daemon startup error.
         if [ -z "${MOLTNET_AGENT_KEY:-}" ] && [ -z "${MOLTNET_AGENT_KEY_REF:-}" ]; then
-          echo "::error::MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) is required. The daemon no longer accepts OAuth2 client credentials; mint a key with 'moltnet agents keys create --agent-id <uuid> --team-id <uuid> --name <agent>-daemon --scopes agent:profile,crypto:sign,runtime:read,task:read,task:claim,task:execute,task:manage' and add it as a secret. task:manage is required on top of the daemon minimum because this action also creates the task it then executes. MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET alone materialize git and App assets but cannot authenticate the daemon." >&2
+          echo "::error::MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) is required. The daemon no longer accepts OAuth2 client credentials; mint a key with 'moltnet agents keys create --agent-id <uuid> --team-id <uuid> --name <agent>-daemon --scopes agent:profile,crypto:sign,runtime:read,task:read,task:claim,task:execute,task:write' and add it as a secret. task:write is required on top of the daemon minimum because this action also creates the task it then executes. MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET alone materialize git and App assets but cannot authenticate the daemon." >&2
           exit 1
         fi
         # The daemon treats a value and a reference together as a

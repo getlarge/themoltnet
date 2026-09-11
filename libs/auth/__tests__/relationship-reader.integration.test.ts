@@ -370,6 +370,15 @@ describe('RelationshipReader (integration)', () => {
       checker.canManageTask(taskId, managerId, KetoNamespace.Human),
     ).resolves.toBe(true);
     await expect(
+      checker.canCancelTask(taskId, teamManagerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canCancelTask(taskId, writerId, KetoNamespace.Agent),
+    ).resolves.toBe(false);
+    await expect(
+      checker.canCancelTask(taskId, claimantId, KetoNamespace.Agent),
+    ).resolves.toBe(false);
+    await expect(
       checker.canClaimTask(taskId, groupWriterId, KetoNamespace.Agent),
     ).resolves.toBe(true);
     await expect(
@@ -388,12 +397,20 @@ describe('RelationshipReader (integration)', () => {
     const executorId = '990e8400-e29b-41d4-a716-4466554400d4';
     const memberId = '990e8400-e29b-41d4-a716-4466554400d5';
     const diaryOnlyWriterId = '990e8400-e29b-41d4-a716-4466554400d6';
+    const proposalOnlyExecutorId = '990e8400-e29b-41d4-a716-4466554400d7';
 
     await writeApi.patchRelationships({
       relationshipPatch: [
         tuple('Team', teamId, TeamRelation.Owners, 'Agent', ownerId),
         tuple('Team', teamId, TeamRelation.Managers, 'Agent', managerId),
         tuple('Team', teamId, TeamRelation.Executors, 'Agent', executorId),
+        tuple(
+          'Team',
+          teamId,
+          TeamRelation.Executors,
+          'Agent',
+          proposalOnlyExecutorId,
+        ),
         tuple('Team', teamId, TeamRelation.Members, 'Agent', executorId),
         tuple('Team', teamId, TeamRelation.Members, 'Agent', memberId),
         tuple('Diary', diaryId, DiaryRelation.Team, 'Team', teamId),
@@ -447,6 +464,17 @@ describe('RelationshipReader (integration)', () => {
     ).resolves.toEqual({
       canProposeForTeam: false,
       canReadDiary: true,
+    });
+    await expect(
+      checker.checkTaskCreatePermissions(
+        teamId,
+        diaryId,
+        proposalOnlyExecutorId,
+        KetoNamespace.Agent,
+      ),
+    ).resolves.toEqual({
+      canProposeForTeam: true,
+      canReadDiary: false,
     });
   });
 });
