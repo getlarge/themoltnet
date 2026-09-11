@@ -355,6 +355,28 @@ describe('LocalRuntimePage', () => {
     );
   });
 
+  it('shows actionable agent-key guidance when attaching an identity fails', async () => {
+    handlers['POST /v1/agents'] = () =>
+      jsonResponse(
+        {
+          code: 'verification_failed',
+          message:
+            'agent key rejected (401): the key is revoked, expired, or not authorized for the requested team — re-provision the key.',
+        },
+        400,
+      );
+    renderPage();
+    await screen.findByText(/Current identity:/);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attach identity' }));
+
+    expect(
+      await screen.findByText(
+        /agent key rejected \(401\).*re-provision the key/u,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('blocks starting a run for an agent bound to another team', async () => {
     agentServerState.status.agents[0] = {
       ...agentServerState.status.agents[0],

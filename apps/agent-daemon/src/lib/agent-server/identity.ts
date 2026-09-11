@@ -13,6 +13,7 @@ import {
   type Agent,
   agentKeyKey,
   assertTrustedConfigApiUrl,
+  AuthenticationError,
   deriveMcpUrl,
   identitySeedKey,
   isCanonicalConfig,
@@ -832,9 +833,11 @@ function verificationError(
   message: string,
   cause: unknown,
 ): AgentServerIdentityError {
-  return new AgentServerIdentityError('verification_failed', message, {
-    cause,
-  });
+  return new AgentServerIdentityError(
+    'verification_failed',
+    cause instanceof AuthenticationError ? cause.message : message,
+    { cause },
+  );
 }
 
 /** Non-secret projection preserving the existing `/v1` response shape. */
