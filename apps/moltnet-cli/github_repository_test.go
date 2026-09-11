@@ -625,3 +625,28 @@ func TestExecFailureHintOnlyForRemoteScopedTokens(t *testing.T) {
 		t.Fatalf("an explicitly targeted request needs no hint, got %q", hint)
 	}
 }
+
+// gh's JSON error bodies end without a newline, so the exec hint must know
+// whether it would otherwise be glued to the end of gh's last line.
+func TestLineTrackingWriterRecordsAnUnfinishedLine(t *testing.T) {
+	var sink strings.Builder
+	writer := &lineTrackingWriter{w: &sink}
+	if writer.midLine {
+		t.Fatal("no output yet, so no line is unfinished")
+	}
+	_, _ = writer.Write([]byte("gh: Not Found (HTTP 404)\n{\"status\":\"404\"}"))
+	if !writer.midLine {
+		t.Fatal("output ending without a newline must be recorded as mid-line")
+	}
+	_, _ = writer.Write([]byte("\n"))
+	if writer.midLine {
+		t.Fatal("a trailing newline ends the line")
+	}
+	_, _ = writer.Write(nil)
+	if writer.midLine {
+		t.Fatal("an empty write must not change the state")
+	}
+	if sink.String() != "gh: Not Found (HTTP 404)\n{\"status\":\"404\"}\n" {
+		t.Fatalf("output was not passed through unchanged: %q", sink.String())
+	}
+}

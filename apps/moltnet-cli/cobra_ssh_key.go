@@ -19,7 +19,7 @@ id_ed25519.pub to the output directory.`,
 		},
 	}
 
-	cmd.Flags().String("output-dir", "", "Output directory for SSH keys (default: ~/.config/moltnet/ssh/)")
+	cmd.Flags().String("output-dir", "", "Output directory for SSH keys (default: the ssh directory beside the identity's moltnet.json)")
 
 	return cmd
 }

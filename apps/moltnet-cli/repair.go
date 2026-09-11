@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"mvdan.cc/sh/v3/shell"
 )
 
 // ConfigIssue represents a single problem found during config validation.
@@ -25,7 +27,7 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 
 	// Detect #1396 token pollution in git config files (outside moltnet.json).
 	// On a real (non-dry) run these are stripped in place below.
-	candidates := gitConfigCandidates(creds)
+	candidates := gitConfigCandidates(creds, resolvedPath)
 	tokenPaths := pollutedGitConfigs(candidates)
 	for _, p := range tokenPaths {
 		issues = append(issues, ConfigIssue{
@@ -47,6 +49,20 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		})
 	}
 
+	// Detect MoltNet credential helpers that never see the repository path.
+	// Identities set up before credential.useHttpPath was installed lack it, and
+	// Git strips the path unless it is true, so the helper can only scope a token
+	// to the current checkout's remote: a push to another repository's URL from
+	// inside a checkout then gets a token for the wrong repository.
+	pathlessPaths := pathlessCredentialHelperConfigs(candidates)
+	for _, p := range pathlessPaths {
+		issues = append(issues, ConfigIssue{
+			Field:   "git-config",
+			Problem: fmt.Sprintf("the MoltNet credential helper does not receive the repository path (%s is not enabled) in %s", githubCredentialUsePathKey, p),
+			Action:  "fixed",
+		})
+	}
+
 	// Detect SSH-signing configs that cannot verify: gpg.ssh.allowedSignersFile
 	// unset (legacy configs predating the key) or naming a file that is gone
 	// (an identity that moved out of a checkout).
@@ -57,6 +73,25 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 			Problem: fmt.Sprintf("gpg.ssh.allowedSignersFile is unset or missing in %s", p),
 			Action:  "fixed",
 		})
+	}
+
+	// Detect a repository-level MoltNet credential helper bound to another copy
+	// of this identity, typically the bundle a checkout used before the central
+	// identity store. It overrides the identity's own helper, so pushes from the
+	// checkout and all its worktrees keep using the legacy bundle.
+	repoConfig := repositoryGitConfig()
+	legacyHelperCredentials, sameAgent := repositoryHelperCredentials(repoConfig, resolvedPath, creds)
+	if legacyHelperCredentials != "" {
+		issue := ConfigIssue{Field: "git-config", Action: "fixed", Problem: fmt.Sprintf(
+			"the credential helper in %s uses %s, another copy of this identity, instead of %s",
+			repoConfig, legacyHelperCredentials, resolvedPath)}
+		if !sameAgent {
+			issue.Action = "warning"
+			issue.Problem = fmt.Sprintf(
+				"the credential helper in %s uses %s, which is not this identity or cannot be read; left unchanged",
+				repoConfig, legacyHelperCredentials)
+		}
+		issues = append(issues, issue)
 	}
 
 	if len(issues) == 0 {
@@ -102,6 +137,19 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 	}
 
+	// Let Git pass the repository path to the MoltNet credential helper.
+	for _, p := range pathlessPaths {
+		changed, err := ensureGitHubCredentialUsePath(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  [warning] could not enable %s in %s: %v\n", githubCredentialUsePathKey, p, err)
+			continue
+		}
+		if changed {
+			fmt.Fprintf(os.Stderr, "  [fixed] enabled %s in %s\n", githubCredentialUsePathKey, p)
+			fixed++
+		}
+	}
+
 	// Regenerate the signer document and repoint the config at it.
 	for _, p := range signerPaths {
 		changed, err := repairAllowedSigners(p, filepath.Dir(resolvedPath), creds)
@@ -111,6 +159,16 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 		if changed {
 			fmt.Fprintf(os.Stderr, "  [fixed] configured gpg.ssh.allowedSignersFile in %s\n", p)
+			fixed++
+		}
+	}
+
+	// Bind the repository's helper to this identity.
+	if legacyHelperCredentials != "" && sameAgent {
+		if err := rebindRepositoryHelper(repoConfig, resolvedPath); err != nil {
+			fmt.Fprintf(os.Stderr, "  [warning] could not update the credential helper in %s: %v\n", repoConfig, err)
+		} else {
+			fmt.Fprintf(os.Stderr, "  [fixed] the credential helper in %s now uses %s\n", repoConfig, resolvedPath)
 			fixed++
 		}
 	}
@@ -164,12 +222,12 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		}
 		creds = c
 	} else {
-		dir, err := GetConfigDir()
+		// The selected identity's moltnet.json, like every other command. The
+		// store root holds no moltnet.json since the central identity store.
+		moltnetPath, err := GetConfigPath()
 		if err != nil {
 			return "", nil, nil, err
 		}
-
-		moltnetPath := filepath.Join(dir, "moltnet.json")
 		c, err := ReadConfigFrom(moltnetPath)
 		if err != nil {
 			return "", nil, nil, err
@@ -217,7 +275,17 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		checkFilePath(&issues, "ssh.private_key_path", creds.SSH.PrivateKeyPath)
 		checkFilePath(&issues, "ssh.public_key_path", creds.SSH.PublicKeyPath)
 	}
+	envPath := filepath.Join(filepath.Dir(configPath), "env")
 	if creds.Git != nil {
+		identityGitconfig := filepath.Join(filepath.Dir(configPath), "gitconfig")
+		if staleGitConfigPath(creds.Git.ConfigPath, identityGitconfig, envPath) {
+			issues = append(issues, ConfigIssue{
+				Field:   "git.config_path",
+				Problem: fmt.Sprintf("names %s, not the identity gitconfig %s", creds.Git.ConfigPath, identityGitconfig),
+				Action:  "fixed",
+			})
+			creds.Git.ConfigPath = identityGitconfig
+		}
 		checkFilePath(&issues, "git.config_path", creds.Git.ConfigPath)
 	}
 	if creds.GitHub != nil && creds.GitHub.PrivateKeyPath != "" {
@@ -228,7 +296,6 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 	}
 
 	// Validate sibling env file authorship vars
-	envPath := filepath.Join(filepath.Dir(configPath), "env")
 	validateEnvAuthorship(&issues, envPath)
 
 	return configPath, creds, issues, nil
@@ -274,6 +341,37 @@ func validateEnvAuthorship(issues *[]ConfigIssue, envPath string) {
 			Action:  "warning",
 		})
 	}
+}
+
+// staleGitConfigPath reports whether git.config_path should be repointed at the
+// identity's own gitconfig. A moltnet.json from before the central identity
+// store — or one updated by a `git setup` that wrote to the store root — can
+// name another gitconfig, while sessions use the one beside moltnet.json. It
+// only answers yes when the identity env's GIT_CONFIG_GLOBAL resolves to that
+// same file, so repair never makes config_path disagree with what sessions use.
+func staleGitConfigPath(configured, identityGitconfig, envPath string) bool {
+	identityInfo, err := os.Stat(identityGitconfig)
+	if err != nil {
+		return false
+	}
+	if configured != "" {
+		if info, err := os.Stat(configured); err == nil && os.SameFile(info, identityInfo) {
+			return false
+		}
+	}
+	env, err := parseEnvFile(envPath)
+	if err != nil {
+		return false
+	}
+	sessions := strings.TrimSpace(env["GIT_CONFIG_GLOBAL"])
+	if sessions == "" {
+		return false
+	}
+	if !filepath.IsAbs(sessions) {
+		sessions = filepath.Join(filepath.Dir(envPath), sessions)
+	}
+	info, err := os.Stat(sessions)
+	return err == nil && os.SameFile(info, identityInfo)
 }
 
 func checkFilePath(issues *[]ConfigIssue, field, path string) {
@@ -335,20 +433,147 @@ func repairHelperShadowing(gitConfigPath string) (bool, error) {
 	return true, nil
 }
 
-// gitConfigCandidates returns git config files that may carry #1396 token
-// pollution: the current repo's .git/config and the agent gitconfig.
-func gitConfigCandidates(creds *CredentialsFile) []string {
+// gitConfigCandidates returns the git config files repair inspects: the current
+// repository's .git/config, the gitconfig moltnet.json names, and the gitconfig
+// beside moltnet.json. The last is the identity's own gitconfig — the file the
+// identity env points GIT_CONFIG_GLOBAL at — and is added separately because a
+// moltnet.json written before the central identity store can still name an
+// older location, which left the gitconfig that sessions actually use
+// uninspected by every repair check.
+func gitConfigCandidates(creds *CredentialsFile, credentialsPath string) []string {
 	var paths []string
-	if out, err := exec.Command("git", "rev-parse", "--git-dir").Output(); err == nil {
-		gitDir := strings.TrimSpace(string(out))
-		if gitDir != "" {
-			paths = append(paths, filepath.Join(gitDir, "config"))
+	add := func(candidate string) {
+		if candidate == "" {
+			return
+		}
+		info, statErr := os.Stat(candidate)
+		for _, existing := range paths {
+			if filepath.Clean(existing) == filepath.Clean(candidate) {
+				return
+			}
+			if statErr == nil {
+				if other, err := os.Stat(existing); err == nil && os.SameFile(info, other) {
+					return
+				}
+			}
+		}
+		paths = append(paths, candidate)
+	}
+	add(repositoryGitConfig())
+	if creds.Git != nil {
+		add(creds.Git.ConfigPath)
+	}
+	if credentialsPath != "" {
+		sibling := filepath.Join(filepath.Dir(credentialsPath), "gitconfig")
+		if _, err := os.Stat(sibling); err == nil {
+			add(sibling)
 		}
 	}
-	if creds.Git != nil && creds.Git.ConfigPath != "" {
-		paths = append(paths, creds.Git.ConfigPath)
-	}
 	return paths
+}
+
+// repositoryGitConfig returns the current repository's shared config file, or
+// "" outside a repository. It uses the common dir so a linked worktree resolves
+// to the config its main checkout shares with it.
+func repositoryGitConfig() string {
+	out, err := exec.Command("git", "rev-parse", "--git-common-dir").Output()
+	if err != nil {
+		return ""
+	}
+	commonDir := strings.TrimSpace(string(out))
+	if commonDir == "" {
+		return ""
+	}
+	absolute, err := filepath.Abs(filepath.Join(commonDir, "config"))
+	if err != nil {
+		return ""
+	}
+	return absolute
+}
+
+// repositoryHelperCredentials inspects the MoltNet credential helpers in a
+// repository config and returns the first --credentials path that names a file
+// other than credentialsPath. sameAgent is true when that file holds the same
+// public key as creds, so it is another copy of this identity and the helper
+// can safely be rebound. A helper with no --credentials resolves the selected
+// identity itself and is not reported.
+func repositoryHelperCredentials(repoConfig, credentialsPath string, creds *CredentialsFile) (named string, sameAgent bool) {
+	if repoConfig == "" {
+		return "", false
+	}
+	values, err := gitConfigGetAll(repoConfig, "credential.https://github.com.helper")
+	if err != nil {
+		return "", false
+	}
+	for _, value := range values {
+		candidate := helperCredentialsArgument(value)
+		if candidate == "" || sameFile(candidate, credentialsPath) {
+			continue
+		}
+		other, err := ReadConfigFrom(candidate)
+		return candidate, err == nil && other != nil && creds.Keys.PublicKey != "" &&
+			other.Keys.PublicKey == creds.Keys.PublicKey
+	}
+	return "", false
+}
+
+// helperCredentialsArgument returns the --credentials argument of a MoltNet
+// credential helper command, or "" for any other helper or when it has none.
+// Git runs a "!"-prefixed helper through the shell, so the value is split and
+// expanded with shell rules against this environment, including the quoting
+// githubCredentialHelperCommand writes. Command substitutions are not run; a
+// helper using one is not reported.
+func helperCredentialsArgument(helper string) string {
+	if !strings.Contains(helper, "github credential-helper") {
+		return ""
+	}
+	fields, err := shell.Fields(strings.TrimPrefix(helper, "!"), nil)
+	if err != nil {
+		return ""
+	}
+	for i, field := range fields {
+		if field == "--credentials" && i+1 < len(fields) {
+			return fields[i+1]
+		}
+		if value, ok := strings.CutPrefix(field, "--credentials="); ok {
+			return value
+		}
+	}
+	return ""
+}
+
+// rebindRepositoryHelper points every MoltNet credential helper in a
+// repository config at credentialsPath. Each value is replaced in place, so the
+// other helper entries (the empty reset in particular) keep their order and the
+// config never passes through a state without a helper.
+func rebindRepositoryHelper(repoConfig, credentialsPath string) error {
+	const key = "credential.https://github.com.helper"
+	values, err := gitConfigGetAll(repoConfig, key)
+	if err != nil {
+		return err
+	}
+	helper, err := githubCredentialHelperCommand(credentialsPath)
+	if err != nil {
+		return err
+	}
+	for _, value := range values {
+		if !strings.Contains(value, "github credential-helper") || value == "!"+helper {
+			continue
+		}
+		if err := runGitConfig(repoConfig, "--fixed-value", "--replace-all", key, "!"+helper, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func sameFile(left, right string) bool {
+	leftInfo, err := os.Stat(left)
+	if err != nil {
+		return false
+	}
+	rightInfo, err := os.Stat(right)
+	return err == nil && os.SameFile(leftInfo, rightInfo)
 }
 
 // gitConfigValue reads one key from a git config file, returning "" when the
@@ -463,6 +688,24 @@ func pollutedGitConfigs(candidates []string) []string {
 // shadowProneGitconfigs returns the subset of paths that have a github.com
 // credential helper without the empty reset (and are thus vulnerable to an
 // inherited generic helper shadowing the agent helper).
+// pathlessCredentialHelperConfigs returns the configs that route github.com
+// credentials through the MoltNet helper without enabling useHttpPath. The
+// check reads the key as a boolean, so "yes" or "on" are left alone.
+func pathlessCredentialHelperConfigs(candidates []string) []string {
+	var pathless []string
+	for _, p := range candidates {
+		if !usesMoltnetGitHubHelper(p) {
+			continue
+		}
+		out, err := exec.Command("git", "config", "--file", p, "--type=bool", "--get", githubCredentialUsePathKey).Output()
+		if err == nil && strings.TrimSpace(string(out)) == "true" {
+			continue
+		}
+		pathless = append(pathless, p)
+	}
+	return pathless
+}
+
 func shadowProneGitconfigs(candidates []string) []string {
 	var prone []string
 	for _, p := range candidates {
