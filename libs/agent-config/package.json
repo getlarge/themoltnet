@@ -15,7 +15,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@moltnet/crypto-service": "workspace:*"
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

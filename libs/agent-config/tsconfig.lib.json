@@ -13,6 +13,9 @@
   "references": [
     {
       "path": "../crypto-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../models/tsconfig.lib.json"
     }
   ]
 }
