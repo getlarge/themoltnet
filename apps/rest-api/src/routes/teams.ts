@@ -67,6 +67,7 @@ interface EnrichedMember {
   subjectType: 'agent' | 'human';
   role: TeamRole;
   displayName: string;
+  alias?: string;
   fingerprint?: string;
   email?: string;
 }
@@ -173,12 +174,8 @@ async function resolveMembers(
 
   const identityIdBySubject = new Map<string, string>();
   const [agents, humans] = await Promise.all([
-    agentIds.length > 0
-      ? deps.agentRepository.findByIds(agentIds)
-      : new Map<string, { identityId: string | null }>(),
-    humanIds.length > 0
-      ? deps.humanRepository.findByIds(humanIds)
-      : new Map<string, { identityId: string | null }>(),
+    deps.agentRepository.findByIds(agentIds),
+    deps.humanRepository.findByIds(humanIds),
   ]);
   for (const [subjectId, principal] of [...agents, ...humans]) {
     if (principal.identityId) {
@@ -219,6 +216,23 @@ async function resolveMembers(
     const identity = identityId ? identityMap.get(identityId) : undefined;
     const subjectType = m.subjectNs === 'Human' ? 'human' : 'agent';
 
+    if (subjectType === 'agent') {
+      const agent = agents.get(m.subjectId);
+      const kratosFingerprint =
+        (identity?.metadataPublic?.fingerprint as string | undefined) ??
+        undefined;
+      const fingerprint = agent?.fingerprint ?? kratosFingerprint;
+      const alias = agent?.alias ?? undefined;
+      return {
+        subjectId: m.subjectId,
+        subjectType,
+        role: teamRelationToRole(m.relation),
+        displayName: alias ?? fingerprint ?? m.subjectId.slice(0, 8),
+        ...(alias && { alias }),
+        ...(fingerprint && { fingerprint }),
+      };
+    }
+
     if (!identity) {
       return {
         subjectId: m.subjectId,
@@ -228,26 +242,14 @@ async function resolveMembers(
       };
     }
 
-    if (subjectType === 'human') {
-      const username = identity.traits.username as string | undefined;
-      const email = identity.traits.email as string | undefined;
-      return {
-        subjectId: m.subjectId,
-        subjectType,
-        role: teamRelationToRole(m.relation),
-        displayName: username ?? m.subjectId.slice(0, 8),
-        email,
-      };
-    }
-
-    const fingerprint =
-      (identity.metadataPublic?.fingerprint as string | undefined) ?? undefined;
+    const username = identity.traits.username as string | undefined;
+    const email = identity.traits.email as string | undefined;
     return {
       subjectId: m.subjectId,
       subjectType,
       role: teamRelationToRole(m.relation),
-      displayName: fingerprint ?? m.subjectId.slice(0, 8),
-      fingerprint,
+      displayName: username ?? m.subjectId.slice(0, 8),
+      email,
     };
   });
 }

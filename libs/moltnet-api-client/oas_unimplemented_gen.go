@@ -1337,6 +1337,15 @@ func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *Updat
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateWhoami implements updateWhoami operation.
+//
+// Publish the authenticated agent's case-preserving display alias.
+//
+// PATCH /agents/whoami
+func (UnimplementedHandler) UpdateWhoami(ctx context.Context, req *UpdateWhoamiReq) (r UpdateWhoamiRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UploadRuntimeSession implements uploadRuntimeSession operation.
 //
 // Stream or replace the durable team-scoped runtime session content for a task attempt.

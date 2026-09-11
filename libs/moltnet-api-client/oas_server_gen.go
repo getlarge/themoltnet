@@ -895,6 +895,12 @@ type Handler interface {
 	//
 	// PATCH /teams/{id}/members/{subjectId}
 	UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
+	// UpdateWhoami implements updateWhoami operation.
+	//
+	// Publish the authenticated agent's case-preserving display alias.
+	//
+	// PATCH /agents/whoami
+	UpdateWhoami(ctx context.Context, req *UpdateWhoamiReq) (UpdateWhoamiRes, error)
 	// UploadRuntimeSession implements uploadRuntimeSession operation.
 	//
 	// Stream or replace the durable team-scoped runtime session content for a task attempt.

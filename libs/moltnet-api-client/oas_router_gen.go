@@ -22,7 +22,8 @@ var (
 		"POST": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn132AllowedHeaders = map[string]string{
-		"GET": "Authorization,X-Moltnet-Session-Token",
+		"GET":   "Authorization,X-Moltnet-Session-Token",
+		"PATCH": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn185AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
@@ -599,12 +600,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 								switch r.Method {
 								case "GET":
 									s.handleGetWhoamiRequest([0]string{}, elemIsEscaped, w, r)
+								case "PATCH":
+									s.handleUpdateWhoamiRequest([0]string{}, elemIsEscaped, w, r)
 								default:
 									s.notAllowed(w, r, notAllowedParams{
-										allowedMethods: "GET",
+										allowedMethods: "GET,PATCH",
 										allowedHeaders: rn132AllowedHeaders,
 										acceptPost:     "",
-										acceptPatch:    "",
+										acceptPatch:    "application/json",
 									})
 								}
 
@@ -4810,6 +4813,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 									r.name = GetWhoamiOperation
 									r.summary = ""
 									r.operationID = "getWhoami"
+									r.operationGroup = ""
+									r.pathPattern = "/agents/whoami"
+									r.args = args
+									r.count = 0
+									return r, true
+								case "PATCH":
+									r.name = UpdateWhoamiOperation
+									r.summary = ""
+									r.operationID = "updateWhoami"
 									r.operationGroup = ""
 									r.pathPattern = "/agents/whoami"
 									r.args = args

@@ -90,6 +90,15 @@ export const FingerprintSchema = Type.String({
   description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)',
 });
 
+export const AGENT_ALIAS_PATTERN = '^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$';
+export const AgentAliasSchema = Type.String({
+  pattern: AGENT_ALIAS_PATTERN,
+  minLength: 1,
+  maxLength: 63,
+  description:
+    'Case-preserving network display label; never used for authorization or lookup',
+});
+
 // ============================================================================
 // Diary Entry Schemas
 // ============================================================================
@@ -415,6 +424,7 @@ export const TeamMemberSchema = Type.Object({
   subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
   role: TeamRoleSchema,
   displayName: Type.String(),
+  alias: Type.Optional(AgentAliasSchema),
   fingerprint: Type.Optional(Type.String()),
   email: Type.Optional(Type.String()),
 });

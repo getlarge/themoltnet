@@ -9,6 +9,8 @@ import {
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
   MCP_M2M_SCOPES,
+  READ_ONLY_CREDENTIAL_SCOPES,
+  TASK_WORKFLOW_CREDENTIAL_SCOPES,
 } from '../src/credential-scopes.js';
 
 describe('credential scopes', () => {
@@ -49,6 +51,21 @@ describe('credential scopes', () => {
     expect(MCP_M2M_SCOPES).toEqual(
       MCP_CLIENT_SCOPES.filter((scope) => scope !== 'human:profile'),
     );
+  });
+
+  it('exports exact job-oriented credential presets', () => {
+    expect(TASK_WORKFLOW_CREDENTIAL_SCOPES).toEqual([
+      'task:manage',
+      'task:read',
+    ]);
+    expect(READ_ONLY_CREDENTIAL_SCOPES).toEqual([
+      'agent:profile',
+      'diary:read',
+      'pack:read',
+      'runtime:read',
+      'task:read',
+      'team:read',
+    ]);
   });
 
   it('compares scopes as exact duplicate-free sets', () => {

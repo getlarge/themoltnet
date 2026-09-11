@@ -25979,6 +25979,8 @@ func (s *GetTeamOK) SetUpdatedAt(val time.Time) {
 func (*GetTeamOK) getTeamRes() {}
 
 type GetTeamOKMembersItem struct {
+	// Case-preserving network display label; never used for authorization or lookup.
+	Alias       OptString                `json:"alias"`
 	DisplayName string                   `json:"displayName"`
 	Email       OptString                `json:"email"`
 	Fingerprint OptString                `json:"fingerprint"`
@@ -25986,6 +25988,11 @@ type GetTeamOKMembersItem struct {
 	// UUID v4 identifier.
 	SubjectId   uuid.UUID                       `json:"subjectId"`
 	SubjectType GetTeamOKMembersItemSubjectType `json:"subjectType"`
+}
+
+// GetAlias returns the value of Alias.
+func (s *GetTeamOKMembersItem) GetAlias() OptString {
+	return s.Alias
 }
 
 // GetDisplayName returns the value of DisplayName.
@@ -26016,6 +26023,11 @@ func (s *GetTeamOKMembersItem) GetSubjectId() uuid.UUID {
 // GetSubjectType returns the value of SubjectType.
 func (s *GetTeamOKMembersItem) GetSubjectType() GetTeamOKMembersItemSubjectType {
 	return s.SubjectType
+}
+
+// SetAlias sets the value of Alias.
+func (s *GetTeamOKMembersItem) SetAlias(val OptString) {
+	s.Alias = val
 }
 
 // SetDisplayName sets the value of DisplayName.
@@ -32053,6 +32065,8 @@ func (s *ListTeamMembersOK) SetItems(val []ListTeamMembersOKItemsItem) {
 func (*ListTeamMembersOK) listTeamMembersRes() {}
 
 type ListTeamMembersOKItemsItem struct {
+	// Case-preserving network display label; never used for authorization or lookup.
+	Alias       OptString                      `json:"alias"`
 	DisplayName string                         `json:"displayName"`
 	Email       OptString                      `json:"email"`
 	Fingerprint OptString                      `json:"fingerprint"`
@@ -32060,6 +32074,11 @@ type ListTeamMembersOKItemsItem struct {
 	// UUID v4 identifier.
 	SubjectId   uuid.UUID                             `json:"subjectId"`
 	SubjectType ListTeamMembersOKItemsItemSubjectType `json:"subjectType"`
+}
+
+// GetAlias returns the value of Alias.
+func (s *ListTeamMembersOKItemsItem) GetAlias() OptString {
+	return s.Alias
 }
 
 // GetDisplayName returns the value of DisplayName.
@@ -32090,6 +32109,11 @@ func (s *ListTeamMembersOKItemsItem) GetSubjectId() uuid.UUID {
 // GetSubjectType returns the value of SubjectType.
 func (s *ListTeamMembersOKItemsItem) GetSubjectType() ListTeamMembersOKItemsItemSubjectType {
 	return s.SubjectType
+}
+
+// SetAlias sets the value of Alias.
+func (s *ListTeamMembersOKItemsItem) SetAlias(val OptString) {
+	s.Alias = val
 }
 
 // SetDisplayName sets the value of DisplayName.
@@ -58838,6 +58862,89 @@ type UpdateTeamMemberRoleUnauthorized ProblemDetails
 
 func (*UpdateTeamMemberRoleUnauthorized) updateTeamMemberRoleRes() {}
 
+type UpdateWhoamiBadRequest ProblemDetails
+
+func (*UpdateWhoamiBadRequest) updateWhoamiRes() {}
+
+type UpdateWhoamiForbidden ProblemDetails
+
+func (*UpdateWhoamiForbidden) updateWhoamiRes() {}
+
+type UpdateWhoamiInternalServerError ProblemDetails
+
+func (*UpdateWhoamiInternalServerError) updateWhoamiRes() {}
+
+type UpdateWhoamiNotFound ProblemDetails
+
+func (*UpdateWhoamiNotFound) updateWhoamiRes() {}
+
+type UpdateWhoamiReq struct {
+	// Case-preserving network display label; never used for authorization or lookup.
+	Alias string `json:"alias"`
+}
+
+// GetAlias returns the value of Alias.
+func (s *UpdateWhoamiReq) GetAlias() string {
+	return s.Alias
+}
+
+// SetAlias sets the value of Alias.
+func (s *UpdateWhoamiReq) SetAlias(val string) {
+	s.Alias = val
+}
+
+// Ref: #/components/schemas/UpdateWhoamiResponse
+type UpdateWhoamiResponse struct {
+	// Case-preserving network display label; never used for authorization or lookup.
+	Alias       string    `json:"alias"`
+	Fingerprint string    `json:"fingerprint"`
+	SubjectId   uuid.UUID `json:"subjectId"`
+}
+
+// GetAlias returns the value of Alias.
+func (s *UpdateWhoamiResponse) GetAlias() string {
+	return s.Alias
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *UpdateWhoamiResponse) GetFingerprint() string {
+	return s.Fingerprint
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *UpdateWhoamiResponse) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// SetAlias sets the value of Alias.
+func (s *UpdateWhoamiResponse) SetAlias(val string) {
+	s.Alias = val
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *UpdateWhoamiResponse) SetFingerprint(val string) {
+	s.Fingerprint = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *UpdateWhoamiResponse) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+func (*UpdateWhoamiResponse) updateWhoamiRes() {}
+
+type UpdateWhoamiServiceUnavailable ProblemDetails
+
+func (*UpdateWhoamiServiceUnavailable) updateWhoamiRes() {}
+
+type UpdateWhoamiTooManyRequests ProblemDetails
+
+func (*UpdateWhoamiTooManyRequests) updateWhoamiRes() {}
+
+type UpdateWhoamiUnauthorized ProblemDetails
+
+func (*UpdateWhoamiUnauthorized) updateWhoamiRes() {}
+
 // Merged schema.
 type UploadRuntimeSessionBadRequest struct {
 	Code     UploadRuntimeSessionBadRequestCode `json:"code"`
@@ -63593,6 +63700,8 @@ func (s *VerifyResultSigner) SetFingerprint(val string) {
 
 // Ref: #/components/schemas/Whoami
 type Whoami struct {
+	// Case-preserving network display label; never used for authorization or lookup.
+	Alias             OptString                  `json:"alias"`
 	ClientId          OptString                  `json:"clientId"`
 	CredentialBinding OptWhoamiCredentialBinding `json:"credentialBinding"`
 	CurrentTeamId     OptNilUUID                 `json:"currentTeamId"`
@@ -63602,6 +63711,11 @@ type Whoami struct {
 	Scopes            []string                   `json:"scopes"`
 	SubjectId         uuid.UUID                  `json:"subjectId"`
 	SubjectType       WhoamiSubjectType          `json:"subjectType"`
+}
+
+// GetAlias returns the value of Alias.
+func (s *Whoami) GetAlias() OptString {
+	return s.Alias
 }
 
 // GetClientId returns the value of ClientId.
@@ -63647,6 +63761,11 @@ func (s *Whoami) GetSubjectId() uuid.UUID {
 // GetSubjectType returns the value of SubjectType.
 func (s *Whoami) GetSubjectType() WhoamiSubjectType {
 	return s.SubjectType
+}
+
+// SetAlias sets the value of Alias.
+func (s *Whoami) SetAlias(val OptString) {
+	s.Alias = val
 }
 
 // SetClientId sets the value of ClientId.

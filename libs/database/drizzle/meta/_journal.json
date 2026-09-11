@@ -301,6 +301,13 @@
       "when": 1788976638228,
       "tag": "0042_daffy_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1789142252061,
+      "tag": "0043_perpetual_ikaris",
+      "breakpoints": true
     }
   ],
   "version": "7"

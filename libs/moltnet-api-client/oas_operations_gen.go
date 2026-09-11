@@ -151,6 +151,7 @@ const (
 	UpdateRuntimeProfileOperation                  OperationName = "UpdateRuntimeProfile"
 	UpdateTaskMetadataOperation                    OperationName = "UpdateTaskMetadata"
 	UpdateTeamMemberRoleOperation                  OperationName = "UpdateTeamMemberRole"
+	UpdateWhoamiOperation                          OperationName = "UpdateWhoami"
 	UploadRuntimeSessionOperation                  OperationName = "UploadRuntimeSession"
 	UploadTaskArtifactOperation                    OperationName = "UploadTaskArtifact"
 	ValidatePreviewSignChallengeOperation          OperationName = "ValidatePreviewSignChallenge"

@@ -38,7 +38,7 @@ describe('Agent routes', () => {
   describe('GET /agents/:fingerprint', () => {
     it('returns agent profile', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
-        createMockAgent(),
+        createMockAgent({ alias: 'Public.Must.Not.Leak' }),
       );
 
       const response = await app.inject({
@@ -52,6 +52,7 @@ describe('Agent routes', () => {
         'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
       );
       expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
+      expect(body).not.toHaveProperty('alias');
     });
 
     it('returns 404 when agent not found', async () => {
@@ -173,7 +174,9 @@ describe('Agent routes', () => {
 
   describe('GET /agents/whoami', () => {
     it('returns current agent identity with subjectType and currentTeamId', async () => {
-      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
+      mocks.agentRepository.findById.mockResolvedValue(
+        createMockAgent({ alias: 'Build.Agent' }),
+      );
 
       const response = await app.inject({
         method: 'GET',
@@ -188,6 +191,7 @@ describe('Agent routes', () => {
       expect(body.subjectId).toBe(OWNER_ID);
       expect(body.identityId).toBe(OWNER_IDENTITY_ID);
       expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
+      expect(body.alias).toBe('Build.Agent');
       expect(body.subjectType).toBe('agent');
       expect(body.scopes).toEqual(VALID_AUTH_CONTEXT.scopes);
       expect(body).toHaveProperty('currentTeamId');
@@ -268,6 +272,94 @@ describe('Agent routes', () => {
       expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
       expect(body.code).toBe('UNAUTHORIZED');
+    });
+  });
+
+  describe('PATCH /agents/whoami', () => {
+    it('publishes a case-preserving alias for only the authenticated agent', async () => {
+      mocks.agentRepository.updateAlias.mockResolvedValue(
+        createMockAgent({ alias: 'Build.Agent' }),
+      );
+
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/agents/whoami',
+        headers: authHeaders,
+        payload: { alias: 'Build.Agent' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.agentRepository.updateAlias).toHaveBeenCalledWith(
+        OWNER_ID,
+        'Build.Agent',
+      );
+      expect(response.json()).toEqual({
+        subjectId: OWNER_ID,
+        fingerprint: 'C212-DAFA-27C5-6C57',
+        alias: 'Build.Agent',
+      });
+    });
+
+    it.each(['-starts-wrong', 'contains space', '', 'a'.repeat(64)])(
+      'rejects invalid alias %j',
+      async (alias) => {
+        const response = await app.inject({
+          method: 'PATCH',
+          url: '/agents/whoami',
+          headers: authHeaders,
+          payload: { alias },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(mocks.agentRepository.updateAlias).not.toHaveBeenCalled();
+      },
+    );
+
+    it('rejects human callers', async () => {
+      const humanApp = await createTestApp(mocks, HUMAN_AUTH_CONTEXT);
+      try {
+        const response = await humanApp.inject({
+          method: 'PATCH',
+          url: '/agents/whoami',
+          headers: authHeaders,
+          payload: { alias: 'Human.Alias' },
+        });
+        expect(response.statusCode).toBe(403);
+        expect(mocks.agentRepository.updateAlias).not.toHaveBeenCalled();
+      } finally {
+        await humanApp.close();
+      }
+    });
+
+    it('rejects callers without agent:profile', async () => {
+      const scopedApp = await createTestApp(mocks, {
+        ...VALID_AUTH_CONTEXT,
+        scopes: ['task:read'],
+      });
+      try {
+        const response = await scopedApp.inject({
+          method: 'PATCH',
+          url: '/agents/whoami',
+          headers: authHeaders,
+          payload: { alias: 'Build.Agent' },
+        });
+        expect(response.statusCode).toBe(403);
+        expect(mocks.agentRepository.updateAlias).not.toHaveBeenCalled();
+      } finally {
+        await scopedApp.close();
+      }
+    });
+
+    it('returns not found when the authenticated subject row is missing', async () => {
+      mocks.agentRepository.updateAlias.mockResolvedValue(null);
+      const response = await app.inject({
+        method: 'PATCH',
+        url: '/agents/whoami',
+        headers: authHeaders,
+        payload: { alias: 'Build.Agent' },
+      });
+
+      expect(response.statusCode).toBe(404);
     });
   });
 });

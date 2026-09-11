@@ -202,6 +202,103 @@ describe('GET /teams', () => {
   });
 });
 
+describe('GET /teams/:id/members agent aliases', () => {
+  it('uses the database alias and fingerprint when Kratos metadata is unavailable', async () => {
+    const mocks = createMockServices();
+    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'managers',
+      },
+    ]);
+    mocks.agentRepository.findByIds.mockResolvedValue(
+      new Map([
+        [
+          OTHER_AGENT_ID,
+          {
+            id: OTHER_AGENT_ID,
+            identityId: null,
+            alias: 'Workflow.Manager',
+            fingerprint: 'ABCD-EF01-2345-6789',
+            publicKey: 'ed25519:mockkeypayload',
+          },
+        ],
+      ]),
+    );
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/teams/${TEAM_ID}/members`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().items).toEqual([
+        {
+          subjectId: OTHER_AGENT_ID,
+          subjectType: 'agent',
+          role: 'manager',
+          displayName: 'Workflow.Manager',
+          alias: 'Workflow.Manager',
+          fingerprint: 'ABCD-EF01-2345-6789',
+        },
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('falls back to the database fingerprint when no alias is published', async () => {
+    const mocks = createMockServices();
+    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'members',
+      },
+    ]);
+    mocks.agentRepository.findByIds.mockResolvedValue(
+      new Map([
+        [
+          OTHER_AGENT_ID,
+          {
+            id: OTHER_AGENT_ID,
+            identityId: null,
+            alias: null,
+            fingerprint: 'ABCD-EF01-2345-6789',
+            publicKey: 'ed25519:mockkeypayload',
+          },
+        ],
+      ]),
+    );
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/teams/${TEAM_ID}/members`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().items[0]).toEqual(
+        expect.objectContaining({
+          displayName: 'ABCD-EF01-2345-6789',
+          fingerprint: 'ABCD-EF01-2345-6789',
+        }),
+      );
+      expect(response.json().items[0]).not.toHaveProperty('alias');
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 // ── Suite 1: POST /teams — founding flow ─────────────────────────
 
 describe('POST /teams — founding flow', () => {

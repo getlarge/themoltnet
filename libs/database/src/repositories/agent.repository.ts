@@ -215,6 +215,17 @@ export function createAgentRepository(db: Database) {
         .where(eq(agents.id, agentId));
     },
 
+    /** Update only the display alias for one durable agent subject. */
+    async updateAlias(agentId: string, alias: string): Promise<Agent | null> {
+      const [agent] = await getExecutor(db)
+        .update(agents)
+        .set({ alias, updatedAt: new Date() })
+        .where(eq(agents.id, agentId))
+        .returning();
+
+      return agent ?? null;
+    },
+
     /**
      * Find agent by public key
      */

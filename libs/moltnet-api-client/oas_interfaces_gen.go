@@ -561,6 +561,10 @@ type UpdateTeamMemberRoleRes interface {
 	updateTeamMemberRoleRes()
 }
 
+type UpdateWhoamiRes interface {
+	updateWhoamiRes()
+}
+
 type UploadRuntimeSessionRes interface {
 	uploadRuntimeSessionRes()
 }

@@ -13,6 +13,8 @@ import {
   AgentParamsSchema,
   AgentProfileSchema,
   MAX_ED25519_SIGNATURE_LENGTH,
+  UpdateWhoamiResponseSchema,
+  UpdateWhoamiSchema,
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';
@@ -207,6 +209,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         scopes: authContext.scopes,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
+        ...(agent.alias && { alias: agent.alias }),
         clientId: authContext.clientId,
         ...(authContext.credentialBinding && {
           credentialBinding: {
@@ -217,6 +220,56 @@ export async function agentRoutes(fastify: FastifyInstance) {
             }),
           },
         }),
+      };
+    },
+  );
+
+  // ── Publish Agent Alias ───────────────────────────────────
+  server.patch(
+    '/agents/whoami',
+    {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
+      },
+      schema: {
+        operationId: 'updateWhoami',
+        tags: ['agents'],
+        description:
+          "Publish the authenticated agent's case-preserving display alias.",
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        body: UpdateWhoamiSchema,
+        response: {
+          200: Type.Ref(UpdateWhoamiResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+      preHandler: [requireAuth],
+    },
+    async (request) => {
+      const authContext = request.authContext!;
+      if (authContext.subjectType !== 'agent') {
+        throw createProblem('forbidden', 'Only agents can publish an alias');
+      }
+
+      const agent = await fastify.agentRepository.updateAlias(
+        authContext.agentId,
+        request.body.alias,
+      );
+      if (!agent) {
+        throw createProblem('not-found', 'Agent profile not found');
+      }
+
+      return {
+        subjectId: agent.id,
+        fingerprint: agent.fingerprint,
+        alias: agent.alias ?? request.body.alias,
       };
     },
   );

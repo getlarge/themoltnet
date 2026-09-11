@@ -1,3 +1,4 @@
+import { AgentAliasSchema } from '@moltnet/models';
 import { Type } from 'typebox';
 
 import { AgentKeySchema } from './agent-keys.js';
@@ -47,6 +48,7 @@ export const WhoamiSchema = Type.Object(
     ),
     publicKey: Type.Optional(Type.String()),
     fingerprint: Type.Optional(Type.String()),
+    alias: Type.Optional(AgentAliasSchema),
     clientId: Type.Optional(Type.String()),
     credentialBinding: Type.Optional(
       Type.Union([
@@ -63,6 +65,20 @@ export const WhoamiSchema = Type.Object(
     ),
   },
   { $id: 'Whoami' },
+);
+
+export const UpdateWhoamiSchema = Type.Object(
+  { alias: AgentAliasSchema },
+  { $id: 'UpdateWhoami' },
+);
+
+export const UpdateWhoamiResponseSchema = Type.Object(
+  {
+    subjectId: Type.String({ format: 'uuid' }),
+    fingerprint: Type.String(),
+    alias: AgentAliasSchema,
+  },
+  { $id: 'UpdateWhoamiResponse' },
 );
 
 export const VerifyResultSchema = Type.Object(

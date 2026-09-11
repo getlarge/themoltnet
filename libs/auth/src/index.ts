@@ -104,6 +104,8 @@ export {
   credentialScopeSetsEqual,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
+  READ_ONLY_CREDENTIAL_SCOPES,
+  TASK_WORKFLOW_CREDENTIAL_SCOPES,
 } from './scopes.js';
 export {
   createSessionResolver,

@@ -68,6 +68,22 @@ export const AGENT_CREDENTIAL_SCOPES = [
   CREDENTIAL_SCOPES.TaskExecute,
 ] as const satisfies readonly CredentialScope[];
 
+/** Minimum grant for integrations that create tasks and wait for results. */
+export const TASK_WORKFLOW_CREDENTIAL_SCOPES = [
+  CREDENTIAL_SCOPES.TaskManage,
+  CREDENTIAL_SCOPES.TaskRead,
+] as const satisfies readonly CredentialScope[];
+
+/** Broad inspection grant for agents that must not mutate team state. */
+export const READ_ONLY_CREDENTIAL_SCOPES = [
+  CREDENTIAL_SCOPES.AgentProfile,
+  CREDENTIAL_SCOPES.DiaryRead,
+  CREDENTIAL_SCOPES.PackRead,
+  CREDENTIAL_SCOPES.RuntimeRead,
+  CREDENTIAL_SCOPES.TaskRead,
+  CREDENTIAL_SCOPES.TeamRead,
+] as const satisfies readonly CredentialScope[];
+
 /** Full grant ceiling for first-party agent OAuth2 clients. */
 export const AGENT_OAUTH_SCOPES = Object.freeze(
   ALL_CREDENTIAL_SCOPES.filter(
