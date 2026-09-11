@@ -564,3 +564,64 @@ func TestInstallationResolutionFailureIsNegativeCached(t *testing.T) {
 		t.Fatalf("with no failure TTL, made %d attempts, want 1", got)
 	}
 }
+
+// A wedged git must fail the remote lookup instead of hanging the minting
+// paths, including the credential helper Git runs during a push.
+func TestGitRemoteURLTimesOutOnAHungGit(t *testing.T) {
+	fakeBin := t.TempDir()
+	// Absolute path: PATH holds only the fake git. `exec` makes sleep the direct
+	// child, so the timeout kills it outright.
+	if err := os.WriteFile(filepath.Join(fakeBin, "git"), []byte("#!/bin/sh\nexec /bin/sleep 30\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", fakeBin)
+	original := gitRemoteTimeout
+	gitRemoteTimeout = 200 * time.Millisecond
+	t.Cleanup(func() { gitRemoteTimeout = original })
+
+	started := time.Now()
+	_, err := gitRemoteURL()
+	elapsed := time.Since(started)
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("expected a timeout error, got %v", err)
+	}
+	if elapsed > 5*time.Second {
+		t.Fatalf("remote lookup took %s; the timeout did not bound it", elapsed)
+	}
+}
+
+func TestGitHubTokenRequestRecordsWhereTheRepositoryCameFrom(t *testing.T) {
+	original := gitRemoteURL
+	gitRemoteURL = func() (string, error) { return "https://github.com/owner/from-remote.git", nil }
+	t.Cleanup(func() { gitRemoteURL = original })
+
+	fromRemote, err := githubTokenRequestForGHArgs([]string{"issue", "comment", "1", "--body", "hi"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fromRemote.RepositoryFromRemote || fromRemote.Repository.String() != "owner/from-remote" {
+		t.Fatalf("expected a remote-scoped request, got %+v", fromRemote)
+	}
+
+	explicit, err := githubTokenRequestForGHArgs([]string{"issue", "comment", "1", "-R", "owner/named"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if explicit.RepositoryFromRemote || explicit.Repository.String() != "owner/named" {
+		t.Fatalf("expected an explicitly targeted request, got %+v", explicit)
+	}
+}
+
+// The hint explains the confusing 403/404 a remote-scoped token produces when
+// the command actually targets another repository, and stays silent when the
+// caller already named the target.
+func TestExecFailureHintOnlyForRemoteScopedTokens(t *testing.T) {
+	repository := githubRepository{Owner: "owner", Name: "project"}
+	hint := githubTokenRequest{Repository: repository, RepositoryFromRemote: true}.execFailureHint()
+	if !strings.Contains(hint, "owner/project") || !strings.Contains(hint, "-R owner/repo") {
+		t.Fatalf("hint does not name the scoped repository and the fix: %q", hint)
+	}
+	if hint := (githubTokenRequest{Repository: repository}).execFailureHint(); hint != "" {
+		t.Fatalf("an explicitly targeted request needs no hint, got %q", hint)
+	}
+}

@@ -992,5 +992,11 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if hint := request.execFailureHint(); hint != "" {
+			fmt.Fprintln(stderr, hint)
+		}
+		return err
+	}
+	return nil
 }

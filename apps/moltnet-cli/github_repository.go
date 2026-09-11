@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os/exec"
 	"path"
 	"sort"
 	"strings"
+	"time"
 )
 
 type githubRepository struct {
@@ -59,14 +62,29 @@ func parseGitHubRepository(value string) (githubRepository, error) {
 	return githubRepository{Owner: parts[0], Name: parts[1]}, nil
 }
 
+// gitRemoteTimeout bounds each `git remote get-url` read. It only reads local
+// config, but it sits on every minting path — including the credential helper
+// that Git runs during a push — so a wedged git (a stale lock, a slow network
+// filesystem) must fail the lookup rather than hang the push.
+var gitRemoteTimeout = 5 * time.Second
+
 var gitRemoteURL = func() (string, error) {
 	for _, args := range [][]string{
 		{"remote", "get-url", "--push", "origin"},
 		{"remote", "get-url", "origin"},
 	} {
-		output, err := exec.Command("git", args...).Output()
+		ctx, cancel := context.WithTimeout(context.Background(), gitRemoteTimeout)
+		command := exec.CommandContext(ctx, "git", args...)
+		// Killing git does not close a pipe a grandchild still holds, so bound
+		// the wait for output as well as the process itself.
+		command.WaitDelay = time.Second
+		output, err := command.Output()
+		cancel()
 		if err == nil && strings.TrimSpace(string(output)) != "" {
 			return strings.TrimSpace(string(output)), nil
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return "", fmt.Errorf("reading the current Git remote timed out after %s; pass --repo owner/repo", gitRemoteTimeout)
 		}
 	}
 	return "", fmt.Errorf("cannot resolve the current Git remote; pass --repo owner/repo")
@@ -123,6 +141,9 @@ func explicitGitHubRepository(args []string) (githubRepository, bool, error) {
 type githubTokenRequest struct {
 	Repository  githubRepository
 	Permissions map[string]string
+	// RepositoryFromRemote is set when no -R/--repo named the target, so the
+	// token was scoped to the current Git remote instead.
+	RepositoryFromRemote bool
 }
 
 func (r githubTokenRequest) permissionKey() string {
@@ -152,7 +173,7 @@ func githubTokenRequestForGHArgs(args []string) (githubTokenRequest, error) {
 			return githubTokenRequest{}, err
 		}
 	}
-	request := githubTokenRequest{Repository: repository}
+	request := githubTokenRequest{Repository: repository, RepositoryFromRemote: !found}
 	op := classifyGitHubOperation(args)
 	if op.Kind == ghWrite && op.Permission != "" {
 		request.Permissions = map[string]string{op.Permission: "write"}
@@ -165,6 +186,21 @@ func githubTokenRequestForGHArgs(args []string) (githubTokenRequest, error) {
 // credential.useHttpPath is set, and gitconfigs written before that key was
 // installed do not have it, so an absent path resolves from the current remote
 // rather than failing the push (#2211).
+// execFailureHint explains a failed `github exec` whose token was scoped to the
+// current Git remote. A command that names its target some other way — a
+// `gh api repos/<owner>/<repo>` endpoint, or a repository given as a plain
+// argument — is not parsed for it: modelling gh's grammar is where earlier
+// attempts at this went wrong. The token then covers the wrong repository and
+// GitHub answers 403 or 404, so say which repository it covered and how to
+// change it, instead of leaving an unexplained error.
+func (r githubTokenRequest) execFailureHint() string {
+	if !r.RepositoryFromRemote || r.Repository.String() == "" {
+		return ""
+	}
+	return fmt.Sprintf("moltnet github exec: the GitHub token was scoped to %s, the current Git remote; "+
+		"if this command targets another repository, pass -R owner/repo", r.Repository)
+}
+
 func githubRepositoryForCredentialRequest(host, requestPath string) (githubRepository, error) {
 	if normalized := strings.ToLower(strings.TrimSpace(host)); normalized != "" && normalized != "github.com" {
 		return githubRepository{}, fmt.Errorf("credential host %q is not github.com", host)
