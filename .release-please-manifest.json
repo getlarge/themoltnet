@@ -36,6 +36,6 @@
   "packages/cli/npm/win32-x64": "2.0.1",
   "packages/github-agent": "1.0.1",
   "packages/legreffier-cli": "0.39.0",
-  "packages/legreffier-plugin": "0.4.0",
+  "packages/legreffier-plugin": "0.5.0",
   "packages/openclaw-skill": "0.30.1"
 }

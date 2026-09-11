@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.4.0...legreffier-plugin-v0.5.0) (2026-09-11)
+
+
+### Features
+
+* **skills:** publish the plugin marketplace repository on release ([2e1f9ed](https://github.com/getlarge/themoltnet/commit/2e1f9edbdb2dd2c508840fda740fc32bca290445))
+* **skills:** publish the plugin marketplace repository on release ([e784540](https://github.com/getlarge/themoltnet/commit/e784540447c1fd9edebb8b167864701725a5c7bc))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.3.1...legreffier-plugin-v0.4.0) (2026-09-09)
 
 
