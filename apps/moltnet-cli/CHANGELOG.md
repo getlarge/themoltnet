@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0](https://github.com/getlarge/themoltnet/compare/cli-v2.0.1...cli-v2.1.0) (2026-09-11)
+
+
+### Features
+
+* **cli:** add repository-aware activation contexts ([fe061a4](https://github.com/getlarge/themoltnet/commit/fe061a45213b520bed696db2c0e9f6560cf371a9))
+* **cli:** add repository-aware activation contexts ([b0a4753](https://github.com/getlarge/themoltnet/commit/b0a4753a698ed17afe2acf0c08e608ae347297bc))
+
+
+### Bug Fixes
+
+* **cli:** bound the git remote lookup and explain remote-scoped exec failures ([ce029f3](https://github.com/getlarge/themoltnet/commit/ce029f33f4bed6cfee24f45dbbfe2b30ab801253))
+
 ## [2.0.1](https://github.com/getlarge/themoltnet/compare/cli-v2.0.0...cli-v2.0.1) (2026-09-11)
 
 

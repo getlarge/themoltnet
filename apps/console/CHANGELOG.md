@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.2](https://github.com/getlarge/themoltnet/compare/console-v0.13.1...console-v0.13.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **agent-daemon:** use central identities for local runs ([78f061d](https://github.com/getlarge/themoltnet/commit/78f061d4d02c4e5ab4ad5fe62bd410863e239508))
+* **agent-daemon:** use central identities for local runs ([daefb51](https://github.com/getlarge/themoltnet/commit/daefb5158f67a12cbf81a042453a1b242956e5ec))
+
 ## [0.13.1](https://github.com/getlarge/themoltnet/compare/console-v0.13.0...console-v0.13.1) (2026-09-11)
 
 
