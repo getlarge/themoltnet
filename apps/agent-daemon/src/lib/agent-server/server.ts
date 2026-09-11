@@ -31,6 +31,7 @@ import {
   ProviderConfigurationError,
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
+import { safeErrorContext } from '../safe-error-context.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
@@ -233,8 +234,12 @@ function requestOperationSignal(
   shutdownSignal?: AbortSignal,
 ): AbortSignal {
   const disconnected = new AbortController();
-  if (request.raw.aborted) disconnected.abort();
-  else request.raw.once('aborted', () => disconnected.abort());
+  if (request.raw.aborted) disconnected.abort({ source: 'request' });
+  else {
+    request.raw.once('aborted', () =>
+      disconnected.abort({ source: 'request' }),
+    );
+  }
   return shutdownSignal
     ? AbortSignal.any([disconnected.signal, shutdownSignal])
     : disconnected.signal;
@@ -593,7 +598,21 @@ function registerProviderRoutes(
       const { providerId } = request.params as {
         providerId: string;
       };
-      await options.providers.remove(providerId);
+      try {
+        await options.providers.remove(providerId);
+      } catch (error) {
+        if (
+          error instanceof ProviderConfigurationError &&
+          error.code === 'provider_not_found'
+        ) {
+          throw new AgentServerHttpError(
+            404,
+            'agent_server_provider_not_found',
+            error.message,
+          );
+        }
+        throw error;
+      }
       return reply.code(204).send(null);
     },
   );
@@ -809,42 +828,6 @@ function registerRunLogRoute(
       return reply;
     },
   );
-}
-
-function safeErrorContext(error: unknown): Record<string, string | number> {
-  const context: Record<string, string | number> = {
-    errorType: error instanceof Error ? error.name : typeof error,
-  };
-  const applicationCode = safeErrorToken(
-    (error as { code?: unknown } | null)?.code,
-  );
-  if (applicationCode) context['applicationCode'] = applicationCode;
-  const cause = error instanceof Error ? error.cause : undefined;
-  if (cause instanceof Error) {
-    context['causeType'] = cause.name;
-    const causeMessage = safeLogMessage(cause.message);
-    if (causeMessage) context['causeMessage'] = causeMessage;
-  }
-  const fsCode = safeErrorToken((cause as NodeJS.ErrnoException | null)?.code);
-  const syscall = safeErrorToken(
-    (cause as NodeJS.ErrnoException | null)?.syscall,
-  );
-  if (fsCode) context['fsCode'] = fsCode;
-  if (syscall) context['syscall'] = syscall;
-  const causeStatus = (cause as { statusCode?: unknown } | null)?.statusCode;
-  if (typeof causeStatus === 'number') context['causeStatusCode'] = causeStatus;
-  return context;
-}
-
-function safeLogMessage(value: string): string | undefined {
-  const normalized = value.replace(/[\r\n\t]/gu, ' ').trim();
-  return normalized ? normalized.slice(0, 500) : undefined;
-}
-
-function safeErrorToken(value: unknown): string | undefined {
-  return typeof value === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(value)
-    ? value
-    : undefined;
 }
 
 function corsHeadersFor(

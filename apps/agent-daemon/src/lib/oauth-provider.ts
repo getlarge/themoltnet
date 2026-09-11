@@ -7,6 +7,24 @@ import { withProviderOAuthLock } from './provider-lock.js';
 
 const EXCLUDED_OAUTH_PROVIDERS = new Set(['github-copilot']);
 
+export interface OAuthProviderDescriptor {
+  id: string;
+  name: string;
+  auth: { oauth?: unknown };
+}
+
+export function isOAuthProviderEligible(
+  provider: OAuthProviderDescriptor,
+): boolean {
+  return (
+    provider.auth.oauth !== undefined && isOAuthProviderIdEligible(provider.id)
+  );
+}
+
+export function isOAuthProviderIdEligible(providerId: string): boolean {
+  return !EXCLUDED_OAUTH_PROVIDERS.has(providerId);
+}
+
 export interface OAuthProviderView {
   id: string;
   name: string;
@@ -69,21 +87,33 @@ export class OAuthProviderService {
   async login(
     providerId: string,
     interaction: Parameters<ModelRuntime['login']>[2],
+    options: {
+      signal?: AbortSignal;
+      onSettledUnderLock?: () => Promise<void> | void;
+    } = {},
   ): Promise<void> {
     this.assertProvider(providerId);
     await withProviderOAuthLock(
       dirname(this.authPath),
       providerId,
       async () => {
-        await this.runtime.login(providerId, 'oauth', interaction);
+        try {
+          await this.runtime.login(providerId, 'oauth', interaction);
+        } finally {
+          await options.onSettledUnderLock?.();
+        }
       },
+      { signal: options.signal, logger: this.logger },
     );
   }
 
-  async logout(providerId: string): Promise<void> {
+  async logout(providerId: string, signal?: AbortSignal): Promise<void> {
     this.assertProvider(providerId);
-    await withProviderOAuthLock(dirname(this.authPath), providerId, () =>
-      this.runtime.logout(providerId),
+    await withProviderOAuthLock(
+      dirname(this.authPath),
+      providerId,
+      () => this.runtime.logout(providerId),
+      { signal, logger: this.logger },
     );
   }
 
@@ -99,11 +129,7 @@ export class OAuthProviderService {
   private oauthProviders(): { id: string; name: string }[] {
     return this.runtime
       .getProviders()
-      .filter(
-        (provider) =>
-          provider.auth.oauth !== undefined &&
-          !EXCLUDED_OAUTH_PROVIDERS.has(provider.id),
-      )
+      .filter(isOAuthProviderEligible)
       .map(({ id, name }) => ({ id, name }));
   }
 

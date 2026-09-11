@@ -76,6 +76,28 @@ describe('OAuthProviderService', () => {
     );
   });
 
+  it('reports only matching OAuth credentials as connected', async () => {
+    const path = authPath();
+    mkdirSync(join(path, '..'), { recursive: true });
+    writeFileSync(
+      path,
+      JSON.stringify({
+        anthropic: { type: 'oauth', access: 'connected' },
+        'key-only': { type: 'api_key', key: 'not-an-oauth-provider' },
+        unknown: { type: 'oauth', access: 'not-in-catalog' },
+      }),
+    );
+    const service = await OAuthProviderService.create({
+      authPath: path,
+      modelRuntime: runtime(),
+    });
+
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: true },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: false },
+    ]);
+  });
+
   it('uses ModelRuntime for login and logout', async () => {
     const loginCheck = vi.fn().mockResolvedValue({});
     const logoutCheck = vi.fn().mockResolvedValue(undefined);
@@ -93,6 +115,26 @@ describe('OAuthProviderService', () => {
 
     expect(loginCheck).toHaveBeenCalledWith('anthropic', 'oauth', interaction);
     expect(logoutCheck).toHaveBeenCalledWith('anthropic');
+  });
+
+  it('rejects unsupported providers without invoking ModelRuntime', async () => {
+    const loginCheck = vi.fn().mockResolvedValue({});
+    const logoutCheck = vi.fn().mockResolvedValue(undefined);
+    const service = await OAuthProviderService.create({
+      authPath: authPath(),
+      modelRuntime: runtime({ login: loginCheck, logout: logoutCheck }),
+    });
+
+    for (const providerId of ['unknown', 'key-only', 'github-copilot']) {
+      await expect(
+        service.login(providerId, interaction),
+      ).rejects.toMatchObject({ code: 'provider_unknown' });
+      await expect(service.logout(providerId)).rejects.toMatchObject({
+        code: 'provider_unknown',
+      });
+    }
+    expect(loginCheck).not.toHaveBeenCalled();
+    expect(logoutCheck).not.toHaveBeenCalled();
   });
 
   it('serializes same-provider OAuth operations across service instances', async () => {

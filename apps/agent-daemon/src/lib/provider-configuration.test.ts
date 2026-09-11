@@ -118,6 +118,77 @@ describe('ProviderConfigurationService', () => {
     );
   });
 
+  it('restores the previous secret when provider persistence fails', async () => {
+    const { service, secretProviders, store } = fixture();
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'old-secret',
+      models: ['old-model'],
+    });
+    vi.spyOn(store, 'writeProviders').mockImplementationOnce(() => {
+      throw new Error('persistence failed');
+    });
+
+    await expect(
+      service.set('remote', {
+        apiKey: 'replacement-secret',
+        models: ['new-model'],
+      }),
+    ).rejects.toThrow('persistence failed');
+
+    expect(store.readProviders()['remote']?.models).toEqual(['old-model']);
+    await expect(
+      secretProviders.resolve({
+        provider: 'file',
+        key: 'pi-provider/remote',
+      }),
+    ).resolves.toBe('old-secret');
+  });
+
+  it('keeps provider metadata when secret deletion fails', async () => {
+    const { service, secrets, store } = fixture();
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'kept-secret',
+    });
+    vi.spyOn(secrets, 'delete').mockRejectedValueOnce(
+      new Error('secret store unavailable'),
+    );
+
+    await expect(service.remove('remote')).rejects.toThrow(
+      'secret store unavailable',
+    );
+
+    expect(store.readProviders()['remote']?.apiKeyRef).toBe(
+      'file:pi-provider/remote',
+    );
+  });
+
+  it('restores a deleted secret when provider removal persistence fails', async () => {
+    const { service, secretProviders, store } = fixture();
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+      apiKey: 'restored-secret',
+    });
+    vi.spyOn(store, 'writeProviders').mockImplementationOnce(() => {
+      throw new Error('persistence failed');
+    });
+
+    await expect(service.remove('remote')).rejects.toThrow(
+      'persistence failed',
+    );
+
+    expect(store.readProviders()['remote']?.apiKeyRef).toBe(
+      'file:pi-provider/remote',
+    );
+    await expect(
+      secretProviders.resolve({
+        provider: 'file',
+        key: 'pi-provider/remote',
+      }),
+    ).resolves.toBe('restored-secret');
+  });
+
   it('merges OpenAI and Ollama discovery and saves only the model patch', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -196,6 +267,48 @@ describe('ProviderConfigurationService', () => {
       service.discover('remote', { signal: caller.signal }),
     ).rejects.toMatchObject({ name: 'AgentServerModelDiscoveryError' });
     expect(caller.signal.aborted).toBe(false);
+  });
+
+  it('cancels discovery promptly from the caller signal', async () => {
+    const caller = new AbortController();
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const fetchImpl = vi.fn<typeof fetch>((_input, init) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          'abort',
+          () => {
+            reject(new Error('cancelled'));
+          },
+          { once: true },
+        );
+      });
+    });
+    const { service } = fixture({
+      fetchImpl,
+      logger,
+      requestTimeoutMs: 60_000,
+    });
+    await service.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+    });
+
+    const discovering = service.discover('remote', {
+      signal: caller.signal,
+    });
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledOnce());
+    caller.abort(new Error('operator cancelled'));
+
+    await expect(discovering).rejects.toMatchObject({
+      code: 'operation_aborted',
+    });
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abortSource: 'caller',
+        code: 'agent_server_provider_discovery_cancelled',
+        providerId: 'remote',
+      }),
+      'Provider model discovery was cancelled',
+    );
   });
 
   it('warns for rejected discovery responses with safe error context', async () => {

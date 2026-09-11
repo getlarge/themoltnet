@@ -691,6 +691,26 @@ describe('agent server providers and runs', () => {
     );
   });
 
+  it('preserves the legacy HTTP error code when removing a missing provider', async () => {
+    const { app } = await fixture();
+    const token = await pair(app);
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/v1/providers/missing',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({
+      code: 'agent_server_provider_not_found',
+    });
+  });
+
   it('serializes provider updates so concurrent writes cannot drop entries', async () => {
     const { app, store, secrets } = await fixture();
     const token = await pair(app);

@@ -32,12 +32,15 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { lockSync } from 'proper-lockfile';
 
-import { OAuthProviderService } from '../oauth-provider.js';
+import {
+  isOAuthProviderEligible,
+  isOAuthProviderIdEligible,
+  OAuthProviderService,
+} from '../oauth-provider.js';
 
 const LOGIN_TTL_MS = 10 * 60 * 1000;
 /** How long `start()` waits for the flow to surface a URL / device code. */
 const START_INFO_TIMEOUT_MS = 5_000;
-const EXCLUDED_SUBSCRIPTION_PROVIDERS = new Set(['github-copilot']);
 
 export class AgentServerSubscriptionError extends Error {
   override name = 'AgentServerSubscriptionError';
@@ -79,6 +82,8 @@ interface PendingLogin extends SubscriptionLoginView {
   infoArrived: () => void;
   abort: AbortController;
   invalidated: boolean;
+  cleanupUnderProviderLock: boolean;
+  cleanupSucceeded: boolean;
   previousCredential: ReturnType<typeof readStoredCredential>;
 }
 
@@ -158,13 +163,13 @@ export class ProviderLoginService {
         ? this.options.oauthProviders.list()
         : this.runtime()
             .getProviders()
-            .filter((provider) => provider.auth.oauth !== undefined)
+            .filter(isOAuthProviderEligible)
             .map((provider) => ({
               id: provider.id,
               name: provider.name,
             }));
-    return providers.filter(
-      (provider) => !EXCLUDED_SUBSCRIPTION_PROVIDERS.has(provider.id),
+    return providers.filter((provider) =>
+      isOAuthProviderIdEligible(provider.id),
     );
   }
 
@@ -258,6 +263,7 @@ export class ProviderLoginService {
     login.invalidated = true;
     login.abort.abort(new Error(`subscription login ${transition}`));
     const restored = this.restoreCredential(login);
+    login.cleanupSucceeded = restored;
     login.infoArrived();
     this.logger.info(
       {
@@ -312,6 +318,9 @@ export class ProviderLoginService {
       infoArrived,
       abort,
       invalidated: false,
+      cleanupUnderProviderLock:
+        !this.options.runLogin && Boolean(this.options.oauthProviders),
+      cleanupSucceeded: true,
       previousCredential: readStoredCredential(
         providerId,
         this.options.authPath,
@@ -337,6 +346,14 @@ export class ProviderLoginService {
           return this.options.oauthProviders.login(
             id,
             toAuthInteraction(loginCallbacks),
+            {
+              signal: login.abort.signal,
+              onSettledUnderLock: () => {
+                if (login.invalidated) {
+                  login.cleanupSucceeded = this.restoreCredential(login);
+                }
+              },
+            },
           );
         }
         return this.runtime()
@@ -350,7 +367,7 @@ export class ProviderLoginService {
           // Some upstream providers finish after abort. Restore the snapshot
           // again so a late persistence write cannot reconnect a cancelled or
           // expired flow.
-          this.restoreCredential(login);
+          if (!login.cleanupUnderProviderLock) this.restoreCredential(login);
           return;
         }
         if (!this.options.runLogin && !this.connected(providerId)) {
@@ -382,7 +399,7 @@ export class ProviderLoginService {
       },
       (error: unknown) => {
         if (login.invalidated) {
-          this.restoreCredential(login);
+          if (!login.cleanupUnderProviderLock) this.restoreCredential(login);
           return;
         }
         login.status = 'failed';

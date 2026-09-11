@@ -497,14 +497,14 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(openai.response.status).toBe(200);
     expect(openai.data).toEqual({ models: [MODEL_ID, 'e2e-other'] });
 
-    const ollamaProvider = 'e2e-discovery-ollama';
+    const ollamaProvider = 'ollama-e2e-discovery';
     const savedOllama = await putAgentServerProvider({
       client: agentServerClient(),
       path: { providerId: ollamaProvider },
       body: {
         api: 'openai-completions',
         baseUrl: `${tagsStub.url}/v1`,
-        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_E2E_DISCOVERY_API_KEY',
         models: [],
       },
     });

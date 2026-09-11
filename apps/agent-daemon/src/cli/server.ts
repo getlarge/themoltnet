@@ -233,7 +233,7 @@ function waitForAgentServerShutdown(
     const shutdown = (): void => {
       if (shuttingDown) return;
       shuttingDown = true;
-      shutdownController.abort();
+      shutdownController.abort({ source: 'shutdown' });
       void (async () => {
         app.server.closeAllConnections();
         const cleanupPromise = Promise.allSettled([

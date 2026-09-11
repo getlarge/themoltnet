@@ -23,6 +23,7 @@ import {
   providerEnvName,
 } from './agent-server/store.js';
 import { withProviderMutationLock } from './provider-lock.js';
+import { safeErrorContext } from './safe-error-context.js';
 
 const DEFAULT_PROVIDER_API = 'openai-completions';
 
@@ -49,8 +50,8 @@ export class ProviderConfigurationError extends Error {
   constructor(
     readonly code:
       | 'provider_not_found'
-      | 'agent_server_provider_not_found'
       | 'provider_secret_unavailable'
+      | 'operation_aborted'
       | 'invalid_provider',
     message: string,
     readonly statusCode: number,
@@ -99,6 +100,7 @@ export class ProviderConfigurationService {
   async set(
     providerIdInput: string,
     input: ProviderSetInput,
+    options: { signal?: AbortSignal } = {},
   ): Promise<ProviderView> {
     const providerId = assertProviderId(providerIdInput);
     if (input.apiKey !== undefined && input.clearApiKey) {
@@ -116,88 +118,155 @@ export class ProviderConfigurationService {
       );
     }
 
-    return withProviderMutationLock(this.options.store.root, async () => {
-      const providers = this.options.store.readProviders();
-      const previous = providers[providerId];
-      const baseUrl = input.baseUrl ?? previous?.baseUrl;
-      if (!baseUrl) {
-        throw new ProviderConfigurationError(
-          'invalid_provider',
-          `base URL is required when creating provider "${providerId}"`,
-          400,
-        );
-      }
-      parseProviderBaseUrl(baseUrl, providerId);
-      const entry: ProviderEntry = {
-        api: input.api ?? previous?.api ?? DEFAULT_PROVIDER_API,
-        baseUrl,
-        envName: assertProviderEnvName(
-          providerId,
-          input.envName ?? previous?.envName ?? providerEnvName(providerId),
-        ),
-        models: [...(input.models ?? previous?.models ?? [])],
-        ...(!input.clearApiKey && previous?.apiKeyRef
-          ? { apiKeyRef: previous.apiKeyRef }
-          : {}),
-      };
-
-      const key = `pi-provider/${providerId}`;
-      let previousSecret: string | undefined;
-      if (input.apiKey !== undefined && previous?.apiKeyRef) {
-        try {
-          previousSecret = await this.options.secretProviders.resolve(
-            parseSecretReferenceString(previous.apiKeyRef),
+    return withProviderMutationLock(
+      this.options.store.root,
+      async () => {
+        const providers = this.options.store.readProviders();
+        const previous = providers[providerId];
+        const baseUrl = input.baseUrl ?? previous?.baseUrl;
+        if (!baseUrl) {
+          throw new ProviderConfigurationError(
+            'invalid_provider',
+            `base URL is required when creating provider "${providerId}"`,
+            400,
           );
-        } catch {
-          // An unavailable old value must not prevent replacing it. Rollback
-          // can still restore the prior provider reference if persistence
-          // fails, even when the referenced secret was already unavailable.
         }
-      }
-      if (input.apiKey !== undefined) {
-        await this.options.secrets.write(key, input.apiKey);
-        entry.apiKeyRef = formatSecretReferenceString({
-          provider: FILE_SECRET_PROVIDER,
-          key,
-        });
-      }
+        parseProviderBaseUrl(baseUrl, providerId);
+        const entry: ProviderEntry = {
+          api: input.api ?? previous?.api ?? DEFAULT_PROVIDER_API,
+          baseUrl,
+          envName: assertProviderEnvName(
+            providerId,
+            input.envName ?? previous?.envName ?? providerEnvName(providerId),
+          ),
+          models: [...(input.models ?? previous?.models ?? [])],
+          ...(!input.clearApiKey && previous?.apiKeyRef
+            ? { apiKeyRef: previous.apiKeyRef }
+            : {}),
+        };
 
-      try {
-        providers[providerId] = entry;
-        this.options.store.writeProviders(providers);
-      } catch (error) {
-        if (input.apiKey !== undefined) {
-          if (previousSecret !== undefined)
-            await this.options.secrets.write(key, previousSecret);
-          else await this.options.secrets.delete(key);
+        const key = `pi-provider/${providerId}`;
+        let previousSecret: string | undefined;
+        const previousKey = managedSecretKey(previous?.apiKeyRef);
+        if (
+          (input.apiKey !== undefined || input.clearApiKey) &&
+          previous?.apiKeyRef
+        ) {
+          try {
+            previousSecret = await this.options.secretProviders.resolve(
+              parseSecretReferenceString(previous.apiKeyRef),
+            );
+          } catch (error) {
+            if (input.clearApiKey) {
+              throw new ProviderConfigurationError(
+                'provider_secret_unavailable',
+                `provider "${providerId}" API key could not be prepared for removal`,
+                400,
+                { cause: error },
+              );
+            }
+            // An unavailable old value must not prevent replacing it. Rollback
+            // can still restore the prior provider reference if persistence
+            // fails, even when the referenced secret was already unavailable.
+          }
         }
-        throw error;
-      }
-      if (input.clearApiKey && previous?.apiKeyRef) {
-        await this.options.secrets.delete(key);
-      }
-      return providerView(entry);
-    });
+        if (input.apiKey !== undefined) {
+          await this.options.secrets.write(key, input.apiKey);
+          entry.apiKeyRef = formatSecretReferenceString({
+            provider: FILE_SECRET_PROVIDER,
+            key,
+          });
+        }
+
+        if (input.clearApiKey && previousKey) {
+          await this.options.secrets.delete(previousKey);
+        }
+
+        try {
+          providers[providerId] = entry;
+          this.options.store.writeProviders(providers);
+        } catch (error) {
+          try {
+            if (input.apiKey !== undefined) {
+              if (previousKey === key && previousSecret !== undefined) {
+                await this.options.secrets.write(key, previousSecret);
+              } else {
+                await this.options.secrets.delete(key);
+              }
+            } else if (
+              input.clearApiKey &&
+              previousKey &&
+              previousSecret !== undefined
+            ) {
+              await this.options.secrets.write(previousKey, previousSecret);
+            }
+          } catch (rollbackError) {
+            throw new AggregateError(
+              [error, rollbackError],
+              'provider update failed and secret rollback was unsuccessful',
+            );
+          }
+          throw error;
+        }
+        return providerView(entry);
+      },
+      { signal: options.signal, logger: this.logger },
+    );
   }
 
-  async remove(providerIdInput: string): Promise<void> {
+  async remove(
+    providerIdInput: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<void> {
     const providerId = assertProviderId(providerIdInput);
-    await withProviderMutationLock(this.options.store.root, async () => {
-      const providers = this.options.store.readProviders();
-      const provider = providers[providerId];
-      if (!provider) {
-        throw new ProviderConfigurationError(
-          'agent_server_provider_not_found',
-          `Provider ${providerId} was not found`,
-          404,
-        );
-      }
-      delete providers[providerId];
-      this.options.store.writeProviders(providers);
-      if (provider.apiKeyRef) {
-        await this.options.secrets.delete(`pi-provider/${providerId}`);
-      }
-    });
+    await withProviderMutationLock(
+      this.options.store.root,
+      async () => {
+        const providers = this.options.store.readProviders();
+        const provider = providers[providerId];
+        if (!provider) {
+          throw new ProviderConfigurationError(
+            'provider_not_found',
+            `Provider ${providerId} was not found`,
+            404,
+          );
+        }
+        const key = managedSecretKey(provider.apiKeyRef);
+        let previousSecret: string | undefined;
+        if (provider.apiKeyRef) {
+          try {
+            previousSecret = await this.options.secretProviders.resolve(
+              parseSecretReferenceString(provider.apiKeyRef),
+            );
+          } catch (error) {
+            throw new ProviderConfigurationError(
+              'provider_secret_unavailable',
+              `provider "${providerId}" API key could not be prepared for removal`,
+              400,
+              { cause: error },
+            );
+          }
+        }
+        if (key) await this.options.secrets.delete(key);
+        delete providers[providerId];
+        try {
+          this.options.store.writeProviders(providers);
+        } catch (error) {
+          if (key && previousSecret !== undefined) {
+            try {
+              await this.options.secrets.write(key, previousSecret);
+            } catch (rollbackError) {
+              throw new AggregateError(
+                [error, rollbackError],
+                'provider removal failed and secret rollback was unsuccessful',
+              );
+            }
+          }
+          throw error;
+        }
+      },
+      { signal: options.signal, logger: this.logger },
+    );
   }
 
   async discover(
@@ -215,110 +284,34 @@ export class ProviderConfigurationService {
     }
     const parsed = parseProviderBaseUrl(provider.baseUrl, providerId);
     const baseUrl = parsed.href.replace(/\/$/u, '');
-    let apiKey: string | undefined;
-    if (provider.apiKeyRef) {
-      try {
-        apiKey = await this.options.secretProviders.resolve(
-          parseSecretReferenceString(provider.apiKeyRef),
-        );
-      } catch (error) {
-        this.logger.warn(
-          {
-            ...safeProviderErrorContext(error),
-            code: 'agent_server_provider_secret_unavailable',
-            providerId,
-          },
-          'Provider API key could not be resolved for model discovery',
-        );
-        throw new ProviderConfigurationError(
-          'provider_secret_unavailable',
-          `provider "${providerId}" API key could not be resolved`,
-          400,
-          { cause: error },
-        );
-      }
-    }
+    const apiKey = await this.resolveApiKey(providerId, provider);
     const headers: Record<string, string> = apiKey
       ? { authorization: `Bearer ${apiKey}` }
       : {};
     const failures: DiscoveryFailure[] = [];
     const collector = new ModelDiscoveryCollector();
-    const tryJson = async (
-      endpoint: 'openai_models' | 'ollama_tags',
-      url: string,
-    ): Promise<unknown> => {
-      let response: Response;
-      try {
-        const timeout = AbortSignal.timeout(
-          this.options.requestTimeoutMs ?? 10_000,
-        );
-        response = await this.fetchImpl(url, {
-          headers,
-          redirect: 'error',
-          signal: options.signal
-            ? AbortSignal.any([options.signal, timeout])
-            : timeout,
-        });
-      } catch (error) {
-        const errorType = error instanceof Error ? error.name : typeof error;
-        failures.push({ kind: 'network', errorType });
-        this.logger.warn(
-          {
-            code: 'agent_server_provider_discovery_request_failed',
-            endpoint,
-            errorType,
-            providerId,
-          },
-          'Provider model discovery request failed',
-        );
-        return null;
-      }
-      if (!response.ok) {
-        failures.push({ kind: 'http', status: response.status });
-        const context = {
-          code: 'agent_server_provider_discovery_upstream_error',
-          endpoint,
-          providerId,
-          statusCode: response.status,
-        };
-        if (
-          response.status >= 500 ||
-          response.status === 401 ||
-          response.status === 403
-        ) {
-          this.logger.warn(context, 'Provider model discovery was rejected');
-        } else {
-          this.logger.info(
-            context,
-            'Provider model discovery endpoint unavailable',
-          );
-        }
-        return null;
-      }
-      try {
-        return (await response.json()) as unknown;
-      } catch {
-        failures.push({ kind: 'invalid_response' });
-        this.logger.warn(
-          {
-            code: 'agent_server_provider_discovery_invalid_json',
-            endpoint,
-            providerId,
-          },
-          'Provider model discovery returned invalid JSON',
-        );
-        return null;
-      }
-    };
-
     collector.addOpenAiResponse(
-      await tryJson('openai_models', `${baseUrl}/models`),
+      await this.requestDiscoveryEndpoint({
+        endpoint: 'openai_models',
+        failures,
+        headers,
+        providerId,
+        signal: options.signal,
+        url: `${baseUrl}/models`,
+      }),
     );
     if (isOllamaProvider(providerId, parsed)) {
       // Ollama Cloud exposes additional cloud-only tags through /api/tags that
       // are not guaranteed to appear in its OpenAI-compatible model list.
       collector.addOllamaResponse(
-        await tryJson('ollama_tags', `${parsed.origin}/api/tags`),
+        await this.requestDiscoveryEndpoint({
+          endpoint: 'ollama_tags',
+          failures,
+          headers,
+          providerId,
+          signal: options.signal,
+          url: `${parsed.origin}/api/tags`,
+        }),
       );
     }
     const result = collector.result(providerId, failures);
@@ -333,7 +326,9 @@ export class ProviderConfigurationService {
         'Provider model discovery result was truncated',
       );
     }
-    if (options.save) await this.set(providerId, { models: result.models });
+    if (options.save) {
+      await this.set(providerId, { models: result.models }, options);
+    }
     this.logger.info(
       {
         code: 'agent_server_provider_discovery_completed',
@@ -343,6 +338,134 @@ export class ProviderConfigurationService {
       'Provider model discovery completed',
     );
     return { models: result.models };
+  }
+
+  private async resolveApiKey(
+    providerId: string,
+    provider: ProviderEntry,
+  ): Promise<string | undefined> {
+    if (!provider.apiKeyRef) return undefined;
+    try {
+      return await this.options.secretProviders.resolve(
+        parseSecretReferenceString(provider.apiKeyRef),
+      );
+    } catch (error) {
+      this.logger.warn(
+        {
+          ...safeErrorContext(error),
+          code: 'agent_server_provider_secret_unavailable',
+          providerId,
+        },
+        'Provider API key could not be resolved for model discovery',
+      );
+      throw new ProviderConfigurationError(
+        'provider_secret_unavailable',
+        `provider "${providerId}" API key could not be resolved`,
+        400,
+        { cause: error },
+      );
+    }
+  }
+
+  private async requestDiscoveryEndpoint(input: {
+    endpoint: 'openai_models' | 'ollama_tags';
+    failures: DiscoveryFailure[];
+    headers: Record<string, string>;
+    providerId: string;
+    signal?: AbortSignal;
+    url: string;
+  }): Promise<unknown> {
+    const startedAt = Date.now();
+    const timeout = AbortSignal.timeout(
+      this.options.requestTimeoutMs ?? 10_000,
+    );
+    let response: Response;
+    try {
+      response = await this.fetchImpl(input.url, {
+        headers: input.headers,
+        redirect: 'error',
+        signal: input.signal
+          ? AbortSignal.any([input.signal, timeout])
+          : timeout,
+      });
+    } catch (error) {
+      const elapsedMs = Date.now() - startedAt;
+      if (input.signal?.aborted) {
+        const abortSource = providerAbortSource(input.signal.reason);
+        this.logger.info(
+          {
+            abortSource,
+            code: 'agent_server_provider_discovery_cancelled',
+            elapsedMs,
+            endpoint: input.endpoint,
+            providerId: input.providerId,
+          },
+          'Provider model discovery was cancelled',
+        );
+        throw new ProviderConfigurationError(
+          'operation_aborted',
+          `provider "${input.providerId}" discovery was cancelled`,
+          408,
+          { cause: error },
+        );
+      }
+      const errorType = error instanceof Error ? error.name : typeof error;
+      input.failures.push({ kind: 'network', errorType });
+      this.logger.warn(
+        {
+          abortSource: timeout.aborted ? 'timeout' : undefined,
+          code: timeout.aborted
+            ? 'agent_server_provider_discovery_timeout'
+            : 'agent_server_provider_discovery_request_failed',
+          elapsedMs,
+          endpoint: input.endpoint,
+          errorType,
+          providerId: input.providerId,
+        },
+        timeout.aborted
+          ? 'Provider model discovery request timed out'
+          : 'Provider model discovery request failed',
+      );
+      return null;
+    }
+    if (!response.ok) {
+      input.failures.push({ kind: 'http', status: response.status });
+      const context = {
+        code: 'agent_server_provider_discovery_upstream_error',
+        elapsedMs: Date.now() - startedAt,
+        endpoint: input.endpoint,
+        providerId: input.providerId,
+        statusCode: response.status,
+      };
+      if (
+        response.status >= 500 ||
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        this.logger.warn(context, 'Provider model discovery was rejected');
+      } else {
+        this.logger.info(
+          context,
+          'Provider model discovery endpoint unavailable',
+        );
+      }
+      return null;
+    }
+    try {
+      return (await response.json()) as unknown;
+    } catch {
+      input.failures.push({ kind: 'invalid_response' });
+      this.logger.warn(
+        {
+          code: 'agent_server_provider_discovery_invalid_json',
+          elapsedMs: Date.now() - startedAt,
+          endpoint: input.endpoint,
+          providerId: input.providerId,
+        },
+        'Provider model discovery returned invalid JSON',
+      );
+      return null;
+    }
   }
 }
 
@@ -367,40 +490,24 @@ function isOllamaProvider(providerId: string, baseUrl: URL): boolean {
   );
 }
 
-function safeProviderErrorContext(
-  error: unknown,
-): Record<string, string | number> {
-  const context: Record<string, string | number> = {
-    errorType: error instanceof Error ? error.name : typeof error,
-  };
-  const applicationCode = safeErrorToken(
-    (error as { code?: unknown } | null)?.code,
-  );
-  if (applicationCode) context['applicationCode'] = applicationCode;
-  const cause = error instanceof Error ? error.cause : undefined;
-  if (cause instanceof Error) {
-    context['causeType'] = cause.name;
-    const causeMessage = safeLogMessage(cause.message);
-    if (causeMessage) context['causeMessage'] = causeMessage;
+function managedSecretKey(reference?: string): string | undefined {
+  if (!reference) return undefined;
+  try {
+    const parsed = parseSecretReferenceString(reference);
+    return parsed.provider === FILE_SECRET_PROVIDER ? parsed.key : undefined;
+  } catch {
+    return undefined;
   }
-  const fsCode = safeErrorToken((cause as NodeJS.ErrnoException | null)?.code);
-  const syscall = safeErrorToken(
-    (cause as NodeJS.ErrnoException | null)?.syscall,
-  );
-  if (fsCode) context['fsCode'] = fsCode;
-  if (syscall) context['syscall'] = syscall;
-  const causeStatus = (cause as { statusCode?: unknown } | null)?.statusCode;
-  if (typeof causeStatus === 'number') context['causeStatusCode'] = causeStatus;
-  return context;
 }
 
-function safeLogMessage(value: string): string | undefined {
-  const normalized = value.replace(/[\r\n\t]/gu, ' ').trim();
-  return normalized ? normalized.slice(0, 500) : undefined;
-}
-
-function safeErrorToken(value: unknown): string | undefined {
-  return typeof value === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(value)
-    ? value
-    : undefined;
+function providerAbortSource(reason: unknown): 'caller' | 'shutdown' {
+  if (
+    typeof reason === 'object' &&
+    reason !== null &&
+    'source' in reason &&
+    reason.source === 'shutdown'
+  ) {
+    return 'shutdown';
+  }
+  return 'caller';
 }
