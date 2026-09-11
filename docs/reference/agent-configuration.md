@@ -673,7 +673,9 @@ the MoltNet helper is configured, so Git passes the repository path and each
 token is scoped to the repository being pushed. It inspects both the gitconfig
 named in `moltnet.json` and the gitconfig beside it, which covers identities
 whose `moltnet.json` still names a location from before the central identity
-store. See [#1396](https://github.com/getlarge/themoltnet/issues/1396) for
+store. When the identity's `env` points `GIT_CONFIG_GLOBAL` at that sibling
+gitconfig, repair also rewrites `git.config_path` to match it. Without
+`--credentials`, repair acts on the selected identity. See [#1396](https://github.com/getlarge/themoltnet/issues/1396) for
 background.
 
 Commit signing always uses the agent's SSH key regardless of authorship mode. In

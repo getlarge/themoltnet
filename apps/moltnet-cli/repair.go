@@ -191,12 +191,12 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		}
 		creds = c
 	} else {
-		dir, err := GetConfigDir()
+		// The selected identity's moltnet.json, like every other command. The
+		// store root holds no moltnet.json since the central identity store.
+		moltnetPath, err := GetConfigPath()
 		if err != nil {
 			return "", nil, nil, err
 		}
-
-		moltnetPath := filepath.Join(dir, "moltnet.json")
 		c, err := ReadConfigFrom(moltnetPath)
 		if err != nil {
 			return "", nil, nil, err
@@ -244,7 +244,17 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		checkFilePath(&issues, "ssh.private_key_path", creds.SSH.PrivateKeyPath)
 		checkFilePath(&issues, "ssh.public_key_path", creds.SSH.PublicKeyPath)
 	}
+	envPath := filepath.Join(filepath.Dir(configPath), "env")
 	if creds.Git != nil {
+		identityGitconfig := filepath.Join(filepath.Dir(configPath), "gitconfig")
+		if staleGitConfigPath(creds.Git.ConfigPath, identityGitconfig, envPath) {
+			issues = append(issues, ConfigIssue{
+				Field:   "git.config_path",
+				Problem: fmt.Sprintf("names %s, not the identity gitconfig %s", creds.Git.ConfigPath, identityGitconfig),
+				Action:  "fixed",
+			})
+			creds.Git.ConfigPath = identityGitconfig
+		}
 		checkFilePath(&issues, "git.config_path", creds.Git.ConfigPath)
 	}
 	if creds.GitHub != nil && creds.GitHub.PrivateKeyPath != "" {
@@ -255,7 +265,6 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 	}
 
 	// Validate sibling env file authorship vars
-	envPath := filepath.Join(filepath.Dir(configPath), "env")
 	validateEnvAuthorship(&issues, envPath)
 
 	return configPath, creds, issues, nil
@@ -301,6 +310,37 @@ func validateEnvAuthorship(issues *[]ConfigIssue, envPath string) {
 			Action:  "warning",
 		})
 	}
+}
+
+// staleGitConfigPath reports whether git.config_path should be repointed at the
+// identity's own gitconfig. A moltnet.json from before the central identity
+// store — or one updated by a `git setup` that wrote to the store root — can
+// name another gitconfig, while sessions use the one beside moltnet.json. It
+// only answers yes when the identity env's GIT_CONFIG_GLOBAL resolves to that
+// same file, so repair never makes config_path disagree with what sessions use.
+func staleGitConfigPath(configured, identityGitconfig, envPath string) bool {
+	identityInfo, err := os.Stat(identityGitconfig)
+	if err != nil {
+		return false
+	}
+	if configured != "" {
+		if info, err := os.Stat(configured); err == nil && os.SameFile(info, identityInfo) {
+			return false
+		}
+	}
+	env, err := parseEnvFile(envPath)
+	if err != nil {
+		return false
+	}
+	sessions := strings.TrimSpace(env["GIT_CONFIG_GLOBAL"])
+	if sessions == "" {
+		return false
+	}
+	if !filepath.IsAbs(sessions) {
+		sessions = filepath.Join(filepath.Dir(envPath), sessions)
+	}
+	info, err := os.Stat(sessions)
+	return err == nil && os.SameFile(info, identityInfo)
 }
 
 func checkFilePath(issues *[]ConfigIssue, field, path string) {

@@ -722,3 +722,151 @@ func TestGitConfigCandidates_ListsTheIdentityGitconfigOnce(t *testing.T) {
 		t.Fatalf("a stale config_path must list both files once, got %v", both)
 	}
 }
+
+// staleConfigPathIdentity lays out an identity whose moltnet.json names an
+// older gitconfig while the gitconfig beside it is the live one. envValue is
+// the identity env's GIT_CONFIG_GLOBAL ("" writes no env file).
+func staleConfigPathIdentity(t *testing.T, envValue string) (identityDir, credPath, stale, live string) {
+	t.Helper()
+	identityDir = t.TempDir()
+	stale = writeRepairGitconfig(t, "[user]\n\tname = previous-location\n")
+	live = filepath.Join(identityDir, "gitconfig")
+	if err := os.WriteFile(live, []byte(moltnetHelperGitconfig), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if envValue != "" {
+		if err := os.WriteFile(filepath.Join(identityDir, "env"), []byte("GIT_CONFIG_GLOBAL='"+envValue+"'\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	creds := CredentialsFile{
+		SubjectID: "test",
+		Keys:      CredentialsKeys{PublicKey: "ed25519:abc=", PrivateKey: "abc="},
+		Endpoints: CredentialsEndpoints{API: "https://api.themolt.net", MCP: "https://mcp.themolt.net/mcp"},
+		Git:       &GitSection{ConfigPath: stale},
+	}
+	credPath = filepath.Join(identityDir, "moltnet.json")
+	writeTestConfig(t, identityDir, "moltnet.json", creds)
+	return identityDir, credPath, stale, live
+}
+
+func TestLoadAndValidate_RepointsAStaleGitConfigPath(t *testing.T) {
+	for _, testCase := range []struct {
+		name     string
+		envValue func(live string) string
+	}{
+		{"absolute GIT_CONFIG_GLOBAL", func(live string) string { return live }},
+		{"relative GIT_CONFIG_GLOBAL", func(string) string { return "gitconfig" }},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			identityDir := t.TempDir()
+			_, credPath, _, live := staleConfigPathIdentity(t, testCase.envValue(filepath.Join(identityDir, "gitconfig")))
+			// Recompute with the real live path for the absolute case.
+			if testCase.name == "absolute GIT_CONFIG_GLOBAL" {
+				if err := os.WriteFile(filepath.Join(filepath.Dir(credPath), "env"), []byte("GIT_CONFIG_GLOBAL='"+live+"'\n"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, creds, issues, err := loadAndValidate(credPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if creds.Git.ConfigPath != live {
+				t.Fatalf("config_path = %q, want %q", creds.Git.ConfigPath, live)
+			}
+			found := false
+			for _, issue := range issues {
+				if issue.Field == "git.config_path" && issue.Action == "fixed" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("no fixed git.config_path issue reported: %+v", issues)
+			}
+		})
+	}
+}
+
+// Repair must never make config_path disagree with the gitconfig sessions use.
+func TestLoadAndValidate_LeavesConfigPathWhenTheEnvDisagrees(t *testing.T) {
+	_, credPath, stale, _ := staleConfigPathIdentity(t, "")
+	// The env points sessions at the older file, so it is not stale.
+	if err := os.WriteFile(filepath.Join(filepath.Dir(credPath), "env"), []byte("GIT_CONFIG_GLOBAL='"+stale+"'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, creds, _, err := loadAndValidate(credPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if creds.Git.ConfigPath != stale {
+		t.Fatalf("config_path was repointed despite the env: %q", creds.Git.ConfigPath)
+	}
+
+	// No env file at all: nothing says which gitconfig sessions use.
+	_, credPath, stale, _ = staleConfigPathIdentity(t, "")
+	_, creds, _, err = loadAndValidate(credPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if creds.Git.ConfigPath != stale {
+		t.Fatalf("config_path was repointed without an env: %q", creds.Git.ConfigPath)
+	}
+}
+
+func TestRunConfigRepair_RewritesAStaleGitConfigPath(t *testing.T) {
+	t.Chdir(t.TempDir())
+	identityDir := t.TempDir()
+	_ = identityDir
+	_, credPath, stale, live := staleConfigPathIdentity(t, "gitconfig")
+
+	if err := runConfigRepair([]string{"--credentials", credPath, "--dry-run"}); err != nil {
+		t.Fatalf("dry run: %v", err)
+	}
+	if got, _ := ReadConfigFrom(credPath); got.Git.ConfigPath != stale {
+		t.Fatalf("dry run rewrote config_path to %q", got.Git.ConfigPath)
+	}
+
+	if err := runConfigRepair([]string{"--credentials", credPath}); err != nil {
+		t.Fatalf("repair: %v", err)
+	}
+	got, err := ReadConfigFrom(credPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Git.ConfigPath != live {
+		t.Fatalf("config_path = %q after repair, want %q", got.Git.ConfigPath, live)
+	}
+}
+
+// Without --credentials, repair must act on the selected identity, as every
+// other command does. It used to read the store root's moltnet.json, which no
+// longer exists under the central identity store.
+func TestRunConfigRepair_WithoutCredentialsRepairsTheSelectedIdentity(t *testing.T) {
+	t.Chdir(t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
+	identityDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(identityDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	writeTestConfig(t, identityDir, "moltnet.json", CredentialsFile{
+		SubjectID: "test",
+		Keys:      CredentialsKeys{PublicKey: "ed25519:abc=", PrivateKey: "abc="},
+		Endpoints: CredentialsEndpoints{API: "https://api.themolt.net"}, // MCP missing: fixable
+	})
+	if err := writeIdentitySelector("test-agent"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runConfigRepair([]string{}); err != nil {
+		t.Fatalf("repair without --credentials: %v", err)
+	}
+	got, err := ReadConfigFrom(filepath.Join(identityDir, "moltnet.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
+		t.Fatalf("the selected identity was not repaired: MCP = %q", got.Endpoints.MCP)
+	}
+}
