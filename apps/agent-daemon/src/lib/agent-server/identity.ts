@@ -86,7 +86,11 @@ export interface ActivatedAgent {
   boundTeamId?: string;
 }
 
-function reserveAlias(store: AgentServerStore, alias: string): () => void {
+function reserveAlias(
+  store: AgentServerStore,
+  alias: string,
+  allowExistingConfig = false,
+): () => void {
   let pending = pendingAliases.get(store);
   if (!pending) {
     pending = new Set<string>();
@@ -96,7 +100,7 @@ function reserveAlias(store: AgentServerStore, alias: string): () => void {
     pending.has(alias) ||
     store.hasPendingRegistration(alias) ||
     store.readActivation(alias) ||
-    store.readAgentConfig(alias)
+    (!allowExistingConfig && store.readAgentConfig(alias))
   ) {
     throw new AgentServerIdentityError(
       'agent_exists',
@@ -359,17 +363,24 @@ export async function attachExternalAgent(
   connectAgent: ConnectAgent = connect,
 ): Promise<ActivatedAgent> {
   const alias = assertStoreName('agent name', input.name);
-  const releaseAlias = reserveAlias(store, alias);
+  if (!isAbsolute(input.configDir)) {
+    throw new AgentServerIdentityError(
+      'config_not_found',
+      'external configDir must be an absolute path',
+    );
+  }
+  const configPath = join(input.configDir, 'moltnet.json');
+  const central = configPath === store.agentPath(alias);
+  const releaseAlias = reserveAlias(store, alias, central);
   try {
-    if (!isAbsolute(input.configDir)) {
+    if (!central) externalAgentLocation(configPath);
+    const config = await readCurrentConfig(configPath);
+    if (central && !config.agent_key_ref) {
       throw new AgentServerIdentityError(
-        'config_not_found',
-        'external configDir must be an absolute path',
+        'unsupported_credential',
+        `central identity "${alias}" needs a stored agent key before the Agent Server can run it`,
       );
     }
-    const configPath = join(input.configDir, 'moltnet.json');
-    externalAgentLocation(configPath);
-    const config = await readCurrentConfig(configPath);
     const configApiUrl = requireTrustedConfigApiUrl(config, configPath);
     const effectiveApiUrl = requireTrustedApiOverride(
       input.apiUrl,
@@ -443,6 +454,7 @@ export async function verifyAgentActivation(
           signal,
         )
       : await verifyExternalActivation(
+          store,
           activation,
           externalSecretProviders,
           connectAgent,
@@ -532,14 +544,22 @@ async function verifyManagedActivation(
 }
 
 async function verifyExternalActivation(
+  store: AgentServerStore,
   activation: ExternalAgentActivation,
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
   signal?: AbortSignal,
 ): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
-  externalAgentLocation(activation.configPath);
+  const central = activation.configPath === store.agentPath(activation.alias);
+  if (!central) externalAgentLocation(activation.configPath);
   assertTrustedConfigApiUrl(activation.configApiUrl);
   const config = await readCurrentConfig(activation.configPath);
+  if (central && !config.agent_key_ref) {
+    throw new AgentServerIdentityError(
+      'unsupported_credential',
+      `central identity "${activation.alias}" needs a stored agent key before the Agent Server can run it`,
+    );
+  }
   assertActivatedConfig(
     config,
     activation,

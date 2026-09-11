@@ -185,6 +185,15 @@ describe('AgentServerStore', () => {
     expect(raw).not.toContain('secret-value');
   });
 
+  it('lists central identity directories in stable order', () => {
+    const store = freshStore();
+    mkdirSync(store.identityDir('zeta'));
+    mkdirSync(store.identityDir('alpha'));
+    mkdirSync(join(store.identitiesDir, 'not an identity'));
+
+    expect(store.listIdentityAliases()).toEqual(['alpha', 'zeta']);
+  });
+
   it('uses the shared versioned selector without consulting repository state', () => {
     const store = freshStore();
     store.writeAgentConfig('first', {

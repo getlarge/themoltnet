@@ -391,6 +391,17 @@ export class AgentServerStore {
     } satisfies IdentitySelector);
   }
 
+  /** Identity aliases available in the shared user-level store. */
+  listIdentityAliases(): string[] {
+    return readdirSync(this.identitiesDir, { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isDirectory() && IDENTITY_ALIAS_PATTERN.test(entry.name),
+      )
+      .map((entry) => entry.name)
+      .sort((left, right) => left.localeCompare(right));
+  }
+
   resolveIdentityAlias(explicit?: string, active?: string): string {
     const alias =
       explicit?.trim() ||

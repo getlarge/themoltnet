@@ -21,6 +21,12 @@ export type AgentServerHealth = {
   status: 'ok';
 };
 
+export type AgentServerIdentity = {
+  activated: boolean;
+  alias: string;
+  hasAgentKey: boolean;
+};
+
 export type AgentServerLogStream = string;
 
 export type AgentServerProblem = {
@@ -56,11 +62,13 @@ export type AgentServerRunRecord = {
 
 export type AgentServerStatus = {
   agents: Array<AgentServerAgent>;
+  identities: Array<AgentServerIdentity>;
   platform: string;
   providers: {
     [key: string]: AgentServerProvider;
   };
   runs: Array<AgentServerRun>;
+  selectedIdentity?: string;
   subscriptions: Array<AgentServerSubscription>;
   version: string;
 };
@@ -80,6 +88,17 @@ export type AgentServerSubscriptionLogin = {
   userCode?: string;
   verificationUri?: string;
 };
+
+export type AgentServerTaskType =
+  | 'assess_brief'
+  | 'curate_pack'
+  | 'freeform'
+  | 'fulfill_brief'
+  | 'judge_eval_attempt'
+  | 'judge_pack'
+  | 'pr_review'
+  | 'render_pack'
+  | 'run_eval';
 
 export type CancelledSubscription = {
   providerId: string;
@@ -150,20 +169,16 @@ export type ListAgentServerAgentsResponse =
   ListAgentServerAgentsResponses[keyof ListAgentServerAgentsResponses];
 
 export type CreateAgentServerAgentData = {
-  body: (
+  body?:
     | {
         enrollmentToken: string;
         kind: 'managed';
+        name: string;
       }
     | {
-        apiUrl?: string;
-        configDir: string;
+        identityAlias: string;
         kind: 'external';
-      }
-  ) & {
-    kind: 'managed' | 'external';
-    name: string;
-  };
+      };
   path?: never;
   query?: never;
   url: '/v1/agents';
@@ -427,7 +442,17 @@ export type StartAgentServerRunData = {
     agent: string;
     mode: 'poll' | 'drain';
     profiles: Array<string>;
-    taskTypes: Array<string>;
+    taskTypes: Array<
+      | 'assess_brief'
+      | 'curate_pack'
+      | 'freeform'
+      | 'fulfill_brief'
+      | 'judge_eval_attempt'
+      | 'judge_pack'
+      | 'pr_review'
+      | 'render_pack'
+      | 'run_eval'
+    >;
     teamId: string;
   };
   path?: never;

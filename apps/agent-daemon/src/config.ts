@@ -138,6 +138,7 @@ export interface AgentServerEnvConfig {
   root: string;
   apiUrl: string;
   logLevel: string;
+  activeIdentity: string;
 }
 
 export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
@@ -147,6 +148,7 @@ export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
     root: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
+    activeIdentity: process.env['MOLTNET_ACTIVE_IDENTITY'] ?? '',
   };
 }
 

@@ -24,6 +24,7 @@ function agentServerStatus() {
     platform: 'darwin',
     subscriptions: [],
     agents: [],
+    identities: [],
     providers: {},
     runs: [],
   };

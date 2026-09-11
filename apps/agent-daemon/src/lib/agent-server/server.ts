@@ -148,6 +148,8 @@ export interface BuildAgentServerOptions {
   tls?: { key: string; cert: string };
   /** Default MoltNet API URL for newly created managed agents. */
   defaultApiUrl: string;
+  /** Environment-selected identity, ahead of the persisted default. */
+  activeIdentity?: string;
   version: string;
   logger?: FastifyBaseLogger;
   /** Abort in-flight identity operations during supervisor shutdown. */
@@ -436,6 +438,7 @@ function registerStatusRoute(
     { schema: AgentServerRouteSchemas.status },
     async (request) => {
       requirePairedOrigin(request);
+      const selected = selectedIdentity(store, options.activeIdentity);
       return {
         version: options.version,
         platform: process.platform,
@@ -443,6 +446,8 @@ function registerStatusRoute(
         agents: store
           .listActivations()
           .map((activation) => publicAgentView(store, activation)),
+        identities: identityViews(store),
+        ...(selected ? { selectedIdentity: selected } : {}),
         providers: options.providers.list(),
         runs: runViews(runs),
       };
@@ -491,14 +496,13 @@ function registerAgentRoutes(
         return reply.code(201).send(publicAgentView(store, entry.activation));
       }
       if (kind === 'external') {
-        const apiUrl = optionalString(body, 'apiUrl');
+        const identityAlias = requireString(body, 'identityAlias');
         const entry = await attachExternalAgent(
           store,
           options.externalSecretProviders,
           {
-            name: requireString(body, 'name'),
-            configDir: requireString(body, 'configDir'),
-            ...(apiUrl ? { apiUrl } : {}),
+            name: identityAlias,
+            configDir: store.identityDir(identityAlias),
             signal,
           },
         );
@@ -541,6 +545,31 @@ function registerAgentRoutes(
         : { abandoned: true };
     },
   );
+}
+
+function selectedIdentity(
+  store: AgentServerStore,
+  activeIdentity?: string,
+): string | undefined {
+  try {
+    return store.resolveIdentityAlias(undefined, activeIdentity);
+  } catch (error) {
+    if (error instanceof AgentServerStoreError && error.code === 'not_found') {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+function identityViews(store: AgentServerStore) {
+  const activated = new Set(
+    store.listActivations().map((activation) => activation.alias),
+  );
+  return store.listIdentityAliases().map((alias) => ({
+    alias,
+    activated: activated.has(alias),
+    hasAgentKey: Boolean(store.readAgentConfig(alias)?.agent_key_ref),
+  }));
 }
 
 function registerProviderRoutes(

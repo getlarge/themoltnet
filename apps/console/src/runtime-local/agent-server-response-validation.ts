@@ -24,6 +24,12 @@ export const AgentServerAgentViewSchema = Type.Object({
   hasPrivateKey: Type.Optional(Type.Boolean()),
 });
 
+export const AgentServerIdentityViewSchema = Type.Object({
+  alias: Type.String(),
+  activated: Type.Boolean(),
+  hasAgentKey: Type.Boolean(),
+});
+
 export const AgentServerProviderViewSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String(),
@@ -77,6 +83,8 @@ export const AgentServerStatusSchema = Type.Object({
   platform: Type.String(),
   subscriptions: Type.Array(AgentServerSubscriptionViewSchema),
   agents: Type.Array(AgentServerAgentViewSchema),
+  identities: Type.Array(AgentServerIdentityViewSchema),
+  selectedIdentity: Type.Optional(Type.String()),
   providers: Type.Record(Type.String(), AgentServerProviderViewSchema),
   runs: Type.Array(AgentServerRunViewSchema),
 });

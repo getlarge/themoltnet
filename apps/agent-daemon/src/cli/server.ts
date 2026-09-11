@@ -133,6 +133,9 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             selfOrigin,
             ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),
             defaultApiUrl,
+            ...(envConfig.activeIdentity
+              ? { activeIdentity: envConfig.activeIdentity }
+              : {}),
             version: 'dev',
             logger,
             shutdownSignal: shutdownController.signal,

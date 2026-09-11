@@ -72,6 +72,11 @@ const agentServerState = {
         hasPrivateKey: true,
       },
     ],
+    identities: [
+      { alias: 'legreffier', activated: false, hasAgentKey: true },
+      { alias: 'oauth-only', activated: false, hasAgentKey: false },
+    ],
+    selectedIdentity: 'legreffier',
     providers: {
       ollama: {
         api: 'openai-completions',
@@ -320,6 +325,36 @@ describe('LocalRuntimePage', () => {
     ).toBeInTheDocument();
   });
 
+  it('attaches the current central identity without asking for a path', async () => {
+    handlers['POST /v1/agents'] = () =>
+      jsonResponse(
+        {
+          kind: 'external',
+          agentName: 'legreffier',
+          subjectId: 'agent-central',
+          fingerprint: 'FP-CENTRAL',
+          createdAt: 't',
+        },
+        201,
+      );
+    renderPage();
+    expect(await screen.findByText(/Current identity:/)).toHaveTextContent(
+      'legreffier',
+    );
+    expect(screen.queryByLabelText(/\.moltnet/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attach identity' }));
+
+    await waitFor(() =>
+      expect(
+        requests.find(
+          (entry) =>
+            entry.method === 'POST' && entry.url.endsWith('/v1/agents'),
+        )?.body,
+      ).toEqual({ kind: 'external', identityAlias: 'legreffier' }),
+    );
+  });
+
   it('blocks starting a run for an agent bound to another team', async () => {
     agentServerState.status.agents[0] = {
       ...agentServerState.status.agents[0],
@@ -465,5 +500,56 @@ describe('LocalRuntimePage', () => {
     expect(select.tagName).toBe('SELECT');
     fireEvent.change(select, { target: { value: 'review-profile' } });
     expect((select as HTMLSelectElement).value).toBe('review-profile');
+  });
+
+  it('starts a run with one registered task type from a selector', async () => {
+    profilesState.items = [
+      { id: '11111111-aaaa-bbbb-cccc-000000000001', name: 'course-profile' },
+    ];
+    handlers['POST /v1/runs'] = () =>
+      jsonResponse(
+        {
+          id: 'run-1',
+          agent: 'existing-bot',
+          teamId: 'team-1',
+          profiles: ['course-profile'],
+          taskTypes: ['pr_review'],
+          mode: 'poll',
+          status: 'running',
+          active: true,
+          startedAt: 't',
+        },
+        201,
+      );
+    renderPage();
+    await screen.findByRole('option', {
+      name: 'course-profile · 11111111',
+    });
+    const profile = await screen.findByLabelText('Runtime profile');
+    await waitFor(() =>
+      expect(screen.getByLabelText('Agent')).toHaveValue('existing-bot'),
+    );
+    fireEvent.change(profile, { target: { value: 'course-profile' } });
+    fireEvent.change(screen.getByLabelText('Task type'), {
+      target: { value: 'pr_review' },
+    });
+    expect(screen.getByLabelText('Agent')).toHaveValue('existing-bot');
+    expect(profile).toHaveValue('course-profile');
+    expect(screen.getByLabelText('Task type')).toHaveValue('pr_review');
+    const startButton = screen.getByRole('button', { name: 'Start run' });
+    await waitFor(() => expect(startButton).toBeEnabled());
+    fireEvent.click(startButton);
+
+    await waitFor(() =>
+      expect(
+        requests.find(
+          (entry) => entry.method === 'POST' && entry.url.endsWith('/v1/runs'),
+        )?.body,
+      ).toMatchObject({
+        agent: 'existing-bot',
+        profiles: ['course-profile'],
+        taskTypes: ['pr_review'],
+      }),
+    );
   });
 });

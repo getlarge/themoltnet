@@ -499,6 +499,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(status.response.status).toBe(200);
     expect(status.data).toMatchObject({
       agents: [],
+      identities: [],
       providers: {},
       runs: [],
     });
@@ -873,6 +874,16 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(listed.response.status).toBe(200);
     expect(listed.data).toEqual([expect.objectContaining({ agentName })]);
+
+    const status = await getAgentServerStatus({
+      client: agentServerClient(),
+    });
+    expect(status.response.status).toBe(200);
+    expect(status.data?.identities).toContainEqual({
+      alias: agentName,
+      activated: true,
+      hasAgentKey: true,
+    });
 
     // Single-use: the same code cannot enrol a second agent.
     const replay = await createAgentServerAgent({

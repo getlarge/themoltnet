@@ -6,6 +6,7 @@
  */
 import { updateTeamMemberRole } from '@moltnet/api-client';
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
+import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 import { useQuery } from '@tanstack/react-query';
 import {
   ActionLink,
@@ -14,11 +15,12 @@ import {
   Card,
   Divider,
   Input,
+  Select,
   Stack,
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
 import type {
@@ -35,6 +37,7 @@ import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 const AGENT_DOWNLOAD_URL = 'https://themolt.net/download#install';
+const TASK_TYPE_OPTIONS = Object.keys(BUILT_IN_TASK_TYPES).sort();
 
 export function LocalRuntimePage() {
   const runtime = useLocalRuntime();
@@ -260,52 +263,6 @@ function FieldGrid({
   );
 }
 
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-  placeholder?: string;
-}) {
-  const theme = useTheme();
-  return (
-    <label style={{ display: 'grid', gap: theme.spacing[1], minWidth: 0 }}>
-      <Text variant="caption" weight="medium">
-        {label}
-      </Text>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        style={{
-          // Mirrors the design-system Input `md` metrics so selects and
-          // text inputs sit at the same height in a FieldGrid row.
-          padding: '0.5rem 0.75rem',
-          fontSize: '1rem',
-          lineHeight: 1.5,
-          border: `1px solid ${theme.color.border.DEFAULT}`,
-          borderRadius: theme.radius.md,
-          background: theme.color.bg.surface,
-          color: theme.color.text.DEFAULT,
-          fontFamily: 'inherit',
-        }}
-      >
-        {placeholder ? <option value="">{placeholder}</option> : null}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function ListRow({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   return (
@@ -332,9 +289,27 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const [name, setName] = useState('');
   const [enrollmentToken, setEnrollmentToken] = useState('');
   const [tokenNote, setTokenNote] = useState<string | null>(null);
-  const [configDir, setConfigDir] = useState('');
+  const [identityAlias, setIdentityAlias] = useState('');
   const [busy, setBusy] = useState(false);
-  const agents = runtime.data?.agents ?? [];
+  const agents = useMemo(
+    () => runtime.data?.agents ?? [],
+    [runtime.data?.agents],
+  );
+  const identities = useMemo(
+    () => runtime.data?.identities ?? [],
+    [runtime.data?.identities],
+  );
+  const selectedIdentity = identities.find(
+    (identity) => identity.alias === identityAlias,
+  );
+
+  useEffect(() => {
+    if (identityAlias || identities.length === 0) return;
+    const preferred = identities.find(
+      (identity) => identity.alias === runtime.data?.selectedIdentity,
+    );
+    setIdentityAlias(preferred?.alias ?? identities[0]?.alias ?? '');
+  }, [identities, identityAlias, runtime.data?.selectedIdentity]);
 
   const submit = async (kind: 'managed' | 'external') => {
     setBusy(true);
@@ -348,8 +323,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             })
           : await runtime.createAgent({
               kind,
-              name: name.trim(),
-              configDir: configDir.trim(),
+              identityAlias,
             });
       // Enrollment lands the agent as a plain member (the right default).
       // This flow exists to run tasks, so escalate to the agent-only
@@ -386,8 +360,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
           );
         }
       }
-      setName('');
-      setConfigDir('');
+      if (kind === 'managed') setName('');
     } catch {
       // surfaced via runtime.actionError
     } finally {
@@ -481,25 +454,71 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
 
       <Stack gap={3}>
         <Text variant="caption" weight="semibold">
-          Or attach an existing agent
+          Attach an existing identity
         </Text>
-        <FieldGrid min={280}>
-          <Input
-            label=".moltnet/<agent> directory path"
-            hint="Attached by path and verified against the API; secrets are never copied."
-            value={configDir}
-            onChange={(event) => setConfigDir(event.target.value)}
-          />
-        </FieldGrid>
-        <Stack direction="row">
-          <Button
-            size="sm"
-            disabled={busy || !name.trim() || !configDir.trim()}
-            onClick={() => void submit('external')}
-          >
-            Attach existing
-          </Button>
-        </Stack>
+        {identities.length > 0 ? (
+          <Stack gap={2}>
+            <Select
+              label="Local identity"
+              hint="Loaded from ~/.config/moltnet/identities and verified before it can run."
+              value={identityAlias}
+              onChange={(event) => setIdentityAlias(event.target.value)}
+            >
+              {identities.map((identity) => (
+                <option
+                  key={identity.alias}
+                  value={identity.alias}
+                  disabled={!identity.hasAgentKey}
+                >
+                  {identity.alias}
+                  {identity.alias === runtime.data?.selectedIdentity
+                    ? ' · current'
+                    : ''}
+                  {identity.activated ? ' · attached' : ''}
+                  {!identity.hasAgentKey ? ' · agent key required' : ''}
+                </option>
+              ))}
+            </Select>
+            <Stack direction="row" gap={2} align="center" wrap>
+              <Button
+                size="sm"
+                disabled={
+                  busy ||
+                  !selectedIdentity?.hasAgentKey ||
+                  selectedIdentity.activated
+                }
+                onClick={() => void submit('external')}
+              >
+                {selectedIdentity?.activated
+                  ? 'Already attached'
+                  : 'Attach identity'}
+              </Button>
+              {runtime.data?.selectedIdentity ? (
+                <Text variant="caption" color="muted">
+                  Current identity:{' '}
+                  <Text as="span" mono weight="medium">
+                    {runtime.data.selectedIdentity}
+                  </Text>
+                </Text>
+              ) : null}
+            </Stack>
+            {selectedIdentity && !selectedIdentity.hasAgentKey ? (
+              <Text variant="caption" color="muted">
+                This identity needs a stored daemon agent key before it can be
+                attached. Create and store one with the MoltNet CLI, then
+                refresh this page.
+              </Text>
+            ) : null}
+          </Stack>
+        ) : (
+          <Text variant="caption" color="muted">
+            No central identities found. Run{' '}
+            <Text as="span" mono>
+              moltnet agents init
+            </Text>{' '}
+            first.
+          </Text>
+        )}
       </Stack>
     </SectionCard>
   );
@@ -687,11 +706,15 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
 function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const [logRunId, setLogRunId] = useState<string | null>(null);
   const runs = runtime.data?.runs ?? [];
-  const agents = runtime.data?.agents ?? [];
+  const agents = useMemo(
+    () => runtime.data?.agents ?? [],
+    [runtime.data?.agents],
+  );
   const { selectedTeam } = useTeam();
   const [agent, setAgent] = useState('');
   const [profile, setProfile] = useState('');
-  const [taskTypes, setTaskTypes] = useState('freeform');
+  const [taskType, setTaskType] =
+    useState<StartRunBody['taskTypes'][number]>('freeform');
   const [mode, setMode] = useState<StartRunBody['mode']>('poll');
   const [busy, setBusy] = useState(false);
   const profilesQuery = useQuery({
@@ -708,6 +731,14 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
     label: entry.name ? `${entry.name} · ${entry.id.slice(0, 8)}` : entry.id,
   }));
 
+  useEffect(() => {
+    if (agent || agents.length === 0) return;
+    const preferred = agents.find(
+      (entry) => entry.agentName === runtime.data?.selectedIdentity,
+    );
+    setAgent(preferred?.agentName ?? agents[0]?.agentName ?? '');
+  }, [agent, agents, runtime.data?.selectedIdentity]);
+
   const selectedAgent = agents.find((entry) => entry.agentName === agent);
   const boundElsewhere =
     selectedAgent?.kind === 'managed' &&
@@ -722,10 +753,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
         agent,
         teamId: selectedTeam.id,
         profiles: [profile.trim()],
-        taskTypes: taskTypes
-          .split(',')
-          .map((taskType) => taskType.trim())
-          .filter(Boolean),
+        taskTypes: [taskType],
         mode,
       });
     } catch {
@@ -744,31 +772,52 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
           : 'Select a team to start runs.'
       }
     >
-      <Stack gap={3}>
-        <FieldGrid min={160}>
-          <SelectField
+      <Stack gap={4}>
+        <Stack gap={1}>
+          <Text weight="semibold">Start a daemon</Text>
+          <Text variant="caption" color="muted">
+            Choose who runs, which policy profile applies, and what work it may
+            claim.
+          </Text>
+        </Stack>
+        <FieldGrid min={220}>
+          <Select
             label="Agent"
             value={agent}
-            onChange={setAgent}
-            placeholder="Select…"
-            options={agents.map((entry) => ({
-              value: entry.agentName,
-              label:
-                entry.kind === 'managed' &&
+            disabled={agents.length === 0}
+            hint={
+              agents.length === 0
+                ? 'Attach a local identity in the Agents section first.'
+                : undefined
+            }
+            onChange={(event) => setAgent(event.target.value)}
+          >
+            {agents.length === 0 ? (
+              <option value="">No attached identities</option>
+            ) : null}
+            {agents.map((entry) => (
+              <option key={entry.agentName} value={entry.agentName}>
+                {entry.kind === 'managed' &&
                 entry.teamId &&
                 entry.teamId !== selectedTeam?.id
-                  ? `${entry.agentName} (bound to another team)`
-                  : entry.agentName,
-            }))}
-          />
+                  ? `${entry.agentName} · another team`
+                  : entry.agentName}
+              </option>
+            ))}
+          </Select>
           {profileOptions.length > 0 ? (
-            <SelectField
+            <Select
               label="Runtime profile"
               value={profile}
-              onChange={setProfile}
-              placeholder="Select…"
-              options={profileOptions}
-            />
+              onChange={(event) => setProfile(event.target.value)}
+            >
+              <option value="">Select a profile…</option>
+              {profileOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           ) : (
             <Input
               label="Runtime profile"
@@ -777,21 +826,31 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
               onChange={(event) => setProfile(event.target.value)}
             />
           )}
-          <Input
-            label="Task types"
-            hint="Comma-separated, e.g. freeform"
-            value={taskTypes}
-            onChange={(event) => setTaskTypes(event.target.value)}
-          />
-          <SelectField
+          <Select
+            label="Task type"
+            value={taskType}
+            onChange={(event) =>
+              setTaskType(
+                event.target.value as StartRunBody['taskTypes'][number],
+              )
+            }
+          >
+            {TASK_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </Select>
+          <Select
             label="Mode"
             value={mode}
-            onChange={(value) => setMode(value as StartRunBody['mode'])}
-            options={[
-              { value: 'poll', label: 'poll — keep polling' },
-              { value: 'drain', label: 'drain — stop when empty' },
-            ]}
-          />
+            onChange={(event) =>
+              setMode(event.target.value as StartRunBody['mode'])
+            }
+          >
+            <option value="poll">Keep polling</option>
+            <option value="drain">Stop when queue is empty</option>
+          </Select>
         </FieldGrid>
         {boundElsewhere ? (
           <Text variant="caption" color="error">
@@ -803,14 +862,21 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             invitation code from {selectedTeam?.name} instead.
           </Text>
         ) : null}
-        <Stack direction="row">
+        <Stack direction="row" justify="space-between" align="center" wrap>
+          <Text variant="caption" color="muted">
+            The daemon stays on this machine. You can inspect or stop it below.
+          </Text>
           <Button
             size="sm"
             variant="accent"
             loading={busy}
             loadingLabel="Starting run"
             disabled={
-              !agent || !profile.trim() || !selectedTeam?.id || boundElsewhere
+              !agent ||
+              !profile.trim() ||
+              !taskType ||
+              !selectedTeam?.id ||
+              boundElsewhere
             }
             onClick={() => void start()}
           >

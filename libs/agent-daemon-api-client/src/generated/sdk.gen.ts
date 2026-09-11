@@ -101,9 +101,9 @@ export const listAgentServerAgents = <ThrowOnError extends boolean = false>(
   });
 
 export const createAgentServerAgent = <ThrowOnError extends boolean = false>(
-  options: Options<CreateAgentServerAgentData, ThrowOnError>,
+  options?: Options<CreateAgentServerAgentData, ThrowOnError>,
 ) =>
-  (options.client ?? client).post<
+  (options?.client ?? client).post<
     CreateAgentServerAgentResponses,
     CreateAgentServerAgentErrors,
     ThrowOnError
@@ -113,7 +113,7 @@ export const createAgentServerAgent = <ThrowOnError extends boolean = false>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options?.headers,
     },
   });
 

@@ -294,14 +294,10 @@ test.describe.serial('Local runtime page', () => {
       await expect(page.getByText('Runs', { exact: true })).toBeVisible();
       const teamSelect = page.locator('select[aria-label="Select team"]');
       await teamSelect.selectOption({ label: teamName });
-      const agentSelect = page
-        .locator('label', { hasText: 'Agent' })
-        .locator('select')
-        .first();
-      const profileSelect = page
-        .locator('label', { hasText: 'Runtime profile' })
-        .locator('select')
-        .first();
+      const agentSelect = page.getByLabel('Agent', { exact: true });
+      const profileSelect = page.getByLabel('Runtime profile', {
+        exact: true,
+      });
       await expect(agentSelect).toBeVisible();
       await agentSelect.selectOption(agentName);
       await profileSelect.selectOption({
