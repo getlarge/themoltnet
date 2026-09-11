@@ -10,8 +10,6 @@ import {
 import { homedir } from 'node:os';
 import { join, sep } from 'node:path';
 
-import { AGENT_ALIAS_PATTERN } from '@moltnet/models';
-
 export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
 }
@@ -167,17 +165,19 @@ export interface IdentitySelector {
 }
 
 /**
- * The one identity-alias grammar, shared with the REST `AgentAliasSchema`
- * through `AGENT_ALIAS_PATTERN` in `@moltnet/models`. Must stay identical to
- * agentNamePattern in apps/moltnet-cli (Go); the daemon's AgentServerStore
- * reuses this constant directly. An alias is a directory name in a store all
- * of them write and the value the CLI publishes as the network alias, so a
- * value one accepts and another rejects makes an identity unreadable by half
- * the system or unpublishable. `identity-alias.test.ts` pins the Go copy.
+ * The one identity-alias grammar. Must stay identical to `AGENT_ALIAS_PATTERN`
+ * in `@moltnet/models` (the REST `AgentAliasSchema`) and agentNamePattern in
+ * apps/moltnet-cli (Go); the daemon's AgentServerStore reuses this constant
+ * directly. An alias is a directory name in a store all of them write and the
+ * value the CLI publishes as the network alias, so a value one accepts and
+ * another rejects makes an identity unreadable by half the system or
+ * unpublishable. The literal is repeated rather than imported because this
+ * package is bundled into published packages that must not pick up models'
+ * typebox dependency; `identity-alias.test.ts` pins all three copies.
  */
 const identitiesDirName = 'identities';
 
-export const IDENTITY_ALIAS_PATTERN = new RegExp(AGENT_ALIAS_PATTERN);
+export const IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
 
 export function assertIdentityAlias(alias: string): string {
   if (!IDENTITY_ALIAS_PATTERN.test(alias)) {

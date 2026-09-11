@@ -15,10 +15,10 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/models": "workspace:*"
+    "@moltnet/crypto-service": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/models": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
