@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AgentServerStore } from '../lib/agent-server/store.js';
 import { OAuthProviderService } from '../lib/oauth-provider.js';
 import { ProviderConfigurationService } from '../lib/provider-configuration.js';
-import { runProviders } from './providers.js';
+import { browserLaunchCommand, runProviders } from './providers.js';
 
 const cleanups: (() => void)[] = [];
 afterEach(() => {
@@ -69,6 +69,39 @@ async function fixture(
 }
 
 describe('moltnet-agent providers', () => {
+  it.each([
+    { stdinIsTTY: true, stdoutIsTTY: true, accepted: false },
+    { stdinIsTTY: true, stdoutIsTTY: false, accepted: false },
+    { stdinIsTTY: false, stdoutIsTTY: true, accepted: true },
+    { stdinIsTTY: false, stdoutIsTTY: false, accepted: true },
+  ])(
+    'uses stdin TTY state for secret input: $stdinIsTTY/$stdoutIsTTY',
+    async ({ stdinIsTTY, stdoutIsTTY, accepted }) => {
+      const test = await fixture();
+      const readStdin = vi.fn(() => Promise.resolve('redirected-secret\n'));
+
+      const result = await runProviders(
+        [
+          'set',
+          'redirect-test',
+          '--base-url',
+          'https://provider.example/v1',
+          '--api-key-stdin',
+        ],
+        {
+          ...test.dependencies,
+          stdinIsTTY,
+          stdoutIsTTY,
+          readStdin,
+        },
+      );
+
+      expect(result).toBe(accepted ? 0 : 1);
+      expect(readStdin).toHaveBeenCalledTimes(accepted ? 1 : 0);
+      expect(test.stderr.join('\n')).not.toContain('redirected-secret');
+    },
+  );
+
   it('parses set patches, reads the API key from stdin, and preserves omissions', async () => {
     const test = await fixture();
     expect(
@@ -127,6 +160,36 @@ describe('moltnet-agent providers', () => {
         { id: 'openai-codex', connected: false },
       ],
     });
+  });
+
+  it('emits safe production service diagnostics on stderr', async () => {
+    const test = await fixture();
+    test.store.writeProviders({
+      remote: {
+        api: 'openai-completions',
+        baseUrl: 'https://provider.example/v1',
+        envName: 'MOLTNET_PROVIDER_REMOTE_API_KEY',
+        models: [],
+        apiKeyRef: 'file:missing-provider-key',
+      },
+    });
+
+    expect(
+      await runProviders(['discover', 'remote'], {
+        oauth: test.dependencies.oauth,
+        envRoot: test.root,
+        interactive: false,
+        stdout: test.dependencies.stdout,
+        stderr: test.dependencies.stderr,
+      }),
+    ).toBe(1);
+
+    expect(JSON.parse(test.stderr[0] ?? '{}')).toMatchObject({
+      level: 'warn',
+      code: 'agent_server_provider_secret_unavailable',
+      providerId: 'remote',
+    });
+    expect(test.stderr.join('\n')).not.toContain('missing-provider-key');
   });
 
   it('requires confirmation interactively or --yes for destructive commands', async () => {
@@ -238,11 +301,122 @@ describe('moltnet-agent providers', () => {
         ...test.dependencies,
         interactive: true,
         question: () => Promise.resolve('unused'),
-        openUrl: (url) => opened.push(url),
+        openUrl: (url) => {
+          opened.push(url);
+        },
       }),
     ).toBe(0);
     expect(opened).toEqual(['https://provider.example/authorize']);
     expect(test.stderr.join('\n')).toContain('ABCD-1234');
+  });
+
+  it('warns safely when automatic browser launch fails', async () => {
+    const login = vi.fn<ModelRuntime['login']>(
+      async (_providerId, _type, interaction) => {
+        interaction.notify({
+          type: 'auth_url',
+          url: 'https://provider.example/authorize?state=safe',
+        });
+        return { type: 'oauth', access: 'test', refresh: 'test', expires: 1 };
+      },
+    );
+    const test = await fixture({ login });
+
+    expect(
+      await runProviders(['login', 'anthropic'], {
+        ...test.dependencies,
+        interactive: true,
+        openUrl: () => Promise.reject(new Error('launch failed secret=bad')),
+      }),
+    ).toBe(0);
+    await vi.waitFor(() =>
+      expect(test.stderr).toContain(
+        'Could not open the browser automatically; open the authorization URL above manually.',
+      ),
+    );
+    expect(test.stderr.join('\n')).not.toContain('secret=bad');
+  });
+
+  it('cancels pending login and releases the OAuth lock for a retry', async () => {
+    const login = vi
+      .fn<ModelRuntime['login']>()
+      .mockImplementationOnce((_providerId, _type, interaction) => {
+        return new Promise((_resolve, reject) => {
+          interaction.signal?.addEventListener(
+            'abort',
+            () => reject(new Error('cancelled with secret=hidden')),
+            { once: true },
+          );
+        });
+      })
+      .mockResolvedValue({
+        type: 'oauth',
+        access: 'retry',
+        refresh: 'retry',
+        expires: 1,
+      });
+    const test = await fixture({ login });
+    const controller = new AbortController();
+
+    const pending = runProviders(['login', 'anthropic'], {
+      ...test.dependencies,
+      interactive: true,
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(login).toHaveBeenCalledOnce());
+    controller.abort(new Error('SIGINT'));
+
+    await expect(pending).resolves.toBe(1);
+    expect(test.stderr.at(-1)).toBe('Provider operation interrupted.');
+    expect(test.stderr.join('\n')).not.toContain('secret=hidden');
+    await expect(
+      runProviders(['login', 'anthropic'], {
+        ...test.dependencies,
+        interactive: true,
+      }),
+    ).resolves.toBe(0);
+    expect(login).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels pending discovery and permits a subsequent discovery', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(new Error('cancelled with api_key=hidden')),
+            { once: true },
+          );
+        });
+      })
+      .mockResolvedValue(
+        new Response(JSON.stringify({ data: [{ id: 'retry-model' }] })),
+      );
+    const test = await fixture({ fetchImpl });
+    await test.configuration.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+    });
+    const controller = new AbortController();
+
+    const pending = runProviders(['discover', 'remote'], {
+      ...test.dependencies,
+      interactive: false,
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledOnce());
+    controller.abort(new Error('SIGINT'));
+
+    await expect(pending).resolves.toBe(1);
+    expect(test.stderr.at(-1)).toBe('Provider operation interrupted.');
+    expect(test.stderr.join('\n')).not.toContain('api_key=hidden');
+    await expect(
+      runProviders(['discover', 'remote'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).resolves.toBe(0);
+    expect(test.stdout.at(-1)).toBe('retry-model');
   });
 
   it('fails login on non-TTY input and redacts upstream error messages', async () => {
@@ -268,5 +442,17 @@ describe('moltnet-agent providers', () => {
     ).toBe(1);
     expect(test.stderr.join('\n')).not.toContain('super-secret');
     expect(test.stderr.at(-1)).toBe('Provider operation failed.');
+  });
+});
+
+describe('OAuth browser launcher', () => {
+  it('passes adversarial Windows URLs directly to explorer.exe', () => {
+    const url =
+      'https://provider.example/authorize?state=abc&next=calc.exe|ignored';
+
+    expect(browserLaunchCommand('win32', url)).toEqual({
+      executable: 'explorer.exe',
+      args: [url],
+    });
   });
 });
