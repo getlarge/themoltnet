@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.56.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.55.1...agent-daemon-v0.56.0) (2026-09-11)
+
+
+### Features
+
+* **agent-daemon:** add provider management commands ([e731315](https://github.com/getlarge/themoltnet/commit/e7313150bce8c7f0f81c0090e57766395108dbe1))
+* **agent-daemon:** add provider management commands ([fddf6a6](https://github.com/getlarge/themoltnet/commit/fddf6a6a7d3bbe0f9ce56a50058dd737a179855d))
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden provider CLI boundaries ([e4f4c6d](https://github.com/getlarge/themoltnet/commit/e4f4c6de03dcce33426f516ce74825864dbcd9f6))
+* **agent-daemon:** harden provider service operations ([5b3aa41](https://github.com/getlarge/themoltnet/commit/5b3aa41186f7add76bfc659991e841215eb60378))
+* **agent-daemon:** use central identities for local runs ([78f061d](https://github.com/getlarge/themoltnet/commit/78f061d4d02c4e5ab4ad5fe62bd410863e239508))
+* **agent-daemon:** use central identities for local runs ([daefb51](https://github.com/getlarge/themoltnet/commit/daefb5158f67a12cbf81a042453a1b242956e5ec))
+
 ## [0.55.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.55.0...agent-daemon-v0.55.1) (2026-09-11)
 
 

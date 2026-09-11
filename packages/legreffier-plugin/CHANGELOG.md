@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.5.0...legreffier-plugin-v0.6.0) (2026-09-11)
+
+
+### Features
+
+* **cli:** add repository-aware activation contexts ([fe061a4](https://github.com/getlarge/themoltnet/commit/fe061a45213b520bed696db2c0e9f6560cf371a9))
+* **cli:** add repository-aware activation contexts ([b0a4753](https://github.com/getlarge/themoltnet/commit/b0a4753a698ed17afe2acf0c08e608ae347297bc))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.4.0...legreffier-plugin-v0.5.0) (2026-09-11)
 
 
