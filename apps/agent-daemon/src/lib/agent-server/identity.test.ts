@@ -11,6 +11,7 @@ import { join } from 'node:path';
 
 import type * as Sdk from '@themoltnet/sdk';
 import {
+  AuthenticationError,
   type MoltNetConfig,
   MoltNetError,
   READ_ONLY_CAPABILITIES,
@@ -590,6 +591,34 @@ describe('external agent server agents', () => {
       }),
     ).rejects.toMatchObject({ code: 'verification_failed' });
     expect(store.readActivation('cancelled')).toBeNull();
+  });
+
+  it('surfaces the safe agent-key rejection guidance from the SDK', async () => {
+    const store = freshStore();
+    const configDir = writeExternalConfig(externalConfig());
+    connectMock.mockResolvedValueOnce({
+      agents: {
+        whoami: vi
+          .fn()
+          .mockRejectedValue(
+            new AuthenticationError(
+              'agent key rejected (401): re-provision the key.',
+              { statusCode: 401 },
+            ),
+          ),
+      },
+    });
+
+    await expect(
+      attachExternalAgent(store, registry(), {
+        name: 'rejected',
+        configDir,
+      }),
+    ).rejects.toMatchObject({
+      code: 'verification_failed',
+      message: 'agent key rejected (401): re-provision the key.',
+    });
+    expect(store.readActivation('rejected')).toBeNull();
   });
 
   it('rejects a remote plaintext API override before connecting', async () => {
