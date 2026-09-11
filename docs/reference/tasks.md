@@ -243,23 +243,26 @@ API with `task list` and `task attempts`; see the
 | GET    | `/tasks/:id/attempts/:n/artifacts/:cid/content` | Download the artifact bytes for one attempt and CID. Requires task read access.                                                                                                                                                                                                                                                                                                                                                                                           |
 | POST   | `/tasks/:id/attempts/:n/complete` / `/fail`     | Submit final output / give up. Returns 409 if `attempt.status === 'claimed'` (no heartbeat sent first) or already terminal (e.g. `aborted`). `complete` validates `output` against the task type's `outputSchema` and returns 400 on mismatch; the server also recomputes `outputCid` and rejects mismatches.                                                                                                                                                             |
 | POST   | `/tasks/:id/attempts/:n/abort`                  | Active claimant **abandons this attempt** (e.g. daemon shutdown) without cancelling the task. Marks the attempt `aborted`, clears the claim, and requeues the task for another claim when retries remain (`maxAttempts > 1`, default `1`) — or settles it `failed` when exhausted. Returns 409 if the attempt is not started or already terminal. Does **not** set `task.status = 'cancelled'` or write any `cancelledBy*` fields. Contrast with `/cancel` below. (#1382) |
-| POST   | `/tasks/:id/cancel`                             | Claimant, owning-team writer, or explicit task writer/manager cancels. Sets `task.status = 'cancelled'` and signals the running DBOS workflow (#938) so the worker gets `cancelled: true` on its next heartbeat.                                                                                                                                                                                                                                                          |
+| POST   | `/tasks/:id/cancel`                             | Owning-team owners/managers or explicit task managers cancel. Sets `task.status = 'cancelled'` and signals the running DBOS workflow (#938) so the worker gets `cancelled: true` on its next heartbeat.                                                                                                                                                                                                                                                                   |
 
-Proposing a task requires both the `task:manage` credential scope and
+### Task authorization
+
+Proposing a task requires both the `task:write` credential scope and
 `Team.propose_tasks` on the requested owning team. Team owners, managers, and
 agent executors have that permission; ordinary members and principals with only
 a diary writer grant do not. The provenance diary must exist and be readable,
 including when it belongs to another team, but it need not be writable because
 creation records only its ID. A missing scope, missing team proposal authority,
 and unreadable provenance each produce a distinct 403 reason; an authorized
-request naming a nonexistent diary receives 404.
+request naming a nonexistent diary receives 404. Keto evaluation errors return
+503 so an authorization outage is not mistaken for a real denial.
 
 Once the task exists, the `Task` Keto namespace enforces `view` through
 owning-team access or an explicit task grant, `claim` through the owning team's
 agent executors or an explicit task writer/manager grant, `report` by the
-current claimant, and `cancel` through claim authority or the claimant. The
-provenance diary is not an authorization path. `abort` is stricter than
-`cancel`: only the **current claimant** may abort its own attempt (it is an
+current claimant, and `cancel` through the owning team or an explicit manager
+grant. The provenance diary is not an authorization path. `abort` is stricter
+than `cancel`: only the **current claimant** may abort its own attempt (it is an
 attempt-level abandonment, not a task-level cancellation). Because abort clears
 the claimant tuple, a late `/complete` or `/fail` from the abandoned attempt is
 rejected (the former claimant no longer holds `report`, and an attempt-level

@@ -143,15 +143,15 @@ sequenceDiagram
     end
 
     P->>API: POST /tasks
-    API->>API: require task:manage credential scope
+    API->>API: require task:write credential scope
     API->>API: normalize envelope and validate allowed profiles
     API->>S: create(normalized request)
+    S->>S: validate type, schema and claim condition
     par authorization and provenance lookup
-        S->>K: batch-check Team.propose_tasks + Diary.read
+        S->>K: check task creation permissions
     and
         S->>DB: fetch provenance diary
     end
-    S->>S: validate type, schema and claim condition
     S->>S: canonicalize input and compute inputCid
     S->>S: async validation and correlation checks
     S->>OBJ: resolve staged input CIDs
@@ -167,12 +167,8 @@ sequenceDiagram
     Note over P,K: No attempt row and no DBOS attempt workflow exist yet
 ```
 
-Creation requires the `task:manage` credential scope and resource authority to
-propose tasks for the owning team. Owners, managers, and agent executors have
-`Team.propose_tasks`; ordinary members do not. The provenance diary must exist
-and be readable, but task creation does not mutate it and therefore does not
-require diary write authority. The service batch-checks the team and diary
-permissions in one Keto request while fetching the diary row concurrently.
+For the creation rules, see
+[Task authorization](../reference/tasks.md#task-authorization).
 
 Creation also validates the shared envelope, task-type input schema,
 claim-condition shape and readability, allowed runtime profiles, correlation

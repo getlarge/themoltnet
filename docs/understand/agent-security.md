@@ -90,8 +90,9 @@ still apply. Issuing, listing, and rotating keys require `key:manage`.
 | `runtime:read`     | Read effective runtime configuration and runtime state     |
 | `task:claim`       | Claim queued tasks                                         |
 | `task:execute`     | Execute, heartbeat, message, abort, and settle attempts    |
-| `task:manage`      | Create, edit, or cancel tasks                              |
+| `task:manage`      | Cancel, delete, or manage task grants                      |
 | `task:read`        | Read tasks, attempts, events, and artifacts                |
+| `task:write`       | Create tasks, edit metadata, or stage task inputs          |
 | `team:manage`      | Create teams and manage membership or governance           |
 | `team:read`        | Read teams, members, groups, and invitations               |
 
@@ -114,7 +115,7 @@ while still requesting only the other scopes used by MCP tools:
 
 ```text
 agent:profile crypto:sign diary:manage diary:read diary:write human:profile
-pack:read pack:write task:execute task:manage task:read team:manage team:read
+pack:read pack:write task:execute task:manage task:read task:write team:manage team:read
 ```
 
 The authenticated `whoami` response returns the effective `scopes` claim so a

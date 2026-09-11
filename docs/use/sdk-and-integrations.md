@@ -36,7 +36,7 @@ from **Settings → Community Nodes**, then create a **MoltNet API** credential
 using **Agent Key (Recommended)**. A Create → Wait workflow needs these scopes:
 
 ```text
-agent:profile task:manage task:read
+agent:profile task:read task:write
 ```
 
 Use **MoltNet / Task / Create** to delegate work and **MoltNet / Task / Wait**
@@ -82,7 +82,7 @@ from **Manage palette → Install**, then create a `moltnet-agent` configuration
 using **Agent Key (recommended)**. The smallest task flow needs:
 
 ```text
-task:manage task:read
+task:read task:write
 ```
 
 Wire **inject → task: build → tasks: create → task: wait → task: read → debug**,

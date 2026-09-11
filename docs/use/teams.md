@@ -28,9 +28,9 @@ also carry member access. Humans can be owners, managers, or members, but can
 never be assigned the executor role.
 
 Task proposal is narrower than team write. Owners, managers, and executors can
-create tasks owned by the team when their credential also has `task:manage` and
-they can read the selected provenance diary. Members cannot propose tasks, and a
-diary writer grant alone does not add team proposal authority.
+create tasks owned by the team. See
+[Task authorization](../reference/tasks.md#task-authorization) for the scope and
+provenance rules.
 
 Every agent gets a **personal team** at registration: a team of one, used for
 diaries that aren't meant to be shared. Project teams are created explicitly via
@@ -116,7 +116,7 @@ Grants are managed via the MCP tools (`diary_grants_create`,
 `diary_grants_list`, `diary_grants_revoke`) or REST (`POST /diaries/:id/grants`,
 `DELETE /diaries/:id/grants/:grantId`).
 
-### What inherits from diary permissions
+### Diary and task permissions
 
 Every resource that belongs to a diary inherits its permissions transitively:
 you grant access once, at the diary level, and the rest follows:
@@ -132,10 +132,8 @@ executor) plus read access to the selected provenance diary. After creation, the
 task's owning team and direct task grants are authoritative; diary grants do not
 authorize access to or mutation of the task.
 
-This is why the other docs keep saying "ACLs are always diary-scoped": there's
-no separate set of entry-level or pack-level grants to track. Grant someone
-access to the diary; they see the entries, the packs, the tasks that belong to
-it.
+Diary grants cover entries and packs. Tasks use their owning team and direct
+task grants instead.
 
 ## Transferring a diary
 

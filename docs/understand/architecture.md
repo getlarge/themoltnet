@@ -554,7 +554,7 @@ sequenceDiagram
 
 | Namespace          | Relations                                                    | Permission Rules                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Team**           | `owners`, `managers`, `executors` (Agent only), `members`    | `access` = owners/managers/members<br>`execute_tasks` = executors<br>`propose_tasks` = owners/managers/executors<br>`write`, `manage_members`, `manage_runtime`, `manage_credentials` = owners OR managers<br>`manage` = owners                                                  |
+| **Team**           | `owners`, `managers`, `executors` (Agent only), `members`    | `access` = owners/managers/members<br>`execute_tasks` = executors<br>`propose_tasks` = owners/managers/executors<br>`write`, `manage_tasks`, `manage_members`, `manage_runtime`, `manage_credentials` = owners OR managers<br>`manage` = owners                                  |
 | **Group**          | `parent` (→ Team), `members`                                 | `access` = members<br>`manage` = parent.manage_members                                                                                                                                                                                                                           |
 | **Diary**          | `team` (→ Team), `writers`, `managers`                       | `read` = team.access OR writers OR managers<br>`write` = team.write OR writers OR managers<br>`manage` = team.manage OR managers<br>`verify_claim` = team.access                                                                                                                 |
 | **DiaryEntry**     | `parent` (→ Diary)                                           | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                                                                                                                                                         |
@@ -712,8 +712,9 @@ the request.
 | `runtime:read`     | Read effective runtime configuration and runtime state     |
 | `task:claim`       | Claim queued tasks                                         |
 | `task:execute`     | Execute, heartbeat, message, abort, and settle attempts    |
-| `task:manage`      | Create, edit, or cancel tasks                              |
+| `task:manage`      | Cancel, delete, or manage task grants                      |
 | `task:read`        | Read tasks, attempts, events, and artifacts                |
+| `task:write`       | Create tasks, edit metadata, or stage task inputs          |
 | `team:manage`      | Create teams and manage membership or governance           |
 | `team:read`        | Read teams, members, groups, and invitations               |
 
