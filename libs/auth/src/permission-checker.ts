@@ -147,6 +147,15 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<Map<string, boolean>>;
+  checkTaskCreatePermissions(
+    teamId: string,
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<{
+    canProposeForTeam: boolean;
+    canReadDiary: boolean;
+  }>;
   canProposeTask(
     diaryId: string,
     subjectId: string,
@@ -691,13 +700,47 @@ export function createPermissionChecker(
       );
     },
 
+    async checkTaskCreatePermissions(
+      teamId: string,
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<{
+      canProposeForTeam: boolean;
+      canReadDiary: boolean;
+    }> {
+      const [canProposeForTeam = false, canReadDiary = false] =
+        await batchCheckPermissions(permissionApi, log, [
+          {
+            namespace: KetoNamespace.Team,
+            object: teamId,
+            relation: TeamPermission.ProposeTasks,
+            subject_set: {
+              namespace: subjectNs,
+              object: subjectId,
+              relation: '',
+            },
+          },
+          {
+            namespace: KetoNamespace.Diary,
+            object: diaryId,
+            relation: DiaryPermission.Read,
+            subject_set: {
+              namespace: subjectNs,
+              object: subjectId,
+              relation: '',
+            },
+          },
+        ]);
+
+      return { canProposeForTeam, canReadDiary };
+    },
+
     canProposeTask(
       diaryId: string,
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<boolean> {
-      // Task proposal happens before a Task object or parent tuple exists,
-      // so the authorization point is the target diary's propose permit.
       return checkPermission(
         permissionApi,
         KetoNamespace.Diary,

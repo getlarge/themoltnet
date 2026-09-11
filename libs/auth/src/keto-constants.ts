@@ -50,6 +50,7 @@ export enum TeamRelation {
  */
 export enum TeamPermission {
   ExecuteTasks = 'execute_tasks',
+  ProposeTasks = 'propose_tasks',
   Manage = 'manage',
   ManageCredentials = 'manage_credentials',
   ManageMembers = 'manage_members',

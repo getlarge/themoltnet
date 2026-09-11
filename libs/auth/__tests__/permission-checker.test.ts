@@ -17,6 +17,7 @@ function createMockPermissionApi(): MockPermissionApi {
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
+const TEAM_ID = '990e8400-e29b-41d4-a716-446655440003';
 const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 const TASK_ID = '990e8400-e29b-41d4-a716-446655440005';
@@ -111,27 +112,100 @@ describe('PermissionChecker', () => {
       });
     });
 
-    it('checks canProposeTask against Diary propose permission', async () => {
-      mockPermissionApi.checkPermission.mockResolvedValue({
-        allowed: true,
+    it('checks task creation authority in one ordered batch', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [{ allowed: true }, { allowed: false }],
       });
 
-      const result = await checker.canProposeTask(
+      const result = await checker.checkTaskCreatePermissions(
+        TEAM_ID,
         DIARY_ID,
         AGENT_ID,
         KetoNamespace.Agent,
       );
 
-      expect(result).toBe(true);
-      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
-        namespace: 'Diary',
-        object: DIARY_ID,
-        relation: 'propose',
-        subjectId: undefined,
-        subjectSetNamespace: 'Agent',
-        subjectSetObject: AGENT_ID,
-        subjectSetRelation: '',
+      expect(result).toEqual({
+        canProposeForTeam: true,
+        canReadDiary: false,
       });
+      expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledOnce();
+      expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledWith({
+        batchCheckPermissionBody: {
+          tuples: [
+            {
+              namespace: 'Team',
+              object: TEAM_ID,
+              relation: 'propose_tasks',
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
+            },
+            {
+              namespace: 'Diary',
+              object: DIARY_ID,
+              relation: 'read',
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
+            },
+          ],
+        },
+      });
+      expect(mockPermissionApi.checkPermission).not.toHaveBeenCalled();
+    });
+
+    it('fails closed for an errored task creation tuple', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [
+          { allowed: true },
+          { allowed: true, error: 'evaluation failed' },
+        ],
+      });
+
+      await expect(
+        checker.checkTaskCreatePermissions(
+          TEAM_ID,
+          DIARY_ID,
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
+      ).resolves.toEqual({
+        canProposeForTeam: true,
+        canReadDiary: false,
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          namespace: 'Diary',
+          object: DIARY_ID,
+          relation: 'read',
+        }),
+        'keto.batch_permission_result_failed',
+      );
+      expect(mockPermissionApi.checkPermission).not.toHaveBeenCalled();
+    });
+
+    it('fails both task creation permissions closed when the batch rejects', async () => {
+      mockPermissionApi.batchCheckPermission.mockRejectedValue(
+        new Error('Keto unavailable'),
+      );
+
+      await expect(
+        checker.checkTaskCreatePermissions(
+          TEAM_ID,
+          DIARY_ID,
+          OTHER_AGENT_ID,
+          KetoNamespace.Human,
+        ),
+      ).resolves.toEqual({
+        canProposeForTeam: false,
+        canReadDiary: false,
+      });
+      expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledOnce();
+      expect(mockPermissionApi.checkPermission).not.toHaveBeenCalled();
     });
   });
 

@@ -47,6 +47,10 @@ class Team implements Namespace {
     execute_tasks: (ctx: Context) =>
       this.related.executors.includes(ctx.subject),
 
+    // Propose new team tasks without granting authority to administer the team.
+    propose_tasks: (ctx: Context) =>
+      this.permits.write(ctx) || this.related.executors.includes(ctx.subject),
+
     // Read-only access to team resources (all roles)
     access: (ctx: Context) =>
       this.related.owners.includes(ctx.subject) ||
@@ -107,8 +111,7 @@ class Diary implements Namespace {
       this.related.writers.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject) ||
       this.related.team.traverse((t) => t.permits.write(ctx)),
-    // Task proposals are authorized before a Task object exists, so
-    // proposal is a diary-scoped permission rather than Task-scoped.
+    // Kept during the additive rollout; task creation migrates to Team.propose_tasks.
     propose: (ctx: Context) => this.permits.write(ctx),
     manage: (ctx: Context) =>
       this.related.managers.includes(ctx.subject) ||
