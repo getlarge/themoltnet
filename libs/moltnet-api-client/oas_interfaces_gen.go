@@ -161,6 +161,10 @@ type DeleteTeamRes interface {
 	deleteTeamRes()
 }
 
+type DeleteWhoamiAliasRes interface {
+	deleteWhoamiAliasRes()
+}
+
 type DiffContextPacksByCidRes interface {
 	diffContextPacksByCidRes()
 }

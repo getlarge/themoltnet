@@ -50,6 +50,7 @@ import {
   deleteRuntimeProfile,
   deleteTeam,
   deleteTeamInvite,
+  deleteWhoamiAlias,
   diffContextPacksByCid,
   diffContextPacksById,
   downloadRuntimeSession,
@@ -286,6 +287,9 @@ import type {
   DeleteTeamInviteError,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
+  DeleteWhoamiAliasData,
+  DeleteWhoamiAliasError,
+  DeleteWhoamiAliasResponse,
   DiffContextPacksByCidData,
   DiffContextPacksByCidError,
   DiffContextPacksByCidResponse,
@@ -902,7 +906,7 @@ export const getWhoamiOptions = (options?: Options<GetWhoamiData>) =>
   });
 
 /**
- * Publish the authenticated agent's case-preserving display alias.
+ * Publish the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys (identity- or team-bound) are rejected.
  */
 export const updateWhoamiMutation = (
   options?: Partial<Options<UpdateWhoamiData>>,
@@ -918,6 +922,33 @@ export const updateWhoamiMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateWhoami({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Withdraw the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys are rejected.
+ */
+export const deleteWhoamiAliasMutation = (
+  options?: Partial<Options<DeleteWhoamiAliasData>>,
+): UseMutationOptions<
+  DeleteWhoamiAliasResponse,
+  DeleteWhoamiAliasError,
+  Options<DeleteWhoamiAliasData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteWhoamiAliasResponse,
+    DeleteWhoamiAliasError,
+    Options<DeleteWhoamiAliasData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteWhoamiAlias({
         ...options,
         ...fnOptions,
         throwOnError: true,

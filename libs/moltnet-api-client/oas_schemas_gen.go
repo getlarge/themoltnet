@@ -9417,6 +9417,35 @@ type DeleteTeamUnauthorized ProblemDetails
 
 func (*DeleteTeamUnauthorized) deleteTeamRes() {}
 
+type DeleteWhoamiAliasForbidden ProblemDetails
+
+func (*DeleteWhoamiAliasForbidden) deleteWhoamiAliasRes() {}
+
+type DeleteWhoamiAliasInternalServerError ProblemDetails
+
+func (*DeleteWhoamiAliasInternalServerError) deleteWhoamiAliasRes() {}
+
+// DeleteWhoamiAliasNoContent is response for DeleteWhoamiAlias operation.
+type DeleteWhoamiAliasNoContent struct{}
+
+func (*DeleteWhoamiAliasNoContent) deleteWhoamiAliasRes() {}
+
+type DeleteWhoamiAliasNotFound ProblemDetails
+
+func (*DeleteWhoamiAliasNotFound) deleteWhoamiAliasRes() {}
+
+type DeleteWhoamiAliasServiceUnavailable ProblemDetails
+
+func (*DeleteWhoamiAliasServiceUnavailable) deleteWhoamiAliasRes() {}
+
+type DeleteWhoamiAliasTooManyRequests ProblemDetails
+
+func (*DeleteWhoamiAliasTooManyRequests) deleteWhoamiAliasRes() {}
+
+type DeleteWhoamiAliasUnauthorized ProblemDetails
+
+func (*DeleteWhoamiAliasUnauthorized) deleteWhoamiAliasRes() {}
+
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
 	CreatedAt  time.Time              `json:"createdAt"`
@@ -25979,7 +26008,7 @@ func (s *GetTeamOK) SetUpdatedAt(val time.Time) {
 func (*GetTeamOK) getTeamRes() {}
 
 type GetTeamOKMembersItem struct {
-	// Case-preserving network display label; never used for authorization or lookup.
+	// Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup.
 	Alias       OptString                `json:"alias"`
 	DisplayName string                   `json:"displayName"`
 	Email       OptString                `json:"email"`
@@ -32065,7 +32094,7 @@ func (s *ListTeamMembersOK) SetItems(val []ListTeamMembersOKItemsItem) {
 func (*ListTeamMembersOK) listTeamMembersRes() {}
 
 type ListTeamMembersOKItemsItem struct {
-	// Case-preserving network display label; never used for authorization or lookup.
+	// Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup.
 	Alias       OptString                      `json:"alias"`
 	DisplayName string                         `json:"displayName"`
 	Email       OptString                      `json:"email"`
@@ -58879,7 +58908,7 @@ type UpdateWhoamiNotFound ProblemDetails
 func (*UpdateWhoamiNotFound) updateWhoamiRes() {}
 
 type UpdateWhoamiReq struct {
-	// Case-preserving network display label; never used for authorization or lookup.
+	// Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup.
 	Alias string `json:"alias"`
 }
 
@@ -58895,7 +58924,7 @@ func (s *UpdateWhoamiReq) SetAlias(val string) {
 
 // Ref: #/components/schemas/UpdateWhoamiResponse
 type UpdateWhoamiResponse struct {
-	// Case-preserving network display label; never used for authorization or lookup.
+	// Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup.
 	Alias       string    `json:"alias"`
 	Fingerprint string    `json:"fingerprint"`
 	SubjectId   uuid.UUID `json:"subjectId"`
@@ -63700,7 +63729,7 @@ func (s *VerifyResultSigner) SetFingerprint(val string) {
 
 // Ref: #/components/schemas/Whoami
 type Whoami struct {
-	// Case-preserving network display label; never used for authorization or lookup.
+	// Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup.
 	Alias             OptString                  `json:"alias"`
 	ClientId          OptString                  `json:"clientId"`
 	CredentialBinding OptWhoamiCredentialBinding `json:"credentialBinding"`

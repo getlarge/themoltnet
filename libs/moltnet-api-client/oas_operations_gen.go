@@ -46,6 +46,7 @@ const (
 	DeleteRuntimeProfileOperation                  OperationName = "DeleteRuntimeProfile"
 	DeleteTeamOperation                            OperationName = "DeleteTeam"
 	DeleteTeamInviteOperation                      OperationName = "DeleteTeamInvite"
+	DeleteWhoamiAliasOperation                     OperationName = "DeleteWhoamiAlias"
 	DiffContextPacksByCidOperation                 OperationName = "DiffContextPacksByCid"
 	DiffContextPacksByIdOperation                  OperationName = "DiffContextPacksById"
 	DownloadRuntimeSessionOperation                OperationName = "DownloadRuntimeSession"

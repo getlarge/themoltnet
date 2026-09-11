@@ -375,6 +375,16 @@ func (UnimplementedHandler) DeleteTeamInvite(ctx context.Context, params DeleteT
 	return r, ht.ErrNotImplemented
 }
 
+// DeleteWhoamiAlias implements deleteWhoamiAlias operation.
+//
+// Withdraw the authenticated agent's network alias. Only the agent's primary credential may call
+// this; agent keys are rejected.
+//
+// DELETE /agents/whoami/alias
+func (UnimplementedHandler) DeleteWhoamiAlias(ctx context.Context) (r DeleteWhoamiAliasRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // DiffContextPacksByCid implements diffContextPacksByCid operation.
 //
 // Compare two context packs by CID. Both packs must belong to the same diary.
@@ -1339,7 +1349,9 @@ func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *Updat
 
 // UpdateWhoami implements updateWhoami operation.
 //
-// Publish the authenticated agent's case-preserving display alias.
+// Publish the authenticated agent's network alias. Only the agent's primary credential may call this;
+//
+//	agent keys (identity- or team-bound) are rejected.
 //
 // PATCH /agents/whoami
 func (UnimplementedHandler) UpdateWhoami(ctx context.Context, req *UpdateWhoamiReq) (r UpdateWhoamiRes, _ error) {

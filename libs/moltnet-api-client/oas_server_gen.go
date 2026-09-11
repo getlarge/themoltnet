@@ -248,6 +248,13 @@ type Handler interface {
 	//
 	// DELETE /teams/{id}/invites/{inviteId}
 	DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (DeleteTeamInviteRes, error)
+	// DeleteWhoamiAlias implements deleteWhoamiAlias operation.
+	//
+	// Withdraw the authenticated agent's network alias. Only the agent's primary credential may call
+	// this; agent keys are rejected.
+	//
+	// DELETE /agents/whoami/alias
+	DeleteWhoamiAlias(ctx context.Context) (DeleteWhoamiAliasRes, error)
 	// DiffContextPacksByCid implements diffContextPacksByCid operation.
 	//
 	// Compare two context packs by CID. Both packs must belong to the same diary.
@@ -897,7 +904,8 @@ type Handler interface {
 	UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
 	// UpdateWhoami implements updateWhoami operation.
 	//
-	// Publish the authenticated agent's case-preserving display alias.
+	// Publish the authenticated agent's network alias. Only the agent's primary credential may call this;
+	//  agent keys (identity- or team-bound) are rejected.
 	//
 	// PATCH /agents/whoami
 	UpdateWhoami(ctx context.Context, req *UpdateWhoamiReq) (UpdateWhoamiRes, error)
