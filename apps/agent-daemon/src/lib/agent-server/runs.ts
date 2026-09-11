@@ -21,6 +21,7 @@ import {
 import { dirname, join } from 'node:path';
 import { Transform } from 'node:stream';
 
+import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 import { resolveRuntimeProfiles } from '@themoltnet/agent-runtime';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import {
@@ -171,6 +172,16 @@ export function validateRunSpec(spec: RunSpec): void {
       'at least one task type is required',
     );
   }
+  const unknownTaskType = spec.taskTypes.find(
+    (taskType) =>
+      !Object.prototype.hasOwnProperty.call(BUILT_IN_TASK_TYPES, taskType),
+  );
+  if (unknownTaskType) {
+    throw new AgentServerRunError(
+      'invalid_spec',
+      `unknown task type "${unknownTaskType}"`,
+    );
+  }
 }
 
 interface ActiveRun {
@@ -225,16 +236,18 @@ export class RunManager {
     const target =
       activation.source === 'managed'
         ? { agentName: activation.alias, cwd: dirname(piDir), extraArgs: [] }
-        : (() => {
-            const { agentName, agentRoot } = externalAgentLocation(
-              activation.configPath,
-            );
-            return {
-              agentName,
-              cwd: agentRoot,
-              extraArgs: ['--agent-root', agentRoot],
-            };
-          })();
+        : activation.configPath === this.store.agentPath(activation.alias)
+          ? { agentName: activation.alias, cwd: dirname(piDir), extraArgs: [] }
+          : (() => {
+              const { agentName, agentRoot } = externalAgentLocation(
+                activation.configPath,
+              );
+              return {
+                agentName,
+                cwd: agentRoot,
+                extraArgs: ['--agent-root', agentRoot],
+              };
+            })();
     const args = [
       ...(runtimeModule ? ['--runtime', runtimeModule] : []),
       spec.mode,

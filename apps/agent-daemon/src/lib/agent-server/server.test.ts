@@ -86,6 +86,8 @@ async function fixture(
     maxLogBytes?: number;
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
+    activeIdentity?: string;
+    externalSecrets?: Record<string, string>;
     resolveRuntimeModule?: (
       spec: RunSpec,
       agent: ActivatedAgent,
@@ -98,6 +100,7 @@ async function fixture(
     maxLogBytes,
     symlinkImpl,
     resolveRuntimeModule,
+    externalSecrets = {},
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
@@ -123,17 +126,23 @@ async function fixture(
   const externalSecretProviders = new SecretProviderRegistry().register({
     name: 'memory',
     capabilities: READ_ONLY_CAPABILITIES,
-    read: (key) =>
-      Promise.resolve(
-        key === 'oauth2/agent-1/client'
-          ? 'resolved-external-secret'
-          : key === 'agent-key/agent-1'
-            ? 'resolved-external-agent-key'
-            : null,
-      ),
+    read: (key) => {
+      const values: Record<string, string> = {
+        'oauth2/agent-1/client': 'resolved-external-secret',
+        'agent-key/agent-1': 'resolved-external-agent-key',
+        'identity/FP-1/seed': 'resolved-central-seed',
+        ...externalSecrets,
+      };
+      return Promise.resolve(values[key] ?? null);
+    },
     probe: (key) =>
       Promise.resolve(
-        key === 'oauth2/agent-1/client' || key === 'agent-key/agent-1'
+        Object.keys({
+          'oauth2/agent-1/client': true,
+          'agent-key/agent-1': true,
+          'identity/FP-1/seed': true,
+          ...externalSecrets,
+        }).includes(key)
           ? 'present'
           : 'absent',
       ),
@@ -254,6 +263,46 @@ function activateManaged(store: AgentServerStore, boundTeamId?: string): void {
   });
 }
 
+function writeCentralIdentity(
+  store: AgentServerStore,
+  alias: string,
+  hasAgentKey: boolean,
+): void {
+  store.writeAgentConfig(alias, {
+    subject_id: `agent-${alias}`,
+    subject_type: 'agent',
+    registered_at: 't',
+    ...(hasAgentKey
+      ? {
+          agent_key_ref: {
+            provider: 'file' as const,
+            key: `agent-key/${alias}`,
+          },
+        }
+      : {
+          oauth2: {
+            client_id: `client-${alias}`,
+            client_secret_ref: {
+              provider: 'file' as const,
+              key: `oauth2/agent-${alias}/client-${alias}`,
+            },
+          },
+        }),
+    keys: {
+      public_key: `pk-${alias}`,
+      fingerprint: `FP-${alias}`,
+      private_key_ref: {
+        provider: 'file' as const,
+        key: `identity/FP-${alias}/seed`,
+      },
+    },
+    endpoints: {
+      api: 'https://api.example',
+      mcp: 'https://mcp.example/mcp',
+    },
+  });
+}
+
 async function pair(app: FastifyInstance): Promise<string> {
   const started = await app.inject({
     method: 'POST',
@@ -349,6 +398,32 @@ describe('agent server pairing', () => {
       },
     });
     expect(wrongToken.statusCode).toBe(401);
+  });
+
+  it('reports central identities and the environment-selected identity', async () => {
+    const { app, store } = await fixture({ activeIdentity: 'second' });
+    writeCentralIdentity(store, 'first', true);
+    writeCentralIdentity(store, 'second', false);
+    const token = await pair(app);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      selectedIdentity: 'second',
+      identities: [
+        { alias: 'first', activated: false, hasAgentKey: true },
+        { alias: 'second', activated: false, hasAgentKey: false },
+      ],
+    });
   });
 
   it('rate-limits the loopback HTTP surface with stable errors', async () => {
@@ -1304,6 +1379,71 @@ describe('agent server providers and runs', () => {
     );
   });
 
+  it('launches a central identity without a legacy agent-root override', async () => {
+    const signing = await cryptoService.generateKeyPair();
+    const privateKeyRef = `identity/${signing.fingerprint}/seed`;
+    const { app, store, spawned } = await fixture({
+      externalSecrets: {
+        'agent-key/agent-1': 'resolved-central-agent-key',
+        [privateKeyRef]: signing.privateKey,
+      },
+    });
+    const token = await pair(app);
+    store.writeAgentConfig('central', {
+      subject_id: 'agent-1',
+      subject_type: 'agent',
+      registered_at: 't',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/agent-1' },
+      keys: {
+        public_key: signing.publicKey,
+        fingerprint: signing.fingerprint,
+        private_key_ref: { provider: 'memory', key: privateKeyRef },
+      },
+      endpoints: {
+        api: 'https://api.example',
+        mcp: 'https://mcp.example/mcp',
+      },
+    });
+    store.writeActivation({
+      source: 'external',
+      alias: 'central',
+      subjectId: 'agent-1',
+      publicKey: signing.publicKey,
+      fingerprint: signing.fingerprint,
+      createdAt: 't',
+      configPath: store.agentPath('central'),
+      configApiUrl: 'https://api.example',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'central',
+        teamId: 'team-1',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+
+    expect(response.statusCode, response.body).toBe(201);
+    expect(spawned[0]?.args).toContain('central');
+    expect(spawned[0]?.args).not.toContain('--agent-root');
+    expect(spawned[0]?.options.env['MOLTNET_AGENT_KEY']).toBe(
+      'resolved-central-agent-key',
+    );
+    expect(spawned[0]?.options.env['MOLTNET_PRIVATE_KEY']).toBe(
+      signing.privateKey,
+    );
+  });
+
   it('rejects runs for unknown agents and invalid specs', async () => {
     const { app } = await fixture();
     const token = await pair(app);
@@ -1340,6 +1480,20 @@ describe('agent server providers and runs', () => {
       },
     });
     expect(badMode.statusCode).toBe(400);
+
+    const unknownTaskType = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'ghost',
+        teamId: 'team-1',
+        profiles: ['p'],
+        taskTypes: ['unknown-task-type'],
+        mode: 'poll',
+      },
+    });
+    expect(unknownTaskType.statusCode).toBe(400);
   });
 
   it('does not materialize a run when provider resolution fails', async () => {

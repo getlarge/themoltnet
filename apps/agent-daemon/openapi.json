@@ -70,6 +70,25 @@
         ],
         "type": "object"
       },
+      "AgentServerIdentity": {
+        "properties": {
+          "activated": {
+            "type": "boolean"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "hasAgentKey": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "alias",
+          "activated",
+          "hasAgentKey"
+        ],
+        "type": "object"
+      },
       "AgentServerLogStream": {
         "contentMediaType": "text/event-stream",
         "type": "string"
@@ -247,6 +266,12 @@
             },
             "type": "array"
           },
+          "identities": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerIdentity"
+            },
+            "type": "array"
+          },
           "platform": {
             "type": "string"
           },
@@ -261,6 +286,9 @@
               "$ref": "#/components/schemas/AgentServerRun"
             },
             "type": "array"
+          },
+          "selectedIdentity": {
+            "type": "string"
           },
           "subscriptions": {
             "items": {
@@ -277,6 +305,7 @@
           "platform",
           "subscriptions",
           "agents",
+          "identities",
           "providers",
           "runs"
         ],
@@ -351,6 +380,64 @@
           "status"
         ],
         "type": "object"
+      },
+      "AgentServerTaskType": {
+        "anyOf": [
+          {
+            "enum": [
+              "assess_brief"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "curate_pack"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "freeform"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "fulfill_brief"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "judge_eval_attempt"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "judge_pack"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "pr_review"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "render_pack"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "run_eval"
+            ],
+            "type": "string"
+          }
+        ]
       },
       "CancelledSubscription": {
         "properties": {
@@ -522,21 +609,21 @@
                           "managed"
                         ],
                         "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
                       }
                     },
                     "required": [
                       "kind",
+                      "name",
                       "enrollmentToken"
                     ],
                     "type": "object"
                   },
                   {
                     "properties": {
-                      "apiUrl": {
-                        "format": "uri",
-                        "type": "string"
-                      },
-                      "configDir": {
+                      "identityAlias": {
                         "type": "string"
                       },
                       "kind": {
@@ -548,41 +635,14 @@
                     },
                     "required": [
                       "kind",
-                      "configDir"
+                      "identityAlias"
                     ],
                     "type": "object"
                   }
-                ],
-                "properties": {
-                  "kind": {
-                    "anyOf": [
-                      {
-                        "enum": [
-                          "managed"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "external"
-                        ],
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "name"
-                ],
-                "type": "object"
+                ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1039,7 +1099,62 @@
                   },
                   "taskTypes": {
                     "items": {
-                      "type": "string"
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "assess_brief"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "curate_pack"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "freeform"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "fulfill_brief"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "judge_eval_attempt"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "judge_pack"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "pr_review"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "render_pack"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "run_eval"
+                          ],
+                          "type": "string"
+                        }
+                      ]
                     },
                     "type": "array"
                   },

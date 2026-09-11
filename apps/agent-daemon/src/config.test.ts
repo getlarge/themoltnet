@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadConfig } from './config.js';
+import { loadAgentServerEnvConfig, loadConfig } from './config.js';
 
 describe('loadConfig observability settings', () => {
   afterEach(() => {
@@ -24,6 +24,12 @@ describe('loadConfig observability settings', () => {
   it('reads executor signing material without transforming it', () => {
     vi.stubEnv('MOLTNET_PRIVATE_KEY', 'base64-seed');
     expect(loadConfig().signingPrivateKey).toBe('base64-seed');
+  });
+
+  it('loads the Agent Server active identity override', () => {
+    vi.stubEnv('MOLTNET_ACTIVE_IDENTITY', 'legreffier');
+
+    expect(loadAgentServerEnvConfig().activeIdentity).toBe('legreffier');
   });
 
   it('reads seed and agent-key references and rejects a value together with its reference', () => {

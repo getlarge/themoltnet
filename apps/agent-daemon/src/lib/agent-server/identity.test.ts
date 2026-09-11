@@ -516,6 +516,53 @@ describe('managed agent server agents', () => {
 });
 
 describe('external agent server agents', () => {
+  it('attaches an agent-key identity from the central store by alias', async () => {
+    const store = freshStore();
+    store.writeAgentConfig(
+      'central',
+      externalConfig({
+        agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
+        keys: {
+          public_key: 'ed25519:public',
+          fingerprint: 'FP-1',
+          private_key_ref: { provider: 'file', key: 'identity/FP-1/seed' },
+        },
+      }),
+    );
+
+    await attachExternalAgent(store, registry(), {
+      name: 'central',
+      configDir: store.identityDir('central'),
+    });
+
+    expect(store.readActivation('central')).toMatchObject({
+      source: 'external',
+      alias: 'central',
+      configPath: store.agentPath('central'),
+    });
+    expect(connectMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentKey: 'resolved-agent-key',
+        apiUrl: 'https://api.themolt.net',
+      }),
+    );
+  });
+
+  it('refuses a central identity without a daemon agent key', async () => {
+    const store = freshStore();
+    const oauthOnly = externalConfig();
+    delete oauthOnly.agent_key_ref;
+    store.writeAgentConfig('oauth-only', oauthOnly);
+
+    await expect(
+      attachExternalAgent(store, registry(), {
+        name: 'oauth-only',
+        configDir: store.identityDir('oauth-only'),
+      }),
+    ).rejects.toMatchObject({ code: 'unsupported_credential' });
+    expect(connectMock).not.toHaveBeenCalled();
+  });
+
   it('propagates cancellation through external whoami authentication', async () => {
     const store = freshStore();
     const configDir = writeExternalConfig(externalConfig());

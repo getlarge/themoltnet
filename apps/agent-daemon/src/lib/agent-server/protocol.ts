@@ -1,5 +1,7 @@
 import { type TSchema, Type } from 'typebox';
 
+import { REGISTERED_TASK_TYPES } from '../help.js';
+
 const DateTime = Type.String({ format: 'date-time' });
 const StringList = Type.Array(Type.String());
 
@@ -36,6 +38,20 @@ export const AgentServerAgentSchema = Type.Object(
     hasPrivateKey: Type.Optional(Type.Boolean()),
   },
   { $id: 'AgentServerAgent' },
+);
+
+export const AgentServerIdentitySchema = Type.Object(
+  {
+    alias: Type.String(),
+    activated: Type.Boolean(),
+    hasAgentKey: Type.Boolean(),
+  },
+  { $id: 'AgentServerIdentity' },
+);
+
+export const AgentServerTaskTypeSchema = Type.Union(
+  REGISTERED_TASK_TYPES.map((taskType) => Type.Literal(taskType)),
+  { $id: 'AgentServerTaskType' },
 );
 
 export const AgentServerProviderSchema = Type.Object(
@@ -111,6 +127,8 @@ export const AgentServerStatusSchema = Type.Object(
     platform: Type.String(),
     subscriptions: Type.Array(schemaRef(AgentServerSubscriptionSchema)),
     agents: Type.Array(schemaRef(AgentServerAgentSchema)),
+    identities: Type.Array(schemaRef(AgentServerIdentitySchema)),
+    selectedIdentity: Type.Optional(Type.String()),
     providers: Type.Record(Type.String(), schemaRef(AgentServerProviderSchema)),
     runs: Type.Array(schemaRef(AgentServerRunSchema)),
   },
@@ -132,25 +150,17 @@ export const ProviderParamsSchema = Type.Object({ providerId: Type.String() });
 export const AgentParamsSchema = Type.Object({ agentName: Type.String() });
 export const RunParamsSchema = Type.Object({ runId: Type.String() });
 
-export const CreateAgentSchema = Type.Object(
-  {
-    kind: Type.Union([Type.Literal('managed'), Type.Literal('external')]),
+export const CreateAgentSchema = Type.Union([
+  Type.Object({
+    kind: Type.Literal('managed'),
     name: Type.String(),
-  },
-  {
-    anyOf: [
-      Type.Object({
-        kind: Type.Literal('managed'),
-        enrollmentToken: Type.String(),
-      }),
-      Type.Object({
-        kind: Type.Literal('external'),
-        configDir: Type.String(),
-        apiUrl: Type.Optional(Type.String({ format: 'uri' })),
-      }),
-    ],
-  },
-);
+    enrollmentToken: Type.String(),
+  }),
+  Type.Object({
+    kind: Type.Literal('external'),
+    identityAlias: Type.String(),
+  }),
+]);
 
 export const ReconcileAgentSchema = Type.Object({
   action: Type.Union([Type.Literal('resume'), Type.Literal('abandon')]),
@@ -181,7 +191,7 @@ export const StartRunSchema = Type.Object({
   agent: Type.String(),
   teamId: Type.String(),
   profiles: StringList,
-  taskTypes: StringList,
+  taskTypes: Type.Array(AgentServerTaskTypeSchema),
   mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
 });
 
@@ -199,6 +209,8 @@ export const AGENT_SERVER_SCHEMAS = [
   AgentServerHealthSchema,
   AgentServerProblemSchema,
   AgentServerAgentSchema,
+  AgentServerIdentitySchema,
+  AgentServerTaskTypeSchema,
   AgentServerProviderSchema,
   AgentServerRunRecordSchema,
   AgentServerRunSchema,

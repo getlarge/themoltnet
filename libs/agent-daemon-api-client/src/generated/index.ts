@@ -25,6 +25,7 @@ export {
 export type {
   AgentServerAgent,
   AgentServerHealth,
+  AgentServerIdentity,
   AgentServerLogStream,
   AgentServerProblem,
   AgentServerProvider,
@@ -33,6 +34,7 @@ export type {
   AgentServerStatus,
   AgentServerSubscription,
   AgentServerSubscriptionLogin,
+  AgentServerTaskType,
   CancelAgentServerSubscriptionLoginData,
   CancelAgentServerSubscriptionLoginError,
   CancelAgentServerSubscriptionLoginErrors,
