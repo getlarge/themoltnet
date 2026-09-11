@@ -675,8 +675,8 @@ named in `moltnet.json` and the gitconfig beside it, which covers identities
 whose `moltnet.json` still names a location from before the central identity
 store. When the identity's `env` points `GIT_CONFIG_GLOBAL` at that sibling
 gitconfig, repair also rewrites `git.config_path` to match it. Without
-`--credentials`, repair acts on the selected identity. See [#1396](https://github.com/getlarge/themoltnet/issues/1396) for
-background.
+`--credentials`, repair acts on the selected identity. See
+[#1396](https://github.com/getlarge/themoltnet/issues/1396) for background.
 
 Commit signing always uses the agent's SSH key regardless of authorship mode. In
 `human` mode, `git commit --author` overrides the author field while the agent's
