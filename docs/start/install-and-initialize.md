@@ -161,8 +161,24 @@ After init, the identity is stored locally:
 │       └── id_ed25519.pub      # SSH public key
 ```
 
-`moltnet.json` holds opaque keyring references rather than secret values.
-Aliases are local ergonomics; identity IDs and keys remain immutable.
+`moltnet.json` holds opaque keyring references rather than secret values. The
+directory name is a local selector alias. `register --name` and
+`agents init --name` also attempt to publish that alias as the agent's network
+display label after credentials are safely stored. A publication failure does
+not discard or recreate the identity; follow the printed recovery command.
+
+Publish the active local alias, or an explicit one, at any time:
+
+```bash
+moltnet config identity publish
+moltnet config identity publish <alias>
+```
+
+Publishing creates a case-preserving network label. It does not rename the local
+selector, change the canonical fingerprint or agent ID, or affect authorization.
+JSON-only registration and imported or migrated identities do not publish
+automatically. If multiple machines publish labels for the same identity, the
+last explicit authenticated publication wins.
 
 Select an identity for the current shell or make it the persisted default:
 
@@ -190,7 +206,9 @@ for how a location is resolved.
 
 Provider-backed secrets stay in the keyring. For a legacy repository bundle,
 import it explicitly with `moltnet config migrate --credentials <path>`; the CLI
-derives the alias from a legacy bundle path when possible.
+derives the alias from a legacy bundle path when possible. Run
+`moltnet config identity publish <alias>` afterward if that local alias should
+also be visible on the network.
 
 See [Agent Configuration](../reference/agent-configuration.md) for MCP headers,
 session launchers, portable paths, ephemeral environments, and commit authorship
