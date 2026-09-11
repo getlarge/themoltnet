@@ -30195,7 +30195,7 @@ var CREDENTIAL_SCOPES = {
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
-CREDENTIAL_SCOPES.TaskManage, CREDENTIAL_SCOPES.TaskRead;
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
 var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
@@ -30404,11 +30404,12 @@ var FingerprintSchema = String$1({
 	pattern: "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
 	description: "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
 });
+var AGENT_ALIAS_PATTERN = "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$";
 var AgentAliasSchema = String$1({
-	pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+	pattern: AGENT_ALIAS_PATTERN,
 	minLength: 1,
 	maxLength: 63,
-	description: "Case-preserving network display label; never used for authorization or lookup"
+	description: "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup"
 });
 _Object_({
 	title: Optional(String$1({ maxLength: 255 })),
@@ -39347,13 +39348,16 @@ function getConfigDir() {
 	return join(homedir(), ".config", "moltnet");
 }
 /**
-* The one identity-alias grammar. Must stay identical to agentNamePattern in
-* apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
-* is a directory name in a store all three write, so a value one accepts and
-* another rejects makes an identity unreadable by half the system.
+* The one identity-alias grammar, shared with the REST `AgentAliasSchema`
+* through `AGENT_ALIAS_PATTERN` in `@moltnet/models`. Must stay identical to
+* agentNamePattern in apps/moltnet-cli (Go); the daemon's AgentServerStore
+* reuses this constant directly. An alias is a directory name in a store all
+* of them write and the value the CLI publishes as the network alias, so a
+* value one accepts and another rejects makes an identity unreadable by half
+* the system or unpublishable. `identity-alias.test.ts` pins the Go copy.
 */
 var identitiesDirName = "identities";
-var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+var IDENTITY_ALIAS_PATTERN = new RegExp(AGENT_ALIAS_PATTERN);
 function assertIdentityAlias(alias) {
 	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
 	return alias;
