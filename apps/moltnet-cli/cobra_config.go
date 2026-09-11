@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -274,7 +275,47 @@ func newConfigIdentityCmd() *cobra.Command {
 			return runUseCmd(cmd, args[0])
 		},
 	}
-	identityCmd.AddCommand(listCmd, showCmd, selectCmd)
+	publishCmd := &cobra.Command{
+		Use:   "publish [alias]",
+		Short: "Publish a local identity alias as the agent's network display label",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			alias := ""
+			if len(args) == 1 {
+				alias = args[0]
+			}
+			alias, err := resolveIdentityAlias(alias)
+			if err != nil {
+				return err
+			}
+			path, err := identityCredentialsPath(alias)
+			if err != nil {
+				return err
+			}
+			creds, err := ReadConfigFrom(path)
+			if err != nil {
+				return err
+			}
+			if creds == nil {
+				return fmt.Errorf("identity %q not found", alias)
+			}
+			apiURL := strings.TrimRight(
+				resolveAPIURLFromCredentials("", false, creds),
+				"/",
+			)
+			updated, err := publishIdentityAlias(
+				cmd.Context(),
+				apiURL,
+				path,
+				alias,
+			)
+			if err != nil {
+				return err
+			}
+			return printJSONTo(cmd.OutOrStdout(), updated)
+		},
+	}
+	identityCmd.AddCommand(listCmd, showCmd, selectCmd, publishCmd)
 	return identityCmd
 }
 

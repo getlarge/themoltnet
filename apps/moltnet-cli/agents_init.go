@@ -110,6 +110,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		if err := completeCentralIdentityInit(opts, agentDir, configPath, creds); err != nil {
 			return err
 		}
+		attemptIdentityAliasPublication(opts.errOut, apiURL, configPath, opts.name)
 		fmt.Fprintf(opts.out, "Agent %s is already initialized at %s\n", opts.name, configPath)
 		return nil
 	}
@@ -267,6 +268,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	if err := completeCentralIdentityInit(opts, agentDir, configPath, creds); err != nil {
 		return err
 	}
+	attemptIdentityAliasPublication(opts.errOut, apiURL, configPath, opts.name)
 	if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("remove initialization state: %w", err)
 	}

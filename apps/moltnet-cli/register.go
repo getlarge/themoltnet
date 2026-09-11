@@ -192,6 +192,7 @@ func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType str
 		return fmt.Errorf("credentials could not be written; the new keyring entry was removed: %w", err)
 	}
 	fmt.Fprintf(errOut, "Credentials written to %s\n", credPath)
+	attemptIdentityAliasPublication(errOut, result.APIUrl, credPath, name)
 	if !noMCP {
 		fmt.Fprintln(errOut, "MCP config not written: install LeGreffier from your host's plugin directory for authenticated MCP access")
 	}
