@@ -72,7 +72,7 @@ func TestFormatAPIError_Unauthorized(t *testing.T) {
 	}
 }
 
-func TestFormatAPIError_UnauthorizedNamesAgentKeyMode(t *testing.T) {
+func TestFormatAPIError_UnauthorizedDoesNotInferAuthModeFromEnvironment(t *testing.T) {
 	t.Setenv(agentKeyEnv, "opaque-agent-key")
 	errRes := &moltnetapi.GetWhoamiUnauthorized{
 		Title:  "Unauthorized",
@@ -82,9 +82,8 @@ func TestFormatAPIError_UnauthorizedNamesAgentKeyMode(t *testing.T) {
 	}
 
 	err := formatAPIError(errRes)
-	if !strings.Contains(err.Error(), agentKeyEnv) ||
-		!strings.Contains(err.Error(), "OAuth2 fallback is disabled") {
-		t.Errorf("error = %q, want selected auth-mode diagnostic", err)
+	if err.Error() != "API error (HTTP 401): Unauthorized" {
+		t.Errorf("error = %q, want auth-mode-neutral diagnostic", err)
 	}
 }
 

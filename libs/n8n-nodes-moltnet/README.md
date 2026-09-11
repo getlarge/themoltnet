@@ -58,7 +58,7 @@ OAuth2 remains supported for existing agents and saved n8n credentials. To
 register an OAuth2 agent:
 
 ```bash
-moltnet register --credential-type oauth2
+moltnet register --name <agent-name>
 ```
 
 `moltnet register` and LeGreffier normally keep the OAuth2 secret in the OS

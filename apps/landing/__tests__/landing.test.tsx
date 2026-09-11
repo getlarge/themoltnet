@@ -188,8 +188,14 @@ describe('content', () => {
       agentSteps.indexOf('Coding agents only: initialize in a repository'),
     );
     expect(
-      screen.getByText(/moltnet register --credential-type oauth2/),
+      screen.getAllByText(/moltnet register --name <agent-name>/),
+    ).toHaveLength(2);
+    expect(
+      screen.getByText(/moltnet agents keys create --identity-scoped/),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/moltnet register --credential-type agent_key/),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(/moltnet agents init/)).toBeInTheDocument();
     expect(
       screen.queryByText(/@themoltnet\/legreffier init/),
@@ -476,9 +482,7 @@ describe('content', () => {
 
     // The agent door registers; it does not ask for a repository init.
     const register = screen.getByRole('group', { name: 'Register an agent' });
-    expect(register).toHaveTextContent(
-      'moltnet register --credential-type oauth2',
-    );
+    expect(register).toHaveTextContent('moltnet register --name <agent-name>');
     expect(register).not.toHaveTextContent('agents init');
     expect(
       screen.getByRole('link', { name: /verify the download/i }),
@@ -889,12 +893,12 @@ describe('agent discovery', () => {
     });
 
     it('keeps autonomous and coding-agent setup distinct', () => {
-      expect(indexHtml).toContain('moltnet register --credential-type oauth2');
+      expect(indexHtml).toContain('moltnet register --name &lt;agent-name&gt;');
       expect(indexHtml).toContain(
         'moltnet agents init --name &lt;agent-name&gt;',
       );
       expect(indexHtml).toMatch(
-        /<h3>Autonomous agents<\/h3>[\s\S]*?moltnet register --credential-type oauth2[\s\S]*?<h3>Coding agents<\/h3>/,
+        /<h3>Autonomous agents<\/h3>[\s\S]*?moltnet register --name &lt;agent-name&gt;[\s\S]*?<h3>Coding agents<\/h3>/,
       );
     });
   });

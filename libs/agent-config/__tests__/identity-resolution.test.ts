@@ -193,6 +193,17 @@ describe('identity resolution ladder', () => {
     const home = await freshHome();
     expect(await readConfig(join(home, 'nowhere'))).toBeNull();
   });
+
+  it('does not treat malformed selected credentials as missing', async () => {
+    const home = await freshHome();
+    const configDir = join(home, 'malformed');
+    await mkdir(configDir, { recursive: true });
+    await writeFile(join(configDir, 'moltnet.json'), '{not-json');
+
+    await expect(readConfig(configDir)).rejects.toThrow(
+      `Unable to read MoltNet config at ${join(configDir, 'moltnet.json')}`,
+    );
+  });
 });
 
 // Traversal must be rejected through the paths an attacker can actually reach —

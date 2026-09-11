@@ -36,14 +36,12 @@ type subjectVerification struct {
 // before it is pinned, while current identity/key metadata can be refreshed as
 // rotatable attributes.
 //
-// It authenticates through newAuthenticatedClient, so it uses whichever
-// credential the agent actually uses for API calls: an agent_key_ref in
-// preference to the OAuth2 client credentials. Verifying through a different
-// credential than the one the agent works with would check the wrong binding,
-// and #2160/#2171 move the daemon to an agent key only. The cost is that a
-// keyring-backed agent_key_ref must be resolvable for a refresh to succeed.
+// Activation verifies the credential selected for ordinary CLI work. When the
+// document also contains an agent_key_ref, it verifies that daemon credential
+// independently and requires both credentials to identify the same subject.
 func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile) (*subjectVerification, error) {
-	client, err := newAuthenticatedClient(apiURL, credentialsPath)
+	registry := NewSecretProviderRegistry()
+	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
 	if err != nil {
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
@@ -52,7 +50,38 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
 
-	return verifyAuthenticatedSubject(credentialsPath, creds, whoami, true)
+	verified, err := verifyAuthenticatedSubject(credentialsPath, creds, whoami, true)
+	if err != nil {
+		return nil, err
+	}
+	if !hasOAuth2Configuration(creds) || creds.AgentKeyRef == nil {
+		return verified, nil
+	}
+
+	configKey, _, err := resolveAgentKey(creds, registry)
+	if err != nil {
+		return nil, fmt.Errorf("verify daemon identity: resolve agent_key_ref: %w", err)
+	}
+	keyClient, err := newAgentKeyAuthenticatedClient(apiURL, configKey)
+	if err != nil {
+		return nil, fmt.Errorf("verify daemon identity: %w", err)
+	}
+	keyWhoami, err := fetchAgentWhoami(context.Background(), keyClient)
+	if err != nil {
+		return nil, fmt.Errorf("verify daemon identity: %w", err)
+	}
+	keyVerified, err := verifyAuthenticatedSubject(credentialsPath, creds, keyWhoami, true)
+	if err != nil {
+		return nil, fmt.Errorf("verify daemon identity: %w", err)
+	}
+	if keyVerified.SubjectID != verified.SubjectID {
+		return nil, fmt.Errorf(
+			"verify identity: OAuth2 and agent_key_ref authenticate as different subjects (%s and %s)",
+			verified.SubjectID,
+			keyVerified.SubjectID,
+		)
+	}
+	return verified, nil
 }
 
 // verifyConfigIdentityAgainstServer is the migration variant of identity

@@ -269,8 +269,17 @@ func TestNewAuthenticatedClientBlankAgentKeyFallsBackToOAuth(t *testing.T) {
 	}
 }
 
-func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.T) {
-	t.Setenv(agentKeyEnv, "rejected-agent-key")
+func TestNewAuthenticatedClientPrefersEnvironmentAgentKeyOverOAuth(t *testing.T) {
+	t.Setenv(agentKeyEnv, "explicit-agent-key")
+
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000006")
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: wantID},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
 
 	tokenCalls := 0
 	var authorization string
@@ -286,14 +295,7 @@ func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.
 			return
 		}
 		authorization = r.Header.Get("Authorization")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
-			"type":   "about:blank",
-			"title":  "Unauthorized",
-			"status": http.StatusUnauthorized,
-			"code":   "UNAUTHORIZED",
-		})
+		generated.ServeHTTP(w, r)
 	}))
 	defer apiSrv.Close()
 
@@ -302,24 +304,100 @@ func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.
 	if err != nil {
 		t.Fatalf("newAuthenticatedClient() error: %v", err)
 	}
-	res, err := client.GetWhoami(context.Background())
-	if err != nil {
+	if _, err := client.GetWhoami(context.Background()); err != nil {
 		t.Fatalf("GetWhoami() transport error: %v", err)
 	}
 	if tokenCalls != 0 {
 		t.Errorf("OAuth token calls = %d, want 0", tokenCalls)
 	}
-	if authorization != "Bearer rejected-agent-key" {
-		t.Errorf("Authorization = %q, want authoritative agent key", authorization)
-	}
-	formatted := formatAPIError(res)
-	if !strings.Contains(formatted.Error(), agentKeyEnv) ||
-		!strings.Contains(formatted.Error(), "OAuth2 fallback is disabled") {
-		t.Errorf("rejection error = %q, want agent-key mode diagnostic", formatted)
+	if authorization != "Bearer explicit-agent-key" {
+		t.Errorf("Authorization = %q, want explicit agent-key bearer", authorization)
 	}
 }
 
-func TestValidateAgentKeyAPIURL(t *testing.T) {
+func TestNewAuthenticatedClientDoesNotFallBackAfterExplicitAgentKeyRejection(t *testing.T) {
+	t.Setenv(agentKeyEnv, "rejected-agent-key")
+	t.Setenv(agentKeyRefEnv, "")
+	tokenCalls := 0
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+		}
+		authorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"type":"about:blank","title":"Unauthorized","status":401,"code":"UNAUTHORIZED"}`))
+	}))
+	defer apiSrv.Close()
+
+	client, err := newAuthenticatedClient(apiSrv.URL, writeCredsWithAPI(t, apiSrv.URL))
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	res, err := client.GetWhoami(context.Background())
+	if err != nil {
+		t.Fatalf("GetWhoami() transport error: %v", err)
+	}
+	if _, ok := res.(*moltnetapi.GetWhoamiUnauthorized); !ok {
+		t.Fatalf("response = %T, want unauthorized", res)
+	}
+	if tokenCalls != 0 || authorization != "Bearer rejected-agent-key" {
+		t.Fatalf("tokenCalls = %d, Authorization = %q; want rejected explicit key with no OAuth fallback", tokenCalls, authorization)
+	}
+}
+
+func TestNewAuthenticatedClientNeverFallsBackWhenOAuthConfigurationIsIncomplete(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		SubjectID: "id-1",
+		OAuth2:    CredentialsOAuth2{ClientID: "oauth-client"},
+		Endpoints: CredentialsEndpoints{API: "https://api.example.test"},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err == nil || !strings.Contains(err.Error(), "oauth2 config must set exactly one") {
+		t.Fatalf("expected OAuth2 configuration error, got %v", err)
+	}
+}
+
+func TestNewAuthenticatedClientNeverFallsBackFromMalformedCredentials(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if err := os.WriteFile(credPath, []byte("{not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err == nil || !strings.Contains(err.Error(), "parse config") {
+		t.Fatalf("expected selected credentials error, got %v", err)
+	}
+}
+
+func TestNewAuthenticatedClientExplicitAgentKeyDoesNotReadMalformedCredentials(t *testing.T) {
+	t.Setenv(agentKeyEnv, "explicit-agent-key")
+	t.Setenv(agentKeyRefEnv, "")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if err := os.WriteFile(credPath, []byte("{not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err != nil {
+		t.Fatalf("explicit agent key should bypass selected credentials: %v", err)
+	}
+	if client == nil {
+		t.Fatal("newAuthenticatedClient() returned nil client")
+	}
+}
+
+func TestValidateCredentialAPIURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		apiURL  string
@@ -336,9 +414,9 @@ func TestValidateAgentKeyAPIURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateAgentKeyAPIURL(tt.apiURL)
+			err := validateCredentialAPIURL(tt.apiURL)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateAgentKeyAPIURL(%q) error = %v, wantErr %v", tt.apiURL, err, tt.wantErr)
+				t.Errorf("validateCredentialAPIURL(%q) error = %v, wantErr %v", tt.apiURL, err, tt.wantErr)
 			}
 		})
 	}
@@ -354,9 +432,25 @@ func TestNewAuthenticatedClientRejectsInsecureRemoteAgentKeyEndpoint(t *testing.
 	if err == nil {
 		t.Fatal("expected insecure endpoint error")
 	}
-	if !strings.Contains(err.Error(), "use HTTPS") ||
-		!strings.Contains(err.Error(), agentKeyEnv) {
+	if !strings.Contains(err.Error(), "use HTTPS") {
 		t.Errorf("error = %q, want agent-key HTTPS diagnostic", err)
+	}
+}
+
+func TestNewAuthenticatedClientRejectsInsecureRemoteOAuthEndpoint(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "secret"},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("http://api.example.com", credPath)
+	if err == nil || !strings.Contains(err.Error(), "use HTTPS") {
+		t.Fatalf("expected OAuth2 HTTPS diagnostic, got %v", err)
 	}
 }
 
@@ -390,14 +484,25 @@ func TestNewAuthenticatedClientResolvesAgentKeyReference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	tokenCalls := 0
 	var authorization string
 	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "oauth-access-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
+		}
 		authorization = r.Header.Get("Authorization")
 		generated.ServeHTTP(w, r)
 	}))
 	defer apiSrv.Close()
 
-	client, err := newAuthenticatedClient(apiSrv.URL, filepath.Join(t.TempDir(), "missing-moltnet.json"))
+	client, err := newAuthenticatedClient(apiSrv.URL, writeCredsWithAPI(t, apiSrv.URL))
 	if err != nil {
 		t.Fatalf("newAuthenticatedClient() error: %v", err)
 	}
@@ -406,6 +511,9 @@ func TestNewAuthenticatedClientResolvesAgentKeyReference(t *testing.T) {
 	}
 	if authorization != "Bearer ak_from_ref" {
 		t.Errorf("Authorization = %q, want the resolved agent key", authorization)
+	}
+	if tokenCalls != 0 {
+		t.Errorf("OAuth token calls = %d, want 0", tokenCalls)
 	}
 }
 
@@ -417,7 +525,7 @@ func TestNewAuthenticatedClientRejectsAgentKeyValueAndReferenceTogether(t *testi
 	}
 }
 
-func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing.T) {
+func TestNewAuthenticatedClientPrefersOAuthOverConfigAgentKeyReference(t *testing.T) {
 	t.Setenv(agentKeyEnv, "")
 	t.Setenv(agentKeyRefEnv, "")
 	root := t.TempDir()
@@ -437,6 +545,13 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/oauth2/token" {
 			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "oauth-access-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
 		}
 		authorization = r.Header.Get("Authorization")
 		generated.ServeHTTP(w, r)
@@ -452,14 +567,6 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	if _, err := WriteConfigTo(creds, credPath); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := newAuthenticatedClient(apiSrv.URL, credPath); err == nil || !strings.Contains(err.Error(), "not bound") {
-		t.Fatalf("a reference bound to another identity must be rejected; got err=%v", err)
-	}
-
-	creds.AgentKeyRef = &SecretReference{Provider: fileProviderName, Key: "agent-key.id-1"}
-	if _, err := WriteConfigTo(creds, credPath); err != nil {
-		t.Fatal(err)
-	}
 	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
 	if err != nil {
 		t.Fatalf("newAuthenticatedClient() error: %v", err)
@@ -467,7 +574,108 @@ func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing
 	if _, err := client.GetWhoami(context.Background()); err != nil {
 		t.Fatalf("GetWhoami() error: %v", err)
 	}
-	if authorization != "Bearer ak_from_config" || tokenCalls != 0 {
-		t.Fatalf("Authorization = %q, tokenCalls = %d; want the config agent key and no OAuth2 exchange", authorization, tokenCalls)
+	if authorization != "Bearer oauth-access-token" || tokenCalls != 1 {
+		t.Fatalf("Authorization = %q, tokenCalls = %d; want OAuth2 and no agent-key resolution", authorization, tokenCalls)
+	}
+}
+
+func TestNewAuthenticatedClientDoesNotFallBackAfterConfigOAuthRejection(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	if err := os.WriteFile(filepath.Join(root, "agent-key.id-1"), []byte("fallback-key\n"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	tokenCalls := 0
+	var authorizations []string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"access_token":"rejected-oauth-token","token_type":"Bearer","expires_in":3600}`))
+			return
+		}
+		authorizations = append(authorizations, r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"type":"about:blank","title":"Unauthorized","status":401,"code":"UNAUTHORIZED"}`))
+	}))
+	defer apiSrv.Close()
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		SubjectID:   "id-1",
+		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: "agent-key.id-1"},
+		OAuth2:      CredentialsOAuth2{ClientID: "client", ClientSecret: "secret"},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := client.GetWhoami(context.Background())
+	if err != nil {
+		t.Fatalf("GetWhoami() transport error: %v", err)
+	}
+	if _, ok := res.(*moltnetapi.GetWhoamiUnauthorized); !ok {
+		t.Fatalf("response = %T, want unauthorized", res)
+	}
+	if tokenCalls != 1 || len(authorizations) != 1 || authorizations[0] != "Bearer rejected-oauth-token" {
+		t.Fatalf("tokenCalls = %d, authorizations = %v; want one rejected OAuth attempt and no key fallback", tokenCalls, authorizations)
+	}
+}
+
+func TestNewAuthenticatedClientDoesNotFallBackFromUnresolvableOAuthReference(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	if err := os.WriteFile(filepath.Join(root, "agent-key.id-1"), []byte("usable-key\n"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		SubjectID:   "id-1",
+		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: "agent-key.id-1"},
+		OAuth2: CredentialsOAuth2{
+			ClientID:        "client",
+			ClientSecretRef: &SecretReference{Provider: fileProviderName, Key: "missing-oauth-secret"},
+		},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err == nil || !strings.Contains(err.Error(), "agent_key_ref was not attempted") {
+		t.Fatalf("expected selected OAuth2 resolution failure, got %v", err)
+	}
+}
+
+func TestNewAuthenticatedClientDoesNotFallBackFromMissingOAuthClientID(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	if err := os.WriteFile(filepath.Join(root, "agent-key.id-1"), []byte("usable-key\n"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		SubjectID:   "id-1",
+		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: "agent-key.id-1"},
+		OAuth2:      CredentialsOAuth2{ClientSecret: "secret-without-client-id"},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := newAuthenticatedClient("https://api.example.test", credPath)
+	if err == nil || !strings.Contains(err.Error(), "missing client_id") ||
+		!strings.Contains(err.Error(), "agent_key_ref was not attempted") {
+		t.Fatalf("expected selected OAuth2 validation failure, got %v", err)
 	}
 }

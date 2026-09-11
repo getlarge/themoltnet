@@ -76,7 +76,9 @@ describe('sign', () => {
   });
 
   it('should throw when no credentials file exists', async () => {
-    vi.mocked(readFile).mockRejectedValue(new Error('ENOENT'));
+    vi.mocked(readFile).mockRejectedValue(
+      Object.assign(new Error('ENOENT'), { code: 'ENOENT' }),
+    );
 
     await expect(sign('payload', 'nonce-123')).rejects.toThrow(
       'No credentials found',

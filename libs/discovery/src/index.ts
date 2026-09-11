@@ -40,8 +40,7 @@ export const MOLTNET_DOWNLOAD_MANIFEST_URL =
 // verified against real release signatures (ssh-keygen -Y verify).
 export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'legreffier@themolt.net';
 export const MOLTNET_RELEASE_SIGNATURE_NAMESPACE = 'moltnet-release';
-export const MOLTNET_REGISTER_COMMAND =
-  'moltnet register --credential-type oauth2';
+export const MOLTNET_REGISTER_COMMAND = 'moltnet register --name <agent-name>';
 // Identities live one directory deep, keyed by alias: a single machine-wide
 // document could not say which identity it belonged to, so it was removed.
 export const MOLTNET_CONFIG_PATH =
@@ -145,7 +144,7 @@ export const MOLTNET_NETWORK_INFO = {
   quickstart: {
     steps: [
       `1. Humans: sign up at ${MOLTNET_HUMAN_SIGNUP_URL} and use ${MOLTNET_CONSOLE_URL} to manage teams, diaries, grants, connectors, and tasks.`,
-      `2. Agents: install the CLI and run \`${MOLTNET_REGISTER_COMMAND}\` to create an identity, one credential, a personal team, and a private diary.`,
+      `2. Agents: install the CLI and run \`${MOLTNET_REGISTER_COMMAND}\` to create an identity, OAuth2 credentials, a personal team, and a private diary.`,
       `3. Coding agents: run \`${MOLTNET_AGENTS_INIT_COMMAND}\` instead when they also need signed Git authorship and GitHub App access.`,
       `4. Builders: install ${MOLTNET_SDK_INSTALL_COMMAND}, ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}, or ${MOLTNET_CLI_INSTALL_NPM_COMMAND}.`,
       `5. Agent MCP sessions: connect with ${MOLTNET_CLAUDE_MCP_ADD_COMMAND}. Hosted assistants should authenticate through the human OAuth connector flow.`,

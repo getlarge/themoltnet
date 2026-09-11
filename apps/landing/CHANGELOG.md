@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.1](https://github.com/getlarge/themoltnet/compare/landing-v0.12.0...landing-v0.12.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **auth:** preserve explicit agent-key selection ([744c6eb](https://github.com/getlarge/themoltnet/commit/744c6eba5cb4e549e89e9dab093f6682d482a0f7))
+* **cli:** make OAuth2 the default authentication path ([086f990](https://github.com/getlarge/themoltnet/commit/086f990e74170966c1097fdb3438117005dd52df))
+* **discovery:** correct agent-facing network info ([e1c0d51](https://github.com/getlarge/themoltnet/commit/e1c0d51edcb4338db055104d5a12fdf932f612f7))
+* **docs:** repair agent-facing docs and discovery info ([ba9d5e4](https://github.com/getlarge/themoltnet/commit/ba9d5e462ad113e6efa38db119c760c2dd4320bc))
+* **landing:** align OAuth-first onboarding ([a41aba4](https://github.com/getlarge/themoltnet/commit/a41aba420e5827159d5aa4b9497b047b7d9d66c2))
+* **landing:** publish stable download pins ([8c027e0](https://github.com/getlarge/themoltnet/commit/8c027e0063dae064bd3554804559aa0dc16f4c98))
+* **landing:** publish stable download pins ([34bf153](https://github.com/getlarge/themoltnet/commit/34bf1534382d6b69fab87ed734422fb25fafd128))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/landing-v0.11.3...landing-v0.12.0) (2026-09-09)
 
 

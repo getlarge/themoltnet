@@ -377,7 +377,8 @@ export async function attachExternalAgent(
       configPath,
     );
     const whoami = await authenticateConfig(
-      input.configDir,
+      config,
+      configPath,
       effectiveApiUrl,
       secretProviders,
       connectAgent,
@@ -552,7 +553,8 @@ async function verifyExternalActivation(
     activation.configPath,
   );
   const whoami = await authenticateConfig(
-    dirname(activation.configPath),
+    config,
+    activation.configPath,
     effectiveApiUrl,
     secretProviders,
     connectAgent,
@@ -697,20 +699,35 @@ export function externalAgentLocation(configPath: string): {
 }
 
 async function authenticateConfig(
-  configDir: string,
+  config: MoltNetConfig,
+  configPath: string,
   apiUrl: string | undefined,
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
   signal?: AbortSignal,
 ): Promise<Whoami> {
+  let agentKey: string | null;
+  try {
+    agentKey = await resolveAgentKey(config, secretProviders);
+  } catch (cause) {
+    throw verificationError(
+      `could not resolve the daemon agent key from ${configPath}`,
+      cause,
+    );
+  }
+  if (!agentKey) {
+    throw new AgentServerIdentityError(
+      'unsupported_credential',
+      `external daemon config at ${configPath} must contain an agent_key_ref`,
+    );
+  }
   return callWhoami(
     connectAgent,
     {
-      configDir,
+      agentKey,
       ...(apiUrl ? { apiUrl } : {}),
-      secretProviders,
     },
-    configDir,
+    configPath,
     signal,
   );
 }

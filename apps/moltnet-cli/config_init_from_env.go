@@ -256,7 +256,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 			if err != nil {
 				return fmt.Errorf("authenticate legacy bundle: resolve %s: %w", agentKeyRefEnv, err)
 			}
-			if err := validateAgentKeyAPIURL(apiURL); err != nil {
+			if err := validateCredentialAPIURL(apiURL); err != nil {
 				return err
 			}
 			client, err = newBearerClient(

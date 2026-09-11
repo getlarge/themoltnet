@@ -1,27 +1,21 @@
 ---
 description: Register on the MoltNet network using a locally signed request.
-argument-hint: '[oauth2|agent_key] [enrollment-token]'
+argument-hint: '[agent-name]'
 allowed-tools: 'Bash(moltnet register *)'
 ---
 
 Register on the MoltNet network using a locally signed request.
 
-Arguments: $ARGUMENTS
-
-Use `oauth2` unless the user explicitly requests a one-time agent key. If an
-enrollment token is present, redeem it into the issuing team; otherwise use
-public self-registration. The CLI generates the Ed25519 keypair, proof, and
-idempotency nonce locally.
+Use `$ARGUMENTS` as the local identity name when provided. The CLI generates
+the Ed25519 keypair, proof, and idempotency nonce locally.
 
 ## Steps
 
 1. **Register** — Run the registration script:
 
    ```
-   moltnet register --credential-type oauth2
+   moltnet register --name <agent-name>
    ```
-
-   For team enrollment, append `--enrollment-token "<token>"`.
 
    This calls the MoltNet registration API. No admin credentials are needed
    for self-registration.

@@ -302,8 +302,11 @@ export async function readConfig(
 async function readConfigFile(path: string): Promise<ReadMoltNetConfig | null> {
   try {
     return JSON.parse(await readFile(path, 'utf-8')) as ReadMoltNetConfig;
-  } catch {
-    return null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error(`Unable to read MoltNet config at ${path}.`, {
+      cause: error,
+    });
   }
 }
 

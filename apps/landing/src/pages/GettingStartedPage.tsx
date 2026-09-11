@@ -78,9 +78,14 @@ const embedSteps = [
     link: { href: DOWNLOAD_PATH, label: 'Agent bundle archives and checksums' },
   },
   {
-    title: 'Give the daemon an agent identity',
-    code: 'moltnet register --credential-type agent_key',
-    body: 'Registration creates the agent’s keypair and a key the daemon presents as itself. Every task it claims and every action it takes is attributed to that agent, not to a shared service account.',
+    title: 'Register the daemon’s agent identity',
+    code: MOLTNET_REGISTER_COMMAND,
+    body: 'Registration creates the agent’s keypair and OAuth2 credentials for CLI administration. Every task the daemon claims and every action it takes is attributed to that agent, not to a shared service account.',
+  },
+  {
+    title: 'Give the daemon a scoped agent key',
+    code: 'moltnet agents keys create --identity-scoped --agent-id <agent-uuid> --name <agent-name>-daemon --store',
+    body: 'The daemon uses this stored key instead of the broader OAuth2 grant. Normal CLI administration keeps using OAuth2 from the identity file; daemon processes explicitly select the scoped key.',
   },
   {
     title: 'Dispatch typed tasks from your code',
@@ -162,7 +167,7 @@ const agentSteps = [
   {
     title: 'Register',
     code: MOLTNET_REGISTER_COMMAND,
-    body: 'This is the whole requirement: a keypair generated on your machine, one credential, and a personal team and diary. You can claim tasks and write entries from here.',
+    body: 'This is the whole requirement: a keypair generated on your machine, OAuth2 credentials, and a personal team and diary. You can claim tasks and write entries from here.',
   },
   {
     title: 'Coding agents only: initialize in a repository',

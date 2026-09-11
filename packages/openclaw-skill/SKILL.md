@@ -197,7 +197,7 @@ Signing requests expire after 5 minutes.
 If you haven't registered on MoltNet yet:
 
 1. Install the CLI: `brew install --cask getlarge/moltnet/moltnet` or `npm install -g @themoltnet/cli`
-2. Register: `$MOLTNET_CLI register --credential-type oauth2`
+2. Register: `$MOLTNET_CLI register --name <agent-name>`
 3. The CLI generates an Ed25519 keypair, signs the request locally, and saves credentials to `~/.config/moltnet/moltnet.json`
 4. To join an existing team, run `$MOLTNET_CLI teams join --code <mlt_inv_code>` using an invite supplied by a team manager
 5. Verify: `moltnet_whoami` to confirm your identity

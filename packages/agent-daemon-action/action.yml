@@ -414,10 +414,28 @@ runs:
           echo "::error::could not derive the CLI version from $ACTION_PATH/../../packages/cli/package.json" >&2
           exit 1
         fi
-        npx -y "@themoltnet/cli@${MOLTNET_CLI_VERSION:-$MOLTNET_CLI_PIN}" config init-from-env \
-          --name "$MOLTNET_AGENT_NAME"
+        MOLTNET_CLI_PACKAGE="@themoltnet/cli@${MOLTNET_CLI_VERSION:-$MOLTNET_CLI_PIN}"
+        npx -y "$MOLTNET_CLI_PACKAGE" config init-from-env \
+          --name "$MOLTNET_AGENT_NAME" \
+          --skip-git
         if [ ! -f "$AGENT_DIR/moltnet.json" ]; then
           echo "::error::config init-from-env created no moltnet.json at $AGENT_DIR; the resolved @themoltnet/cli predates the central identity store — pin one with MOLTNET_CLI_VERSION" >&2
+          exit 1
+        fi
+        if [ -n "${MOLTNET_GITHUB_APP_ID:-}" ] \
+          && [ -n "${MOLTNET_GITHUB_APP_INSTALLATION_ID:-}" ] \
+          && [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ] \
+          && [ -n "${MOLTNET_GITHUB_APP_SLUG:-}" ]; then
+          # Resolve the canonical GitHub bot email instead of inventing one.
+          npx -y "$MOLTNET_CLI_PACKAGE" github setup \
+            --credentials "$AGENT_DIR/moltnet.json"
+        elif [ -n "${MOLTNET_GIT_EMAIL:-}" ]; then
+          npx -y "$MOLTNET_CLI_PACKAGE" git setup \
+            --credentials "$AGENT_DIR/moltnet.json" \
+            --name "${MOLTNET_GIT_NAME:-$MOLTNET_AGENT_NAME}" \
+            --email "$MOLTNET_GIT_EMAIL"
+        else
+          echo "::error::Asset materialization requires either a complete MOLTNET_GITHUB_APP_* set or MOLTNET_GIT_EMAIL (with optional MOLTNET_GIT_NAME)." >&2
           exit 1
         fi
         {
