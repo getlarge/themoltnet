@@ -178,7 +178,13 @@ test.describe.serial('Runtime security console', () => {
     const createDialog = page.getByRole('dialog', {
       name: 'Create agent key',
     });
-    await expect(createDialog.getByRole('combobox')).not.toHaveValue('');
+    // A purpose fixes the scope set; Read-only is open to every team role.
+    await createDialog
+      .getByLabel('Credential purpose')
+      .selectOption('read-only');
+    await expect(
+      createDialog.getByLabel('Agent', { exact: true }),
+    ).not.toHaveValue('');
     await createDialog.getByLabel('Key name').fill(keyName);
     await createDialog.getByLabel('Lifetime in days').fill('7');
     const createKeyButton = createDialog.getByRole('button', {
