@@ -17,6 +17,13 @@ const rubric = JSON.parse(
     'utf8',
   ),
 ) as Rubric;
+const workflow = readFileSync(
+  resolve(
+    process.cwd(),
+    '../.github/workflows/legreffier-complexity-review.yml',
+  ),
+  'utf8',
+);
 
 function pullRequest(
   overrides: Partial<PullRequestInfo> = {},
@@ -49,7 +56,20 @@ describe('buildPrReviewInput', () => {
     expect(input.taskPrompt).toContain(
       'trusted workflow code publishes the accepted output',
     );
+    expect(input.taskPrompt).toContain(
+      'Do not use `gh`, `curl`, web tools, or any network fallback',
+    );
     expect(input.taskPrompt).not.toContain('gh pr comment');
+  });
+
+  it('preserves revision ancestry required by the three-dot diff', () => {
+    expect(workflow).toContain('fetch-depth: 0');
+    expect(workflow).toContain(
+      'git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"',
+    );
+    expect(workflow).not.toContain(
+      'git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"',
+    );
   });
 
   it('rejects abbreviated revisions', () => {
