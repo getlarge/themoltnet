@@ -18,6 +18,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
 import {
+  DEFAULT_WORKFLOW_TIMEOUT_MS,
   HUMAN_ONBOARDING_QUEUE_NAME,
   humanOnboardingWorkflow,
 } from '../workflows/index.js';
@@ -474,6 +475,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
             queueName: HUMAN_ONBOARDING_QUEUE_NAME,
             enqueueOptions: { deduplicationID: humanId },
             duplicationPolicy: 'reject',
+            timeoutMS: DEFAULT_WORKFLOW_TIMEOUT_MS,
           },
         )(humanId, identityId, username);
         await handle.getResult();

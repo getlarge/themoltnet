@@ -25,6 +25,10 @@ import type { Logger } from './logger.js';
 
 export const REGISTRATION_QUEUE_NAME = 'registration';
 export const REGISTRATION_QUEUE_CONCURRENCY = 10;
+export const REGISTRATION_READY_EVENT = 'registration_ready';
+export const REGISTRATION_CREDENTIAL_ISSUED_EVENT = 'credential_issued';
+export const REGISTRATION_CREDENTIAL_ACK_TIMEOUT_S = 60;
+export const REGISTRATION_WORKFLOW_TIMEOUT_MS = 300_000;
 
 export async function registerRegistrationQueue(): Promise<void> {
   await DBOS.registerQueue(REGISTRATION_QUEUE_NAME, {
@@ -165,6 +169,7 @@ function getDeps(): RegistrationDeps {
 
 type RegisterAgentFn = (
   input: RegistrationInput,
+  awaitCredentialAcknowledgement?: boolean,
 ) => Promise<RegistrationWorkflowResult>;
 type CompensateSelfRegistrationFn = (
   agentId: string,
@@ -651,7 +656,10 @@ export function initRegistrationWorkflow(): void {
   const compensateTeamEnrollmentWorkflow = _compensateTeamEnrollment;
 
   _workflow = DBOS.registerWorkflow(
-    async (input: RegistrationInput): Promise<RegistrationWorkflowResult> => {
+    async (
+      input: RegistrationInput,
+      awaitCredentialAcknowledgement = false,
+    ): Promise<RegistrationWorkflowResult> => {
       const invite =
         input.mode.type === 'team_invite'
           ? await validateTeamInviteStep(input.mode.inviteId)
@@ -690,6 +698,7 @@ export function initRegistrationWorkflow(): void {
         DBOS.workflowID ?? `registration-${input.idempotencyKey}`,
       );
       const { identityId } = identity;
+      let result: RegistrationWorkflowResult;
       try {
         const {
           agentRepository,
@@ -779,7 +788,7 @@ export function initRegistrationWorkflow(): void {
           );
         }
 
-        return {
+        result = {
           agentId,
           owned,
           identityId,
@@ -837,6 +846,19 @@ export function initRegistrationWorkflow(): void {
         }
         throw error;
       }
+      if (awaitCredentialAcknowledgement) {
+        // The route issues the secret outside durable history. Keep this
+        // queued workflow active until that non-durable critical section is
+        // complete so another request for the same principal is rejected.
+        // This handshake is intentionally outside the compensation boundary:
+        // a lost acknowledgement must not tear down a completed registration.
+        await DBOS.setEvent(REGISTRATION_READY_EVENT, result);
+        await DBOS.recv<boolean>(
+          REGISTRATION_CREDENTIAL_ISSUED_EVENT,
+          REGISTRATION_CREDENTIAL_ACK_TIMEOUT_S,
+        );
+      }
+      return result;
     },
     { name: 'registration.registerAgent' },
   );

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { CryptoService } from '@moltnet/crypto-service';
 
 import { createProblem } from '../problems/index.js';
@@ -9,11 +11,17 @@ export interface VerifyRegistrationProofInput {
   publicKey: string;
 }
 
+export interface VerifiedRegistrationProof {
+  /** Stable across equivalent base64 spellings of the same Ed25519 key. */
+  principalKey: string;
+  fingerprint: string;
+}
+
 /** Validate an Ed25519 registration key and its proof of possession. */
 export async function verifyRegistrationProof(
   cryptoService: CryptoService,
   input: VerifyRegistrationProofInput,
-): Promise<string> {
+): Promise<VerifiedRegistrationProof> {
   let publicKeyBytes: Uint8Array;
   try {
     publicKeyBytes = cryptoService.parsePublicKey(input.publicKey);
@@ -59,5 +67,8 @@ export async function verifyRegistrationProof(
     );
   }
 
-  return fingerprint;
+  return {
+    fingerprint,
+    principalKey: createHash('sha256').update(publicKeyBytes).digest('hex'),
+  };
 }

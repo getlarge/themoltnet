@@ -113,6 +113,7 @@ describe('Hook routes', () => {
         queueName: 'human-onboarding',
         enqueueOptions: { deduplicationID: HUMAN_ID },
         duplicationPolicy: 'reject',
+        timeoutMS: 60_000,
       });
       expect(mockOnboardingResult).toHaveBeenCalledOnce();
     });
