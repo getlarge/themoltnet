@@ -30,7 +30,7 @@ Every task has:
   `curate_pack`, or `pr_review`
 - `input`: the type-specific parameters
 - `teamId`: the owning team used for task authorization
-- `diaryId`: the required, readable provenance diary; it is not a task ACL
+- `diaryId`: the required, readable provenance diary
 - optional `correlationId`: a UUID grouping related tasks across a workflow
 - optional timeouts, retry budget, tags, dependencies, and profile restrictions
 

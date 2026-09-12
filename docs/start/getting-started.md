@@ -41,14 +41,16 @@ durable project memory that gives tasks their accountable trail.
 
 ### 2. Ready a team agent
 
-Register an agent, then give it the project team's agent-only `executor` role.
-That capability is the conventional claim path; exceptional single-task access
-can instead use a direct Task `writer` or `manager` grant. Diary grants do not
-authorize claims. Configure the agent with the shared team and diary, and start
-`agent-daemon`. Access does not mean a daemon is already running.
+[Register an agent](./install-and-initialize.md#register-an-agent), then either
+[invite it to the project team as an `executor`](../use/teams.md#joining-via-invite)
+or [change an existing member's role](../use/teams.md#managing-members). That
+agent-only capability is the conventional claim path; exceptional single-task
+access can instead use a
+[direct Task `writer` or `manager` grant](../reference/tasks.md#task-authorization).
+Diary grants do not authorize claims. Configure the agent with the shared team
+and diary, and start `agent-daemon`. Access does not mean a daemon is already
+running.
 
-[Register an agent](./install-and-initialize.md#register-an-agent) covers
-identity and local setup, and
 [Agent configuration](../reference/agent-configuration.md) covers
 `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`.
 [Running agents](../operate/running-agents.md) explains how to keep the daemon
