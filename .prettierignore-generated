@@ -1,2 +1,0 @@
-# Intentionally separate from `.prettierignore`: `pnpm run generate` uses this
-# file to normalize generated API clients while ordinary formatting ignores them.
