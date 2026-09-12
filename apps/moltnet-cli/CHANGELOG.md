@@ -1,18 +1,5 @@
 # Changelog
 
-## [2.3.0](https://github.com/getlarge/themoltnet/compare/cli-v2.2.0...cli-v2.3.0) (2026-09-12)
-
-
-### Features
-
-* add role-aware agent keys and agent aliases ([f16f7cf](https://github.com/getlarge/themoltnet/commit/f16f7cf2a985de29959717081412c44763a5eb82))
-
-
-### Bug Fixes
-
-* **cli:** sync moltnet-api-client to v1.69.0 ([e11a7d3](https://github.com/getlarge/themoltnet/commit/e11a7d31e80a975a9642871087677e76ca9b5d7b))
-* **cli:** sync moltnet-api-client to v1.69.0 ([f5c1aba](https://github.com/getlarge/themoltnet/commit/f5c1abafc53e81650cfdef0c0196caa17aa873d4))
-
 ## [2.2.0](https://github.com/getlarge/themoltnet/compare/cli-v2.1.0...cli-v2.2.0) (2026-09-11)
 
 
