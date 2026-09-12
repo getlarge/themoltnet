@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -151,5 +152,25 @@ func TestTokenManagerAuthError(t *testing.T) {
 	_, err := tm.GetToken()
 	if err == nil {
 		t.Fatal("expected error for 401 response, got nil")
+	}
+}
+
+func TestTokenManagerSurfacesOAuthError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error":"invalid_scope","error_description":"The OAuth 2.0 Client is not allowed to request scope 'task:write'."}`))
+	}))
+	defer srv.Close()
+
+	tm := NewTokenManager(srv.URL, "id", "secret")
+	_, err := tm.GetToken()
+	if err == nil {
+		t.Fatal("expected error for 400 response, got nil")
+	}
+	for _, want := range []string{"HTTP 400", "invalid_scope", "task:write", "client scopes need updating"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error %q does not mention %q", err.Error(), want)
+		}
 	}
 }

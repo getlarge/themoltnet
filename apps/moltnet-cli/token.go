@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -114,7 +116,7 @@ func (t *TokenManager) fetchToken() (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("token endpoint returned HTTP %d", resp.StatusCode)
+		return "", tokenEndpointError(resp)
 	}
 
 	var payload struct {
@@ -139,4 +141,33 @@ func (t *TokenManager) fetchToken() (string, error) {
 	}
 
 	return t.cached, nil
+}
+
+// tokenEndpointError turns a non-200 token response into an error that carries
+// the OAuth2 error code and description, so an operator can tell an unknown
+// client from a scope the client was never granted without reading server logs.
+func tokenEndpointError(resp *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	var payload struct {
+		Error       string `json:"error"`
+		Description string `json:"error_description"`
+	}
+	if json.Unmarshal(body, &payload) != nil || payload.Error == "" {
+		text := strings.TrimSpace(string(body))
+		if text == "" {
+			return fmt.Errorf("token endpoint returned HTTP %d", resp.StatusCode)
+		}
+		return fmt.Errorf("token endpoint returned HTTP %d: %s", resp.StatusCode, text)
+	}
+	msg := fmt.Sprintf("token endpoint returned HTTP %d: %s", resp.StatusCode, payload.Error)
+	if payload.Description != "" {
+		msg += ": " + payload.Description
+	}
+	switch payload.Error {
+	case "invalid_scope":
+		msg += "\n  The OAuth2 client for this identity was registered without one of the scopes the CLI requests; the agent's client scopes need updating on the server."
+	case "invalid_client":
+		msg += "\n  The client_id or client_secret for this identity was not accepted; check the credential with `moltnet config identity show` or repair it with `moltnet config repair`."
+	}
+	return errors.New(msg)
 }
