@@ -525,7 +525,7 @@ describe('requireAuth preHandler', () => {
     expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
   });
 
-  it('can defer inaccessible team authorization to resource handlers', async () => {
+  it('can defer the team access check to resource handlers', async () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
     });
@@ -535,7 +535,7 @@ describe('requireAuth preHandler', () => {
       '/protected',
       {
         config: {
-          auth: { deferInaccessibleTeamAuthorization: true },
+          auth: { deferTeamAccessAuthorization: true },
         },
         preHandler: [requireAuth],
       },
@@ -557,6 +557,7 @@ describe('requireAuth preHandler', () => {
     expect(response.json().authContext).toMatchObject({
       currentTeamId: 'team-123',
     });
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
   });
 
   it('enriches request.log + ALS context after authenticating', async () => {

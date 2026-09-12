@@ -331,6 +331,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:write'],
         },
       },
@@ -688,7 +689,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -731,7 +732,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:write'],
         },
       },
@@ -778,7 +779,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -842,7 +843,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:manage'],
         },
       },
@@ -936,7 +937,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:manage'],
         },
       },
@@ -1051,7 +1052,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:claim'],
         },
       },
@@ -1128,7 +1129,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1174,7 +1175,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1231,7 +1232,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1279,7 +1280,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1330,7 +1331,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:manage'],
         },
       },
@@ -1383,7 +1384,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -1427,7 +1428,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -1476,7 +1477,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
