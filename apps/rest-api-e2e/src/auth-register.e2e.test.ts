@@ -191,6 +191,58 @@ describe('proof-based registration', () => {
     ).resolves.toMatchObject({ status: 200 });
   });
 
+  it('serialises concurrent registrations for the same keypair across request keys', async () => {
+    const keyPair = await cryptoService.generateKeyPair();
+    const first = await signedSelfRegistration('oauth2', keyPair);
+    const second = await signedSelfRegistration('oauth2', keyPair);
+    const register = (
+      input: Awaited<ReturnType<typeof signedSelfRegistration>>,
+    ) =>
+      fetch(`${harness.baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': input.idempotencyKey,
+        },
+        body: JSON.stringify({
+          publicKey: input.keyPair.publicKey,
+          proof: input.proof,
+          credentialType: input.credentialType,
+        }),
+      });
+
+    const responses = await Promise.all([register(first), register(second)]);
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      200, 409,
+    ]);
+
+    const winner = responses.find((response) => response.status === 200);
+    if (!winner) throw new Error('Concurrent registration had no winner');
+    const result = (await winner.json()) as {
+      agentId: string;
+      credential: {
+        type: 'oauth2';
+        clientId: string;
+        clientSecret: string;
+      };
+    };
+
+    const agentRepository = createAgentRepository(harness.db);
+    const persisted = await agentRepository.findById(result.agentId);
+    expect(persisted).toMatchObject({
+      fingerprint: keyPair.fingerprint,
+      publicKey: keyPair.publicKey,
+    });
+    expect(typeof persisted?.identityId).toBe('string');
+    expect(
+      await requestOAuthToken(
+        harness.baseUrl,
+        result.credential.clientId,
+        result.credential.clientSecret,
+      ),
+    ).toMatchObject({ status: 200 });
+  });
+
   it('creates exactly one agent-key credential when selected', async () => {
     const input = await signedSelfRegistration('agent_key');
     const response = await fetch(`${harness.baseUrl}/auth/register`, {
