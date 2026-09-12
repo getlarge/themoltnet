@@ -636,11 +636,17 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    const expiredClaim = await repo.claimIfQueued(EXPIRED_QUEUED);
-    const freshClaim = await repo.claimIfQueued(FRESH_QUEUED);
+    const claimExpiresAt = new Date(Date.now() + 30_000);
+    const claim = { claimAgentId: AGENT_ID, claimExpiresAt };
+    const expiredClaim = await repo.claimIfQueued(EXPIRED_QUEUED, claim);
+    const freshClaim = await repo.claimIfQueued(FRESH_QUEUED, claim);
 
     expect(expiredClaim).toBeNull();
-    expect(freshClaim?.status).toBe('dispatched');
+    expect(freshClaim).toMatchObject({
+      status: 'dispatched',
+      claimAgentId: AGENT_ID,
+      claimExpiresAt,
+    });
 
     const expired = await repo.findById(EXPIRED_QUEUED);
     expect(expired?.status).toBe('queued');

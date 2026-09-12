@@ -586,7 +586,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       (workflowTransactionRunner) => {
         setTaskWorkflowDeps({
           transactionRunner: workflowTransactionRunner,
-          createAttempt: (input) => taskRepository.createAttempt(input),
           recomputeAttemptActivityStats: async (taskId, attemptN) => {
             await taskAnalyticsService.recomputeAttemptActivityStats(
               taskId,

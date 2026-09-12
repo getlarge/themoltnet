@@ -19,6 +19,7 @@
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/task-workflows": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@opentelemetry/api": "catalog:",
     "@themoltnet/credential-broker": "workspace:*"
   },
   "devDependencies": {

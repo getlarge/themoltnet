@@ -1,6 +1,5 @@
 import { DBOS } from '@dbos-inc/dbos-sdk';
 import type {
-  NewTaskAttempt,
   Task,
   TaskAttempt,
   TransactionalWorkflowEnqueueInput,
@@ -81,7 +80,6 @@ export type TransactionalWorkflowEnqueue = (
 
 export interface TaskWorkflowDeps {
   transactionRunner: TransactionRunner;
-  createAttempt(input: NewTaskAttempt): Promise<TaskAttempt>;
   updateAttempt(
     taskId: string,
     attemptN: number,
@@ -248,7 +246,8 @@ export function initTaskWorkflows(): void {
 
   const removeClaimantTupleStep = DBOS.registerStep(
     async (taskId: string, agentId: string): Promise<void> => {
-      // Keto tuple removal — best-effort, orphaned tuples cleaned up by Phase 3.
+      // Compatibility cleanup for claimant tuples created before claims began
+      // using the active Postgres attempt and lease as reporting authority.
       await getDeps().removeClaimantTuple(taskId, agentId);
     },
     { name: 'task.step.removeClaimantTuple', ...stepConfig },
@@ -296,47 +295,20 @@ export function initTaskWorkflows(): void {
         taskId: string,
         attemptN: number,
         agentId: string,
-        workflowId: string,
+        _workflowId: string,
         leaseTtlSec: number,
-        claimedExecutorFingerprint?: string | null,
+        _claimedExecutorFingerprint?: string | null,
         dispatchTimeoutSecOverride?: number | null,
         runningTimeoutSecOverride?: number | null,
-        leaseId?: string | null,
-        runtimeProfileId?: string | null,
-        runtimeProfileRevision?: number | null,
-        policySnapshotHash?: string | null,
+        _leaseId?: string | null,
+        _runtimeProfileId?: string | null,
+        _runtimeProfileRevision?: number | null,
+        _policySnapshotHash?: string | null,
       ): Promise<TaskAttemptFinalEvent> => {
         const dispatchTimeoutSec =
           dispatchTimeoutSecOverride ?? DEFAULT_DISPATCH_TIMEOUT_SECONDS;
         const runningTimeoutSec =
           runningTimeoutSecOverride ?? DEFAULT_RUNNING_TIMEOUT_SECONDS;
-        const dispatchedAtMs = await DBOS.now();
-        await getDeps().transactionRunner.runInTransaction(
-          async () => {
-            await getDeps().createAttempt({
-              taskId,
-              attemptN,
-              claimedByAgentId: agentId,
-              workflowId,
-              status: 'claimed',
-              claimedExecutorFingerprint: claimedExecutorFingerprint ?? null,
-              leaseId: leaseId ?? null,
-              runtimeProfileId: runtimeProfileId ?? null,
-              runtimeProfileRevision: runtimeProfileRevision ?? null,
-              policySnapshotHash: policySnapshotHash ?? null,
-            });
-            await getDeps().updateTaskStatus(taskId, 'dispatched', {
-              claimAgentId: agentId,
-              claimExpiresAt: new Date(dispatchedAtMs + leaseTtlSec * 1000),
-            });
-          },
-          { name: 'task.tx.initializeAttempt' },
-        );
-        await DBOS.setEvent<TaskAttemptClaimedEvent>('claimed', {
-          taskId,
-          attemptN,
-        });
-
         // Helper: if the row was already moved to a terminal state by an
         // out-of-band actor (cancel(), a peer worker reaching it first),
         // we must NOT clobber it with queued/failed. The dispatch and
@@ -421,13 +393,6 @@ export function initTaskWorkflows(): void {
               : postTask?.status === 'cancelled'
                 ? 'cancelled'
                 : 'timed_out';
-          // Same rationale as persistTerminalResult: keep the claimant
-          // tuple alive after a cancel so the worker can still observe
-          // it via /heartbeat. Orphan sweeper (#937) cleans up later.
-          if (finalStatus !== 'cancelled') {
-            await removeClaimantTupleStep(taskId, agentId);
-          }
-          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,
@@ -437,6 +402,10 @@ export function initTaskWorkflows(): void {
               : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          if (finalStatus !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           await notifyTaskStatusChangedStep(taskId);
           return event;
         }
@@ -587,23 +556,15 @@ export function initTaskWorkflows(): void {
             },
             { name: 'task.tx.persistResult' },
           );
-          // For 'cancelled', leave the Keto claimant tuple in place so
-          // the worker's next /heartbeat can still pass canReportTask
-          // and observe `cancelled: true` in the response (#938).
-          // The orphan-recovery sweeper (#937) cleans these up later.
-          //
-          // 'aborted' is the opposite case (#1382): the claimant has
-          // intentionally walked away, so we DO remove the tuple to let
-          // another daemon reclaim the requeued task immediately.
-          if (evt.kind !== 'cancelled') {
-            await removeClaimantTupleStep(taskId, agentId);
-          }
-          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           const event: TaskAttemptFinalEvent =
             evt.kind === 'completed'
               ? { status: 'completed', taskId, attemptN, output: evt.output }
               : { status: evt.kind, taskId, attemptN };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          if (evt.kind !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           await notifyTaskStatusChangedStep(taskId);
           return event;
         }
@@ -642,17 +603,10 @@ export function initTaskWorkflows(): void {
           // Re-read post-tx: a cancel may have landed between the
           // checkExternalTerminal snapshot and the tx commit (#949).
           // If it did, the conditional update above preserved cancelled,
-          // and the workflow should report cancelled rather than
-          // timed_out. The orphan-recovery sweeper (#937) cleans up the
-          // tuple later for the cancelled case; we only remove it on a
-          // confirmed timeout.
+          // and the workflow should report cancelled rather than timed_out.
           const postTask = await findTaskByIdStep(taskId);
           const finalStatus: TaskAttemptFinalEvent['status'] =
             postTask?.status === 'cancelled' ? 'cancelled' : 'timed_out';
-          if (finalStatus !== 'cancelled') {
-            await removeClaimantTupleStep(taskId, agentId);
-          }
-          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,
@@ -663,6 +617,10 @@ export function initTaskWorkflows(): void {
             ...(finalStatus === 'timed_out' ? { timeoutReason: reason } : {}),
           };
           await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          if (finalStatus !== 'cancelled') {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           await notifyTaskStatusChangedStep(taskId);
           return event;
         }
