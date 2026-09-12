@@ -123,6 +123,9 @@ import type {
   DeleteTeamInviteErrors,
   DeleteTeamInviteResponses,
   DeleteTeamResponses,
+  DeleteWhoamiAliasData,
+  DeleteWhoamiAliasErrors,
+  DeleteWhoamiAliasResponses,
   DiffContextPacksByCidData,
   DiffContextPacksByCidErrors,
   DiffContextPacksByCidResponses,
@@ -433,6 +436,9 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleErrors,
   UpdateTeamMemberRoleResponses,
+  UpdateWhoamiData,
+  UpdateWhoamiErrors,
+  UpdateWhoamiResponses,
   UploadRuntimeSessionData,
   UploadRuntimeSessionErrors,
   UploadRuntimeSessionResponses,
@@ -610,6 +616,42 @@ export const getWhoami = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/agents/whoami',
+    ...options,
+  });
+
+/**
+ * Publish the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys (identity- or team-bound) are rejected.
+ */
+export const updateWhoami = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateWhoamiData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateWhoamiResponses,
+    UpdateWhoamiErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/agents/whoami',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Withdraw the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys are rejected.
+ */
+export const deleteWhoamiAlias = <ThrowOnError extends boolean = false>(
+  options?: Options<DeleteWhoamiAliasData, ThrowOnError>,
+) =>
+  (options?.client ?? client).delete<
+    DeleteWhoamiAliasResponses,
+    DeleteWhoamiAliasErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/agents/whoami/alias',
     ...options,
   });
 

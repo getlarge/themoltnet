@@ -89,15 +89,54 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 // registry, preventing an ambient agent-key override from authenticating a
 // different subject while the plan is being bound.
 func verifyConfigIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, registry *SecretProviderRegistry, verifySigningKey bool) (*subjectVerification, error) {
+	identity, err := authenticateConfigIdentity(context.Background(), apiURL, credentialsPath, creds, registry, verifySigningKey)
+	if err != nil {
+		return nil, err
+	}
+	return identity.verified, nil
+}
+
+// authenticatedConfigIdentity is a client whose credential has been verified
+// against the local document, kept together with the server record it was
+// verified against so a caller can act on the same authentication.
+type authenticatedConfigIdentity struct {
+	client   *moltnetapi.Client
+	whoami   *moltnetapi.Whoami
+	verified *subjectVerification
+}
+
+// subjectVerificationError marks a failure where the server's record for the
+// credential and the local document disagree, or the document cannot prove
+// the binding. Retrying the same request cannot fix it.
+type subjectVerificationError struct {
+	err error
+}
+
+func (e *subjectVerificationError) Error() string { return e.err.Error() }
+func (e *subjectVerificationError) Unwrap() error { return e.err }
+
+// authenticateConfigIdentity is verifyConfigIdentityAgainstServer for callers
+// that go on to use the authenticated client.
+func authenticateConfigIdentity(
+	ctx context.Context,
+	apiURL, credentialsPath string,
+	creds *CredentialsFile,
+	registry *SecretProviderRegistry,
+	verifySigningKey bool,
+) (*authenticatedConfigIdentity, error) {
 	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
 	if err != nil {
 		return nil, fmt.Errorf("verify config identity: %w", err)
 	}
-	whoami, err := fetchAgentWhoami(context.Background(), client)
+	whoami, err := fetchAgentWhoami(ctx, client)
 	if err != nil {
 		return nil, fmt.Errorf("verify config identity: %w", err)
 	}
-	return verifyAuthenticatedSubject(credentialsPath, creds, whoami, verifySigningKey)
+	verified, err := verifyAuthenticatedSubject(credentialsPath, creds, whoami, verifySigningKey)
+	if err != nil {
+		return nil, &subjectVerificationError{err: err}
+	}
+	return &authenticatedConfigIdentity{client: client, whoami: whoami, verified: verified}, nil
 }
 
 // verifyAuthenticatedSubject is shared by activation and config migration so

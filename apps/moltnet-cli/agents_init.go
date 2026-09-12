@@ -103,11 +103,14 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	)
 
 	provider := OSKeyringSecretProvider{}
-	if err := preflightAgentInitKeyring(provider); err != nil {
+	if err := agentsInitKeyringPreflight(provider); err != nil {
 		return err
 	}
 	if state == nil && agentInitRemoteComplete(creds) {
-		if err := completeCentralIdentityInit(opts, agentDir, configPath, creds); err != nil {
+		// No alias publication here: the network alias may have been
+		// published from another machine since, and the last explicit
+		// publication wins.
+		if err := agentsInitCompleteLocal(opts, agentDir, configPath, creds); err != nil {
 			return err
 		}
 		fmt.Fprintf(opts.out, "Agent %s is already initialized at %s\n", opts.name, configPath)
@@ -264,7 +267,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		return err
 	}
 
-	if err := completeCentralIdentityInit(opts, agentDir, configPath, creds); err != nil {
+	if err := finishCreatedAgentsInit(opts, agentDir, configPath, apiURL, creds); err != nil {
 		return err
 	}
 	if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
@@ -273,6 +276,28 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	fmt.Fprintf(opts.out, "Initialized %s (%s)\n", opts.name, creds.Keys.Fingerprint)
 	fmt.Fprintf(opts.out, "Credentials: %s\n", configPath)
 	fmt.Fprintln(opts.out, "Install the LeGreffier plugin in your agent host to add skills, hooks, and MCP access.")
+	return nil
+}
+
+// Unit-test seams: initialization needs a live OS keyring and GitHub, so tests
+// replace these to exercise the control flow around them.
+var (
+	agentsInitKeyringPreflight = preflightAgentInitKeyring
+	agentsInitCompleteLocal    = completeCentralIdentityInit
+)
+
+// finishCreatedAgentsInit completes local setup for an identity this run
+// created, then publishes its alias as the network alias. Publication is
+// best-effort: the identity already exists, so a failure is only reported.
+func finishCreatedAgentsInit(
+	opts agentsInitOpts,
+	agentDir, configPath, apiURL string,
+	creds *CredentialsFile,
+) error {
+	if err := agentsInitCompleteLocal(opts, agentDir, configPath, creds); err != nil {
+		return err
+	}
+	attemptIdentityAliasPublication(opts.errOut, apiURL, configPath, opts.name, opts.timeout)
 	return nil
 }
 

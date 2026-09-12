@@ -429,6 +429,7 @@ export function createMockServices(): MockServices {
       }),
       deleteById: vi.fn().mockResolvedValue(true),
       relinkIdentity: vi.fn().mockResolvedValue(undefined),
+      updateAlias: vi.fn(),
       // Creator inflation resolves by internal id since the decoupling.
       findById: vi.fn().mockResolvedValue({
         id: OWNER_ID,

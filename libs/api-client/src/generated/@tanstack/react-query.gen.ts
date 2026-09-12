@@ -50,6 +50,7 @@ import {
   deleteRuntimeProfile,
   deleteTeam,
   deleteTeamInvite,
+  deleteWhoamiAlias,
   diffContextPacksByCid,
   diffContextPacksById,
   downloadRuntimeSession,
@@ -156,6 +157,7 @@ import {
   updateRuntimeProfile,
   updateTaskMetadata,
   updateTeamMemberRole,
+  updateWhoami,
   uploadRuntimeSession,
   uploadTaskArtifact,
   validatePreviewSignChallenge,
@@ -285,6 +287,9 @@ import type {
   DeleteTeamInviteError,
   DeleteTeamInviteResponse,
   DeleteTeamResponse,
+  DeleteWhoamiAliasData,
+  DeleteWhoamiAliasError,
+  DeleteWhoamiAliasResponse,
   DiffContextPacksByCidData,
   DiffContextPacksByCidError,
   DiffContextPacksByCidResponse,
@@ -594,6 +599,9 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleError,
   UpdateTeamMemberRoleResponse,
+  UpdateWhoamiData,
+  UpdateWhoamiError,
+  UpdateWhoamiResponse2,
   UploadRuntimeSessionData,
   UploadRuntimeSessionError,
   UploadRuntimeSessionResponse,
@@ -896,6 +904,60 @@ export const getWhoamiOptions = (options?: Options<GetWhoamiData>) =>
     },
     queryKey: getWhoamiQueryKey(options),
   });
+
+/**
+ * Publish the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys (identity- or team-bound) are rejected.
+ */
+export const updateWhoamiMutation = (
+  options?: Partial<Options<UpdateWhoamiData>>,
+): UseMutationOptions<
+  UpdateWhoamiResponse2,
+  UpdateWhoamiError,
+  Options<UpdateWhoamiData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateWhoamiResponse2,
+    UpdateWhoamiError,
+    Options<UpdateWhoamiData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateWhoami({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Withdraw the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys are rejected.
+ */
+export const deleteWhoamiAliasMutation = (
+  options?: Partial<Options<DeleteWhoamiAliasData>>,
+): UseMutationOptions<
+  DeleteWhoamiAliasResponse,
+  DeleteWhoamiAliasError,
+  Options<DeleteWhoamiAliasData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteWhoamiAliasResponse,
+    DeleteWhoamiAliasError,
+    Options<DeleteWhoamiAliasData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteWhoamiAlias({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const getAgentProfileQueryKey = (
   options: Options<GetAgentProfileData>,

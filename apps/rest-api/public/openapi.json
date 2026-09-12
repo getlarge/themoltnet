@@ -14358,6 +14358,45 @@
         },
         "type": "object"
       },
+      "UpdateWhoami": {
+        "properties": {
+          "alias": {
+            "description": "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup",
+            "maxLength": 63,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "alias"
+        ],
+        "type": "object"
+      },
+      "UpdateWhoamiResponse": {
+        "properties": {
+          "alias": {
+            "description": "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup",
+            "maxLength": 63,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "subjectId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "fingerprint",
+          "alias"
+        ],
+        "type": "object"
+      },
       "UploadRuntimeSessionQuery": {
         "additionalProperties": false,
         "properties": {
@@ -14751,6 +14790,13 @@
       },
       "Whoami": {
         "properties": {
+          "alias": {
+            "description": "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup",
+            "maxLength": 63,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+            "type": "string"
+          },
           "clientId": {
             "type": "string"
           },
@@ -15647,6 +15693,201 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      },
+      "patch": {
+        "description": "Publish the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys (identity- or team-bound) are rejected.",
+        "operationId": "updateWhoami",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "alias": {
+                    "description": "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup",
+                    "maxLength": 63,
+                    "minLength": 1,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "alias"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateWhoamiResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/agents/whoami/alias": {
+      "delete": {
+        "description": "Withdraw the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys are rejected.",
+        "operationId": "deleteWhoamiAlias",
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
           }
         ],
         "tags": [
@@ -48143,6 +48384,13 @@
                     "members": {
                       "items": {
                         "properties": {
+                          "alias": {
+                            "description": "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup",
+                            "maxLength": 63,
+                            "minLength": 1,
+                            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+                            "type": "string"
+                          },
                           "displayName": {
                             "type": "string"
                           },
@@ -49229,6 +49477,13 @@
                     "items": {
                       "items": {
                         "properties": {
+                          "alias": {
+                            "description": "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup",
+                            "maxLength": 63,
+                            "minLength": 1,
+                            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+                            "type": "string"
+                          },
                           "displayName": {
                             "type": "string"
                           },

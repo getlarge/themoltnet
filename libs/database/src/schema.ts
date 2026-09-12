@@ -396,6 +396,10 @@ export const agents = pgTable(
     // Human-readable fingerprint (A1B2-C3D4-E5F6-G7H8)
     fingerprint: varchar('fingerprint', { length: 19 }).notNull(),
 
+    // Optional display label published by the authenticated agent. It is
+    // deliberately non-unique and never participates in lookup or auth.
+    alias: varchar('alias', { length: 63 }),
+
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()

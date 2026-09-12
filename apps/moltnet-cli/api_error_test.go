@@ -297,3 +297,56 @@ func TestFormatTransportError_WrappedError(t *testing.T) {
 		t.Errorf("expected validation detail, got %q", gotStr)
 	}
 }
+
+func TestAPIErrorStatus(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		wantStatus int
+		wantOK     bool
+	}{
+		{
+			name: "declared problem response",
+			err: fmt.Errorf("wrapped: %w", formatAPIError(&moltnetapi.UpdateWhoamiForbidden{
+				Type:   url.URL{Scheme: "https", Host: "themolt.net", Path: "/problems/forbidden"},
+				Status: 403,
+				Title:  "Forbidden",
+			})),
+			wantStatus: 403,
+			wantOK:     true,
+		},
+		{
+			name: "undeclared status with problem body",
+			err: formatTransportError(newUnexpectedStatusCodeError(
+				401, "application/json", `{"status":401,"title":"Unauthorized"}`,
+			)),
+			wantStatus: 401,
+			wantOK:     true,
+		},
+		{
+			name:       "undeclared status with raw body",
+			err:        formatTransportError(newUnexpectedStatusCodeError(502, "text/html", "<html>bad gateway</html>")),
+			wantStatus: 502,
+			wantOK:     true,
+		},
+		{
+			name:       "undeclared status with empty body",
+			err:        formatTransportError(newUnexpectedStatusCodeError(405, "text/plain", "")),
+			wantStatus: 405,
+			wantOK:     true,
+		},
+		{
+			name:   "transport failure",
+			err:    errors.New("dial tcp: connection refused"),
+			wantOK: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status, ok := apiErrorStatus(tt.err)
+			if status != tt.wantStatus || ok != tt.wantOK {
+				t.Fatalf("apiErrorStatus() = (%d, %v), want (%d, %v)", status, ok, tt.wantStatus, tt.wantOK)
+			}
+		})
+	}
+}

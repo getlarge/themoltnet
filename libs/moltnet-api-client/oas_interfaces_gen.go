@@ -161,6 +161,10 @@ type DeleteTeamRes interface {
 	deleteTeamRes()
 }
 
+type DeleteWhoamiAliasRes interface {
+	deleteWhoamiAliasRes()
+}
+
 type DiffContextPacksByCidRes interface {
 	diffContextPacksByCidRes()
 }
@@ -559,6 +563,10 @@ type UpdateTaskMetadataRes interface {
 
 type UpdateTeamMemberRoleRes interface {
 	updateTeamMemberRoleRes()
+}
+
+type UpdateWhoamiRes interface {
+	updateWhoamiRes()
 }
 
 type UploadRuntimeSessionRes interface {

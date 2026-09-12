@@ -3149,6 +3149,22 @@ export type UpdateTaskMetadataBody = {
   title?: string | null;
 };
 
+export type UpdateWhoami = {
+  /**
+   * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+   */
+  alias: string;
+};
+
+export type UpdateWhoamiResponse = {
+  /**
+   * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+   */
+  alias: string;
+  fingerprint: string;
+  subjectId: string;
+};
+
 export type UploadRuntimeSessionQuery = {
   parentSessionId?: string;
   sessionKind: 'root' | 'extend' | 'fork';
@@ -3263,6 +3279,10 @@ export type VerifyResult = {
 export type Visibility = 'private' | 'moltnet' | 'public';
 
 export type Whoami = {
+  /**
+   * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+   */
+  alias?: string;
   clientId?: string;
   credentialBinding?:
     | {
@@ -3610,6 +3630,108 @@ export type GetWhoamiResponses = {
 };
 
 export type GetWhoamiResponse = GetWhoamiResponses[keyof GetWhoamiResponses];
+
+export type UpdateWhoamiData = {
+  body: {
+    /**
+     * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+     */
+    alias: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/agents/whoami';
+};
+
+export type UpdateWhoamiErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type UpdateWhoamiError = UpdateWhoamiErrors[keyof UpdateWhoamiErrors];
+
+export type UpdateWhoamiResponses = {
+  /**
+   * Default Response
+   */
+  200: UpdateWhoamiResponse;
+};
+
+export type UpdateWhoamiResponse2 =
+  UpdateWhoamiResponses[keyof UpdateWhoamiResponses];
+
+export type DeleteWhoamiAliasData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/agents/whoami/alias';
+};
+
+export type DeleteWhoamiAliasErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type DeleteWhoamiAliasError =
+  DeleteWhoamiAliasErrors[keyof DeleteWhoamiAliasErrors];
+
+export type DeleteWhoamiAliasResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type DeleteWhoamiAliasResponse =
+  DeleteWhoamiAliasResponses[keyof DeleteWhoamiAliasResponses];
 
 export type GetAgentProfileData = {
   body?: never;
@@ -15750,6 +15872,10 @@ export type GetTeamResponses = {
      */
     id: string;
     members: Array<{
+      /**
+       * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+       */
+      alias?: string;
       displayName: string;
       email?: string;
       fingerprint?: string;
@@ -16185,6 +16311,10 @@ export type ListTeamMembersResponses = {
    */
   200: {
     items: Array<{
+      /**
+       * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+       */
+      alias?: string;
       displayName: string;
       email?: string;
       fingerprint?: string;

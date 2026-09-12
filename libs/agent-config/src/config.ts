@@ -165,10 +165,15 @@ export interface IdentitySelector {
 }
 
 /**
- * The one identity-alias grammar. Must stay identical to agentNamePattern in
- * apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
- * is a directory name in a store all three write, so a value one accepts and
- * another rejects makes an identity unreadable by half the system.
+ * The one identity-alias grammar. Must stay identical to `AGENT_ALIAS_PATTERN`
+ * in `@moltnet/models` (the REST `AgentAliasSchema`) and agentNamePattern in
+ * apps/moltnet-cli (Go); the daemon's AgentServerStore reuses this constant
+ * directly. An alias is a directory name in a store all of them write and the
+ * value the CLI publishes as the network alias, so a value one accepts and
+ * another rejects makes an identity unreadable by half the system or
+ * unpublishable. The literal is repeated rather than imported because this
+ * package is bundled into published packages that must not pick up models'
+ * typebox dependency; `identity-alias.test.ts` pins all three copies.
  */
 const identitiesDirName = 'identities';
 

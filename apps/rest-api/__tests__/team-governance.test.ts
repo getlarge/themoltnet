@@ -15,6 +15,7 @@ import {
 } from 'vitest';
 
 import {
+  createMockAgent,
   createMockServices,
   createTestApp,
   type MockServices,
@@ -196,6 +197,63 @@ describe('GET /teams', () => {
         expect.objectContaining({ id: TEAM_ID }),
       ]);
       expect(mocks.teamRepository.listByIds).toHaveBeenCalledWith([TEAM_ID]);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /teams/:id/members agent aliases', () => {
+  it.each([
+    [
+      'carries the published alias beside the fingerprint',
+      'Workflow.Manager',
+      'managers',
+      'manager',
+    ],
+    ['omits alias when none is published', null, 'members', 'member'],
+  ])('%s', async (_, alias, relation, role) => {
+    const mocks = createMockServices();
+    const app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      { subjectId: OTHER_AGENT_ID, subjectNs: 'Agent', relation },
+    ]);
+    mocks.agentRepository.findByIds.mockResolvedValue(
+      new Map([
+        [
+          OTHER_AGENT_ID,
+          createMockAgent({
+            id: OTHER_AGENT_ID,
+            identityId: null,
+            alias,
+            fingerprint: 'ABCD-EF01-2345-6789',
+          }),
+        ],
+      ]),
+    );
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/teams/${TEAM_ID}/members`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      // displayName is server-derived (the fingerprint) even when an alias is
+      // published: the alias is self-asserted and not unique, so it must not
+      // stand in for the identifier in pickers.
+      expect(response.json().items).toEqual([
+        {
+          subjectId: OTHER_AGENT_ID,
+          subjectType: 'agent',
+          role,
+          displayName: 'ABCD-EF01-2345-6789',
+          fingerprint: 'ABCD-EF01-2345-6789',
+          ...(alias && { alias }),
+        },
+      ]);
     } finally {
       await app.close();
     }

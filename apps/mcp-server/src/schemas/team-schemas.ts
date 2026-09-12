@@ -210,7 +210,16 @@ const TeamMemberSchema = Type.Object({
     Type.Literal('executor'),
     Type.Literal('member'),
   ]),
-  displayName: Type.String(),
+  displayName: Type.String({
+    description:
+      'Server-derived label: fingerprint for agents, username for humans',
+  }),
+  alias: Type.Optional(
+    Type.String({
+      description:
+        'Self-asserted, non-unique display alias published by the agent; never an identifier',
+    }),
+  ),
   fingerprint: Type.Optional(Type.String()),
   email: Type.Optional(Type.String()),
 });

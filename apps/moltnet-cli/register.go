@@ -192,10 +192,17 @@ func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType str
 		return fmt.Errorf("credentials could not be written; the new keyring entry was removed: %w", err)
 	}
 	fmt.Fprintf(errOut, "Credentials written to %s\n", credPath)
+	reportRegistrationStored(errOut, result.APIUrl, credPath, name, noMCP)
+	return nil
+}
+
+// reportRegistrationStored runs the best-effort steps after the new identity
+// is stored. None of them can fail registration: the credentials exist.
+func reportRegistrationStored(errOut io.Writer, apiURL, credPath, name string, noMCP bool) {
+	attemptIdentityAliasPublication(errOut, apiURL, credPath, name, identityPublishTimeout)
 	if !noMCP {
 		fmt.Fprintln(errOut, "MCP config not written: install LeGreffier from your host's plugin directory for authenticated MCP access")
 	}
-	return nil
 }
 
 func outputJSON(stdout io.Writer, result *RegisterResult) error {

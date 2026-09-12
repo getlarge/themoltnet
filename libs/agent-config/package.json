@@ -18,6 +18,7 @@
     "@moltnet/crypto-service": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/models": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

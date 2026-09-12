@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -350,5 +351,125 @@ func TestAssertIdentityDirContainedAcceptsSymlinkedAncestor(t *testing.T) {
 	// Assert.
 	if err != nil {
 		t.Fatalf("expected a symlinked ancestor to be accepted, got %v", err)
+	}
+}
+
+// stubAgentsInitLocalSteps replaces the keyring preflight and the local setup
+// steps, which need a live OS keyring and GitHub, for the duration of a test.
+func stubAgentsInitLocalSteps(
+	t *testing.T,
+	complete func(agentsInitOpts, string, string, *CredentialsFile) error,
+) {
+	t.Helper()
+	preflight, local := agentsInitKeyringPreflight, agentsInitCompleteLocal
+	t.Cleanup(func() {
+		agentsInitKeyringPreflight, agentsInitCompleteLocal = preflight, local
+	})
+	agentsInitKeyringPreflight = func(OSKeyringSecretProvider) error { return nil }
+	agentsInitCompleteLocal = complete
+}
+
+func TestAgentsInitAlreadyInitializedDoesNotRepublishAlias(t *testing.T) {
+	// Arrange: a remotely complete identity whose network alias was changed
+	// elsewhere since this machine initialized it.
+	f := newPublishFixture(t, "rerun-agent")
+	f.handler.alias = "renamed-elsewhere"
+	f.creds.GitHub = &GitHubSection{AppID: "1", InstallationID: "2"}
+	if _, err := WriteConfigTo(f.creds, f.path); err != nil {
+		t.Fatal(err)
+	}
+	completed := 0
+	stubAgentsInitLocalSteps(t, func(agentsInitOpts, string, string, *CredentialsFile) error {
+		completed++
+		return nil
+	})
+	var stdout, stderr bytes.Buffer
+
+	// Act
+	err := runAgentsInitCmd(agentsInitOpts{
+		name:           "rerun-agent",
+		apiURL:         f.server.URL,
+		apiURLExplicit: true,
+		timeout:        5 * time.Second,
+		out:            &stdout,
+		errOut:         &stderr,
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("re-run init: %v\nstderr: %s", err, stderr.String())
+	}
+	if completed != 1 {
+		t.Fatalf("local setup ran %d times, want 1", completed)
+	}
+	if !strings.Contains(stdout.String(), "Agent rerun-agent is already initialized") {
+		t.Fatalf("unexpected stdout: %s", stdout.String())
+	}
+	if strings.Contains(stderr.String(), "network alias") {
+		t.Fatalf("re-run init touched the network alias: %s", stderr.String())
+	}
+	if f.handler.whoamiCalls != 0 || len(f.handler.published) != 0 {
+		t.Fatalf("re-run init contacted the API: whoami calls = %d, published = %v",
+			f.handler.whoamiCalls, f.handler.published)
+	}
+}
+
+func TestFinishCreatedAgentsInitPublishesAliasBestEffort(t *testing.T) {
+	setupErr := errors.New("git setup failed")
+	tests := []struct {
+		name          string
+		unreachable   bool
+		completeErr   error
+		wantErr       error
+		wantStderr    string
+		wantPublished int
+	}{
+		{
+			name:          "publication succeeds",
+			wantStderr:    "Published network alias created-agent",
+			wantPublished: 1,
+		},
+		{
+			name:        "publication failure does not fail init",
+			unreachable: true,
+			wantStderr:  "Warning: network alias publication failed",
+		},
+		{
+			name:        "local setup failure skips publication",
+			completeErr: setupErr,
+			wantErr:     setupErr,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			f := newPublishFixture(t, "created-agent")
+			stubAgentsInitLocalSteps(t, func(agentsInitOpts, string, string, *CredentialsFile) error {
+				return tt.completeErr
+			})
+			apiURL := f.server.URL
+			if tt.unreachable {
+				apiURL = "http://127.0.0.1:1"
+			}
+			var stderr bytes.Buffer
+			opts := agentsInitOpts{name: "created-agent", timeout: 5 * time.Second, errOut: &stderr}
+
+			// Act
+			err := finishCreatedAgentsInit(opts, filepath.Dir(f.path), f.path, apiURL, f.creds)
+
+			// Assert
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantStderr == "" && stderr.Len() != 0 {
+				t.Fatalf("unexpected stderr: %s", stderr.String())
+			}
+			if !strings.Contains(stderr.String(), tt.wantStderr) {
+				t.Fatalf("stderr = %q, want %q", stderr.String(), tt.wantStderr)
+			}
+			if len(f.handler.published) != tt.wantPublished {
+				t.Fatalf("published aliases = %v, want %d", f.handler.published, tt.wantPublished)
+			}
+		})
 	}
 }

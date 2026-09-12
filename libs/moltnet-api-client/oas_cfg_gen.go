@@ -24,6 +24,7 @@ var regexMap = map[string]ogenregex.Regexp{
 	"^[0-9]+[KMG]?$": ogenregex.MustCompile("^[0-9]+[KMG]?$"),
 	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$": ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
 	"^[A-Z_][A-Z0-9_]*$":                  ogenregex.MustCompile("^[A-Z_][A-Z0-9_]*$"),
+	"^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$":   ogenregex.MustCompile("^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$"),
 	"^[A-Za-z0-9_-]+$":                    ogenregex.MustCompile("^[A-Za-z0-9_-]+$"),
 	"^[A-Za-z0-9_-]{43}$":                 ogenregex.MustCompile("^[A-Za-z0-9_-]{43}$"),
 	"^[\\x21-\\x7e][\\x20-\\x7e]*$":       ogenregex.MustCompile("^[\\x21-\\x7e][\\x20-\\x7e]*$"),

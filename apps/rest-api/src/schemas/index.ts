@@ -45,6 +45,8 @@ import {
   RegisterResponseSchema,
   RegistrationCredentialTypeSchema,
   RotateSecretResponseSchema,
+  UpdateWhoamiResponseSchema,
+  UpdateWhoamiSchema,
   VerifyResultSchema,
   WhoamiSchema,
 } from './agents.js';
@@ -191,6 +193,8 @@ export const sharedSchemas = [
   OAuth2RegistrationCredentialSchema,
   AgentKeyRegistrationCredentialSchema,
   WhoamiSchema,
+  UpdateWhoamiSchema,
+  UpdateWhoamiResponseSchema,
   VerifyResultSchema,
   CryptoVerifyResultSchema,
   CryptoIdentitySchema,

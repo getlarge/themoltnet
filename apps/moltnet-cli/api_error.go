@@ -91,7 +91,33 @@ func formatTransportError(err error) error {
 	if truncated {
 		snippet += "…"
 	}
-	return fmt.Errorf("API error (HTTP %d): %s", usc.StatusCode, snippet)
+	return &apiStatusError{status: usc.StatusCode, message: snippet}
+}
+
+// apiStatusError is a formatted API error that keeps its HTTP status, so a
+// caller can branch on the class of failure without parsing the message.
+type apiStatusError struct {
+	status  int
+	message string
+}
+
+func (e *apiStatusError) Error() string {
+	return fmt.Sprintf("API error (HTTP %d): %s", e.status, e.message)
+}
+
+// apiErrorStatus reports the HTTP status carried by err, whether it was
+// formatted by formatAPIError / formatTransportError or is an undecoded ogen
+// unexpected-status error.
+func apiErrorStatus(err error) (int, bool) {
+	var statusErr *apiStatusError
+	if errors.As(err, &statusErr) {
+		return statusErr.status, true
+	}
+	var usc *validate.UnexpectedStatusCodeError
+	if errors.As(err, &usc) {
+		return usc.StatusCode, true
+	}
+	return 0, false
 }
 
 // formatProblemDetails returns the standard CLI-facing error string built from
@@ -109,7 +135,7 @@ func formatProblemDetails(status int, title, detail string, hasDetail bool) erro
 	if msg == "" {
 		msg = fmt.Sprintf("HTTP %d", status)
 	}
-	return fmt.Errorf("API error (HTTP %d): %s", status, msg)
+	return &apiStatusError{status: status, message: msg}
 }
 
 // parseProblemDetailsBody attempts to decode body as an RFC 7807

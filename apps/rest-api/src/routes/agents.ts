@@ -4,8 +4,9 @@
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
+import type { Agent } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
@@ -13,6 +14,8 @@ import {
   AgentParamsSchema,
   AgentProfileSchema,
   MAX_ED25519_SIGNATURE_LENGTH,
+  UpdateWhoamiResponseSchema,
+  UpdateWhoamiSchema,
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';
@@ -207,6 +210,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         scopes: authContext.scopes,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
+        ...(agent.alias && { alias: agent.alias }),
         clientId: authContext.clientId,
         ...(authContext.credentialBinding && {
           credentialBinding: {
@@ -220,4 +224,128 @@ export async function agentRoutes(fastify: FastifyInstance) {
       };
     },
   );
+
+  // ── Publish Agent Alias ───────────────────────────────────
+  server.patch(
+    '/agents/whoami',
+    {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
+      },
+      schema: {
+        operationId: 'updateWhoami',
+        tags: ['agents'],
+        description:
+          "Publish the authenticated agent's network alias. Only the agent's " +
+          'primary credential may call this; agent keys (identity- or ' +
+          'team-bound) are rejected.',
+        security: [{ bearerAuth: [] }],
+        body: UpdateWhoamiSchema,
+        response: {
+          200: Type.Ref(UpdateWhoamiResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+      preHandler: [requireAuth],
+    },
+    async (request) => {
+      const agent = await writeOwnAlias(request, request.body.alias);
+      return {
+        subjectId: agent.id,
+        fingerprint: agent.fingerprint,
+        alias: agent.alias!,
+      };
+    },
+  );
+
+  // ── Withdraw Agent Alias ──────────────────────────────────
+  // A separate route rather than `alias: null` on PATCH: Fastify's Ajv
+  // coerces `""` to null when a body schema admits null, which would turn a
+  // typo into a silent withdrawal.
+  server.delete(
+    '/agents/whoami/alias',
+    {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
+      },
+      schema: {
+        operationId: 'deleteWhoamiAlias',
+        tags: ['agents'],
+        description:
+          "Withdraw the authenticated agent's network alias. Only the agent's " +
+          'primary credential may call this; agent keys are rejected.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          204: Type.Null(),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+      preHandler: [requireAuth],
+    },
+    async (request, reply) => {
+      await writeOwnAlias(request, null);
+      return reply.status(204).send(null);
+    },
+  );
+
+  /**
+   * Publish or withdraw the caller's own alias.
+   *
+   * `agent:profile` is a read scope everywhere else. Keeping the alias write
+   * off agent keys means issuing a key never grants a network-visible write
+   * the issuer did not ask for, and a team-bound key cannot relabel its
+   * parent in every other team. The previous value is read first so the
+   * audit line carries both sides of the change.
+   */
+  async function writeOwnAlias(
+    request: FastifyRequest,
+    alias: string | null,
+  ): Promise<Agent> {
+    const authContext = request.authContext!;
+    if (authContext.subjectType !== 'agent') {
+      throw createProblem('forbidden', 'Only agents can publish an alias');
+    }
+    if (authContext.credentialBinding) {
+      throw createProblem(
+        'forbidden',
+        "Agent keys cannot publish an alias; use the agent's primary credential",
+      );
+    }
+
+    const current = await fastify.agentRepository.findById(authContext.agentId);
+    if (!current) {
+      throw createProblem('not-found', 'Agent profile not found');
+    }
+
+    const agent = await fastify.agentRepository.updateAlias(
+      authContext.agentId,
+      alias,
+    );
+    if (!agent) {
+      throw createProblem('not-found', 'Agent profile not found');
+    }
+
+    request.log.info(
+      {
+        agentId: agent.id,
+        previousAlias: current.alias ?? null,
+        alias: agent.alias ?? null,
+      },
+      'agent.alias_updated',
+    );
+    return agent;
+  }
 }
