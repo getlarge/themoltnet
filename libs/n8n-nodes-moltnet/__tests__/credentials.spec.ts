@@ -31,7 +31,7 @@ describe('MoltNet credentials', () => {
     expect(
       credential.properties.find(({ name }) => name === 'agentApiKey')
         ?.description,
-    ).toContain('agent:profile, task:manage, and task:read');
+    ).toContain('agent:profile, task:read, and task:write');
     expect(credential.authenticate).toEqual({
       type: 'generic',
       properties: {
