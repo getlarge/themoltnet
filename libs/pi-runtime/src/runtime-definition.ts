@@ -30,6 +30,12 @@ export const PI_EXECUTOR_MANIFEST_VERSION =
 
 export type PiToolScope = 'parent' | 'parent_and_subagents';
 
+export type ToolNetworkLocus = 'guest' | 'host';
+
+export interface ToolEffects {
+  readonly network?: readonly ToolNetworkLocus[];
+}
+
 export interface PiToolContext {
   agent: Agent;
   claimedTask: ClaimedTask;
@@ -47,12 +53,14 @@ export type PiToolDescriptor = Pick<
 export interface PiToolContribution {
   readonly kind: 'tool';
   readonly descriptor: PiToolDescriptor;
+  readonly effects: ToolEffects;
   readonly scope: PiToolScope;
   create: (context: PiToolContext) => ToolDefinition | Promise<ToolDefinition>;
 }
 
 export interface PiToolFactoryOptions {
   descriptor: PiToolDescriptor;
+  effects: ToolEffects;
   scope?: PiToolScope;
   create: (context: PiToolContext) => ToolDefinition | Promise<ToolDefinition>;
 }
@@ -117,24 +125,30 @@ export function definePiBrokeredHttpSecret(
 
 export function definePiTool(
   tool: ToolDefinition,
-  options?: { scope?: PiToolScope },
+  options: { effects: ToolEffects; scope?: PiToolScope },
 ): PiToolContribution;
 export function definePiTool(options: PiToolFactoryOptions): PiToolContribution;
 export function definePiTool(
   input: ToolDefinition | PiToolFactoryOptions,
-  options: { scope?: PiToolScope } = {},
+  options?: { effects: ToolEffects; scope?: PiToolScope },
 ): PiToolContribution {
   if ('descriptor' in input) {
     assertToolName(input.descriptor.name);
     return Object.freeze({
       kind: 'tool',
       descriptor: input.descriptor,
+      effects: canonicalizeToolEffects(input.effects),
       scope: input.scope ?? 'parent',
       create: input.create,
     });
   }
 
   assertToolName(input.name);
+  if (!options) {
+    throw new Error(
+      `Pi tool "${input.name}" must declare effects; see "Build a custom Pi runtime" in the MoltNet docs`,
+    );
+  }
   const descriptor: PiToolDescriptor = {
     name: input.name,
     label: input.label,
@@ -144,6 +158,7 @@ export function definePiTool(
   return Object.freeze({
     kind: 'tool',
     descriptor,
+    effects: canonicalizeToolEffects(options.effects),
     scope: options.scope ?? 'parent',
     create: () => input,
   });
@@ -151,10 +166,15 @@ export function definePiTool(
 
 export type PiExtensionFactory = (pi: ExtensionAPI) => void;
 
+export interface PiExtensionToolDeclaration {
+  readonly name: string;
+  readonly effects: ToolEffects;
+}
+
 export interface PiExtensionContribution {
   readonly kind: 'extension';
   readonly id: string;
-  readonly declaredTools: readonly string[];
+  readonly declaredTools: readonly PiExtensionToolDeclaration[];
   readonly scope: PiToolScope;
   create: (
     context: PiToolContext,
@@ -163,7 +183,7 @@ export interface PiExtensionContribution {
 
 export interface PiExtensionOptions {
   id: string;
-  declaredTools?: readonly string[];
+  declaredTools?: readonly PiExtensionToolDeclaration[];
   scope?: PiToolScope;
   factory?: PiExtensionFactory;
   create?: (
@@ -175,8 +195,9 @@ export function definePiExtension(
   options: PiExtensionOptions,
 ): PiExtensionContribution {
   assertStableId(options.id, 'extension id');
-  const declaredTools = [...new Set(options.declaredTools ?? [])].sort();
-  declaredTools.forEach((name) => assertToolName(name));
+  const declaredTools = canonicalizeExtensionToolDeclarations(
+    options.declaredTools ?? [],
+  );
   if (Boolean(options.factory) === Boolean(options.create)) {
     throw new Error(
       `Pi extension "${options.id}" must define exactly one of factory or create`,
@@ -325,8 +346,8 @@ export function definePiRuntime(
     claimToolName(names, tool.descriptor.name, 'tool contribution');
   }
   for (const extension of options.extensions ?? []) {
-    for (const name of extension.declaredTools) {
-      claimToolName(names, name, `extension "${extension.id}"`);
+    for (const declaration of extension.declaredTools) {
+      claimToolName(names, declaration.name, `extension "${extension.id}"`);
     }
   }
 
@@ -397,6 +418,8 @@ export interface PiExecutorManifest {
     name: string;
     descriptorCid: string | null;
     scope: PiToolScope;
+    /** Absent means unknown, as it does for kernel and historical entries. */
+    effects?: ToolEffects;
   }[];
   extensions: {
     id: string;
@@ -423,7 +446,7 @@ export async function buildPiExecutorManifest(input: {
     ...input.runtime.tools,
   ];
   const tools: PiExecutorManifest['tools'] = await Promise.all(
-    descriptors.map(async ({ descriptor, scope }) => ({
+    descriptors.map(async ({ descriptor, scope, ...contribution }) => ({
       name: descriptor.name,
       descriptorCid: await computeJsonCid({
         name: descriptor.name,
@@ -432,8 +455,21 @@ export async function buildPiExecutorManifest(input: {
         parameters: descriptor.parameters,
       }),
       scope,
+      ...('effects' in contribution && {
+        effects: contribution.effects,
+      }),
     })),
   );
+  for (const extension of input.runtime.extensions) {
+    for (const declaration of extension.declaredTools) {
+      tools.push({
+        name: declaration.name,
+        descriptorCid: null,
+        scope: extension.scope,
+        effects: declaration.effects,
+      });
+    }
+  }
   for (const name of input.builtInToolNames ?? []) {
     if (tools.some((tool) => tool.name === name)) continue;
     tools.push({
@@ -442,7 +478,7 @@ export async function buildPiExecutorManifest(input: {
       scope: 'parent_and_subagents',
     });
   }
-  tools.sort((a, b) => a.name.localeCompare(b.name));
+  tools.sort((a, b) => compareCodeUnits(a.name, b.name));
   return {
     schemaVersion: PI_EXECUTOR_MANIFEST_VERSION,
     runtime: {
@@ -473,7 +509,7 @@ export async function buildPiExecutorManifest(input: {
           ],
           required: descriptor.required !== false,
         }))
-        .sort((left, right) => left.id.localeCompare(right.id)),
+        .sort((left, right) => compareCodeUnits(left.id, right.id)),
     }),
     ...(hostCapabilities.length > 0 && {
       hostCapabilities: hostCapabilities
@@ -483,12 +519,12 @@ export async function buildPiExecutorManifest(input: {
           operations: Object.keys(capability.operations).sort(),
           descriptorCid: capability.descriptorCid,
         }))
-        .sort((left, right) => left.name.localeCompare(right.name)),
+        .sort((left, right) => compareCodeUnits(left.name, right.name)),
     }),
     tools,
     extensions: input.runtime.extensions.map((extension) => ({
       id: extension.id,
-      declaredTools: extension.declaredTools,
+      declaredTools: extension.declaredTools.map(({ name }) => name),
       scope: extension.scope,
     })),
     executables: input.template.executables,
@@ -763,9 +799,9 @@ export function modelVisiblePiToolNames(input: {
     ...new Set([
       ...input.tools.map((tool) => tool.name),
       ...(input.extensions ?? []).flatMap((extension) =>
-        extension.declaredTools.filter((name) =>
-          isToolVisible(name, input.policy),
-        ),
+        extension.declaredTools
+          .map(({ name }) => name)
+          .filter((name) => isToolVisible(name, input.policy)),
       ),
     ]),
   ].sort();
@@ -811,7 +847,9 @@ function wrapExtensionFactory(
           return Reflect.get(target, property, receiver) as unknown;
         }
         return (tool: ToolDefinition) => {
-          if (!contribution.declaredTools.includes(tool.name)) {
+          if (
+            !contribution.declaredTools.some(({ name }) => name === tool.name)
+          ) {
             throw new Error(
               `Pi extension "${contribution.id}" registered undeclared tool "${tool.name}"`,
             );
@@ -824,9 +862,9 @@ function wrapExtensionFactory(
       },
     });
     factory(proxy);
-    const missing = contribution.declaredTools.filter(
-      (name) => !registered.has(name),
-    );
+    const missing = contribution.declaredTools
+      .map(({ name }) => name)
+      .filter((name) => !registered.has(name));
     if (missing.length > 0) {
       throw new Error(
         `Pi extension "${contribution.id}" did not register declared tools: ${missing.join(', ')}`,
@@ -852,10 +890,66 @@ function claimToolName(
   names.set(name, owner);
 }
 
-function assertToolName(name: string): void {
-  if (!/^[a-zA-Z0-9_.:-]{1,128}$/.test(name)) {
-    throw new Error(`Invalid Pi tool name "${name}"`);
+function assertToolName(name: unknown): asserts name is string {
+  if (typeof name !== 'string' || !/^[a-zA-Z0-9_.:-]{1,128}$/.test(name)) {
+    throw new Error(
+      `Invalid Pi tool name "${typeof name === 'string' ? name : typeof name}"`,
+    );
   }
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function canonicalizeToolEffects(value: unknown): ToolEffects {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Pi tool effects must be an object');
+  }
+  const record = value as Record<string, unknown>;
+  const unsupported = Object.keys(record).filter((key) => key !== 'network');
+  if (unsupported.length > 0) {
+    throw new Error(`Unsupported Pi tool effect "${unsupported.sort()[0]}"`);
+  }
+  if (record.network === undefined) return Object.freeze({});
+  if (!Array.isArray(record.network)) {
+    throw new Error('Pi tool network effects must be an array');
+  }
+  const network = [...new Set(record.network)];
+  for (const locus of network) {
+    if (locus !== 'guest' && locus !== 'host') {
+      throw new Error('Pi tool network effects must use "guest" or "host"');
+    }
+  }
+  if (network.length === 0) return Object.freeze({});
+  network.sort(compareCodeUnits);
+  return Object.freeze({
+    network: Object.freeze(network as ToolNetworkLocus[]),
+  });
+}
+
+function canonicalizeExtensionToolDeclarations(
+  values: readonly PiExtensionToolDeclaration[],
+): readonly PiExtensionToolDeclaration[] {
+  const declarations = values.map((value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Pi extension tool declarations must be objects');
+    }
+    assertToolName(value.name);
+    return Object.freeze({
+      name: value.name,
+      effects: canonicalizeToolEffects(value.effects),
+    });
+  });
+  declarations.sort((left, right) => compareCodeUnits(left.name, right.name));
+  for (let index = 1; index < declarations.length; index += 1) {
+    if (declarations[index - 1]?.name === declarations[index]?.name) {
+      throw new Error(
+        `Duplicate Pi extension tool declaration "${declarations[index]?.name}"`,
+      );
+    }
+  }
+  return Object.freeze(declarations);
 }
 
 function assertStableId(value: string, label: string): void {

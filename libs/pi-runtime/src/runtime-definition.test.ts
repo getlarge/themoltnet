@@ -1,3 +1,4 @@
+import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { Type } from 'typebox';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -14,9 +15,10 @@ import {
   materializePiExtensions,
   PiBrokeredHttpSecretResolutionError,
   type PiRuntimeDefinition,
+  type ToolEffects,
 } from './runtime-definition.js';
 
-function tool(name: string) {
+function tool(name: string, effects: ToolEffects = {}) {
   return definePiTool({
     descriptor: {
       name,
@@ -24,6 +26,7 @@ function tool(name: string) {
       description: `${name} tool`,
       parameters: Type.Object({}),
     },
+    effects,
     create: () =>
       ({
         name,
@@ -36,6 +39,97 @@ function tool(name: string) {
 }
 
 describe('Pi runtime definitions', () => {
+  it('requires, validates, canonicalizes, and freezes direct tool effects', () => {
+    const definition = {
+      name: 'direct',
+      label: 'direct',
+      description: 'direct tool',
+      parameters: Type.Object({}),
+      execute: async () => ({ content: [], details: {} }),
+    } as never;
+
+    expect(() => definePiTool(definition, undefined as never)).toThrow(
+      /must declare effects/,
+    );
+    expect(() =>
+      definePiTool({
+        descriptor: definition,
+        create: () => definition,
+      } as never),
+    ).toThrow(/effects must be an object/);
+    expect(() =>
+      definePiTool(definition, {
+        effects: { network: ['host', 'invalid'] as never },
+      }),
+    ).toThrow(/must use "guest" or "host"/);
+    expect(() =>
+      definePiTool(definition, {
+        effects: { filesystem: ['host'] } as never,
+      }),
+    ).toThrow(/Unsupported Pi tool effect/);
+
+    const contribution = definePiTool(definition, {
+      effects: { network: ['host', 'guest', 'host'] },
+    });
+    expect(contribution.effects).toEqual({ network: ['guest', 'host'] });
+    expect(Object.isFrozen(contribution.effects)).toBe(true);
+    expect(Object.isFrozen(contribution.effects.network)).toBe(true);
+
+    const noEffects = definePiTool(definition, {
+      effects: { network: [] },
+    });
+    expect(noEffects.effects).toEqual({});
+    expect(Object.isFrozen(noEffects.effects)).toBe(true);
+    expect(noEffects.effects).not.toHaveProperty('network');
+    expect(() =>
+      definePiTool({
+        descriptor: {
+          name: undefined,
+          label: 'invalid',
+          description: 'invalid tool',
+          parameters: Type.Object({}),
+        },
+        effects: {},
+        create: () => definition,
+      } as never),
+    ).toThrow(/Invalid Pi tool name/);
+  });
+
+  it('validates, sorts, and freezes extension tool declarations', () => {
+    const extension = definePiExtension({
+      id: 'review-extension',
+      declaredTools: [
+        { name: 'z_review', effects: {} },
+        { name: 'a_review', effects: { network: ['host', 'guest', 'host'] } },
+      ],
+      factory: () => undefined,
+    });
+
+    expect(extension.declaredTools).toEqual([
+      { name: 'a_review', effects: { network: ['guest', 'host'] } },
+      { name: 'z_review', effects: {} },
+    ]);
+    expect(Object.isFrozen(extension.declaredTools)).toBe(true);
+    expect(Object.isFrozen(extension.declaredTools[0])).toBe(true);
+    expect(() =>
+      definePiExtension({
+        id: 'duplicate-extension',
+        declaredTools: [
+          { name: 'review', effects: {} },
+          { name: 'review', effects: { network: ['guest'] } },
+        ],
+        factory: () => undefined,
+      }),
+    ).toThrow(/Duplicate Pi extension tool declaration/);
+    expect(() =>
+      definePiExtension({
+        id: 'missing-effects-extension',
+        declaredTools: [{ name: 'review' } as never],
+        factory: () => undefined,
+      }),
+    ).toThrow(/effects must be an object/);
+  });
+
   it('uses the runtime-profile runtimeKind grammar', () => {
     const vm = defineGondolinTemplate({
       id: 'test-vm',
@@ -83,7 +177,7 @@ describe('Pi runtime definitions', () => {
         extensions: [
           definePiExtension({
             id: 'review-extension',
-            declaredTools: ['review'],
+            declaredTools: [{ name: 'review', effects: {} }],
             factory: () => undefined,
           }),
         ],
@@ -148,6 +242,12 @@ describe('Pi runtime definitions', () => {
       'review',
     ]);
     expect(manifest.executables).toEqual(['git']);
+    expect(
+      manifest.tools.find(({ name }) => name === 'review')?.effects,
+    ).toEqual({});
+    expect(
+      manifest.tools.find(({ name }) => name === 'bash'),
+    ).not.toHaveProperty('effects');
     expect(manifest).not.toHaveProperty('brokeredHttpSecrets');
 
     const { brokeredHttpSecrets: _brokeredHttpSecrets, ...legacyFields } =
@@ -163,6 +263,111 @@ describe('Pi runtime definitions', () => {
         },
       }),
     ).resolves.toEqual([]);
+  });
+
+  it('attests direct effects for factory and extension tools', async () => {
+    const runtime = definePiRuntime({
+      id: 'effects-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      tools: [
+        tool('none'),
+        tool('guest', { network: ['guest'] }),
+        tool('host', { network: ['host'] }),
+        tool('mixed', { network: ['host', 'guest'] }),
+      ],
+      extensions: [
+        definePiExtension({
+          id: 'extension',
+          declaredTools: [
+            { name: 'extension_host', effects: { network: ['host'] } },
+          ],
+          factory: () => undefined,
+        }),
+      ],
+    });
+
+    const manifest = await buildPiExecutorManifest({
+      runtime,
+      profile: { id: 'profile', definitionCid: 'bafkreiprofile' },
+      template: {
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+        fingerprint: 'bafkreitemplate',
+        guestAssetBuildId: 'guest-build',
+        executables: [],
+        resumeCommands: [],
+      },
+      builtInToolNames: ['bash'],
+    });
+
+    expect(
+      Object.fromEntries(
+        manifest.tools.map(({ name, effects }) => [name, effects]),
+      ),
+    ).toEqual({
+      bash: undefined,
+      extension_host: { network: ['host'] },
+      guest: { network: ['guest'] },
+      host: { network: ['host'] },
+      mixed: { network: ['guest', 'host'] },
+      none: {},
+    });
+    expect(manifest.extensions).toEqual([
+      {
+        id: 'extension',
+        declaredTools: ['extension_host'],
+        scope: 'parent',
+      },
+    ]);
+  });
+
+  it('changes the executor-manifest fingerprint when effects change', async () => {
+    const vm = defineGondolinTemplate({
+      id: 'test-vm',
+      version: '1',
+      checkpointPath: '/tmp/checkpoint',
+    });
+    const template = {
+      id: 'test-vm',
+      version: '1',
+      checkpointPath: '/tmp/checkpoint',
+      fingerprint: 'bafkreitemplate',
+      guestAssetBuildId: 'guest-build',
+      executables: [],
+      resumeCommands: [],
+    } as const;
+    const build = (effects: ToolEffects) =>
+      buildPiExecutorManifest({
+        runtime: definePiRuntime({
+          id: 'effects-runtime',
+          version: '1',
+          vm,
+          tools: [tool('networked', effects)],
+        }),
+        profile: { id: 'profile', definitionCid: 'bafkreiprofile' },
+        template,
+      });
+
+    const guestManifest = await build({ network: ['guest'] });
+    const hostManifest = await build({ network: ['host'] });
+    expect(await computeJsonCid(guestManifest)).not.toBe(
+      await computeJsonCid(hostManifest),
+    );
+
+    const mixed = await build({ network: ['host', 'guest', 'host'] });
+    const reordered = await build({ network: ['guest', 'host'] });
+    expect(await computeJsonCid(mixed)).toBe(await computeJsonCid(reordered));
+
+    const empty = await build({ network: [] });
+    const none = await build({});
+    expect(empty.tools).toEqual(none.tools);
+    expect(await computeJsonCid(empty)).toBe(await computeJsonCid(none));
   });
 
   it('attests host capabilities by name, origin and operation and rejects duplicates', async () => {
@@ -706,7 +911,7 @@ describe('Pi runtime definitions', () => {
       extensions: [
         definePiExtension({
           id: 'review-extension',
-          declaredTools: ['review'],
+          declaredTools: [{ name: 'review', effects: {} }],
           factory: (pi) => pi.registerTool({ name: 'surprise' } as never),
         }),
       ],
@@ -734,7 +939,7 @@ describe('Pi runtime definitions', () => {
       extensions: [
         definePiExtension({
           id: 'review-extension',
-          declaredTools: ['review'],
+          declaredTools: [{ name: 'review', effects: {} }],
           factory: () => undefined,
         }),
       ],
