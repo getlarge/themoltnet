@@ -63,12 +63,12 @@ function normalizeContentType(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-const deferInaccessibleTeamAuthorization = {
+const deferTeamAccessAuthorization = {
   // Let the artifact service perform resource-scoped checks so inaccessible
   // tasks/artifacts are hidden as 404 instead of leaking team membership via
   // the auth plugin's generic 403.
   auth: {
-    deferInaccessibleTeamAuthorization: true,
+    deferTeamAccessAuthorization: true,
     credentialBindingScope: 'team' as const,
   },
 };
@@ -98,7 +98,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     '/tasks/:taskId/attempts/:attemptN/artifacts',
     {
       config: {
-        ...deferInaccessibleTeamAuthorization,
+        ...deferTeamAccessAuthorization,
         rateLimit: fastify.rateLimitConfig.taskArtifactUpload,
         swaggerTransform: ({ schema, url }) => ({
           schema: {
@@ -109,7 +109,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         }),
 
         auth: {
-          ...deferInaccessibleTeamAuthorization.auth,
+          ...deferTeamAccessAuthorization.auth,
           credentialBindingScope: 'team',
           requiredScopes: ['task:execute'],
         },
@@ -173,7 +173,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     '/task-artifacts/staged',
     {
       config: {
-        ...deferInaccessibleTeamAuthorization,
+        ...deferTeamAccessAuthorization,
         rateLimit: fastify.rateLimitConfig.taskArtifactUpload,
         swaggerTransform: ({ schema, url }) => ({
           schema: {
@@ -184,7 +184,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         }),
 
         auth: {
-          ...deferInaccessibleTeamAuthorization.auth,
+          ...deferTeamAccessAuthorization.auth,
           credentialBindingScope: 'team',
           requiredScopes: ['task:write'],
         },
@@ -241,11 +241,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     '/tasks/:taskId/artifacts',
     {
       config: {
-        ...deferInaccessibleTeamAuthorization,
+        ...deferTeamAccessAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
 
         auth: {
-          ...deferInaccessibleTeamAuthorization.auth,
+          ...deferTeamAccessAuthorization.auth,
           credentialBindingScope: 'team',
           requiredScopes: ['task:read'],
         },
@@ -295,11 +295,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     '/tasks/:taskId/artifacts/:cid/content',
     {
       config: {
-        ...deferInaccessibleTeamAuthorization,
+        ...deferTeamAccessAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
 
         auth: {
-          ...deferInaccessibleTeamAuthorization.auth,
+          ...deferTeamAccessAuthorization.auth,
           credentialBindingScope: 'team',
           requiredScopes: ['task:read'],
         },
@@ -383,11 +383,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     '/tasks/:taskId/attempts/:attemptN/artifacts/:cid/content',
     {
       config: {
-        ...deferInaccessibleTeamAuthorization,
+        ...deferTeamAccessAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
 
         auth: {
-          ...deferInaccessibleTeamAuthorization.auth,
+          ...deferTeamAccessAuthorization.auth,
           credentialBindingScope: 'team',
           requiredScopes: ['task:read'],
         },

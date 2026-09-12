@@ -46,6 +46,7 @@ import type {
   TaskServiceDeps,
 } from './task-service.types.js';
 import { createAsyncValidationContextFactory } from './task-validation-context.js';
+import { traceTaskServicePhase } from './telemetry.js';
 import { dbAttemptToWire, dbTaskToWire } from './wire-mappers.js';
 
 export function createTaskService(deps: TaskServiceDeps) {
@@ -55,7 +56,6 @@ export function createTaskService(deps: TaskServiceDeps) {
     runtimeProfileRepository,
     runtimePolicyService,
     permissionChecker,
-    relationshipWriter,
     transactionRunner,
     enqueueWorkflowInCurrentTransaction,
     logger,
@@ -83,10 +83,20 @@ export function createTaskService(deps: TaskServiceDeps) {
     attemptN: number,
     timeoutMessage: string,
   ): Promise<{ final: TaskAttemptFinalEvent; task: DbTask }> {
-    const final = await DBOS.getEvent<TaskAttemptFinalEvent>(
-      workflowId,
-      'result',
-      EVENT_TIMEOUT_SECONDS,
+    const attributes = {
+      'moltnet.task.id': taskId,
+      'moltnet.task.attempt': attemptN,
+      'moltnet.workflow.id': workflowId,
+    };
+    const final = await traceTaskServicePhase(
+      'moltnet.task.workflow.wait_result',
+      attributes,
+      () =>
+        DBOS.getEvent<TaskAttemptFinalEvent>(
+          workflowId,
+          'result',
+          EVENT_TIMEOUT_SECONDS,
+        ),
     );
     if (!final) {
       throw new TaskServiceError('timed_out', timeoutMessage);
@@ -109,7 +119,11 @@ export function createTaskService(deps: TaskServiceDeps) {
       );
     }
 
-    const updated = await taskRepository.findById(taskId);
+    const updated = await traceTaskServicePhase(
+      'moltnet.task.workflow.reload_result',
+      attributes,
+      () => taskRepository.findById(taskId),
+    );
     if (!updated) {
       throw new TaskServiceError(
         'not_found',
@@ -167,6 +181,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       const initialRow = await findTaskForTeam(taskId, teamId);
       if (!initialRow)
         throw new TaskServiceError('not_found', 'Task not found');
+      let claimAuthorized = false;
       if (initialRow?.status === 'waiting') {
         const canClaimWaiting = await permissionChecker.canClaimTask(
           taskId,
@@ -178,6 +193,7 @@ export function createTaskService(deps: TaskServiceDeps) {
             'forbidden',
             'Not authorized to claim this task',
           );
+        claimAuthorized = true;
       }
       let row =
         initialRow?.status === 'waiting'
@@ -207,16 +223,18 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      const canClaim = await permissionChecker.canClaimTask(
-        taskId,
-        callerId,
-        callerNs,
-      );
-      if (!canClaim)
-        throw new TaskServiceError(
-          'forbidden',
-          'Not authorized to claim this task',
+      if (!claimAuthorized) {
+        const canClaim = await permissionChecker.canClaimTask(
+          taskId,
+          callerId,
+          callerNs,
         );
+        if (!canClaim)
+          throw new TaskServiceError(
+            'forbidden',
+            'Not authorized to claim this task',
+          );
+      }
 
       const allowedProfiles = (row.allowedProfiles ?? []) as {
         profileId: string;
@@ -311,6 +329,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         }
       }
       const leaseId = pinnedAuthority ? randomUUID() : null;
+      const claimExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
       // For freeform continuations (#1287), serialise concurrent claim
@@ -327,7 +346,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           | null
           | undefined
       )?.continueFrom;
-      const claimedRow = await transactionRunner.runInTransaction(
+      const claimedState = await transactionRunner.runInTransaction(
         async () => {
           if (continueFrom) {
             const acquired = await taskRepository.tryAcquireContinuationLock(
@@ -341,10 +360,26 @@ export function createTaskService(deps: TaskServiceDeps) {
               );
             }
           }
-          const claimed = await taskRepository.claimIfQueued(taskId);
+          const claimed = await taskRepository.claimIfQueued(taskId, {
+            claimAgentId: callerId,
+            claimExpiresAt,
+          });
           if (!claimed) return null;
 
           await persistExecutorVerification(claimedExecutor, taskRepository);
+          const attempt = await taskRepository.createAttempt({
+            taskId,
+            attemptN,
+            claimedByAgentId: callerId,
+            workflowId,
+            status: 'claimed',
+            claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
+            leaseId,
+            runtimeProfileId: selectedProfileId ?? null,
+            runtimeProfileRevision:
+              pinnedAuthority?.runtimeProfileRevision ?? null,
+            policySnapshotHash: pinnedAuthority?.policySnapshotHash ?? null,
+          });
           await enqueueTaskAttemptWorkflow(
             enqueueWorkflowInCurrentTransaction,
             {
@@ -364,43 +399,23 @@ export function createTaskService(deps: TaskServiceDeps) {
             },
           );
 
-          return claimed;
+          return { task: claimed, attempt };
         },
         { name: 'task.claim.cas' },
       );
-      if (!claimedRow) {
+      if (!claimedState) {
         throw new TaskServiceError(
           'conflict',
           'Task is not queued or is already being claimed',
         );
       }
-      const claimed = await DBOS.getEvent<{ taskId: string; attemptN: number }>(
-        workflowId,
-        'claimed',
-        EVENT_TIMEOUT_SECONDS,
-      );
-      if (!claimed) {
-        throw new TaskServiceError('timed_out', 'Claim workflow timed out');
-      }
-
-      await relationshipWriter.grantTaskClaimant(taskId, callerId);
-
-      const [updatedTask, attempt] = await Promise.all([
-        taskRepository.findById(taskId),
-        taskRepository.findAttemptWithManifests(taskId, attemptN),
-      ]);
-
-      if (!updatedTask || !attempt) {
-        throw new TaskServiceError(
-          'not_found',
-          'Claimed task or attempt could not be reloaded',
-        );
-      }
-
       logger.info({ taskId, attemptN, callerId }, 'task.claimed');
       return {
-        task: dbTaskToWire(updatedTask),
-        attempt: dbAttemptToWire(attempt),
+        task: dbTaskToWire(claimedState.task),
+        attempt: dbAttemptToWire({
+          ...claimedState.attempt,
+          claimedExecutorManifest: claimedExecutor?.manifest ?? null,
+        }),
       };
     },
 
@@ -685,9 +700,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         { taskId, attemptN, status: updated.status },
         'task.completed',
       );
-      await conditionHelpers.tryPromoteSatisfiedWaitingTasks({
-        triggerTaskId: taskId,
-      });
       return dbTaskToWire(updated);
     },
 
@@ -792,9 +804,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
       logger.info({ taskId, attemptN, status: updated.status }, 'task.failed');
-      await conditionHelpers.tryPromoteSatisfiedWaitingTasks({
-        triggerTaskId: taskId,
-      });
       return dbTaskToWire(updated);
     },
 
@@ -895,9 +904,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
       logger.info({ taskId, attemptN, status: updated.status }, 'task.aborted');
-      await conditionHelpers.tryPromoteSatisfiedWaitingTasks({
-        triggerTaskId: taskId,
-      });
       return dbTaskToWire(updated);
     },
 
@@ -965,14 +971,9 @@ export function createTaskService(deps: TaskServiceDeps) {
       // branch handles `cancelled` directly; the running-phase loop
       // falls through to persistTerminalResult.
       //
-      // We deliberately do NOT remove the Keto claimant tuple here,
-      // and the workflow's terminal persist tx for cancel ALSO
-      // preserves it (see persistTerminalResult / dispatch-phase first
-      // event handler in task-workflows.ts — `if (evt.kind !==
-      // 'cancelled') removeClaimantTupleStep(...)`). The claimer
-      // needs to keep the `report` permit so its next /heartbeat can
-      // pass `canReportTask` and observe `cancelled: true` to drive
-      // executor abort. Orphan-recovery sweeper (#937) cleans up later.
+      // Reporting authority comes from the active attempt and task lease in
+      // Postgres, so the claimant can still observe this cancellation on its
+      // next heartbeat without a separate Keto claimant projection.
       const attempts = await taskRepository.listAttempts(taskId);
       const active = attempts.find(
         (a) => a.status === 'claimed' || a.status === 'running',

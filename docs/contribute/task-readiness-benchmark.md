@@ -14,21 +14,28 @@ select the minimum `queuedToUsefulMs`.
 One distributed trace covers the daemon and runtime phases that precede the
 first useful event:
 
-| Span                                  | Boundary                                           |
-| ------------------------------------- | -------------------------------------------------- |
-| `moltnet.task_source.list`            | one queued-task page for one profile               |
-| `moltnet.task_source.affinity`        | continuation locality check                        |
-| `moltnet.task_source.claim`           | claim request, including server auth and DBOS work |
-| `moltnet.task_source.poll_sleep`      | jittered idle wait                                 |
-| `moltnet.task.execute`                | claimed attempt through executor result            |
-| `moltnet.reporter.open`               | first heartbeat and reporter readiness             |
-| `moltnet.execution.snapshot.prepare`  | resolved, cached, or built checkpoint              |
-| `moltnet.execution.workspace.prepare` | mount, worktree, or scratch preparation            |
-| `moltnet.execution.vm.resume`         | executor VM resume                                 |
-| `moltnet.execution.context.resolve`   | effective context selection                        |
-| `moltnet.execution.context.inject`    | guest context delivery                             |
-| `moltnet.execution.session.create`    | model session and tool construction                |
-| `moltnet.execution.provider.request`  | each provider prompt attempt                       |
+| Span                                  | Boundary                                            |
+| ------------------------------------- | --------------------------------------------------- |
+| `moltnet.task_source.list`            | one queued-task page for one profile                |
+| `moltnet.task_source.affinity`        | continuation locality check                         |
+| `moltnet.task_source.claim`           | claim auth, policy resolution, and atomic DB commit |
+| `moltnet.task_source.poll_sleep`      | jittered idle wait                                  |
+| `moltnet.task.execute`                | claimed attempt through executor result             |
+| `moltnet.reporter.open`               | first heartbeat and reporter readiness              |
+| `moltnet.execution.snapshot.prepare`  | resolved, cached, or built checkpoint               |
+| `moltnet.execution.workspace.prepare` | mount, worktree, or scratch preparation             |
+| `moltnet.execution.vm.resume`         | executor VM resume                                  |
+| `moltnet.execution.context.resolve`   | effective context selection                         |
+| `moltnet.execution.context.inject`    | guest context delivery                              |
+| `moltnet.execution.session.create`    | model session and tool construction                 |
+| `moltnet.execution.provider.request`  | each provider prompt attempt                        |
+
+Settlement requests add two server-side child spans:
+
+| Span                                  | Boundary                                      |
+| ------------------------------------- | --------------------------------------------- |
+| `moltnet.task.workflow.wait_result`   | wait for the durable terminal workflow event  |
+| `moltnet.task.workflow.reload_result` | reload the committed terminal task projection |
 
 Task IDs belong in traces and logs, never metric attributes. Deployment shape,
 virtualization, and identity-service placement are properties of the benchmark

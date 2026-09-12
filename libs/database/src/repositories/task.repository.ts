@@ -708,10 +708,13 @@ export function createTaskRepository(db: Database) {
       return row?.count ?? 0;
     },
 
-    async claimIfQueued(id: string): Promise<Task | null> {
+    async claimIfQueued(
+      id: string,
+      claim: Pick<Task, 'claimAgentId' | 'claimExpiresAt'>,
+    ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
-        .set({ status: 'dispatched', updatedAt: sql`now()` })
+        .set(buildTaskStatusPatch('dispatched', claim))
         .where(
           and(
             eq(tasks.id, id),

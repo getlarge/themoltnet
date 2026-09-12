@@ -3124,6 +3124,9 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@opentelemetry/api':
+        specifier: 'catalog:'
+        version: 1.9.1
       '@themoltnet/credential-broker':
         specifier: workspace:*
         version: link:../credential-broker

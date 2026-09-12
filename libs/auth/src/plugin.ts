@@ -62,7 +62,13 @@ export interface ScopeDenialEvent {
 declare module 'fastify' {
   interface FastifyContextConfig {
     auth?: {
-      deferInaccessibleTeamAuthorization?: boolean;
+      /**
+       * Skip the generic Team.access pre-check after credential binding and
+       * team selection. Routes using this must enforce an action- or
+       * resource-specific authorization check and constrain resource lookups
+       * to currentTeamId.
+       */
+      deferTeamAccessAuthorization?: boolean;
       /**
        * Route classification for credentials bound to one team.
        *
@@ -380,6 +386,10 @@ async function resolveTeamContext(
       : undefined);
 
   if (teamId) {
+    if (request.routeOptions.config.auth?.deferTeamAccessAuthorization) {
+      authContext.currentTeamId = teamId;
+      return;
+    }
     const subjectNs =
       authContext.subjectType === 'human'
         ? KetoNamespace.Human
@@ -408,12 +418,6 @@ async function resolveTeamContext(
       subjectNs,
     );
     if (!canAccess) {
-      if (
-        request.routeOptions.config.auth?.deferInaccessibleTeamAuthorization
-      ) {
-        authContext.currentTeamId = teamId;
-        return;
-      }
       const error = createAuthError('Not a member of the requested team');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
