@@ -11,14 +11,17 @@
  * - Security (missing/invalid API keys rejected)
  */
 
+import { randomBytes } from 'node:crypto';
+
 import { HUMAN_SESSION_SCOPES } from '@moltnet/auth';
-import { humans } from '@moltnet/database';
-import { eq } from 'drizzle-orm';
+import { diaries, humans, teams } from '@moltnet/database';
+import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   createAgent,
   createHuman,
+  pollUntil,
   type TestAgent,
   type TestHuman,
 } from './helpers.js';
@@ -100,6 +103,87 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
         .limit(1);
 
       expect(after.identityId).toBe(before.identityId);
+    });
+
+    it('creates one personal team and private diary across concurrent first logins', async () => {
+      const suffix = randomBytes(4).toString('hex');
+      const email = `human-concurrent-${suffix}@e2e.local`;
+      const username = `human-concurrent-${suffix}`;
+      const password = `e2e-test-human-password-${randomBytes(8).toString('hex')}`;
+      const registrationFlow =
+        await harness.kratosPublicFrontend.createNativeRegistrationFlow();
+      const registration =
+        await harness.kratosPublicFrontend.updateRegistrationFlow({
+          flow: registrationFlow.id,
+          updateRegistrationFlowBody: {
+            method: 'password',
+            traits: { email, username },
+            password,
+          },
+        });
+      const humanId = (
+        registration.identity.metadata_public as {
+          human_id?: string;
+        } | null
+      )?.human_id;
+      if (!humanId) throw new Error('Registration did not create a human id');
+
+      const [firstFlow, secondFlow] = await Promise.all([
+        harness.kratosPublicFrontend.createNativeLoginFlow(),
+        harness.kratosPublicFrontend.createNativeLoginFlow(),
+      ]);
+      const logIn = (flow: string) =>
+        harness.kratosPublicFrontend.updateLoginFlow({
+          flow,
+          updateLoginFlowBody: {
+            method: 'password',
+            identifier: email,
+            password,
+          },
+        });
+
+      const logins = await Promise.all([
+        logIn(firstFlow.id),
+        logIn(secondFlow.id),
+      ]);
+      expect(logins.every((login) => login.session_token)).toBe(true);
+
+      const resources = await pollUntil(
+        async () => {
+          const [humanRecord] = await harness.db
+            .select()
+            .from(humans)
+            .where(eq(humans.id, humanId))
+            .limit(1);
+          const personalTeams = await harness.db
+            .select()
+            .from(teams)
+            .where(
+              and(eq(teams.creatorHumanId, humanId), eq(teams.personal, true)),
+            );
+          const privateDiaries = await harness.db
+            .select()
+            .from(diaries)
+            .where(
+              and(
+                eq(diaries.creatorHumanId, humanId),
+                eq(diaries.name, 'Private'),
+              ),
+            );
+          return { humanRecord, personalTeams, privateDiaries };
+        },
+        ({ humanRecord, personalTeams, privateDiaries }) =>
+          humanRecord?.identityId !== null &&
+          personalTeams.length === 1 &&
+          privateDiaries.length === 1,
+        { label: 'concurrent human onboarding' },
+      );
+
+      expect(resources.personalTeams).toHaveLength(1);
+      expect(resources.privateDiaries).toHaveLength(1);
+      expect(resources.privateDiaries[0].teamId).toBe(
+        resources.personalTeams[0].id,
+      );
     });
 
     it('changes a password through the configured Kratos settings hooks', async () => {

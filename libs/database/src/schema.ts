@@ -942,6 +942,12 @@ export const teams = pgTable(
     index('teams_creator_human_idx')
       .on(table.creatorHumanId)
       .where(sql`creator_human_id IS NOT NULL`),
+    uniqueIndex('teams_personal_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`personal AND creator_agent_id IS NOT NULL`),
+    uniqueIndex('teams_personal_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`personal AND creator_human_id IS NOT NULL`),
     check(
       'teams_creator_xor',
       sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,

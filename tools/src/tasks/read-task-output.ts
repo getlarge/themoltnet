@@ -31,6 +31,10 @@ if (!UUID_RE.test(teamId)) {
   throw new Error(`Invalid --team-id "${teamId}": expected a UUID.`);
 }
 
-const { agent } = await resolveTasksApiContext(process.cwd(), agentName);
+const { agent } = await resolveTasksApiContext(
+  process.cwd(),
+  agentName,
+  process.env.MOLTNET_AGENT_DIR,
+);
 const result = await agent.tasks.readResult(taskId, { teamId });
 process.stdout.write(`${JSON.stringify(result.output)}\n`);

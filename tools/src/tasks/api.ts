@@ -15,11 +15,24 @@ export interface TasksApiContext {
   auth: () => Promise<string>;
 }
 
+export function resolveAgentDirectory(
+  repoRoot: string,
+  agentName: string,
+  configuredAgentDir = process.env.MOLTNET_AGENT_DIR,
+): string {
+  return configuredAgentDir?.trim() || join(repoRoot, '.moltnet', agentName);
+}
+
 export async function resolveTasksApiContext(
   repoRoot: string,
   agentName: string,
+  configuredAgentDir = process.env.MOLTNET_AGENT_DIR,
 ): Promise<TasksApiContext> {
-  const agentDir = join(repoRoot, '.moltnet', agentName);
+  const agentDir = resolveAgentDirectory(
+    repoRoot,
+    agentName,
+    configuredAgentDir,
+  );
   const cfg = JSON.parse(
     readFileSync(join(agentDir, 'moltnet.json'), 'utf8'),
   ) as MoltNetConfig;

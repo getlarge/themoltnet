@@ -12411,6 +12411,14 @@ func (s EnrollAgentReqCredentialType) Validate() error {
 	}
 }
 
+func (s *EnrollAgentServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *EntryRelation) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -25260,6 +25268,14 @@ func (s RegisterAgentReqCredentialType) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s *RegisterAgentServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *RegisterExecutorManifestNotFound) Validate() error {

@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { DBOS } from '@moltnet/database';
+import { DBOS, DBOSErrors } from '@moltnet/database';
 import {
   buildSelfRegistrationMessage,
   buildTeamRegistrationMessage,
@@ -19,7 +19,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem } from '../problems/index.js';
+import { createConflictProblem, createProblem } from '../problems/index.js';
 import {
   RegisterResponseSchema,
   RegistrationCredentialTypeSchema,
@@ -29,13 +29,29 @@ import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
   EnrollmentValidationError,
   issueRegistrationCredential,
+  REGISTRATION_CREDENTIAL_ACK_TIMEOUT_S,
+  REGISTRATION_CREDENTIAL_ISSUED_EVENT,
+  REGISTRATION_QUEUE_NAME,
+  REGISTRATION_READY_EVENT,
+  REGISTRATION_WORKFLOW_TIMEOUT_MS,
   type RegistrationInput,
   registrationInputsEqual,
   registrationWorkflow,
   RegistrationWorkflowError,
+  type RegistrationWorkflowResult,
 } from '../workflows/index.js';
 
 class IdempotencyKeyConflictError extends Error {}
+class RegistrationTimeoutError extends Error {}
+
+function isEnrollmentValidationError(
+  error: unknown,
+): error is EnrollmentValidationError {
+  return (
+    error instanceof EnrollmentValidationError ||
+    (error instanceof Error && error.name === 'EnrollmentValidationError')
+  );
+}
 
 const IdempotencyHeadersSchema = Type.Object({
   'idempotency-key': Type.String({
@@ -84,14 +100,19 @@ export async function registrationRoutes(fastify: FastifyInstance) {
   const runRegistration = async (
     input: RegistrationInput,
     route: 'self' | 'team',
+    principalKey: string,
   ) => {
     try {
       const handle = await DBOS.startWorkflow(
         registrationWorkflow.registerAgent,
         {
           workflowID: registrationWorkflowId(route, input.idempotencyKey),
+          queueName: REGISTRATION_QUEUE_NAME,
+          enqueueOptions: { deduplicationID: principalKey },
+          duplicationPolicy: 'reject',
+          timeoutMS: REGISTRATION_WORKFLOW_TIMEOUT_MS,
         },
-      )(input);
+      )(input, true);
       const [recordedInput] =
         await handle.getWorkflowInputs<[RegistrationInput]>();
       if (!recordedInput || !registrationInputsEqual(recordedInput, input)) {
@@ -99,12 +120,67 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'Idempotency-Key was already used for a different registration request',
         );
       }
-      return await issueRegistrationCredential(await handle.getResult());
+      const registration = await Promise.race([
+        DBOS.getEvent<RegistrationWorkflowResult>(
+          handle.workflowID,
+          REGISTRATION_READY_EVENT,
+          REGISTRATION_CREDENTIAL_ACK_TIMEOUT_S,
+        ),
+        // A failed workflow never publishes the readiness event. Observe its
+        // result concurrently so application failures surface immediately
+        // instead of being hidden behind the readiness timeout.
+        handle.getResult(),
+      ]);
+      if (!registration) {
+        throw new RegistrationTimeoutError();
+      }
+      try {
+        return await issueRegistrationCredential(registration);
+      } finally {
+        await DBOS.send(
+          handle.workflowID,
+          true,
+          REGISTRATION_CREDENTIAL_ISSUED_EVENT,
+          `${handle.workflowID}:${REGISTRATION_CREDENTIAL_ISSUED_EVENT}`,
+        );
+        await handle.getResult();
+      }
     } catch (error: unknown) {
       if (error instanceof IdempotencyKeyConflictError) {
         throw createProblem('conflict', error.message);
       }
-      if (error instanceof EnrollmentValidationError) {
+      if (error instanceof RegistrationTimeoutError) {
+        throw createProblem(
+          'service-unavailable',
+          'Registration did not become ready before the timeout',
+        );
+      }
+      if (error instanceof DBOSErrors.DBOSQueueDuplicatedError) {
+        fastify.log.info(
+          { event: 'registration.queue_duplicate', route },
+          'Registration for principal already in progress',
+        );
+        throw createConflictProblem(
+          'A registration for this public key is already in progress',
+          {
+            constraint: 'registration_principal_in_progress',
+            target: {
+              resource: 'registration',
+              keys: { state: 'in_progress' },
+            },
+          },
+        );
+      }
+      if (
+        error instanceof DBOSErrors.DBOSWorkflowCancelledError ||
+        error instanceof DBOSErrors.DBOSAwaitedWorkflowCancelledError
+      ) {
+        throw createProblem(
+          'service-unavailable',
+          'Registration timed out or was cancelled',
+        );
+      }
+      if (isEnrollmentValidationError(error)) {
         throw createProblem('registration-failed', error.message);
       }
       if (error instanceof RegistrationWorkflowError) {
@@ -134,21 +210,25 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           403: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
     async (request) => {
       const { publicKey, proof, credentialType } = request.body;
       const idempotencyKey = request.headers['idempotency-key'];
-      const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
-        message: buildSelfRegistrationMessage({
-          idempotencyKey,
+      const { fingerprint, principalKey } = await verifyRegistrationProof(
+        fastify.cryptoService,
+        {
+          message: buildSelfRegistrationMessage({
+            idempotencyKey,
+            publicKey,
+            credentialType,
+          }),
+          proof,
           publicKey,
-          credentialType,
-        }),
-        proof,
-        publicKey,
-      });
+        },
+      );
       return runRegistration(
         {
           publicKey,
@@ -158,6 +238,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           mode: { type: 'self' },
         },
         'self',
+        principalKey,
       );
     },
   );
@@ -180,6 +261,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           403: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -194,16 +276,19 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'Invite is invalid or expired',
         );
       }
-      const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
-        message: buildTeamRegistrationMessage({
-          enrollmentTokenHash: tokenHash,
-          idempotencyKey,
+      const { fingerprint, principalKey } = await verifyRegistrationProof(
+        fastify.cryptoService,
+        {
+          message: buildTeamRegistrationMessage({
+            enrollmentTokenHash: tokenHash,
+            idempotencyKey,
+            publicKey,
+            credentialType,
+          }),
+          proof,
           publicKey,
-          credentialType,
-        }),
-        proof,
-        publicKey,
-      });
+        },
+      );
       return runRegistration(
         {
           publicKey,
@@ -217,6 +302,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           },
         },
         'team',
+        principalKey,
       );
     },
   );

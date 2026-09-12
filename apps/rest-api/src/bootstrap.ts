@@ -118,7 +118,9 @@ import {
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
   initTeamFoundingWorkflow,
+  registerHumanOnboardingQueue,
   registerMaintenanceQueues,
+  registerRegistrationQueue,
   setDiaryTransferDeps,
   setHumanOnboardingDeps,
   setLegreffierOnboardingDeps,
@@ -626,7 +628,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
     ],
-    registerQueues: [registerTaskWorkflowQueues, registerMaintenanceQueues],
+    registerQueues: [
+      registerTaskWorkflowQueues,
+      registerMaintenanceQueues,
+      registerRegistrationQueue,
+      registerHumanOnboardingQueue,
+    ],
   });
 
   const dataSource = getDataSource();

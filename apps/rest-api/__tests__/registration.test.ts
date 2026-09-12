@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { DBOSErrors } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -19,19 +20,36 @@ import {
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
-const { mockWorkflowResult, mockStartWorkflow, mockIssueCredential } =
-  vi.hoisted(() => {
-    const mockWorkflowResult = vi.fn();
-    const mockStartWorkflow = vi.fn();
-    const mockIssueCredential = vi.fn();
-    return { mockWorkflowResult, mockStartWorkflow, mockIssueCredential };
-  });
+const {
+  mockGetEvent,
+  mockIssueCredential,
+  mockSend,
+  mockStartWorkflow,
+  mockWorkflowResult,
+} = vi.hoisted(() => {
+  const mockGetEvent = vi.fn();
+  const mockWorkflowResult = vi.fn();
+  const mockStartWorkflow = vi.fn();
+  const mockIssueCredential = vi.fn();
+  const mockSend = vi.fn();
+  return {
+    mockGetEvent,
+    mockWorkflowResult,
+    mockStartWorkflow,
+    mockIssueCredential,
+    mockSend,
+  };
+});
 
 vi.mock('@moltnet/database', async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
   return {
     ...original,
-    DBOS: { startWorkflow: mockStartWorkflow },
+    DBOS: {
+      getEvent: mockGetEvent,
+      send: mockSend,
+      startWorkflow: mockStartWorkflow,
+    },
   };
 });
 
@@ -92,10 +110,13 @@ describe('registration routes', () => {
       credentialIdempotencyKey: IDEMPOTENCY_KEY,
     });
     mockIssueCredential.mockResolvedValue(SUCCESS);
+    mockGetEvent.mockImplementation(async () => mockWorkflowResult());
+    mockSend.mockResolvedValue(undefined);
     mockStartWorkflow.mockReturnValue(
       vi.fn().mockImplementation(async (input) => ({
         getResult: mockWorkflowResult,
         getWorkflowInputs: vi.fn().mockResolvedValue([input]),
+        workflowID: 'registration-workflow-id',
       })),
     );
   });
@@ -119,14 +140,40 @@ describe('registration routes', () => {
       'signature',
       PUBLIC_KEY,
     );
+    expect(mockStartWorkflow).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        queueName: 'registration',
+        enqueueOptions: {
+          deduplicationID:
+            '66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925',
+        },
+        duplicationPolicy: 'reject',
+        timeoutMS: 300_000,
+      }),
+    );
     const workflowCall = mockStartWorkflow.mock.results[0].value;
-    expect(workflowCall).toHaveBeenCalledWith({
-      publicKey: PUBLIC_KEY,
-      fingerprint: FINGERPRINT,
-      credentialType: 'oauth2',
-      idempotencyKey: IDEMPOTENCY_KEY,
-      mode: { type: 'self' },
-    });
+    expect(workflowCall).toHaveBeenCalledWith(
+      {
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        credentialType: 'oauth2',
+        idempotencyKey: IDEMPOTENCY_KEY,
+        mode: { type: 'self' },
+      },
+      true,
+    );
+    expect(mockGetEvent).toHaveBeenCalledWith(
+      'registration-workflow-id',
+      'registration_ready',
+      60,
+    );
+    expect(mockSend).toHaveBeenCalledWith(
+      'registration-workflow-id',
+      true,
+      'credential_issued',
+      'registration-workflow-id:credential_issued',
+    );
   });
 
   it('enrolls from a team invite and binds the proof to the token hash', async () => {
@@ -159,6 +206,30 @@ describe('registration routes', () => {
           inviteCodeHash: actualHash,
         },
       }),
+      true,
+    );
+  });
+
+  it('deduplicates equivalent encodings of the same public-key bytes', async () => {
+    const equivalentPublicKey = PUBLIC_KEY.replace(/=$/, '');
+
+    for (const publicKey of [PUBLIC_KEY, equivalentPublicKey]) {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/register',
+        headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+        payload: {
+          publicKey,
+          proof: 'signature',
+          credentialType: 'oauth2',
+        },
+      });
+      expect(response.statusCode).toBe(200);
+    }
+
+    expect(mockStartWorkflow).toHaveBeenCalledTimes(2);
+    expect(mockStartWorkflow.mock.calls[0][1]?.enqueueOptions).toEqual(
+      mockStartWorkflow.mock.calls[1][1]?.enqueueOptions,
     );
   });
 
@@ -207,6 +278,7 @@ describe('registration routes', () => {
             mode: { type: 'self' },
           },
         ]),
+        workflowID: 'registration-workflow-id',
       }),
     );
     const response = await app.inject({
@@ -225,7 +297,45 @@ describe('registration routes', () => {
     expect(mockWorkflowResult).not.toHaveBeenCalled();
   });
 
+  it('returns 409 when the public key already has an active registration', async () => {
+    mockStartWorkflow.mockImplementationOnce(() => async () => {
+      throw new DBOSErrors.DBOSQueueDuplicatedError(
+        'existing-workflow',
+        'registration',
+        PUBLIC_KEY,
+      );
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        code: 'CONFLICT',
+        detail: 'A registration for this public key is already in progress',
+        conflict: {
+          constraint: 'registration_principal_in_progress',
+          target: {
+            resource: 'registration',
+            keys: { state: 'in_progress' },
+          },
+        },
+      }),
+    );
+    expect(mockWorkflowResult).not.toHaveBeenCalled();
+  });
+
   it('maps durable workflow failures to an upstream problem', async () => {
+    mockGetEvent.mockReturnValue(new Promise<void>(() => {}));
     mockWorkflowResult.mockRejectedValueOnce(
       new RegistrationWorkflowError('Hydra unavailable'),
     );
@@ -241,6 +351,32 @@ describe('registration routes', () => {
     });
     expect(response.statusCode).toBe(502);
     expect(response.json().code).toBe('UPSTREAM_ERROR');
+  });
+
+  it('maps a deserialized enrollment validation failure to a client problem', async () => {
+    const error = new Error('Invite was redeemed by another request');
+    error.name = 'EnrollmentValidationError';
+    mockGetEvent.mockReturnValue(new Promise<void>(() => {}));
+    mockWorkflowResult.mockRejectedValueOnce(error);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        code: 'REGISTRATION_FAILED',
+        detail: 'Invite was redeemed by another request',
+      }),
+    );
   });
 
   describe('POST /auth/rotate-secret', () => {

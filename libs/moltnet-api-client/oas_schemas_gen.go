@@ -17834,6 +17834,10 @@ func (s *EnrollAgentReqCredentialType) UnmarshalText(data []byte) error {
 	}
 }
 
+type EnrollAgentServiceUnavailable ProblemDetails
+
+func (*EnrollAgentServiceUnavailable) enrollAgentRes() {}
+
 // Ref: #/components/schemas/EntryRelation
 type EntryRelation struct {
 	Confidence        NilFloat64     `json:"confidence"`
@@ -45591,6 +45595,10 @@ func (s *RegisterAgentReqCredentialType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type RegisterAgentServiceUnavailable ProblemDetails
+
+func (*RegisterAgentServiceUnavailable) registerAgentRes() {}
 
 type RegisterExecutorManifestNotFound ProblemDetails
 

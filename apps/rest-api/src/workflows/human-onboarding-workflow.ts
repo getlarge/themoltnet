@@ -31,6 +31,16 @@ import {
 
 import type { Logger } from './logger.js';
 
+export const HUMAN_ONBOARDING_QUEUE_NAME = 'human-onboarding';
+export const HUMAN_ONBOARDING_QUEUE_CONCURRENCY = 10;
+
+export async function registerHumanOnboardingQueue(): Promise<void> {
+  await DBOS.registerQueue(HUMAN_ONBOARDING_QUEUE_NAME, {
+    concurrency: HUMAN_ONBOARDING_QUEUE_CONCURRENCY,
+    onConflict: 'update_if_latest_version',
+  });
+}
+
 // ── Error Classes ──────────────────────────────────────────────
 
 export class HumanOnboardingError extends Error {

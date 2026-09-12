@@ -1,3 +1,4 @@
+import { DBOSErrors } from '@moltnet/database';
 import { AGENT_OAUTH_SCOPES, DCR_MAX_SCOPES } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import {
@@ -9,6 +10,23 @@ import {
   it,
   vi,
 } from 'vitest';
+
+const { mockOnboardHuman, mockOnboardingResult, mockStartWorkflow } =
+  vi.hoisted(() => ({
+    mockOnboardHuman: vi.fn(),
+    mockOnboardingResult: vi.fn(),
+    mockStartWorkflow: vi.fn(),
+  }));
+
+vi.mock('@moltnet/database', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  DBOS: { startWorkflow: mockStartWorkflow },
+}));
+
+vi.mock('../src/workflows/index.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  humanOnboardingWorkflow: { onboardHuman: mockOnboardHuman },
+}));
 
 import {
   createMockAgent,
@@ -44,11 +62,82 @@ describe('Hook routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    mockStartWorkflow
+      .mockReset()
+      .mockReturnValue(
+        vi.fn().mockResolvedValue({ getResult: mockOnboardingResult }),
+      );
+    mockOnboardingResult.mockReset().mockResolvedValue({
+      humanId: HUMAN_ID,
+      identityId: HUMAN_IDENTITY_ID,
+      personalTeamId: '330e8400-e29b-41d4-a716-446655440077',
+    });
     vi.mocked(app.sessionResolver!.evictIdentity).mockClear();
     mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(32));
     mocks.cryptoService.generateFingerprint.mockReturnValue(
       'C212-DAFA-27C5-6C57',
     );
+  });
+
+  describe('POST /hooks/kratos/after-login', () => {
+    const updatedAt = new Date('2026-09-12T10:00:00.000Z');
+    const payload = {
+      identity: {
+        id: HUMAN_IDENTITY_ID,
+        schema_id: 'moltnet_human',
+        traits: { email: 'human@test.local', username: 'human' },
+        metadata_public: { human_id: HUMAN_ID },
+      },
+    };
+
+    beforeEach(() => {
+      mocks.humanRepository.findById.mockResolvedValue({
+        id: HUMAN_ID,
+        identityId: null,
+        createdAt: updatedAt,
+        updatedAt,
+      });
+    });
+
+    it('queues onboarding with transient human-level deduplication', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-login',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mockStartWorkflow).toHaveBeenCalledWith(mockOnboardHuman, {
+        workflowID: `human-onboarding:${HUMAN_ID}:${HUMAN_IDENTITY_ID}:${updatedAt.getTime()}`,
+        queueName: 'human-onboarding',
+        enqueueOptions: { deduplicationID: HUMAN_ID },
+        duplicationPolicy: 'reject',
+        timeoutMS: 60_000,
+      });
+      expect(mockOnboardingResult).toHaveBeenCalledOnce();
+    });
+
+    it('treats concurrent onboarding for the same human as already in progress', async () => {
+      mockStartWorkflow.mockImplementationOnce(() => async () => {
+        throw new DBOSErrors.DBOSQueueDuplicatedError(
+          'existing-workflow',
+          'human-onboarding',
+          HUMAN_ID,
+        );
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-login',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ success: true });
+      expect(mockOnboardingResult).not.toHaveBeenCalled();
+    });
   });
 
   describe('POST /hooks/kratos/after-registration', () => {

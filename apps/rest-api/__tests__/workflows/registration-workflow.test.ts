@@ -1,8 +1,18 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { registerStep, registerWorkflow, startWorkflow } = vi.hoisted(() => ({
+const {
+  recv,
+  registerQueue,
+  registerStep,
+  registerWorkflow,
+  setEvent,
+  startWorkflow,
+} = vi.hoisted(() => ({
+  recv: vi.fn(),
+  registerQueue: vi.fn(),
   registerStep: vi.fn((fn) => fn),
   registerWorkflow: vi.fn((fn) => fn),
+  setEvent: vi.fn(),
   startWorkflow: vi.fn((fn) => async (...args: unknown[]) => ({
     getResult: async () => fn(...args),
   })),
@@ -11,8 +21,11 @@ const { registerStep, registerWorkflow, startWorkflow } = vi.hoisted(() => ({
 vi.mock('@moltnet/database', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   DBOS: {
+    registerQueue,
+    recv,
     registerStep,
     registerWorkflow,
+    setEvent,
     startWorkflow,
     workflowID: 'registration-test',
   },
@@ -22,6 +35,7 @@ import {
   EnrollmentValidationError,
   initRegistrationWorkflow,
   issueRegistrationCredential,
+  registerRegistrationQueue,
   registrationWorkflow,
   setRegistrationDeps,
 } from '../../src/workflows/registration-workflow.js';
@@ -146,6 +160,59 @@ describe('registration workflow', () => {
   beforeAll(() => initRegistrationWorkflow());
 
   beforeEach(() => vi.clearAllMocks());
+
+  it('registers a persisted queue with explicit concurrency', async () => {
+    await registerRegistrationQueue();
+
+    expect(registerQueue).toHaveBeenCalledWith('registration', {
+      concurrency: 10,
+      onConflict: 'update_if_latest_version',
+    });
+  });
+
+  it('holds the workflow open for non-durable credential issuance', async () => {
+    const deps = createDeps();
+    setRegistrationDeps(deps as never);
+    vi.mocked(recv).mockResolvedValueOnce(true);
+
+    const result = await registrationWorkflow.registerAgent(
+      {
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        credentialType: 'oauth2',
+        idempotencyKey: 'nonce',
+        mode: { type: 'self' },
+      },
+      true,
+    );
+
+    expect(setEvent).toHaveBeenCalledWith('registration_ready', result);
+    expect(recv).toHaveBeenCalledWith('credential_issued', 60);
+    expect(deps.oauth2Api.createOAuth2Client).not.toHaveBeenCalled();
+  });
+
+  it('does not compensate a completed registration when the acknowledgement wait fails', async () => {
+    const deps = createDeps();
+    setRegistrationDeps(deps as never);
+    vi.mocked(recv).mockRejectedValueOnce(new Error('DBOS unavailable'));
+
+    await expect(
+      registrationWorkflow.registerAgent(
+        {
+          publicKey: PUBLIC_KEY,
+          fingerprint: FINGERPRINT,
+          credentialType: 'oauth2',
+          idempotencyKey: 'nonce',
+          mode: { type: 'self' },
+        },
+        true,
+      ),
+    ).rejects.toThrow('DBOS unavailable');
+
+    expect(deps.teamRepository.delete).not.toHaveBeenCalled();
+    expect(deps.agentRepository.deleteById).not.toHaveBeenCalled();
+    expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
+  });
 
   it('self-registers with a personal team, private diary, and OAuth2 credential', async () => {
     const deps = createDeps();
