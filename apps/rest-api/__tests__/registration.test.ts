@@ -353,6 +353,32 @@ describe('registration routes', () => {
     expect(response.json().code).toBe('UPSTREAM_ERROR');
   });
 
+  it('maps a deserialized enrollment validation failure to a client problem', async () => {
+    const error = new Error('Invite was redeemed by another request');
+    error.name = 'EnrollmentValidationError';
+    mockGetEvent.mockReturnValue(new Promise<void>(() => {}));
+    mockWorkflowResult.mockRejectedValueOnce(error);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        code: 'REGISTRATION_FAILED',
+        detail: 'Invite was redeemed by another request',
+      }),
+    );
+  });
+
   describe('POST /auth/rotate-secret', () => {
     let rotateApp: FastifyInstance;
 

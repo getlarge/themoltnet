@@ -44,6 +44,15 @@ import {
 class IdempotencyKeyConflictError extends Error {}
 class RegistrationTimeoutError extends Error {}
 
+function isEnrollmentValidationError(
+  error: unknown,
+): error is EnrollmentValidationError {
+  return (
+    error instanceof EnrollmentValidationError ||
+    (error instanceof Error && error.name === 'EnrollmentValidationError')
+  );
+}
+
 const IdempotencyHeadersSchema = Type.Object({
   'idempotency-key': Type.String({
     pattern: '^[A-Za-z0-9_-]{43}$',
@@ -171,7 +180,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'Registration timed out or was cancelled',
         );
       }
-      if (error instanceof EnrollmentValidationError) {
+      if (isEnrollmentValidationError(error)) {
         throw createProblem('registration-failed', error.message);
       }
       if (error instanceof RegistrationWorkflowError) {
