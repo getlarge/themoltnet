@@ -259,9 +259,12 @@ func runGitHubCredentialHelperIOCmd(credPath string, in io.Reader, out io.Writer
 		return err
 	}
 
+	// Git's credential protocol identifies the repository, but not the paths
+	// being pushed. Preserve the repository restriction while inheriting the
+	// installation's available permissions so workflow-file pushes retain the
+	// App's workflows permission.
 	token, err := mintGitHubAppTokenForRequest(creds, credPath, githubTokenRequest{
-		Repository:  repository,
-		Permissions: map[string]string{"contents": "write"},
+		Repository: repository,
 	})
 	if err != nil {
 		return err
