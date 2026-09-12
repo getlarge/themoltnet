@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "teams_personal_creator_agent_idx" ON "teams" USING btree ("creator_agent_id") WHERE personal AND creator_agent_id IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "teams_personal_creator_human_idx" ON "teams" USING btree ("creator_human_id") WHERE personal AND creator_human_id IS NOT NULL;
