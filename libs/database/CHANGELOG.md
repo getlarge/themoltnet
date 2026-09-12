@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1](https://github.com/getlarge/themoltnet/compare/database-v0.10.0...database-v0.10.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **database:** enforce unique personal teams ([66dfa44](https://github.com/getlarge/themoltnet/commit/66dfa4432ea02a1cd78b94db32779c68b70f3d23))
+* **registration:** close serialization review gaps ([decde6b](https://github.com/getlarge/themoltnet/commit/decde6b8126f3f92b19fc81a4658185dd4302da9))
+* **workflows:** serialise principal onboarding ([ee4ef0b](https://github.com/getlarge/themoltnet/commit/ee4ef0b8608693282cb53cc418ee33f8a72be3f7))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/database-v0.9.0...database-v0.10.0) (2026-09-12)
 
 

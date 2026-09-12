@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.57.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.0...rest-api-v0.57.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **registration:** close serialization review gaps ([decde6b](https://github.com/getlarge/themoltnet/commit/decde6b8126f3f92b19fc81a4658185dd4302da9))
+* **registration:** preserve durable validation errors ([257a73e](https://github.com/getlarge/themoltnet/commit/257a73ee9fad5a65b358bc8874fd02a0b7652835))
+* **registration:** surface workflow failures promptly ([507ff56](https://github.com/getlarge/themoltnet/commit/507ff56a8d11abfa3a370a994918758bf1bc9721))
+* **workflows:** serialise principal onboarding ([ee4ef0b](https://github.com/getlarge/themoltnet/commit/ee4ef0b8608693282cb53cc418ee33f8a72be3f7))
+* **workflows:** serialize principal onboarding ([f67d6eb](https://github.com/getlarge/themoltnet/commit/f67d6eb57ec5769e340cff22bd2a6e167bc6043a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.10.1
+
 ## [0.57.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.56.0...rest-api-v0.57.0) (2026-09-12)
 
 
