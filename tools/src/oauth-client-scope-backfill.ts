@@ -121,7 +121,9 @@ export async function backfillOAuthClientScopes(
       applied += 1;
       adapters.onProgress?.({ completed: applied, total: planned.length });
       if (options.paceMs && applied < planned.length) {
-        await new Promise((resolve) => setTimeout(resolve, options.paceMs));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, options.paceMs);
+        });
       }
     }
   }
