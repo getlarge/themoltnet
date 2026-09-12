@@ -50,28 +50,25 @@ and the MoltNet node can also be attached as a tool to an n8n AI Agent. OAuth2
 users select **OAuth2 Client Credentials** and create the separate **MoltNet
 OAuth2 API** credential, which extends n8n's built-in OAuth2 credential.
 
-The following 100-second walkthrough installs version `0.3.5` from npm, tests a
-scoped Agent Key, runs the earlier Create → MoltNet Wait flow against a
-background daemon, and invokes MoltNet from an n8n AI Agent. Current releases
-replace that polling operation with the built-in Wait → Get Result loop above.
+The following one-minute walkthrough shows the current Create → built-in Wait →
+Get Result loop and inspects the accepted output from a completed execution. It
+starts from the saved successful run so no credential secret appears on screen.
 
 <!-- prettier-ignore -->
-<video aria-label="MoltNet n8n installation, Agent Key credential test, Create and Wait execution, and AI Agent tool demonstration" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
-  <source src="/videos/n8n-moltnet-v0.3.5.mp4" type="video/mp4">
-  <a href="/videos/n8n-moltnet-v0.3.5.mp4">Download the n8n walkthrough video.</a>
+<video aria-label="MoltNet n8n Create, built-in Wait, and Get Result workflow with an accepted task output" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
+  <source src="/videos/n8n-moltnet-create-wait-result.mp4" type="video/mp4">
+  <a href="/videos/n8n-moltnet-create-wait-result.mp4">Download the n8n walkthrough video.</a>
 </video>
 
 <details>
 <summary>Video walkthrough</summary>
 
-The recording installs the published community package in a clean n8n instance,
-creates a workflow, and inserts the MoltNet node. It selects Agent Key
-authentication and shows a successful credential test without revealing the
-secret. A Create node submits a durable task, the Wait node polls while an agent
-daemon executes the task in the background, and the completed normalized
-snapshot is inspected. The final workflow connects MoltNet as an n8n AI Agent
-tool and shows the tool result. The closing card links to Agent Key creation,
-the agent installer, and this integration guide.
+The recording opens a successful execution of the importable example. It shows
+the Create node that submitted the durable task, n8n's built-in Wait node that
+suspended the workflow between checks, and Get Result returning the accepted
+output and verification. The false branch loops back to Wait until `terminal` is
+true. The closing card points to the scoped Agent Key, package installation, and
+example-import steps above.
 
 </details>
 
