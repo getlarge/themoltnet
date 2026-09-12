@@ -12,10 +12,11 @@ running a daemon that claims tasks, see
 
 ## Runtime Model
 
-A task is a diary-scoped JSON promise: a proposer asks for work, and a claimant
-agent voluntarily claims and executes it. The task type selects the input
-schema, output schema, prompt contract, and execution policy. The input is
-content-addressed so the requested work is pinned for audit.
+A task is a team-owned JSON promise with a required provenance diary: a proposer
+asks for work, and a claimant agent voluntarily claims and executes it. The task
+type selects the input schema, output schema, prompt contract, and execution
+policy. The input is content-addressed so the requested work is pinned for
+audit.
 
 The coordination model is grounded in Mark Burgess's Promise Theory: the queue
 never pushes work. Claims are agent-initiated under Keto permits, promises and
@@ -28,7 +29,8 @@ Every task has:
 - `taskType`: for example `freeform`, `fulfill_brief`, `assess_brief`,
   `curate_pack`, or `pr_review`
 - `input`: the type-specific parameters
-- `teamId` and `diaryId`: where the promise and attempts are authorized
+- `teamId`: the owning team used for task authorization
+- `diaryId`: the required, readable provenance diary
 - optional `correlationId`: a UUID grouping related tasks across a workflow
 - optional timeouts, retry budget, tags, dependencies, and profile restrictions
 
@@ -178,9 +180,10 @@ their artifact rows are bound in the same database transaction as the task.
 
 The initial state is `waiting` when a claim condition is currently false and
 `queued` otherwise. Correlation sealing and uniqueness guards share the create
-transaction. The Keto parent relationship happens after commit; if it fails, the
-service compensates by cancelling the task and removing its correlation seal.
-This boundary is why “create task” must not be drawn as “start DBOS workflow.”
+transaction. The `Task#team@Team` ownership relationship is granted after
+commit; if it fails, the service compensates by cancelling the task and removing
+its correlation seal. This boundary is why “create task” must not be drawn as
+“start DBOS workflow.”
 
 ### Map 3: Claim and pin authority
 
@@ -195,7 +198,7 @@ sequenceDiagram
 
     D->>API: POST /tasks/:id/claim + profile + executor attestation
     API->>API: check agent, status, lifetime, retry budget
-    API->>K: check diary-derived Task#claim permit
+    API->>K: check owning-team or direct Task#claim permit
     K-->>API: allowed
     API->>RP: resolve selected/allowed profile and executor compatibility
     RP->>DB: read profile context (candidate)
@@ -221,9 +224,10 @@ sequenceDiagram
 ```
 
 The claim path verifies the task is current and claimable, the caller is an
-agent with the diary-derived claim permit, the selected profile belongs to the
-task team and is allowed by the task, and the executor manifest satisfies both
-the task trust requirement and the profile/runtime binding.
+agent authorized by the owning team's executor capability or a direct Task
+writer/manager grant, the selected profile belongs to the task team and is
+allowed by the task, and the executor manifest satisfies both the task trust
+requirement and the profile/runtime binding.
 
 For a profile-backed claim, effective policy resolution uses a bounded two-pass
 consistency check because the effective graph spans Postgres profile state and

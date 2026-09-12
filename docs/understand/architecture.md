@@ -494,10 +494,12 @@ creation, claim-time workflow enqueue, immutable authority pinning, execution,
 timeouts, retry rules, cancellation races, and terminal settlement) lives in
 [Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
 
-The critical architectural boundary is: `POST /tasks` persists a task and
-establishes its diary parent relationship, but creates no attempt and starts no
-attempt workflow. `POST /tasks/:id/claim` performs the queued-to-dispatched CAS
-and enqueues the DBOS attempt workflow in the same Postgres transaction.
+The critical architectural boundary is: `POST /tasks` persists a task and then
+writes `Task:taskId#team@Team:teamId`; the required `diaryId` records provenance
+only and creates no authorization relationship. Task creation creates no attempt
+and starts no attempt workflow. `POST /tasks/:id/claim` performs the
+queued-to-dispatched CAS and enqueues the DBOS attempt workflow in the same
+Postgres transaction.
 
 ### Continuation resolution (durable resume)
 
