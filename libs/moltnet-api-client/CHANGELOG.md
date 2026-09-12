@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.70.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.0...moltnet-api-client-v1.70.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **workflows:** serialise principal onboarding ([ee4ef0b](https://github.com/getlarge/themoltnet/commit/ee4ef0b8608693282cb53cc418ee33f8a72be3f7))
+
+
+### Codegen
+
+* **api-client:** regenerate registration responses ([98a4579](https://github.com/getlarge/themoltnet/commit/98a4579b948f5649dfbae14d6e4035718282043e))
+
 ## [1.70.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.69.0...moltnet-api-client-v1.70.0) (2026-09-12)
 
 
