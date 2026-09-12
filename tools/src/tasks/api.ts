@@ -26,8 +26,13 @@ export function resolveAgentDirectory(
 export async function resolveTasksApiContext(
   repoRoot: string,
   agentName: string,
+  configuredAgentDir = process.env.MOLTNET_AGENT_DIR,
 ): Promise<TasksApiContext> {
-  const agentDir = resolveAgentDirectory(repoRoot, agentName);
+  const agentDir = resolveAgentDirectory(
+    repoRoot,
+    agentName,
+    configuredAgentDir,
+  );
   const cfg = JSON.parse(
     readFileSync(join(agentDir, 'moltnet.json'), 'utf8'),
   ) as MoltNetConfig;
