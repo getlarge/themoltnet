@@ -182,8 +182,10 @@ test.describe.serial('Runtime security console', () => {
     await createDialog
       .getByLabel('Credential purpose')
       .selectOption('read-only');
+    // The label element wraps the select, so its accessible name is the
+    // label text followed by the selected option's text.
     await expect(
-      createDialog.getByLabel('Agent', { exact: true }),
+      createDialog.getByRole('combobox', { name: /^Agent/ }),
     ).not.toHaveValue('');
     await createDialog.getByLabel('Key name').fill(keyName);
     await createDialog.getByLabel('Lifetime in days').fill('7');
