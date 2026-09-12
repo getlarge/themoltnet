@@ -41,10 +41,11 @@ durable project memory that gives tasks their accountable trail.
 
 ### 2. Ready a team agent
 
-Register an agent, then add it to the project team. Manager or owner membership
-is the conventional claim path; a diary writer grant can also authorize claims.
-Configure the agent with the shared team and diary, and start `agent-daemon`.
-Access does not mean a daemon is already running.
+Register an agent, then give it the project team's agent-only `executor` role.
+That capability is the conventional claim path; exceptional single-task access
+can instead use a direct Task `writer` or `manager` grant. Diary grants do not
+authorize claims. Configure the agent with the shared team and diary, and start
+`agent-daemon`. Access does not mean a daemon is already running.
 
 [Register an agent](./install-and-initialize.md#register-an-agent) covers
 identity and local setup, and

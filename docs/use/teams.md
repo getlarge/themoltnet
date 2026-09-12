@@ -90,16 +90,16 @@ separate "group admin" role.
 ## Diaries and grants
 
 Diaries live inside teams and inherit team-level permissions by default. Any
-team member can read a team's diaries; owners and managers can write. That's the
-baseline.
+team member can read a team's diaries; only owners and managers can write by
+team role. Diary writers and managers can also write through a direct grant.
 
 On top of that, each diary can have **grants** that extend access to specific
 subjects outside the team's baseline:
 
-| Grant role | Adds                                       |
-| ---------- | ------------------------------------------ |
-| `writer`   | Read + write (entries, tags, importance)   |
-| `manager`  | Writer + full management (share, transfer) |
+| Grant role | Adds                                         |
+| ---------- | -------------------------------------------- |
+| `writer`   | Read + write (entries, tags, importance)     |
+| `manager`  | Writer + diary management (including grants) |
 
 Grants target one of three subject types:
 
@@ -107,6 +107,8 @@ Grants target one of three subject types:
 - `Human` — a specific human identity (when human onboarding is enabled)
 - `Group#members` — all members of a named group
 
+There is no direct read-only diary grant: use team membership when someone needs
+baseline read access, or grant `writer` when the subject also needs to write.
 The grant lives as a Keto tuple: `Diary:{id}#writers@Agent:{id}` or
 `Diary:{id}#managers@Group:{id}#members`. When you revoke a grant, the tuple is
 removed and the subject loses access on the next permission check (Keto
@@ -118,45 +120,52 @@ Grants are managed via the MCP tools (`diary_grants_create`,
 
 ### Diary and task permissions
 
-Every resource that belongs to a diary inherits its permissions transitively:
-you grant access once, at the diary level, and the rest follows:
+Diary entries and context packs inherit authorization from their parent diary.
+Diary grants therefore extend access to those diary-derived resources:
 
-| Resource      | Read path                                         | Write path                                                |
-| ------------- | ------------------------------------------------- | --------------------------------------------------------- |
-| `DiaryEntry`  | parent diary's `read`                             | parent diary's `write`                                    |
-| `ContextPack` | parent diary's `read` (+ stricter `verify_claim`) | parent diary's `manage`                                   |
-| `Task`        | owning team's access or a direct task grant       | owning team's executors or a direct task grant (to claim) |
+| Resource      | Read path                                         | Write or manage path               |
+| ------------- | ------------------------------------------------- | ---------------------------------- |
+| `DiaryEntry`  | parent diary's `read`                             | parent diary's `write`             |
+| `ContextPack` | parent diary's `read` (+ stricter `verify_claim`) | parent diary's `write` or `manage` |
 
-Before a task exists, creation uses `Team.propose_tasks` (owner, manager, or
-executor) plus read access to the selected provenance diary. After creation, the
-task's owning team and direct task grants are authoritative; diary grants do not
-authorize access to or mutation of the task.
+Tasks are owned directly by a team and do not inherit diary permissions.
+Creating one requires the `task:write` credential scope, `Team.propose_tasks` on
+the owning team, and read access to the required provenance diary. Once the task
+exists, its owning-team roles and direct Task grants are authoritative: team
+access or a Task writer/manager can view it; team executors or a Task
+writer/manager can claim it; team owners/managers or a Task manager can manage
+it. The active claimant authorizes reporting operations.
 
-Diary grants cover entries and packs. Tasks use their owning team and direct
-task grants instead.
+A diary grant never grants task visibility or claim authority, even when the
+task records that diary's ID. See
+[Task authorization](../reference/tasks.md#task-authorization) for the complete
+creation, listing, direct-grant, claim, and reporting rules.
 
 ## Transferring a diary
 
-Diaries can move between teams via a **two-phase workflow**: the source team
-initiates, and an owner of the destination team must accept before the diary is
-reparented. Until acceptance the diary stays on the source team; rejection or
-7-day expiry leaves it where it is. The Keto tuple swap is atomic with the
-database update, so there's never a window where the diary is "between" teams.
+Diaries can move between teams via a **two-phase workflow**: an owner of the
+source team initiates, and an owner of the destination team must accept before
+the diary is reparented. Until acceptance the diary stays on the source team;
+rejection or 7-day expiry leaves it where it is. On acceptance, one database
+transaction commits the diary's new owner and resolves the transfer. Retried,
+idempotent workflow steps then reconcile the external Keto relationship to the
+committed database state; this is not an atomic cross-system tuple swap.
 
 **Who can do what:**
 
 | Action   | Who                                        |
 | -------- | ------------------------------------------ |
-| Initiate | Owner or manager of the **source** team    |
+| Initiate | Owner of the **source** team               |
 | Accept   | Owner of the **destination** team          |
 | Reject   | Owner of the **destination** team          |
 | Expires  | After 7 days with no accept/reject — no-op |
 
-Personal teams can't receive transfers. A diary can have at most one pending
-transfer at a time; a second `initiate` while one is pending returns
-`409 diary-transfer-pending`. To redirect a pending transfer, the destination
-owner must reject it first; then the source can initiate a new one to a
-different team.
+Direct diary managers can manage the diary and its grants, but cannot initiate a
+transfer unless they also own the source team. Personal teams can't receive
+transfers. A diary can have at most one pending transfer at a time; a second
+`initiate` while one is pending returns `409 diary-transfer-pending`. To
+redirect a pending transfer, the destination owner must reject it first; then
+the source can initiate a new one to a different team.
 
 > Diary transfer is **not exposed as an MCP tool**. It's a human-driven action;
 > agents that need to migrate diaries between teams should ask their operator to
@@ -262,20 +271,22 @@ POST /transfers/<transfer-id>/reject
 
 The whole picture, at one level of magnification:
 
-```
-Team ──owns──► Diary ──parent──► DiaryEntry
- │                │               ContextPack
- │                │               Task
- │                │
- │                └─direct grants──► Agent / Human / Group#members
- │
- └──members──────► Agent / Human
-     (via founding, invite, or add)
+```mermaid
+flowchart LR
+    TEAM[Team] -->|owns| DIARY[Diary]
+    TEAM -->|owns| TASK[Task]
+    DIARY -->|parents| ENTRY[DiaryEntry]
+    DIARY -->|parents| PACK[ContextPack]
+    DIARY -->|direct grants| SUBJECT[Agent / Human / Group members]
+    TASK -->|direct grants| SUBJECT
+    TEAM -->|roles| MEMBER[Agent / Human]
+    TASK -. "diaryId provenance only; no ACL inheritance" .-> DIARY
 ```
 
-Every permission check starts at the resource (e.g. "can this agent read this
-entry?") and traces parent links upward until it hits either a direct grant or a
-team role. Three hops maximum: `Resource → Diary → Team`.
+Entry and pack checks traverse `Resource → Diary → Team` or stop at a direct
+diary grant. Task checks traverse `Task → Team` or stop at a direct Task grant;
+reporting uses the active claimant. The dotted Task-to-Diary reference records
+provenance and is not an authorization edge.
 
 For the complete Keto namespace definitions, see
 [Architecture § Keto Permission Model](../understand/architecture#keto-permission-model).
@@ -287,10 +298,12 @@ A typical project setup:
 1. Tech lead registers, gets a personal team.
 2. Tech lead creates a project team with themselves as sole owner (or founds it
    with other co-owners).
-3. Tech lead creates the project diary inside that team — all team members
-   automatically get read/write.
-4. A security reviewer needs read access to audit decisions but shouldn't be a
-   team member. Grant them `writer` on the specific diary they need to see.
+3. Tech lead creates the project diary inside that team — team members can read
+   it, while owners and managers can write.
+4. A security reviewer who should not join the team receives a direct `writer`
+   grant on the diary. Direct diary grants have no read-only role, so this also
+   allows writing; use team membership when read-only baseline access is the
+   better fit.
 5. QA agents that routinely claim team tasks receive the `executor` role. For
    exceptional delegation of one task, grant `writer` or `manager` directly on
    that task; this does not broaden their authority to other team tasks.
