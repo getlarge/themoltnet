@@ -1,19 +1,21 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { registerStep, registerWorkflow } = vi.hoisted(() => ({
+const { registerQueue, registerStep, registerWorkflow } = vi.hoisted(() => ({
+  registerQueue: vi.fn(),
   registerStep: vi.fn((fn) => fn),
   registerWorkflow: vi.fn((fn) => fn),
 }));
 
 vi.mock('@moltnet/database', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  DBOS: { registerStep, registerWorkflow },
+  DBOS: { registerQueue, registerStep, registerWorkflow },
 }));
 
 import {
   HumanOnboardingError,
   humanOnboardingWorkflow,
   initHumanOnboardingWorkflow,
+  registerHumanOnboardingQueue,
   setHumanOnboardingDeps,
 } from '../../src/workflows/human-onboarding-workflow.js';
 
@@ -57,6 +59,15 @@ function createDeps() {
 describe('human onboarding workflow', () => {
   beforeAll(() => initHumanOnboardingWorkflow());
   beforeEach(() => vi.clearAllMocks());
+
+  it('registers a persisted queue with explicit concurrency', async () => {
+    await registerHumanOnboardingQueue();
+
+    expect(registerQueue).toHaveBeenCalledWith('human-onboarding', {
+      concurrency: 10,
+      onConflict: 'update_if_latest_version',
+    });
+  });
 
   it('binds identity and persists personal resources in DBOS transactions', async () => {
     const deps = createDeps();

@@ -8,11 +8,14 @@ export {
   type TransferDecision,
 } from './diary-transfer-workflow.js';
 export {
+  HUMAN_ONBOARDING_QUEUE_CONCURRENCY,
+  HUMAN_ONBOARDING_QUEUE_NAME,
   type HumanOnboardingDeps,
   HumanOnboardingError,
   type HumanOnboardingResult,
   humanOnboardingWorkflow,
   initHumanOnboardingWorkflow,
+  registerHumanOnboardingQueue,
   setHumanOnboardingDeps,
 } from './human-onboarding-workflow.js';
 export {
@@ -38,6 +41,9 @@ export {
   EnrollmentValidationError,
   initRegistrationWorkflow,
   issueRegistrationCredential,
+  registerRegistrationQueue,
+  REGISTRATION_QUEUE_CONCURRENCY,
+  REGISTRATION_QUEUE_NAME,
   type RegistrationCredential,
   type RegistrationCredentialType,
   type RegistrationDeps,

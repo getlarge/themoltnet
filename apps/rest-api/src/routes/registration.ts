@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { DBOS } from '@moltnet/database';
+import { DBOS, DBOSErrors } from '@moltnet/database';
 import {
   buildSelfRegistrationMessage,
   buildTeamRegistrationMessage,
@@ -29,6 +29,7 @@ import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
   EnrollmentValidationError,
   issueRegistrationCredential,
+  REGISTRATION_QUEUE_NAME,
   type RegistrationInput,
   registrationInputsEqual,
   registrationWorkflow,
@@ -90,6 +91,9 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         registrationWorkflow.registerAgent,
         {
           workflowID: registrationWorkflowId(route, input.idempotencyKey),
+          queueName: REGISTRATION_QUEUE_NAME,
+          enqueueOptions: { deduplicationID: input.publicKey },
+          duplicationPolicy: 'reject',
         },
       )(input);
       const [recordedInput] =
@@ -103,6 +107,12 @@ export async function registrationRoutes(fastify: FastifyInstance) {
     } catch (error: unknown) {
       if (error instanceof IdempotencyKeyConflictError) {
         throw createProblem('conflict', error.message);
+      }
+      if (error instanceof DBOSErrors.DBOSQueueDuplicatedError) {
+        throw createProblem(
+          'conflict',
+          'A registration for this public key is already in progress',
+        );
       }
       if (error instanceof EnrollmentValidationError) {
         throw createProblem('registration-failed', error.message);

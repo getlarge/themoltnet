@@ -11,13 +11,16 @@ import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { OryClients } from '@moltnet/auth';
-import { DBOS, type HumanRepository } from '@moltnet/database';
+import { DBOS, DBOSErrors, type HumanRepository } from '@moltnet/database';
 import { DCR_MAX_SCOPES } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
-import { humanOnboardingWorkflow } from '../workflows/index.js';
+import {
+  HUMAN_ONBOARDING_QUEUE_NAME,
+  humanOnboardingWorkflow,
+} from '../workflows/index.js';
 
 // ── Ory Webhook Payload Types ───────────────────────────────
 // Kratos webhooks send `{ identity: Identity }` via the Jsonnet body
@@ -468,6 +471,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
             // version is deduplicated, while a compensated failure gets a new
             // deterministic execution on the next login.
             workflowID: `human-onboarding:${humanId}:${identityId}:${human.updatedAt.getTime()}`,
+            queueName: HUMAN_ONBOARDING_QUEUE_NAME,
+            enqueueOptions: { deduplicationID: humanId },
+            duplicationPolicy: 'reject',
           },
         )(humanId, identityId, username);
         await handle.getResult();
@@ -477,6 +483,13 @@ export async function hookRoutes(fastify: FastifyInstance) {
           'Human onboarding completed',
         );
       } catch (error: unknown) {
+        if (error instanceof DBOSErrors.DBOSQueueDuplicatedError) {
+          fastify.log.info(
+            { human_id: humanId, identity_id: identityId },
+            'Human onboarding already in progress',
+          );
+          return reply.status(200).send({ success: true });
+        }
         fastify.log.error(
           { err: error, human_id: humanId, identity_id: identityId },
           'Human onboarding failed — will retry on next login',

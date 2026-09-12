@@ -23,6 +23,16 @@ import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
 import type { Logger } from './logger.js';
 
+export const REGISTRATION_QUEUE_NAME = 'registration';
+export const REGISTRATION_QUEUE_CONCURRENCY = 10;
+
+export async function registerRegistrationQueue(): Promise<void> {
+  await DBOS.registerQueue(REGISTRATION_QUEUE_NAME, {
+    concurrency: REGISTRATION_QUEUE_CONCURRENCY,
+    onConflict: 'update_if_latest_version',
+  });
+}
+
 export type RegistrationCredentialType = 'oauth2' | 'agent_key';
 
 export type RegistrationMode =

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { DBOSErrors } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -119,6 +120,14 @@ describe('registration routes', () => {
       'signature',
       PUBLIC_KEY,
     );
+    expect(mockStartWorkflow).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        queueName: 'registration',
+        enqueueOptions: { deduplicationID: PUBLIC_KEY },
+        duplicationPolicy: 'reject',
+      }),
+    );
     const workflowCall = mockStartWorkflow.mock.results[0].value;
     expect(workflowCall).toHaveBeenCalledWith({
       publicKey: PUBLIC_KEY,
@@ -222,6 +231,36 @@ describe('registration routes', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json().code).toBe('CONFLICT');
+    expect(mockWorkflowResult).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when the public key already has an active registration', async () => {
+    mockStartWorkflow.mockImplementationOnce(() => async () => {
+      throw new DBOSErrors.DBOSQueueDuplicatedError(
+        'existing-workflow',
+        'registration',
+        PUBLIC_KEY,
+      );
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual(
+      expect.objectContaining({
+        code: 'CONFLICT',
+        detail: 'A registration for this public key is already in progress',
+      }),
+    );
     expect(mockWorkflowResult).not.toHaveBeenCalled();
   });
 

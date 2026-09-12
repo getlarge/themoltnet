@@ -1,16 +1,19 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { registerStep, registerWorkflow, startWorkflow } = vi.hoisted(() => ({
-  registerStep: vi.fn((fn) => fn),
-  registerWorkflow: vi.fn((fn) => fn),
-  startWorkflow: vi.fn((fn) => async (...args: unknown[]) => ({
-    getResult: async () => fn(...args),
-  })),
-}));
+const { registerQueue, registerStep, registerWorkflow, startWorkflow } =
+  vi.hoisted(() => ({
+    registerQueue: vi.fn(),
+    registerStep: vi.fn((fn) => fn),
+    registerWorkflow: vi.fn((fn) => fn),
+    startWorkflow: vi.fn((fn) => async (...args: unknown[]) => ({
+      getResult: async () => fn(...args),
+    })),
+  }));
 
 vi.mock('@moltnet/database', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   DBOS: {
+    registerQueue,
     registerStep,
     registerWorkflow,
     startWorkflow,
@@ -22,6 +25,7 @@ import {
   EnrollmentValidationError,
   initRegistrationWorkflow,
   issueRegistrationCredential,
+  registerRegistrationQueue,
   registrationWorkflow,
   setRegistrationDeps,
 } from '../../src/workflows/registration-workflow.js';
@@ -146,6 +150,15 @@ describe('registration workflow', () => {
   beforeAll(() => initRegistrationWorkflow());
 
   beforeEach(() => vi.clearAllMocks());
+
+  it('registers a persisted queue with explicit concurrency', async () => {
+    await registerRegistrationQueue();
+
+    expect(registerQueue).toHaveBeenCalledWith('registration', {
+      concurrency: 10,
+      onConflict: 'update_if_latest_version',
+    });
+  });
 
   it('self-registers with a personal team, private diary, and OAuth2 credential', async () => {
     const deps = createDeps();
