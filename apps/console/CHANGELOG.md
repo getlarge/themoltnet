@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/console-v0.14.0...console-v0.15.0) (2026-09-12)
+
+
+### Features
+
+* add role-aware agent keys and agent aliases ([f16f7cf](https://github.com/getlarge/themoltnet/commit/f16f7cf2a985de29959717081412c44763a5eb82))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.10.0
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/console-v0.13.2...console-v0.14.0) (2026-09-11)
 
 

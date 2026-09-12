@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.70.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.69.0...moltnet-api-client-v1.70.0) (2026-09-12)
+
+
+### Features
+
+* add role-aware agent keys and agent aliases ([f16f7cf](https://github.com/getlarge/themoltnet/commit/f16f7cf2a985de29959717081412c44763a5eb82))
+
 ## [1.69.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.68.0...moltnet-api-client-v1.69.0) (2026-09-11)
 
 

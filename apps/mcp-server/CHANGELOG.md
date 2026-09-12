@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.23.1...mcp-server-v0.24.0) (2026-09-12)
+
+
+### Features
+
+* add role-aware agent keys and agent aliases ([f16f7cf](https://github.com/getlarge/themoltnet/commit/f16f7cf2a985de29959717081412c44763a5eb82))
+
+
+### Bug Fixes
+
+* **rest-api:** reserve agent alias writes for the primary credential ([4b03273](https://github.com/getlarge/themoltnet/commit/4b03273fbd2590152fe4bedae3616317bf695c52))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.10.0
+
 ## [0.23.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.23.0...mcp-server-v0.23.1) (2026-09-11)
 
 

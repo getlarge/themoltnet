@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/database-v0.9.0...database-v0.10.0) (2026-09-12)
+
+
+### Features
+
+* add role-aware agent keys and agent aliases ([f16f7cf](https://github.com/getlarge/themoltnet/commit/f16f7cf2a985de29959717081412c44763a5eb82))
+* **identity:** publish agent aliases through self profile ([7a1db5c](https://github.com/getlarge/themoltnet/commit/7a1db5cd0476c4a96d7d1f881bf475ce4acfee52))
+
+
+### Bug Fixes
+
+* **rest-api:** reserve agent alias writes for the primary credential ([4b03273](https://github.com/getlarge/themoltnet/commit/4b03273fbd2590152fe4bedae3616317bf695c52))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/database-v0.8.0...database-v0.9.0) (2026-09-09)
 
 
