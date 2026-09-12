@@ -111,11 +111,17 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'Idempotency-Key was already used for a different registration request',
         );
       }
-      const registration = await DBOS.getEvent<RegistrationWorkflowResult>(
-        handle.workflowID,
-        REGISTRATION_READY_EVENT,
-        REGISTRATION_CREDENTIAL_ACK_TIMEOUT_S,
-      );
+      const registration = await Promise.race([
+        DBOS.getEvent<RegistrationWorkflowResult>(
+          handle.workflowID,
+          REGISTRATION_READY_EVENT,
+          REGISTRATION_CREDENTIAL_ACK_TIMEOUT_S,
+        ),
+        // A failed workflow never publishes the readiness event. Observe its
+        // result concurrently so application failures surface immediately
+        // instead of being hidden behind the readiness timeout.
+        handle.getResult(),
+      ]);
       if (!registration) {
         throw new RegistrationTimeoutError();
       }

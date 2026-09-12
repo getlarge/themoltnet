@@ -335,6 +335,7 @@ describe('registration routes', () => {
   });
 
   it('maps durable workflow failures to an upstream problem', async () => {
+    mockGetEvent.mockReturnValue(new Promise<void>(() => {}));
     mockWorkflowResult.mockRejectedValueOnce(
       new RegistrationWorkflowError('Hydra unavailable'),
     );
