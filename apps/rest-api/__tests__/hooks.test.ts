@@ -62,10 +62,12 @@ describe('Hook routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
-    mockStartWorkflow.mockReturnValue(
-      vi.fn().mockResolvedValue({ getResult: mockOnboardingResult }),
-    );
-    mockOnboardingResult.mockResolvedValue({
+    mockStartWorkflow
+      .mockReset()
+      .mockReturnValue(
+        vi.fn().mockResolvedValue({ getResult: mockOnboardingResult }),
+      );
+    mockOnboardingResult.mockReset().mockResolvedValue({
       humanId: HUMAN_ID,
       identityId: HUMAN_IDENTITY_ID,
       personalTeamId: '330e8400-e29b-41d4-a716-446655440077',
