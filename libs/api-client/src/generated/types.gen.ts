@@ -3858,6 +3858,10 @@ export type EnrollAgentErrors = {
    * Default Response
    */
   502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type EnrollAgentError = EnrollAgentErrors[keyof EnrollAgentErrors];
@@ -3916,6 +3920,10 @@ export type RegisterAgentErrors = {
    * Default Response
    */
   502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RegisterAgentError = RegisterAgentErrors[keyof RegisterAgentErrors];
