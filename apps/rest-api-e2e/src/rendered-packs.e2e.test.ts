@@ -597,7 +597,9 @@ describe('Rendered packs', () => {
       });
       expect(error).toBeUndefined();
       expect(data!.pinned).toBe(false);
-      expect(data!.expiresAt).toBeDefined();
+      // Exact: an explicit deadline must survive, not be replaced by the
+      // server's retention window.
+      expect(new Date(data!.expiresAt!).getTime()).toBe(future.getTime());
     });
 
     it('updates expiresAt on non-pinned rendered pack', async () => {
@@ -620,9 +622,10 @@ describe('Rendered packs', () => {
         body: { pinned: true },
       });
 
-      // The e2e API runs with the default PACK_GC_COMPILE_TTL_DAYS of 7
-      // (apps/rest-api/src/config.ts). The deadline is server-assigned, so it
-      // is measured against this clock with a generous skew allowance.
+      // The e2e API runs with PACK_GC_COMPILE_TTL_DAYS=11 (docker-compose.e2e.yaml),
+      // deliberately off the 7-day default so a hard-coded fallback fails. The
+      // deadline is server-assigned, so it is measured against this clock with
+      // a generous skew allowance.
       const before = Date.now();
       const { data, error } = await updateRenderedPack({
         client,
@@ -632,11 +635,11 @@ describe('Rendered packs', () => {
       });
       expect(error).toBeUndefined();
       expect(data!.pinned).toBe(false);
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      const ttlMs = 11 * 24 * 60 * 60 * 1000;
       const skew = 5 * 60 * 1000;
       const expiresAt = new Date(data!.expiresAt!).getTime();
-      expect(expiresAt).toBeGreaterThanOrEqual(before + sevenDays - skew);
-      expect(expiresAt).toBeLessThanOrEqual(Date.now() + sevenDays + skew);
+      expect(expiresAt).toBeGreaterThanOrEqual(before + ttlMs - skew);
+      expect(expiresAt).toBeLessThanOrEqual(Date.now() + ttlMs + skew);
     });
 
     it('rejects update from another agent (403)', async () => {

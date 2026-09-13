@@ -9,6 +9,7 @@ import {
   OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_BEARER_TOKEN,
+  TEST_PACK_GC_TTL_DAYS,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -115,13 +116,16 @@ describe('PATCH /packs/:id', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    // Exact: a server default silently replacing the caller's deadline would
+    // still satisfy expect.any(Date).
     expect(mocks.contextPackRepository.unpin).toHaveBeenCalledWith(
       PACK_ID,
-      expect.any(Date),
+      future,
     );
   });
 
-  // The test app is built with PACK_GC_COMPILE_TTL_DAYS: 7 (see helpers.ts).
+  // The test app runs with the non-default TEST_PACK_GC_TTL_DAYS (helpers.ts),
+  // so a hard-coded 7-day fallback would fail here.
   it('unpins without expiresAt using the server retention window (#1858)', async () => {
     const pinnedPack = { ...MOCK_PACK, pinned: true, expiresAt: null };
     mocks.contextPackRepository.findById
@@ -145,9 +149,9 @@ describe('PATCH /packs/:id', () => {
       string,
       Date,
     ];
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + sevenDays);
-    expect(expiresAt.getTime()).toBeLessThanOrEqual(after + sevenDays);
+    const ttlMs = TEST_PACK_GC_TTL_DAYS * 24 * 60 * 60 * 1000;
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + ttlMs);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(after + ttlMs);
   });
 
   it('updates expiresAt on non-pinned pack', async () => {

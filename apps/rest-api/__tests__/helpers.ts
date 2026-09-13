@@ -50,6 +50,13 @@ import type {
 
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
 export const TEST_RECOVERY_SECRET = 'test-recovery-secret-at-least-16-chars';
+/**
+ * Deliberately NOT the production default of 7: a route that ignored the
+ * configured window and fell back to a hard-coded default would still pass
+ * a 7-day assertion (#1858).
+ */
+export const TEST_PACK_GC_TTL_DAYS = 11;
+
 export const TEST_BEARER_TOKEN = 'test-token';
 export const TEST_SECURITY_OPTIONS = {
   corsOrigins: 'http://localhost:3000,http://localhost:8000',
@@ -989,7 +996,7 @@ export async function createTestApp(
     oryClients: mockOryClients,
     security: { ...TEST_SECURITY_OPTIONS, ...securityOverrides },
     packGcConfig: {
-      PACK_GC_COMPILE_TTL_DAYS: 7,
+      PACK_GC_COMPILE_TTL_DAYS: TEST_PACK_GC_TTL_DAYS,
       PACK_GC_CRON: '0 * * * *',
       PACK_GC_BATCH_SIZE: 100,
     },
