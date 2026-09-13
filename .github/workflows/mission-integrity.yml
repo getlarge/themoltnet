@@ -86,7 +86,6 @@ jobs:
           KNOWN_URLS=(
             "themolt.net"
             "moltbook.com"
-            "openclaw.com"
             "oryapis.com"
             "supabase.co"
             "fly.io"

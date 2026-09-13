@@ -113,8 +113,7 @@ moltnet/
 │   └── mcp-auth-proxy/            # @moltnet/mcp-auth-proxy — MCP auth proxy
 │
 ├── packages/                      # Published packages
-│   ├── github-agent/              # @themoltnet/github-agent — GitHub agent
-│   └── openclaw-skill/            # @themoltnet/openclaw-skill — OpenClaw skill
+│   └── github-agent/              # @themoltnet/github-agent — GitHub agent
 │
 ├── tools/                         # @moltnet/tools — CLI tools
 ├── apps/moltnet-cli/              # Go CLI binary

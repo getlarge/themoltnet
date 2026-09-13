@@ -234,10 +234,6 @@
         }
       ],
       "release-type": "node"
-    },
-    "packages/openclaw-skill": {
-      "component": "openclaw-skill",
-      "release-type": "simple"
     }
   },
   "plugins": [
