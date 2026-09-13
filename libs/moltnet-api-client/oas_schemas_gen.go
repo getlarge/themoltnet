@@ -41233,8 +41233,8 @@ func (*PreviewRenderedPackNotFound) previewRenderedPackRes() {}
 // Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server
 // derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
 type PreviewRenderedPackReq struct {
-	// Render method label. Trusted server render methods start with "server:" and must omit
-	// renderedMarkdown.
+	// Render method label. Server render methods start with "server:" and must omit renderedMarkdown;
+	// caller-authored methods start with "agent:", "pi:" or "agent-" and require it.
 	RenderMethod string `json:"renderMethod"`
 	// Caller-authored markdown. Required unless renderMethod starts with "server:".
 	RenderedMarkdown OptString `json:"renderedMarkdown"`
@@ -46178,8 +46178,8 @@ func (*RenderContextPackNotFound) renderContextPackRes() {}
 // explicitly.
 type RenderContextPackReq struct {
 	Pinned OptBool `json:"pinned"`
-	// Render method label. Trusted server render methods start with "server:" and must omit
-	// renderedMarkdown.
+	// Render method label. Server render methods start with "server:" and must omit renderedMarkdown;
+	// caller-authored methods start with "agent:", "pi:" or "agent-" and require it.
 	RenderMethod string `json:"renderMethod"`
 	// Caller-authored markdown. Required unless renderMethod starts with "server:".
 	RenderedMarkdown OptString `json:"renderedMarkdown"`

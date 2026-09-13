@@ -7653,7 +7653,7 @@ export type RenderContextPackData = {
   body: {
     pinned?: boolean;
     /**
-     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     * Render method label. Server render methods start with "server:" and must omit renderedMarkdown; caller-authored methods start with "agent:", "pi:" or "agent-" and require it.
      */
     renderMethod: string;
     /**
@@ -7722,7 +7722,7 @@ export type PreviewRenderedPackData = {
    */
   body: {
     /**
-     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     * Render method label. Server render methods start with "server:" and must omit renderedMarkdown; caller-authored methods start with "agent:", "pi:" or "agent-" and require it.
      */
     renderMethod: string;
     /**
