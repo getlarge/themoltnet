@@ -214,7 +214,7 @@ func newPackUpdateCmd() *cobra.Command {
 	}
 	cmd.Flags().String("pack-id", "", "Pack UUID (required)")
 	cmd.Flags().Bool("pinned", false, "Pin the pack")
-	cmd.Flags().Bool("no-pinned", false, "Unpin the pack")
+	cmd.Flags().Bool("no-pinned", false, "Unpin the pack (the server assigns the expiry unless --expires-at is given)")
 	cmd.Flags().String("expires-at", "", "Expiration time in RFC3339 format")
 	_ = cmd.MarkFlagRequired("pack-id")
 	return cmd

@@ -304,10 +304,21 @@ export const CustomPackBodySchema = Type.Object({
   ),
 });
 
+const PinnedUpdateSchema = Type.Boolean({
+  description:
+    'true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).',
+});
+
+const ExpiresAtUpdateSchema = Type.String({
+  format: 'date-time',
+  description:
+    'Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.',
+});
+
 export const PackUpdateBodySchema = Type.Object(
   {
-    pinned: Type.Optional(Type.Boolean()),
-    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+    pinned: Type.Optional(PinnedUpdateSchema),
+    expiresAt: Type.Optional(ExpiresAtUpdateSchema),
   },
   {
     minProperties: 1,
@@ -319,8 +330,8 @@ export const PackUpdateBodySchema = Type.Object(
 
 export const RenderedPackUpdateBodySchema = Type.Object(
   {
-    pinned: Type.Optional(Type.Boolean()),
-    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+    pinned: Type.Optional(PinnedUpdateSchema),
+    expiresAt: Type.Optional(ExpiresAtUpdateSchema),
     verifiedTaskId: Type.Optional(
       Type.String({
         format: 'uuid',

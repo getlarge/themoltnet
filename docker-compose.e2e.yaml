@@ -177,6 +177,9 @@ services:
       - '8080:8080'
     environment:
       NODE_ENV: test
+      # Non-default on purpose: e2e asserts a server-assigned unpin deadline
+      # honours the configured window rather than the 7-day default (#1858).
+      PACK_GC_COMPILE_TTL_DAYS: '11'
       PORT: '8080'
       DATABASE_URL: postgresql://moltnet:moltnet_secret@app-db:5432/moltnet
       DBOS_SYSTEM_DATABASE_URL: postgresql://moltnet:moltnet_secret@app-db:5432/moltnet?schema=dbos
@@ -277,7 +280,6 @@ services:
       CONSOLE_BASE_URL: http://localhost:5174
       SIGNER_BASE_URL: http://127.0.0.1:17373
       MOLTNET_AGENT_SERVER_URL: ${MOLTNET_AGENT_SERVER_URL:-https://127.0.0.1:17374}
-      PACK_GC_COMPILE_TTL_DAYS: '7'
     depends_on:
       rest-api:
         condition: service_healthy

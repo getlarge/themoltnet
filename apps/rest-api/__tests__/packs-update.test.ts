@@ -9,6 +9,7 @@ import {
   OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_BEARER_TOKEN,
+  TEST_PACK_GC_TTL_DAYS,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -115,24 +116,42 @@ describe('PATCH /packs/:id', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    // Exact: a server default silently replacing the caller's deadline would
+    // still satisfy expect.any(Date).
     expect(mocks.contextPackRepository.unpin).toHaveBeenCalledWith(
       PACK_ID,
-      expect.any(Date),
+      future,
     );
   });
 
-  it('rejects unpin without expiresAt', async () => {
-    mocks.contextPackRepository.findById.mockResolvedValue(MOCK_PACK);
+  // The test app runs with the non-default TEST_PACK_GC_TTL_DAYS (helpers.ts),
+  // so a hard-coded 7-day fallback would fail here.
+  it('unpins without expiresAt using the server retention window (#1858)', async () => {
+    const pinnedPack = { ...MOCK_PACK, pinned: true, expiresAt: null };
+    mocks.contextPackRepository.findById
+      .mockResolvedValueOnce(pinnedPack)
+      .mockResolvedValueOnce(MOCK_PACK);
     mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+    mocks.contextPackRepository.unpin.mockResolvedValue(MOCK_PACK);
 
+    const before = Date.now();
     const response = await app.inject({
       method: 'PATCH',
       url: `/packs/${PACK_ID}`,
       headers: authHeaders,
       payload: { pinned: false },
     });
+    const after = Date.now();
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(200);
+    expect(mocks.contextPackRepository.unpin).toHaveBeenCalledTimes(1);
+    const [, expiresAt] = mocks.contextPackRepository.unpin.mock.calls[0] as [
+      string,
+      Date,
+    ];
+    const ttlMs = TEST_PACK_GC_TTL_DAYS * 24 * 60 * 60 * 1000;
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + ttlMs);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(after + ttlMs);
   });
 
   it('updates expiresAt on non-pinned pack', async () => {

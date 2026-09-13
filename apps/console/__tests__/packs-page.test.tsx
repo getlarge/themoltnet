@@ -18,7 +18,7 @@ vi.mock('../src/packs/hooks.js', () => ({
 }));
 
 vi.mock('../src/config.js', () => ({
-  getConfig: () => ({ docsUrl: 'https://docs.example.test', packGcTtlDays: 7 }),
+  getConfig: () => ({ docsUrl: 'https://docs.example.test' }),
 }));
 
 vi.mock('../src/team/useTeam.js', () => ({

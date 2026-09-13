@@ -1,6 +1,9 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { PackServiceError } from '@moltnet/context-pack-service';
+import {
+  packExpiryFrom,
+  PackServiceError,
+} from '@moltnet/context-pack-service';
 import {
   ConflictProblemDetailsSchema,
   DiaryParamsSchema,
@@ -493,12 +496,6 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         Object.assign(rendered, afterVerify);
       }
 
-      if (pinned === false && !expiresAt) {
-        throw createProblem(
-          'validation-failed',
-          'expiresAt is required when setting pinned to false',
-        );
-      }
       if (
         expiresAt !== undefined &&
         pinned !== true &&
@@ -521,9 +518,16 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           if (pinned === true) {
             return fastify.renderedPackRepository.pin(rendered.id);
           } else if (pinned === false) {
+            // A bare unpin restores the deployment's retention policy from
+            // server time; only an explicit expiresAt overrides it (#1858).
             return fastify.renderedPackRepository.unpin(
               rendered.id,
-              new Date(expiresAt!),
+              expiresAt !== undefined
+                ? new Date(expiresAt)
+                : packExpiryFrom(
+                    now,
+                    fastify.packGcConfig.PACK_GC_COMPILE_TTL_DAYS,
+                  ),
             );
           } else {
             // updateExpiry filters on `pinned = false`. A concurrent pin between

@@ -39,7 +39,6 @@ import {
 import { getApiClient } from '../api.js';
 import { TEAM_HEADER } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
-import { defaultUnpinExpiry } from './decay.js';
 
 function client() {
   return getApiClient();
@@ -241,17 +240,19 @@ export function useRenderedPack(renderedPackId: string) {
 /**
  * Body for a pin toggle.
  *
- * Unpinning MUST carry an `expiresAt`: both update handlers reject
- * `pinned: false` without one (`apps/rest-api/src/routes/packs.ts`,
- * `.../rendered-packs.ts`). Pinning must NOT carry one — the same handlers
- * reject `expiresAt` against an already-pinned row, and the repository clears
- * the column on pin. Callers pass only `pinned`; the window is derived here so
- * no call site can get the combination wrong.
+ * A bare `{ pinned: false }` lets the server assign the GC deadline from its
+ * own clock and `PACK_GC_COMPILE_TTL_DAYS` (#1858), so the console never has
+ * to mirror the retention window. `expiresAt` is forwarded only when a caller
+ * genuinely wants a specific deadline. Pinning must NOT carry one — both
+ * update handlers reject `expiresAt` against an already-pinned row, and the
+ * repository clears the column on pin. The body is assembled here so no call
+ * site can get that combination wrong.
  */
 function pinBody(pinned: boolean, expiresAt?: string) {
-  return pinned
-    ? { pinned: true }
-    : { pinned: false, expiresAt: expiresAt ?? defaultUnpinExpiry(new Date()) };
+  if (pinned) return { pinned: true };
+  return expiresAt === undefined
+    ? { pinned: false }
+    : { pinned: false, expiresAt };
 }
 
 /**
@@ -278,9 +279,10 @@ export class PackMutationError extends Error {
 /**
  * The generated `updateContextPackMutation` helper is deliberately not used:
  * it exposes the raw `{ path, body }` shape at every call site, which would
- * let a caller send the rejected `pinned: false` payload above. The wrapper
- * keeps the invariant in one place. Errors surface as `PackMutationError`, so
- * callers keep the `ProblemDetails` rather than a flattened generic Error.
+ * let a caller pair `pinned: true` with an `expiresAt` the API rejects. The
+ * wrapper keeps the invariant in one place. Errors surface as
+ * `PackMutationError`, so callers keep the `ProblemDetails` rather than a
+ * flattened generic Error.
  */
 export function usePinPack() {
   const queryClient = useQueryClient();

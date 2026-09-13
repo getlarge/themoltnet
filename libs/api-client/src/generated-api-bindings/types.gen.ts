@@ -8,20 +8,6 @@ export type AbortTaskBody = {
   reason?: string;
 };
 
-export type AgentEnrollment = {
-  createdAt: string;
-  expiresAt: string;
-  id: string;
-  redeemedAt: string | null;
-  resultingAgentId: string | null;
-  revokedAt: string | null;
-  teamId: string;
-};
-
-export type AgentEnrollmentParams = {
-  id: string;
-};
-
 export type AgentIdentity = {
   /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -78,13 +64,14 @@ export type AgentKeyWithSecret = {
 
 export type AgentPrincipal = {
   /**
+   * UUID v4 identifier
+   */
+  agentId: string;
+  /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
    */
   fingerprint: string;
-  /**
-   * UUID v4 identifier
-   */
-  identityId: string;
+  identityId: string | null;
   kind: 'agent';
   /**
    * Ed25519 public key with prefix
@@ -334,13 +321,14 @@ export type ContextPack = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -372,13 +360,14 @@ export type ContextPackExpanded = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -428,13 +417,14 @@ export type ContextPackResponse = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -610,10 +600,6 @@ export type CreateTaskBody = {
   title?: string;
 };
 
-export type CreatedAgentEnrollment = AgentEnrollment & {
-  token: string;
-};
-
 export type CredentialScope =
   | 'agent:profile'
   | 'connector:invoke'
@@ -630,6 +616,7 @@ export type CredentialScope =
   | 'task:execute'
   | 'task:manage'
   | 'task:read'
+  | 'task:write'
   | 'team:manage'
   | 'team:read';
 
@@ -673,13 +660,14 @@ export type DiaryCatalog = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -715,13 +703,14 @@ export type DiaryEntry = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -756,13 +745,14 @@ export type DiaryEntryWithCreator = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -797,13 +787,14 @@ export type DiaryEntryWithRelations = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -1413,13 +1404,14 @@ export type PreviewSignSha256Base64Url = string;
 export type PrincipalIdentity =
   | {
       /**
+       * UUID v4 identifier
+       */
+      agentId: string;
+      /**
        * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
        */
       fingerprint: string;
-      /**
-       * UUID v4 identifier
-       */
-      identityId: string;
+      identityId: string | null;
       kind: 'agent';
       /**
        * Ed25519 public key with prefix
@@ -1563,13 +1555,14 @@ export type ProvenanceGraph = {
           creator?:
             | {
                 /**
+                 * UUID v4 identifier
+                 */
+                agentId: string;
+                /**
                  * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                  */
                 fingerprint: string;
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
+                identityId: string | null;
                 kind: 'agent';
                 /**
                  * Ed25519 public key with prefix
@@ -1600,13 +1593,14 @@ export type ProvenanceGraph = {
           creator?:
             | {
                 /**
+                 * UUID v4 identifier
+                 */
+                agentId: string;
+                /**
                  * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                  */
                 fingerprint: string;
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
+                identityId: string | null;
                 kind: 'agent';
                 /**
                  * Ed25519 public key with prefix
@@ -1655,13 +1649,14 @@ export type ProvenanceGraph = {
           creator?:
             | {
                 /**
+                 * UUID v4 identifier
+                 */
+                agentId: string;
+                /**
                  * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                  */
                 fingerprint: string;
-                /**
-                 * UUID v4 identifier
-                 */
-                identityId: string;
+                identityId: string | null;
                 kind: 'agent';
                 /**
                  * Ed25519 public key with prefix
@@ -1809,6 +1804,7 @@ export type RecoveryVerifyResponse = {
 };
 
 export type RegisterResponse = {
+  agentId: string;
   credential: OAuth2RegistrationCredential | AgentKeyRegistrationCredential;
   fingerprint: string;
   identityId: string;
@@ -1833,13 +1829,14 @@ export type RenderedPack = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -1888,13 +1885,14 @@ export type RenderedPackResult = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -1927,13 +1925,14 @@ export type RenderedPackWithContent = {
   creator:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -2378,13 +2377,14 @@ export type SigningCredential = {
   owner:
     | {
         /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
          * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
          */
         fingerprint: string;
-        /**
-         * UUID v4 identifier
-         */
-        identityId: string;
+        identityId: string | null;
         kind: 'agent';
         /**
          * Ed25519 public key with prefix
@@ -3149,6 +3149,22 @@ export type UpdateTaskMetadataBody = {
   title?: string | null;
 };
 
+export type UpdateWhoami = {
+  /**
+   * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+   */
+  alias: string;
+};
+
+export type UpdateWhoamiResponse = {
+  /**
+   * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+   */
+  alias: string;
+  fingerprint: string;
+  subjectId: string;
+};
+
 export type UploadRuntimeSessionQuery = {
   parentSessionId?: string;
   sessionKind: 'root' | 'extend' | 'fork';
@@ -3263,6 +3279,10 @@ export type VerifyResult = {
 export type Visibility = 'private' | 'moltnet' | 'public';
 
 export type Whoami = {
+  /**
+   * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+   */
+  alias?: string;
   clientId?: string;
   credentialBinding?:
     | {
@@ -3279,6 +3299,7 @@ export type Whoami = {
   identityId: string;
   publicKey?: string;
   scopes?: Array<string>;
+  subjectId: string;
   subjectType: 'agent' | 'human';
 };
 
@@ -3298,116 +3319,6 @@ export type GetNetworkInfoResponses = {
 
 export type GetNetworkInfoResponse =
   GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
-
-export type CreateAgentEnrollmentData = {
-  body?: {
-    expiresInMinutes?: number;
-  };
-  headers: {
-    /**
-     * Team ID (UUID) that will own the resource. Required.
-     */
-    'x-moltnet-team-id': string;
-  };
-  path?: never;
-  query?: never;
-  url: '/agent-enrollments';
-};
-
-export type CreateAgentEnrollmentErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type CreateAgentEnrollmentError =
-  CreateAgentEnrollmentErrors[keyof CreateAgentEnrollmentErrors];
-
-export type CreateAgentEnrollmentResponses = {
-  /**
-   * Default Response
-   */
-  201: CreatedAgentEnrollment;
-};
-
-export type CreateAgentEnrollmentResponse =
-  CreateAgentEnrollmentResponses[keyof CreateAgentEnrollmentResponses];
-
-export type RevokeAgentEnrollmentData = {
-  body?: never;
-  headers: {
-    /**
-     * Team ID (UUID) that will own the resource. Required.
-     */
-    'x-moltnet-team-id': string;
-  };
-  path: {
-    id: string;
-  };
-  query?: never;
-  url: '/agent-enrollments/{id}';
-};
-
-export type RevokeAgentEnrollmentErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type RevokeAgentEnrollmentError =
-  RevokeAgentEnrollmentErrors[keyof RevokeAgentEnrollmentErrors];
-
-export type RevokeAgentEnrollmentResponses = {
-  /**
-   * Default Response
-   */
-  204: void;
-};
-
-export type RevokeAgentEnrollmentResponse =
-  RevokeAgentEnrollmentResponses[keyof RevokeAgentEnrollmentResponses];
 
 export type ListAgentKeysData = {
   body?: never;
@@ -3720,6 +3631,108 @@ export type GetWhoamiResponses = {
 
 export type GetWhoamiResponse = GetWhoamiResponses[keyof GetWhoamiResponses];
 
+export type UpdateWhoamiData = {
+  body: {
+    /**
+     * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+     */
+    alias: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/agents/whoami';
+};
+
+export type UpdateWhoamiErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type UpdateWhoamiError = UpdateWhoamiErrors[keyof UpdateWhoamiErrors];
+
+export type UpdateWhoamiResponses = {
+  /**
+   * Default Response
+   */
+  200: UpdateWhoamiResponse;
+};
+
+export type UpdateWhoamiResponse2 =
+  UpdateWhoamiResponses[keyof UpdateWhoamiResponses];
+
+export type DeleteWhoamiAliasData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/agents/whoami/alias';
+};
+
+export type DeleteWhoamiAliasErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type DeleteWhoamiAliasError =
+  DeleteWhoamiAliasErrors[keyof DeleteWhoamiAliasErrors];
+
+export type DeleteWhoamiAliasResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type DeleteWhoamiAliasResponse =
+  DeleteWhoamiAliasResponses[keyof DeleteWhoamiAliasResponses];
+
 export type GetAgentProfileData = {
   body?: never;
   path: {
@@ -3809,7 +3822,7 @@ export type EnrollAgentData = {
     publicKey: string;
   } & {
     /**
-     * Team invite code, usable by people and managed agents
+     * Single-use or limited-use team invite code
      */
     token: string;
   };
@@ -3845,6 +3858,10 @@ export type EnrollAgentErrors = {
    * Default Response
    */
   502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type EnrollAgentError = EnrollAgentErrors[keyof EnrollAgentErrors];
@@ -3903,6 +3920,10 @@ export type RegisterAgentErrors = {
    * Default Response
    */
   502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RegisterAgentError = RegisterAgentErrors[keyof RegisterAgentErrors];
@@ -7179,13 +7200,14 @@ export type GetContextPackProvenanceByCidResponses = {
             creator?:
               | {
                   /**
+                   * UUID v4 identifier
+                   */
+                  agentId: string;
+                  /**
                    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                    */
                   fingerprint: string;
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
+                  identityId: string | null;
                   kind: 'agent';
                   /**
                    * Ed25519 public key with prefix
@@ -7216,13 +7238,14 @@ export type GetContextPackProvenanceByCidResponses = {
             creator?:
               | {
                   /**
+                   * UUID v4 identifier
+                   */
+                  agentId: string;
+                  /**
                    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                    */
                   fingerprint: string;
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
+                  identityId: string | null;
                   kind: 'agent';
                   /**
                    * Ed25519 public key with prefix
@@ -7271,13 +7294,14 @@ export type GetContextPackProvenanceByCidResponses = {
             creator?:
               | {
                   /**
+                   * UUID v4 identifier
+                   */
+                  agentId: string;
+                  /**
                    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
                    */
                   fingerprint: string;
-                  /**
-                   * UUID v4 identifier
-                   */
-                  identityId: string;
+                  identityId: string | null;
                   kind: 'agent';
                   /**
                    * Ed25519 public key with prefix
@@ -7378,7 +7402,13 @@ export type UpdateContextPackData = {
    * At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.
    */
   body?: {
+    /**
+     * Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.
+     */
     expiresAt?: string;
+    /**
+     * true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).
+     */
     pinned?: boolean;
   };
   path: {
@@ -8375,7 +8405,13 @@ export type UpdateRenderedPackData = {
    */
   body?: {
     description?: string | null;
+    /**
+     * Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.
+     */
     expiresAt?: string;
+    /**
+     * true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).
+     */
     pinned?: boolean;
     /**
      * ID of a completed judge_pack task that verified this rendered pack.
@@ -15856,6 +15892,10 @@ export type GetTeamResponses = {
      */
     id: string;
     members: Array<{
+      /**
+       * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+       */
+      alias?: string;
       displayName: string;
       email?: string;
       fingerprint?: string;
@@ -16291,6 +16331,10 @@ export type ListTeamMembersResponses = {
    */
   200: {
     items: Array<{
+      /**
+       * Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup
+       */
+      alias?: string;
       displayName: string;
       email?: string;
       fingerprint?: string;

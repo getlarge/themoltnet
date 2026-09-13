@@ -6,6 +6,7 @@ import {
   loadDbosWorkflowRetentionConfig,
   loadObservabilityConfig,
   loadOryConfig,
+  loadPackGcConfig,
   loadRecoveryConfig,
   loadSecurityConfig,
   loadServerConfig,
@@ -129,6 +130,33 @@ describe('maintenance retention config', () => {
     expect(config.TASK_EXPIRY_SWEEPER_CRON).toBe('0 * * * *');
     expect(config.TASK_EXPIRY_SWEEPER_BATCH_SIZE).toBe(50);
   });
+});
+
+describe('loadPackGcConfig', () => {
+  it('applies the seven-day default retention window', () => {
+    expect(loadPackGcConfig({}).PACK_GC_COMPILE_TTL_DAYS).toBe(7);
+  });
+
+  // The window is Type.Number(), so a sub-day retention such as 12 hours is
+  // a legitimate operator choice and must not be floored away.
+  it('accepts a fractional retention window', () => {
+    expect(
+      loadPackGcConfig({ PACK_GC_COMPILE_TTL_DAYS: '0.5' })
+        .PACK_GC_COMPILE_TTL_DAYS,
+    ).toBe(0.5);
+  });
+
+  // The value is the authoritative GC deadline for every unpinned pack
+  // (#1858): zero or negative would make a freshly unpinned pack collectable
+  // immediately, so startup must refuse it rather than run with it.
+  it.each(['0', '-3', 'NaN', 'abc'])(
+    'rejects the non-positive or non-numeric window %p at startup',
+    (value) => {
+      expect(() =>
+        loadPackGcConfig({ PACK_GC_COMPILE_TTL_DAYS: value }),
+      ).toThrow(/Invalid PackGc config/);
+    },
+  );
 });
 
 // ============================================================================

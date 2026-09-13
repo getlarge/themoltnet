@@ -4,10 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ mutate: vi.fn(), state: {} as unknown }));
 
-vi.mock('../src/config.js', () => ({
-  getConfig: () => ({ packGcTtlDays: 7 }),
-}));
-
 vi.mock('../src/packs/hooks.js', () => ({
   usePinPack: () => ({
     mutate: mocks.mutate,
@@ -63,15 +59,16 @@ describe('PinControl', () => {
 
     fireEvent.click(screen.getByRole('button'));
 
-    // The hook owns the expiresAt invariant; a caller that assembled the body
-    // itself could send the `{ pinned: false }` payload the API rejects.
+    // The hook owns the body: the server assigns the unpin deadline (#1858),
+    // and a caller that assembled the payload itself could pair `pinned: true`
+    // with an `expiresAt` the API rejects.
     expect(mocks.mutate).toHaveBeenCalledWith({
       packId: 'pack-1',
       pinned: true,
     });
   });
 
-  it('confirms before unpinning, and names the deletion deadline', () => {
+  it('confirms before unpinning, and names the consequence', () => {
     renderControl({ packId: 'pack-2', pinned: true });
 
     fireEvent.click(
@@ -80,7 +77,11 @@ describe('PinControl', () => {
 
     // Unpinning starts a deletion clock; it must not fire on a single click.
     expect(mocks.mutate).not.toHaveBeenCalled();
-    expect(screen.getByText(/deleted 7 days from now/i)).toBeInTheDocument();
+    // The exact deadline is the server's to assign (#1858), so the dialog
+    // states the consequence without predicting a number.
+    expect(
+      screen.getByText(/schedules the pack for deletion/i),
+    ).toBeInTheDocument();
   });
 
   it('unpins once confirmed', () => {
@@ -126,11 +127,32 @@ describe('PinControl', () => {
       isError: false,
       isSuccess: true,
       error: null,
+      data: { id: 'pack-1', pinned: true, expiresAt: null },
     };
     renderControl({ packId: 'pack-1', pinned: false });
 
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent(/pack pinned/i),
+    );
+  });
+
+  it('announces the deadline the server assigned after an unpin', async () => {
+    // The console never computes this window itself (#1858): the number comes
+    // straight from the PATCH response.
+    const expiresAt = new Date(Date.now() + 30 * 86_400_000).toISOString();
+    mocks.state = {
+      isPending: false,
+      isError: false,
+      isSuccess: true,
+      error: null,
+      data: { id: 'pack-2', pinned: false, expiresAt },
+    };
+    renderControl({ packId: 'pack-2', pinned: true });
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        /pack unpinned\. it will be deleted 30 days from now/i,
+      ),
     );
   });
 

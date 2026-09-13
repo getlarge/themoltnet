@@ -100,6 +100,7 @@ The description is sidecar metadata used as the activation language for
 AgentSkills installations (see ` + "`rendered-pack to-skill`" + `). It is not part of
 the pack CID — editing it does not supersede the rendered pack.`,
 		Example: `  moltnet rendered-pack update --id <uuid> --pinned
+  moltnet rendered-pack update --id <uuid> --no-pinned
   moltnet rendered-pack update --id <uuid> --no-pinned --expires-at 2026-05-01T00:00:00Z
   moltnet rendered-pack update --id <uuid> --expires-at 2026-05-01T00:00:00Z
   moltnet rendered-pack update --id <uuid> --description "Use when working on auth flows"
