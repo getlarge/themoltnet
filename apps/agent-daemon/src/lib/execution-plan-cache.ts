@@ -155,7 +155,11 @@ export function createExecutionPlanCache(args: {
         runtimeSessionStore,
         sourceAttemptResolver,
       );
-      assertPlanAllowedByWorkspacePolicy(plan, args.workspacePolicy);
+      assertPlanAllowedByWorkspacePolicy(
+        plan,
+        args.workspacePolicy,
+        args.slotIdentity.runtimeProfileId,
+      );
       cache.set(key, plan);
       return plan;
     },
@@ -197,6 +201,7 @@ function createNullRuntimeSessionStore(): RuntimeSessionStore {
 function assertPlanAllowedByWorkspacePolicy(
   plan: DaemonTaskExecutionPlan,
   policy: RuntimeProfileWorkspacePolicy | undefined,
+  runtimeProfileId: string,
 ): void {
   const allowed = new Set(
     policy?.allowedWorkspaceModes && policy.allowedWorkspaceModes.length > 0
@@ -204,6 +209,15 @@ function assertPlanAllowedByWorkspacePolicy(
       : ['none', 'shared_mount', 'dedicated_worktree'],
   );
   const effectiveMode = planToRuntimeProfileWorkspaceMode(plan);
+  // Only a dedicated worktree can check out a pinned revision: the shared
+  // mount runs from the base checkout and a scratch mount has no git state.
+  // Fail at claim time naming the profile instead of letting the runtime
+  // report a misleading git-revision mismatch (#1948).
+  if (plan.workspaceRevision && effectiveMode !== 'dedicated_worktree') {
+    throw new Error(
+      `Runtime profile "${runtimeProfileId}" does not allow "dedicated_worktree", required by a revision-pinned task (resolved workspace mode "${effectiveMode}")`,
+    );
+  }
   if (!allowed.has(effectiveMode)) {
     throw new Error(
       `Runtime profile forbids final workspace mode "${effectiveMode}" for this task`,
