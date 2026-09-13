@@ -235,8 +235,11 @@ process independently:
 - visible `gh pr` and `gh issue` writes remain bare in `human` authorship mode.
 
 The CLI resolves the installation for the target repository through GitHub, then
-mints a token restricted to that repository and the required permission set.
-Tokens and permission evidence are written atomically under
+mints a token restricted to that repository. The token inherits the
+installation's permissions rather than being narrowed to the classified write:
+`gh` writes such as `pr create` read the default branch and the head ref first,
+and a single-permission token fails those reads. Tokens and permission evidence
+are written atomically under
 `~/.config/moltnet/identities/<alias>/gh-token-cache/`, keyed by App,
 repository, and permissions; the repository's installation is resolved on a
 cache miss and cached separately. A configured installation ID is only a

@@ -173,12 +173,17 @@ func githubTokenRequestForGHArgs(args []string) (githubTokenRequest, error) {
 			return githubTokenRequest{}, err
 		}
 	}
-	request := githubTokenRequest{Repository: repository, RepositoryFromRemote: !found}
-	op := classifyGitHubOperation(args)
-	if op.Kind == ghWrite && op.Permission != "" {
-		request.Permissions = map[string]string{op.Permission: "write"}
-	}
-	return request, nil
+	// Restrict the token to the target repository but inherit the
+	// installation's permissions rather than narrowing to the one write the
+	// guard classified. gh writes are compound workflows — `pr create` reads
+	// the default branch and the head ref before opening the PR, `pr merge`
+	// reads the PR and its contents — and a token holding only
+	// pull_requests:write fails those reads with "Resource not accessible by
+	// integration" (#2257). Modelling each command's read dependencies is the
+	// gh-grammar trap execFailureHint warns about; the guard already decides
+	// which commands may run, and the token is bound to one child process.
+	// Same shape as the Git credential helper and `moltnet github token`.
+	return githubTokenRequest{Repository: repository, RepositoryFromRemote: !found}, nil
 }
 
 // githubRepositoryForCredentialRequest resolves the repository a Git
