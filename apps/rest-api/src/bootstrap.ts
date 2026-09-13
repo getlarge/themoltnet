@@ -672,7 +672,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     deleteMany: (ids: string[]) => contextPackRepository.deleteMany(ids),
     assertDiaryReadable: createAssertDiaryReadable(diaryService, app.log),
     logger: app.log,
-    ttlDays: config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
+    ttlDays: config.packGc.PACK_GC_COMPILE_TTL_DAYS,
   });
 
   const tokenValidationCounter = createMetricCounter(

@@ -10,6 +10,7 @@ export {
   EntryLoadError,
   loadSelectedEntries,
 } from './entry-loader.js';
+export { packExpiryFrom } from './pack-expiry.js';
 export {
   type RenderablePackEntry,
   type RenderablePackInput,

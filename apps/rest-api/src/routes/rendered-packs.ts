@@ -1,6 +1,9 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { PackServiceError } from '@moltnet/context-pack-service';
+import {
+  packExpiryFrom,
+  PackServiceError,
+} from '@moltnet/context-pack-service';
 import {
   ConflictProblemDetailsSchema,
   DiaryParamsSchema,
@@ -22,7 +25,6 @@ import {
   RenderPackPreviewBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
-import { compileTtlExpiry } from '../utils/pack-retention.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 function translatePackServiceError(err: PackServiceError): never {
@@ -522,7 +524,10 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
               rendered.id,
               expiresAt !== undefined
                 ? new Date(expiresAt)
-                : compileTtlExpiry(fastify.packGcConfig, now),
+                : packExpiryFrom(
+                    now,
+                    fastify.packGcConfig.PACK_GC_COMPILE_TTL_DAYS,
+                  ),
             );
           } else {
             // updateExpiry filters on `pinned = false`. A concurrent pin between

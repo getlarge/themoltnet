@@ -16,6 +16,7 @@ import type {
 import { fitEntries } from './entry-fitter.js';
 import type { EntryFetcher } from './entry-loader.js';
 import { loadSelectedEntries } from './entry-loader.js';
+import { packExpiryFrom } from './pack-expiry.js';
 import { renderPackToMarkdown } from './pack-renderer.js';
 import type {
   CreateCustomPackInput,
@@ -559,10 +560,7 @@ export class ContextPackService {
     const pinned = input.pinned ?? false;
     const expiresAt = pinned
       ? null
-      : new Date(
-          createdAt.getTime() +
-            (input.ttlDays ?? this.deps.ttlDays) * 24 * 60 * 60 * 1000,
-        );
+      : packExpiryFrom(createdAt, input.ttlDays ?? this.deps.ttlDays);
 
     const payload = {
       v: 'moltnet:pack:v1',
@@ -667,10 +665,7 @@ export class ContextPackService {
     const createdAt = new Date();
     const expiresAt = pinned
       ? null
-      : new Date(
-          createdAt.getTime() +
-            (input.ttlDays ?? this.deps.ttlDays) * 24 * 60 * 60 * 1000,
-        );
+      : packExpiryFrom(createdAt, input.ttlDays ?? this.deps.ttlDays);
 
     let rendered;
     try {

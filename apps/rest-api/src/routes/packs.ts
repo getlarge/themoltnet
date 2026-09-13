@@ -6,7 +6,10 @@ import {
   type DistillEntry,
   estimateTokens,
 } from '@moltnet/context-distill';
-import { PackServiceError } from '@moltnet/context-pack-service';
+import {
+  packExpiryFrom,
+  PackServiceError,
+} from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -39,7 +42,6 @@ import {
   PackUpdateBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
-import { compileTtlExpiry } from '../utils/pack-retention.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
@@ -430,7 +432,10 @@ export async function packRoutes(fastify: FastifyInstance) {
       const pinned = request.body.pinned ?? false;
       const expiresAt = pinned
         ? null
-        : compileTtlExpiry(fastify.packGcConfig, createdAtDate);
+        : packExpiryFrom(
+            createdAtDate,
+            fastify.packGcConfig.PACK_GC_COMPILE_TTL_DAYS,
+          );
 
       // Idempotent: return existing pack if CID already exists (retry/double-submit)
       const existing = await fastify.contextPackRepository.findByCid(packCid);
@@ -1141,7 +1146,10 @@ export async function packRoutes(fastify: FastifyInstance) {
               pack.id,
               expiresAt !== undefined
                 ? new Date(expiresAt)
-                : compileTtlExpiry(fastify.packGcConfig, now),
+                : packExpiryFrom(
+                    now,
+                    fastify.packGcConfig.PACK_GC_COMPILE_TTL_DAYS,
+                  ),
             );
           } else if (expiresAt !== undefined) {
             // updateExpiry filters on `pinned = false`. A concurrent pin between
