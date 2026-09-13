@@ -51,9 +51,6 @@ import type {
   CompleteTaskData,
   CompleteTaskErrors,
   CompleteTaskResponses,
-  CreateAgentEnrollmentData,
-  CreateAgentEnrollmentErrors,
-  CreateAgentEnrollmentResponses,
   CreateAgentKeyData,
   CreateAgentKeyErrors,
   CreateAgentKeyResponses,
@@ -126,6 +123,9 @@ import type {
   DeleteTeamInviteErrors,
   DeleteTeamInviteResponses,
   DeleteTeamResponses,
+  DeleteWhoamiAliasData,
+  DeleteWhoamiAliasErrors,
+  DeleteWhoamiAliasResponses,
   DiffContextPacksByCidData,
   DiffContextPacksByCidErrors,
   DiffContextPacksByCidResponses,
@@ -364,9 +364,6 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
-  RevokeAgentEnrollmentData,
-  RevokeAgentEnrollmentErrors,
-  RevokeAgentEnrollmentResponses,
   RevokeAgentKeyData,
   RevokeAgentKeyErrors,
   RevokeAgentKeyResponses,
@@ -439,6 +436,9 @@ import type {
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleErrors,
   UpdateTeamMemberRoleResponses,
+  UpdateWhoamiData,
+  UpdateWhoamiErrors,
+  UpdateWhoamiResponses,
   UploadRuntimeSessionData,
   UploadRuntimeSessionErrors,
   UploadRuntimeSessionResponses,
@@ -490,58 +490,6 @@ export const getNetworkInfo = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/.well-known/moltnet.json', ...options });
-
-/**
- * Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.
- */
-export const createAgentEnrollment = <ThrowOnError extends boolean = false>(
-  options: Options<CreateAgentEnrollmentData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateAgentEnrollmentResponses,
-    CreateAgentEnrollmentErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/agent-enrollments',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Revoke an unused agent enrollment. Requires Team#manage_members.
- */
-export const revokeAgentEnrollment = <ThrowOnError extends boolean = false>(
-  options: Options<RevokeAgentEnrollmentData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    RevokeAgentEnrollmentResponses,
-    RevokeAgentEnrollmentErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/agent-enrollments/{id}',
-    ...options,
-  });
 
 /**
  * List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.
@@ -668,6 +616,42 @@ export const getWhoami = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/agents/whoami',
+    ...options,
+  });
+
+/**
+ * Publish the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys (identity- or team-bound) are rejected.
+ */
+export const updateWhoami = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateWhoamiData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateWhoamiResponses,
+    UpdateWhoamiErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/agents/whoami',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Withdraw the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys are rejected.
+ */
+export const deleteWhoamiAlias = <ThrowOnError extends boolean = false>(
+  options?: Options<DeleteWhoamiAliasData, ThrowOnError>,
+) =>
+  (options?.client ?? client).delete<
+    DeleteWhoamiAliasResponses,
+    DeleteWhoamiAliasErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/agents/whoami/alias',
     ...options,
   });
 
