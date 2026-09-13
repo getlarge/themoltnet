@@ -804,7 +804,7 @@ describe('buildApp', () => {
           "name": "packs_render_preview",
         },
         {
-          "inputSchema": "729a208876f7c4e0",
+          "inputSchema": "dc78534c30f3267c",
           "name": "packs_update",
         },
         {
@@ -832,7 +832,7 @@ describe('buildApp', () => {
           "name": "rendered_packs_list",
         },
         {
-          "inputSchema": "a80ecff585617f6f",
+          "inputSchema": "651ee5c2a8602bff",
           "name": "rendered_packs_update",
         },
         {
