@@ -31,6 +31,15 @@ type BufferedMessage = {
   timestamp: string;
 };
 
+/** Narrowly identify the legacy server response caused by claimant-tuple lag. */
+function isLegacyClaimantLag403(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const status = (err as { statusCode?: number }).statusCode;
+  if (status !== 403) return false;
+  const message = (err as { message?: string }).message ?? '';
+  return /Not authorized/i.test(message);
+}
+
 /**
  * TaskReporter backed by the Tasks API via the SDK's TasksNamespace.
  *
@@ -58,6 +67,13 @@ export class ApiTaskReporter implements TaskReporter {
    * failures are never silently dropped by the batching layer.
    */
   private pendingError: Error | null = null;
+  /**
+   * Compatibility guard for runtimes talking to servers that still authorize
+   * reporting through the eventually-consistent Keto claimant tuple. New
+   * database-authorized servers succeed on the first attempt, so this adds no
+   * latency to their hot path.
+   */
+  private firstAppendSucceeded = false;
   private firstUsefulEventEmitted = false;
 
   private readonly cancelController = new AbortController();
@@ -105,6 +121,7 @@ export class ApiTaskReporter implements TaskReporter {
     }
     this.taskId = ctx.taskId;
     this.attemptN = ctx.attemptN;
+    this.firstAppendSucceeded = false;
     this.firstUsefulEventEmitted = false;
 
     // Send immediately so the DBOS workflow receives the 'started' signal
@@ -114,7 +131,7 @@ export class ApiTaskReporter implements TaskReporter {
     await traceRuntimePhase(
       'moltnet.reporter.open',
       { 'moltnet.task.attempt': this.attemptN },
-      () => this.sendHeartbeat(),
+      () => this.sendInitialHeartbeat(),
     );
 
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
@@ -207,7 +224,8 @@ export class ApiTaskReporter implements TaskReporter {
     const batch = this.buffer.splice(0, this.buffer.length);
     this.inFlight = (async () => {
       try {
-        await this.appendMessages(batch);
+        await this.appendWithFirstCallRetry(batch);
+        this.firstAppendSucceeded = true;
       } catch (err) {
         // The batch was spliced out of the buffer before the network call.
         // Restore the messages to the FRONT of the buffer so a subsequent
@@ -309,6 +327,48 @@ export class ApiTaskReporter implements TaskReporter {
       const err = this.pendingError;
       this.pendingError = null;
       throw err;
+    }
+  }
+
+  /**
+   * Preserve bounded compatibility with pre-database-authority servers. Only
+   * the initial 403 is retried; all other failures still surface immediately.
+   */
+  private async sendInitialHeartbeat(): Promise<void> {
+    const maxAttempts = 5;
+    const baseDelayMs = 100;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.sendHeartbeat();
+        return;
+      } catch (err) {
+        if (attempt === maxAttempts || !isLegacyClaimantLag403(err)) throw err;
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, baseDelayMs * attempt);
+        });
+      }
+    }
+  }
+
+  private async appendWithFirstCallRetry(
+    batch: BufferedMessage[],
+  ): Promise<void> {
+    if (this.firstAppendSucceeded) {
+      await this.appendMessages(batch);
+      return;
+    }
+    const maxAttempts = 5;
+    const baseDelayMs = 100;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.appendMessages(batch);
+        return;
+      } catch (err) {
+        if (attempt === maxAttempts || !isLegacyClaimantLag403(err)) throw err;
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, baseDelayMs * attempt);
+        });
+      }
     }
   }
 

@@ -62,6 +62,21 @@ function makeDeps(overrides: Partial<TaskWorkflowDeps> = {}): TaskWorkflowDeps {
   };
 }
 
+function expectResultPublishedBeforeFollowUps(deps: TaskWorkflowDeps): void {
+  const resultOrder = vi.mocked(DBOS.setEvent).mock.invocationCallOrder.at(-1)!;
+  expect(resultOrder).toBeLessThan(
+    vi.mocked(deps.removeClaimantTuple).mock.invocationCallOrder.at(-1)!,
+  );
+  expect(resultOrder).toBeLessThan(
+    vi
+      .mocked(deps.recomputeAttemptActivityStats)
+      .mock.invocationCallOrder.at(-1)!,
+  );
+  expect(resultOrder).toBeLessThan(
+    vi.mocked(deps.notifyTaskStatusChanged!).mock.invocationCallOrder.at(-1)!,
+  );
+}
+
 describe('startAttemptWorkflow — timeout paths', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,17 +135,7 @@ describe('startAttemptWorkflow — timeout paths', () => {
         timeoutReason: 'lease_expired',
       }),
     );
-    expect(vi.mocked(DBOS.setEvent).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(deps.removeClaimantTuple).mock.invocationCallOrder.at(-1)!,
-    );
-    expect(vi.mocked(DBOS.setEvent).mock.invocationCallOrder[0]).toBeLessThan(
-      vi
-        .mocked(deps.recomputeAttemptActivityStats)
-        .mock.invocationCallOrder.at(-1)!,
-    );
-    expect(vi.mocked(DBOS.setEvent).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(deps.notifyTaskStatusChanged!).mock.invocationCallOrder.at(-1)!,
-    );
+    expectResultPublishedBeforeFollowUps(deps);
   });
 
   it('returns running_total_exceeded when total budget elapses before any further event', async () => {
@@ -186,9 +191,78 @@ describe('startAttemptWorkflow — timeout paths', () => {
       expect(timedOutCall).toBeDefined();
       const errorField = timedOutCall![2].error as { code: string } | null;
       expect(errorField?.code).toBe('running_total_exceeded');
+      expectResultPublishedBeforeFollowUps(deps);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it.each([
+    ['completed', { kind: 'completed', output: { ok: true } }],
+    ['failed', { kind: 'failed', error: { message: 'failed' } }],
+    ['aborted', { kind: 'aborted', error: { message: 'aborted' } }],
+  ] as const)(
+    'publishes %s before legacy cleanup, analytics, and promotion',
+    async (_status, terminalEvent) => {
+      const deps = makeDeps();
+      setTaskWorkflowDeps(deps);
+      initTaskWorkflows();
+      vi.mocked(DBOS.recv).mockResolvedValueOnce(terminalEvent);
+
+      await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+      );
+
+      expectResultPublishedBeforeFollowUps(deps);
+    },
+  );
+
+  it('propagates dependent-task promotion failure after publishing result', async () => {
+    const promotionError = new Error('promotion database unavailable');
+    const deps = makeDeps({
+      notifyTaskStatusChanged: vi.fn().mockRejectedValue(promotionError),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+    vi.mocked(DBOS.recv).mockResolvedValueOnce({
+      kind: 'completed',
+      output: { ok: true },
+    });
+
+    await expect(
+      taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+      ),
+    ).rejects.toThrow(promotionError);
+    expect(DBOS.setEvent).toHaveBeenCalledWith(
+      'result',
+      expect.objectContaining({ status: 'completed' }),
+    );
+  });
+
+  it('registers dependent-task promotion as a retry-enabled step', () => {
+    setTaskWorkflowDeps(makeDeps());
+    initTaskWorkflows();
+
+    const registration = vi
+      .mocked(DBOS.registerStep)
+      .mock.calls.find(
+        ([, config]) => config?.name === 'task.step.notifyTaskStatusChanged',
+      );
+    expect(registration?.[1]).toMatchObject({
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    });
   });
 });
 

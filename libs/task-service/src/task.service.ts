@@ -91,16 +91,18 @@ export function createTaskService(deps: TaskServiceDeps) {
     const final = await traceTaskServicePhase(
       'moltnet.task.workflow.wait_result',
       attributes,
-      () =>
-        DBOS.getEvent<TaskAttemptFinalEvent>(
+      async () => {
+        const result = await DBOS.getEvent<TaskAttemptFinalEvent>(
           workflowId,
           'result',
           EVENT_TIMEOUT_SECONDS,
-        ),
+        );
+        if (!result) {
+          throw new TaskServiceError('timed_out', timeoutMessage);
+        }
+        return result;
+      },
     );
-    if (!final) {
-      throw new TaskServiceError('timed_out', timeoutMessage);
-    }
     if (final.taskId !== taskId || final.attemptN !== attemptN) {
       logger.error(
         {
@@ -122,14 +124,17 @@ export function createTaskService(deps: TaskServiceDeps) {
     const updated = await traceTaskServicePhase(
       'moltnet.task.workflow.reload_result',
       attributes,
-      () => taskRepository.findById(taskId),
+      async () => {
+        const result = await taskRepository.findById(taskId);
+        if (!result) {
+          throw new TaskServiceError(
+            'not_found',
+            'Task could not be reloaded after workflow result',
+          );
+        }
+        return result;
+      },
     );
-    if (!updated) {
-      throw new TaskServiceError(
-        'not_found',
-        'Task could not be reloaded after workflow result',
-      );
-    }
     return { final, task: updated };
   }
 
@@ -423,7 +428,9 @@ export function createTaskService(deps: TaskServiceDeps) {
       taskId: string,
       attemptN: number,
       callerId: string,
-      callerNs: KetoNamespace,
+      // Retained positionally for TaskService API compatibility. Reporting
+      // authority comes from the persisted claimant and lease checks below.
+      _callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
       teamId?: string,
     ): Promise<{
@@ -546,7 +553,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       taskId: string,
       attemptN: number,
       callerId: string,
-      callerNs: KetoNamespace,
+      _callerNs: KetoNamespace,
       body: {
         output: Record<string, unknown>;
         outputCid: string;
@@ -707,7 +714,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       taskId: string,
       attemptN: number,
       callerId: string,
-      callerNs: KetoNamespace,
+      _callerNs: KetoNamespace,
       error: TaskError,
       teamId?: string,
     ): Promise<Task> {
@@ -811,7 +818,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       taskId: string,
       attemptN: number,
       callerId: string,
-      callerNs: KetoNamespace,
+      _callerNs: KetoNamespace,
       reason?: string,
       teamId?: string,
     ): Promise<Task> {
@@ -1014,7 +1021,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       taskId: string,
       attemptN: number,
       callerId: string,
-      callerNs: KetoNamespace,
+      _callerNs: KetoNamespace,
       messages: Array<{
         kind: string;
         payload: Record<string, unknown>;

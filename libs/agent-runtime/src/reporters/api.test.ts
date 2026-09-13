@@ -358,12 +358,36 @@ describe('ApiTaskReporter', () => {
     expect(closed).toBe(true);
   });
 
+  it('retries a legacy claimant-lag 403 on the initial heartbeat', async () => {
+    const error403 = Object.assign(new Error('Not authorized'), {
+      statusCode: 403,
+    });
+    const heartbeatMock = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockRejectedValueOnce(error403)
+      .mockResolvedValueOnce({
+        claimExpiresAt: new Date(Date.now() + 90_000).toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      });
+    const { tasks } = makeMockTasks({ heartbeat: heartbeatMock });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+    });
+
+    const openPromise = reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await vi.advanceTimersByTimeAsync(100);
+    await openPromise;
+
+    expect(heartbeatMock).toHaveBeenCalledTimes(2);
+  });
+
   describe('appendMessages authorization failures', () => {
-    it('surfaces a 403 without retrying', async () => {
-      const error403 = Object.assign(
-        new Error('Not authorized to append messages'),
-        { statusCode: 403 },
-      );
+    it('surfaces a non-legacy 403 without retrying', async () => {
+      const error403 = Object.assign(new Error('Team access denied'), {
+        statusCode: 403,
+      });
       const appendMock = vi
         .fn<TasksNamespace['appendMessages']>()
         .mockRejectedValue(error403);
@@ -378,10 +402,35 @@ describe('ApiTaskReporter', () => {
       await reporter.open({ taskId: TASK_ID, attemptN: 1 });
       await expect(
         reporter.record({ kind: 'info', payload: { event: 'started' } }),
-      ).rejects.toThrow(
-        /append messages failed.*Not authorized to append messages/,
-      );
+      ).rejects.toThrow(/append messages failed.*Team access denied/);
       expect(appendMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries the first legacy claimant-lag 403', async () => {
+      const error403 = Object.assign(new Error('Not authorized'), {
+        statusCode: 403,
+      });
+      const appendMock = vi
+        .fn<TasksNamespace['appendMessages']>()
+        .mockRejectedValueOnce(error403)
+        .mockResolvedValueOnce({ count: 1 });
+      const { tasks } = makeMockTasks({ appendMessages: appendMock });
+      const reporter = new ApiTaskReporter({
+        tasks,
+        heartbeatIntervalMs: 60_000,
+        maxBatchSize: 1,
+        flushIntervalMs: 0,
+      });
+
+      await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+      const recordPromise = reporter.record({
+        kind: 'info',
+        payload: { event: 'started' },
+      });
+      await vi.advanceTimersByTimeAsync(100);
+      await recordPromise;
+
+      expect(appendMock).toHaveBeenCalledTimes(2);
     });
   });
 });

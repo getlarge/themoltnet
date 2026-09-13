@@ -286,11 +286,16 @@ export function initTaskWorkflows(): void {
     async (taskId: string): Promise<void> => {
       await getDeps().notifyTaskStatusChanged?.(taskId);
     },
-    { name: 'task.step.notifyTaskStatusChanged' },
+    { name: 'task.step.notifyTaskStatusChanged', ...stepConfig },
   );
 
   _workflows = {
     startAttemptWorkflow: DBOS.registerWorkflow(
+      // Positional slots are persisted in DBOS history and in rows inserted by
+      // dbos.enqueue_workflow. Parameters prefixed with `_` are intentionally
+      // retained for replay compatibility; remove or reorder them only through
+      // a separately reviewed versioned-executor migration after old histories
+      // have drained.
       async (
         taskId: string,
         attemptN: number,
@@ -323,6 +328,24 @@ export function initTaskWorkflows(): void {
               taskNow.status === 'failed' ||
               taskNow.status === 'expired');
           return { taskNow, isTerminal };
+        };
+
+        // Publishing `result` is the API settlement boundary. The remaining
+        // work is durable follow-up: each external/database effect is a named,
+        // retry-enabled step and failures must propagate so DBOS can retry them.
+        // Keep this sequence centralized so every terminal branch preserves
+        // the same latency and reconciliation contract.
+        const publishResultAndReconcile = async (
+          event: TaskAttemptFinalEvent,
+          removeLegacyClaimant: boolean,
+        ): Promise<TaskAttemptFinalEvent> => {
+          await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
+          if (removeLegacyClaimant) {
+            await removeClaimantTupleStep(taskId, agentId);
+          }
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
+          await notifyTaskStatusChangedStep(taskId);
+          return event;
         };
 
         // ── Dispatch phase ─────────────────────────────────────────────
@@ -401,13 +424,7 @@ export function initTaskWorkflows(): void {
               ? { timeoutReason: 'dispatch_expired' as const }
               : {}),
           };
-          await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
-          if (finalStatus !== 'cancelled') {
-            await removeClaimantTupleStep(taskId, agentId);
-          }
-          await recomputeAttemptActivityStatsStep(taskId, attemptN);
-          await notifyTaskStatusChangedStep(taskId);
-          return event;
+          return publishResultAndReconcile(event, finalStatus !== 'cancelled');
         }
 
         // First event was a result-shaped one (completed / failed)?
@@ -483,7 +500,7 @@ export function initTaskWorkflows(): void {
             ((evt.kind === 'failed' && isRetryableAttemptError(evt.error)) ||
               evt.kind === 'aborted') &&
             attemptCount < maxAttempts;
-          const now = new Date();
+          const now = new Date(await DBOS.now());
           const { taskNow, isTerminal } = await checkExternalTerminal();
           await getDeps().transactionRunner.runInTransaction(
             async () => {
@@ -560,13 +577,7 @@ export function initTaskWorkflows(): void {
             evt.kind === 'completed'
               ? { status: 'completed', taskId, attemptN, output: evt.output }
               : { status: evt.kind, taskId, attemptN };
-          await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
-          if (evt.kind !== 'cancelled') {
-            await removeClaimantTupleStep(taskId, agentId);
-          }
-          await recomputeAttemptActivityStatsStep(taskId, attemptN);
-          await notifyTaskStatusChangedStep(taskId);
-          return event;
+          return publishResultAndReconcile(event, evt.kind !== 'cancelled');
         }
 
         async function persistTimeout(
@@ -616,13 +627,7 @@ export function initTaskWorkflows(): void {
             // to a terminal state by an external actor (cancel, peer).
             ...(finalStatus === 'timed_out' ? { timeoutReason: reason } : {}),
           };
-          await DBOS.setEvent<TaskAttemptFinalEvent>('result', event);
-          if (finalStatus !== 'cancelled') {
-            await removeClaimantTupleStep(taskId, agentId);
-          }
-          await recomputeAttemptActivityStatsStep(taskId, attemptN);
-          await notifyTaskStatusChangedStep(taskId);
-          return event;
+          return publishResultAndReconcile(event, finalStatus !== 'cancelled');
         }
 
         while (true) {
