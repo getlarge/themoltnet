@@ -1416,7 +1416,52 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
       mocks.permissionChecker.checkTaskCreatePermissions,
     ).toHaveBeenCalledWith(TEAM_ID, DIARY_ID, AGENT_ID, 'agent');
     expect(mocks.diaryRepository.findById).toHaveBeenCalledWith(DIARY_ID);
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve allowed profiles before task-create authorization', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockResolvedValue({
+      canProposeForTeam: false,
+      canReadDiary: false,
+    });
+
+    await expect(
+      service.create({
+        ...judgeCreateInput(),
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Not authorized to create tasks for this team',
+    });
+
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
+  });
+
+  it('validates allowed profiles after task-create authorization', async () => {
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
+      id: PROFILE_ID,
+      teamId: '99999999-9999-4999-8999-999999999999',
+    } as never);
+
+    await expect(
+      service.create({
+        ...judgeCreateInput(),
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      message: 'allowedProfiles contains an unknown profile',
+      validationErrors: [{ field: 'allowedProfiles' }],
+    });
+
+    expect(
+      mocks.permissionChecker.checkTaskCreatePermissions,
+    ).toHaveBeenCalledOnce();
+    expect(mocks.runtimeProfileRepository.findById).toHaveBeenCalledWith(
+      PROFILE_ID,
+    );
   });
 
   it('reports a missing diary after team proposal authority succeeds', async () => {
