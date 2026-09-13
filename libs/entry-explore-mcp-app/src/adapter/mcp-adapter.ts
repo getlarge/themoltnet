@@ -181,13 +181,8 @@ export class McpDiaryAdapter implements DiaryDataAdapter {
 
   /** Pin (validate) or unpin a zone's draft pack. */
   async setZonePinned(packId: string, pinned: boolean): Promise<void> {
-    await callTool(this.app, 'packs_update', {
-      pack_id: packId,
-      pinned,
-      // Unpinning requires an expiry; give drafts a fresh 7-day TTL.
-      expires_at: pinned
-        ? undefined
-        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    });
+    // A bare unpin lets the server assign the deadline from its retention
+    // window (#1858); sending one here would override the operator's policy.
+    await callTool(this.app, 'packs_update', { pack_id: packId, pinned });
   }
 }

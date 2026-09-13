@@ -605,7 +605,7 @@ export function registerPackTools(
       description:
         'Update a context pack — pin/unpin or change expiration date. ' +
         'Pin a pack to protect it from garbage collection. ' +
-        'When unpinning, expires_at is required.',
+        'Unpinning without expires_at lets the server assign the deadline from its retention window.',
       inputSchema: PackUpdateSchema,
       outputSchema: PackUpdateOutputSchema,
     },
@@ -618,7 +618,7 @@ export function registerPackTools(
       description:
         'Update a rendered pack — pin/unpin or change expiration date. ' +
         'Pin a rendered pack to protect it from garbage collection. ' +
-        'When unpinning, expires_at is required.',
+        'Unpinning without expires_at lets the server assign the deadline from its retention window.',
       inputSchema: RenderedPackUpdateSchema,
       outputSchema: RenderedPackUpdateOutputSchema,
     },

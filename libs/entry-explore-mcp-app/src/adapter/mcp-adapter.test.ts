@@ -208,16 +208,14 @@ describe('McpDiaryAdapter.setZonePinned', () => {
     expect(calls[0].arguments).toEqual({ pack_id: 'pack-1', pinned: true });
   });
 
-  it('unpinning supplies a future expiry (required by the server)', async () => {
+  it('unpins without an expiry so the server assigns the deadline', async () => {
     const { app, calls } = caller(() => Promise.resolve(textResult({})));
     const adapter = new McpDiaryAdapter(app);
 
     await adapter.setZonePinned('pack-1', false);
 
-    expect(calls[0].arguments.pinned).toBe(false);
-    expect(typeof calls[0].arguments.expires_at).toBe('string');
-    expect(
-      new Date(calls[0].arguments.expires_at as string).getTime(),
-    ).toBeGreaterThan(Date.now());
+    // No client-side deadline (#1858): the server applies its own
+    // PACK_GC_COMPILE_TTL_DAYS, which this adapter cannot know.
+    expect(calls[0].arguments).toEqual({ pack_id: 'pack-1', pinned: false });
   });
 });
