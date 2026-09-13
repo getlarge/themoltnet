@@ -118,7 +118,9 @@ describe('usePinPack payload', () => {
     );
   });
 
-  it('supplies a future expiresAt when unpinning, which the API requires', async () => {
+  // The server assigns the deadline from its own clock and retention window
+  // (#1858); sending one here would silently override the operator's policy.
+  it('sends a bare unpin so the server assigns the deadline', async () => {
     const { result } = renderHook(() => usePinPack(), {
       wrapper: createTestWrapper(),
     });
@@ -126,12 +128,9 @@ describe('usePinPack payload', () => {
     result.current.mutate({ packId: 'pack-1', pinned: false });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const body = mocks.updateContextPack.mock.calls[0][0].body as {
-      pinned: boolean;
-      expiresAt: string;
-    };
-    expect(body.pinned).toBe(false);
-    expect(new Date(body.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    expect(mocks.updateContextPack).toHaveBeenCalledWith(
+      expect.objectContaining({ body: { pinned: false } }),
+    );
   });
 
   it('honours an explicit expiresAt', async () => {
@@ -171,7 +170,7 @@ describe('usePinPack payload', () => {
 });
 
 describe('usePinRenderedPack payload', () => {
-  it('supplies a future expiresAt when unpinning', async () => {
+  it('sends a bare unpin so the server assigns the deadline', async () => {
     const { result } = renderHook(() => usePinRenderedPack(), {
       wrapper: createTestWrapper(),
     });
@@ -179,12 +178,9 @@ describe('usePinRenderedPack payload', () => {
     result.current.mutate({ renderedPackId: 'rendered-1', pinned: false });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const body = mocks.updateRenderedPack.mock.calls[0][0].body as {
-      pinned: boolean;
-      expiresAt: string;
-    };
-    expect(body.pinned).toBe(false);
-    expect(new Date(body.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    expect(mocks.updateRenderedPack).toHaveBeenCalledWith(
+      expect.objectContaining({ body: { pinned: false } }),
+    );
   });
 
   it('rethrows the structured API error', async () => {

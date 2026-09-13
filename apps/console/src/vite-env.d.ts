@@ -7,8 +7,6 @@ interface MoltNetConfig {
   docsUrl?: string;
   signerUrl?: string;
   agentServerUrl?: string;
-  /** String because nginx injects it via envsubst; parsed in config.ts. */
-  packGcTtlDays?: string;
 }
 
 interface Window {
@@ -22,7 +20,6 @@ interface ImportMetaEnv {
   readonly VITE_DOCS_URL?: string;
   readonly VITE_SIGNER_URL?: string;
   readonly VITE_AGENT_SERVER_URL?: string;
-  readonly VITE_PACK_GC_TTL_DAYS?: string;
 }
 
 interface ImportMeta {
