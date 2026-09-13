@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.5.0...n8n-nodes-moltnet-v0.6.0) (2026-09-13)
+
+
+### Features
+
+* **n8n:** align task node with manual review ([ab0a0e6](https://github.com/getlarge/themoltnet/commit/ab0a0e64a117ec4afba9a2a9f497657caf0a102e))
+
+
+### Bug Fixes
+
+* **n8n:** align package with manual review guidance ([49cbe92](https://github.com/getlarge/themoltnet/commit/49cbe9205211c18e1fe756483302006772c918bd))
+* **n8n:** recover incomplete local runtime ([0078383](https://github.com/getlarge/themoltnet/commit/0078383a0bfe29023f13d3358abdd3e53c06c273))
+* **n8n:** stop tracking generated credentials ([d67b3cf](https://github.com/getlarge/themoltnet/commit/d67b3cf6d53f93d0212ed42275726bd13253c9a0))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.4.1...n8n-nodes-moltnet-v0.5.0) (2026-09-11)
 
 

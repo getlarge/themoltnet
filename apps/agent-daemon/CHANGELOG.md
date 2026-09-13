@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.56.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.56.1...agent-daemon-v0.56.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **agent-daemon:** reject revision-pinned tasks downgraded away from dedicated_worktree ([4fe2d06](https://github.com/getlarge/themoltnet/commit/4fe2d0653b29917e1aea79b5daed06ed20de964a))
+* **agent-daemon:** reject revision-pinned tasks downgraded away from dedicated_worktree ([f5da57a](https://github.com/getlarge/themoltnet/commit/f5da57ae08027ba2316992082b66eadcd13e44c3)), closes [#1948](https://github.com/getlarge/themoltnet/issues/1948)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.2
+    * @themoltnet/pi-runtime bumped to 0.15.2
+
 ## [0.56.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.56.0...agent-daemon-v0.56.1) (2026-09-11)
 
 
