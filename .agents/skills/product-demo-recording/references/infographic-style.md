@@ -8,8 +8,8 @@ deck.
 
 Use this reference hierarchy:
 
-1. The current MoltNet design-system guide and tokens:
-   `docs/contribute/design-system.md` and
+1. The `@themoltnet/design-system` library, backed by the current guide and
+   exported tokens in `docs/contribute/design-system.md` and
    `libs/design-system/src/tokens.ts`.
 2. Approved videos and imagery adjacent to the target docs page.
 3. The integrated product's native UI conventions.
@@ -25,6 +25,30 @@ Those frames establish the series baseline. Preserve their grid, type scale,
 color roles, corner treatment, and motion rhythm in later recordings; change
 them deliberately rather than redesigning each video.
 
+## Use the design-system library
+
+Treat `@themoltnet/design-system` as the canonical dependency, not merely a
+visual reference. Before approving a new series baseline, inspect its live
+showcase:
+
+```bash
+pnpm exec nx run @themoltnet/design-system:demo
+```
+
+- For React-based style frames, compose exported primitives such as `Logo`,
+  `Text`, `Badge`, `Card`, and `Stack` inside `MoltThemeProvider`.
+- Import colors, typography, spacing, radii, shadows, and transitions from
+  `@themoltnet/design-system` or `@themoltnet/design-system/tokens`.
+- For SVG, canvas, or FFmpeg assets that cannot consume React components,
+  generate the asset through a small TypeScript renderer that imports those
+  exports and injects the resolved values. Keep the token names visible in the
+  source so later changes can be regenerated deliberately.
+- Do not copy token values into a separate video palette or invent parallel
+  components that only resemble the design system.
+- Capture third-party product UI as-is. The design-system dependency governs
+  MoltNet-authored overlays and cutaway cards, not the n8n or Node-RED product
+  surface beneath them.
+
 ## Composition
 
 - Use a 16:9 canvas, normally 1440x810 or 1920x1080.
@@ -37,8 +61,8 @@ them deliberately rather than redesigning each video.
 
 ## Brand roles
 
-Read the live tokens before producing assets; they are authoritative. The dark
-theme is the default visual base:
+Import the live design-system tokens when producing assets; they are
+authoritative. The dark theme is the default visual base:
 
 - `bg.void` for full-frame backgrounds;
 - `bg.surface`, `bg.elevated`, and `border.DEFAULT` for panels and captions;

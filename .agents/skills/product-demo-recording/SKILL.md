@@ -22,11 +22,11 @@ Before recording:
    - If a previous recording exists, inspect it from start to finish. Extract a
      contact sheet when useful, and note its pacing, framing, annotations, and
      strongest explanatory moments.
-   - If there is no previous recording, use the repository design system,
-     neighboring docs media, and the integrated product's native UI—in that
-     order—to create a title-card still, the densest annotated UI still, and an
-     end-card still before recording. These approved stills become the baseline
-     for later videos in the series.
+   - If there is no previous recording, use the
+     `@themoltnet/design-system` library, neighboring docs media, and the
+     integrated product's native UI—in that order—to create a title-card still,
+     the densest annotated UI still, and an end-card still before recording.
+     These approved stills become the baseline for later videos in the series.
 2. Read the page where the video will appear. Write a short shot list that
    names the user outcome, required setup, main interaction, waiting or retry
    behavior, and successful result.
