@@ -31002,6 +31002,49 @@ _Object_({
 	edges: _Array_(ProvenanceGraphEdgeSchema)
 }, { $id: "ProvenanceGraph" });
 //#endregion
+//#region ../../libs/models/src/render-method.ts
+/**
+* The `renderMethod` convention for rendered packs (#1857).
+*
+* `renderedPacks.renderMethod` is a free-text `varchar(100)`. The server
+* bifurcates on exactly one thing — whether the label starts with `server:`
+* — and everything else is a caller-authored render whose markdown the
+* caller must supply. This module is the single owner of that convention:
+* the service, the API schemas, the runtime default and the console's
+* trust-tier derivation all read from here.
+*
+* The Go CLI (`apps/moltnet-cli/cobra_pack.go`) cannot import this module;
+* it carries a pointer comment and its default must be kept in sync with
+* `DEFAULT_SERVER_RENDER_METHOD` by hand.
+*
+* Values observed in production data and accepted unchanged:
+* `server:pack-to-docs-v1`, `agent:pack-to-docs-v1`, `agent-refined`.
+* `pi:pack-to-docs-v1` is the live pi-runtime default.
+*/
+/** Labels carrying this prefix are rendered deterministically by the server. */
+var SERVER_RENDER_PREFIX = "server:";
+/**
+* Prefixes that identify caller-authored markdown.
+*
+* `agent:` is the canonical documented label, `pi:` is what the pi-runtime
+* emits by default, and `agent-` covers the `agent-refined` family that is
+* live in production data.
+*/
+var CALLER_AUTHORED_PREFIXES = [
+	"agent:",
+	"pi:",
+	"agent-"
+];
+var DEFAULT_SERVER_RENDER_METHOD = "server:pack-to-docs-v1";
+var DEFAULT_AGENT_RENDER_METHOD = "agent:pack-to-docs-v1";
+var RenderMethodSchema = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`,
+	description: "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
+	examples: [DEFAULT_SERVER_RENDER_METHOD, DEFAULT_AGENT_RENDER_METHOD]
+});
+//#endregion
 //#region ../../libs/models/src/signer-constraint.ts
 var SIGNER_CONSTRAINT_TYPE = {
 	Human: "human",
@@ -32103,7 +32146,7 @@ var RenderPackInput = _Object_({
 var RenderPackOutput = _Object_({
 	renderedPackId: Union([String$1({ format: "uuid" }), Null()]),
 	renderedCid: String$1({ minLength: 1 }),
-	renderMethod: String$1({ minLength: 1 }),
+	renderMethod: RenderMethodSchema,
 	byteSize: Number$1({ minimum: 0 }),
 	entriesRendered: Number$1({ minimum: 0 }),
 	summary: String$1({ minLength: 1 }),
