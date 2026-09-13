@@ -235,13 +235,13 @@ export const PackUpdateSchema = Type.Object({
   pinned: Type.Optional(
     Type.Boolean({
       description:
-        'Set to true to pin (exempt from GC, clears expiresAt). Set to false to unpin (requires expires_at).',
+        'Set to true to pin (exempt from GC, clears expiresAt). Set to false to unpin; without expires_at the server assigns the deadline from its retention window.',
     }),
   ),
   expires_at: Type.Optional(
     Type.String({
       description:
-        'ISO 8601 expiration date. Required when unpinning. Must be in the future.',
+        'ISO 8601 expiration date. Optional when unpinning (the server applies its retention window if omitted). Must be in the future.',
     }),
   ),
 });
@@ -258,13 +258,13 @@ export const RenderedPackUpdateSchema = Type.Object({
   pinned: Type.Optional(
     Type.Boolean({
       description:
-        'Set to true to pin (exempt from GC, clears expiresAt). Set to false to unpin (requires expires_at).',
+        'Set to true to pin (exempt from GC, clears expiresAt). Set to false to unpin; without expires_at the server assigns the deadline from its retention window.',
     }),
   ),
   expires_at: Type.Optional(
     Type.String({
       description:
-        'ISO 8601 expiration date. Required when unpinning. Must be in the future.',
+        'ISO 8601 expiration date. Optional when unpinning (the server applies its retention window if omitted). Must be in the future.',
     }),
   ),
   verified_task_id: Type.Optional(
