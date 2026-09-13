@@ -11,14 +11,22 @@ or cleanly composed.
 
 For native macOS or browser capture mechanics, read
 [references/capture-macos.md](references/capture-macos.md).
+For title cards, lower-thirds, diagrams, callouts, and end cards, read
+[references/infographic-style.md](references/infographic-style.md).
 
 ## Establish the delivery frame first
 
 Before recording:
 
-1. Inspect the video being replaced from start to finish. Extract a contact
-   sheet when useful, and note its pacing, framing, annotations, and strongest
-   explanatory moments.
+1. Establish a visual reference:
+   - If a previous recording exists, inspect it from start to finish. Extract a
+     contact sheet when useful, and note its pacing, framing, annotations, and
+     strongest explanatory moments.
+   - If there is no previous recording, use the repository design system,
+     neighboring docs media, and the integrated product's native UI—in that
+     order—to create a title-card still, the densest annotated UI still, and an
+     end-card still before recording. These approved stills become the baseline
+     for later videos in the series.
 2. Read the page where the video will appear. Write a short shot list that
    names the user outcome, required setup, main interaction, waiting or retry
    behavior, and successful result.
@@ -31,6 +39,9 @@ Before recording:
    browser viewport capture. If that is unavailable, keep the complete browser
    window or place it inside a deliberate frame. A complete window is cleaner
    than clipped tabs, edges, or application content.
+6. Review the three representative style frames at their actual display size.
+   Do not record the full walkthrough while the overlay system, safe areas, or
+   information hierarchy are still being invented.
 
 ## Use a safe capture boundary
 
