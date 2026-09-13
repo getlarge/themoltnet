@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.57.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.1...rest-api-v0.57.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **auth:** authorize before resolving task profiles ([f88412f](https://github.com/getlarge/themoltnet/commit/f88412f55d5ee90f3a6f3bff01ea420f64c92dc3))
+* **workflows:** preserve durable settlement follow-ups ([5092656](https://github.com/getlarge/themoltnet/commit/5092656977868ed6e8567792f9958cc60c4f18ed))
+
+
+### Performance Improvements
+
+* **tasks:** reduce Keto and DBOS write latency ([0044bc0](https://github.com/getlarge/themoltnet/commit/0044bc09ff35bcfce596c469b42b4834a2c05456))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.10.2
+
 ## [0.57.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.0...rest-api-v0.57.1) (2026-09-13)
 
 

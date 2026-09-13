@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/getlarge/themoltnet/compare/database-v0.10.1...database-v0.10.2) (2026-09-13)
+
+
+### Performance Improvements
+
+* **tasks:** reduce Keto and DBOS write latency ([0044bc0](https://github.com/getlarge/themoltnet/commit/0044bc09ff35bcfce596c469b42b4834a2c05456))
+
 ## [0.10.1](https://github.com/getlarge/themoltnet/compare/database-v0.10.0...database-v0.10.1) (2026-09-13)
 
 

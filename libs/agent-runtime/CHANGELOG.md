@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.0.1...agent-runtime-v1.0.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* **workflows:** preserve durable settlement follow-ups ([5092656](https://github.com/getlarge/themoltnet/commit/5092656977868ed6e8567792f9958cc60c4f18ed))
+
+
+### Performance Improvements
+
+* **runtime:** remove claimant consistency retries ([bd91007](https://github.com/getlarge/themoltnet/commit/bd910070e348dabe294bfb2db4fc0f22ee407e1f))
+* **tasks:** reduce Keto and DBOS write latency ([0044bc0](https://github.com/getlarge/themoltnet/commit/0044bc09ff35bcfce596c469b42b4834a2c05456))
+
 ## [1.0.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.0.0...agent-runtime-v1.0.1) (2026-09-11)
 
 
