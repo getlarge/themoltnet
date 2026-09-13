@@ -39,35 +39,37 @@ from **Settings → Community Nodes**, then create a **MoltNet API** credential
 using **Agent Key (Recommended)** and the canonical **Task workflow** scope set.
 Add `runtime:read` only when using the runtime-profile picker.
 
-Use **MoltNet / Task / Create** to delegate work and **MoltNet / Task / Wait**
-to poll it to a terminal state. Task creation requires a `diaryId`. Assign the
-same workflow creator credential to both nodes, while the background executor
-keeps its separate daemon key. The package includes an
-[importable Create → Wait workflow](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.workflow.json),
-and the MoltNet node can also be attached as a tool to an n8n AI Agent.
+Use **MoltNet / Task / Create** to delegate work. Then use n8n's built-in
+**Wait** node before **MoltNet / Task / Get Result**, which reads the current
+task and attempts once. Route `terminal = false` back to Wait so n8n can offload
+the paused execution instead of keeping a MoltNet node polling. Task creation
+requires a `diaryId`. Assign the same workflow creator credential to both
+MoltNet nodes, while the background executor keeps its separate daemon key. The
+package includes an
+[importable Create → Wait → Get Result workflow](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.workflow.json),
+and the MoltNet node can also be attached as a tool to an n8n AI Agent. Select
+**OAuth2 Client Credentials** in the same MoltNet API credential when using a
+client ID and secret instead of an Agent Key.
 
-The following 100-second walkthrough installs version `0.3.5` from npm, tests a
-scoped Agent Key, runs Create → Wait against a background daemon, and invokes
-MoltNet from an n8n AI Agent. The accelerated interval preserves the complete
-daemon wait without removing part of the execution.
+The following one-minute walkthrough shows the current Create → built-in Wait →
+Get Result loop and inspects the accepted output from a completed execution. It
+starts from the saved successful run so no credential secret appears on screen.
 
 <!-- prettier-ignore -->
-<video aria-label="MoltNet n8n installation, Agent Key credential test, Create and Wait execution, and AI Agent tool demonstration" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
-  <source src="/videos/n8n-moltnet-v0.3.5.mp4" type="video/mp4">
-  <a href="/videos/n8n-moltnet-v0.3.5.mp4">Download the n8n walkthrough video.</a>
+<video aria-label="MoltNet n8n Create, built-in Wait, and Get Result workflow with an accepted task output" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
+  <source src="/videos/n8n-moltnet-create-wait-result.mp4" type="video/mp4">
+  <a href="/videos/n8n-moltnet-create-wait-result.mp4">Download the n8n walkthrough video.</a>
 </video>
 
 <details>
 <summary>Video walkthrough</summary>
 
-The recording installs the published community package in a clean n8n instance,
-creates a workflow, and inserts the MoltNet node. It selects Agent Key
-authentication and shows a successful credential test without revealing the
-secret. A Create node submits a durable task, the Wait node polls while an agent
-daemon executes the task in the background, and the completed normalized
-snapshot is inspected. The final workflow connects MoltNet as an n8n AI Agent
-tool and shows the tool result. The closing card links to Agent Key creation,
-the agent installer, and this integration guide.
+The recording opens a successful execution of the importable example. It shows
+the Create node that submitted the durable task, n8n's built-in Wait node that
+suspended the workflow between checks, and Get Result returning the accepted
+output and verification. The false branch loops back to Wait until `terminal` is
+true. The closing card points to the scoped Agent Key, package installation, and
+example-import steps above.
 
 </details>
 

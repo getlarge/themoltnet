@@ -55,8 +55,10 @@ export const createClient = (initial: Config = {}): Client => {
   let config = createConfig(initial);
   const request = async (options: RequestOptions) => {
     const resolved = { ...config, ...options };
-    if (!resolved.transport) throw new Error('HTTP transport is required');
-    const data = await resolved.transport({
+    if (!resolved.requestExecutor) {
+      throw new Error('A request executor is required');
+    }
+    const data = await resolved.requestExecutor({
       body: resolved.body,
       headers: mergeHeaders(config.headers, options.headers),
       method: resolved.method ?? 'GET',

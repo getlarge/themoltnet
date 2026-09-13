@@ -1,3 +1,17 @@
+import {
+  type ApiRequest,
+  cancelTask,
+  createClient,
+  createTask,
+  type CreateTaskData,
+  getTask,
+  listTaskAttempts,
+  listTasks,
+  type ListTasksData,
+  type Task,
+  type TaskAttempt,
+  type TaskListResponse,
+} from '@moltnet/api-client/api-bindings';
 import type {
   IDataObject,
   IExecuteFunctions,
@@ -5,33 +19,19 @@ import type {
   ILoadOptionsFunctions,
 } from 'n8n-workflow';
 
-import { createClient } from './generated/client/index.js';
-import type { TransportRequest } from './generated/client/types.js';
-import {
-  cancelTask,
-  createTask,
-  getTask,
-  listTaskAttempts,
-  listTasks,
-} from './generated/sdk.gen.js';
-import type {
-  CreateTaskData,
-  ListTasksData,
+export type {
   Task,
   TaskAttempt,
-  TaskListResponse,
-} from './generated/types.gen.js';
-
-export type { Task, TaskAttempt, TaskStatus } from './generated/types.gen.js';
+  TaskStatus,
+} from '@moltnet/api-client/api-bindings';
 export type TaskListQuery = NonNullable<ListTasksData['query']>;
 export type CreateTaskBody = CreateTaskData['body'];
 
+export type MoltNetAuthentication = 'agentKey' | 'oauth2';
+export type MoltNetCredentialType = 'moltNetAgentApi' | 'moltNetOAuth2Api';
+
 export interface MoltNetCredentials extends IDataObject {
   apiUrl: string;
-  authentication?: 'agentKey' | 'oauth2';
-  agentApiKey?: string;
-  clientId?: string;
-  clientSecret?: string;
   teamId?: string;
   diaryId?: string;
 }
@@ -63,29 +63,40 @@ export interface MoltNetClient {
   };
 }
 
+export function credentialTypeForAuthentication(
+  authentication: MoltNetAuthentication,
+): MoltNetCredentialType {
+  return authentication === 'oauth2' ? 'moltNetOAuth2Api' : 'moltNetAgentApi';
+}
+
 export function connectMoltNet(
   context: MoltNetNodeContext,
+  credentialType: MoltNetCredentialType,
   credentials: MoltNetCredentials,
 ): MoltNetClient {
-  const transport = async <TData>({
+  const requestExecutor = async <TData>({
     body,
     headers,
     method,
     signal,
     url,
-  }: TransportRequest): Promise<TData> =>
-    context.helpers.httpRequestWithAuthentication.call(context, 'moltNetApi', {
-      url,
-      method: method as IHttpRequestMethods,
-      headers,
-      ...(body === undefined ? {} : { body: body as IDataObject }),
-      ...(signal === undefined ? {} : { abortSignal: signal }),
-      json: true,
-    }) as Promise<TData>;
+  }: ApiRequest): Promise<TData> =>
+    context.helpers.httpRequestWithAuthentication.call(
+      context,
+      credentialType,
+      {
+        url,
+        method: method as IHttpRequestMethods,
+        headers,
+        ...(body === undefined ? {} : { body: body as IDataObject }),
+        ...(signal === undefined ? {} : { abortSignal: signal }),
+        json: true,
+      },
+    ) as Promise<TData>;
   const client = createClient({
     baseUrl: credentials.apiUrl.trim().replace(/\/$/u, ''),
     throwOnError: true,
-    transport,
+    requestExecutor,
   });
 
   const optionalTeamHeader = (teamId?: string) =>

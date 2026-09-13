@@ -86,9 +86,9 @@ Inspect the tarball produced by pack validation and confirm:
 - no `src/`, tests, private imports, source maps containing private source, or
   workspace protocols leak;
 - all `package.json#n8n` entries and icons exist;
-- every credential path in `package.json#n8n.credentials` is tracked in the
-  public repository at that exact path; Creator Portal may resolve the manifest
-  path against Git rather than infer it from the source credential;
+- every credential path in `package.json#n8n.credentials` exists in the packed
+  tarball and loads in a clean installation; generated `dist` entries do not
+  need to be tracked in Git, matching the official starter's ignored `dist`;
 - any repository-root Creator Portal compatibility copy is tracked and remains
   byte-identical to the canonical package credential source;
 - a clean project can install and require both CommonJS entries without the
