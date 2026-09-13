@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Demo Recording"
+  short_description: "Capture and QA clean, private product walkthrough videos"
+  default_prompt: "Use $product-demo-recording to record or replace this product demo with deliberate framing, a safe capture boundary, and decoded-frame QA."
