@@ -98,7 +98,10 @@ export const ObservabilityConfigSchema = Type.Object({
 });
 
 export const PackGcConfigSchema = Type.Object({
-  PACK_GC_COMPILE_TTL_DAYS: Type.Number({ default: 7 }),
+  // Strictly positive: this window becomes the authoritative GC deadline for
+  // every unpinned pack (#1858). Zero or negative would make a freshly
+  // unpinned pack collectable at once. Fractional days remain valid.
+  PACK_GC_COMPILE_TTL_DAYS: Type.Number({ default: 7, exclusiveMinimum: 0 }),
   PACK_GC_CRON: Type.String({ default: '0 * * * *' }),
   PACK_GC_BATCH_SIZE: Type.Number({ default: 100 }),
 });
