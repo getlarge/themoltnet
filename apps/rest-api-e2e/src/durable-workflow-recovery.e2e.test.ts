@@ -101,7 +101,7 @@ describe('DBOS process recovery', () => {
     await harness?.teardown();
   });
 
-  it('recovers one waiting task-attempt workflow without resetting its lease', async () => {
+  it('recovers the atomically enqueued pre-created attempt exactly once', async () => {
     const created = await createTask({
       client,
       auth: () => agent.accessToken,
@@ -141,7 +141,35 @@ describe('DBOS process recovery', () => {
       .from(tasks)
       .where(eq(tasks.id, created.data!.id));
     expect(beforeRestart.claimExpiresAt).not.toBeNull();
+    const attemptRowsBeforeRestart = await harness.db
+      .select({
+        attemptN: taskAttempts.attemptN,
+        status: taskAttempts.status,
+        workflowId: taskAttempts.workflowId,
+      })
+      .from(taskAttempts)
+      .where(eq(taskAttempts.taskId, created.data!.id));
+    expect(attemptRowsBeforeRestart).toEqual([
+      {
+        attemptN,
+        status: 'claimed',
+        workflowId: `task:${created.data!.id}:attempt:${attemptN}`,
+      },
+    ]);
+    const workflowRowsBeforeRestart = await harness.db.execute<{
+      workflow_uuid: string;
+    }>(sql`
+      SELECT workflow_uuid
+      FROM dbos.workflow_status
+      WHERE workflow_uuid = ${attemptRowsBeforeRestart[0].workflowId}
+    `);
+    expect(workflowRowsBeforeRestart.rows).toEqual([
+      { workflow_uuid: attemptRowsBeforeRestart[0].workflowId },
+    ]);
 
+    // Replace the DBOS worker after claim committed but before the external
+    // executor starts the attempt. Recovery must reuse the persisted attempt
+    // and stable workflow row rather than creating either a second time.
     await replaceRestApiContainer();
 
     const [afterRestart] = await harness.db

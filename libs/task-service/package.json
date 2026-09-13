@@ -23,6 +23,8 @@
     "@themoltnet/credential-broker": "workspace:*"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
+    "drizzle-orm": "catalog:",
     "typebox": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
