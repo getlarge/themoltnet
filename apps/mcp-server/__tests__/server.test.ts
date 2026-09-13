@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
+import { previewRenderedPack, renderContextPack } from '@moltnet/api-client';
 import {
   DCR_MAX_SCOPES,
   MCP_CLIENT_SCOPES,
@@ -88,6 +89,8 @@ vi.mock('@moltnet/api-client', () => ({
   downloadTaskArtifact: vi.fn(),
   listTaskAttempts: vi.fn(),
   listTaskMessages: vi.fn(),
+  previewRenderedPack: vi.fn(),
+  renderContextPack: vi.fn(),
 }));
 
 describe('buildApp', () => {
@@ -555,6 +558,76 @@ describe('buildApp', () => {
 
     await app.close();
   });
+
+  it.each(['packs_render', 'packs_render_preview'])(
+    '%s rejects an unrecognised render_method before calling the REST API (#1857)',
+    async (tool) => {
+      const deps = createMockDeps();
+      const app = await buildApp({
+        config: {
+          PORT: 8001,
+          NODE_ENV: 'test',
+          REST_API_URL: 'http://localhost:3000',
+        },
+        deps,
+        logger: false,
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/mcp',
+        headers: { 'content-type': 'application/json' },
+        payload: {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: tool,
+            arguments: {
+              pack_id: '2b0a1f4e-0000-4000-8000-000000000000',
+              render_method: 'homegrown',
+              rendered_markdown: '# x\n',
+            },
+          },
+          id: 1,
+        },
+      });
+
+      const body = JSON.parse(response.body);
+      expect(body.result.isError).toBe(true);
+      expect(body.result.content[0].text).toMatch(/Invalid tool arguments/);
+      expect(renderContextPack).not.toHaveBeenCalled();
+      expect(previewRenderedPack).not.toHaveBeenCalled();
+
+      // Control: the same call with a recognised label passes argument
+      // validation and reaches the handler's auth gate instead, so the
+      // rejection above is render_method's and not a missing argument.
+      const control = await app.inject({
+        method: 'POST',
+        url: '/mcp',
+        headers: { 'content-type': 'application/json' },
+        payload: {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: tool,
+            arguments: {
+              pack_id: '2b0a1f4e-0000-4000-8000-000000000000',
+              render_method: 'agent:pack-to-docs-v1',
+              rendered_markdown: '# x\n',
+            },
+          },
+          id: 2,
+        },
+      });
+      const controlBody = JSON.parse(control.body);
+      expect(controlBody.result.content[0].text).not.toMatch(
+        /Invalid tool arguments/,
+      );
+      expect(controlBody.result.content[0].text).toMatch(/Not authenticated/);
+
+      await app.close();
+    },
+  );
 
   it('annotates every tool and keeps secret fields out of output schemas', async () => {
     const app = await buildApp({
