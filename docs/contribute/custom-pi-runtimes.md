@@ -35,7 +35,7 @@ export default createPiDaemonAdapter(runtime);
 Build the module, then run it through the published daemon:
 
 ```bash
-npx @themoltnet/agent-daemon \
+moltnet-agent \
   --runtime ./dist/runtime.js \
   poll \
   --agent <agent-name> \

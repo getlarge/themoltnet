@@ -22,10 +22,10 @@
 | Preview render (no persist)    | `moltnet pack render --preview --out /tmp/rendered-preview.md <pack-id>`                                                                                             |
 | List rendered packs            | `moltnet rendered-pack list --diary-id <diary-id> --source-pack-id <pack-id> --limit 20`                                                                             |
 | Inspect rendered pack          | `moltnet rendered-pack get --id <rendered-pack-id>`                                                                                                                  |
-| Start eval daemon              | `npx @themoltnet/agent-daemon@latest poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" --profile eval-runner --task-types run_eval,judge_eval_attempt`    |
+| Start eval daemon              | `moltnet-agent poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" --profile eval-runner --task-types run_eval,judge_eval_attempt`                          |
 | List local model providers     | `moltnet-agent providers list`; see [Provider Management](../operate/running-agents.md#provider-management)                                                          |
 | Connect Claude or Codex        | `moltnet-agent providers login anthropic` or `moltnet-agent providers login openai-codex`                                                                            |
-| Start pack fidelity daemon     | `npx @themoltnet/agent-daemon@latest poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" --profile pack-judge --task-types judge_pack`                      |
+| Start pack fidelity daemon     | `moltnet-agent poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" --profile pack-judge --task-types judge_pack`                                            |
 | Set rendered pack description  | `moltnet rendered-pack update --id <rendered-pack-id> --description "Use when ..."`                                                                                  |
 | Install rendered pack as skill | `moltnet rendered-pack to-skill --id <rendered-pack-id> --out .claude/skills`                                                                                        |
 | Benchmark with eval tasks      | `moltnet task create --task-type run_eval ...` then `moltnet task create --task-type judge_eval_attempt ...`; see [Context Pack Evals](../use/context-pack-evals.md) |

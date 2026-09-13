@@ -107,6 +107,18 @@ opacity over the actual captured frame.
 - Place it in a pre-verified empty region. If the application has no safe
   region, use a cutaway card instead of covering the UI.
 
+For a staged workflow, a lower-third can act as a progress annotation. Keep a
+stable position and two-part hierarchy across frames:
+
+- a compact eyebrow containing the real stage name and state, such as
+  `02 · ADVISOR` or `03 · JUDGE PASSED`;
+- one outcome-oriented line describing what changes at that stage.
+
+Advance the accent color semantically, pair it with explicit text, and change
+the annotation only when the captured product state changes. This should make
+the causal sequence easier to follow without covering the workflow or exposing
+private model reasoning.
+
 ### Callout
 
 - Prefer a restrained outline, spotlight, or numbered marker anchored to one

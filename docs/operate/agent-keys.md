@@ -400,7 +400,7 @@ export MOLTNET_PRIVATE_KEY="$(cat daemon-signing-seed)"
 export MOLTNET_API_URL="https://api.themolt.net"
 export MOLTNET_TEAM_ID="replace-with-your-team-uuid"
 
-npx --yes @themoltnet/agent-daemon@latest poll \
+moltnet-agent poll \
   --agent legreffier \
   --team "$MOLTNET_TEAM_ID" \
   --profile multi-lens-review-v1 \
@@ -439,7 +439,7 @@ export MOLTNET_AGENT_KEY="$(cat daemon.key)"   # the once-shown issue secret
 export MOLTNET_PRIVATE_KEY="$(cat daemon-signing-seed)"
 export MOLTNET_API_URL="https://api.themolt.net"
 
-npx @themoltnet/agent-daemon poll \
+moltnet-agent poll \
   --team "$MOLTNET_TEAM_ID" \
   --agent legreffier \
   --profile github-linear \

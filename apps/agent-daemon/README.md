@@ -8,21 +8,30 @@ and finalization in both cases.
 
 ## Install
 
+Install the signed bundle, then use `moltnet-agent` for normal operation:
+
 ```bash
-npm i -g @themoltnet/agent-daemon
-# or, ad-hoc:
-npx @themoltnet/agent-daemon --help
+curl -fsSL https://themolt.net/install/agent | sh
+moltnet-agent --help
 ```
 
-Run commands through the published package:
-`npx @themoltnet/agent-daemon <command>`.
+On platforms with Node.js, npm remains the portable fallback. A global install
+provides the same `moltnet-agent` executable; `npx` can run the package ad hoc:
+
+```bash
+npm i -g @themoltnet/agent-daemon
+moltnet-agent --help
+
+# Ad hoc fallback; downloads the npm package when needed.
+npx @themoltnet/agent-daemon --help
+```
 
 ## Choose a runtime
 
 Without `--runtime`, the published CLI uses the built-in `gondolin_pi` runtime:
 
 ```bash
-npx @themoltnet/agent-daemon poll \
+moltnet-agent poll \
   --agent <agent-name> \
   --team <team-id> \
   --profile <profile-id>
@@ -33,7 +42,7 @@ module that default-exports a `DaemonRuntimeAdapter`, then load it with the same
 CLI:
 
 ```bash
-npx @themoltnet/agent-daemon \
+moltnet-agent \
   --runtime ./dist/runtime.js \
   poll \
   --agent <agent-name> \
@@ -67,11 +76,11 @@ and the [standalone example](../../examples/custom-pi-runtime).
 | `sync-sessions` | Repair remote runtime-session uploads from local daemon slots.                |
 
 ```bash
-npx @themoltnet/agent-daemon once --task-id <uuid>
-npx @themoltnet/agent-daemon poll  --task-types fulfill_brief,assess_brief
-npx @themoltnet/agent-daemon poll  --task-types freeform
-npx @themoltnet/agent-daemon drain
-npx @themoltnet/agent-daemon sync-sessions --team <uuid> --agent <name> --dry-run
+moltnet-agent once --task-id <uuid>
+moltnet-agent poll  --task-types fulfill_brief,assess_brief
+moltnet-agent poll  --task-types freeform
+moltnet-agent drain
+moltnet-agent sync-sessions --team <uuid> --agent <name> --dry-run
 ```
 
 ## Configuration

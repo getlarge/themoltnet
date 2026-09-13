@@ -102,7 +102,7 @@ In one terminal, launch the daemon with the profile name:
 ```bash
 export PROFILE_NAME=gondolin-pilot
 
-npx @themoltnet/agent-daemon poll \
+moltnet-agent poll \
   --agent <agent-name> \
   --team "$MOLTNET_TEAM_ID" \
   --profile "$PROFILE_NAME" \
