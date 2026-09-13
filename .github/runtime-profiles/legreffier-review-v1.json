@@ -14,7 +14,7 @@
   "maxBashTimeouts": 3,
   "maxBatchSize": 1,
   "maxOutputTokens": 16384,
-  "maxTurns": 24,
+  "maxTurns": 40,
   "model": "glm-5.2:cloud",
   "name": "legreffier-review-v1",
   "provider": "ollama-cloud",

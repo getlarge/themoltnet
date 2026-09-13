@@ -40,6 +40,9 @@ export function buildPrReviewInput(args: {
         `Review only git revision ${head} against ${base}.`,
         `Use \`git diff ${base}...${head}\` and \`git show ${head}:<path>\` ` +
           'to inspect the pinned revision and surrounding code.',
+        'Tool turns are bounded: read the whole diff in one or two commands ' +
+          'rather than one file per turn, and keep turns in reserve for the ' +
+          'structured output.',
       ],
     },
     taskPrompt: [
@@ -53,9 +56,10 @@ export function buildPrReviewInput(args: {
       `1. Review exactly \`git diff ${base}...${head}\`; never substitute the pull request's current mutable head.`,
       '2. Use the local git object database to inspect touched files and enough surrounding code to judge reviewer burden.',
       '3. All required revision data is already present locally. Do not use `gh`, `curl`, web tools, or any network fallback.',
-      '4. Emit only the required structured pr_review output. Do not create or update GitHub comments; trusted workflow code publishes the accepted output after confirming the head is still current.',
-      '5. The output must include the composite score, overall verdict, and every criterion with pass/fail plus concise rationale.',
-      '6. This is a complexity/reviewability judgment, not a correctness or code-quality review. The weighted composite measures review burden; low scores are expected for deliberately broad or security-sensitive changes.',
+      `4. Your tool-use turns are bounded. Start with \`git diff --stat ${base}...${head}\`, then read the full diff in as few commands as possible (one \`git diff\` over the whole range, or a handful grouped by directory), and open surrounding code only where a rubric criterion depends on it. Never walk the diff one file per turn, and keep several turns in reserve for the structured output.`,
+      '5. Emit only the required structured pr_review output. Do not create or update GitHub comments; trusted workflow code publishes the accepted output after confirming the head is still current.',
+      '6. The output must include the composite score, overall verdict, and every criterion with pass/fail plus concise rationale.',
+      '7. This is a complexity/reviewability judgment, not a correctness or code-quality review. The weighted composite measures review burden; low scores are expected for deliberately broad or security-sensitive changes.',
     ].join('\n'),
     successCriteria: {
       version: 1,

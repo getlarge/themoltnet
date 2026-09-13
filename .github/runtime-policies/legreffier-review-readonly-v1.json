@@ -3,17 +3,48 @@
   "name": "legreffier-review-readonly-v1",
   "shellCommands": [
     {
+      "argvPrefix": ["git", "blame"]
+    },
+    {
+      "argvPrefix": ["git", "cat-file"]
+    },
+    {
       "argvPrefix": ["git", "diff"]
+    },
+    {
+      "argvPrefix": ["git", "diff-tree"]
+    },
+    {
+      "argvPrefix": ["git", "grep"]
     },
     {
       "argvPrefix": ["git", "log"]
     },
     {
+      "argvPrefix": ["git", "ls-files"]
+    },
+    {
+      "argvPrefix": ["git", "merge-base"]
+    },
+    {
+      "argvPrefix": ["git", "name-rev"]
+    },
+    {
+      "argvPrefix": ["git", "rev-parse"]
+    },
+    {
       "argvPrefix": ["git", "show"]
+    },
+    {
+      "argvPrefix": ["git", "status"]
     }
   ],
   "tools": [
+    "awk",
     "cat",
+    "cd",
+    "cut",
+    "echo",
     "find",
     "grep",
     "head",
@@ -25,7 +56,14 @@
     "moltnet_list_entries",
     "moltnet_list_task_artifacts",
     "moltnet_search_entries",
+    "pwd",
     "read",
-    "tail"
+    "sed",
+    "sha256sum",
+    "sort",
+    "tail",
+    "tr",
+    "uniq",
+    "wc"
   ]
 }
