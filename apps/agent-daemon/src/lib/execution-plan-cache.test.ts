@@ -1444,6 +1444,47 @@ describe('createExecutionPlanCache', () => {
     await slotStore.close();
   });
 
+  it('rejects a revision-pinned task when the runtime profile downgrades it away from dedicated_worktree', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-revision-downgrade-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      workspacePolicy: { allowedWorkspaceModes: ['shared_mount'] },
+      slotRegistry: new InMemoryRuntimeSlotStore(),
+    });
+
+    await expect(
+      cache.getOrCreate({
+        attemptN: 1,
+        task: {
+          id: '77777777-7777-4777-8777-777777777777',
+          teamId: TEAM_ID,
+          taskType: 'freeform',
+          correlationId: '88888888-8888-4888-8888-888888888888',
+          input: {
+            brief: 'review exact revision',
+            execution: {
+              workspace: 'dedicated_worktree',
+              revision: 'b'.repeat(40),
+            },
+          },
+        } as unknown as Task,
+      }),
+    ).rejects.toThrow(
+      `Runtime profile "${PROFILE_ID}" does not allow "dedicated_worktree", required by a revision-pinned task (resolved workspace mode "shared_mount")`,
+    );
+  });
+
   it('treats a detached revision plan as a dedicated worktree for policy enforcement', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-revision-'));
     tempRoots.push(mountRoot);
