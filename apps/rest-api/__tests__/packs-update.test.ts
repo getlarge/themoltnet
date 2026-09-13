@@ -121,18 +121,33 @@ describe('PATCH /packs/:id', () => {
     );
   });
 
-  it('rejects unpin without expiresAt', async () => {
-    mocks.contextPackRepository.findById.mockResolvedValue(MOCK_PACK);
+  // The test app is built with PACK_GC_COMPILE_TTL_DAYS: 7 (see helpers.ts).
+  it('unpins without expiresAt using the server retention window (#1858)', async () => {
+    const pinnedPack = { ...MOCK_PACK, pinned: true, expiresAt: null };
+    mocks.contextPackRepository.findById
+      .mockResolvedValueOnce(pinnedPack)
+      .mockResolvedValueOnce(MOCK_PACK);
     mocks.permissionChecker.canManagePack.mockResolvedValue(true);
+    mocks.contextPackRepository.unpin.mockResolvedValue(MOCK_PACK);
 
+    const before = Date.now();
     const response = await app.inject({
       method: 'PATCH',
       url: `/packs/${PACK_ID}`,
       headers: authHeaders,
       payload: { pinned: false },
     });
+    const after = Date.now();
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(200);
+    expect(mocks.contextPackRepository.unpin).toHaveBeenCalledTimes(1);
+    const [, expiresAt] = mocks.contextPackRepository.unpin.mock.calls[0] as [
+      string,
+      Date,
+    ];
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(before + sevenDays);
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(after + sevenDays);
   });
 
   it('updates expiresAt on non-pinned pack', async () => {

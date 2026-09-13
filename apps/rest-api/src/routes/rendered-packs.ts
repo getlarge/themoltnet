@@ -22,6 +22,7 @@ import {
   RenderPackPreviewBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { compileTtlExpiry } from '../utils/pack-retention.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 function translatePackServiceError(err: PackServiceError): never {
@@ -493,12 +494,6 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         Object.assign(rendered, afterVerify);
       }
 
-      if (pinned === false && !expiresAt) {
-        throw createProblem(
-          'validation-failed',
-          'expiresAt is required when setting pinned to false',
-        );
-      }
       if (
         expiresAt !== undefined &&
         pinned !== true &&
@@ -521,9 +516,13 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           if (pinned === true) {
             return fastify.renderedPackRepository.pin(rendered.id);
           } else if (pinned === false) {
+            // A bare unpin restores the deployment's retention policy from
+            // server time; only an explicit expiresAt overrides it (#1858).
             return fastify.renderedPackRepository.unpin(
               rendered.id,
-              new Date(expiresAt!),
+              expiresAt !== undefined
+                ? new Date(expiresAt)
+                : compileTtlExpiry(fastify.packGcConfig, now),
             );
           } else {
             // updateExpiry filters on `pinned = false`. A concurrent pin between

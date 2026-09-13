@@ -39,6 +39,7 @@ import {
   PackUpdateBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { compileTtlExpiry } from '../utils/pack-retention.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
@@ -427,13 +428,9 @@ export async function packRoutes(fastify: FastifyInstance) {
 
       const createdAtDate = new Date(createdAt);
       const pinned = request.body.pinned ?? false;
-      const compileTtlDays =
-        fastify.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
       const expiresAt = pinned
         ? null
-        : new Date(
-            createdAtDate.getTime() + compileTtlDays * 24 * 60 * 60 * 1000,
-          );
+        : compileTtlExpiry(fastify.packGcConfig, createdAtDate);
 
       // Idempotent: return existing pack if CID already exists (retry/double-submit)
       const existing = await fastify.contextPackRepository.findByCid(packCid);
@@ -1115,12 +1112,6 @@ export async function packRoutes(fastify: FastifyInstance) {
       }
 
       // Validate upfront before entering the transaction
-      if (pinned === false && !expiresAt) {
-        throw createProblem(
-          'validation-failed',
-          'expiresAt is required when setting pinned to false',
-        );
-      }
       if (
         expiresAt !== undefined &&
         pinned !== true &&
@@ -1144,9 +1135,13 @@ export async function packRoutes(fastify: FastifyInstance) {
           if (pinned === true) {
             await fastify.contextPackRepository.pin(pack.id);
           } else if (pinned === false) {
+            // A bare unpin restores the deployment's retention policy from
+            // server time; only an explicit expiresAt overrides it (#1858).
             await fastify.contextPackRepository.unpin(
               pack.id,
-              new Date(expiresAt!),
+              expiresAt !== undefined
+                ? new Date(expiresAt)
+                : compileTtlExpiry(fastify.packGcConfig, now),
             );
           } else if (expiresAt !== undefined) {
             // updateExpiry filters on `pinned = false`. A concurrent pin between

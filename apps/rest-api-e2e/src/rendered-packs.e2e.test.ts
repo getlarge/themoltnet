@@ -612,6 +612,33 @@ describe('Rendered packs', () => {
       expect(data!.pinned).toBe(false);
     });
 
+    it('unpins without expiresAt using the server retention window', async () => {
+      await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: renderedPackId },
+        body: { pinned: true },
+      });
+
+      // The e2e API runs with the default PACK_GC_COMPILE_TTL_DAYS of 7
+      // (apps/rest-api/src/config.ts). The deadline is server-assigned, so it
+      // is measured against this clock with a generous skew allowance.
+      const before = Date.now();
+      const { data, error } = await updateRenderedPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: renderedPackId },
+        body: { pinned: false },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(false);
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      const skew = 5 * 60 * 1000;
+      const expiresAt = new Date(data!.expiresAt!).getTime();
+      expect(expiresAt).toBeGreaterThanOrEqual(before + sevenDays - skew);
+      expect(expiresAt).toBeLessThanOrEqual(Date.now() + sevenDays + skew);
+    });
+
     it('rejects update from another agent (403)', async () => {
       const { error, response } = await updateRenderedPack({
         client,
