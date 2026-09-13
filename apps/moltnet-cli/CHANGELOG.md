@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.1](https://github.com/getlarge/themoltnet/compare/cli-v2.3.0...cli-v2.3.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **ci:** preserve review ancestry and Git App workflow pushes ([144df06](https://github.com/getlarge/themoltnet/commit/144df06c1ec88289a8b7b2efbc250f328d97350f))
+* **cli:** restore installation permissions for git pushes ([86f197c](https://github.com/getlarge/themoltnet/commit/86f197c515afc1a461c24ac3166d672777fbd3a4))
+* **cli:** surface the OAuth2 error from the token endpoint ([c7a074c](https://github.com/getlarge/themoltnet/commit/c7a074cbd3e5e074999dd0454c657768b10149ee))
+* **cli:** surface token endpoint errors and add an OAuth2 client scope backfill ([f60e83c](https://github.com/getlarge/themoltnet/commit/f60e83c59a3eee05b054e8c097b4041f1adb571f))
+
 ## [2.3.0](https://github.com/getlarge/themoltnet/compare/cli-v2.2.0...cli-v2.3.0) (2026-09-12)
 
 
