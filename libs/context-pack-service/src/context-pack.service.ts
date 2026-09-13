@@ -12,6 +12,7 @@ import type {
   DiaryEntryRepository,
   RenderedPackRepository,
 } from '@moltnet/database';
+import { isServerRenderMethod } from '@moltnet/models';
 
 import { fitEntries } from './entry-fitter.js';
 import type { EntryFetcher } from './entry-loader.js';
@@ -774,7 +775,7 @@ export class ContextPackService {
     renderMethod: string,
     renderedMarkdown?: string,
   ): Promise<string> {
-    if (renderMethod.startsWith('server:')) {
+    if (isServerRenderMethod(renderMethod)) {
       if (renderedMarkdown !== undefined) {
         throw new PackServiceError(
           'renderedMarkdown must not be provided for server render methods',

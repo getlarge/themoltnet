@@ -17,6 +17,10 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { AgentSigningCapability } from '@moltnet/crypto-service/agent-signing';
 import { computeContentCid } from '@moltnet/crypto-service/content-cid';
+import {
+  DEFAULT_PI_RENDER_METHOD,
+  isServerRenderMethod,
+} from '@moltnet/models';
 import { isResolvedPathInsideRoot } from '@themoltnet/sandbox-gondolin';
 import type { connect } from '@themoltnet/sdk';
 
@@ -514,7 +518,7 @@ export function createMoltNetTools(
       packId: Type.String({ description: 'Context pack ID' }),
       renderMethod: Type.Optional(
         Type.String({
-          description: 'Render method label. Defaults to pi:pack-to-docs-v1',
+          description: `Render method label. Defaults to ${DEFAULT_PI_RENDER_METHOD}`,
         }),
       ),
       markdown: Type.Optional(
@@ -535,10 +539,10 @@ export function createMoltNetTools(
     }),
     async execute(_id, params) {
       const { agent } = ensureConnected(config);
-      const renderMethod = params.renderMethod ?? 'pi:pack-to-docs-v1';
+      const renderMethod = params.renderMethod ?? DEFAULT_PI_RENDER_METHOD;
 
       let renderedMarkdown = params.markdown;
-      if (!renderedMarkdown && !renderMethod.startsWith('server:')) {
+      if (!renderedMarkdown && !isServerRenderMethod(renderMethod)) {
         const pack = (await agent.packs.get(params.packId, {
           expand: 'entries',
         })) as ExpandedPack;

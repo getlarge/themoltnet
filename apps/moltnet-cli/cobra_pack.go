@@ -130,6 +130,8 @@ Use --preview to return the rendered markdown without persisting.`,
 			)
 		},
 	}
+	// renderMethod convention is owned by libs/models/src/render-method.ts.
+	// Keep this default in sync with DEFAULT_SERVER_RENDER_METHOD.
 	cmd.Flags().String("render-method", "server:pack-to-docs-v1", "Render method label")
 	cmd.Flags().Bool("preview", false, "Preview without persisting")
 	cmd.Flags().Bool("pinned", false, "Pin the rendered pack")

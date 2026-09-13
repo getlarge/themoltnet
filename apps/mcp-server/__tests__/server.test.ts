@@ -796,11 +796,11 @@ describe('buildApp', () => {
           "name": "packs_provenance",
         },
         {
-          "inputSchema": "11c3590d78f15481",
+          "inputSchema": "6454fadd1fb312ee",
           "name": "packs_render",
         },
         {
-          "inputSchema": "8a31ab23dd3cb813",
+          "inputSchema": "c395ac82134a0aca",
           "name": "packs_render_preview",
         },
         {

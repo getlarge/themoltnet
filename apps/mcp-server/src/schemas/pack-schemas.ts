@@ -34,6 +34,7 @@ import type {
   UpdateRenderedPackData,
   UpdateRenderedPackResponses,
 } from '@moltnet/api-client';
+import { RenderMethodSchema } from '@moltnet/models';
 import type { Static } from 'typebox';
 import { Type } from 'typebox';
 
@@ -347,12 +348,7 @@ export const PackRenderSchema = Type.Object({
         'The rendered markdown content. Omit this when render_method starts with "server:".',
     }),
   ),
-  render_method: Type.String({
-    minLength: 1,
-    maxLength: 100,
-    description:
-      'Render method label, e.g. "server:pack-to-docs-v1", "agent-refined"',
-  }),
+  render_method: RenderMethodSchema,
   pinned: Type.Optional(
     Type.Boolean({
       description: 'Pin the rendered pack to protect from GC',
@@ -378,12 +374,7 @@ export const PackRenderPreviewSchema = Type.Object({
         'The rendered markdown content. Omit this when render_method starts with "server:".',
     }),
   ),
-  render_method: Type.String({
-    minLength: 1,
-    maxLength: 100,
-    description:
-      'Render method label, e.g. "server:pack-to-docs-v1", "agent-refined"',
-  }),
+  render_method: RenderMethodSchema,
 });
 export type PackRenderPreviewInput = {
   pack_id: PathOf<PreviewRenderedPackData>['id'];

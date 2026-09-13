@@ -1927,6 +1927,9 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../database
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
       '@noble/hashes':
         specifier: 'catalog:'
         version: 1.8.0
