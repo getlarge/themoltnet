@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <video> <new-output-directory> [contact-sheet-interval-seconds] [timestamp ...]" >&2
+  echo "Usage: $0 <video> <new-output-directory> [--interval seconds] [timestamp ...]" >&2
 }
 
 if (( $# < 2 )); then
@@ -12,7 +12,19 @@ fi
 
 video=$1
 output_dir=$2
-requested_interval=${3:-2}
+shift 2
+
+requested_interval=2
+if [[ ${1:-} == "--interval" ]]; then
+  if (( $# < 2 )); then
+    usage
+    exit 2
+  fi
+  requested_interval=$2
+  shift 2
+fi
+
+timestamps=("$@")
 
 if [[ ! -f $video ]]; then
   echo "Video does not exist: $video" >&2
@@ -90,9 +102,8 @@ extract_frame start 0
 extract_frame middle "$middle"
 extract_frame end "$end"
 
-if (( $# > 3 )); then
-  shift 3
-  for timestamp in "$@"; do
+if (( ${#timestamps[@]} > 0 )); then
+  for timestamp in "${timestamps[@]}"; do
     label=${timestamp//./_}
     extract_frame "$label" "$timestamp"
   done

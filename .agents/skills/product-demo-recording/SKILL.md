@@ -11,6 +11,8 @@ or cleanly composed.
 
 For native macOS or browser capture mechanics, read
 [references/capture-macos.md](references/capture-macos.md).
+For browser workflow builders with polling or retry loops, read
+[references/browser-workflows.md](references/browser-workflows.md).
 For title cards, lower-thirds, diagrams, callouts, and end cards, read
 [references/infographic-style.md](references/infographic-style.md).
 
@@ -69,8 +71,14 @@ Before recording:
 - Capture the real successful execution. Reconstructed title cards and
   annotations may explain it, but must not imply an action or result that was not
   observed.
+- Complete credential creation and connection testing outside the recorded
+  take. Begin the narrative from a safe authenticated state, unless credential
+  setup itself is the documented subject.
 - Record short, independently usable takes when the flow has stable stages.
   This limits re-recording and makes privacy review more precise.
+- For a long polling or retry loop, preserve the real ordered states but
+  accelerate or trim the repeated idle portion. Hold the initial action,
+  terminal workflow state, and accepted result at readable speed.
 
 ## Edit without hiding the product
 
@@ -100,7 +108,7 @@ Run the bundled helper against the final file, not an intermediate:
 
 ```bash
 .agents/skills/product-demo-recording/scripts/qa-video.sh \
-  path/to/final.mp4 /private/tmp/demo-video-qa 2 4 5 6
+  path/to/final.mp4 /private/tmp/demo-video-qa --interval 2 4 5 6
 ```
 
 The helper writes stream metadata, a sequentially decoded contact sheet, and
@@ -112,9 +120,9 @@ Then perform all of these checks:
 1. Watch the entire final video at normal speed.
 2. Inspect the contact sheet for every change of application, modal, shot,
    annotation, and result state.
-3. Inspect exact frames before, at, and after every edit boundary. Always add
-   timestamps named in review feedback; do not infer that adjacent frames are
-   representative.
+3. Inspect exact frames immediately before, at, and after every edit boundary.
+   Always add timestamps named in review feedback; do not infer that adjacent
+   frames are representative.
 4. Confirm there are no other apps, desktop areas, notifications, credentials,
    private data, clipped edges, partial browser chrome, odd black borders, or
    obstructed controls.
