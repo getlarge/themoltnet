@@ -60,13 +60,9 @@ func TestGitHubTokenRequestExplicitRepositoryPrecedesRemote(t *testing.T) {
 	}
 }
 
-// gh writes are compound workflows: `pr create` resolves the default branch
-// and the head ref, `pr merge` reads the PR and its contents, `issue develop`
-// creates a branch, `release create` reads tags. Narrowing the token to the
-// single write permission the guard classified breaks those prerequisite reads
-// with "Resource not accessible by integration" (#2257). Keep the repository
-// restriction and inherit the installation's permissions, the way the Git
-// credential helper and `moltnet github token` already do.
+// gh writes that read before they write (#2257): the token keeps the
+// repository restriction and no permission filter, so it shares the cache
+// entry `moltnet github token` mints. See githubTokenRequestForGHArgs.
 func TestGitHubTokenRequestForGHWritesInheritsInstallationPermissions(t *testing.T) {
 	original := gitRemoteURL
 	gitRemoteURL = func() (string, error) { return "https://github.com/owner/from-remote.git", nil }
@@ -78,7 +74,6 @@ func TestGitHubTokenRequestForGHWritesInheritsInstallationPermissions(t *testing
 		{"issue", "develop", "1"},
 		{"release", "create", "v1.0.0"},
 		{"api", "--method", "POST", "repos/owner/from-remote/pulls", "--input", "pr.json"},
-		{"pr", "view", "1"},
 	}
 	for _, args := range commands {
 		request, err := githubTokenRequestForGHArgs(args)
@@ -105,17 +100,11 @@ func TestGitHubExecMintsRepositoryScopedTokenWithInstallationPermissions(t *test
 		t.Skip("fake gh is a shell script")
 	}
 	directory := t.TempDir()
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal(err)
-	}
 	keyPath := filepath.Join(directory, "app.pem")
-	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{
-		Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	}), 0o600); err != nil {
+	if err := os.WriteFile(keyPath, testRSAPrivateKeyPEM(t), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	var resolvedPath string
+	var resolvedPath, tokenPath string
 	var tokenBody struct {
 		Repositories []string          `json:"repositories"`
 		Permissions  map[string]string `json:"permissions"`
@@ -126,6 +115,7 @@ func TestGitHubExecMintsRepositoryScopedTokenWithInstallationPermissions(t *test
 			resolvedPath = r.URL.Path
 			_, _ = w.Write([]byte(`{"id":404}`))
 		case http.MethodPost:
+			tokenPath = r.URL.Path
 			if err := json.NewDecoder(r.Body).Decode(&tokenBody); err != nil {
 				t.Errorf("decode token request: %v", err)
 			}
@@ -159,6 +149,9 @@ func TestGitHubExecMintsRepositoryScopedTokenWithInstallationPermissions(t *test
 	}
 	if resolvedPath != "/repos/another-org/project/installation" {
 		t.Fatalf("installation lookup path = %q", resolvedPath)
+	}
+	if tokenPath != "/app/installations/404/access_tokens" {
+		t.Fatalf("token path = %q, want the installation resolved for the target", tokenPath)
 	}
 	if len(tokenBody.Repositories) != 1 || tokenBody.Repositories[0] != "project" {
 		t.Fatalf("token repositories = %#v, want the target repository only", tokenBody.Repositories)

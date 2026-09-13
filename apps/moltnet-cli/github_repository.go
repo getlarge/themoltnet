@@ -180,9 +180,12 @@ func githubTokenRequestForGHArgs(args []string) (githubTokenRequest, error) {
 	// reads the PR and its contents — and a token holding only
 	// pull_requests:write fails those reads with "Resource not accessible by
 	// integration" (#2257). Modelling each command's read dependencies is the
-	// gh-grammar trap execFailureHint warns about; the guard already decides
-	// which commands may run, and the token is bound to one child process.
-	// Same shape as the Git credential helper and `moltnet github token`.
+	// gh-grammar trap execFailureHint warns about, and a partial set (the
+	// write plus contents:read) still breaks `pr merge` and `issue develop`.
+	// Trade-off: the one child gh process holds every permission the
+	// installation grants on that repository; containment is by repository
+	// and by the guard's command-level gate, not per permission. Same shape
+	// as the Git credential helper and the repository form of `github token`.
 	return githubTokenRequest{Repository: repository, RepositoryFromRemote: !found}, nil
 }
 
