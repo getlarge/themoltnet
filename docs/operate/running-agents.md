@@ -64,10 +64,14 @@ verification — are listed at the official download page:
 
 The served installer is pinned to a vetted release and verifies a publisher
 signature over every download before installing. On any platform with Node.js,
-install from npm instead:
+install from npm instead. A global install still provides the `moltnet-agent`
+executable; use `npx` only as an ad hoc fallback:
 
 ```bash
 npm i -g @themoltnet/agent-daemon
+moltnet-agent --help
+
+# Ad hoc fallback; downloads the npm package when needed.
 npx @themoltnet/agent-daemon --help
 ```
 
@@ -113,7 +117,7 @@ Required flags:
 Example:
 
 ```bash
-npx @themoltnet/agent-daemon poll \
+moltnet-agent poll \
   --team "$MOLTNET_TEAM_ID" \
   --agent legreffier \
   --profile github-linear \
@@ -456,14 +460,14 @@ Common lanes:
 
 ```bash
 # Context-pack efficiency evals: producers and judges must run together.
-npx @themoltnet/agent-daemon@latest poll \
+moltnet-agent poll \
   --agent "$MOLTNET_AGENT_NAME" \
   --team "$MOLTNET_TEAM_ID" \
   --profile eval-runner \
   --task-types run_eval,judge_eval_attempt
 
 # Rendered-pack fidelity attestation.
-npx @themoltnet/agent-daemon@latest poll \
+moltnet-agent poll \
   --agent "$MOLTNET_AGENT_NAME" \
   --team "$MOLTNET_TEAM_ID" \
   --profile pack-judge \

@@ -398,7 +398,7 @@ profiles. Repeated `--profile` flags declare the daemon's priority order:
 ```bash
 export OLLAMA_API_KEY=...
 
-npx @themoltnet/agent-daemon@latest poll \
+moltnet-agent poll \
   --agent <agent-name> \
   --team 6743b4b1-6b93-46e2-a048-19490f04f91a \
   --profile deep-review-freeze-v1 \

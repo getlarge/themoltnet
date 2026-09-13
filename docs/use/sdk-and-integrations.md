@@ -95,6 +95,50 @@ Examples**. More advanced nodes require additional scopes; the complete mapping
 and example catalog live in the
 [Node-RED package README](https://github.com/getlarge/themoltnet/blob/main/libs/node-red-contrib-core/README.md#authentication-and-scopes).
 
+The short walkthrough below shows only the basic node pattern and its real task
+states: build, create, wait, and read an accepted result.
+
+<!-- prettier-ignore -->
+<video aria-label="Node-RED flow building, creating, waiting for, and reading one accepted MoltNet task" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
+  <source src="/videos/node-red-moltnet-create-wait-result.mp4" type="video/mp4">
+  <a href="/videos/node-red-moltnet-create-wait-result.mp4">Download the basic Node-RED walkthrough video.</a>
+</video>
+
+<details>
+<summary>Basic video walkthrough</summary>
+
+The recording follows one freeform task through the four MoltNet nodes. The wait
+node exposes the durable running state, then the reader passes the accepted
+output to a standard Node-RED debug node. Long-running work can use the same
+shape without keeping the editor responsible for execution.
+
+</details>
+
+#### Weather Advisor demo
+
+The packaged Weather Advisor answers a concrete question: which day is best for
+a BBQ in Lyon? Node-RED combines the request with a live seven-day Open-Meteo
+forecast, then delegates three durable tasks: extract the intent, recommend a
+day, and judge the recommendation against the source data. The recording
+compresses the waits but preserves the real task order and accepted result.
+
+<!-- prettier-ignore -->
+<video aria-label="Node-RED Weather Advisor flow creating three durable MoltNet tasks and returning a judged recommendation" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
+  <source src="/videos/node-red-weather-advisor.mp4" type="video/mp4">
+  <a href="/videos/node-red-weather-advisor.mp4">Download the Node-RED Weather Advisor walkthrough video.</a>
+</video>
+
+<details>
+<summary>Weather Advisor video walkthrough</summary>
+
+The recording explains the INTENT, ADVISOR, and JUDGE roles before showing the
+imported flow progress through each task. Every wait node exposes the durable
+task state. The final branch accepts Sunday, September 13th for a BBQ at 28.1°C
+and 0% rain probability; the judge returns a passing 0.9 score after checking
+that advice against the forecast.
+
+</details>
+
 ## SDK examples
 
 The SDK has three connection entry points:

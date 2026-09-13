@@ -20,7 +20,16 @@ For title cards, lower-thirds, diagrams, callouts, and end cards, read
 
 Before recording:
 
-1. Establish a visual reference:
+1. Choose the narrative type before writing the shot list:
+   - An **overview** teaches the product shape: show the smallest representative
+     node or screen sequence, use generic copy, and omit scenario-specific
+     explanation.
+   - A **scenario demo** answers one concrete question: state the case, show the
+     real execution stages, and finish with the verified outcome.
+   - Prefer separate short videos when both are useful. Do not mix generic
+     product explanation and a domain-specific case unless the user explicitly
+     wants a combined walkthrough.
+2. Establish a visual reference:
    - If a previous recording exists, inspect it from start to finish. Extract a
      contact sheet when useful, and note its pacing, framing, annotations, and
      strongest explanatory moments.
@@ -29,19 +38,19 @@ Before recording:
      integrated product's native UI—in that order—to create a title-card still,
      the densest annotated UI still, and an end-card still before recording.
      These approved stills become the baseline for later videos in the series.
-2. Read the page where the video will appear. Write a short shot list that
+3. Read the page where the video will appear. Write a short shot list that
    names the user outcome, required setup, main interaction, waiting or retry
    behavior, and successful result.
-3. Choose the final aspect ratio and resolution before arranging the app.
+4. Choose the final aspect ratio and resolution before arranging the app.
    Prefer a conventional 16:9 frame such as 1440x810 or 1920x1080.
-4. Arrange the application so the complete intended content area fits that
+5. Arrange the application so the complete intended content area fits that
    frame. Hide optional sidebars inside the app when needed; do not remove half
    of a sidebar or control with an arbitrary post-production crop.
-5. Decide whether browser chrome is part of the composition. Prefer a clean
+6. Decide whether browser chrome is part of the composition. Prefer a clean
    browser viewport capture. If that is unavailable, keep the complete browser
    window or place it inside a deliberate frame. A complete window is cleaner
    than clipped tabs, edges, or application content.
-6. Review the three representative style frames at their actual display size.
+7. Review the three representative style frames at their actual display size.
    Do not record the full walkthrough while the overlay system, safe areas, or
    information hierarchy are still being invented.
 
@@ -71,6 +80,9 @@ Before recording:
 - Capture the real successful execution. Reconstructed title cards and
   annotations may explain it, but must not imply an action or result that was not
   observed.
+- A state-led edit may use clean stills captured from one real run when motion
+  itself is not instructional. Keep the states in observed order, preserve the
+  visible task evidence, and use transitions only to communicate progression.
 - Complete credential creation and connection testing outside the recorded
   take. Begin the narrative from a safe authenticated state, unless credential
   setup itself is the documented subject.
@@ -87,6 +99,14 @@ Before recording:
 - Use title and end cards only when they improve orientation or next steps.
 - Keep lower-thirds inside a preplanned safe area. They must not cover controls,
   status, output, errors, or identifiers needed to understand the flow.
+- For scenario demos, let annotations advance with the execution. Name the
+  current stage and explain its consequence in one short line, for example
+  `INTENT — Extract place and timeframe` followed by
+  `INTENT COMPLETE — Fetch the forecast`. Use the product's actual stage names
+  and observable state; do not narrate hidden reasoning.
+- Keep an overview video visually quieter than its companion scenario demo.
+  Node labels and native status indicators should carry the explanation when
+  they are already sufficient.
 - Match the established docs visual language when replacing an existing video.
   Do not make a replacement feel less deliberate than the asset it supersedes.
 - For broad browser compatibility, default to H.264 High, `yuv420p`, constant
@@ -101,6 +121,26 @@ Before recording:
 - If a frame remains corrupt in normal playback and repeated extraction,
   replace the affected segment from a clean source and re-encode the final
   master with `-threads 1`.
+
+## Add audio only when it earns its place
+
+- Keep silent playback as the default for embedded docs videos. Add narration
+  when it materially explains timing, causality, or context that concise visual
+  annotations cannot.
+- Write and time the narration against the locked picture. Captions or a text
+  transcript must preserve the same information, and the video must remain
+  understandable when muted.
+- Use a cloned or synthetic voice modeled on an identifiable person only with
+  that person's explicit authorization. Disclose that the voice is synthetic
+  in the surrounding page or credits; do not present it as an authentic live
+  recording.
+- Keep voice samples, model files, and generated intermediates out of the repo
+  unless the user explicitly chooses to publish them. Treat authorization to
+  create one narrated demo as scoped to that deliverable, not as standing
+  consent for future voice generation.
+- Re-run delivery QA after muxing audio. Verify intelligibility, levels, sync,
+  captions, channel layout, and that the final container still meets the video
+  delivery specification.
 
 ## Review the decoded deliverable
 
