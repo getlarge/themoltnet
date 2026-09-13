@@ -31,20 +31,8 @@ type BufferedMessage = {
   timestamp: string;
 };
 
-/**
- * True when an error looks like the Keto "tuple lagged the read API"
- * race: HTTP 403 plus a server message starting with "Not authorized".
- * Used to gate the first-append retry to the narrow recoverable case.
- *
- * The server's task.service.ts returns errors of the form
- *   `Not authorized to <verb> ...`
- * for every claimant-relation check (append messages, list messages,
- * heartbeat, complete, fail). Other Fastify 403s — auth-plugin
- * rejection, route-level guards — use different message shapes and
- * are not consistency-window flakes; retrying them just delays the
- * permanent failure surfacing.
- */
-function isKetoConsistencyLag403(err: unknown): boolean {
+/** Narrowly identify the legacy server response caused by claimant-tuple lag. */
+function isLegacyClaimantLag403(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const status = (err as { statusCode?: number }).statusCode;
   if (status !== 403) return false;
@@ -80,12 +68,10 @@ export class ApiTaskReporter implements TaskReporter {
    */
   private pendingError: Error | null = null;
   /**
-   * Flips to `true` after the first successful `appendMessages` call.
-   * Used to gate the 403-retry window in `flush` to the very first
-   * append (the only point where the Keto `Task:claimant#Agent` tuple
-   * can lag the read API). Once any append has succeeded, Keto is
-   * known consistent for this task and a 403 thereafter is a real
-   * authorization failure that should surface immediately.
+   * Compatibility guard for runtimes talking to servers that still authorize
+   * reporting through the eventually-consistent Keto claimant tuple. New
+   * database-authorized servers succeed on the first attempt, so this adds no
+   * latency to their hot path.
    */
   private firstAppendSucceeded = false;
   private firstUsefulEventEmitted = false;
@@ -135,10 +121,6 @@ export class ApiTaskReporter implements TaskReporter {
     }
     this.taskId = ctx.taskId;
     this.attemptN = ctx.attemptN;
-    // Reset the first-append guard for the new lifecycle. Without this,
-    // a re-opened reporter (new task or new attempt on a re-claim) would
-    // skip the Keto consistency-window retry — the exact path
-    // appendWithFirstCallRetry exists to protect.
     this.firstAppendSucceeded = false;
     this.firstUsefulEventEmitted = false;
 
@@ -146,13 +128,6 @@ export class ApiTaskReporter implements TaskReporter {
     // before the dispatch timeout (default 5 min). Without this, fast tasks
     // that complete before the first periodic heartbeat silently time out.
     //
-    // The first heartbeat may race the Keto `grantTaskClaimant` write that
-    // `claim` performs server-side: the claim response can return before
-    // the tuple is read-visible, so an immediate heartbeat 403s with
-    // "Not authorized to report on this task". Retry briefly on 403 to
-    // absorb the consistency window. After the first successful heartbeat
-    // the timer-driven heartbeats fall through to the silent-failure path
-    // and any further 403s would surface via cancellation observation.
     await traceRuntimePhase(
       'moltnet.reporter.open',
       { 'moltnet.task.attempt': this.attemptN },
@@ -356,15 +331,8 @@ export class ApiTaskReporter implements TaskReporter {
   }
 
   /**
-   * Run the open() heartbeat with a short bounded retry on 403.
-   *
-   * `claim` writes a `Task:claimant#Agent` Keto tuple via
-   * `grantTaskClaimant`, but Keto's read API can lag the write by a few
-   * tens of milliseconds. A heartbeat fired immediately after claim
-   * returns can hit a check that doesn't yet see the tuple and 403 with
-   * "Not authorized to report on this task". By the time the timer
-   * fires (60s default) the consistency window is long closed; this
-   * retry only covers the gap on the very first call.
+   * Preserve bounded compatibility with pre-database-authority servers. Only
+   * the initial 403 is retried; all other failures still surface immediately.
    */
   private async sendInitialHeartbeat(): Promise<void> {
     const maxAttempts = 5;
@@ -374,11 +342,7 @@ export class ApiTaskReporter implements TaskReporter {
         await this.sendHeartbeat();
         return;
       } catch (err) {
-        const status =
-          err && typeof err === 'object' && 'statusCode' in err
-            ? (err as { statusCode?: number }).statusCode
-            : undefined;
-        if (status !== 403 || attempt === maxAttempts) throw err;
+        if (attempt === maxAttempts || !isLegacyClaimantLag403(err)) throw err;
         await new Promise<void>((resolve) => {
           setTimeout(resolve, baseDelayMs * attempt);
         });
@@ -386,25 +350,6 @@ export class ApiTaskReporter implements TaskReporter {
     }
   }
 
-  /**
-   * Wrap `tasks.appendMessages` with a bounded 403-retry on the first
-   * call only. Mirrors `sendInitialHeartbeat` — the same Keto
-   * `Task:claimant#Agent` tuple race covers both endpoints, and a
-   * batched-up first flush triggered immediately after `open()` (e.g.
-   * a fast executor that records a `task_started` info message before
-   * any heartbeat round-trip completes) can hit a 403 even though the
-   * heartbeat itself eventually succeeds.
-   *
-   * Once `firstAppendSucceeded` is set we know Keto is consistent for
-   * this task and any subsequent 403 is a real authorization failure
-   * (e.g. another agent stole the claim) that must surface immediately.
-   *
-   * Retry budget matches `sendInitialHeartbeat` and the REST e2e
-   * claimant-consistency regression: 5 attempts with 100/200/300/400 ms
-   * backoff. We also string-match the server's `Not authorized` message
-   * to avoid retrying 403s that mean something else (Fastify routes can
-   * 403 for non-auth reasons too).
-   */
   private async appendWithFirstCallRetry(
     batch: BufferedMessage[],
   ): Promise<void> {
@@ -419,7 +364,7 @@ export class ApiTaskReporter implements TaskReporter {
         await this.appendMessages(batch);
         return;
       } catch (err) {
-        if (attempt === maxAttempts || !isKetoConsistencyLag403(err)) throw err;
+        if (attempt === maxAttempts || !isLegacyClaimantLag403(err)) throw err;
         await new Promise<void>((resolve) => {
           setTimeout(resolve, baseDelayMs * attempt);
         });

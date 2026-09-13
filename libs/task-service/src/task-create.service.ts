@@ -62,6 +62,7 @@ export function createTaskCreateService(
     | 'taskArtifactRepository'
     | 'taskInputArtifactObjectStore'
     | 'diaryRepository'
+    | 'runtimeProfileRepository'
     | 'correlationSealRepository'
     | 'permissionChecker'
     | 'relationshipWriter'
@@ -80,6 +81,7 @@ export function createTaskCreateService(
     taskArtifactRepository,
     taskInputArtifactObjectStore,
     diaryRepository,
+    runtimeProfileRepository,
     correlationSealRepository,
     permissionChecker,
     relationshipWriter,
@@ -195,6 +197,34 @@ export function createTaskCreateService(
           'forbidden',
           'Not authorized to read task provenance from this diary',
         );
+      }
+
+      // Profile existence is team-sensitive. Resolve it only after the
+      // batched Team.propose_tasks + Diary.read authorization succeeds so a
+      // caller cannot use validation differences as a cross-team membership
+      // oracle. This remains a database lookup rather than another Keto check.
+      const profileIds = [
+        ...new Set((input.allowedProfiles ?? []).map((p) => p.profileId)),
+      ];
+      const profiles = await Promise.all(
+        profileIds.map((profileId) =>
+          runtimeProfileRepository.findById(profileId),
+        ),
+      );
+      for (const [index, profileId] of profileIds.entries()) {
+        const profile = profiles[index];
+        if (!profile || profile.teamId !== input.teamId) {
+          throw new TaskServiceError(
+            'invalid',
+            'allowedProfiles contains an unknown profile',
+            [
+              {
+                field: 'allowedProfiles',
+                message: `Runtime profile ${profileId} does not resolve in team ${input.teamId}`,
+              },
+            ],
+          );
+        }
       }
 
       await assertClaimConditionReadable(

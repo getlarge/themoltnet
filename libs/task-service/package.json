@@ -19,9 +19,12 @@
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/task-workflows": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@opentelemetry/api": "catalog:",
     "@themoltnet/credential-broker": "workspace:*"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
+    "drizzle-orm": "catalog:",
     "typebox": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

@@ -2487,66 +2487,27 @@ describe('Tasks API', () => {
     //   (1 messages restored for retry, 0 dropped):
     //   Forbidden: Not authorized to append messages.
     //
-    // `claim` writes the Task:claimant#Agent Keto tuple via
-    // `grantTaskClaimant`, but Keto's read API can lag the write by tens
-    // of ms. An `appendMessages` call fired in the same tick the claim
-    // response returns sees an empty claimant set, hits the
-    // permissionChecker.canReportTask check, and 403s with
-    // "Not authorized to append messages".
-    //
-    // The fix in libs/agent-runtime/src/reporters/api.ts (this PR) is a
-    // bounded 403-retry on the very first append, mirroring
-    // `sendInitialHeartbeat`. The test below documents the server's
-    // half of the contract: a freshly-claimed task MUST eventually
-    // accept the claimant's appendMessages — either on the first call
-    // (Keto already converged) or within a small bounded retry window.
-    //
-    // Note: this is a probabilistic race. The test loops with backoff
-    // identical to the agent-runtime client's, so flakes here would
-    // also indicate flakes in production. If the consistency window
-    // grows past ~1.5s (5 attempts × max 400ms backoff) this asserts.
+    // Claim authority is committed in Postgres together with the attempt and
+    // workflow enqueue. Reporting therefore has no Keto projection to wait
+    // for: once claim returns, the first append must succeed immediately.
     it('claimant can append messages immediately after claim', async () => {
       const { data: task } = await propose();
       const racyTaskId = task!.id;
       const { data: claimed } = await claim(racyTaskId);
       const racyAttemptN = claimed!.attempt.attemptN;
 
-      // Mirror ApiTaskReporter.appendWithFirstCallRetry: 5 attempts,
-      // 100/200/300/400ms backoff. If the server fails the contract,
-      // the agent-daemon's reporter would too — both would surface a
-      // task-fatal append error.
-      let lastStatus: number | undefined;
-      let lastBody: unknown;
-      for (let attempt = 1; attempt <= 5; attempt += 1) {
-        const { data, error, response } = await appendTaskMessages({
-          client,
-          auth: () => claimer.accessToken,
-          path: { id: racyTaskId, n: racyAttemptN },
-          body: {
-            messages: [{ kind: 'info', payload: { event: 'task_started' } }],
-          },
-        });
-        lastStatus = response.status;
-        lastBody = error ?? data;
-        if (response.status === 200) {
-          expect(data!.count).toBe(1);
-          return;
-        }
-        if (response.status !== 403) {
-          // Anything other than 200 or 403 is unrelated to the
-          // consistency window — fail loud.
-          throw new Error(
-            `unexpected status ${response.status} on append: ${JSON.stringify(error)}`,
-          );
-        }
-        // Backoff before retrying.
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 100 * attempt);
-        });
-      }
-      throw new Error(
-        `claimant still 403'd after 5 retries; last status=${lastStatus}, body=${JSON.stringify(lastBody)}`,
-      );
+      const { data, error, response } = await appendTaskMessages({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: racyTaskId, n: racyAttemptN },
+        body: {
+          messages: [{ kind: 'info', payload: { event: 'task_started' } }],
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(error).toBeUndefined();
+      expect(data!.count).toBe(1);
     });
 
     it('allows active DB claimant to append when Keto claimant tuple is missing', async () => {
@@ -2766,11 +2727,10 @@ describe('Tasks API', () => {
       );
 
       // A late /complete or /fail from the abandoned attempt must be rejected
-      // and must NOT revive or overwrite the task. Two layers enforce this:
-      // (1) abort removed the claimant's Keto report tuple, so canReportTask
-      //     now fails → 403; and (2) the attempt-terminal guard in the service
-      //     would return 409 if the call ever got past auth. Either rejection
-      //     code is acceptable; the invariant under test is "task untouched".
+      // and must NOT revive or overwrite the task. The active-attempt lease
+      // check and attempt-terminal guard reject it from Postgres authority.
+      // Either rejection code is acceptable; the invariant under test is
+      // "task untouched".
       const output = { packId: 'late', summary: 'late' };
       const completeRes = await completeTask({
         client,

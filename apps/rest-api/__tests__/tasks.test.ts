@@ -366,12 +366,7 @@ describe('POST /tasks', () => {
     });
   });
 
-  it('validates allowed profiles before creating the task', async () => {
-    mocks.runtimeProfileRepository.findById.mockResolvedValue({
-      id: PROFILE_ID,
-      teamId: TEAM_ID,
-    });
-
+  it('passes allowed profiles to the authorized task service boundary', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/tasks',
@@ -388,9 +383,7 @@ describe('POST /tasks', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(mocks.runtimeProfileRepository.findById).toHaveBeenCalledWith(
-      PROFILE_ID,
-    );
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
     expect(mocks.taskService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         allowedProfiles: [{ profileId: PROFILE_ID }],
@@ -398,11 +391,14 @@ describe('POST /tasks', () => {
     );
   });
 
-  it('rejects allowed profiles outside the task team', async () => {
-    mocks.runtimeProfileRepository.findById.mockResolvedValue({
-      id: PROFILE_ID,
-      teamId: 'eeeeeeee-0000-0000-0000-000000000005',
-    });
+  it('maps authorized task-service profile validation failures', async () => {
+    mocks.taskService.create.mockRejectedValue(
+      new TaskServiceError(
+        'invalid',
+        'allowedProfiles contains an unknown profile',
+        [{ field: 'allowedProfiles', message: 'profile not in task team' }],
+      ),
+    );
 
     const response = await app.inject({
       method: 'POST',
@@ -425,7 +421,8 @@ describe('POST /tasks', () => {
       code: 'VALIDATION_FAILED',
       errors: [{ field: 'allowedProfiles' }],
     });
-    expect(mocks.taskService.create).not.toHaveBeenCalled();
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
+    expect(mocks.taskService.create).toHaveBeenCalledOnce();
   });
 });
 

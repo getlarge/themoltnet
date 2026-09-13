@@ -7,6 +7,7 @@ import {
 } from '@moltnet/crypto-service';
 import {
   DBOS,
+  type NewTaskAttempt,
   type Task as DbTask,
   type TaskAttempt as DbTaskAttempt,
   type TransactionRunner,
@@ -174,7 +175,13 @@ type TaskRepositoryMocks = {
       fields: { cancelReason?: string },
     ) => Promise<DbTask | null>
   >;
-  claimIfQueued: Mock<(taskId: string) => Promise<DbTask | null>>;
+  claimIfQueued: Mock<
+    (
+      taskId: string,
+      claim: Pick<DbTask, 'claimAgentId' | 'claimExpiresAt'>,
+    ) => Promise<DbTask | null>
+  >;
+  createAttempt: Mock<(input: NewTaskAttempt) => Promise<DbTaskAttempt>>;
   tryAcquireContinuationLock: Mock<
     (taskId: string, attemptN: number) => Promise<boolean>
   >;
@@ -257,7 +264,6 @@ type PermissionCheckerMocks = {
 
 type RelationshipWriterMocks = {
   grantTaskOwnership: Mock<(taskId: string, teamId: string) => Promise<void>>;
-  grantTaskClaimant: Mock<(taskId: string, agentId: string) => Promise<void>>;
   removeTaskRelations: Mock<(taskId: string) => Promise<void>>;
   removeTaskRelationsBatch: Mock<
     (tasks: Array<{ id: string }>) => Promise<void>
@@ -507,9 +513,36 @@ function makeMocks(
         return Promise.resolve(task ?? null);
       }),
     claimIfQueued: vi
-      .fn<(taskId: string) => Promise<DbTask | null>>()
-      .mockImplementation((id) =>
-        Promise.resolve(opts.visibleTasks?.[id] ?? null),
+      .fn<
+        (
+          taskId: string,
+          claim: Pick<DbTask, 'claimAgentId' | 'claimExpiresAt'>,
+        ) => Promise<DbTask | null>
+      >()
+      .mockImplementation((id, claim) => {
+        const task = opts.visibleTasks?.[id];
+        return Promise.resolve(
+          task ? ({ ...task, ...claim, status: 'dispatched' } as DbTask) : null,
+        );
+      }),
+    createAttempt: vi
+      .fn<(input: NewTaskAttempt) => Promise<DbTaskAttempt>>()
+      .mockImplementation((input) =>
+        Promise.resolve({
+          ...input,
+          claimedAt: new Date('2026-05-11T00:00:00Z'),
+          startedAt: null,
+          completedAt: null,
+          runtimeId: null,
+          output: null,
+          outputCid: null,
+          completedExecutorFingerprint: null,
+          error: null,
+          usage: null,
+          contentSignature: null,
+          signedAt: null,
+          daemonState: null,
+        } as DbTaskAttempt),
       ),
     tryAcquireContinuationLock: vi
       .fn<(taskId: string, attemptN: number) => Promise<boolean>>()
@@ -782,9 +815,6 @@ function makeMocks(
             ? Promise.reject(new Error('keto down'))
             : Promise.resolve(),
         ),
-      grantTaskClaimant: vi
-        .fn<(taskId: string, agentId: string) => Promise<void>>()
-        .mockResolvedValue(undefined),
       removeTaskRelations: vi.fn().mockResolvedValue(undefined),
       removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
     },
@@ -1125,10 +1155,15 @@ describe('createTaskService.claim — runtime profile attestation', () => {
         return result;
       },
     };
+    mocks.taskRepository.createAttempt.mockImplementation(async (input) => {
+      events.push('attempt');
+      return {
+        ...input,
+        claimedAt: new Date('2026-05-11T00:00:00Z'),
+      } as DbTaskAttempt;
+    });
     const startWorkflow = vi.spyOn(DBOS, 'startWorkflow');
-    const getEvent = vi
-      .spyOn(DBOS, 'getEvent')
-      .mockResolvedValue({ taskId: JUDGE_TASK, attemptN: 1 });
+    const getEvent = vi.spyOn(DBOS, 'getEvent');
     service = createTaskService({
       ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
       enqueueWorkflowInCurrentTransaction,
@@ -1136,28 +1171,23 @@ describe('createTaskService.claim — runtime profile attestation', () => {
 
     await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30);
 
-    expect(events).toEqual(['tx:start', 'enqueue', 'tx:end']);
+    expect(events).toEqual(['tx:start', 'attempt', 'enqueue', 'tx:end']);
+    expect(mocks.taskRepository.claimIfQueued).toHaveBeenCalledWith(
+      JUDGE_TASK,
+      expect.objectContaining({
+        claimAgentId: AGENT_ID,
+        claimExpiresAt: expect.any(Date) as Date,
+      }),
+    );
     expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledTimes(1);
     expect(startWorkflow).not.toHaveBeenCalled();
-    expect(getEvent).toHaveBeenCalledWith(
-      `task:${JUDGE_TASK}:attempt:1`,
-      'claimed',
-      10,
-    );
-    expect(mocks.relationshipWriter.grantTaskClaimant).toHaveBeenCalledWith(
-      JUDGE_TASK,
-      AGENT_ID,
-    );
+    expect(getEvent).not.toHaveBeenCalled();
   });
 
-  it('pins immutable runtime authority in the claim workflow input', async () => {
+  it('pins immutable runtime authority in the transactional attempt row', async () => {
     const enqueueWorkflowInCurrentTransaction = vi
       .fn()
       .mockResolvedValue({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
-    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
-      taskId: JUDGE_TASK,
-      attemptN: 1,
-    });
     service = createTaskService({
       ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
       enqueueWorkflowInCurrentTransaction,
@@ -1188,6 +1218,21 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       profileId: PROFILE_ID,
       teamId: TEAM_ID,
     });
+    expect(mocks.taskRepository.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: JUDGE_TASK,
+        attemptN: 1,
+        claimedByAgentId: AGENT_ID,
+        workflowId: `task:${JUDGE_TASK}:attempt:1`,
+        claimedExecutorFingerprint: executorFingerprint,
+        leaseId: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+        ) as string,
+        runtimeProfileId: PROFILE_ID,
+        runtimeProfileRevision: 7,
+        policySnapshotHash: `sha256:${'a'.repeat(64)}`,
+      }),
+    );
     expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         positionalArgs: [
@@ -1201,7 +1246,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
           null,
           expect.stringMatching(
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-          ),
+          ) as string,
           PROFILE_ID,
           7,
           `sha256:${'a'.repeat(64)}`,
@@ -1214,10 +1259,6 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     const enqueueWorkflowInCurrentTransaction = vi
       .fn()
       .mockResolvedValue({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
-    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
-      taskId: JUDGE_TASK,
-      attemptN: 1,
-    });
     service = createTaskService({
       ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
       enqueueWorkflowInCurrentTransaction,
@@ -1231,6 +1272,13 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     expect(
       mocks.runtimePolicyService.resolvePinnedAllowedTools,
     ).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeProfileId: null,
+        runtimeProfileRevision: null,
+        policySnapshotHash: null,
+      }),
+    );
     expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         positionalArgs: [
@@ -1283,7 +1331,6 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     expect(events).toEqual(['tx:start', 'enqueue', 'tx:rollback']);
     expect(startWorkflow).not.toHaveBeenCalled();
     expect(getEvent).not.toHaveBeenCalled();
-    expect(mocks.relationshipWriter.grantTaskClaimant).not.toHaveBeenCalled();
   });
 
   it('expires an elapsed waiting task before promoting it during claim', async () => {
@@ -1369,7 +1416,52 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
       mocks.permissionChecker.checkTaskCreatePermissions,
     ).toHaveBeenCalledWith(TEAM_ID, DIARY_ID, AGENT_ID, 'agent');
     expect(mocks.diaryRepository.findById).toHaveBeenCalledWith(DIARY_ID);
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve allowed profiles before task-create authorization', async () => {
+    mocks.permissionChecker.checkTaskCreatePermissions.mockResolvedValue({
+      canProposeForTeam: false,
+      canReadDiary: false,
+    });
+
+    await expect(
+      service.create({
+        ...judgeCreateInput(),
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message: 'Not authorized to create tasks for this team',
+    });
+
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
+  });
+
+  it('validates allowed profiles after task-create authorization', async () => {
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
+      id: PROFILE_ID,
+      teamId: '99999999-9999-4999-8999-999999999999',
+    } as never);
+
+    await expect(
+      service.create({
+        ...judgeCreateInput(),
+        allowedProfiles: [{ profileId: PROFILE_ID }],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      message: 'allowedProfiles contains an unknown profile',
+      validationErrors: [{ field: 'allowedProfiles' }],
+    });
+
+    expect(
+      mocks.permissionChecker.checkTaskCreatePermissions,
+    ).toHaveBeenCalledOnce();
+    expect(mocks.runtimeProfileRepository.findById).toHaveBeenCalledWith(
+      PROFILE_ID,
+    );
   });
 
   it('reports a missing diary after team proposal authority succeeds', async () => {

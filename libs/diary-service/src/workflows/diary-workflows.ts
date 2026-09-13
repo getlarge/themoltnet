@@ -144,6 +144,11 @@ export function initDiaryWorkflows(): void {
   const grantEntryParentStep = DBOS.registerStep(
     async (entryId: string, diaryId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
+      // Deferred proposal: derive DiaryEntry containment from the immutable
+      // diary_entries.diary_id FK and authorize its parent Diary directly,
+      // instead of projecting this duplicate edge into Keto. Keep this write
+      // until that authorization-contract change has a separately reviewed
+      // rollout. Decision: 22428658-092e-4ec2-b7d0-d5e2f0e74552.
       await relationshipWriter.grantEntryParent(entryId, diaryId);
     },
     { name: 'diary.step.grantEntryParent', ...KETO_RETRY },

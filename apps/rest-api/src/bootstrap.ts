@@ -455,11 +455,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     },
   });
   const notifyTaskStatusChanged = async (taskId: string): Promise<void> => {
-    try {
-      await taskService.promoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
-    } catch (err) {
-      app.log.error({ taskId, err }, 'task.statusChanged.promotionFailed');
-    }
+    // This callback runs inside a retry-enabled DBOS step. Let failures escape
+    // so the step remains retryable instead of checkpointing a failed
+    // dependent-task promotion as successful.
+    await taskService.promoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
   };
 
   // ── DBOS Plugin (handles full lifecycle) ───────────────────────
@@ -588,7 +587,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       (workflowTransactionRunner) => {
         setTaskWorkflowDeps({
           transactionRunner: workflowTransactionRunner,
-          createAttempt: (input) => taskRepository.createAttempt(input),
           recomputeAttemptActivityStats: async (taskId, attemptN) => {
             await taskAnalyticsService.recomputeAttemptActivityStats(
               taskId,

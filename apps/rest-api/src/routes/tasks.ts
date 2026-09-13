@@ -258,30 +258,6 @@ function toAnalyticsResponse(input: {
   };
 }
 
-async function validateAllowedProfiles(
-  fastify: FastifyInstance,
-  teamId: string,
-  allowedProfiles: readonly { profileId: string }[] | undefined,
-): Promise<void> {
-  const profileIds = [
-    ...new Set((allowedProfiles ?? []).map((p) => p.profileId)),
-  ];
-  for (const profileId of profileIds) {
-    const profile = await fastify.runtimeProfileRepository.findById(profileId);
-    if (!profile || profile.teamId !== teamId) {
-      throw createValidationProblem(
-        [
-          {
-            field: 'allowedProfiles',
-            message: `Runtime profile ${profileId} does not resolve in team ${teamId}`,
-          },
-        ],
-        'allowedProfiles contains an unknown profile',
-      );
-    }
-  }
-}
-
 export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
@@ -331,6 +307,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:write'],
         },
       },
@@ -360,11 +337,6 @@ export function taskRoutes(fastify: FastifyInstance) {
       } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
-        await validateAllowedProfiles(
-          fastify,
-          teamId,
-          request.body.allowedProfiles,
-        );
         const task = await fastify.taskService.create({
           taskType: request.body.taskType,
           title: request.body.title,
@@ -688,7 +660,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -731,7 +703,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:write'],
         },
       },
@@ -778,7 +750,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -842,7 +814,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:manage'],
         },
       },
@@ -936,7 +908,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:manage'],
         },
       },
@@ -1051,7 +1023,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:claim'],
         },
       },
@@ -1128,7 +1100,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1174,7 +1146,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1231,7 +1203,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1279,7 +1251,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
@@ -1330,7 +1302,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:manage'],
         },
       },
@@ -1383,7 +1355,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -1427,7 +1399,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:read'],
         },
       },
@@ -1476,7 +1448,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'team',
-          deferInaccessibleTeamAuthorization: true,
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['task:execute'],
         },
       },
