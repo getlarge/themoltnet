@@ -57087,8 +57087,13 @@ func (*UpdateContextPackNotFound) updateContextPackRes() {}
 // At least one of pinned or expiresAt must be provided. See route handler for field-combination
 // constraints.
 type UpdateContextPackReq struct {
+	// Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when
+	// unpinning: omit it to let the server apply its retention window.
 	ExpiresAt OptDateTime `json:"expiresAt"`
-	Pinned    OptBool     `json:"pinned"`
+	// True pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted
+	// the server sets the deadline from its own clock and the deployment retention window
+	// (PACK_GC_COMPILE_TTL_DAYS).
+	Pinned OptBool `json:"pinned"`
 }
 
 // GetExpiresAt returns the value of ExpiresAt.
@@ -57430,8 +57435,13 @@ type UpdateRenderedPackReq struct {
 	// Activation language for AgentSkills installations. Sidecar metadata; not part of the pack CID.
 	// Pass null to clear.
 	Description OptNilString `json:"description"`
-	ExpiresAt   OptDateTime  `json:"expiresAt"`
-	Pinned      OptBool      `json:"pinned"`
+	// Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when
+	// unpinning: omit it to let the server apply its retention window.
+	ExpiresAt OptDateTime `json:"expiresAt"`
+	// True pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted
+	// the server sets the deadline from its own clock and the deployment retention window
+	// (PACK_GC_COMPILE_TTL_DAYS).
+	Pinned OptBool `json:"pinned"`
 	// ID of a completed judge_pack task that verified this rendered pack.
 	VerifiedTaskId OptUUID `json:"verifiedTaskId"`
 }

@@ -7402,7 +7402,13 @@ export type UpdateContextPackData = {
    * At least one of pinned or expiresAt must be provided. See route handler for field-combination constraints.
    */
   body?: {
+    /**
+     * Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.
+     */
     expiresAt?: string;
+    /**
+     * true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).
+     */
     pinned?: boolean;
   };
   path: {
@@ -8399,7 +8405,13 @@ export type UpdateRenderedPackData = {
    */
   body?: {
     description?: string | null;
+    /**
+     * Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.
+     */
     expiresAt?: string;
+    /**
+     * true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).
+     */
     pinned?: boolean;
     /**
      * ID of a completed judge_pack task that verified this rendered pack.

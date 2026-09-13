@@ -25109,10 +25109,12 @@
                 "minProperties": 1,
                 "properties": {
                   "expiresAt": {
+                    "description": "Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.",
                     "format": "date-time",
                     "type": "string"
                   },
                   "pinned": {
+                    "description": "true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).",
                     "type": "boolean"
                   }
                 },
@@ -27755,10 +27757,12 @@
                     ]
                   },
                   "expiresAt": {
+                    "description": "Explicit GC deadline. Must be in the future and cannot be set on a pinned pack. Optional when unpinning: omit it to let the server apply its retention window.",
                     "format": "date-time",
                     "type": "string"
                   },
                   "pinned": {
+                    "description": "true pins the pack (exempt from GC, clears expiresAt). false unpins it; when expiresAt is omitted the server sets the deadline from its own clock and the deployment retention window (PACK_GC_COMPILE_TTL_DAYS).",
                     "type": "boolean"
                   },
                   "verifiedTaskId": {
