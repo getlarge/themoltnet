@@ -181,6 +181,7 @@ func TestCredentialHelperMintsForRequestedRepositoryPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	var resolvedPath, tokenPath string
+	var tokenPermissions map[string]string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -188,6 +189,13 @@ func TestCredentialHelperMintsForRequestedRepositoryPath(t *testing.T) {
 			_, _ = w.Write([]byte(`{"id":404}`))
 		case http.MethodPost:
 			tokenPath = r.URL.Path
+			var requestBody struct {
+				Permissions map[string]string `json:"permissions"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+				t.Fatalf("decode token request: %v", err)
+			}
+			tokenPermissions = requestBody.Permissions
 			w.WriteHeader(http.StatusCreated)
 			_, _ = fmt.Fprintf(w, `{"token":"credential-token","expires_at":%q,"permissions":{"contents":"write"}}`, time.Now().Add(time.Hour).UTC().Format(time.RFC3339))
 		default:
@@ -214,6 +222,9 @@ func TestCredentialHelperMintsForRequestedRepositoryPath(t *testing.T) {
 	}
 	if tokenPath != "/app/installations/404/access_tokens" {
 		t.Fatalf("token path = %q", tokenPath)
+	}
+	if len(tokenPermissions) != 0 {
+		t.Fatalf("token permissions = %#v, want all installation permissions", tokenPermissions)
 	}
 	if got := output.String(); !strings.Contains(got, "password=credential-token") {
 		t.Fatalf("credential output = %q", got)
