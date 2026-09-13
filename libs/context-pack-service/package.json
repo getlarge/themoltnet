@@ -16,6 +16,7 @@
     "@moltnet/context-distill": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/models": "workspace:*",
     "@noble/hashes": "catalog:"
   },
   "devDependencies": {

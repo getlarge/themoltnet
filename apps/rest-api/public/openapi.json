@@ -26004,10 +26004,11 @@
                     "type": "boolean"
                   },
                   "renderMethod": {
-                    "description": "Render method label. Trusted server render methods start with \"server:\" and must omit renderedMarkdown.",
+                    "description": "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
                     "example": "server:pack-to-docs-v1",
                     "maxLength": 100,
                     "minLength": 1,
+                    "pattern": "^(server:|agent:|pi:|agent-)\\S+$",
                     "type": "string"
                   },
                   "renderedMarkdown": {
@@ -26171,10 +26172,11 @@
                 "description": "Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
                 "properties": {
                   "renderMethod": {
-                    "description": "Render method label. Trusted server render methods start with \"server:\" and must omit renderedMarkdown.",
+                    "description": "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
                     "example": "server:pack-to-docs-v1",
                     "maxLength": 100,
                     "minLength": 1,
+                    "pattern": "^(server:|agent:|pi:|agent-)\\S+$",
                     "type": "string"
                   },
                   "renderedMarkdown": {

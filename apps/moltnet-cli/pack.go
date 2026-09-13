@@ -17,6 +17,20 @@ import (
 	"github.com/google/uuid"
 )
 
+// The renderMethod convention is owned by libs/models/src/render-method.ts.
+// These are the Go mirrors of SERVER_RENDER_PREFIX and
+// DEFAULT_SERVER_RENDER_METHOD; keep them in sync by hand.
+const (
+	serverRenderPrefix        = "server:"
+	defaultServerRenderMethod = "server:pack-to-docs-v1"
+)
+
+// isServerRenderMethod mirrors the server bifurcation: a server method is
+// rendered from the source pack, anything else needs caller markdown.
+func isServerRenderMethod(method string) bool {
+	return strings.HasPrefix(method, serverRenderPrefix)
+}
+
 // runPackRenderCmd renders a pack locally for agent-authored methods and
 // delegates to the server for trusted server-side render methods.
 func runPackRenderCmd(stdout, errOut io.Writer, apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out, markdownFile string, markdownStdin bool) error {
@@ -34,7 +48,7 @@ func runPackRenderCmd(stdout, errOut io.Writer, apiURL, credPath, packID, render
 		return fmt.Errorf("provide at most one of --markdown-file or --markdown-stdin")
 	}
 
-	if strings.HasPrefix(renderMethod, "server:") {
+	if isServerRenderMethod(renderMethod) {
 		if markdownFile != "" || markdownStdin {
 			return fmt.Errorf("server render methods must not be combined with --markdown-file or --markdown-stdin")
 		}

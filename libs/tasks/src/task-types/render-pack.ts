@@ -13,6 +13,7 @@
  *
  * Related: `curate_pack`, `judge_pack`.
  */
+import { RenderMethodSchema } from '@moltnet/models';
 import { type Static, Type } from 'typebox';
 
 import type {
@@ -65,9 +66,10 @@ export const RenderPackOutput = Type.Object(
     /**
      * Label identifying the renderer implementation — e.g.
      * `pi:pack-to-docs-v1`, `server:pack-to-docs-v1`. Recorded verbatim
-     * from the server's render response.
+     * from the server's render response; validated against the convention
+     * owned by `@moltnet/models` (`RenderMethodSchema`).
      */
-    renderMethod: Type.String({ minLength: 1 }),
+    renderMethod: RenderMethodSchema,
 
     /** Size in bytes of the rendered markdown. */
     byteSize: Type.Number({ minimum: 0 }),

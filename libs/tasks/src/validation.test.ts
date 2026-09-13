@@ -244,6 +244,39 @@ describe('validateTaskCreateRequest', () => {
   });
 });
 
+describe('validateTaskOutput render_pack renderMethod (#1857)', () => {
+  const base = {
+    renderedPackId: '2b0a1f4e-0000-4000-8000-000000000000',
+    renderedCid: 'bafy-rendered',
+    byteSize: 12,
+    entriesRendered: 3,
+    summary: 'Rendered three entries.',
+  };
+
+  it.each([
+    'server:pack-to-docs-v1',
+    'agent:pack-to-docs-v1',
+    'pi:pack-to-docs-v1',
+    'agent-refined',
+  ])('accepts the recognised label %s', (renderMethod) => {
+    expect(
+      validateTaskOutput('render_pack', { ...base, renderMethod }),
+    ).toEqual([]);
+  });
+
+  it.each(['pack-to-docs-v1', 'server:', ''])(
+    'rejects the unrecognised or bare-prefix label %j',
+    (renderMethod) => {
+      const errors = validateTaskOutput('render_pack', {
+        ...base,
+        renderMethod,
+      });
+      expect(errors.length).toBeGreaterThan(0);
+      expect(errors.map((e) => e.field).join(' ')).toContain('renderMethod');
+    },
+  );
+});
+
 describe('TaskRef artifact metadata', () => {
   const baseRef = {
     taskId: '11111111-1111-4111-8111-111111111111',

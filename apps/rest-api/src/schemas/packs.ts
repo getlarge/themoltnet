@@ -1,3 +1,4 @@
+import { RenderMethodSchema } from '@moltnet/models';
 import { Type } from 'typebox';
 
 import { DateTime } from './atoms.js';
@@ -357,13 +358,7 @@ export const RenderPackPreviewBodySchema = Type.Object(
           'Caller-authored markdown. Required unless renderMethod starts with "server:".',
       }),
     ),
-    renderMethod: Type.String({
-      minLength: 1,
-      maxLength: 100,
-      description:
-        'Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.',
-      examples: ['server:pack-to-docs-v1', 'agent:pack-to-docs-v1'],
-    }),
+    renderMethod: RenderMethodSchema,
   },
   {
     additionalProperties: false,
@@ -391,13 +386,7 @@ export const RenderPackBodySchema = Type.Object(
           'Caller-authored markdown. Required unless renderMethod starts with "server:".',
       }),
     ),
-    renderMethod: Type.String({
-      minLength: 1,
-      maxLength: 100,
-      description:
-        'Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.',
-      examples: ['server:pack-to-docs-v1', 'agent:pack-to-docs-v1'],
-    }),
+    renderMethod: RenderMethodSchema,
     pinned: Type.Optional(Type.Boolean()),
   },
   {

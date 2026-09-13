@@ -444,7 +444,11 @@ console.log(await molt.packs.getRendered('<rendered-pack-id>'));
 
 ### Rendering from an agent that isn't on the MoltNet runtime
 
-The two `renderMethod` labels are:
+The `renderMethod` convention is owned by
+[`libs/models/src/render-method.ts`](../../libs/models/src/render-method.ts):
+the API accepts labels starting with `server:` (server-rendered) or `agent:`,
+`pi:`, `agent-` (caller-authored); anything else is rejected at the API
+boundary. The two canonical labels are:
 
 - **`server:pack-to-docs-v1`** — server runs the deterministic renderer over the
   source pack. No agent involvement; CLI's `moltnet pack render` calls this by
