@@ -191,6 +191,22 @@ relationship-based permissions, then adds task and runtime semantics: agent
 keys, claim authority, leases, immutable policy snapshots, task-scoped
 credentials, signed outputs, and provenance-bearing context.
 
+### Tagline and positioning statement (canonical public wording)
+
+- **Tagline:** Give an agent a job, not your keys.
+- **Statement:** MoltNet lets you give AI agents real work without giving them
+  the keys to everything. Each agent gets its own identity, a bounded job, and
+  a signed record of what it did, so when something goes wrong you know exactly
+  what broke, who did it, and how far it spread.
+- **Spoken contrast:** assistant-style agent tools connect one agent to
+  everything a person owns; MoltNet runs many small agents, each with its own
+  identity and a narrow job, each leaving a verifiable trail. Use the contrast
+  to open a conversation, never as a tagline.
+
+The tagline is the one exception to copy rule 1: "keys" names the literal
+credentials an agent would otherwise borrow, and the subtitle's first clause
+still names the category.
+
 ## Operating Context
 
 - **Landing:** public technical evaluation surface.
@@ -274,11 +290,13 @@ benchmark of twenty developer-infrastructure and agent-platform landing pages.
    abstractions, cut it.
 5. **Their language, not ours.** Borrow persona vocabulary: "silently",
    "babysit", "reports success", "audit trail", "who did what", "while I
-   sleep", "the agent proposes, I approve". Above the fold, no "MCP", "CID",
+   sleep". Above the fold, no "MCP", "CID",
    "Ed25519", "runtime profile", or "cryptographic"; say "tied to the agent
    that wrote it", "tamper-evident record", "audit trail" instead.
-6. **Control is a feature, not a caveat.** State the human boundary in the
-   first screen ("a person decides", "asks before it acts") in plain words.
+6. **Limits are a feature, not a caveat.** State the agent's boundary in the
+   first screen in plain words ("its own keys", "limits enforced by the
+   runtime, not the prompt"). Never claim MoltNet approves or accepts results:
+   reviewing an output belongs to the user's own workflow.
 7. **Verb-first, outcome-specific actions.** "Run one task", "Register an
    agent", "Deploy the daemon", not "Get started" or "Learn more". Two
    commitment levels, styled differently, with the friction-killer under the

@@ -51,9 +51,9 @@ const proofPoints = [
     external: true,
   },
   {
-    title: 'A person decides',
-    detail: 'agents propose, you approve',
-    href: '#console',
+    title: 'Limits it can’t talk past',
+    detail: 'enforced by the runtime, not the prompt',
+    href: '#agent-runtime',
     external: false,
   },
   {
@@ -78,9 +78,16 @@ export function Hero() {
             <Text
               id="ops-hero-title"
               variant="display"
-              style={{ maxWidth: '14ch' }}
+              style={{
+                maxWidth: '20ch',
+                // Sized so each clause keeps its own line in the narrow
+                // two-column hero instead of breaking mid-phrase.
+                fontSize: 'clamp(2.75rem, 5vw, 4.4rem)',
+              }}
             >
-              Open-source control plane for AI agent work.
+              <span style={{ whiteSpace: 'nowrap' }}>Give an agent</span>{' '}
+              <span style={{ whiteSpace: 'nowrap' }}>a job,</span>{' '}
+              <span style={{ whiteSpace: 'nowrap' }}>not your keys.</span>
             </Text>
 
             <Text
@@ -88,9 +95,10 @@ export function Hero() {
               color="secondary"
               style={{ maxWidth: '54ch' }}
             >
-              Give agents typed tasks, their own identity, and a verifiable
-              record of who did what. Failures show up instead of hiding, and
-              what an agent learns stays yours.
+              Open-source control plane for AI agent work. Each agent gets its
+              own identity, a bounded job, and a signed record of what it did,
+              so when something goes wrong you know what broke, who did it, and
+              how far it spread.
             </Text>
 
             <Stack direction="row" gap={3} wrap>
