@@ -40,15 +40,46 @@ function pilotInput(): Parameters<typeof buildTeamPilotBriefing>[0] {
 }
 
 describe('buildTeamPilotBriefing', () => {
-  it('starts with Teams when no project team exists', () => {
+  it('maps live state onto the three journey steps and their docs pages', () => {
+    const input = pilotInput();
+
+    const briefing = buildTeamPilotBriefing(input);
+
+    expect(
+      briefing.steps.map(({ id, label, docsPath }) => ({
+        id,
+        label,
+        docsPath,
+      })),
+    ).toEqual([
+      {
+        id: 'identity',
+        label: 'Give an agent its own identity',
+        docsPath: '/start/agent-identity',
+      },
+      {
+        id: 'job',
+        label: "Give it a job it can't overstep",
+        docsPath: '/start/first-task',
+      },
+      {
+        id: 'record',
+        label: 'Read what it did',
+        docsPath: '/start/read-the-record',
+      },
+    ]);
+  });
+
+  it('starts step 1 with Teams when no project team exists', () => {
     const input = pilotInput();
     input.team = ready(null);
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'team',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'identity',
       status: 'next',
+      title: 'Select a project team',
       action: { href: '/teams', label: 'Teams' },
     });
   });
@@ -59,12 +90,12 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone?.id).toBe('team');
-    expect(briefing.nextMilestone?.title).toBe('Select a project team');
+    expect(briefing.nextStep?.id).toBe('identity');
+    expect(briefing.nextStep?.title).toBe('Select a project team');
   });
 
   it.each(['private', 'public'] as const)(
-    'does not accept a %s diary as the shared diary milestone',
+    'does not count a %s diary as the step 2 shared diary',
     (visibility) => {
       const input = pilotInput();
       input.diaries = ready([
@@ -73,22 +104,23 @@ describe('buildTeamPilotBriefing', () => {
 
       const briefing = buildTeamPilotBriefing(input);
 
-      expect(briefing.nextMilestone).toMatchObject({
-        id: 'diary',
+      expect(briefing.steps[0]?.status).toBe('complete');
+      expect(briefing.nextStep).toMatchObject({
+        id: 'job',
         title: 'Create a shared diary',
         action: { label: 'Diaries' },
       });
     },
   );
 
-  it('advances to Teams when the project has no agent member', () => {
+  it('keeps step 1 on Teams when the project has no agent member', () => {
     const input = pilotInput();
     input.members = ready([]);
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'agent-key',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'identity',
       title: 'Add a team agent',
       action: { href: '/teams', label: 'Teams' },
     });
@@ -106,8 +138,8 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'agent-key',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'identity',
       title: 'Activate an agent key',
       action: { label: 'Agent Keys' },
     });
@@ -119,8 +151,8 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'agent-key',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'identity',
       status: 'unavailable',
       title: 'Agent Keys unavailable',
     });
@@ -132,28 +164,43 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'agent-key',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'identity',
       status: 'unavailable',
       title: 'Team members unavailable',
       action: { href: '/teams', label: 'Team members' },
     });
   });
 
-  it('advances to Runtime Profiles when no profile exists', () => {
+  it('completes step 1 and starts step 2 at Runtime Profiles when no profile exists', () => {
     const input = pilotInput();
     input.runtimeProfiles = ready([]);
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'runtime-profile',
+    expect(briefing.steps[0]?.status).toBe('complete');
+    expect(briefing.nextStep).toMatchObject({
+      id: 'job',
       title: 'Create a runtime profile',
       action: { label: 'Runtime Profiles' },
     });
   });
 
-  it('links to the active task when the first run is underway', () => {
+  it('keeps step 2 open until a task exists', () => {
+    const input = pilotInput();
+
+    const briefing = buildTeamPilotBriefing(input);
+
+    expect(briefing.nextStep).toMatchObject({
+      id: 'job',
+      status: 'next',
+      title: 'Create the first task',
+      action: { href: '/tasks?create=1', label: 'New Task' },
+    });
+    expect(briefing.steps[2]?.status).toBe('upcoming');
+  });
+
+  it('moves to step 3 and links the active task while the first run is underway', () => {
     const input = pilotInput();
     input.activityTasks = ready([
       {
@@ -166,9 +213,10 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'accepted-task',
-      title: 'Finish the first task',
+    expect(briefing.steps[1]?.status).toBe('complete');
+    expect(briefing.nextStep).toMatchObject({
+      id: 'record',
+      title: 'Follow the first task',
       action: { href: '/tasks/task-1', label: 'Pilot task' },
     });
   });
@@ -182,36 +230,63 @@ describe('buildTeamPilotBriefing', () => {
     const briefing = buildTeamPilotBriefing(input);
 
     expect(briefing.isActivated).toBe(false);
-    expect(briefing.nextMilestone?.id).toBe('accepted-task');
+    expect(briefing.nextStep?.id).toBe('record');
+    expect(briefing.recordTask).toBeNull();
   });
 
-  it('removes the briefing after an accepted completed task', () => {
+  it('completes all three steps and exposes the record of the completed task', () => {
     const input = pilotInput();
     input.completedTasks = ready([
-      { acceptedAttemptN: 2, id: 'task-1', status: 'completed' },
+      {
+        acceptedAttemptN: 2,
+        id: 'task-1',
+        status: 'completed',
+        title: 'First job',
+      },
     ]);
 
     const briefing = buildTeamPilotBriefing(input);
 
     expect(briefing.isActivated).toBe(true);
-    expect(briefing.nextMilestone).toBeNull();
-    expect(
-      briefing.milestones.every((step) => step.status === 'complete'),
-    ).toBe(true);
+    expect(briefing.nextStep).toBeNull();
+    expect(briefing.steps.every((step) => step.status === 'complete')).toBe(
+      true,
+    );
+    expect(briefing.recordTask).toEqual({ id: 'task-1', title: 'First job' });
+    expect(briefing.steps[2]?.action).toEqual({
+      href: '/tasks/task-1',
+      label: 'See what your agent did',
+    });
   });
 
-  it('shows failed evidence as unavailable instead of incomplete', () => {
+  it('never describes a human acceptance step', () => {
+    const input = pilotInput();
+    input.activityTasks = ready([
+      { acceptedAttemptN: null, id: 'task-1', status: 'running' },
+    ]);
+
+    const briefing = buildTeamPilotBriefing(input);
+
+    for (const step of briefing.steps) {
+      expect(`${step.title} ${step.detail}`).not.toMatch(
+        /accept|approv|supervis/i,
+      );
+    }
+  });
+
+  it('shows failed diary evidence on step 2 as unavailable instead of incomplete', () => {
     const input = pilotInput();
     input.diaries = { status: 'unavailable' };
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'diary',
+    expect(briefing.steps[0]?.status).toBe('complete');
+    expect(briefing.nextStep).toMatchObject({
+      id: 'job',
       status: 'unavailable',
       title: 'Diaries unavailable',
     });
-    expect(briefing.nextMilestone?.detail).not.toMatch(/create/i);
+    expect(briefing.nextStep?.detail).not.toMatch(/create/i);
   });
 
   it('keeps loading evidence unknown instead of treating it as empty', () => {
@@ -220,8 +295,8 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'runtime-profile',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'job',
       status: 'loading',
       title: 'Checking runtime profiles…',
     });
@@ -234,11 +309,11 @@ describe('buildTeamPilotBriefing', () => {
 
     const briefing = buildTeamPilotBriefing(input);
 
-    expect(briefing.nextMilestone).toMatchObject({
-      id: 'runtime-profile',
+    expect(briefing.nextStep).toMatchObject({
+      id: 'job',
       title: 'Runtime profile needed',
       action: { href: '/runtime/profiles', label: 'Runtime Profiles' },
     });
-    expect(briefing.nextMilestone?.detail).toMatch(/owner or manager/i);
+    expect(briefing.nextStep?.detail).toMatch(/owner or manager/i);
   });
 });
