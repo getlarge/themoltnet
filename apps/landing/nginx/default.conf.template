@@ -20,12 +20,13 @@ server {
     # (API_BASE_URL, DOCS_URL), so these nginx runtime variables survive
     # templating untouched. One literal per product — everything below derives.
     set $cli_version 2.4.0;
-    set $agent_version 0.57.0;
+    set $agent_cli_version 0.57.0;
+    set $agent_desktop_version 0.1.0;
 
     # The served installer's default install version is pinned with it at
     # release time, so this one line controls what `curl | sh` delivers.
     location = /install {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/install.sh;
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/install.sh;
     }
 
     location = /install.sh {
@@ -43,7 +44,7 @@ server {
     # daemon (the CLI installs via Homebrew/npm or /download). /install stays
     # as the short alias.
     location = /install/agent {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/install.sh;
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/install.sh;
     }
 
     # Machine-readable pin manifest — the /download page reads it, so the
@@ -54,7 +55,15 @@ server {
     location = /download/manifest.json {
         default_type application/json;
         add_header Cache-Control "no-cache, must-revalidate";
-        return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agent":{"version":"$agent_version","tag":"agent-daemon-v$agent_version"},"signer":{"principal":"legreffier@themolt.net","namespace":"moltnet-release","publicKey":"${RELEASE_SIGNER_PUBKEY}"}}';
+        return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agentCli":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"},"agentDesktop":{"version":"$agent_desktop_version","tag":"agent-desktop-v$agent_desktop_version"},"signer":{"principal":"legreffier@themolt.net","namespace":"moltnet-release","publicKey":"${RELEASE_SIGNER_PUBKEY}"}}';
+    }
+
+    # MoltNet Agent desktop — independently versioned, Apple Silicon only.
+    location = /download/desktop/macos-arm64 {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-desktop-v$agent_desktop_version/MoltNet-Agent_${agent_desktop_version}_aarch64.dmg;
+    }
+    location = /download/desktop/update.json {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-desktop-v$agent_desktop_version/latest.json;
     }
 
     # MoltNet CLI — release assets use amd64 (not x64) and .zip on Windows.
@@ -87,23 +96,27 @@ server {
 
     # MoltNet agent bundle — same tag as /install; .sha256/.sha256.sig ship
     # beside every archive.
-    location = /download/agent/darwin-arm64 {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/moltnet-agent-darwin-arm64.tar.gz;
+    location = /download/agent-cli/darwin-arm64 {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/moltnet-agent-darwin-arm64.tar.gz;
     }
-    location = /download/agent/darwin-arm64.sha256 {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/moltnet-agent-darwin-arm64.tar.gz.sha256;
+    location = /download/agent-cli/darwin-arm64.sha256 {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/moltnet-agent-darwin-arm64.tar.gz.sha256;
     }
-    location = /download/agent/darwin-arm64.sha256.sig {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/moltnet-agent-darwin-arm64.tar.gz.sha256.sig;
+    location = /download/agent-cli/darwin-arm64.sha256.sig {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/moltnet-agent-darwin-arm64.tar.gz.sha256.sig;
     }
-    location = /download/agent/linux-x64 {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/moltnet-agent-linux-x64.tar.gz;
+    location = /download/agent-cli/linux-x64 {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/moltnet-agent-linux-x64.tar.gz;
     }
-    location = /download/agent/linux-x64.sha256 {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/moltnet-agent-linux-x64.tar.gz.sha256;
+    location = /download/agent-cli/linux-x64.sha256 {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/moltnet-agent-linux-x64.tar.gz.sha256;
     }
-    location = /download/agent/linux-x64.sha256.sig {
-        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/moltnet-agent-linux-x64.tar.gz.sha256.sig;
+    location = /download/agent-cli/linux-x64.sha256.sig {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_cli_version/moltnet-agent-linux-x64.tar.gz.sha256.sig;
+    }
+    # Compatibility aliases for previously published download URLs.
+    location ~ ^/download/agent/(.*)$ {
+        return 302 /download/agent-cli/$1;
     }
     # ---- end official downloads -----------------------------------------
 

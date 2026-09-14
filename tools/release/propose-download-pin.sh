@@ -5,7 +5,8 @@ set -euo pipefail
 
 template=${TEMPLATE:-apps/landing/nginx/default.conf.template}
 cli_version=${CLI_VERSION:-}
-agent_version=${AGENT_VERSION:-}
+agent_cli_version=${AGENT_CLI_VERSION:-}
+agent_desktop_version=${AGENT_DESKTOP_VERSION:-}
 
 # Keep this stable X.Y.Z rule aligned with sync-cli-go-mod.sh and the desktop
 # lifecycle's valid_version helper.
@@ -23,4 +24,5 @@ advance_pin() {
 }
 
 advance_pin cli_version "$cli_version"
-advance_pin agent_version "$agent_version"
+advance_pin agent_cli_version "$agent_cli_version"
+advance_pin agent_desktop_version "$agent_desktop_version"

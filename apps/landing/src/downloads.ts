@@ -44,7 +44,7 @@ export const CLI_PLATFORMS: readonly { id: PlatformId; archive: string }[] = [
   { id: 'windows-arm64', archive: 'zip' },
 ] as const;
 
-export const AGENT_PLATFORMS: readonly PlatformId[] = [
+export const AGENT_CLI_PLATFORMS: readonly PlatformId[] = [
   'darwin-arm64',
   'linux-x64',
 ] as const;
@@ -52,6 +52,8 @@ export const AGENT_PLATFORMS: readonly PlatformId[] = [
 export const DOWNLOAD_PATH = '/download';
 export const DOWNLOAD_INSTALL_PATH = `${DOWNLOAD_PATH}#install`;
 export const DOWNLOAD_VERIFY_PATH = `${DOWNLOAD_PATH}#verify`;
+export const DESKTOP_MACOS_ARM64_PATH = `${DOWNLOAD_PATH}/desktop/macos-arm64`;
+export const DESKTOP_UPDATE_MANIFEST_PATH = `${DOWNLOAD_PATH}/desktop/update.json`;
 
 /**
  * Package-manager installs for the CLI, in the order the Download page
@@ -92,8 +94,8 @@ export function cliDownloadPath(platform: PlatformId): string {
   return `${DOWNLOAD_PATH}/cli/${platform}`;
 }
 
-export function agentDownloadPath(platform: PlatformId): string {
-  return `${DOWNLOAD_PATH}/agent/${platform}`;
+export function agentCliDownloadPath(platform: PlatformId): string {
+  return `${DOWNLOAD_PATH}/agent-cli/${platform}`;
 }
 
 const ORIGIN = MOLTNET_DOWNLOAD_URL.slice(
@@ -143,11 +145,11 @@ export function cliVerifyCommands(
  * `.sha256` and a detached `.sha256.sig`; the publisher key is inlined when
  * the manifest has delivered it, otherwise a placeholder points at it.
  */
-export function agentVerifyCommands(publicKey: string | undefined): string {
+export function agentCliVerifyCommands(publicKey: string | undefined): string {
   const key = publicKey ?? '<publisher key — see /download/manifest.json>';
   const platform: PlatformId = 'darwin-arm64';
   const archive = `moltnet-agent-${platform}.tar.gz`;
-  const base = absoluteDownloadUrl(agentDownloadPath(platform));
+  const base = absoluteDownloadUrl(agentCliDownloadPath(platform));
   return [
     '# 1. Download an archive and its signed checksum (agent bundle shown).',
     `curl -fsSL -o ${archive} ${base}`,
@@ -184,15 +186,21 @@ export function downloadBeaconData() {
       checksums: absoluteDownloadUrl(CLI_CHECKSUMS_PATH),
       checksumsSignature: absoluteDownloadUrl(CLI_CHECKSUMS_SIGNATURE_PATH),
     },
-    agent: {
+    agentCli: {
       platforms: Object.fromEntries(
-        AGENT_PLATFORMS.map((id) => [
+        AGENT_CLI_PLATFORMS.map((id) => [
           id,
-          absoluteDownloadUrl(agentDownloadPath(id)),
+          absoluteDownloadUrl(agentCliDownloadPath(id)),
         ]),
       ),
       checksumSuffix: '.sha256',
       signatureSuffix: '.sha256.sig',
+    },
+    agentDesktop: {
+      platforms: {
+        'macos-arm64': absoluteDownloadUrl(DESKTOP_MACOS_ARM64_PATH),
+      },
+      updaterManifest: absoluteDownloadUrl(DESKTOP_UPDATE_MANIFEST_PATH),
     },
     verify: {
       checksum: 'sha256',
