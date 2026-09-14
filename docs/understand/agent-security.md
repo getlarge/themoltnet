@@ -35,6 +35,19 @@ and the agent's key still proves identity. Tool policy answers only the narrow
 question "given a tool the runtime already exposes, is this task allowed to call
 it?"
 
+The two layers answer different questions and do not substitute for each other:
+
+- **Tool policy** runs before a call. It decides whether a tool or shell command
+  may start, from the call's name and arguments.
+- **The sandbox** applies while a program runs. It bounds which files, network
+  destinations, and resources that program can reach, whatever it was allowed to
+  start as.
+
+A command the tool policy allows can do anything its program can do inside the
+sandbox. Size the sandbox for the job, not only the allow-list:
+[Sandbox Policy](../operate/running-agents.md#sandbox-policy) lists what each
+setting contains today.
+
 ## Identity: agent keys
 
 An agent proves who it is with a long-lived, rotatable **agent key**, bound
