@@ -20,6 +20,7 @@ import {
 } from '@moltnet/crypto-service';
 import type { Agent, NonceRepository } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
+import type { OAuth2Client } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -32,6 +33,7 @@ import {
   RecoveryVerifyResponseSchema,
 } from '../schemas.js';
 import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
+import { buildAgentOAuth2Client } from '../utils/agent-oauth2-client.js';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RecoveryChallengeBodySchema = {
@@ -296,7 +298,7 @@ export async function recoveryRoutes(
       const agent = await verifyRecoveryProof(request, 'credentials');
       const deterministicClientId = agentOAuth2ClientId(agent.id);
 
-      let existingClient;
+      let existingClient: OAuth2Client | undefined;
       try {
         existingClient = await fastify.oauth2Client.getOAuth2Client({
           id: deterministicClientId,
@@ -321,7 +323,7 @@ export async function recoveryRoutes(
           );
         }
 
-        const matches = [];
+        const matches: OAuth2Client[] = [];
         const seenTokens = new Set<string>();
         let pageToken: string | undefined;
         try {
@@ -412,12 +414,10 @@ export async function recoveryRoutes(
               ? byCurrentIdentity
               : matches;
 
-        if (ranked.length === 0) {
-          throw createProblem(
-            'not-found',
-            'No OAuth2 client exists for this agent',
-          );
-        }
+        // Zero matches is not an error any more: an agent registered with an
+        // agent key never had a Hydra client, and the proof of key possession
+        // that got us here is the same authority self-registration accepted.
+        // The deterministic client is minted below in that case.
         if (ranked.length > 1) {
           fastify.log.warn(
             {
@@ -434,10 +434,14 @@ export async function recoveryRoutes(
             'Multiple OAuth2 clients match this agent identity',
           );
         }
-        existingClient = ranked[0];
+        existingClient = ranked.length === 1 ? ranked[0] : undefined;
       }
 
-      const clientId = existingClient.client_id;
+      const minted = existingClient === undefined;
+      const clientId =
+        existingClient === undefined
+          ? deterministicClientId
+          : existingClient.client_id;
       if (!clientId) {
         fastify.log.error(
           {
@@ -460,8 +464,11 @@ export async function recoveryRoutes(
           fingerprint: agent.fingerprint,
           identityId: agent.identityId,
           clientId,
-          resolution:
-            clientId === deterministicClientId ? 'deterministic' : 'legacy',
+          resolution: minted
+            ? 'minted'
+            : clientId === deterministicClientId
+              ? 'deterministic'
+              : 'legacy',
           requestId: request.id,
         },
         'OAuth2 credential recovery client resolved',
@@ -495,13 +502,34 @@ export async function recoveryRoutes(
       }
 
       try {
-        await fastify.oauth2Client.setOAuth2Client({
-          id: clientId,
-          oAuth2Client: {
-            ...existingClient,
-            client_secret: clientSecret,
-          },
-        });
+        if (existingClient === undefined) {
+          const oAuth2Client = buildAgentOAuth2Client({
+            agentId: agent.id,
+            identityId: agent.identityId,
+            publicKey: agent.publicKey,
+            fingerprint: agent.fingerprint,
+            clientSecret,
+          });
+          try {
+            await fastify.oauth2Client.createOAuth2Client({ oAuth2Client });
+          } catch (err) {
+            // A concurrent recovery or a late registration step can have
+            // created the deterministic client between lookup and mint.
+            if (upstreamStatus(err) !== 409) throw err;
+            await fastify.oauth2Client.setOAuth2Client({
+              id: clientId,
+              oAuth2Client,
+            });
+          }
+        } else {
+          await fastify.oauth2Client.setOAuth2Client({
+            id: clientId,
+            oAuth2Client: {
+              ...existingClient,
+              client_secret: clientSecret,
+            },
+          });
+        }
       } catch (err) {
         fastify.log.error(
           {
@@ -509,15 +537,20 @@ export async function recoveryRoutes(
             fingerprint: agent.fingerprint,
             identityId: agent.identityId,
             clientId,
+            minted,
             requestId: request.id,
             ip: request.ip,
             rotated: false,
           },
-          'OAuth2 credential recovery mutation failed',
+          minted
+            ? 'OAuth2 credential recovery mint failed'
+            : 'OAuth2 credential recovery mutation failed',
         );
         throw createProblem(
           'upstream-error',
-          'Failed to replace OAuth2 credentials',
+          minted
+            ? 'Failed to create OAuth2 credentials'
+            : 'Failed to replace OAuth2 credentials',
         );
       }
 
@@ -543,6 +576,7 @@ export async function recoveryRoutes(
           fingerprint: agent.fingerprint,
           identityId: agent.identityId,
           clientId,
+          minted,
           requestId: request.id,
           ip: request.ip,
           rotated: true,

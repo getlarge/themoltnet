@@ -23,6 +23,7 @@ import {
 } from 'vitest';
 
 import { buildApp } from '../src/app.js';
+import { agentOAuth2ClientId } from '../src/utils/agent-oauth-client-id.js';
 import {
   createMockAgent,
   createMockServices,
@@ -514,6 +515,163 @@ describe('Recovery routes', () => {
       }
     });
 
+    it('mints the deterministic client when the agent has none', async () => {
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      const challenge = generateRecoveryChallenge(
+        agent.publicKey,
+        'credentials',
+      );
+      const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
+      const signature = await cryptoService.sign(challenge, keyPair.privateKey);
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockImplementation((...args) =>
+        cryptoService.verify(...args),
+      );
+
+      const createOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const setOAuth2Client = vi.fn();
+      const evictOAuthClient = vi.fn();
+      const testApp = await createCredentialsApp(
+        {
+          getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+          listOAuth2ClientsRaw: vi.fn().mockResolvedValue(page([])),
+          createOAuth2Client,
+          setOAuth2Client,
+        },
+        evictOAuthClient,
+      );
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: { challenge, hmac, signature, publicKey: agent.publicKey },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const recovered = response.json();
+        const clientSecret = openSealedEnvelope(
+          recovered.sealedClientSecret,
+          keyPair.privateKey,
+        );
+        expect(recovered.clientId).toBe(agentOAuth2ClientId(agent.id));
+        expect(createOAuth2Client).toHaveBeenCalledWith({
+          oAuth2Client: expect.objectContaining({
+            client_id: agentOAuth2ClientId(agent.id),
+            client_secret: clientSecret,
+            client_name: `Agent: ${agent.fingerprint}`,
+            grant_types: ['client_credentials'],
+            token_endpoint_auth_method: 'client_secret_post',
+            metadata: expect.objectContaining({
+              type: 'moltnet_agent',
+              agent_id: agent.id,
+              public_key: agent.publicKey,
+              fingerprint: agent.fingerprint,
+            }),
+          }),
+        });
+        expect(setOAuth2Client).not.toHaveBeenCalled();
+        expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    /**
+     * Sealing the replacement secret needs a real Ed25519 public key, so the
+     * mint cases that reach the Hydra write cannot use the placeholder key
+     * the non-mutation table relies on.
+     */
+    async function createSealableAgent() {
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      const challenge = generateRecoveryChallenge(
+        agent.publicKey,
+        'credentials',
+      );
+      const payload = {
+        challenge,
+        hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+        signature: await cryptoService.sign(challenge, keyPair.privateKey),
+        publicKey: agent.publicKey,
+      };
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockImplementation((...args) =>
+        cryptoService.verify(...args),
+      );
+      return { agent, payload };
+    }
+
+    it('falls back to replacing the client when the mint conflicts', async () => {
+      const { agent, payload } = await createSealableAgent();
+
+      const createOAuth2Client = vi
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('conflict'), { response: { status: 409 } }),
+        );
+      const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const testApp = await createCredentialsApp({
+        getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+        listOAuth2ClientsRaw: vi.fn().mockResolvedValue(page([])),
+        createOAuth2Client,
+        setOAuth2Client,
+      });
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload,
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(createOAuth2Client).toHaveBeenCalledTimes(1);
+        expect(setOAuth2Client).toHaveBeenCalledWith({
+          id: agentOAuth2ClientId(agent.id),
+          oAuth2Client: expect.objectContaining({
+            client_id: agentOAuth2ClientId(agent.id),
+          }),
+        });
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it('returns 502 without a client when the mint fails', async () => {
+      const { payload } = await createSealableAgent();
+
+      const setOAuth2Client = vi.fn();
+      const testApp = await createCredentialsApp({
+        getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+        listOAuth2ClientsRaw: vi.fn().mockResolvedValue(page([])),
+        createOAuth2Client: vi
+          .fn()
+          .mockRejectedValue(new Error('Hydra unavailable')),
+        setOAuth2Client,
+      });
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload,
+        });
+
+        expect(response.statusCode).toBe(502);
+        expect(setOAuth2Client).not.toHaveBeenCalled();
+      } finally {
+        await testApp.close();
+      }
+    });
+
     it('finds the exact legacy client across every filtered page', async () => {
       const keyPair = await cryptoService.generateKeyPair();
       const agent = createMockAgent({
@@ -688,10 +846,13 @@ describe('Recovery routes', () => {
           },
         ]),
       );
+      const createOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const setOAuth2Client = vi.fn();
       const testApp = await createCredentialsApp({
         getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
         listOAuth2ClientsRaw,
-        setOAuth2Client: vi.fn(),
+        createOAuth2Client,
+        setOAuth2Client,
       });
 
       try {
@@ -710,14 +871,21 @@ describe('Recovery routes', () => {
           },
         });
 
-        expect(response.statusCode).toBe(404);
+        // The foreign client is never touched: with no match of its own the
+        // agent gets a freshly minted deterministic client instead.
+        expect(response.statusCode).toBe(200);
+        expect(setOAuth2Client).not.toHaveBeenCalled();
+        expect(createOAuth2Client).toHaveBeenCalledWith({
+          oAuth2Client: expect.objectContaining({
+            client_id: agentOAuth2ClientId(agent.id),
+          }),
+        });
       } finally {
         await testApp.close();
       }
     });
 
     it.each([
-      ['no match', [page([])], 404],
       [
         'multiple matches',
         [page([{ client_id: 'one' }, { client_id: 'two' }])],
