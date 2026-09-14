@@ -270,6 +270,50 @@ Profile sandbox policy controls runtime egress, VFS shadowing, guest env, VM
 resources, and host command auto-approval. The local runtime package controls
 snapshot setup and resume bootstrap.
 
+A [tool policy](../understand/agent-security.md#runtime-tool-policies) decides
+which commands a task may start. The sandbox decides what a running program can
+reach: files, network, and resources. Configure both: a command the tool policy
+allows still runs with everything the sandbox exposes.
+
+### What the sandbox contains
+
+| Surface                   | Where it is set                      | What the guest gets                                                                                                                                                             |
+| ------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                 | Task `input.execution.workspace`     | `none`: an empty scratch directory. `shared_mount`: the host checkout, read-write, so writes change your files. `dedicated_worktree`: a separate git worktree, read-write.      |
+| Hidden or discarded paths | Profile `sandbox.vfs`                | `shadow` patterns are replaced by an in-memory layer (`shadowMode: "tmpfs"`, the default) or refused (`"deny"`).                                                                |
+| Always hidden             | Runtime                              | Any `.moltnet` directory is refused for reads and writes. `node_modules` lives in guest memory.                                                                                 |
+| Network                   | Profile `sandbox.network`            | HTTP(S) only to the base MoltNet allowlist, the MoltNet API host, `allowedHosts`, and `allowedInternalHosts` (see below). Everything else is denied.                            |
+| Environment               | Profile `sandbox.env`, `requiredEnv` | `env` sets plain guest variables; do not put secrets there. `requiredEnv` names host variables forwarded into the VM, readable by anything that runs in it.                     |
+| Host commands             | Profile `sandbox.hostExec`           | Profiles may only set `autoApprove: false`. Approval rules for `moltnet_host_exec` belong to trusted local runtime code, not to team-editable profiles (see the example below). |
+| Resources                 | Profile `sandbox.resources`          | `cpus` (1 to 32) and `memory` (qemu size, for example `8G`).                                                                                                                    |
+
+There is no read-only workspace setting yet. For a job that must not change
+files, run it with workspace `none` so writes land in a throwaway directory, and
+keep `sandbox.network` to the hosts it needs. A read-only access ceiling for the
+primary workspace is tracked in
+[#2025](https://github.com/getlarge/themoltnet/issues/2025).
+
+A read-only inspection profile, combining both layers:
+
+```json
+{
+  "model": "<model>",
+  "name": "inspect-only",
+  "provider": "<provider>",
+  "runtimeKind": "gondolin_pi",
+  "sandbox": {
+    "resources": { "cpus": 2, "memory": "4G" },
+    "vfs": { "shadow": [".env", ".env.*"], "shadowMode": "deny" }
+  },
+  "toolEnforcement": "enforce"
+}
+```
+
+Bind it to a policy granting only the tools the job needs, and create its tasks
+with `execution.workspace: "none"` unless they must read a checkout.
+
+### Network egress
+
 Runtime HTTP(S) egress is denied unless a hostname matches the base MoltNet
 allowlist, the configured MoltNet API host, `sandbox.network.allowedHosts`, or
 `sandbox.network.allowedInternalHosts`. Entries are hostnames rather than URLs:
@@ -346,7 +390,10 @@ client secrets in form bodies. A guest MoltNet harness therefore needs
 header-based agent-key authentication; OAuth client credentials stay on the
 host.
 
-Minimal host-exec example:
+Host-exec auto-approval rules are part of the trusted local runtime
+configuration (`hostExecAutoApprove` when embedding `@themoltnet/pi-runtime`),
+not of a runtime profile; a profile's `sandbox.hostExec` accepts only
+`autoApprove: false`. Minimal local rule set:
 
 ```json
 {
@@ -366,8 +413,8 @@ For pnpm-heavy repositories, keep the pnpm store on guest-local disk and shadow
 `node_modules`. Put `corepack enable`, dependency installation, and other
 bootstrap steps in the local `defineGondolinTemplate` definition.
 
-Use `scratch_mount` to skip repo-specific bootstrap when a task runs without a
-repo checkout.
+Use workspace `none` (a scratch mount) to skip repo-specific bootstrap when a
+task runs without a repo checkout.
 
 ### Host capabilities
 
