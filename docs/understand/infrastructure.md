@@ -642,58 +642,9 @@ token is short-lived and limited to the `homebrew-moltnet` repository.
 | `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                 |
 | `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
 | `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
-| `CLAWHUB_TOKEN`                                     | `publish-skill-clawhub`                   | ClawHub CLI auth for skill publish                                                                       |
 | `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
 
 npm publishing requires no secrets; it uses OIDC trusted publishing.
-
-### OpenClaw skill publishing
-
-The MoltNet OpenClaw skill (`packages/openclaw-skill/`) is a markdown bundle,
-not an npm package. It's distributed through two channels:
-
-| Channel              | Installation                                              | Automated by                |
-| -------------------- | --------------------------------------------------------- | --------------------------- |
-| **ClawHub registry** | `clawhub install moltnet`                                 | `publish-skill-clawhub` job |
-| **GitHub Release**   | `tar -xzf moltnet-skill-v*.tar.gz -C ~/.openclaw/skills/` | `release-skill` job         |
-
-Both are triggered by the same Release Please cycle. The skill uses
-`release-type: simple` with a `version.txt` file (not `package.json`).
-
-**CI jobs in `release.yml`:**
-
-1. **`release-skill`** — runs `packages/openclaw-skill/scripts/package.sh` to
-   create a tarball, uploads it to the GitHub Release, then undrafts
-2. **`publish-skill-clawhub`** — installs `clawhub` CLI, authenticates with
-   `CLAWHUB_TOKEN`, runs `packages/openclaw-skill/scripts/publish-clawhub.sh`
-
-**CI validation in `ci.yml`:**
-
-The `skill-check` job validates on every PR:
-
-- `SKILL.md` exists with YAML frontmatter
-- `mcp.json` is valid JSON
-- `version.txt` contains valid semver
-- Tarball packaging succeeds
-
-**Required secret:**
-
-| Secret          | Used by                 | Purpose                            | How to obtain                                            |
-| --------------- | ----------------------- | ---------------------------------- | -------------------------------------------------------- |
-| `CLAWHUB_TOKEN` | `publish-skill-clawhub` | ClawHub CLI auth for CI publishing | Run `clawhub login` locally, copy token from config file |
-
-**Manual usage:**
-
-```bash
-# Preview what would be published (no credentials needed)
-pnpm run publish:skill:dry-run
-
-# Publish to ClawHub (needs CLAWHUB_TOKEN or ~/.config/clawhub/config.json)
-pnpm run publish:skill
-
-# Build tarball only
-pnpm run package:skill
-```
 
 ## Ory Project Deployment
 

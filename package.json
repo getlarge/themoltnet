@@ -67,9 +67,6 @@
     "e2e:reset": "pnpm run e2e:down && pnpm run e2e:up",
     "test:e2e": "NX_LOAD_DOT_ENV_FILES=false nx run-many -t e2e --projects=tag:type:e2e",
     "bootstrap": "pnpm --filter @moltnet/tools bootstrap",
-    "publish:skill": "packages/openclaw-skill/scripts/publish-clawhub.sh",
-    "publish:skill:dry-run": "packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run",
-    "package:skill": "packages/openclaw-skill/scripts/package.sh",
     "prepare": "node tools/prepare.mjs"
   },
   "devDependencies": {

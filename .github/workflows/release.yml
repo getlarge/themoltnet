@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -89,9 +89,6 @@ jobs:
       cli-tag-name: ${{ steps.release.outputs['apps/moltnet-cli--tag_name'] }}
       github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
       github-agent-tag-name: ${{ steps.release.outputs['packages/github-agent--tag_name'] }}
-      skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
-      skill-tag-name: ${{ steps.release.outputs['packages/openclaw-skill--tag_name'] }}
-      skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
       legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
       legreffier-plugin-release-created: ${{ steps.release.outputs['packages/legreffier-plugin--release_created'] }}
@@ -250,9 +247,6 @@ jobs:
       dspy-adapters: ${{ steps.resolve.outputs.dspy-adapters }}
       dspy-adapters-tag: ${{ steps.resolve.outputs.dspy-adapters-tag }}
       dspy-adapters-version: ${{ steps.resolve.outputs.dspy-adapters-version }}
-      skill: ${{ steps.resolve.outputs.skill }}
-      skill-tag: ${{ steps.resolve.outputs.skill-tag }}
-      skill-version: ${{ steps.resolve.outputs.skill-version }}
       legreffier: ${{ steps.resolve.outputs.legreffier }}
       legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
       legreffier-plugin: ${{ steps.resolve.outputs.legreffier-plugin }}
@@ -312,9 +306,6 @@ jobs:
           RP_DSPY_CREATED: ${{ needs.release-please.outputs.dspy-adapters-release-created }}
           RP_DSPY_TAG: ${{ needs.release-please.outputs.dspy-adapters-tag-name }}
           RP_DSPY_VERSION: ${{ needs.release-please.outputs.dspy-adapters-version }}
-          RP_SKILL_CREATED: ${{ needs.release-please.outputs.skill-release-created }}
-          RP_SKILL_TAG: ${{ needs.release-please.outputs.skill-tag-name }}
-          RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
           RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
           RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
           RP_LEGREFFIER_PLUGIN_CREATED: ${{ needs.release-please.outputs.legreffier-plugin-release-created }}
@@ -444,7 +435,6 @@ jobs:
           resolve "cli"          "$RP_CLI_CREATED"       "$RP_CLI_TAG"       "cli"
           resolve "api-client"   "$RP_API_CREATED"       "$RP_API_TAG"       "moltnet-api-client"
           resolve "dspy-adapters" "$RP_DSPY_CREATED"     "$RP_DSPY_TAG"      "dspy-adapters"
-          resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
           resolve "legreffier-plugin" "$RP_LEGREFFIER_PLUGIN_CREATED" "$RP_LEGREFFIER_PLUGIN_TAG" "legreffier-plugin"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
@@ -479,13 +469,6 @@ jobs:
           elif wants_republish "dspy-adapters"; then
             tag=$(find_draft_tag "dspy-adapters")
             [ -n "$tag" ] && echo "dspy-adapters-version=$(version_from_tag "$tag" "dspy-adapters")" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ -n "$RP_SKILL_VERSION" ]; then
-            echo "skill-version=${RP_SKILL_VERSION}" >> "$GITHUB_OUTPUT"
-          elif wants_republish "skill"; then
-            tag=$(find_draft_tag "openclaw-skill")
-            [ -n "$tag" ] && echo "skill-version=$(version_from_tag "$tag" "openclaw-skill")" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Resolve released Docker projects
@@ -1834,59 +1817,6 @@ jobs:
               -m "Generated from getlarge/themoltnet ${RELEASE_TAG} (${SOURCE_SHA})."
             retry "push ${MARKETPLACE_TAG}" git push --quiet origin "refs/tags/${MARKETPLACE_TAG}"
           fi
-
-  release-skill:
-    name: Release OpenClaw Skill
-    needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.skill == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Package skill tarball
-        run: packages/openclaw-skill/scripts/package.sh /tmp
-
-      - name: Upload tarball to GitHub Release
-        run: |
-          gh release upload "${{ needs.resolve-publish.outputs.skill-tag }}" \
-            "/tmp/moltnet-skill-v${{ needs.resolve-publish.outputs.skill-version }}.tar.gz"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish release
-        run: gh release edit "${{ needs.resolve-publish.outputs.skill-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-skill-clawhub:
-    name: Publish Skill to ClawHub
-    needs: [resolve-publish, release-skill]
-    if: ${{ always() && needs.resolve-publish.outputs.skill == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Authenticate with ClawHub
-        env:
-          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
-        run: npx clawhub auth login --token "$CLAWHUB_TOKEN" --no-browser
-
-      - name: Publish to ClawHub
-        env:
-          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
-        run: |
-          packages/openclaw-skill/scripts/publish-clawhub.sh \
-            --changelog "Release ${{ needs.resolve-publish.outputs.skill-tag }}"
 
   publish-legreffier:
     name: Publish LeGreffier to npm
