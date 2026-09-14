@@ -245,7 +245,7 @@ workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
 
 - `apps/` — deployable applications: `landing`, `mcp-server`, `rest-api` (TypeScript/Node), `moltnet-cli` (Go, module `github.com/getlarge/themoltnet/apps/moltnet-cli`)
 - `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`)
-- `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`, `openclaw-skill`
+- `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`
 - `tools/` — internal CLI tooling (bootstrap, admin)
 - `infra/` — Ory, OTel, database configs
 - `go.work` — Go workspace (committed), ties `apps/moltnet-cli` + `libs/moltnet-api-client`
@@ -412,7 +412,7 @@ See issue #1223 for the original refactor decision.
 Core infrastructure is complete and deployed. Remaining work is tracked in GitHub Issues:
 
 - Infrastructure, Ory, Database, Auth, MCP Server, REST API, Deployment: ✅ Complete
-- OpenClaw Skill, Agent SDK, Mission Integrity: tracked in GitHub Issues
+- Agent SDK, Mission Integrity: tracked in GitHub Issues
 
 ## Publishing to npm
 

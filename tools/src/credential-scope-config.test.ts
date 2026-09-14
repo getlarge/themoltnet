@@ -94,16 +94,6 @@ describe('credential scope configuration', () => {
       true,
     );
   });
-
-  it('keeps the OpenClaw MCP grant aligned with the canonical MCP grant', () => {
-    const config = readJson('../../packages/openclaw-skill/mcp.json') as {
-      mcpServers: { moltnet: { auth: { scope: string } } };
-    };
-    const configured = config.mcpServers.moltnet.auth.scope.split(' ');
-
-    expect(configured).toEqual(MCP_CLIENT_SCOPES);
-    expect(new Set(configured).size).toBe(configured.length);
-  });
 });
 
 describe('Ory environment parity', () => {
