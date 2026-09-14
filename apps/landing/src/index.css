@@ -395,87 +395,6 @@ button {
   text-underline-offset: 0.2em;
 }
 
-/* Getting started: one command block per package manager */
-
-.ops-start-step-installers {
-  display: grid;
-  margin: 0.25rem 0 0;
-  padding: 0;
-  list-style: none;
-  gap: 1rem;
-}
-
-.ops-start-steps .ops-start-step-installers li {
-  display: grid;
-  padding: 0;
-  border: 0;
-  grid-template-columns: none;
-  gap: 0.4rem;
-}
-
-.ops-start-step-installer-title {
-  color: var(--ops-text);
-  font-size: 0.92rem;
-  font-weight: 600;
-}
-
-/* `.ops-start-steps li > div` turns any direct div into a grid; the command
-   row inside an installer item must stay a flex row with its Copy chip. */
-.ops-start-steps .ops-start-step-installers li > div {
-  display: flex;
-  max-width: none;
-}
-
-/* Getting started: direct download row under a step */
-
-.ops-start-step-downloads {
-  display: grid;
-  margin-top: 0.5rem;
-  gap: 0.5rem;
-}
-
-.ops-start-step-downloads-label {
-  color: var(--ops-text-muted);
-  font-family: var(--ops-font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.ops-start-step-downloads ul {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  column-gap: 1.25rem;
-  row-gap: 0.25rem;
-}
-
-/* Nested inside .ops-start-steps li, so out-specify that step-row grid. */
-.ops-start-steps .ops-start-step-downloads li {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  grid-template-columns: none;
-  gap: 0.35rem;
-}
-
-.ops-start-step-downloads a {
-  color: var(--ops-text);
-  font-size: 0.92rem;
-  text-decoration: none;
-}
-
-.ops-start-step-downloads a:hover,
-.ops-start-step-downloads a:focus-visible {
-  color: var(--ops-identity);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
 /* Getting started */
 
 .ops-start {
@@ -528,110 +447,8 @@ button {
   gap: 0.75rem;
 }
 
-.ops-start-track {
-  padding: clamp(6rem, 10vw, 10rem) 0;
-  border-top: 1px solid var(--ops-border);
-  scroll-margin-top: 4.75rem;
-}
-
-.ops-start-track-identity {
-  background: color-mix(in srgb, var(--ops-identity-muted) 20%, transparent);
-}
-
-.ops-start-track-heading {
-  display: grid;
-  grid-template-columns: 5rem minmax(0, 1fr);
-  margin-bottom: clamp(3rem, 6vw, 5rem);
-  gap: 2rem;
-}
-
-.ops-start-track-heading > div {
-  display: grid;
-  max-width: 56rem;
-  gap: 1.25rem;
-}
-
-.ops-start-track-index {
-  padding-top: 0.2rem;
-  color: var(--ops-text-muted);
-  font-family: var(--ops-font-mono);
-  font-size: 0.82rem;
-  letter-spacing: 0.12em;
-}
-
-.ops-start-steps {
-  display: grid;
-  margin: 0 0 3rem 7rem;
-  border-top: 1px solid var(--ops-border);
-  list-style: none;
-}
-
-.ops-start-steps li {
-  display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr);
-  padding: 2rem 0;
-  border-bottom: 1px solid var(--ops-border);
-  gap: 1.5rem;
-}
-
-.ops-start-steps li > div {
-  display: grid;
-  max-width: 49rem;
-  gap: 0.75rem;
-}
-
-.ops-start-step-number {
-  color: var(--ops-network);
-  font-family: var(--ops-font-mono);
-  font-size: 0.75rem;
-}
-
-/* Step titles are h3 (they sit under the track's h2) at a step-sized scale. */
-.ops-start-step-title,
 .ops-download-method h3 {
   font-size: 1.25rem !important;
-}
-
-.ops-start-track-identity .ops-kicker,
-.ops-start-track-identity .ops-start-step-number {
-  color: var(--ops-identity);
-}
-
-.ops-start-track > div > a,
-.ops-start-track > div > div:last-child {
-  margin-left: 7rem;
-}
-
-.ops-start-boundary {
-  padding: clamp(5rem, 8vw, 8rem) 0;
-  border-top: 1px solid var(--ops-border);
-  background: var(--ops-surface);
-}
-
-.ops-start-boundary-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(2rem, 6vw, 6rem);
-}
-
-.ops-start-boundary-grid > div {
-  display: grid;
-  align-content: start;
-  gap: 1rem;
-}
-
-.ops-start-boundary-grid > div > :first-child {
-  justify-self: start;
-}
-
-.ops-start-next {
-  padding: clamp(6rem, 10vw, 10rem) 0;
-}
-
-.ops-start-next > div {
-  display: grid;
-  max-width: 57rem;
-  gap: 1.5rem;
 }
 
 /* Public policies */
@@ -1837,7 +1654,6 @@ button {
 
   .ops-system-row,
   .ops-onboarding-paths,
-  .ops-start-boundary-grid,
   .ops-trace,
   .ops-authority-systems,
   .ops-open-source-layout,
@@ -1853,17 +1669,6 @@ button {
 
   .ops-onboarding-path {
     min-height: 24rem;
-  }
-
-  .ops-start-track-heading {
-    grid-template-columns: 3rem minmax(0, 1fr);
-    gap: 1rem;
-  }
-
-  .ops-start-steps,
-  .ops-start-track > div > a,
-  .ops-start-track > div > div:last-child {
-    margin-left: 4rem;
   }
 
   .ops-system-stage {
@@ -1989,21 +1794,6 @@ button {
 
   .ops-start-hero {
     background: none;
-  }
-
-  .ops-start-track-heading {
-    grid-template-columns: 1fr;
-  }
-
-  .ops-start-steps,
-  .ops-start-track > div > a,
-  .ops-start-track > div > div:last-child {
-    margin-left: 0;
-  }
-
-  .ops-start-steps li {
-    grid-template-columns: 2.5rem minmax(0, 1fr);
-    gap: 0.75rem;
   }
 
   .ops-hero-proof {
@@ -2200,17 +1990,6 @@ button {
   display: grid;
   gap: 0.85rem;
   max-width: 62ch;
-}
-.ops-start-step-link {
-  display: inline-block;
-  margin-top: 0.75rem;
-  color: var(--ops-identity);
-  text-decoration: none;
-}
-.ops-start-step-link:hover,
-.ops-start-step-link:focus-visible {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
 }
 .ops-download-command {
   display: flex;

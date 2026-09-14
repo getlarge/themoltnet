@@ -9,7 +9,7 @@ import {
   MOLTNET_NETWORK_INFO,
   MOLTNET_SOURCE_URL,
 } from '@moltnet/discovery';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 import { Router } from 'wouter';
@@ -30,6 +30,7 @@ import { OnboardingPaths } from '../src/components/OnboardingPaths';
 import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
 import { LEGREFFIER_CLAUDE_INSTALL_COMMANDS } from '../src/constants';
+import { legacyGettingStartedTarget } from '../src/journey';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
 import { HomePage } from '../src/pages/HomePage';
 
@@ -155,79 +156,53 @@ describe('content', () => {
     }
   });
 
-  it('Getting Started offers four job-named tracks with the coding agent as one of them', () => {
-    const { container } = wrapWithRouter(
-      <GettingStartedPage />,
+  it('Getting Started redirects to the docs hub and keeps a fallback link', () => {
+    window.history.replaceState({}, '', '/getting-started');
+    const redirect = vi.fn();
+
+    wrapWithRouter(
+      <GettingStartedPage redirect={redirect} />,
       '/getting-started',
     );
 
-    expect(
-      screen.getByRole('heading', { name: 'Start with one task.' }),
-    ).toBeInTheDocument();
-    // Track order and ids are what the homepage doors link to.
-    expect(
-      [...container.querySelectorAll('section.ops-start-track')].map(
-        (section) => section.id,
-      ),
-    ).toEqual(['review', 'embed', 'code', 'agent']);
-    expect(screen.getByText('Product, ops, research')).toBeInTheDocument();
-    expect(screen.getByText('Founders and product teams')).toBeInTheDocument();
-    expect(screen.getByText('Developers')).toBeInTheDocument();
-    expect(screen.getByText('You are an agent')).toBeInTheDocument();
-
-    // The review track never sends a non-developer to a terminal.
-    const review = container.querySelector('#review');
-    expect(review?.querySelector('pre')).toBeNull();
-    expect(
-      screen.getByRole('link', { name: /create an account/i }),
-    ).toHaveAttribute('href', 'https://auth.themolt.net/registration');
-
-    // The agent track registers first; init is marked as coding-agent only.
-    const agent = container.querySelector('#agent');
-    const agentSteps = [...(agent?.querySelectorAll('ol > li h3') ?? [])].map(
-      (h) => h.textContent,
-    );
-    expect(agentSteps.indexOf('Register')).toBeLessThan(
-      agentSteps.indexOf('Coding agents only: initialize in a repository'),
+    expect(redirect).toHaveBeenCalledWith(
+      'https://docs.themolt.net/start/getting-started',
     );
     expect(
-      screen.getAllByText(/moltnet register --name <agent-name>/),
-    ).toHaveLength(1);
+      screen.getByRole('link', { name: /open the guide/i }),
+    ).toHaveAttribute('href', 'https://docs.themolt.net/start/getting-started');
+    window.history.replaceState({}, '', '/');
+  });
 
-    // The embed track creates the daemon's agent from the Console, then
-    // mints OAuth2 credentials for CLI administration by recovery.
-    const embed = container.querySelector('#embed');
-    expect(embed?.querySelector('a[href$="/runtime/local"]')).toBeInstanceOf(
-      HTMLAnchorElement,
+  it.each([
+    ['', 'https://docs.themolt.net/start/getting-started'],
+    ['#review', 'https://docs.themolt.net/start/getting-started'],
+    ['#embed', 'https://docs.themolt.net/start/getting-started'],
+    [
+      '#code',
+      'https://docs.themolt.net/start/install-and-initialize#install-legreffier',
+    ],
+    ['#agent', 'https://docs.themolt.net/start/agent-identity'],
+    ['#unknown', 'https://docs.themolt.net/start/getting-started'],
+  ])('maps the retired getting-started anchor "%s" to %s', (hash, target) => {
+    expect(legacyGettingStartedTarget('https://docs.themolt.net/', hash)).toBe(
+      target,
     );
-    expect(embed?.textContent).not.toContain('moltnet register --name');
-    expect(
-      screen.getByText(
-        /MOLTNET_ACTIVE_IDENTITY=<agent-name> moltnet agents credentials recover --yes/,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/moltnet register --credential-type agent_key/),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(/moltnet agents init/)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/@themoltnet\/legreffier init/),
-    ).not.toBeInTheDocument();
+  });
 
-    // A clean Codex or Claude host can copy the complete marketplace install.
-    expect(
-      screen.getByText(
-        /codex plugin marketplace add getlarge\/legreffier-plugin/,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /claude plugin marketplace add getlarge\/legreffier-plugin/,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /inspect the marketplace repository/i }),
-    ).toHaveAttribute('href', 'https://github.com/getlarge/legreffier-plugin');
+  it('Getting Started forwards an old track anchor to its docs page', () => {
+    window.history.replaceState({}, '', '/getting-started#agent');
+    const redirect = vi.fn();
+
+    wrapWithRouter(
+      <GettingStartedPage redirect={redirect} />,
+      '/getting-started#agent',
+    );
+
+    expect(redirect).toHaveBeenCalledWith(
+      'https://docs.themolt.net/start/agent-identity',
+    );
+    window.history.replaceState({}, '', '/');
   });
 
   it('homepage copies a complete LeGreffier install for a clean Claude host', () => {
@@ -244,22 +219,6 @@ describe('content', () => {
         name: 'Copy the Claude marketplace and plugin install commands',
       }),
     ).toBeInTheDocument();
-  });
-
-  it('focuses a routed onboarding track named by the URL hash', async () => {
-    window.history.replaceState({}, '', '/getting-started#code');
-    const scrollIntoView = vi.fn();
-    HTMLElement.prototype.scrollIntoView = scrollIntoView;
-
-    wrapWithRouter(<GettingStartedPage />, '/getting-started#code');
-
-    const humanTrack = document.getElementById('code');
-    await waitFor(() => expect(humanTrack).toHaveFocus());
-    expect(scrollIntoView).toHaveBeenCalledWith({
-      block: 'start',
-      behavior: 'instant',
-    });
-    window.history.replaceState({}, '', '/');
   });
 
   it('shows proof before asking visitors to choose an onboarding path', () => {
@@ -476,12 +435,15 @@ describe('content', () => {
       'Register once. Then claim tasks.',
     ]);
 
-    // Each door links to its own getting-started track.
+    // Each door links into the docs journey.
     for (const [name, href] of [
-      ['Run one task', '/getting-started#review'],
-      ['Embed agents', '/getting-started#embed'],
-      ['Set up a coding agent', '/getting-started#code'],
-      ['Register an agent', '/getting-started#agent'],
+      ['Run one task', 'https://docs.themolt.net/start/getting-started'],
+      ['Embed agents', 'https://docs.themolt.net/start/getting-started'],
+      [
+        'Set up a coding agent',
+        'https://docs.themolt.net/start/install-and-initialize#install-legreffier',
+      ],
+      ['Register an agent', 'https://docs.themolt.net/start/agent-identity'],
     ] as const) {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
     }
@@ -500,56 +462,9 @@ describe('content', () => {
     expect(
       screen.getByRole('link', { name: /verify the download/i }),
     ).toHaveAttribute('href', '/download#verify');
-  });
 
-  it('Getting Started agent track links every CLI binary and shows checksum verification', () => {
-    wrapWithRouter(<GettingStartedPage />, '/getting-started');
-
-    for (const [name, href] of [
-      ['macOS (Apple Silicon)', '/download/cli/darwin-arm64'],
-      ['macOS (Intel)', '/download/cli/darwin-x64'],
-      ['Linux (x64)', '/download/cli/linux-x64'],
-      ['Linux (arm64)', '/download/cli/linux-arm64'],
-      ['Windows (x64)', '/download/cli/windows-x64'],
-      ['Windows (arm64)', '/download/cli/windows-arm64'],
-      ['checksums.txt', '/download/cli/checksums'],
-      ['checksums.txt.sig', '/download/cli/checksums.sig'],
-    ] as const) {
-      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
-    }
-
-    // One copyable block per package manager, APT and Scoop included.
-    for (const title of [
-      'Homebrew (macOS / Linux)',
-      'APT (Debian / Ubuntu)',
-      'Scoop (Windows)',
-      'npm (all platforms)',
-    ]) {
-      expect(
-        screen.getByRole('button', { name: `Copy: ${title}` }),
-      ).toBeInTheDocument();
-    }
-    expect(screen.getByText(/scoop bucket add moltnet/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/sudo apt update && sudo apt install moltnet/),
-    ).toBeInTheDocument();
-
-    expect(screen.getByText('Verify the download')).toBeInTheDocument();
-    const verify = screen.getByText(/shasum -a 256 -c checksums\.txt/);
-    expect(verify).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /ssh-keygen -Y verify -f signers -I legreffier@themolt\.net/,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /full verification guide/i }),
-    ).toHaveAttribute('href', '/download#verify');
-    expect(
-      screen.getByRole('button', {
-        name: 'Copy commands: Verify the download',
-      }),
-    ).toBeInTheDocument();
+    // MoltNet has no human approval step; acceptance is automatic.
+    expect(container.textContent).not.toMatch(/approve/i);
   });
 
   it('AgentBeacon publishes machine-readable download and verification data', () => {
@@ -586,16 +501,32 @@ describe('content', () => {
     expect(download.install.scoop).toContain('scoop install moltnet');
   });
 
-  it('GetStarted closes with the same primary action as the hero and nav', () => {
+  it('GetStarted closes with the same primary action as the nav', () => {
     wrap(<GetStarted />);
     expect(
       screen.getByRole('heading', { name: /run one task on one workflow/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /run one task/i })).toHaveAttribute(
       'href',
-      '/getting-started',
+      'https://docs.themolt.net/start/getting-started',
     );
     expect(screen.queryByText(/choose your path/i)).not.toBeInTheDocument();
+  });
+
+  it('Nav and Footer send getting started straight to the docs hub', () => {
+    const hub = 'https://docs.themolt.net/start/getting-started';
+
+    const nav = wrapWithRouter(<Nav />, '/architecture');
+    expect(screen.getByRole('link', { name: 'Run one task' })).toHaveAttribute(
+      'href',
+      hub,
+    );
+    nav.unmount();
+
+    wrapWithRouter(<Footer />);
+    expect(
+      screen.getByRole('link', { name: 'Getting started' }),
+    ).toHaveAttribute('href', hub);
   });
 
   it('OpenSource shows how to install before anything else and copies it', () => {
@@ -778,7 +709,7 @@ describe('links', () => {
 
   it('nav route links point to valid paths', () => {
     wrapWithRouter(<App />);
-    const routes = ['/getting-started', '/architecture'];
+    const routes = ['/architecture'];
     for (const route of routes) {
       const link = screen
         .getAllByRole('link')

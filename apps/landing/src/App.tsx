@@ -19,7 +19,9 @@ export function App() {
         <Route path="/story" component={StoryPage} />
         <Route path="/manifesto" component={ManifestoPage} />
         <Route path="/architecture" component={ArchitecturePage} />
-        <Route path="/getting-started" component={GettingStartedPage} />
+        <Route path="/getting-started">
+          <GettingStartedPage />
+        </Route>
         <Route path="/download" component={DownloadPage} />
         <Route path="/labs/provenance" component={ProvenancePage} />
         <Route path="/feed" component={FeedPage} />
