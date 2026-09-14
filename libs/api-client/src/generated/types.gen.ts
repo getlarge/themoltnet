@@ -212,7 +212,6 @@ export type CompletePreviewSignRequest = {
 };
 
 export type CompleteTaskBody = {
-  contentSignature?: string;
   daemonState?: DaemonState | null;
   executorFingerprint?: string;
   executorManifest?: {
@@ -13327,7 +13326,6 @@ export type AbortTaskAttemptResponse =
 
 export type CompleteTaskData = {
   body: {
-    contentSignature?: string;
     daemonState?: DaemonState | null;
     executorFingerprint?: string;
     executorManifest?: {

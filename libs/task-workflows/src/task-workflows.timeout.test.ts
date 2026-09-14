@@ -221,6 +221,72 @@ describe('startAttemptWorkflow — timeout paths', () => {
     },
   );
 
+  it('stamps the verified completion signature and signedAt on the completed attempt', async () => {
+    const deps = makeDeps();
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+    vi.mocked(DBOS.recv).mockResolvedValueOnce({
+      kind: 'completed',
+      output: { ok: true },
+      outputCid: 'bafkreioutput',
+      completedExecutorFingerprint: 'bafkreiexecutor',
+      contentSignature: 'c2lnbmF0dXJl',
+    });
+
+    await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    const completedCall = vi
+      .mocked(deps.updateAttempt)
+      .mock.calls.find(([, , fields]) => fields.status === 'completed');
+    expect(completedCall).toBeDefined();
+    const fields = completedCall![2];
+    expect(fields.contentSignature).toBe('c2lnbmF0dXJl');
+    expect(fields.signedAt).toBeInstanceOf(Date);
+    expect(fields.signedAt).toEqual(fields.completedAt);
+  });
+
+  it.each([
+    ['completed without a signature', { kind: 'completed', output: {} }],
+    [
+      'failed',
+      {
+        kind: 'failed',
+        error: { message: 'failed' },
+        contentSignature: 'ignored',
+      },
+    ],
+  ] as const)(
+    'persists no signature for a %s attempt',
+    async (_label, terminalEvent) => {
+      const deps = makeDeps();
+      setTaskWorkflowDeps(deps);
+      initTaskWorkflows();
+      vi.mocked(DBOS.recv).mockResolvedValueOnce(
+        terminalEvent as unknown as TaskProgressEvent,
+      );
+
+      await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+      );
+
+      const terminalCall = vi
+        .mocked(deps.updateAttempt)
+        .mock.calls.find(([, , fields]) => fields.completedAt !== undefined);
+      expect(terminalCall![2].contentSignature).toBeNull();
+      expect(terminalCall![2].signedAt).toBeNull();
+    },
+  );
+
   it('propagates dependent-task promotion failure after publishing result', async () => {
     const promotionError = new Error('promotion database unavailable');
     const deps = makeDeps({

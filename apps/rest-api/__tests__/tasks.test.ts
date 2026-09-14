@@ -1040,6 +1040,24 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
     expect(response.json()).toMatchObject({ id: TASK_ID, status: 'completed' });
   });
 
+  it('accepts and ignores a contentSignature sent by older clients', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/complete`,
+      headers: TEAM_AUTH_HEADERS,
+      payload: {
+        output: { summary: 'Completed the task successfully.' },
+        outputCid: 'bafy-output',
+        usage: { inputTokens: 1, outputTokens: 1 },
+        contentSignature: 'legacy-signature',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const [, , , , body] = mocks.taskService.complete.mock.calls.at(-1)!;
+    expect(body).not.toHaveProperty('contentSignature');
+  });
+
   it('returns 400 when outputCid is missing', async () => {
     const response = await app.inject({
       method: 'POST',

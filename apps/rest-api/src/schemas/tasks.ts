@@ -266,7 +266,6 @@ export const CompleteTaskBodySchema = Type.Object(
     output: Type.Record(Type.String(), Type.Unknown()),
     outputCid: Type.String({ minLength: 1 }),
     usage: Type.Unsafe<TaskUsageType>(Type.Ref(TaskUsage.$id)),
-    contentSignature: Type.Optional(Type.String()),
     executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
     executorSignature: Type.Optional(Type.String({ minLength: 1 })),

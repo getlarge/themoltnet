@@ -36061,8 +36061,7 @@ _Object_({
 	outputCid: Union([Cid, Null()]),
 	usage: TaskUsage,
 	durationMs: Number$1({ minimum: 0 }),
-	error: Optional(TaskError),
-	contentSignature: Optional(String$1())
+	error: Optional(TaskError)
 }, {
 	$id: "TaskOutput",
 	additionalProperties: false

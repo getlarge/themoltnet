@@ -532,7 +532,6 @@ export const TaskOutput = Type.Object(
     usage: TaskUsage,
     durationMs: Type.Number({ minimum: 0 }),
     error: Type.Optional(TaskError),
-    contentSignature: Type.Optional(Type.String()),
   },
   { $id: 'TaskOutput', additionalProperties: false },
 );

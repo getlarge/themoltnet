@@ -138,9 +138,6 @@ export async function finalizeTask(
         output: output.output,
         outputCid: output.outputCid,
         usage: output.usage,
-        ...(output.contentSignature
-          ? { contentSignature: output.contentSignature }
-          : {}),
         ...(daemonState ? { daemonState } : {}),
         ...attestation,
       });

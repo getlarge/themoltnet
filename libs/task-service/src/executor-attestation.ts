@@ -350,8 +350,16 @@ export async function verifyExecutorForPhase(input: {
   }
 
   let verification: VerifiedExecutorAttestation['verification'];
+  let verifiedSignature: string | undefined;
 
-  if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.agentSigned) {
+  // A supplied completion signature is always verified, whatever the task's
+  // required trust level: the attempt record stores it as the agent-signed
+  // proof of the output, so an unverifiable one must not be accepted.
+  const verifySignature =
+    TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.agentSigned ||
+    (input.phase === 'complete' && executorSignature !== undefined);
+
+  if (verifySignature) {
     if (!executorSignature) {
       throw new TaskServiceError(
         'invalid',
@@ -414,6 +422,7 @@ export async function verifyExecutorForPhase(input: {
       trustLevel: 'agent_signed',
       evidence: { phase: input.phase, signerAgentId: input.callerId },
     };
+    verifiedSignature = executorSignature;
   }
 
   if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.releaseVerifiedTool) {
@@ -439,6 +448,7 @@ export async function verifyExecutorForPhase(input: {
     fingerprint: executorFingerprint,
     manifest: executorManifest,
     verification,
+    ...(verifiedSignature ? { verifiedSignature } : {}),
   };
 }
 

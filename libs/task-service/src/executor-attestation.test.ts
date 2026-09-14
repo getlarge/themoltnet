@@ -1,4 +1,5 @@
 import {
+  buildExecutorCompleteAttestationPayload,
   buildExecutorRegistrationAttestationPayload,
   computeExecutorManifestCid,
   cryptoService,
@@ -264,6 +265,117 @@ describe('verifyExecutorForPhase agent-signed enforcement', () => {
     ).rejects.toThrow(
       /executorFingerprint already maps to a different manifest/,
     );
+  });
+});
+
+describe('verifyExecutorForPhase completion signature', () => {
+  const callerId = '11111111-1111-4111-8111-111111111111';
+  const taskId = '22222222-2222-4222-8222-222222222222';
+  const attemptN = 2;
+  const outputCid = 'bafkreioutput';
+  const executorManifest = {
+    schemaVersion: 'moltnet:executor-manifest:v1',
+    runtime: { id: 'pi', version: '1' },
+  };
+  const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+  async function setup() {
+    const keys = await cryptoService.generateKeyPair();
+    const upsertExecutorManifest = vi.fn().mockResolvedValue(undefined);
+    const taskRepository = {
+      upsertExecutorManifest,
+      findExecutorManifest: vi.fn().mockResolvedValue(null),
+    } as unknown as TaskRepository;
+    const agentRepository = {
+      findById: vi.fn().mockResolvedValue({
+        id: callerId,
+        publicKey: keys.publicKey,
+      }),
+    } as unknown as AgentRepository;
+    return { keys, upsertExecutorManifest, taskRepository, agentRepository };
+  }
+
+  it('returns the verified completion signature on a self-declared task', async () => {
+    const { keys, taskRepository, agentRepository } = await setup();
+    const executorSignature = await signExecutorAttestation(
+      buildExecutorCompleteAttestationPayload({
+        taskId,
+        attemptN,
+        outputCid,
+        executorFingerprint,
+      }),
+      keys.privateKey,
+    );
+
+    const verified = await verifyExecutorForPhase({
+      phase: 'complete',
+      task: { id: taskId, requiredExecutorTrustLevel: 'self_declared' } as Task,
+      callerId,
+      attemptN,
+      outputCid,
+      attestation: { executorManifest, executorFingerprint, executorSignature },
+      taskRepository,
+      agentRepository,
+    });
+
+    expect(verified?.verifiedSignature).toBe(executorSignature);
+    expect(verified?.verification).toEqual({
+      trustLevel: 'agent_signed',
+      evidence: { phase: 'complete', signerAgentId: callerId },
+    });
+  });
+
+  it('rejects an invalid completion signature on a self-declared task', async () => {
+    const { keys, upsertExecutorManifest, taskRepository, agentRepository } =
+      await setup();
+    const signatureForOtherOutput = await signExecutorAttestation(
+      buildExecutorCompleteAttestationPayload({
+        taskId,
+        attemptN,
+        outputCid: 'bafkreiother',
+        executorFingerprint,
+      }),
+      keys.privateKey,
+    );
+
+    await expect(
+      verifyExecutorForPhase({
+        phase: 'complete',
+        task: {
+          id: taskId,
+          requiredExecutorTrustLevel: 'self_declared',
+        } as Task,
+        callerId,
+        attemptN,
+        outputCid,
+        attestation: {
+          executorManifest,
+          executorFingerprint,
+          executorSignature: signatureForOtherOutput,
+        },
+        taskRepository,
+        agentRepository,
+      }),
+    ).rejects.toThrow(/executorSignature is not valid/);
+    expect(upsertExecutorManifest).not.toHaveBeenCalled();
+  });
+
+  it('returns no signature when a self-declared completion is unsigned', async () => {
+    const { taskRepository, agentRepository } = await setup();
+
+    const verified = await verifyExecutorForPhase({
+      phase: 'complete',
+      task: { id: taskId, requiredExecutorTrustLevel: 'self_declared' } as Task,
+      callerId,
+      attemptN,
+      outputCid,
+      attestation: { executorManifest, executorFingerprint },
+      taskRepository,
+      agentRepository,
+    });
+
+    expect(verified?.verifiedSignature).toBeUndefined();
+    expect(verified?.verification).toBeUndefined();
   });
 });
 

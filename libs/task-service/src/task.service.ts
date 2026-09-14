@@ -558,7 +558,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         output: Record<string, unknown>;
         outputCid: string;
         usage: TaskUsage;
-        contentSignature?: string;
         executorManifest?: Record<string, unknown>;
         executorFingerprint?: string;
         executorSignature?: string;
@@ -670,6 +669,8 @@ export function createTaskService(deps: TaskServiceDeps) {
           outputCid: body.outputCid,
           usage: body.usage,
           completedExecutorFingerprint: completedExecutor?.fingerprint ?? null,
+          // Only a signature verified above reaches the attempt record.
+          contentSignature: completedExecutor?.verifiedSignature ?? null,
           daemonState: body.daemonState ?? null,
         },
         'progress',

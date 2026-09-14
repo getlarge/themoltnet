@@ -73,7 +73,6 @@ export function applyRuntimeSessionUploadFailure(
   if (output.status !== 'completed') return output;
   return {
     ...output,
-    contentSignature: undefined,
     error: {
       code: 'runtime_session_upload_failed',
       message:

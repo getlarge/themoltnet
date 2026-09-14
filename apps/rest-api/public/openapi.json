@@ -832,9 +832,6 @@
       },
       "CompleteTaskBody": {
         "properties": {
-          "contentSignature": {
-            "type": "string"
-          },
           "daemonState": {
             "anyOf": [
               {
@@ -41369,9 +41366,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "contentSignature": {
-                    "type": "string"
-                  },
                   "daemonState": {
                     "anyOf": [
                       {
