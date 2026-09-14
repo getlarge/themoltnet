@@ -1549,6 +1549,17 @@ func TestResolveRecoveryDestinationProvider(t *testing.T) {
 			creds: CredentialsFile{},
 			want:  osKeyringProviderName,
 		},
+		{
+			name:  "whitespace-only client_secret counts as no secret",
+			creds: CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "  \t"}, AgentKeyRef: fileRef},
+			want:  fileProviderName,
+		},
+		{
+			name:      "whitespace-only destination counts as unset",
+			creds:     CredentialsFile{OAuth2: CredentialsOAuth2{ClientSecretRef: fileRef}},
+			requested: "   ",
+			want:      fileProviderName,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1567,6 +1578,54 @@ func TestResolveRecoveryDestinationProvider(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Fatalf("provider = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRecoveryDestinationNotice(t *testing.T) {
+	t.Parallel()
+	fileRef := &SecretReference{Provider: fileProviderName, Key: "any"}
+
+	tests := []struct {
+		name       string
+		creds      CredentialsFile
+		requested  string
+		provider   string
+		wantNotice bool
+	}{
+		{
+			name:       "file provider inherited from agent_key_ref",
+			creds:      CredentialsFile{AgentKeyRef: fileRef},
+			provider:   fileProviderName,
+			wantNotice: true,
+		},
+		{
+			name:      "explicit file destination",
+			creds:     CredentialsFile{AgentKeyRef: fileRef},
+			requested: fileProviderName,
+			provider:  fileProviderName,
+		},
+		{
+			name:     "existing file client_secret_ref reused",
+			creds:    CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecretRef: fileRef}},
+			provider: fileProviderName,
+		},
+		{
+			name:     "OS keyring inherited or defaulted",
+			creds:    CredentialsFile{AgentKeyRef: &SecretReference{Provider: osKeyringProviderName, Key: "any"}},
+			provider: osKeyringProviderName,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			creds := tt.creds
+
+			notice := recoveryDestinationNotice(&creds, tt.requested, tt.provider)
+
+			if (notice != "") != tt.wantNotice {
+				t.Fatalf("notice = %q, want notice: %v", notice, tt.wantNotice)
 			}
 		})
 	}

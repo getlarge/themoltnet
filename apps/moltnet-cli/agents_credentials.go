@@ -112,10 +112,6 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(opts.destination) == "" && creds.OAuth2.ClientSecretRef == nil &&
-		destinationProvider == fileProviderName && opts.errOut != nil {
-		fmt.Fprintf(opts.errOut, "Storing the recovered OAuth2 secret with the %s provider inherited from agent_key_ref; pass --destination to choose another.\n", fileProviderName)
-	}
 
 	apiURL := resolveAPIURLFromCredentials(
 		opts.apiURL,
@@ -198,6 +194,11 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err := verifyCredentials(apiURL, recovery.ClientId, clientSecret); err != nil {
 		return fmt.Errorf("agents credentials recover: verify replacement OAuth2 credentials: %w", err)
 	}
+	// Only now is there a verified secret to store, so the notice cannot
+	// describe a destination for a command that then fails on the network.
+	if notice := recoveryDestinationNotice(creds, opts.destination, destinationProvider); notice != "" && opts.errOut != nil {
+		fmt.Fprintln(opts.errOut, notice)
+	}
 
 	writeArtifact := opts.writeRecoveredArtifact
 	if writeArtifact == nil {
@@ -263,6 +264,17 @@ func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string
 	default:
 		return validateMigrationDestination(registry, osKeyringProviderName)
 	}
+}
+
+// recoveryDestinationNotice explains a destination the user did not choose and
+// that differs from where the secret lived before: the file provider inherited
+// from agent_key_ref. Explicit destinations, reused client_secret_ref
+// providers, and the OS keyring default need no notice.
+func recoveryDestinationNotice(creds *CredentialsFile, requested, provider string) string {
+	if strings.TrimSpace(requested) != "" || creds.OAuth2.ClientSecretRef != nil || provider != fileProviderName {
+		return ""
+	}
+	return fmt.Sprintf("Storing the recovered OAuth2 secret with the %s provider inherited from agent_key_ref; pass --destination to choose another.", fileProviderName)
 }
 
 func reconcileRecoveredCredentials(path string, original *CredentialsFile, clientID string, destination SecretReference) error {
