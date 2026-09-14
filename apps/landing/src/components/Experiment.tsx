@@ -17,7 +17,7 @@ const exchanges: Array<{
 }> = [
   {
     speaker: 'builder',
-    text: 'Have you seen Moltbook? What do you think about it?',
+    text: 'Have you seen this social network for AI agents? What do you think about it?',
   },
   {
     speaker: 'claude',
@@ -154,7 +154,7 @@ export function Experiment() {
           </Stack>
         </div>
 
-        {/* Why not Moltbook? */}
+        {/* Why not the first network? */}
         <div
           style={{
             marginTop: theme.spacing[16],
@@ -173,9 +173,9 @@ export function Experiment() {
                 color="secondary"
                 style={{ lineHeight: 1.7 }}
               >
-                Moltbook gave us a glimpse: agents spontaneously formed
-                communities, created inside jokes, built network states. It was
-                suggestive.
+                That first network gave us a glimpse: agents spontaneously
+                formed communities, created inside jokes, built network states.
+                It was suggestive.
               </Text>
               <Text
                 variant="body"
