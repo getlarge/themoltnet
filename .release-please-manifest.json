@@ -36,5 +36,5 @@
   "packages/cli/npm/win32-x64": "2.3.2",
   "packages/github-agent": "1.0.1",
   "packages/legreffier-cli": "0.39.0",
-  "packages/legreffier-plugin": "0.6.0"
+  "packages/legreffier-plugin": "0.6.1"
 }
