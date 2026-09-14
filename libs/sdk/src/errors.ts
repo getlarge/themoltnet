@@ -102,3 +102,55 @@ export function problemToError(
     validationErrors,
   });
 }
+
+export type RegisterIdentityErrorCode =
+  | 'alias_exists'
+  | 'provider_unavailable'
+  | 'registration_failed'
+  | 'registration_incomplete'
+  | 'unsupported_credential'
+  | 'identity_mismatch';
+
+/**
+ * Failure of the persisting `register()` in `@themoltnet/sdk/node`.
+ *
+ * `registration_failed` means the server rejected the request and nothing
+ * was kept locally. `registration_incomplete` means the server committed the
+ * identity; the seed and config that exist are enough for
+ * `moltnet agents credentials recover --yes` to finish the job, which
+ * `recoveryCommand` spells out.
+ */
+export class RegisterIdentityError extends MoltNetError {
+  override readonly code: RegisterIdentityErrorCode;
+  readonly subjectId?: string;
+  readonly fingerprint?: string;
+  readonly configPath?: string;
+  readonly recoveryCommand?: string;
+
+  constructor(
+    code: RegisterIdentityErrorCode,
+    message: string,
+    options: {
+      cause?: unknown;
+      statusCode?: number;
+      detail?: string;
+      subjectId?: string;
+      fingerprint?: string;
+      configPath?: string;
+      recoveryCommand?: string;
+    } = {},
+  ) {
+    super(message, {
+      code,
+      statusCode: options.statusCode,
+      detail: options.detail,
+    });
+    this.name = 'RegisterIdentityError';
+    this.code = code;
+    this.cause = options.cause;
+    this.subjectId = options.subjectId;
+    this.fingerprint = options.fingerprint;
+    this.configPath = options.configPath;
+    this.recoveryCommand = options.recoveryCommand;
+  }
+}

@@ -17,20 +17,23 @@ import { MoltNetError, NetworkError, problemToError } from './errors.js';
 export { buildSelfRegistrationMessage, buildTeamRegistrationMessage };
 export type { BootstrapCredentialType };
 
-export interface RegisterOptions {
+export type RegistrationKeyPair = Awaited<
+  ReturnType<typeof cryptoService.generateKeyPair>
+>;
+
+export interface RequestRegistrationOptions {
   credentialType: BootstrapCredentialType;
   /** Redeem this token into its issuing team instead of self-registering. */
   enrollmentToken?: string;
   apiUrl?: string;
+  /**
+   * Keypair to register. The persisting `register()` in the node entry stores
+   * the seed before calling here so a failure after the server commits never
+   * loses it; when absent a fresh keypair is generated.
+   */
+  keyPair?: RegistrationKeyPair;
   /** Abort registration and any replay request. */
   signal?: AbortSignal;
-}
-
-export interface EnrollOptions extends Omit<
-  RegisterOptions,
-  'enrollmentToken'
-> {
-  enrollmentToken: string;
 }
 
 export type RegistrationCredentials = RegisterResponse['credential'];
@@ -47,7 +50,7 @@ export interface McpConfig {
   };
 }
 
-export interface RegisterResult {
+export interface RegistrationRequestResult {
   identity: {
     publicKey: string;
     privateKey: string;
@@ -57,7 +60,6 @@ export interface RegisterResult {
     subjectType: 'agent';
   };
   credentials: RegistrationCredentials;
-  mcpConfig: McpConfig;
   apiUrl: string;
 }
 
@@ -92,14 +94,20 @@ export function buildMcpConfig(
   };
 }
 
-export async function register(
-  options: RegisterOptions,
-): Promise<RegisterResult> {
+/**
+ * The in-memory registration request: sign the proof, call the API once with
+ * a replay on transport failure, and return keys plus credentials without
+ * persisting anything. The package root does not export this; the persisting
+ * `register()` in `@themoltnet/sdk/node` is the public entry point.
+ */
+export async function requestRegistration(
+  options: RequestRegistrationOptions,
+): Promise<RegistrationRequestResult> {
   const apiUrl = requireSecureCredentialApiUrl(
     normalizeOptionalApiUrl(options.apiUrl),
   );
   const enrollmentToken = options.enrollmentToken;
-  const keyPair = await cryptoService.generateKeyPair();
+  const keyPair = options.keyPair ?? (await cryptoService.generateKeyPair());
   const idempotencyKey = createIdempotencyKey();
   const tokenHash = enrollmentToken
     ? await crypto.subtle.digest(
@@ -181,11 +189,6 @@ export async function register(
       subjectType: 'agent',
     },
     credentials: data.credential,
-    mcpConfig: buildMcpConfig(apiUrl, data.credential),
     apiUrl,
   };
-}
-
-export function enroll(options: EnrollOptions): Promise<RegisterResult> {
-  return register(options);
 }

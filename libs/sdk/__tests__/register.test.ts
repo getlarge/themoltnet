@@ -6,7 +6,7 @@ import { MoltNetError, NetworkError } from '../src/errors.js';
 import {
   buildMcpConfig,
   createIdempotencyKey,
-  register,
+  requestRegistration,
 } from '../src/register.js';
 
 vi.mock('@moltnet/crypto-service', () => ({
@@ -54,7 +54,7 @@ describe('register', () => {
   it('self-registers with an automatic nonce and local proof', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
 
-    const result = await register({
+    const result = await requestRegistration({
       credentialType: 'oauth2',
       apiUrl: 'http://localhost:8000',
     });
@@ -64,10 +64,6 @@ describe('register', () => {
       subjectType: 'agent',
     });
     expect(result.credentials).toEqual(oauthResponse.credential);
-    expect(result.mcpConfig.mcpServers.moltnet.headers).toEqual({
-      'X-Client-Id': 'client-id',
-      'X-Client-Secret': 'client-secret',
-    });
     expect(registerAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         headers: { 'idempotency-key': expect.stringMatching(/^[\w-]{43}$/) },
@@ -93,15 +89,12 @@ describe('register', () => {
       success({ ...oauthResponse, credential }),
     );
 
-    const result = await register({
+    const result = await requestRegistration({
       credentialType: 'agent_key',
       enrollmentToken: 'A'.repeat(43),
     });
 
     expect(result.credentials).toEqual(credential);
-    expect(result.mcpConfig.mcpServers.moltnet.headers).toEqual({
-      Authorization: 'Bearer agent-key-secret',
-    });
     expect(enrollAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
@@ -116,14 +109,33 @@ describe('register', () => {
     );
   });
 
+  it('signs with a prepared keypair instead of generating one', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+
+    await requestRegistration({
+      credentialType: 'oauth2',
+      keyPair: {
+        publicKey: 'ed25519:prepared',
+        privateKey: 'prepared-seed',
+        fingerprint: 'PREP-0000-0000-0000',
+      },
+    });
+
+    expect(cryptoService.generateKeyPair).not.toHaveBeenCalled();
+    expect(cryptoService.sign).toHaveBeenCalledWith(
+      expect.stringContaining('ed25519:prepared'),
+      'prepared-seed',
+    );
+  });
+
   it('uses the default API URL and strips trailing slashes', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
-    expect((await register({ credentialType: 'oauth2' })).apiUrl).toBe(
-      'https://api.themolt.net',
-    );
+    expect(
+      (await requestRegistration({ credentialType: 'oauth2' })).apiUrl,
+    ).toBe('https://api.themolt.net');
     expect(
       (
-        await register({
+        await requestRegistration({
           credentialType: 'oauth2',
           apiUrl: 'http://localhost:8000/',
         })
@@ -133,7 +145,7 @@ describe('register', () => {
 
   it('rejects remote plaintext HTTP before generating or sending credentials', async () => {
     await expect(
-      register({
+      requestRegistration({
         credentialType: 'agent_key',
         enrollmentToken: 'sensitive-enrollment-token',
         apiUrl: 'http://api.example.com',
@@ -153,14 +165,14 @@ describe('register', () => {
         status: 403,
       },
     } as never);
-    await expect(register({ credentialType: 'oauth2' })).rejects.toThrow(
-      MoltNetError,
-    );
+    await expect(
+      requestRegistration({ credentialType: 'oauth2' }),
+    ).rejects.toThrow(MoltNetError);
 
     vi.mocked(registerAgent).mockRejectedValue(new TypeError('fetch failed'));
-    await expect(register({ credentialType: 'oauth2' })).rejects.toThrow(
-      NetworkError,
-    );
+    await expect(
+      requestRegistration({ credentialType: 'oauth2' }),
+    ).rejects.toThrow(NetworkError);
   });
 
   it('replays a dropped response once with the same signed request', async () => {
@@ -168,9 +180,11 @@ describe('register', () => {
       .mockRejectedValueOnce(new TypeError('connection reset'))
       .mockResolvedValueOnce(success(oauthResponse));
 
-    await expect(register({ credentialType: 'oauth2' })).resolves.toMatchObject(
-      { identity: { subjectId: 'agent-123', subjectType: 'agent' } },
-    );
+    await expect(
+      requestRegistration({ credentialType: 'oauth2' }),
+    ).resolves.toMatchObject({
+      identity: { subjectId: 'agent-123', subjectType: 'agent' },
+    });
     expect(registerAgent).toHaveBeenCalledTimes(2);
     expect(vi.mocked(registerAgent).mock.calls[1][0]).toEqual(
       vi.mocked(registerAgent).mock.calls[0][0],
@@ -181,7 +195,7 @@ describe('register', () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const controller = new AbortController();
 
-    await register({
+    await requestRegistration({
       credentialType: 'oauth2',
       signal: controller.signal,
     });
@@ -193,9 +207,9 @@ describe('register', () => {
 
   it('rejects an empty response', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(undefined));
-    await expect(register({ credentialType: 'oauth2' })).rejects.toThrow(
-      NetworkError,
-    );
+    await expect(
+      requestRegistration({ credentialType: 'oauth2' }),
+    ).rejects.toThrow(NetworkError);
   });
 });
 

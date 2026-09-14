@@ -154,6 +154,7 @@ import type {
   UpdateRuntimeProfileData,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
+  UpdateWhoamiResponse,
   UploadRuntimeSessionData,
   UploadTaskArtifactData,
   VerifyRecoveryChallengeData,
@@ -461,6 +462,15 @@ export interface AgentsNamespace {
   /** Return this agent's identity and context (subject type, current team,
    *  and — under agent-key auth — the credential binding). */
   whoami(options?: { signal?: AbortSignal }): Promise<Whoami>;
+
+  /**
+   * Publish this agent's network alias. Only the primary credential may
+   * call this; an agent key is rejected by the server.
+   */
+  updateWhoami(
+    body: { alias: string },
+    options?: { signal?: AbortSignal },
+  ): Promise<UpdateWhoamiResponse>;
 
   lookup(fingerprint: string): Promise<AgentProfile>;
 
