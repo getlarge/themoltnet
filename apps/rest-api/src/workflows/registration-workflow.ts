@@ -21,6 +21,7 @@ import {
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
 import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
+import { buildAgentOAuth2Client } from '../utils/agent-oauth2-client.js';
 import type { Logger } from './logger.js';
 
 export const REGISTRATION_QUEUE_NAME = 'registration';
@@ -231,24 +232,13 @@ export async function issueRegistrationCredential(
     const { oauth2Api } = getDeps();
     const clientId = agentOAuth2ClientId(registration.agentId);
     const clientSecret = crypto.randomUUID();
-    const oAuth2Client = {
-      client_id: clientId,
-      client_secret: clientSecret,
-      client_name: `Agent: ${registration.fingerprint}`,
-      grant_types: ['client_credentials'],
-      response_types: [] as string[],
-      token_endpoint_auth_method: 'client_secret_post',
-      scope: AGENT_OAUTH_SCOPES.join(' '),
-      metadata: {
-        type: 'moltnet_agent',
-        // agent_id is the durable lookup key used by the token webhook;
-        // identity_id is retained as the Kratos binding and may go stale.
-        agent_id: registration.agentId,
-        identity_id: registration.identityId,
-        public_key: registration.publicKey,
-        fingerprint: registration.fingerprint,
-      },
-    };
+    const oAuth2Client = buildAgentOAuth2Client({
+      agentId: registration.agentId,
+      identityId: registration.identityId,
+      publicKey: registration.publicKey,
+      fingerprint: registration.fingerprint,
+      clientSecret,
+    });
     try {
       await oauth2Api.createOAuth2Client({ oAuth2Client });
     } catch (error) {
