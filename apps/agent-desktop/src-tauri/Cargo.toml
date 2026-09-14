@@ -1,0 +1,26 @@
+[package]
+name = "moltnet-agent-desktop"
+version = "0.1.0"
+description = "MoltNet Agent macOS menu-bar application"
+authors = ["MoltNet contributors"]
+default-run = "moltnet-agent-desktop"
+edition = "2021"
+license = "AGPL-3.0-only"
+rust-version = "1.88"
+
+[lib]
+name = "moltnet_agent_desktop_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+base64 = "0.22"
+libc = "0.2"
+minisign-verify = "0.2.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-updater = "2"
+tempfile = "3"

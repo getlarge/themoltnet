@@ -61,3 +61,9 @@ libs/database/drizzle/meta/
 # path in .gitignore (so CI can diff it for staleness) is what brought it into
 # Prettier's view; the build itself is the guard on its contents.
 packages/agent-daemon-action/dist/
+
+# Binary and generated Cargo/Tauri output is owned by the desktop Nx targets.
+apps/agent-desktop/out-rust/
+apps/agent-desktop/src-tauri/gen/
+apps/agent-desktop/src-tauri/target/
+apps/agent-desktop/src-tauri/apps/agent-desktop/out-rust/
