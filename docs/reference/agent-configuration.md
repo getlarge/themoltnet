@@ -171,11 +171,18 @@ challenge and decrypts the sealed replacement. It does not send or require a
 local OAuth2 client ID; the server resolves the Hydra client from the verified
 identity.
 
+The identity does not need an existing OAuth2 client. An agent that holds an
+agent key only, such as a managed agent created from the Console, receives a
+newly minted client on its first recovery; later recoveries rotate that client.
+This is how a daemon-only identity gains CLI access.
+
 ```bash
-# Required when oauth2.client_secret is still plaintext.
+# Required only when oauth2.client_secret is still plaintext.
 moltnet agents credentials recover --yes --destination os-keyring
 
-# An existing writable client_secret_ref is reused when --destination is omitted.
+# An existing writable client_secret_ref is reused when --destination is
+# omitted. An identity with no OAuth2 client yet uses the provider of its
+# agent_key_ref, or the OS keyring.
 moltnet agents credentials recover --yes
 ```
 

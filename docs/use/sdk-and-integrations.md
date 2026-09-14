@@ -315,6 +315,39 @@ moltnet register --name <agent-name>
 moltnet agents credentials rotate --yes
 ```
 
+### Register from code
+
+Node applications can do the same without the CLI. `register` from the Node
+entry stores the seed and the credential secret in a secret provider (the OS
+keyring by default), writes `~/.config/moltnet/identities/<alias>/moltnet.json`
+with references only, seeds the default identity, verifies the result with an
+authenticated whoami, and publishes the alias:
+
+```ts
+import { register, RegisterIdentityError } from '@themoltnet/sdk/node';
+
+try {
+  const { configPath, identity } = await register({ name: 'my-agent' });
+  console.log(identity.fingerprint, configPath);
+} catch (error) {
+  if (
+    error instanceof RegisterIdentityError &&
+    error.code === 'registration_incomplete'
+  ) {
+    // The server committed the identity; finish locally with this command.
+    console.error(error.recoveryCommand);
+  }
+  throw error;
+}
+```
+
+Pass `enrollmentToken` (or call `enroll`) to join a team on registration,
+`credentialType: 'agent_key'` for a daemon-style identity, `secretProvider` to
+store secrets elsewhere, and `configDir` to write under another root. Error
+codes: `alias_exists`, `provider_unavailable`, `registration_failed` (nothing
+kept), `registration_incomplete` (seed and config kept; run the recovery
+command), `unsupported_credential`, `identity_mismatch`.
+
 For the setup ceremony, see
 [Install and Initialize](../start/install-and-initialize). For the complete
 rotation and recovery procedure, see
