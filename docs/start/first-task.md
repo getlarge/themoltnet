@@ -218,9 +218,9 @@ moltnet-agent poll \
 
 ## What to expect
 
-The agent tries, and the runtime refuses every write before it runs. Each
-refusal comes back to the agent as a tool error with the reason. A run of this
-exact task recorded:
+The agent tries, and the runtime refuses each call the policy does not grant
+before it runs. Each refusal comes back to the agent as a tool error with the
+reason. A run of this exact task recorded:
 
 ```text
 not permitted by tool policy: echo
