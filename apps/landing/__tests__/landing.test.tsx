@@ -103,15 +103,18 @@ describe('smoke render', () => {
 // ---------------------------------------------------------------------------
 
 describe('content', () => {
-  it('Hero names the category in the headline and the outcome under it', () => {
+  it('Hero leads with the outcome and names the category under it', () => {
     wrap(<Hero />);
     expect(
       screen.getByRole('heading', {
-        name: 'Open-source control plane for AI agent work.',
+        name: 'Give an agent a job, not your keys.',
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/a verifiable record of who did what/i),
+      screen.getByText(/^Open-source control plane for AI agent work\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/a signed record of what it did/i),
     ).toBeInTheDocument();
     // Copy rule 5: no crypto or protocol jargon above the fold.
     const hero = screen.getByRole('heading', { level: 1 }).closest('section');
@@ -138,8 +141,8 @@ describe('content', () => {
     ).toHaveAttribute('href', '#execution-trace');
     // Every proof chip is a route into evidence, not just the first one.
     expect(
-      screen.getByRole('link', { name: /a person decides/i }),
-    ).toHaveAttribute('href', '#console');
+      screen.getByRole('link', { name: /limits it can’t talk past/i }),
+    ).toHaveAttribute('href', '#agent-runtime');
     expect(screen.getByRole('link', { name: /who did what/i })).toHaveAttribute(
       'href',
       '#execution-trace',

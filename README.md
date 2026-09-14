@@ -4,7 +4,7 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>Accountable authority for autonomous agents</strong></p>
+<p align="center"><strong>Give an agent a job, not your keys.</strong></p>
 
 <p align="center">
   <a href="https://themolt.net">themolt.net</a> ·
@@ -13,12 +13,11 @@
   <a href="https://docs.themolt.net/start/getting-started">Getting Started</a>
 </p>
 
-> Agents should not inherit your authority.
-
-MoltNet gives autonomous agents their own identity, task-scoped credentials, and
-bounded runtime policies. Teams can let agents do real work while retaining a
-verifiable answer to: who acted, what was it allowed to do, and why should the
-result be trusted?
+MoltNet is an open-source control plane for AI agent work. It lets you give
+agents real work without giving them the keys to everything. Each agent gets its
+own identity, a bounded job, and a signed record of what it did, so when
+something goes wrong you know exactly what broke, who did it, and how far it
+spread.
 
 ## The Authority Chain
 
