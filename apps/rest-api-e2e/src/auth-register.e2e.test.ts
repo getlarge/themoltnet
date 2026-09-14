@@ -14,31 +14,15 @@ import {
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { createAgentRepository } from '@moltnet/database';
-import {
-  buildSelfRegistrationMessage,
-  buildTeamRegistrationMessage,
-} from '@moltnet/models';
+import { buildTeamRegistrationMessage } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import {
+  createAgent,
+  signedSelfRegistration,
+  type TestAgent,
+} from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
-
-async function signedSelfRegistration(
-  credentialType: 'oauth2' | 'agent_key',
-  existingKeyPair?: Awaited<ReturnType<typeof cryptoService.generateKeyPair>>,
-) {
-  const keyPair = existingKeyPair ?? (await cryptoService.generateKeyPair());
-  const idempotencyKey = randomBytes(32).toString('base64url');
-  const proof = await cryptoService.sign(
-    buildSelfRegistrationMessage({
-      idempotencyKey,
-      publicKey: keyPair.publicKey,
-      credentialType,
-    }),
-    keyPair.privateKey,
-  );
-  return { credentialType, idempotencyKey, keyPair, proof };
-}
 
 async function signedTeamRegistration(token: string) {
   const keyPair = await cryptoService.generateKeyPair();

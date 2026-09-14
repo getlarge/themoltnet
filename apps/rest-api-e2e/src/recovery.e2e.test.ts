@@ -9,9 +9,11 @@
  * 2. Agent signs the challenge with their private key
  * 3. Server verifies HMAC + Ed25519 signature → issues Kratos recovery code
  * 4. Agent submits recovery code to Kratos self-service → gets session back
+ *
+ * The same proof, bound to the `credentials` purpose, issues OAuth2 client
+ * credentials instead: it rotates an existing client, or mints one for an
+ * agent that registered with an agent key only.
  */
-
-import { randomBytes } from 'node:crypto';
 
 import {
   type Client,
@@ -22,10 +24,14 @@ import {
 } from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService, openSealedEnvelope } from '@moltnet/crypto-service';
-import { buildSelfRegistrationMessage } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import {
+  createAgent,
+  postSelfRegistration,
+  signedSelfRegistration,
+  type TestAgent,
+} from './helpers.js';
 import {
   createTestHarness,
   KRATOS_PUBLIC_URL,
@@ -54,29 +60,8 @@ function requestOAuthToken(
  * managed-agent path produces. No OAuth2 client exists for it yet.
  */
 async function registerAgentKeyAgent(baseUrl: string) {
-  const keyPair = await cryptoService.generateKeyPair();
-  const idempotencyKey = randomBytes(32).toString('base64url');
-  const proof = await cryptoService.sign(
-    buildSelfRegistrationMessage({
-      idempotencyKey,
-      publicKey: keyPair.publicKey,
-      credentialType: 'agent_key',
-    }),
-    keyPair.privateKey,
-  );
-  const response = await fetch(`${baseUrl}/auth/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'Idempotency-Key': idempotencyKey,
-    },
-    body: JSON.stringify({
-      publicKey: keyPair.publicKey,
-      proof,
-      credentialType: 'agent_key',
-    }),
-  });
+  const registration = await signedSelfRegistration('agent_key');
+  const response = await postSelfRegistration(baseUrl, registration);
   if (!response.ok) {
     throw new Error(
       `Registration failed: ${response.status} ${await response.text()}`,
@@ -87,7 +72,7 @@ async function registerAgentKeyAgent(baseUrl: string) {
     credential: { type: 'agent_key'; secret: string };
   };
   expect(body.credential.type).toBe('agent_key');
-  return { keyPair, agentId: body.agentId };
+  return { keyPair: registration.keyPair, agentId: body.agentId };
 }
 
 async function recoverCredentials(
