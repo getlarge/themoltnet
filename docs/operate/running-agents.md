@@ -147,10 +147,8 @@ JSON output has stable `configuredProviders` and `oauthProviders` keys. Provider
 configuration stores only secret references. To configure an API key, pipe it
 through stdin so it never appears in shell history or the process argument list.
 
-Direct `moltnet-agent once`, `poll`, and `drain` runs use this store too, so you
-do not need to set `PI_CODING_AGENT_DIR` after configuring providers or logging
-in to a subscription. See [Repository Pi Config](#repository-pi-config) for how
-the store and a repository `.pi` directory combine.
+Direct `once`, `poll`, and `drain` runs use this store too; see
+[Repository Pi Config](#repository-pi-config).
 
 ### Local Ollama
 
@@ -253,35 +251,19 @@ curl -sS -X POST -H "Authorization: Bearer $MOLTNET_TOKEN" \
 
 The daemon runs Pi headlessly through `@themoltnet/pi-runtime`. Agent
 Server-managed runs use the provider store above. Direct `once`, `poll`, and
-`drain` runs pick their Pi directory in this order:
+`drain` runs choose the Pi directory as follows:
 
-1. **`PI_CODING_AGENT_DIR` is set.** The daemon uses it unchanged.
-2. **The provider store has configured providers or a subscription login.** The
-   daemon builds a private, owner-only Pi directory for the process (removed on
-   exit), the same way Agent Server runs do:
-   - `models.json` holds the store's providers and models. Repository
-     `.pi/models.json` providers the store does not define are added as they
-     are. When both define a provider id, the store's entry wins and the
-     repository's model ids missing from the store are appended, so a team
-     profile that selects a repository id such as `ollama-cloud/glm-5.2:cloud`
-     still resolves.
-   - `auth.json` links to the store's shared subscription credentials. When the
-     store has none and `.pi/auth.json` exists, it links to the repository file.
-     The two files are never merged.
-   - `.pi/settings.json` is copied when present.
-   - API keys for the selected profiles' store providers are resolved from the
-     store and exposed only to the daemon process. A variable you already set
-     takes precedence.
-3. **No store** (root missing, or no providers and no subscription login). The
-   daemon uses repo-local `.pi`, as before. This keeps configless CI and
-   existing checked-in model catalogs working.
+1. `PI_CODING_AGENT_DIR`, when set.
+2. When the provider store has a provider or a subscription login, a private
+   directory built from the store and removed on exit. The repository `.pi`
+   fills in what the store does not define: providers and model ids missing from
+   the store, `settings.json`, and `auth.json` when the store has no login.
+   Provider API keys are resolved from the store unless already set in the
+   environment.
+3. Otherwise, repo-local `.pi`.
 
-In case 2 the daemon checks at startup that every selected profile's
-`provider/model` resolves in the combined catalog. If one does not, the run
-fails with an `invalid_model` error that names the sources searched (`store`, or
-`store, repo`). The `agent-daemon.starting` log records the choice as
-`piAgentDirSource` (`env`, `store`, `store+repo`, or `repo`) and `piAuthSource`,
-without secret values.
+The `agent-daemon.starting` log reports the choice as `piAgentDirSource` (`env`,
+`store`, or `repo`).
 
 Recommended split:
 

@@ -187,26 +187,13 @@ Codex subscription OAuth with `moltnet-agent providers`. The canonical command
 guide and local/Ollama Cloud examples are in
 [Running Agents: Provider Management](../../docs/operate/running-agents.md#provider-management).
 
-The daemon resolves Pi config from the repository-local `.pi` directory by
-default for direct runs. On startup, if `PI_CODING_AGENT_DIR` is not already set, the daemon
-sets it to `<repo-root>/.pi` before creating Pi sessions. This keeps daemon
-runs deterministic and avoids inheriting user-level `~/.pi/agent` state.
+Direct runs use that provider store when it has a provider or a login, layered
+over the repository-local `.pi`; `PI_CODING_AGENT_DIR` overrides both. See
+[Running Agents: Repository Pi Config](../../docs/operate/running-agents.md#repository-pi-config).
 
-Repo-local `.pi/settings.json` and `.pi/models.json` are intended to be
-committed. `models.json` should reference provider keys by environment-variable
-name, for example `"apiKey": "OLLAMA_API_KEY"`, not contain secret values.
-Repo-local `.pi/auth.json` may exist for local subscription auth, but is
-gitignored. Without `.pi/auth.json`, Pi falls back to environment-variable
-provider keys:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-# or any other provider listed in
-# https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/env-api-keys.ts
-```
-
-To force a non-repo Pi directory, set
-`PI_CODING_AGENT_DIR=/abs/path/to/.pi-or-agent-dir` before starting the daemon.
+Committed `.pi/models.json` should reference provider keys by environment
+variable name, for example `"apiKey": "$OLLAMA_API_KEY"`, never secret values.
+`.pi/auth.json` is gitignored.
 
 ### Observability
 
@@ -273,12 +260,10 @@ registered task type; unknown task-type names remain invalid.
 ### Prerequisites
 
 - Docker running.
-- Pi config for the model provider you'll drive the daemon with. Local daemon
-  runs default `PI_CODING_AGENT_DIR` to repo-local `.pi`, so committed
-  `.pi/settings.json` and `.pi/models.json` must list the provider/model. For
-  subscription auth, put your local token blob in `.pi/auth.json`; it is
-  gitignored. For API-key auth, keep `.pi/auth.json` absent and export the
-  provider key referenced by `.pi/models.json`, for example `OLLAMA_API_KEY`.
+- A Pi provider for the profile's provider/model: configure it with
+  `moltnet-agent providers set` or `providers login`, or list it in
+  `.pi/models.json` and export the key it references, for example
+  `OLLAMA_API_KEY`.
 - `ssh-keygen` on `PATH`.
 - A runtime profile in the target team. The profile supplies provider, model,
   sandbox policy, and runtime defaults. The daemon resolves the configured
