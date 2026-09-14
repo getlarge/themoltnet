@@ -330,12 +330,11 @@ try {
   const { configPath, identity } = await register({ name: 'my-agent' });
   console.log(identity.fingerprint, configPath);
 } catch (error) {
-  if (
-    error instanceof RegisterIdentityError &&
-    error.code === 'registration_incomplete'
-  ) {
-    // The server committed the identity; finish locally with this command.
-    console.error(error.recoveryCommand);
+  if (error instanceof RegisterIdentityError && error.seedReference) {
+    // The seed is kept whatever failed; it proves ownership of the identity.
+    console.error(error.seedReference);
+    // Set when the server committed: finish locally with this command.
+    if (error.recoveryCommand) console.error(error.recoveryCommand);
   }
   throw error;
 }
@@ -344,9 +343,11 @@ try {
 Pass `enrollmentToken` (or call `enroll`) to join a team on registration,
 `credentialType: 'agent_key'` for a daemon-style identity, `secretProvider` to
 store secrets elsewhere, and `configDir` to write under another root. Error
-codes: `alias_exists`, `provider_unavailable`, `registration_failed` (nothing
-kept), `registration_incomplete` (seed and config kept; run the recovery
-command), `unsupported_credential`, `identity_mismatch`.
+codes: `alias_exists`, `provider_unavailable`, `registration_failed` (the server
+rejected the request), `registration_incomplete` (the server may have registered
+the identity; with a `subjectId` it did, so run the recovery command),
+`unsupported_credential`, `identity_mismatch`. Once stored, the seed is never
+deleted: `seedReference` names where it is kept.
 
 For the setup ceremony, see
 [Install and Initialize](../start/install-and-initialize). For the complete
