@@ -1,6 +1,8 @@
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import type { OAuth2Api, OAuth2Client } from '@ory/client-fetch';
 
+import { upstreamStatus } from './upstream-status.js';
+
 /**
  * Deterministic OAuth2 client ID for an agent.
  *
@@ -50,18 +52,6 @@ export function buildAgentOAuth2Client(
   };
 }
 
-function isConflict(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof error.response === 'object' &&
-    error.response !== null &&
-    'status' in error.response &&
-    error.response.status === 409
-  );
-}
-
 /**
  * Idempotent write of an agent's deterministic client: create it, and replace
  * it when it already exists. A create can commit in Hydra while its response
@@ -76,7 +66,7 @@ export async function createOrReplaceAgentOAuth2Client(
   try {
     await oauth2Api.createOAuth2Client({ oAuth2Client });
   } catch (error) {
-    if (!isConflict(error)) throw error;
+    if (upstreamStatus(error) !== 409) throw error;
     await oauth2Api.setOAuth2Client({
       id: oAuth2Client.client_id,
       oAuth2Client,

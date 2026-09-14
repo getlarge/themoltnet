@@ -37,6 +37,7 @@ import {
   buildAgentOAuth2Client,
   createOrReplaceAgentOAuth2Client,
 } from '../utils/agent-oauth2-client.js';
+import { upstreamStatus } from '../utils/upstream-status.js';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RecoveryChallengeBodySchema = {
@@ -54,21 +55,6 @@ export interface RecoveryRouteOptions {
   recoverySecret: string;
   identityClient: OryClients['identity'];
   nonceRepository: NonceRepository;
-}
-
-function upstreamStatus(error: unknown): number | undefined {
-  if (
-    typeof error !== 'object' ||
-    error === null ||
-    !('response' in error) ||
-    typeof error.response !== 'object' ||
-    error.response === null ||
-    !('status' in error.response) ||
-    typeof error.response.status !== 'number'
-  ) {
-    return undefined;
-  }
-  return error.response.status;
 }
 
 function nextPageToken(link: string | null): string | undefined {
@@ -442,11 +428,23 @@ export async function recoveryRoutes(
         existingClient = ranked.length === 1 ? ranked[0] : undefined;
       }
 
-      const minted = existingClient === undefined;
-      const clientId =
+      // The secret is generated before the client is resolved so the minted
+      // body, and therefore its client_id, comes from the one builder.
+      const clientSecret = crypto.randomUUID();
+      const mintedClient =
         existingClient === undefined
-          ? deterministicClientId
-          : existingClient.client_id;
+          ? buildAgentOAuth2Client({
+              agentId: agent.id,
+              identityId: agent.identityId,
+              publicKey: agent.publicKey,
+              fingerprint: agent.fingerprint,
+              clientSecret,
+            })
+          : undefined;
+      const minted = mintedClient !== undefined;
+      const clientId = mintedClient
+        ? mintedClient.client_id
+        : existingClient?.client_id;
       if (!clientId) {
         fastify.log.error(
           {
@@ -479,7 +477,6 @@ export async function recoveryRoutes(
         'OAuth2 credential recovery client resolved',
       );
 
-      const clientSecret = crypto.randomUUID();
       let sealedClientSecret: string;
       try {
         // Validate and prepare delivery before the irreversible Hydra write.
@@ -507,20 +504,13 @@ export async function recoveryRoutes(
       }
 
       try {
-        if (existingClient === undefined) {
-          const oAuth2Client = buildAgentOAuth2Client({
-            agentId: agent.id,
-            identityId: agent.identityId,
-            publicKey: agent.publicKey,
-            fingerprint: agent.fingerprint,
-            clientSecret,
-          });
+        if (mintedClient) {
           // A concurrent recovery or a late registration step can create the
           // deterministic client between lookup and mint; the helper replaces
           // it in that case.
           await createOrReplaceAgentOAuth2Client(
             fastify.oauth2Client,
-            oAuth2Client,
+            mintedClient,
           );
         } else {
           await fastify.oauth2Client.setOAuth2Client({
@@ -532,12 +522,16 @@ export async function recoveryRoutes(
           });
         }
       } catch (err) {
-        // Hydra admin error bodies can echo request context, so log only the
-        // upstream status and error name for this write.
+        // Hydra admin error bodies can echo request context, including the
+        // secret just sent, so the raw error is never logged. The Ory client
+        // error message is a fixed string and a network failure's message
+        // names the transport problem, so the message is safe and keeps the
+        // 502 triageable when there is no upstream status.
         fastify.log.error(
           {
             upstreamStatus: upstreamStatus(err),
             errorName: err instanceof Error ? err.name : typeof err,
+            errorMessage: err instanceof Error ? err.message : undefined,
             fingerprint: agent.fingerprint,
             identityId: agent.identityId,
             clientId,

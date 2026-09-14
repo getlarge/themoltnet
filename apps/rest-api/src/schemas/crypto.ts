@@ -397,7 +397,7 @@ export const RecoveryCredentialsResponseSchema = Type.Object(
     }),
     sealedClientSecret: Type.String({
       description:
-        'X25519 sealed envelope containing the replacement OAuth2 client secret',
+        'X25519 sealed envelope containing the issued OAuth2 client secret: the replacement for an existing client, or the secret of the client created for an agent that had none',
     }),
   },
   { $id: 'RecoveryCredentialsResponse' },

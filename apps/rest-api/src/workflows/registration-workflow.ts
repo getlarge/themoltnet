@@ -24,6 +24,7 @@ import {
   buildAgentOAuth2Client,
   createOrReplaceAgentOAuth2Client,
 } from '../utils/agent-oauth2-client.js';
+import { upstreamStatus } from '../utils/upstream-status.js';
 import type { Logger } from './logger.js';
 
 export const REGISTRATION_QUEUE_NAME = 'registration';
@@ -193,33 +194,6 @@ let _workflow: RegisterAgentFn | null = null;
 let _compensateSelfRegistration: CompensateSelfRegistrationFn | null = null;
 let _compensateTeamEnrollment: CompensateTeamEnrollmentFn | null = null;
 
-function isConflictError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof error.response === 'object' &&
-    error.response !== null &&
-    'status' in error.response &&
-    error.response.status === 409
-  );
-}
-
-function getResponseStatus(error: unknown): number | undefined {
-  if (
-    typeof error !== 'object' ||
-    error === null ||
-    !('response' in error) ||
-    typeof error.response !== 'object' ||
-    error.response === null ||
-    !('status' in error.response) ||
-    typeof error.response.status !== 'number'
-  ) {
-    return undefined;
-  }
-  return error.response.status;
-}
-
 /**
  * Issue the one-time bootstrap secret outside DBOS. Workflow inputs, step
  * outputs, events, and results are durable; bearer credentials must never be
@@ -341,7 +315,7 @@ export function initRegistrationWorkflow(): void {
         });
         return { identityId: identity.id, ownedForCompensation: true };
       } catch (error) {
-        if (!isConflictError(error)) throw error;
+        if (upstreamStatus(error) !== 409) throw error;
 
         // A create can commit in Kratos while its response is lost. The
         // public key is the schema's unique password credential identifier,
@@ -469,7 +443,7 @@ export function initRegistrationWorkflow(): void {
       try {
         await getDeps().identityApi.deleteIdentity({ id: identityId });
       } catch (error) {
-        if (getResponseStatus(error) !== 404) throw error;
+        if (upstreamStatus(error) !== 404) throw error;
       }
     },
     {

@@ -444,75 +444,12 @@ describe('Recovery routes', () => {
     const notFound = () =>
       Object.assign(new Error('not found'), { response: { status: 404 } });
 
+    const conflict = () =>
+      Object.assign(new Error('conflict'), { response: { status: 409 } });
+
     const page = (clients: unknown, link?: string) => ({
       raw: { headers: new Headers(link ? { link } : undefined) },
       value: vi.fn().mockResolvedValue(clients),
-    });
-
-    it('delivers the sealed replacement when post-commit eviction fails', async () => {
-      const keyPair = await cryptoService.generateKeyPair();
-      const agent = createMockAgent({
-        publicKey: keyPair.publicKey,
-        fingerprint: keyPair.fingerprint,
-      });
-      const challenge = generateRecoveryChallenge(
-        agent.publicKey,
-        'credentials',
-      );
-      const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
-      const signature = await cryptoService.sign(challenge, keyPair.privateKey);
-      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
-      mocks.cryptoService.verify.mockImplementation((...args) =>
-        cryptoService.verify(...args),
-      );
-
-      const getOAuth2Client = vi.fn().mockResolvedValue({
-        client_id: agentOAuth2ClientId(OWNER_ID),
-        client_name: `Agent: ${agent.fingerprint}`,
-        grant_types: ['client_credentials'],
-        response_types: [],
-        token_endpoint_auth_method: 'client_secret_post',
-        scope: 'openid',
-        metadata: { identity_id: OWNER_ID },
-      });
-      const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
-      const listOAuth2ClientsRaw = vi.fn();
-      const evictOAuthClient = vi.fn(() => {
-        throw new Error('validator cache unavailable');
-      });
-      const testApp = await createCredentialsApp(
-        { getOAuth2Client, listOAuth2ClientsRaw, setOAuth2Client },
-        evictOAuthClient,
-      );
-
-      try {
-        const response = await testApp.inject({
-          method: 'POST',
-          url: '/recovery/credentials',
-          payload: { challenge, hmac, signature, publicKey: agent.publicKey },
-        });
-
-        expect(response.statusCode).toBe(200);
-        const recovered = response.json();
-        const clientSecret = openSealedEnvelope(
-          recovered.sealedClientSecret,
-          keyPair.privateKey,
-        );
-        expect(recovered.clientId).toBe(agentOAuth2ClientId(OWNER_ID));
-        expect(clientSecret).toEqual(expect.any(String));
-        expect(clientSecret).not.toHaveLength(0);
-        expect(setOAuth2Client).toHaveBeenCalledWith({
-          id: recovered.clientId,
-          oAuth2Client: expect.objectContaining({
-            client_secret: clientSecret,
-            metadata: { identity_id: OWNER_ID },
-          }),
-        });
-        expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
-        expect(listOAuth2ClientsRaw).not.toHaveBeenCalled();
-      } finally {
-        await testApp.close();
-      }
     });
 
     /**
@@ -544,8 +481,57 @@ describe('Recovery routes', () => {
       return { agent, keyPair, payload };
     }
 
-    const conflict = () =>
-      Object.assign(new Error('conflict'), { response: { status: 409 } });
+    it('delivers the sealed replacement when post-commit eviction fails', async () => {
+      const { agent, keyPair, payload } = await createSealableAgent();
+
+      const getOAuth2Client = vi.fn().mockResolvedValue({
+        client_id: agentOAuth2ClientId(OWNER_ID),
+        client_name: `Agent: ${agent.fingerprint}`,
+        grant_types: ['client_credentials'],
+        response_types: [],
+        token_endpoint_auth_method: 'client_secret_post',
+        scope: 'openid',
+        metadata: { identity_id: OWNER_ID },
+      });
+      const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const listOAuth2ClientsRaw = vi.fn();
+      const evictOAuthClient = vi.fn(() => {
+        throw new Error('validator cache unavailable');
+      });
+      const testApp = await createCredentialsApp(
+        { getOAuth2Client, listOAuth2ClientsRaw, setOAuth2Client },
+        evictOAuthClient,
+      );
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload,
+        });
+
+        expect(response.statusCode).toBe(200);
+        const recovered = response.json();
+        const clientSecret = openSealedEnvelope(
+          recovered.sealedClientSecret,
+          keyPair.privateKey,
+        );
+        expect(recovered.clientId).toBe(agentOAuth2ClientId(OWNER_ID));
+        expect(clientSecret).toEqual(expect.any(String));
+        expect(clientSecret).not.toHaveLength(0);
+        expect(setOAuth2Client).toHaveBeenCalledWith({
+          id: recovered.clientId,
+          oAuth2Client: expect.objectContaining({
+            client_secret: clientSecret,
+            metadata: { identity_id: OWNER_ID },
+          }),
+        });
+        expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
+        expect(listOAuth2ClientsRaw).not.toHaveBeenCalled();
+      } finally {
+        await testApp.close();
+      }
+    });
 
     it('mints the deterministic client when the agent has none', async () => {
       const { agent, keyPair, payload } = await createSealableAgent();
@@ -666,7 +652,7 @@ describe('Recovery routes', () => {
       }
     });
 
-    it('returns 502 without a client when the mint fails', async () => {
+    it('returns 502 without a client when the initial create fails with a non-conflict error', async () => {
       const { payload } = await createSealableAgent();
       const setOAuth2Client = vi.fn();
       const testApp = await createCredentialsApp({
