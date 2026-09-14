@@ -35,6 +35,9 @@
         "{projectRoot}/src-tauri/Cargo.lock",
         "{projectRoot}/src-tauri/tauri.conf.json",
         "{projectRoot}/src-tauri/capabilities/**/*.json",
+        {
+          "env": "MOLTNET_AGENT_CLI_VERSION"
+        },
         "{workspaceRoot}/.tool-versions",
         "{workspaceRoot}/apps/landing/public/apple-touch-icon.png"
       ],
