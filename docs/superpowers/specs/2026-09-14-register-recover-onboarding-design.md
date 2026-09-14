@@ -63,22 +63,31 @@ Three concrete outcomes:
 ### Server
 
 Extract the Hydra client body builder from `issueRegistrationCredential` into
-`apps/rest-api/src/utils/agent-oauth2-client.ts`:
+`apps/rest-api/src/utils/agent-oauth2-client.ts`, next to `agentOAuth2ClientId`
+and a shared create-or-replace write:
 
 ```ts
 buildAgentOAuth2Client(input: {
-  agentId: string; identityId: string; publicKey: string;
+  agentId: string; identityId: string | null; publicKey: string;
   fingerprint: string; clientSecret: string;
-}): OAuth2Client
+}): OAuth2Client & { client_id: string }
+
+createOrReplaceAgentOAuth2Client(oauth2Api, oAuth2Client): Promise<void>
 ```
 
-Registration keeps calling it. In `/recovery/credentials`, after the
-deterministic lookup returns 404 and the legacy lookup ranks zero matches,
-create the deterministic client with a fresh secret through
-`createOAuth2Client`, falling back to `setOAuth2Client` on conflict exactly as
-registration does. The response is unchanged: `clientId` plus
-`sealedClientSecret` sealed to the agent's key. The log line records
-`minted: true` so rotation and mint are distinguishable in Axiom.
+`metadata.identity_id` is omitted when `identityId` is null, which is the case
+for an agent whose Kratos identity was deleted and not yet relinked.
+
+Registration and recovery both call the builder and the create-or-replace write,
+so a conflict on create is handled by one predicate. In `/recovery/credentials`,
+after the deterministic lookup returns 404 and the legacy lookup ranks zero
+matches, create the deterministic client with a fresh secret. The response body
+is unchanged: `clientId` plus `sealedClientSecret` sealed to the agent's key.
+The unreachable `404` response is removed from the route schema and the route
+and schema descriptions cover both outcomes. The log line records
+`resolution: minted` so rotation and mint are distinguishable in Axiom.
+Concurrent recoveries resolve last-write-wins; the CLI verifies the recovered
+secret against the token endpoint before persisting it.
 
 No new authorization: the Ed25519 proof of possession is the same authority that
 self-registration accepted.
@@ -90,12 +99,14 @@ rotates rather than creating a second client.
 
 ### CLI
 
-In `resolveRecoveryDestinationProvider`, when the config has no OAuth2 block,
-default the destination to the provider of `agent_key_ref` when present,
-otherwise `os-keyring`. Replace the "client_secret is plaintext" message with
-one that names the actual state. `reconcileRecoveredCredentials` already creates
-the `oauth2` section when it is missing. Add a Go test for the agent-key-only
-config.
+In `resolveRecoveryDestinationProvider`, an explicit `--destination` wins and an
+existing `client_secret_ref` provider is reused. A plaintext `client_secret`
+still requires `--destination`. With no OAuth2 secret at all (an agent-key-only
+identity, or a `client_id` left without any secret) the destination defaults to
+the provider of `agent_key_ref` when present, otherwise `os-keyring`, and the
+command prints a notice when that inherited provider is `file`.
+`reconcileRecoveredCredentials` already creates the `oauth2` section when it is
+missing. A table-driven Go test covers every branch.
 
 ## Component B: Go `register` stores the seed as a reference
 

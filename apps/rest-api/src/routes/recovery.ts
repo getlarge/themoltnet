@@ -6,7 +6,7 @@
  *
  * POST /recovery/challenge — generate HMAC-signed challenge
  * POST /recovery/verify    — verify signature, return Kratos recovery code
- * POST /recovery/credentials — verify signature, replace OAuth2 credentials
+ * POST /recovery/credentials — verify signature, issue or replace OAuth2 credentials
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -32,8 +32,11 @@ import {
   RecoveryProofSchema,
   RecoveryVerifyResponseSchema,
 } from '../schemas.js';
-import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
-import { buildAgentOAuth2Client } from '../utils/agent-oauth2-client.js';
+import {
+  agentOAuth2ClientId,
+  buildAgentOAuth2Client,
+  createOrReplaceAgentOAuth2Client,
+} from '../utils/agent-oauth2-client.js';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RecoveryChallengeBodySchema = {
@@ -282,12 +285,11 @@ export async function recoveryRoutes(
         operationId: 'recoverAgentCredentials',
         tags: ['recovery'],
         description:
-          'Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The replacement credentials are sealed to that key.',
+          'Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key. An existing client has its secret replaced; an agent without one (for example, registered with an agent key only) receives a new client. The credentials are sealed to that key. Concurrent recoveries for the same agent resolve last-write-wins: only the most recent response carries a secret that authenticates.',
         body: RecoveryProofBodySchema,
         response: {
           200: Type.Ref(RecoveryCredentialsResponseSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
-          404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
@@ -434,6 +436,9 @@ export async function recoveryRoutes(
             'Multiple OAuth2 clients match this agent identity',
           );
         }
+        // More than one match already threw above, so this is exactly one
+        // legacy client to rotate or none at all, in which case the
+        // deterministic client is minted below.
         existingClient = ranked.length === 1 ? ranked[0] : undefined;
       }
 
@@ -510,17 +515,13 @@ export async function recoveryRoutes(
             fingerprint: agent.fingerprint,
             clientSecret,
           });
-          try {
-            await fastify.oauth2Client.createOAuth2Client({ oAuth2Client });
-          } catch (err) {
-            // A concurrent recovery or a late registration step can have
-            // created the deterministic client between lookup and mint.
-            if (upstreamStatus(err) !== 409) throw err;
-            await fastify.oauth2Client.setOAuth2Client({
-              id: clientId,
-              oAuth2Client,
-            });
-          }
+          // A concurrent recovery or a late registration step can create the
+          // deterministic client between lookup and mint; the helper replaces
+          // it in that case.
+          await createOrReplaceAgentOAuth2Client(
+            fastify.oauth2Client,
+            oAuth2Client,
+          );
         } else {
           await fastify.oauth2Client.setOAuth2Client({
             id: clientId,
@@ -531,9 +532,12 @@ export async function recoveryRoutes(
           });
         }
       } catch (err) {
+        // Hydra admin error bodies can echo request context, so log only the
+        // upstream status and error name for this write.
         fastify.log.error(
           {
-            err,
+            upstreamStatus: upstreamStatus(err),
+            errorName: err instanceof Error ? err.name : typeof err,
             fingerprint: agent.fingerprint,
             identityId: agent.identityId,
             clientId,

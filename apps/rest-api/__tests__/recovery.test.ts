@@ -23,7 +23,7 @@ import {
 } from 'vitest';
 
 import { buildApp } from '../src/app.js';
-import { agentOAuth2ClientId } from '../src/utils/agent-oauth-client-id.js';
+import { agentOAuth2ClientId } from '../src/utils/agent-oauth2-client.js';
 import {
   createMockAgent,
   createMockServices,
@@ -467,7 +467,7 @@ describe('Recovery routes', () => {
       );
 
       const getOAuth2Client = vi.fn().mockResolvedValue({
-        client_id: `moltnet-agent-${OWNER_ID}`,
+        client_id: agentOAuth2ClientId(OWNER_ID),
         client_name: `Agent: ${agent.fingerprint}`,
         grant_types: ['client_credentials'],
         response_types: [],
@@ -498,7 +498,7 @@ describe('Recovery routes', () => {
           recovered.sealedClientSecret,
           keyPair.privateKey,
         );
-        expect(recovered.clientId).toBe(`moltnet-agent-${OWNER_ID}`);
+        expect(recovered.clientId).toBe(agentOAuth2ClientId(OWNER_ID));
         expect(clientSecret).toEqual(expect.any(String));
         expect(clientSecret).not.toHaveLength(0);
         expect(setOAuth2Client).toHaveBeenCalledWith({
@@ -515,7 +515,13 @@ describe('Recovery routes', () => {
       }
     });
 
-    it('mints the deterministic client when the agent has none', async () => {
+    /**
+     * Sealing the replacement secret needs a real Ed25519 public key, so the
+     * mint cases that reach the Hydra write cannot use the placeholder key
+     * the non-mutation table relies on. The key pair is returned so a test
+     * can unseal the response.
+     */
+    async function createSealableAgent() {
       const keyPair = await cryptoService.generateKeyPair();
       const agent = createMockAgent({
         publicKey: keyPair.publicKey,
@@ -525,13 +531,24 @@ describe('Recovery routes', () => {
         agent.publicKey,
         'credentials',
       );
-      const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
-      const signature = await cryptoService.sign(challenge, keyPair.privateKey);
+      const payload = {
+        challenge,
+        hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+        signature: await cryptoService.sign(challenge, keyPair.privateKey),
+        publicKey: agent.publicKey,
+      };
       mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
       mocks.cryptoService.verify.mockImplementation((...args) =>
         cryptoService.verify(...args),
       );
+      return { agent, keyPair, payload };
+    }
 
+    const conflict = () =>
+      Object.assign(new Error('conflict'), { response: { status: 409 } });
+
+    it('mints the deterministic client when the agent has none', async () => {
+      const { agent, keyPair, payload } = await createSealableAgent();
       const createOAuth2Client = vi.fn().mockResolvedValue(undefined);
       const setOAuth2Client = vi.fn();
       const evictOAuthClient = vi.fn();
@@ -549,7 +566,7 @@ describe('Recovery routes', () => {
         const response = await testApp.inject({
           method: 'POST',
           url: '/recovery/credentials',
-          payload: { challenge, hmac, signature, publicKey: agent.publicKey },
+          payload,
         });
 
         expect(response.statusCode).toBe(200);
@@ -581,42 +598,9 @@ describe('Recovery routes', () => {
       }
     });
 
-    /**
-     * Sealing the replacement secret needs a real Ed25519 public key, so the
-     * mint cases that reach the Hydra write cannot use the placeholder key
-     * the non-mutation table relies on.
-     */
-    async function createSealableAgent() {
-      const keyPair = await cryptoService.generateKeyPair();
-      const agent = createMockAgent({
-        publicKey: keyPair.publicKey,
-        fingerprint: keyPair.fingerprint,
-      });
-      const challenge = generateRecoveryChallenge(
-        agent.publicKey,
-        'credentials',
-      );
-      const payload = {
-        challenge,
-        hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
-        signature: await cryptoService.sign(challenge, keyPair.privateKey),
-        publicKey: agent.publicKey,
-      };
-      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
-      mocks.cryptoService.verify.mockImplementation((...args) =>
-        cryptoService.verify(...args),
-      );
-      return { agent, payload };
-    }
-
     it('falls back to replacing the client when the mint conflicts', async () => {
-      const { agent, payload } = await createSealableAgent();
-
-      const createOAuth2Client = vi
-        .fn()
-        .mockRejectedValue(
-          Object.assign(new Error('conflict'), { response: { status: 409 } }),
-        );
+      const { agent, keyPair, payload } = await createSealableAgent();
+      const createOAuth2Client = vi.fn().mockRejectedValue(conflict());
       const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
       const testApp = await createCredentialsApp({
         getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
@@ -633,11 +617,18 @@ describe('Recovery routes', () => {
         });
 
         expect(response.statusCode).toBe(200);
+        const clientSecret = openSealedEnvelope(
+          response.json().sealedClientSecret,
+          keyPair.privateKey,
+        );
         expect(createOAuth2Client).toHaveBeenCalledTimes(1);
+        // The replace must write the same secret the response seals, or the
+        // caller receives a credential that never authenticates.
         expect(setOAuth2Client).toHaveBeenCalledWith({
           id: agentOAuth2ClientId(agent.id),
           oAuth2Client: expect.objectContaining({
             client_id: agentOAuth2ClientId(agent.id),
+            client_secret: clientSecret,
           }),
         });
       } finally {
@@ -645,9 +636,38 @@ describe('Recovery routes', () => {
       }
     });
 
+    it('returns 502 when the conflict fallback write also fails', async () => {
+      const { payload } = await createSealableAgent();
+      const evictOAuthClient = vi.fn();
+      const testApp = await createCredentialsApp(
+        {
+          getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+          listOAuth2ClientsRaw: vi.fn().mockResolvedValue(page([])),
+          createOAuth2Client: vi.fn().mockRejectedValue(conflict()),
+          setOAuth2Client: vi
+            .fn()
+            .mockRejectedValue(new Error('Hydra unavailable')),
+        },
+        evictOAuthClient,
+      );
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload,
+        });
+
+        expect(response.statusCode).toBe(502);
+        expect(response.json()).not.toHaveProperty('sealedClientSecret');
+        expect(evictOAuthClient).not.toHaveBeenCalled();
+      } finally {
+        await testApp.close();
+      }
+    });
+
     it('returns 502 without a client when the mint fails', async () => {
       const { payload } = await createSealableAgent();
-
       const setOAuth2Client = vi.fn();
       const testApp = await createCredentialsApp({
         getOAuth2Client: vi.fn().mockRejectedValue(notFound()),

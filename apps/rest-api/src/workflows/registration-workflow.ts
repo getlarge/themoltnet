@@ -20,8 +20,10 @@ import {
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
-import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
-import { buildAgentOAuth2Client } from '../utils/agent-oauth2-client.js';
+import {
+  buildAgentOAuth2Client,
+  createOrReplaceAgentOAuth2Client,
+} from '../utils/agent-oauth2-client.js';
 import type { Logger } from './logger.js';
 
 export const REGISTRATION_QUEUE_NAME = 'registration';
@@ -230,7 +232,6 @@ export async function issueRegistrationCredential(
   let credential: RegistrationCredential;
   if (registration.credentialType === 'oauth2') {
     const { oauth2Api } = getDeps();
-    const clientId = agentOAuth2ClientId(registration.agentId);
     const clientSecret = crypto.randomUUID();
     const oAuth2Client = buildAgentOAuth2Client({
       agentId: registration.agentId,
@@ -239,13 +240,12 @@ export async function issueRegistrationCredential(
       fingerprint: registration.fingerprint,
       clientSecret,
     });
-    try {
-      await oauth2Api.createOAuth2Client({ oAuth2Client });
-    } catch (error) {
-      if (!isConflictError(error)) throw error;
-      await oauth2Api.setOAuth2Client({ id: clientId, oAuth2Client });
-    }
-    credential = { type: 'oauth2', clientId, clientSecret };
+    await createOrReplaceAgentOAuth2Client(oauth2Api, oAuth2Client);
+    credential = {
+      type: 'oauth2',
+      clientId: oAuth2Client.client_id,
+      clientSecret,
+    };
   } else {
     const subject: AgentKeySubject = {
       subjectId: registration.agentId,

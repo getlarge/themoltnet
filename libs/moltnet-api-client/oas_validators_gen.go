@@ -24981,14 +24981,6 @@ func (s *RecoverAgentCredentialsInternalServerError) Validate() error {
 	return nil
 }
 
-func (s *RecoverAgentCredentialsNotFound) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *RecoveryChallengeRequest) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer

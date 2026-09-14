@@ -1,7 +1,18 @@
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
-import type { OAuth2Client } from '@ory/client-fetch';
+import type { OAuth2Api, OAuth2Client } from '@ory/client-fetch';
 
-import { agentOAuth2ClientId } from './agent-oauth-client-id.js';
+/**
+ * Deterministic OAuth2 client ID for an agent.
+ *
+ * Derived from the agent's INTERNAL id, never from its Kratos identity. A
+ * Kratos identity can be recreated (see the 2026-09-04 incident), and when it
+ * is, an identity-derived client ID silently stops resolving — credential
+ * recovery then looks up a client that does not exist. `agents.id` is
+ * immutable, so the derivation is stable for the life of the agent.
+ */
+export function agentOAuth2ClientId(agentId: string): string {
+  return `moltnet-agent-${agentId}`;
+}
 
 export interface AgentOAuth2ClientInput {
   /** Durable `agents.id`; the token webhook looks clients up by it. */
@@ -20,7 +31,7 @@ export interface AgentOAuth2ClientInput {
  */
 export function buildAgentOAuth2Client(
   input: AgentOAuth2ClientInput,
-): OAuth2Client {
+): OAuth2Client & { client_id: string } {
   return {
     client_id: agentOAuth2ClientId(input.agentId),
     client_secret: input.clientSecret,
@@ -37,4 +48,38 @@ export function buildAgentOAuth2Client(
       fingerprint: input.fingerprint,
     },
   };
+}
+
+function isConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof error.response === 'object' &&
+    error.response !== null &&
+    'status' in error.response &&
+    error.response.status === 409
+  );
+}
+
+/**
+ * Idempotent write of an agent's deterministic client: create it, and replace
+ * it when it already exists. A create can commit in Hydra while its response
+ * is lost, and a concurrent recovery can create the same id between a lookup
+ * and this write; both land on the replace. The last write wins, so the
+ * secret passed here is the one that authenticates afterwards.
+ */
+export async function createOrReplaceAgentOAuth2Client(
+  oauth2Api: Pick<OAuth2Api, 'createOAuth2Client' | 'setOAuth2Client'>,
+  oAuth2Client: OAuth2Client & { client_id: string },
+): Promise<void> {
+  try {
+    await oauth2Api.createOAuth2Client({ oAuth2Client });
+  } catch (error) {
+    if (!isConflict(error)) throw error;
+    await oauth2Api.setOAuth2Client({
+      id: oAuth2Client.client_id,
+      oAuth2Client,
+    });
+  }
 }

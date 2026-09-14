@@ -1,8 +1,11 @@
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { agentOAuth2ClientId } from '../src/utils/agent-oauth-client-id.js';
-import { buildAgentOAuth2Client } from '../src/utils/agent-oauth2-client.js';
+import {
+  agentOAuth2ClientId,
+  buildAgentOAuth2Client,
+  createOrReplaceAgentOAuth2Client,
+} from '../src/utils/agent-oauth2-client.js';
 
 describe('buildAgentOAuth2Client', () => {
   const input = {
@@ -39,5 +42,58 @@ describe('buildAgentOAuth2Client', () => {
 
     expect(client.metadata).not.toHaveProperty('identity_id');
     expect(client.metadata).toMatchObject({ agent_id: input.agentId });
+  });
+});
+
+describe('createOrReplaceAgentOAuth2Client', () => {
+  const client = buildAgentOAuth2Client({
+    agentId: '11111111-1111-4111-8111-111111111111',
+    identityId: null,
+    publicKey: 'ed25519:AAAA+/bbbb==',
+    fingerprint: 'ABCD-EF01-2345-6789',
+    clientSecret: 'secret-value',
+  });
+  const withStatus = (status: number) =>
+    Object.assign(new Error(`status ${status}`), { response: { status } });
+
+  it('creates the client when it does not exist', async () => {
+    const api = {
+      createOAuth2Client: vi.fn().mockResolvedValue(undefined),
+      setOAuth2Client: vi.fn(),
+    };
+
+    await createOrReplaceAgentOAuth2Client(api as never, client);
+
+    expect(api.createOAuth2Client).toHaveBeenCalledWith({
+      oAuth2Client: client,
+    });
+    expect(api.setOAuth2Client).not.toHaveBeenCalled();
+  });
+
+  it('replaces the client with the same body on a conflict', async () => {
+    const api = {
+      createOAuth2Client: vi.fn().mockRejectedValue(withStatus(409)),
+      setOAuth2Client: vi.fn().mockResolvedValue(undefined),
+    };
+
+    await createOrReplaceAgentOAuth2Client(api as never, client);
+
+    expect(api.setOAuth2Client).toHaveBeenCalledWith({
+      id: client.client_id,
+      oAuth2Client: client,
+    });
+  });
+
+  it('rethrows any other upstream failure without replacing', async () => {
+    const failure = withStatus(503);
+    const api = {
+      createOAuth2Client: vi.fn().mockRejectedValue(failure),
+      setOAuth2Client: vi.fn(),
+    };
+
+    await expect(
+      createOrReplaceAgentOAuth2Client(api as never, client),
+    ).rejects.toBe(failure);
+    expect(api.setOAuth2Client).not.toHaveBeenCalled();
   });
 });

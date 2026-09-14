@@ -702,8 +702,11 @@ type Handler interface {
 	PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
 	// RecoverAgentCredentials implements recoverAgentCredentials operation.
 	//
-	// Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The
-	// replacement credentials are sealed to that key.
+	// Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key.
+	// An existing client has its secret replaced; an agent without one (for example, registered with an
+	// agent key only) receives a new client. The credentials are sealed to that key. Concurrent
+	// recoveries for the same agent resolve last-write-wins: only the most recent response carries a
+	// secret that authenticates.
 	//
 	// POST /recovery/credentials
 	RecoverAgentCredentials(ctx context.Context, req *RecoveryProof) (RecoverAgentCredentialsRes, error)
