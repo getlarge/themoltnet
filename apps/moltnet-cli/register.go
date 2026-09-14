@@ -89,6 +89,19 @@ func DoRegister(apiURL, credentialType string) (*RegisterResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	return DoRegisterWithKeyPair(apiURL, credentialType, kp)
+}
+
+// DoRegisterWithKeyPair self-registers an identity whose keypair the caller
+// already holds. The register command stores the seed before calling this so
+// the keypair survives a failure after the server has committed.
+func DoRegisterWithKeyPair(apiURL, credentialType string, kp *KeyPair) (*RegisterResult, error) {
+	if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
+		return nil, fmt.Errorf("credential type must be oauth2 or agent_key")
+	}
+	if kp == nil {
+		return nil, fmt.Errorf("registration requires a generated keypair")
+	}
 	nonce, err := newRegistrationNonce()
 	if err != nil {
 		return nil, err
