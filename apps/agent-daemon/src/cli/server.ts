@@ -64,6 +64,10 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       'heartbeat-interval-ms': { type: 'string' },
       'warm-retention-sec': { type: 'string' },
       remove: { type: 'boolean' },
+      status: { type: 'boolean' },
+      yes: { type: 'boolean' },
+      json: { type: 'boolean' },
+      supervised: { type: 'boolean' },
     },
   });
 
@@ -84,8 +88,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     values['api-url'] ?? (envConfig.apiUrl || DEFAULT_API_URL);
   const runtimeSettings = parseLocalOperationalSettings(values);
 
-  const store = new AgentServerStore(root).ensure();
   if (trustRequested) return runTrustCommand(commandArgs, root);
+  const store = new AgentServerStore(root).ensure();
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.server',
     level: envConfig.logLevel || 'info',
@@ -160,6 +164,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
               runs,
               app,
               shutdownController,
+              Boolean(values.supervised),
             );
           } catch (cause) {
             await app.close().catch(() => undefined);
@@ -186,21 +191,91 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   }
 }
 
-async function runTrustCommand(argv: string[], root: string): Promise<number> {
+interface TrustStatus {
+  supported: boolean;
+  trusted: boolean;
+  fingerprint: string | null;
+}
+
+export async function runTrustCommand(
+  argv: string[],
+  root: string,
+): Promise<number> {
+  const statusRequested = argv.includes('--status');
+  const removeRequested = argv.includes('--remove');
+  const yes = argv.includes('--yes');
+  const json = argv.includes('--json');
+  if (statusRequested && (removeRequested || yes)) {
+    console.error('Usage: moltnet-agent server trust --status [--json]');
+    return 1;
+  }
   if (!isMacos()) {
+    if (json) {
+      printTrustStatus({
+        supported: false,
+        trusted: false,
+        fingerprint: null,
+      });
+      return 0;
+    }
     console.error(
       'Local HTTPS trust setup is currently supported on macOS only.',
     );
     return 1;
   }
-  if (argv.includes('--remove')) {
-    await removeLocalCa(root);
-    console.error('Removed the MoltNet local CA from your login keychain.');
+
+  const material = await ensureLocalTlsMaterial(root);
+  if (statusRequested) {
+    const trusted = await isLocalCaTrusted(root);
+    if (json)
+      printTrustStatus({
+        supported: true,
+        trusted,
+        fingerprint: material.fingerprint,
+      });
+    else
+      console.log(
+        trusted
+          ? `MoltNet local CA ${material.fingerprint} is trusted.`
+          : `MoltNet local CA ${material.fingerprint} is not trusted.`,
+      );
     return 0;
   }
-  await ensureTrustedLocalTls(root);
-  console.error('MoltNet local HTTPS trust is ready for this macOS user.');
+
+  if (json && !yes) {
+    console.error(
+      'Machine-readable trust changes require --yes after native app consent.',
+    );
+    return 1;
+  }
+
+  if (removeRequested) {
+    await removeLocalCa(root);
+    if (json)
+      printTrustStatus({
+        supported: true,
+        trusted: false,
+        fingerprint: material.fingerprint,
+      });
+    else
+      console.error('Removed the MoltNet local CA from your login keychain.');
+    return 0;
+  }
+
+  if (yes) await trustLocalCa(root);
+  else await ensureTrustedLocalTls(root);
+  if (json)
+    printTrustStatus({
+      supported: true,
+      trusted: await isLocalCaTrusted(root),
+      fingerprint: material.fingerprint,
+    });
+  else console.error('MoltNet local HTTPS trust is ready for this macOS user.');
   return 0;
+}
+
+function printTrustStatus(status: TrustStatus): void {
+  console.log(JSON.stringify(status));
 }
 
 async function ensureTrustedLocalTls(root: string) {
@@ -236,6 +311,7 @@ function waitForAgentServerShutdown(
     server: { closeAllConnections(): void };
   },
   shutdownController: AbortController,
+  supervised: boolean,
 ): Promise<number> {
   return new Promise<number>((resolvePromise) => {
     let shuttingDown = false;
@@ -285,6 +361,7 @@ function waitForAgentServerShutdown(
           );
         }
         handlers.dispose();
+        stdinGuard.dispose();
         const exitCode =
           typeof process.exitCode === 'number' ? process.exitCode : 0;
         resolvePromise(failures.length > 0 ? 1 : exitCode);
@@ -294,5 +371,31 @@ function waitForAgentServerShutdown(
       logDrain: () => console.error('shutting down: stopping runs…'),
       drain: shutdown,
     });
+    const stdinGuard = installSupervisedStdinGuard({
+      enabled: supervised,
+      shutdown,
+    });
   });
+}
+
+interface SupervisedStdin {
+  readableEnded?: boolean;
+  once(event: 'end', listener: () => void): unknown;
+  off(event: 'end', listener: () => void): unknown;
+  resume(): unknown;
+}
+
+/** Makes the supervising process's stdin pipe part of the server lifecycle. */
+export function installSupervisedStdinGuard(options: {
+  enabled: boolean;
+  shutdown: () => void;
+  input?: SupervisedStdin;
+}): { dispose: () => void } {
+  if (!options.enabled) return { dispose: () => undefined };
+  const input = options.input ?? process.stdin;
+  const onEnd = (): void => options.shutdown();
+  input.once('end', onEnd);
+  input.resume();
+  if (input.readableEnded) queueMicrotask(onEnd);
+  return { dispose: () => input.off('end', onEnd) };
 }
