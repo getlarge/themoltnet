@@ -24,6 +24,46 @@ import type { Database } from '@moltnet/database';
 import { buildSelfRegistrationMessage } from '@moltnet/models';
 import type { FrontendApi } from '@ory/client-fetch';
 
+// ── Registration Helpers ──────────────────────────────────────────────────────
+
+/** A self-registration request signed locally, ready to POST. */
+export async function signedSelfRegistration(
+  credentialType: 'oauth2' | 'agent_key',
+  existingKeyPair?: KeyPair,
+) {
+  const keyPair = existingKeyPair ?? (await cryptoService.generateKeyPair());
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const proof = await cryptoService.sign(
+    buildSelfRegistrationMessage({
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType,
+    }),
+    keyPair.privateKey,
+  );
+  return { credentialType, idempotencyKey, keyPair, proof };
+}
+
+/** POST a signed self-registration and return the raw response. */
+export function postSelfRegistration(
+  baseUrl: string,
+  input: Awaited<ReturnType<typeof signedSelfRegistration>>,
+) {
+  return fetch(`${baseUrl}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'Idempotency-Key': input.idempotencyKey,
+    },
+    body: JSON.stringify({
+      publicKey: input.keyPair.publicKey,
+      proof: input.proof,
+      credentialType: input.credentialType,
+    }),
+  });
+}
+
 // ── Polling Helpers ───────────────────────────────────────────────────────────
 
 export interface PollOptions {
@@ -166,37 +206,15 @@ export async function createAgent(opts: {
   db: Database;
   bootstrapIdentityId: string;
 }): Promise<TestAgent> {
-  // 1. Generate Ed25519 keypair
-  const keyPair = await cryptoService.generateKeyPair();
-
   // Keep the legacy setup inputs while callers migrate; self-registration no
   // longer needs direct database access or a bootstrap issuer.
   void opts.db;
   void opts.bootstrapIdentityId;
-  const idempotencyKey = randomBytes(32).toString('base64url');
-  const proof = await cryptoService.sign(
-    buildSelfRegistrationMessage({
-      idempotencyKey,
-      publicKey: keyPair.publicKey,
-      credentialType: 'oauth2',
-    }),
-    keyPair.privateKey,
-  );
 
-  // 2. Register via DBOS workflow
-  const regRes = await fetch(`${opts.baseUrl}/auth/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'Idempotency-Key': idempotencyKey,
-    },
-    body: JSON.stringify({
-      publicKey: keyPair.publicKey,
-      proof,
-      credentialType: 'oauth2',
-    }),
-  });
+  // 1-2. Sign locally and register via the DBOS workflow
+  const registration = await signedSelfRegistration('oauth2');
+  const { keyPair } = registration;
+  const regRes = await postSelfRegistration(opts.baseUrl, registration);
 
   if (!regRes.ok) {
     const body = await regRes.text();

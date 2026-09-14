@@ -20,7 +20,11 @@ import {
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
-import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
+import {
+  buildAgentOAuth2Client,
+  createOrReplaceAgentOAuth2Client,
+} from '../utils/agent-oauth2-client.js';
+import { upstreamStatus } from '../utils/upstream-status.js';
 import type { Logger } from './logger.js';
 
 export const REGISTRATION_QUEUE_NAME = 'registration';
@@ -190,33 +194,6 @@ let _workflow: RegisterAgentFn | null = null;
 let _compensateSelfRegistration: CompensateSelfRegistrationFn | null = null;
 let _compensateTeamEnrollment: CompensateTeamEnrollmentFn | null = null;
 
-function isConflictError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'response' in error &&
-    typeof error.response === 'object' &&
-    error.response !== null &&
-    'status' in error.response &&
-    error.response.status === 409
-  );
-}
-
-function getResponseStatus(error: unknown): number | undefined {
-  if (
-    typeof error !== 'object' ||
-    error === null ||
-    !('response' in error) ||
-    typeof error.response !== 'object' ||
-    error.response === null ||
-    !('status' in error.response) ||
-    typeof error.response.status !== 'number'
-  ) {
-    return undefined;
-  }
-  return error.response.status;
-}
-
 /**
  * Issue the one-time bootstrap secret outside DBOS. Workflow inputs, step
  * outputs, events, and results are durable; bearer credentials must never be
@@ -229,33 +206,20 @@ export async function issueRegistrationCredential(
   let credential: RegistrationCredential;
   if (registration.credentialType === 'oauth2') {
     const { oauth2Api } = getDeps();
-    const clientId = agentOAuth2ClientId(registration.agentId);
     const clientSecret = crypto.randomUUID();
-    const oAuth2Client = {
-      client_id: clientId,
-      client_secret: clientSecret,
-      client_name: `Agent: ${registration.fingerprint}`,
-      grant_types: ['client_credentials'],
-      response_types: [] as string[],
-      token_endpoint_auth_method: 'client_secret_post',
-      scope: AGENT_OAUTH_SCOPES.join(' '),
-      metadata: {
-        type: 'moltnet_agent',
-        // agent_id is the durable lookup key used by the token webhook;
-        // identity_id is retained as the Kratos binding and may go stale.
-        agent_id: registration.agentId,
-        identity_id: registration.identityId,
-        public_key: registration.publicKey,
-        fingerprint: registration.fingerprint,
-      },
+    const oAuth2Client = buildAgentOAuth2Client({
+      agentId: registration.agentId,
+      identityId: registration.identityId,
+      publicKey: registration.publicKey,
+      fingerprint: registration.fingerprint,
+      clientSecret,
+    });
+    await createOrReplaceAgentOAuth2Client(oauth2Api, oAuth2Client);
+    credential = {
+      type: 'oauth2',
+      clientId: oAuth2Client.client_id,
+      clientSecret,
     };
-    try {
-      await oauth2Api.createOAuth2Client({ oAuth2Client });
-    } catch (error) {
-      if (!isConflictError(error)) throw error;
-      await oauth2Api.setOAuth2Client({ id: clientId, oAuth2Client });
-    }
-    credential = { type: 'oauth2', clientId, clientSecret };
   } else {
     const subject: AgentKeySubject = {
       subjectId: registration.agentId,
@@ -351,7 +315,7 @@ export function initRegistrationWorkflow(): void {
         });
         return { identityId: identity.id, ownedForCompensation: true };
       } catch (error) {
-        if (!isConflictError(error)) throw error;
+        if (upstreamStatus(error) !== 409) throw error;
 
         // A create can commit in Kratos while its response is lost. The
         // public key is the schema's unique password credential identifier,
@@ -479,7 +443,7 @@ export function initRegistrationWorkflow(): void {
       try {
         await getDeps().identityApi.deleteIdentity({ id: identityId });
       } catch (error) {
-        if (getResponseStatus(error) !== 404) throw error;
+        if (upstreamStatus(error) !== 404) throw error;
       }
     },
     {

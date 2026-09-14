@@ -54,11 +54,11 @@ func TestAgentsCredentialsRecoverRequiresConfirmation(t *testing.T) {
 	}
 }
 
-func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
-	keyPair, err := GenerateKeyPair()
-	if err != nil {
-		t.Fatalf("generate key pair: %v", err)
-	}
+// newRecoveryTestServer serves the challenge, recovery, and token endpoints
+// the recover command touches, for the given key pair. It returns the server
+// and call counters for the challenge and recovery endpoints.
+func newRecoveryTestServer(t *testing.T, keyPair *KeyPair) (*httptest.Server, *atomic.Int32, *atomic.Int32) {
+	t.Helper()
 	var challengeCalls atomic.Int32
 	var recoveryCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(
@@ -134,7 +134,16 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	t.Cleanup(server.Close)
+	return server, &challengeCalls, &recoveryCalls
+}
+
+func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	server, challengeCalls, recoveryCalls := newRecoveryTestServer(t, keyPair)
 
 	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
 	secretRoot := t.TempDir()
@@ -1437,4 +1446,187 @@ type failingWriter struct{}
 
 func (failingWriter) Write([]byte) (int, error) {
 	return 0, errors.New("write failed")
+}
+
+func TestAgentsCredentialsRecoverDefaultsDestinationForAgentKeyIdentity(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	server, _, recoveryCalls := newRecoveryTestServer(t, keyPair)
+
+	secretRoot := t.TempDir()
+	t.Setenv(secretRootEnv, secretRoot)
+	t.Setenv(secretRootWritableEnv, "1")
+	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
+	credentials := &CredentialsFile{
+		SubjectID:   "subject-id",
+		SubjectType: SubjectTypeAgent,
+		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: AgentKeyKey("subject-id")},
+		Keys: CredentialsKeys{
+			PublicKey:   keyPair.PublicKey,
+			PrivateKey:  keyPair.PrivateKey,
+			Fingerprint: keyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{API: server.URL},
+	}
+	if _, err := WriteConfigTo(credentials, credentialsPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, stderr, err := executeCommand(
+		root,
+		"--credentials", credentialsPath,
+		"agents", "credentials", "recover", "--yes",
+	)
+	if err != nil {
+		t.Fatalf("recover without --destination: %v\nstderr: %s", err, stderr)
+	}
+	if recoveryCalls.Load() != 1 {
+		t.Fatalf("recovery calls = %d, want 1", recoveryCalls.Load())
+	}
+	if !strings.Contains(stderr, "inherited from agent_key_ref") {
+		t.Fatalf("stderr does not name the inherited file provider:\n%s", stderr)
+	}
+
+	updated, err := ReadConfigFrom(credentialsPath)
+	if err != nil {
+		t.Fatalf("read recovered credentials: %v", err)
+	}
+	if updated.OAuth2.ClientID != "recovered-client-id" ||
+		updated.OAuth2.ClientSecretRef == nil ||
+		updated.OAuth2.ClientSecretRef.Provider != fileProviderName ||
+		updated.OAuth2.ClientSecretRef.Key != OAuth2SecretKey("subject-id", "recovered-client-id") {
+		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
+	}
+	if updated.AgentKeyRef == nil || updated.AgentKeyRef.Key != AgentKeyKey("subject-id") {
+		t.Fatalf("agent key reference was not preserved: %#v", updated.AgentKeyRef)
+	}
+}
+
+func TestResolveRecoveryDestinationProvider(t *testing.T) {
+	t.Setenv(secretRootEnv, t.TempDir())
+	t.Setenv(secretRootWritableEnv, "1")
+	registry := NewSecretProviderRegistry()
+	fileRef := &SecretReference{Provider: fileProviderName, Key: "any"}
+
+	tests := []struct {
+		name      string
+		creds     CredentialsFile
+		requested string
+		want      string
+		wantErr   string
+	}{
+		{
+			name:      "explicit destination wins over every stored reference",
+			creds:     CredentialsFile{OAuth2: CredentialsOAuth2{ClientSecretRef: fileRef}},
+			requested: osKeyringProviderName,
+			want:      osKeyringProviderName,
+		},
+		{
+			name:  "existing client_secret_ref provider is reused",
+			creds: CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecretRef: fileRef}},
+			want:  fileProviderName,
+		},
+		{
+			name:    "plaintext client_secret requires an explicit destination",
+			creds:   CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "plaintext"}},
+			wantErr: "stored as plaintext",
+		},
+		{
+			name:  "agent-key-only identity inherits the agent key provider",
+			creds: CredentialsFile{AgentKeyRef: fileRef},
+			want:  fileProviderName,
+		},
+		{
+			name:  "client_id without any secret inherits the agent key provider",
+			creds: CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client"}, AgentKeyRef: fileRef},
+			want:  fileProviderName,
+		},
+		{
+			name:  "no secret and no agent key falls back to the OS keyring",
+			creds: CredentialsFile{},
+			want:  osKeyringProviderName,
+		},
+		{
+			name:  "whitespace-only client_secret counts as no secret",
+			creds: CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "  \t"}, AgentKeyRef: fileRef},
+			want:  fileProviderName,
+		},
+		{
+			name:      "whitespace-only destination counts as unset",
+			creds:     CredentialsFile{OAuth2: CredentialsOAuth2{ClientSecretRef: fileRef}},
+			requested: "   ",
+			want:      fileProviderName,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			creds := tt.creds
+
+			got, err := resolveRecoveryDestinationProvider(&creds, tt.requested, registry)
+
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want containing %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("provider = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRecoveryDestinationNotice(t *testing.T) {
+	t.Parallel()
+	fileRef := &SecretReference{Provider: fileProviderName, Key: "any"}
+
+	tests := []struct {
+		name       string
+		creds      CredentialsFile
+		requested  string
+		provider   string
+		wantNotice bool
+	}{
+		{
+			name:       "file provider inherited from agent_key_ref",
+			creds:      CredentialsFile{AgentKeyRef: fileRef},
+			provider:   fileProviderName,
+			wantNotice: true,
+		},
+		{
+			name:      "explicit file destination",
+			creds:     CredentialsFile{AgentKeyRef: fileRef},
+			requested: fileProviderName,
+			provider:  fileProviderName,
+		},
+		{
+			name:     "existing file client_secret_ref reused",
+			creds:    CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecretRef: fileRef}},
+			provider: fileProviderName,
+		},
+		{
+			name:     "OS keyring inherited or defaulted",
+			creds:    CredentialsFile{AgentKeyRef: &SecretReference{Provider: osKeyringProviderName, Key: "any"}},
+			provider: osKeyringProviderName,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			creds := tt.creds
+
+			notice := recoveryDestinationNotice(&creds, tt.requested, tt.provider)
+
+			if (notice != "") != tt.wantNotice {
+				t.Fatalf("notice = %q, want notice: %v", notice, tt.wantNotice)
+			}
+		})
+	}
 }

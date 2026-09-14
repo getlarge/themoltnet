@@ -194,6 +194,11 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err := verifyCredentials(apiURL, recovery.ClientId, clientSecret); err != nil {
 		return fmt.Errorf("agents credentials recover: verify replacement OAuth2 credentials: %w", err)
 	}
+	// Only now is there a verified secret to store, so the notice cannot
+	// describe a destination for a command that then fails on the network.
+	if notice := recoveryDestinationNotice(creds, opts.destination, destinationProvider); notice != "" && opts.errOut != nil {
+		fmt.Fprintln(opts.errOut, notice)
+	}
 
 	writeArtifact := opts.writeRecoveredArtifact
 	if writeArtifact == nil {
@@ -238,21 +243,38 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	return nil
 }
 
+// resolveRecoveryDestinationProvider picks where the recovered OAuth2 secret
+// is stored. An explicit --destination always wins. Otherwise an existing
+// client_secret_ref provider is reused. A plaintext client_secret needs an
+// explicit destination, because moving away from plaintext is a deliberate
+// choice. With no OAuth2 secret at all (an agent-key-only identity, or an
+// OAuth2 block left with a client_id but no secret) the provider of
+// agent_key_ref is inherited, falling back to the OS keyring.
 func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (string, error) {
-	if strings.TrimSpace(requested) == "" {
-		if creds.OAuth2.ClientSecretRef == nil {
-			return "", fmt.Errorf("--destination is required when oauth2.client_secret is plaintext")
-		}
-		if _, err := validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider); err != nil {
-			return "", err
-		}
-		return creds.OAuth2.ClientSecretRef.Provider, nil
+	if strings.TrimSpace(requested) != "" {
+		return validateMigrationDestination(registry, requested)
 	}
-	provider, err := validateMigrationDestination(registry, requested)
-	if err != nil {
-		return "", err
+	switch {
+	case creds.OAuth2.ClientSecretRef != nil:
+		return validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider)
+	case strings.TrimSpace(creds.OAuth2.ClientSecret) != "":
+		return "", fmt.Errorf("--destination is required when oauth2.client_secret is stored as plaintext; choose the provider that should hold the recovered secret")
+	case creds.AgentKeyRef != nil && creds.AgentKeyRef.Provider != "":
+		return validateMigrationDestination(registry, creds.AgentKeyRef.Provider)
+	default:
+		return validateMigrationDestination(registry, osKeyringProviderName)
 	}
-	return provider, nil
+}
+
+// recoveryDestinationNotice explains a destination the user did not choose and
+// that differs from where the secret lived before: the file provider inherited
+// from agent_key_ref. Explicit destinations, reused client_secret_ref
+// providers, and the OS keyring default need no notice.
+func recoveryDestinationNotice(creds *CredentialsFile, requested, provider string) string {
+	if strings.TrimSpace(requested) != "" || creds.OAuth2.ClientSecretRef != nil || provider != fileProviderName {
+		return ""
+	}
+	return fmt.Sprintf("Storing the recovered OAuth2 secret with the %s provider inherited from agent_key_ref; pass --destination to choose another.", fileProviderName)
 }
 
 func reconcileRecoveredCredentials(path string, original *CredentialsFile, clientID string, destination SecretReference) error {

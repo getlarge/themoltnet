@@ -6,7 +6,7 @@
  *
  * POST /recovery/challenge — generate HMAC-signed challenge
  * POST /recovery/verify    — verify signature, return Kratos recovery code
- * POST /recovery/credentials — verify signature, replace OAuth2 credentials
+ * POST /recovery/credentials — verify signature, issue or replace OAuth2 credentials
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -20,6 +20,7 @@ import {
 } from '@moltnet/crypto-service';
 import type { Agent, NonceRepository } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
+import type { OAuth2Client } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -31,7 +32,12 @@ import {
   RecoveryProofSchema,
   RecoveryVerifyResponseSchema,
 } from '../schemas.js';
-import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
+import {
+  agentOAuth2ClientId,
+  buildAgentOAuth2Client,
+  createOrReplaceAgentOAuth2Client,
+} from '../utils/agent-oauth2-client.js';
+import { upstreamStatus } from '../utils/upstream-status.js';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RecoveryChallengeBodySchema = {
@@ -49,21 +55,6 @@ export interface RecoveryRouteOptions {
   recoverySecret: string;
   identityClient: OryClients['identity'];
   nonceRepository: NonceRepository;
-}
-
-function upstreamStatus(error: unknown): number | undefined {
-  if (
-    typeof error !== 'object' ||
-    error === null ||
-    !('response' in error) ||
-    typeof error.response !== 'object' ||
-    error.response === null ||
-    !('status' in error.response) ||
-    typeof error.response.status !== 'number'
-  ) {
-    return undefined;
-  }
-  return error.response.status;
 }
 
 function nextPageToken(link: string | null): string | undefined {
@@ -280,12 +271,11 @@ export async function recoveryRoutes(
         operationId: 'recoverAgentCredentials',
         tags: ['recovery'],
         description:
-          'Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The replacement credentials are sealed to that key.',
+          'Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key. An existing client has its secret replaced; an agent without one (for example, registered with an agent key only) receives a new client. The credentials are sealed to that key. Concurrent recoveries for the same agent resolve last-write-wins: only the most recent response carries a secret that authenticates.',
         body: RecoveryProofBodySchema,
         response: {
           200: Type.Ref(RecoveryCredentialsResponseSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
-          404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
@@ -296,7 +286,7 @@ export async function recoveryRoutes(
       const agent = await verifyRecoveryProof(request, 'credentials');
       const deterministicClientId = agentOAuth2ClientId(agent.id);
 
-      let existingClient;
+      let existingClient: OAuth2Client | undefined;
       try {
         existingClient = await fastify.oauth2Client.getOAuth2Client({
           id: deterministicClientId,
@@ -321,7 +311,7 @@ export async function recoveryRoutes(
           );
         }
 
-        const matches = [];
+        const matches: OAuth2Client[] = [];
         const seenTokens = new Set<string>();
         let pageToken: string | undefined;
         try {
@@ -412,12 +402,10 @@ export async function recoveryRoutes(
               ? byCurrentIdentity
               : matches;
 
-        if (ranked.length === 0) {
-          throw createProblem(
-            'not-found',
-            'No OAuth2 client exists for this agent',
-          );
-        }
+        // Zero matches is not an error any more: an agent registered with an
+        // agent key never had a Hydra client, and the proof of key possession
+        // that got us here is the same authority self-registration accepted.
+        // The deterministic client is minted below in that case.
         if (ranked.length > 1) {
           fastify.log.warn(
             {
@@ -434,10 +422,29 @@ export async function recoveryRoutes(
             'Multiple OAuth2 clients match this agent identity',
           );
         }
-        existingClient = ranked[0];
+        // More than one match already threw above, so this is exactly one
+        // legacy client to rotate or none at all, in which case the
+        // deterministic client is minted below.
+        existingClient = ranked.length === 1 ? ranked[0] : undefined;
       }
 
-      const clientId = existingClient.client_id;
+      // The secret is generated before the client is resolved so the minted
+      // body, and therefore its client_id, comes from the one builder.
+      const clientSecret = crypto.randomUUID();
+      const mintedClient =
+        existingClient === undefined
+          ? buildAgentOAuth2Client({
+              agentId: agent.id,
+              identityId: agent.identityId,
+              publicKey: agent.publicKey,
+              fingerprint: agent.fingerprint,
+              clientSecret,
+            })
+          : undefined;
+      const minted = mintedClient !== undefined;
+      const clientId = mintedClient
+        ? mintedClient.client_id
+        : existingClient?.client_id;
       if (!clientId) {
         fastify.log.error(
           {
@@ -460,14 +467,16 @@ export async function recoveryRoutes(
           fingerprint: agent.fingerprint,
           identityId: agent.identityId,
           clientId,
-          resolution:
-            clientId === deterministicClientId ? 'deterministic' : 'legacy',
+          resolution: minted
+            ? 'minted'
+            : clientId === deterministicClientId
+              ? 'deterministic'
+              : 'legacy',
           requestId: request.id,
         },
         'OAuth2 credential recovery client resolved',
       );
 
-      const clientSecret = crypto.randomUUID();
       let sealedClientSecret: string;
       try {
         // Validate and prepare delivery before the irreversible Hydra write.
@@ -495,29 +504,51 @@ export async function recoveryRoutes(
       }
 
       try {
-        await fastify.oauth2Client.setOAuth2Client({
-          id: clientId,
-          oAuth2Client: {
-            ...existingClient,
-            client_secret: clientSecret,
-          },
-        });
+        if (mintedClient) {
+          // A concurrent recovery or a late registration step can create the
+          // deterministic client between lookup and mint; the helper replaces
+          // it in that case.
+          await createOrReplaceAgentOAuth2Client(
+            fastify.oauth2Client,
+            mintedClient,
+          );
+        } else {
+          await fastify.oauth2Client.setOAuth2Client({
+            id: clientId,
+            oAuth2Client: {
+              ...existingClient,
+              client_secret: clientSecret,
+            },
+          });
+        }
       } catch (err) {
+        // Hydra admin error bodies can echo request context, including the
+        // secret just sent, so the raw error is never logged. The Ory client
+        // error message is a fixed string and a network failure's message
+        // names the transport problem, so the message is safe and keeps the
+        // 502 triageable when there is no upstream status.
         fastify.log.error(
           {
-            err,
+            upstreamStatus: upstreamStatus(err),
+            errorName: err instanceof Error ? err.name : typeof err,
+            errorMessage: err instanceof Error ? err.message : undefined,
             fingerprint: agent.fingerprint,
             identityId: agent.identityId,
             clientId,
+            minted,
             requestId: request.id,
             ip: request.ip,
             rotated: false,
           },
-          'OAuth2 credential recovery mutation failed',
+          minted
+            ? 'OAuth2 credential recovery mint failed'
+            : 'OAuth2 credential recovery mutation failed',
         );
         throw createProblem(
           'upstream-error',
-          'Failed to replace OAuth2 credentials',
+          minted
+            ? 'Failed to create OAuth2 credentials'
+            : 'Failed to replace OAuth2 credentials',
         );
       }
 
@@ -543,6 +574,7 @@ export async function recoveryRoutes(
           fingerprint: agent.fingerprint,
           identityId: agent.identityId,
           clientId,
+          minted,
           requestId: request.id,
           ip: request.ip,
           rotated: true,

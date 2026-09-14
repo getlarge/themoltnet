@@ -10,8 +10,6 @@
  * forward data to the DBOS workflow via DBOS.send/recv. No mocking needed.
  */
 
-import { randomBytes } from 'node:crypto';
-
 import type {
   Client,
   GetLegreffierOnboardingStatusResponse,
@@ -21,10 +19,9 @@ import {
   getLegreffierOnboardingStatus,
   startLegreffierOnboarding,
 } from '@moltnet/api-client';
-import { cryptoService } from '@moltnet/crypto-service';
-import { buildSelfRegistrationMessage } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { signedSelfRegistration } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 const VALID_PUBLIC_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
@@ -179,16 +176,8 @@ describe('LeGreffier onboarding', () => {
   describe('happy path', () => {
     it('full onboarding flow: start → callback → installed → completed', async () => {
       // Arrange
-      const keyPair = await cryptoService.generateKeyPair();
-      const idempotencyKey = randomBytes(32).toString('base64url');
-      const proof = await cryptoService.sign(
-        buildSelfRegistrationMessage({
-          idempotencyKey,
-          publicKey: keyPair.publicKey,
-          credentialType: 'oauth2',
-        }),
-        keyPair.privateKey,
-      );
+      const { idempotencyKey, keyPair, proof } =
+        await signedSelfRegistration('oauth2');
       const { data: startData, error: startError } =
         await startLegreffierOnboarding({
           client,

@@ -45272,10 +45272,6 @@ type RecoverAgentCredentialsInternalServerError ProblemDetails
 
 func (*RecoverAgentCredentialsInternalServerError) recoverAgentCredentialsRes() {}
 
-type RecoverAgentCredentialsNotFound ProblemDetails
-
-func (*RecoverAgentCredentialsNotFound) recoverAgentCredentialsRes() {}
-
 // Ref: #/components/schemas/RecoveryChallengeRequest
 type RecoveryChallengeRequest struct {
 	// Ed25519 public key with prefix.
@@ -45335,9 +45331,11 @@ func (*RecoveryChallengeResponse) requestRecoveryChallengeRes() {}
 
 // Ref: #/components/schemas/RecoveryCredentialsResponse
 type RecoveryCredentialsResponse struct {
-	// Actual server-resolved Hydra OAuth2 client identifier whose secret was replaced.
+	// Server-resolved Hydra OAuth2 client identifier: the existing client whose secret was replaced, or
+	// the client created for an agent that had none.
 	ClientId string `json:"clientId"`
-	// X25519 sealed envelope containing the replacement OAuth2 client secret.
+	// X25519 sealed envelope containing the issued OAuth2 client secret: the replacement for an existing
+	// client, or the secret of the client created for an agent that had none.
 	SealedClientSecret string `json:"sealedClientSecret"`
 }
 

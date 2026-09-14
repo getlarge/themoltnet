@@ -32,6 +32,10 @@ vi.mock('@moltnet/database', async (importOriginal) => ({
 }));
 
 import {
+  agentOAuth2ClientId,
+  buildAgentOAuth2Client,
+} from '../../src/utils/agent-oauth2-client.js';
+import {
   EnrollmentValidationError,
   initRegistrationWorkflow,
   issueRegistrationCredential,
@@ -247,8 +251,20 @@ describe('registration workflow', () => {
     const result = await issueRegistrationCredential(workflowResult);
     expect(result.credential).toEqual({
       type: 'oauth2',
-      clientId: `moltnet-agent-${AGENT_ID}`,
+      clientId: agentOAuth2ClientId(AGENT_ID),
       clientSecret: expect.any(String),
+    });
+    // Registration and credential recovery must mint the same client body,
+    // or the token webhook stops recognising one of them.
+    const secret = (result.credential as { clientSecret: string }).clientSecret;
+    expect(deps.oauth2Api.createOAuth2Client).toHaveBeenCalledWith({
+      oAuth2Client: buildAgentOAuth2Client({
+        agentId: AGENT_ID,
+        identityId: IDENTITY_ID,
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        clientSecret: secret,
+      }),
     });
     expect(deps.teamRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({ personal: true }),
