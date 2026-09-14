@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -54,8 +55,112 @@ func TestGitHubTokenRequestExplicitRepositoryPrecedesRemote(t *testing.T) {
 	if got := request.Repository.String(); got != "right/repository" {
 		t.Fatalf("repository = %q", got)
 	}
-	if got := request.Permissions["issues"]; got != "write" {
-		t.Fatalf("issues permission = %q", got)
+	if len(request.Permissions) != 0 {
+		t.Fatalf("permissions = %#v, want the installation's permissions", request.Permissions)
+	}
+}
+
+// gh writes that read before they write (#2257): the token keeps the
+// repository restriction and no permission filter, so it shares the cache
+// entry `moltnet github token` mints. See githubTokenRequestForGHArgs.
+func TestGitHubTokenRequestForGHWritesInheritsInstallationPermissions(t *testing.T) {
+	original := gitRemoteURL
+	gitRemoteURL = func() (string, error) { return "https://github.com/owner/from-remote.git", nil }
+	t.Cleanup(func() { gitRemoteURL = original })
+
+	commands := [][]string{
+		{"pr", "create", "--title", "t", "--body", "b"},
+		{"pr", "merge", "1", "--squash"},
+		{"issue", "develop", "1"},
+		{"release", "create", "v1.0.0"},
+		{"api", "--method", "POST", "repos/owner/from-remote/pulls", "--input", "pr.json"},
+	}
+	for _, args := range commands {
+		request, err := githubTokenRequestForGHArgs(args)
+		if err != nil {
+			t.Fatalf("%v: %v", args, err)
+		}
+		if got := request.Repository.String(); got != "owner/from-remote" {
+			t.Fatalf("%v: repository = %q, the repository restriction must stay", args, got)
+		}
+		if len(request.Permissions) != 0 {
+			t.Fatalf("%v: permissions = %#v, want none so the token inherits the installation's", args, request.Permissions)
+		}
+		if got := request.permissionKey(); got != "all" {
+			t.Fatalf("%v: cache key = %q, want the same entry as `moltnet github token`", args, got)
+		}
+	}
+}
+
+// End to end through `moltnet github exec`: the minted token is restricted to
+// the target repository and carries the installation's permissions, and the
+// child gh process receives it as GH_TOKEN.
+func TestGitHubExecMintsRepositoryScopedTokenWithInstallationPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("fake gh is a shell script")
+	}
+	directory := t.TempDir()
+	keyPath := filepath.Join(directory, "app.pem")
+	if err := os.WriteFile(keyPath, testRSAPrivateKeyPEM(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var resolvedPath, tokenPath string
+	var tokenBody struct {
+		Repositories []string          `json:"repositories"`
+		Permissions  map[string]string `json:"permissions"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			resolvedPath = r.URL.Path
+			_, _ = w.Write([]byte(`{"id":404}`))
+		case http.MethodPost:
+			tokenPath = r.URL.Path
+			if err := json.NewDecoder(r.Body).Decode(&tokenBody); err != nil {
+				t.Errorf("decode token request: %v", err)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = fmt.Fprintf(w, `{"token":"exec-token","expires_at":%q,"permissions":{"contents":"write","pull_requests":"write"}}`,
+				time.Now().Add(time.Hour).UTC().Format(time.RFC3339))
+		default:
+			http.Error(w, "unexpected method", http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+	oldAPI := githubAPIBaseURL
+	githubAPIBaseURL = server.URL
+	defer func() { githubAPIBaseURL = oldAPI }()
+
+	credentialsPath := filepath.Join(directory, "moltnet.json")
+	credentials := &CredentialsFile{GitHub: &GitHubSection{AppID: "app", PrivateKeyPath: keyPath}}
+	if _, err := WriteConfigTo(credentials, credentialsPath); err != nil {
+		t.Fatal(err)
+	}
+	fakeBin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(fakeBin, "gh"), []byte("#!/bin/sh\necho \"token=$GH_TOKEN\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	var stdout, stderr strings.Builder
+	args := []string{"gh", "pr", "create", "-R", "another-org/project", "--title", "t", "--body", "b"}
+	if err := runGitHubExecCmd(credentialsPath, args, strings.NewReader(""), &stdout, &stderr); err != nil {
+		t.Fatalf("exec: %v (stderr: %s)", err, stderr.String())
+	}
+	if resolvedPath != "/repos/another-org/project/installation" {
+		t.Fatalf("installation lookup path = %q", resolvedPath)
+	}
+	if tokenPath != "/app/installations/404/access_tokens" {
+		t.Fatalf("token path = %q, want the installation resolved for the target", tokenPath)
+	}
+	if len(tokenBody.Repositories) != 1 || tokenBody.Repositories[0] != "project" {
+		t.Fatalf("token repositories = %#v, want the target repository only", tokenBody.Repositories)
+	}
+	if len(tokenBody.Permissions) != 0 {
+		t.Fatalf("token permissions = %#v, want all installation permissions", tokenBody.Permissions)
+	}
+	if got := stdout.String(); !strings.Contains(got, "token=exec-token") {
+		t.Fatalf("gh did not receive GH_TOKEN: %q", got)
 	}
 }
 

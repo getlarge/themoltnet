@@ -235,17 +235,20 @@ process independently:
 - visible `gh pr` and `gh issue` writes remain bare in `human` authorship mode.
 
 The CLI resolves the installation for the target repository through GitHub, then
-mints a token restricted to that repository and the required permission set.
-Tokens and permission evidence are written atomically under
-`~/.config/moltnet/identities/<alias>/gh-token-cache/`, keyed by App,
-repository, and permissions; the repository's installation is resolved on a
-cache miss and cached separately. A configured installation ID is only a
-compatibility hint for legacy calls made outside a repository. Refresh failures
-are cached for 30 seconds to avoid retry storms. Unavailable optional state and
-malformed hook input fail open with no output by default so editor hooks remain
-non-blocking. Set `MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes when permission
-state is unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an emergency
-editor-session kill switch.
+mints a token restricted to that repository. The token inherits the
+installation's permissions rather than being narrowed to the classified write:
+`gh` writes such as `pr create` read the default branch and the head ref first,
+and a single-permission token fails those reads. Tokens and permission evidence
+are written atomically under
+`~/.config/moltnet/identities/<alias>/gh-token-cache/`, keyed by App and
+repository; the repository's installation is resolved on a cache miss and cached
+separately. A configured installation ID is only a compatibility hint for legacy
+calls made outside a repository. Refresh failures are cached for 30 seconds to
+avoid retry storms. Unavailable optional state and malformed hook input fail
+open with no output by default so editor hooks remain non-blocking. Set
+`MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes when permission state is
+unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill
+switch.
 
 For writes supported by the App, scope its token to the single command:
 

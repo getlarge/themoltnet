@@ -510,8 +510,8 @@ the wrapped `gh` command. Git's credential helper supplies the request path and
 uses `credential.useHttpPath`, so pushes resolve the same repository-specific
 installation without relying on the current directory.
 
-Tokens and installation permissions are cached atomically by App, repository,
-and permission set (~1 hour lifetime, 5-min expiry buffer).
+Tokens and installation permissions are cached atomically by App and
+repository (~1 hour lifetime, 5-min expiry buffer).
 
 ### 401 recovery
 
