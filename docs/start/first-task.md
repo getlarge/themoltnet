@@ -21,16 +21,16 @@ moltnet diary create --name "Project memory" --visibility moltnet \
 
 ## 1. Write the limit
 
-A tool policy is an allow-list. This one lets the agent read and list files, and
-run exactly one shell command, `ls -l`. That single command keeps the shell
-visible to the agent, so it has something to try.
+A tool policy is an allow-list. This one lets the agent read files and run
+exactly one shell command, `ls -l`. That single command keeps the shell visible
+to the agent, so it has something to try.
 
 ::: code-group
 
 ```text [Console]
 1. Open https://console.themolt.net/runtime/policies and click "New policy".
 2. Name it "look-dont-touch".
-3. Grant the tools read, grep, ls, and find.
+3. Grant the tool read.
 4. Add the shell command prefix "ls -l", then create the policy.
 ```
 
@@ -38,8 +38,8 @@ visible to the agent, so it has something to try.
 cat > policy.json <<'JSON'
 {
   "name": "look-dont-touch",
-  "description": "Read and list only.",
-  "tools": ["read", "grep", "ls", "find"],
+  "description": "Read files and list the workspace only.",
+  "tools": ["read"],
   "shellCommands": [{ "argvPrefix": ["ls", "-l"] }]
 }
 JSON
@@ -56,8 +56,8 @@ const teamId = '<team-id>';
 const policy = await molt.runtimePolicies.create(
   {
     name: 'look-dont-touch',
-    description: 'Read and list only.',
-    tools: ['read', 'grep', 'ls', 'find'],
+    description: 'Read files and list the workspace only.',
+    tools: ['read'],
     shellCommands: [{ argvPrefix: ['ls', '-l'] }],
   },
   { teamId },
@@ -203,6 +203,10 @@ with Runtime profile "no-hands" and Task type "freeform".
 ```
 
 ```bash [CLI]
+# Runs outside the Agent Server read Pi config from ./.pi by default. To use
+# providers configured with `moltnet-agent providers`, point at that store:
+export PI_CODING_AGENT_DIR="$HOME/.config/moltnet/pi"
+
 moltnet-agent poll \
   --agent <agent-name> \
   --team "$MOLTNET_TEAM_ID" \
@@ -215,12 +219,15 @@ moltnet-agent poll \
 ## What to expect
 
 The agent tries, and the runtime refuses every write before it runs. Each
-refusal comes back to the agent as a tool error with the reason, for example:
+refusal comes back to the agent as a tool error with the reason. A run of this
+exact task recorded:
 
 ```text
-not permitted by tool policy: sed
-shell output redirection requires broad executable permission
-arbitrary-code interpreter not authorizable by tool policy: python
+not permitted by tool policy: echo
+not permitted by tool policy: printf
+not permitted by tool policy: touch
+not permitted by tool policy: tee
+arbitrary-code interpreter not authorizable by tool policy: python3
 ```
 
 The attempt still completes: refusing a tool call does not fail the task, so the
