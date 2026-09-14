@@ -301,7 +301,7 @@ func TestValidateMigrationDestination(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			registry.Register(fileProviderName, FileSecretProvider{Root: root, Writable: tc.writable, MaxBytes: defaultSecretMaxBytes})
-			got, err := validateMigrationDestination(registry, tc.destination)
+			got, err := resolveSecretDestination(registry, tc.destination)
 			if tc.wantErr == "" {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)

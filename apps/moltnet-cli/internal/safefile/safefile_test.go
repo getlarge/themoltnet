@@ -2,10 +2,12 @@ package safefile
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -40,6 +42,64 @@ func TestWriteUsesPrivateModeAndRejectsSymlinkTargets(t *testing.T) {
 	got, _ := os.ReadFile(target)
 	if !bytes.Equal(got, []byte("untouched")) {
 		t.Fatalf("symlink target changed: %q", got)
+	}
+}
+
+func TestCreateWritesOnceAndRefusesAnExistingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+
+	if err := Create(path, []byte("first")); err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+	err := Create(path, []byte("second"))
+
+	if !errors.Is(err, ErrExists) {
+		t.Fatalf("second create error = %v, want ErrExists", err)
+	}
+	got, readErr := os.ReadFile(path)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Equal(got, []byte("first")) {
+		t.Fatalf("existing file was overwritten: %q", got)
+	}
+	info, statErr := os.Stat(path)
+	if statErr != nil {
+		t.Fatal(statErr)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm() != PrivateMode {
+		t.Fatalf("mode = %o, want %o", info.Mode().Perm(), PrivateMode)
+	}
+}
+
+func TestCreateLetsExactlyOneConcurrentWriterWin(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+	const writers = 8
+	results := make(chan error, writers)
+	var start sync.WaitGroup
+	start.Add(1)
+	for i := 0; i < writers; i++ {
+		go func(n int) {
+			start.Wait()
+			results <- Create(path, []byte{byte('a' + n)})
+		}(i)
+	}
+
+	start.Done()
+	created, refused := 0, 0
+	for i := 0; i < writers; i++ {
+		switch err := <-results; {
+		case err == nil:
+			created++
+		case errors.Is(err, ErrExists):
+			refused++
+		default:
+			t.Fatalf("unexpected create error: %v", err)
+		}
+	}
+
+	if created != 1 || refused != writers-1 {
+		t.Fatalf("created = %d, refused = %d; want exactly one winner", created, refused)
 	}
 }
 

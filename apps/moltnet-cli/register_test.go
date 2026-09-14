@@ -9,10 +9,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
+)
+
+const (
+	registerTestAgentID    = "00000000-0000-4000-a000-000000000123"
+	registerTestIdentityID = "00000000-0000-0000-0000-000000000123"
+	registerTestClientID   = "client-id"
+	registerTestSecret     = "client-secret"
 )
 
 type capturedRegistrationRequest struct {
@@ -21,101 +27,161 @@ type capturedRegistrationRequest struct {
 	PublicKey      string `json:"publicKey"`
 }
 
+// registerServerConfig shapes the one fake registration endpoint every test
+// in this file uses. Zero values answer 200 with an OAuth2 credential.
+type registerServerConfig struct {
+	// status, when non-200, answers with a problem document instead.
+	status int
+	// credential replaces the default OAuth2 credential in a 200 response.
+	credential map[string]any
+	// verifyProof checks the Ed25519 proof over the self-registration message.
+	verifyProof bool
+	// onRequest runs before the response is written, for ordering assertions.
+	onRequest func(body capturedRegistrationRequest)
+}
+
+// newRegisterTestServer answers /auth/register and 404s everything else, so
+// alias publication fails softly and tests exercise registration only.
+func newRegisterTestServer(t *testing.T, cfg registerServerConfig) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/auth/register" {
+			http.NotFound(w, r)
+			return
+		}
+		calls.Add(1)
+		var body capturedRegistrationRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			// t.Fatal would not stop the test from this goroutine.
+			t.Errorf("decode registration request: %v", err)
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		if cfg.verifyProof {
+			nonce := r.Header.Get("Idempotency-Key")
+			assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
+		}
+		if cfg.onRequest != nil {
+			cfg.onRequest(body)
+		}
+		if cfg.status != 0 && cfg.status != http.StatusOK {
+			w.Header().Set("Content-Type", "application/problem+json")
+			w.WriteHeader(cfg.status)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"type": "https://themolt.net/problems/registration-failed", "title": "Registration failed", "status": cfg.status,
+			})
+			return
+		}
+		credential := cfg.credential
+		if credential == nil {
+			credential = map[string]any{"type": "oauth2", "clientId": registerTestClientID, "clientSecret": registerTestSecret}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"agentId": registerTestAgentID, "identityId": registerTestIdentityID,
+			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
+			"credential": credential,
+		})
+	}))
+	t.Cleanup(server.Close)
+	return server, &calls
+}
+
 func assertRegistrationProof(t *testing.T, request *http.Request, body capturedRegistrationRequest, message string) {
 	t.Helper()
-	nonce := request.Header.Get("Idempotency-Key")
-	if len(nonce) != 43 {
-		t.Fatalf("idempotency key length = %d, want 43", len(nonce))
+	if nonce := request.Header.Get("Idempotency-Key"); len(nonce) != 43 {
+		t.Errorf("idempotency key length = %d, want 43", len(nonce))
+		return
 	}
 	publicKey, err := ParsePublicKey(body.PublicKey)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("parse public key: %v", err)
+		return
 	}
 	proof, err := base64.StdEncoding.DecodeString(body.Proof)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("decode proof: %v", err)
+		return
 	}
 	if !ed25519.Verify(publicKey, []byte(message), proof) {
-		t.Fatal("registration proof did not verify")
+		t.Error("registration proof did not verify")
 	}
 }
 
+// registerMemoryRegistry returns a registry whose OS keyring is in memory,
+// plus a flag that flips when an identity seed is stored. The flag is atomic
+// so the fake server can read it from its own goroutine.
+func registerMemoryRegistry() (*SecretProviderRegistry, *memorySecretProvider, *atomic.Bool) {
+	registry, memory := newMemorySecretProviderRegistry()
+	var seedStored atomic.Bool
+	memory.failSet = func(key string) error {
+		if isIdentitySeedKey(key) {
+			seedStored.Store(true)
+		}
+		return nil
+	}
+	return registry, memory, &seedStored
+}
+
+func isIdentitySeedKey(key string) bool {
+	return strings.HasPrefix(key, "identity/") && strings.HasSuffix(key, "/seed")
+}
+
+func storedSeedKeys(memory *memorySecretProvider) []string {
+	var keys []string
+	for key := range memory.values {
+		if isIdentitySeedKey(key) {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
+func runTestRegister(t *testing.T, apiURL, name string, registry *SecretProviderRegistry) (string, error) {
+	t.Helper()
+	var stderr bytes.Buffer
+	err := runRegister(registerOpts{
+		stdout: &bytes.Buffer{}, errOut: &stderr,
+		apiURL: apiURL, credentialType: credentialTypeOAuth2, name: name,
+		secretProviders: registry,
+	})
+	return stderr.String(), err
+}
+
 func TestDoRegisterSelfOAuth2(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/auth/register" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		var body capturedRegistrationRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatal(err)
-		}
-		nonce := r.Header.Get("Idempotency-Key")
-		assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"agentId":     "00000000-0000-4000-a000-000000000123",
-			"identityId":  "00000000-0000-0000-0000-000000000123",
-			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
-			"credential": map[string]any{"type": "oauth2", "clientId": "client-id", "clientSecret": "client-secret"},
-		})
-	}))
-	defer server.Close()
+	server, _ := newRegisterTestServer(t, registerServerConfig{verifyProof: true})
 
 	result, err := DoRegister(server.URL, credentialTypeOAuth2)
+
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
-	if result.Response.Credential.ClientID != "client-id" {
+	if result.Response.Credential.ClientID != registerTestClientID {
 		t.Fatalf("client ID = %q", result.Response.Credential.ClientID)
 	}
-	if result.Response.SubjectID != "00000000-0000-4000-a000-000000000123" {
-		t.Fatalf("subject ID = %q", result.Response.SubjectID)
-	}
-	if result.Response.SubjectType != SubjectTypeAgent {
-		t.Fatalf("subject type = %q", result.Response.SubjectType)
+	if result.Response.SubjectID != registerTestAgentID || result.Response.SubjectType != SubjectTypeAgent {
+		t.Fatalf("subject = %q/%q", result.Response.SubjectID, result.Response.SubjectType)
 	}
 }
 
 func TestDoRegisterSelfAgentKey(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/auth/register" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		var body capturedRegistrationRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatal(err)
-		}
-		nonce := r.Header.Get("Idempotency-Key")
-		assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"agentId":     "00000000-0000-4000-a000-000000000123",
-			"identityId":  "00000000-0000-0000-0000-000000000123",
-			"fingerprint": "ABCD-1234-EF56-7890",
-			"publicKey":   body.PublicKey,
-			"credential": map[string]any{
-				"type":   "agent_key",
-				"secret": "secret",
-				"key": map[string]any{
-					"id":                    "key-1",
-					"agentId":               "00000000-0000-0000-0000-000000000123",
-					"bindingScope":          "identity",
-					"name":                  "Bootstrap credential",
-					"status":                "active",
-					"scopes":                []string{},
-					"createdAt":             nil,
-					"expiresAt":             nil,
-					"lastUsedAt":            nil,
-					"updatedAt":             nil,
-					"revocationReason":      nil,
-					"revocationDescription": nil,
-				},
+	server, _ := newRegisterTestServer(t, registerServerConfig{
+		verifyProof: true,
+		credential: map[string]any{
+			"type":   "agent_key",
+			"secret": "secret",
+			"key": map[string]any{
+				"id": "key-1", "agentId": registerTestIdentityID, "bindingScope": "identity",
+				"name": "Bootstrap credential", "status": "active", "scopes": []string{},
+				"createdAt": nil, "expiresAt": nil, "lastUsedAt": nil, "updatedAt": nil,
+				"revocationReason": nil, "revocationDescription": nil,
 			},
-		})
-	}))
-	defer server.Close()
+		},
+	})
 
 	result, err := DoRegister(server.URL, credentialTypeAgentKey)
+
 	if err != nil {
 		t.Fatalf("register: %v", err)
 	}
@@ -125,12 +191,8 @@ func TestDoRegisterSelfAgentKey(t *testing.T) {
 }
 
 func TestDoRegisterErrors(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/problem+json")
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte(`{"type":"urn:moltnet:problem:registration-failed","title":"Registration Failed","status":403}`))
-	}))
-	defer server.Close()
+	server, _ := newRegisterTestServer(t, registerServerConfig{status: http.StatusForbidden})
+
 	if _, err := DoRegister(server.URL, credentialTypeOAuth2); err == nil {
 		t.Fatal("expected HTTP error")
 	}
@@ -139,6 +201,35 @@ func TestDoRegisterErrors(t *testing.T) {
 	}
 	if _, err := DoRegister(server.URL, "password"); err == nil {
 		t.Fatal("expected credential type validation error")
+	}
+}
+
+func TestDoRegisterWithKeyPairGuards(t *testing.T) {
+	server, calls := newRegisterTestServer(t, registerServerConfig{})
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name           string
+		credentialType string
+		keyPair        *KeyPair
+		wantErr        string
+	}{
+		{name: "nil keypair", credentialType: credentialTypeOAuth2, wantErr: "requires a generated keypair"},
+		{name: "unknown credential type", credentialType: "password", keyPair: keyPair, wantErr: "oauth2 or agent_key"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := DoRegisterWithKeyPair(server.URL, tt.credentialType, tt.keyPair)
+
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error = %v, want containing %q", err, tt.wantErr)
+			}
+		})
+	}
+	if calls.Load() != 0 {
+		t.Fatalf("registration calls = %d, want 0", calls.Load())
 	}
 }
 
@@ -199,89 +290,21 @@ func TestReportRegistrationStoredPublishesAliasBestEffort(t *testing.T) {
 	}
 }
 
-// newRegisterTestServer answers /auth/register with a fixed OAuth2 credential
-// and 404 for everything else, so alias publication fails softly and the test
-// exercises the local persistence path only.
-func newRegisterTestServer(t *testing.T, status int) (*httptest.Server, *atomic.Int32) {
-	t.Helper()
-	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/auth/register" {
-			http.NotFound(w, r)
-			return
-		}
-		calls.Add(1)
-		var body capturedRegistrationRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Fatal(err)
-		}
-		if status != http.StatusOK {
-			w.Header().Set("Content-Type", "application/problem+json")
-			w.WriteHeader(status)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"type": "https://themolt.net/problems/invalid-proof", "title": "rejected", "status": status,
-			})
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"agentId":     "00000000-0000-4000-a000-000000000123",
-			"identityId":  "00000000-0000-0000-0000-000000000123",
-			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
-			"credential": map[string]any{"type": "oauth2", "clientId": "client-id", "clientSecret": "client-secret"},
-		})
-	}))
-	t.Cleanup(server.Close)
-	return server, &calls
-}
-
-// flakySecretProvider stores in memory and fails Set for one exact key.
-type flakySecretProvider struct {
-	values  map[string]string
-	failKey string
-}
-
-func (p *flakySecretProvider) Get(key string) (string, error) {
-	value, ok := p.values[key]
-	if !ok {
-		return "", ErrSecretNotFound
-	}
-	return value, nil
-}
-
-func (p *flakySecretProvider) Set(key, value string) error {
-	if key == p.failKey {
-		return errors.New("simulated store failure")
-	}
-	if p.values == nil {
-		p.values = map[string]string{}
-	}
-	p.values[key] = value
-	return nil
-}
-
-func (p *flakySecretProvider) Delete(key string) error {
-	delete(p.values, key)
-	return nil
-}
-
-func (p *flakySecretProvider) CanWrite() bool { return true }
-
 func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv(secretRootEnv, t.TempDir())
 	t.Setenv(secretRootWritableEnv, "1")
-	server, calls := newRegisterTestServer(t, http.StatusOK)
+	server, calls := newRegisterTestServer(t, registerServerConfig{})
 
 	root := NewRootCmd("test", "")
 	_, stderr, err := executeCommand(root, "register", "--name", "reg-test", "--api-url", server.URL, "--destination", fileProviderName)
+
 	if err != nil {
 		t.Fatalf("register: %v\nstderr: %s", err, stderr)
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("registration calls = %d, want 1", calls.Load())
 	}
-
 	path, err := identityCredentialsPath("reg-test")
 	if err != nil {
 		t.Fatal(err)
@@ -290,7 +313,7 @@ func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}
-	if creds.SubjectID != "00000000-0000-4000-a000-000000000123" || creds.SubjectType != SubjectTypeAgent {
+	if creds.SubjectID != registerTestAgentID || creds.SubjectType != SubjectTypeAgent {
 		t.Fatalf("subject = %q/%q", creds.SubjectID, creds.SubjectType)
 	}
 	if creds.Keys.PrivateKey != "" || creds.Keys.PrivateKeyRef == nil ||
@@ -300,7 +323,7 @@ func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 	}
 	if creds.OAuth2.ClientSecret != "" || creds.OAuth2.ClientSecretRef == nil ||
 		creds.OAuth2.ClientSecretRef.Provider != fileProviderName ||
-		creds.OAuth2.ClientSecretRef.Key != OAuth2SecretKey(creds.SubjectID, "client-id") {
+		creds.OAuth2.ClientSecretRef.Key != OAuth2SecretKey(creds.SubjectID, registerTestClientID) {
 		t.Fatalf("OAuth2 secret was not stored as a reference: %#v", creds.OAuth2)
 	}
 	registry := NewSecretProviderRegistry()
@@ -311,70 +334,174 @@ func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 	if err := assertSeedMatchesPublicKey(seed, creds.Keys.PublicKey); err != nil {
 		t.Fatalf("stored seed does not match public key: %v", err)
 	}
-	if secret, err := registry.Resolve(*creds.OAuth2.ClientSecretRef); err != nil || secret != "client-secret" {
+	if secret, err := registry.Resolve(*creds.OAuth2.ClientSecretRef); err != nil || secret != registerTestSecret {
 		t.Fatalf("resolve OAuth2 secret = %q, %v", secret, err)
 	}
 	selector, err := readIdentitySelector()
 	if err != nil || selector == nil || selector.DefaultIdentity != "reg-test" {
 		t.Fatalf("selector = %#v, %v; want default reg-test", selector, err)
 	}
-	if strings.Contains(stderr, "client-secret") {
+	if strings.Contains(stderr, registerTestSecret) {
 		t.Fatal("OAuth2 secret leaked to stderr")
 	}
 }
 
-func TestRegisterRejectedRegistrationRemovesSeed(t *testing.T) {
+func TestRegisterStoresSeedBeforeRegisteringInTheDefaultProvider(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	secretRoot := t.TempDir()
-	t.Setenv(secretRootEnv, secretRoot)
-	t.Setenv(secretRootWritableEnv, "1")
-	server, _ := newRegisterTestServer(t, http.StatusBadRequest)
+	registry, _, seedStored := registerMemoryRegistry()
+	var seedStoredBeforeRequest atomic.Bool
+	server, _ := newRegisterTestServer(t, registerServerConfig{
+		onRequest: func(capturedRegistrationRequest) {
+			seedStoredBeforeRequest.Store(seedStored.Load())
+		},
+	})
 
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "register", "--name", "reg-rejected", "--api-url", server.URL, "--destination", fileProviderName)
-	if err == nil {
-		t.Fatal("expected registration to fail")
+	// No destination: the default resolves to the OS keyring, here in memory.
+	stderr, err := runTestRegister(t, server.URL, "reg-default", registry)
+
+	if err != nil {
+		t.Fatalf("register: %v\nstderr: %s", err, stderr)
 	}
-
-	path, err := identityCredentialsPath("reg-rejected")
+	if !seedStoredBeforeRequest.Load() {
+		t.Fatal("the identity seed must be stored before the registration request")
+	}
+	path, err := identityCredentialsPath("reg-default")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
-		t.Fatalf("config must not exist after a rejected registration: %v", statErr)
+	creds, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatal(err)
 	}
-	// The file provider keeps its directory layout; only stored values matter.
-	var leftover []string
-	walkErr := filepath.WalkDir(secretRoot, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !entry.IsDir() {
-			leftover = append(leftover, path)
-		}
-		return nil
+	if creds.Keys.PrivateKeyRef == nil || creds.Keys.PrivateKeyRef.Provider != osKeyringProviderName ||
+		creds.OAuth2.ClientSecretRef == nil || creds.OAuth2.ClientSecretRef.Provider != osKeyringProviderName {
+		t.Fatalf("default destination is not the OS keyring: %#v / %#v", creds.Keys.PrivateKeyRef, creds.OAuth2.ClientSecretRef)
+	}
+}
+
+func TestRegisterKeepsTheSeedWhenRegistrationDoesNotComplete(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  registerServerConfig
+	}{
+		{name: "definitive rejection", cfg: registerServerConfig{status: http.StatusBadRequest}},
+		{name: "server error that may follow a commit", cfg: registerServerConfig{status: http.StatusServiceUnavailable}},
+		{name: "committed but undecodable credential", cfg: registerServerConfig{credential: map[string]any{"type": "unknown"}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			registry, memory, _ := registerMemoryRegistry()
+			server, _ := newRegisterTestServer(t, tt.cfg)
+
+			_, err := runTestRegister(t, server.URL, "reg-incomplete", registry)
+
+			if err == nil {
+				t.Fatal("expected registration to fail")
+			}
+			seeds := storedSeedKeys(memory)
+			if len(seeds) != 1 {
+				t.Fatalf("stored seeds = %v, want exactly the one kept seed", seeds)
+			}
+			if !strings.Contains(err.Error(), "seed kept at os-keyring:"+seeds[0]) {
+				t.Fatalf("error does not name the kept seed %s: %v", seeds[0], err)
+			}
+			path, pathErr := identityCredentialsPath("reg-incomplete")
+			if pathErr != nil {
+				t.Fatal(pathErr)
+			}
+			if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+				t.Fatalf("config must not exist when registration did not complete: %v", statErr)
+			}
+		})
+	}
+}
+
+func TestRegisterStopsBeforeTheNetworkWhenSecretsCannotBeStored(t *testing.T) {
+	tests := []struct {
+		name       string
+		failPrefix string
+		wantErr    string
+	}{
+		{name: "provider preflight fails", failPrefix: "preflight/", wantErr: "is unavailable"},
+		{name: "seed store fails", failPrefix: "identity/", wantErr: "store identity seed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			registry, memory := newMemorySecretProviderRegistry()
+			memory.failSet = func(key string) error {
+				if strings.HasPrefix(key, tt.failPrefix) {
+					return errors.New("simulated store failure")
+				}
+				return nil
+			}
+			server, calls := newRegisterTestServer(t, registerServerConfig{})
+
+			_, err := runTestRegister(t, server.URL, "reg-no-store", registry)
+
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) || !strings.Contains(err.Error(), "registration was not attempted") {
+				t.Fatalf("error = %v, want %q before any network call", err, tt.wantErr)
+			}
+			if calls.Load() != 0 {
+				t.Fatalf("registration calls = %d, want 0", calls.Load())
+			}
+			if seeds := storedSeedKeys(memory); len(seeds) != 0 {
+				t.Fatalf("stored seeds = %v, want none", seeds)
+			}
+		})
+	}
+}
+
+func TestRegisterNamesTheKeptSeedWhenAnotherIdentityClaimedTheAlias(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	registry, memory, _ := registerMemoryRegistry()
+	path, err := identityCredentialsPath("reg-race")
+	if err != nil {
+		t.Fatal(err)
+	}
+	winner := &CredentialsFile{SubjectID: "concurrent-winner", SubjectType: SubjectTypeAgent}
+	// A concurrent `register --name reg-race` lands its config while this run
+	// is registering remotely.
+	server, _ := newRegisterTestServer(t, registerServerConfig{
+		onRequest: func(capturedRegistrationRequest) {
+			if _, err := WriteConfigTo(winner, path); err != nil {
+				t.Errorf("write concurrent config: %v", err)
+			}
+		},
 	})
-	if walkErr != nil {
-		t.Fatal(walkErr)
+
+	_, err = runTestRegister(t, server.URL, "reg-race", registry)
+
+	if err == nil || !strings.Contains(err.Error(), "identity already exists") {
+		t.Fatalf("error = %v, want exclusive-create refusal", err)
 	}
-	if len(leftover) != 0 {
-		t.Fatalf("secret root should hold no values after cleanup, found %v", leftover)
+	seeds := storedSeedKeys(memory)
+	if len(seeds) != 1 || !strings.Contains(err.Error(), seeds[0]) || !strings.Contains(err.Error(), registerTestAgentID) {
+		t.Fatalf("error must name the registered agent and kept seed %v: %v", seeds, err)
+	}
+	creds, readErr := ReadConfigFrom(path)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if creds.SubjectID != "concurrent-winner" {
+		t.Fatalf("the concurrent identity config was overwritten: %#v", creds)
 	}
 }
 
 func TestRegisterKeepsIdentityRecoverableWhenSecretStoreFails(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	server, _ := newRegisterTestServer(t, http.StatusOK)
-	provider := &flakySecretProvider{failKey: OAuth2SecretKey("00000000-0000-4000-a000-000000000123", "client-id")}
-	registry := NewSecretProviderRegistry()
-	registry.Register("flaky", provider)
-	var stderr bytes.Buffer
+	registry, memory := newMemorySecretProviderRegistry()
+	oauth2Key := OAuth2SecretKey(registerTestAgentID, registerTestClientID)
+	memory.failSet = func(key string) error {
+		if key == oauth2Key {
+			return errors.New("simulated store failure")
+		}
+		return nil
+	}
+	server, _ := newRegisterTestServer(t, registerServerConfig{})
 
-	err := runRegister(registerOpts{
-		stdout: &bytes.Buffer{}, errOut: &stderr,
-		apiURL: server.URL, credentialType: credentialTypeOAuth2, name: "reg-flaky",
-		destination: "flaky", secretProviders: registry,
-	})
+	_, err := runTestRegister(t, server.URL, "reg-flaky", registry)
 
 	if err == nil || !strings.Contains(err.Error(), "moltnet agents credentials recover --yes") {
 		t.Fatalf("error = %v, want recovery guidance", err)
@@ -387,19 +514,49 @@ func TestRegisterKeepsIdentityRecoverableWhenSecretStoreFails(t *testing.T) {
 	if readErr != nil {
 		t.Fatalf("config must survive a secret store failure: %v", readErr)
 	}
-	if creds.Keys.PrivateKeyRef == nil || creds.OAuth2.ClientSecretRef == nil || creds.OAuth2.ClientID != "client-id" {
+	if creds.Keys.PrivateKeyRef == nil || creds.OAuth2.ClientSecretRef == nil || creds.OAuth2.ClientID != registerTestClientID {
 		t.Fatalf("config is missing the references recovery needs: %#v", creds)
 	}
-	if _, seedErr := provider.Get(creds.Keys.PrivateKeyRef.Key); seedErr != nil {
-		t.Fatalf("seed must remain stored: %v", seedErr)
+	if memory.values[creds.Keys.PrivateKeyRef.Key] == "" {
+		t.Fatal("seed must remain stored")
+	}
+}
+
+func TestRegisterWarnsWhenTheDefaultIdentityCannotBeSelected(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	selectorPath, err := identitySelectorPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A directory where the selector file belongs makes the selector write fail.
+	if err := os.MkdirAll(selectorPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	registry, _ := newMemorySecretProviderRegistry()
+	server, _ := newRegisterTestServer(t, registerServerConfig{})
+
+	stderr, err := runTestRegister(t, server.URL, "reg-no-selector", registry)
+
+	if err != nil {
+		t.Fatalf("a selector failure must not fail registration: %v", err)
+	}
+	if !strings.Contains(stderr, "was not selected as the default identity") ||
+		!strings.Contains(stderr, "moltnet config identity select reg-no-selector") {
+		t.Fatalf("stderr lacks the selector warning:\n%s", stderr)
+	}
+	path, pathErr := identityCredentialsPath("reg-no-selector")
+	if pathErr != nil {
+		t.Fatal(pathErr)
+	}
+	if _, statErr := os.Stat(path); statErr != nil {
+		t.Fatalf("config must be written: %v", statErr)
 	}
 }
 
 func TestRegisterRefusesExistingAlias(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	t.Setenv(secretRootEnv, t.TempDir())
-	t.Setenv(secretRootWritableEnv, "1")
-	server, calls := newRegisterTestServer(t, http.StatusOK)
+	registry, memory := newMemorySecretProviderRegistry()
+	server, calls := newRegisterTestServer(t, registerServerConfig{})
 	path, err := identityCredentialsPath("reg-dup")
 	if err != nil {
 		t.Fatal(err)
@@ -408,13 +565,45 @@ func TestRegisterRefusesExistingAlias(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "register", "--name", "reg-dup", "--api-url", server.URL, "--destination", fileProviderName)
+	_, err = runTestRegister(t, server.URL, "reg-dup", registry)
 
 	if err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Fatalf("error = %v, want existing-alias refusal", err)
 	}
 	if calls.Load() != 0 {
 		t.Fatalf("registration calls = %d, want 0", calls.Load())
+	}
+	if seeds := storedSeedKeys(memory); len(seeds) != 0 {
+		t.Fatalf("stored seeds = %v, want none for a refused alias", seeds)
+	}
+}
+
+func TestRegisterJSONPrintsCredentialsAndWritesNothing(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	registry, memory := newMemorySecretProviderRegistry()
+	server, _ := newRegisterTestServer(t, registerServerConfig{})
+	var stdout bytes.Buffer
+
+	err := runRegister(registerOpts{
+		stdout: &stdout, errOut: &bytes.Buffer{},
+		apiURL: server.URL, credentialType: credentialTypeOAuth2,
+		jsonOut: true, secretProviders: registry,
+	})
+
+	if err != nil {
+		t.Fatalf("register --json: %v", err)
+	}
+	var printed map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &printed); err != nil {
+		t.Fatalf("stdout is not JSON: %v\n%s", err, stdout.String())
+	}
+	if printed["subject_id"] != registerTestAgentID || printed["private_key"] == "" {
+		t.Fatalf("unexpected JSON output: %v", printed)
+	}
+	if len(memory.values) != 0 {
+		t.Fatalf("--json must not store secrets, found %v", memory.values)
+	}
+	if aliases, err := listIdentityAliases(); err != nil || len(aliases) != 0 {
+		t.Fatalf("--json must not write an identity, found %v (%v)", aliases, err)
 	}
 }

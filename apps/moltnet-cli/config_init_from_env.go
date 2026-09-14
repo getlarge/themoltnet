@@ -352,7 +352,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 			Key:      environmentSecretKey,
 		}
 		if valueComesFromFile(environmentSecretKey, fileVars, override) {
-			resolved, err := validateMigrationDestination(secretProviders, destination)
+			resolved, err := resolveSecretDestination(secretProviders, destination)
 			if err != nil {
 				return err
 			}

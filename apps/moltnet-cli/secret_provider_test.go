@@ -21,6 +21,9 @@ type keyringConformanceFixture struct {
 
 type memorySecretProvider struct {
 	values map[string]string
+	// failSet, when set, can reject a write for a given key. Tests use it to
+	// fail one step of a multi-secret sequence.
+	failSet func(key string) error
 }
 
 func newMemorySecretProviderRegistry() (*SecretProviderRegistry, *memorySecretProvider) {
@@ -37,6 +40,11 @@ func (p *memorySecretProvider) Get(key string) (string, error) {
 func (p *memorySecretProvider) CanWrite() bool { return true }
 
 func (p *memorySecretProvider) Set(key, value string) error {
+	if p.failSet != nil {
+		if err := p.failSet(key); err != nil {
+			return err
+		}
+	}
 	p.values[key] = value
 	return nil
 }

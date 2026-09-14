@@ -178,16 +178,23 @@ func writeCentralIdentityConfig(alias string, config *CredentialsFile) (string, 
 	if _, err := WriteConfigTo(config, path); err != nil {
 		return "", err
 	}
-	selector, err := readIdentitySelector()
-	if err != nil {
+	if err := seedIdentitySelectorIfUnset(alias); err != nil {
 		return "", err
 	}
-	if selector == nil || selector.DefaultIdentity == "" {
-		if err := writeIdentitySelector(alias); err != nil {
-			return "", err
-		}
-	}
 	return path, nil
+}
+
+// seedIdentitySelectorIfUnset makes alias the default identity when no default
+// is selected yet. An existing default is never replaced.
+func seedIdentitySelectorIfUnset(alias string) error {
+	selector, err := readIdentitySelector()
+	if err != nil {
+		return err
+	}
+	if selector != nil && selector.DefaultIdentity != "" {
+		return nil
+	}
+	return writeIdentitySelector(alias)
 }
 
 func listIdentityAliases() ([]string, error) {

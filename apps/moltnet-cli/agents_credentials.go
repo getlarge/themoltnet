@@ -252,17 +252,17 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 // agent_key_ref is inherited, falling back to the OS keyring.
 func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (string, error) {
 	if strings.TrimSpace(requested) != "" {
-		return validateMigrationDestination(registry, requested)
+		return resolveSecretDestination(registry, requested)
 	}
 	switch {
 	case creds.OAuth2.ClientSecretRef != nil:
-		return validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider)
+		return resolveSecretDestination(registry, creds.OAuth2.ClientSecretRef.Provider)
 	case strings.TrimSpace(creds.OAuth2.ClientSecret) != "":
 		return "", fmt.Errorf("--destination is required when oauth2.client_secret is stored as plaintext; choose the provider that should hold the recovered secret")
 	case creds.AgentKeyRef != nil && creds.AgentKeyRef.Provider != "":
-		return validateMigrationDestination(registry, creds.AgentKeyRef.Provider)
+		return resolveSecretDestination(registry, creds.AgentKeyRef.Provider)
 	default:
-		return validateMigrationDestination(registry, osKeyringProviderName)
+		return resolveSecretDestination(registry, osKeyringProviderName)
 	}
 }
 

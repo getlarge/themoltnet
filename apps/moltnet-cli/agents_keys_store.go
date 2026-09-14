@@ -71,7 +71,7 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if providers == nil {
 		providers = NewSecretProviderRegistry()
 	}
-	destination, err := validateMigrationDestination(providers, opts.destination)
+	destination, err := resolveSecretDestination(providers, opts.destination)
 	if err != nil {
 		return nil, err
 	}
