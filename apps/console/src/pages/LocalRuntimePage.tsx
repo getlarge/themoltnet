@@ -37,7 +37,9 @@ import {
 import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
-const AGENT_DOWNLOAD_URL = 'https://themolt.net/download#install';
+const AGENT_DESKTOP_DOWNLOAD_URL =
+  'https://themolt.net/download/desktop/macos-arm64';
+const AGENT_CLI_INSTALL_URL = 'https://themolt.net/download#install';
 const TASK_TYPE_OPTIONS = Object.keys(BUILT_IN_TASK_TYPES).sort();
 
 export function LocalRuntimePage() {
@@ -123,33 +125,44 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
         <Stack gap={4}>
           <Stack direction="row" gap={3} align="center">
             <Badge variant="error">Not running</Badge>
-            <Text weight="medium">
-              No local supervisor at{' '}
-              <Text as="span" mono>
-                {runtime.agentServerUrl}
-              </Text>
-            </Text>
+            <Text weight="medium">MoltNet Agent isn’t running</Text>
           </Stack>
           <Stack gap={2}>
             <Text variant="caption" color="muted">
-              Start the installed MoltNet Agent binary on this machine:
+              Install and open MoltNet Agent on this Mac. It manages setup,
+              local HTTPS trust, and the foreground server for you.
             </Text>
-            <Text mono variant="caption">
-              moltnet-agent server
+            <Text mono variant="caption" color="muted">
+              Local endpoint: {runtime.agentServerUrl}
+            </Text>
+            <ActionLink
+              size="sm"
+              href={AGENT_DESKTOP_DOWNLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download MoltNet Agent for Mac
+            </ActionLink>
+            <Text variant="caption" color="muted">
+              Terminal setup remains available for advanced use.
             </Text>
             <ActionLink
               variant="ghost"
               size="sm"
-              href={AGENT_DOWNLOAD_URL}
+              href={AGENT_CLI_INSTALL_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
-              Download MoltNet Agent
+              View terminal installation
             </ActionLink>
           </Stack>
           <Stack direction="row">
-            <Button size="sm" onClick={() => void runtime.retry()}>
-              Retry connection
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void runtime.retry()}
+            >
+              Already installed? Retry
             </Button>
           </Stack>
           {runtime.connectionError ? (
