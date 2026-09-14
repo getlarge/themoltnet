@@ -20,6 +20,7 @@ import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
+import { TOOL_POLICY_ESCAPE_CASES } from './tool-policy-escape-corpus.js';
 
 const noopLogger = {
   debug: () => {},
@@ -108,11 +109,11 @@ describe('Tool-policy enforcement (daemon)', () => {
   it('enforce: resolves the union allow-set and blocks disallowed tools', async () => {
     const profile = await createProfile(`enforce-${Date.now()}`, 'enforce');
     const p1 = await createPolicy(`p1-${Date.now()}`, ['read', 'ls']);
-    const p2 = await createPolicy(`p2-${Date.now()}`, ['git']);
+    const p2 = await createPolicy(`p2-${Date.now()}`, ['git', 'grep', 'find']);
     const p3 = await createPolicy(
       `p3-${Date.now()}`,
       [],
-      [{ argvPrefix: ['gh', 'pr', 'view'] }],
+      [{ argvPrefix: ['gh', 'pr', 'view'] }, { argvPrefix: ['ls', '-la'] }],
     );
     await agent.runtimeProfiles.setPolicies(profile.id, [p1.id, p2.id, p3.id], {
       teamId,
@@ -127,9 +128,16 @@ describe('Tool-policy enforcement (daemon)', () => {
       logger: noopLogger,
     });
     expect(policy.enforcement).toBe('enforce');
-    expect([...policy.allowedTools].sort()).toEqual(['git', 'ls', 'read']);
+    expect([...policy.allowedTools].sort()).toEqual([
+      'find',
+      'git',
+      'grep',
+      'ls',
+      'read',
+    ]);
     expect(policy.allowedShellCommands).toEqual([
       { argvPrefix: ['gh', 'pr', 'view'] },
+      { argvPrefix: ['ls', '-la'] },
     ]);
 
     // Structured tools.
@@ -164,7 +172,7 @@ describe('Tool-policy enforcement (daemon)', () => {
       }),
     ).toMatchObject({ allow: false });
 
-    // Bash: every executable must be allowed.
+    // Bash: every executable needs broad authority or a scoped command grant.
     expect(
       decideToolCall({
         toolName: 'bash',
@@ -174,7 +182,10 @@ describe('Tool-policy enforcement (daemon)', () => {
         allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
-    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
+    ).toMatchObject({
+      allow: true,
+      reasonCode: 'shell_command_prefix_allowed',
+    });
     expect(
       decideToolCall({
         toolName: 'bash',
@@ -205,6 +216,26 @@ describe('Tool-policy enforcement (daemon)', () => {
         analyze,
       }),
     ).toMatchObject({ allow: false });
+
+    for (const testCase of TOOL_POLICY_ESCAPE_CASES) {
+      const decision = decideToolCall({
+        toolName: 'bash',
+        command: testCase.command,
+        enforcement: policy.enforcement,
+        allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
+        analyze,
+      });
+
+      expect(
+        decision,
+        `${testCase.name} [${testCase.policyShape}/${testCase.technique}/${testCase.source}]`,
+      ).toMatchObject({
+        allow: testCase.expectedAllow,
+        reasonCode: testCase.reasonCode,
+        ...(testCase.missing ? { missing: testCase.missing } : {}),
+      });
+    }
   });
 
   it('watch: audits a disallowed tool but allows it', async () => {
