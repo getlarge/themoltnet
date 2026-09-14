@@ -12,6 +12,13 @@ import {
   fileSecretProviderOptionsFromEnv,
 } from './file-secret-provider.js';
 import {
+  enroll,
+  register,
+  type RegisterOptions,
+  type RegisterResult,
+  setDefaultRegistrationSecretProvider,
+} from './register-node.js';
+import {
   createDefaultSecretProviderRegistry,
   MOLTNET_SECRET_SERVICE,
   OS_KEYRING_SECRET_PROVIDER,
@@ -82,6 +89,10 @@ export class OSKeyringSecretProvider implements SecretProvider {
   }
 }
 
+// The persisting register() defaults to the OS keyring only through this Node
+// entry; the isomorphic root never loads the adapter.
+setDefaultRegistrationSecretProvider(() => new OSKeyringSecretProvider());
+
 export function windowsKeyringTarget(
   service: string,
   key: string,
@@ -136,3 +147,9 @@ export {
 } from './file-secret-provider.js';
 export { MOLTNET_SECRET_SERVICE };
 export type { AmbientConnectOptions as ConnectOptions };
+export { enroll, register, type RegisterOptions, type RegisterResult };
+export {
+  RegisterIdentityError,
+  type RegisterIdentityErrorCode,
+} from './errors.js';
+export type { ConnectForRegistration } from './register-node.js';
