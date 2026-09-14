@@ -11,6 +11,8 @@
  * 4. Agent submits recovery code to Kratos self-service → gets session back
  */
 
+import { randomBytes } from 'node:crypto';
+
 import {
   type Client,
   createClient,
@@ -20,6 +22,7 @@ import {
 } from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService, openSealedEnvelope } from '@moltnet/crypto-service';
+import { buildSelfRegistrationMessage } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -44,6 +47,81 @@ function requestOAuthToken(
       scope: AGENT_OAUTH_SCOPES.join(' '),
     }),
   });
+}
+
+/**
+ * Register an agent that only holds an agent key: the shape the daemon's
+ * managed-agent path produces. No OAuth2 client exists for it yet.
+ */
+async function registerAgentKeyAgent(baseUrl: string) {
+  const keyPair = await cryptoService.generateKeyPair();
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const proof = await cryptoService.sign(
+    buildSelfRegistrationMessage({
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType: 'agent_key',
+    }),
+    keyPair.privateKey,
+  );
+  const response = await fetch(`${baseUrl}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'Idempotency-Key': idempotencyKey,
+    },
+    body: JSON.stringify({
+      publicKey: keyPair.publicKey,
+      proof,
+      credentialType: 'agent_key',
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Registration failed: ${response.status} ${await response.text()}`,
+    );
+  }
+  const body = (await response.json()) as {
+    agentId: string;
+    credential: { type: 'agent_key'; secret: string };
+  };
+  expect(body.credential.type).toBe('agent_key');
+  return { keyPair, agentId: body.agentId };
+}
+
+async function recoverCredentials(
+  apiClient: Client,
+  keyPair: { publicKey: string; privateKey: string },
+) {
+  const { data: challengeData, error: challengeError } =
+    await requestRecoveryChallenge({
+      client: apiClient,
+      body: { publicKey: keyPair.publicKey, purpose: 'credentials' },
+    });
+  expect(challengeError).toBeUndefined();
+  const signature = await cryptoService.sign(
+    challengeData!.challenge,
+    keyPair.privateKey,
+  );
+  const { data, error, response } = await recoverAgentCredentials({
+    client: apiClient,
+    body: {
+      challenge: challengeData!.challenge,
+      hmac: challengeData!.hmac,
+      signature,
+      publicKey: keyPair.publicKey,
+    },
+  });
+  expect(error).toBeUndefined();
+  expect(response.status).toBe(200);
+  return {
+    clientId: data!.clientId,
+    clientSecret: openSealedEnvelope(
+      data!.sealedClientSecret,
+      keyPair.privateKey,
+    ),
+  };
 }
 
 describe('Recovery Flow', () => {
@@ -378,6 +456,47 @@ describe('Recovery Flow', () => {
       ).resolves.toMatchObject({ status: 200 });
       await expect(
         requestOAuthToken(harness.baseUrl, legacyClientId, previousSecret),
+      ).resolves.toMatchObject({ status: 401 });
+    });
+
+    it('mints an OAuth2 client for an agent registered with an agent key', async () => {
+      const { keyPair, agentId } = await registerAgentKeyAgent(harness.baseUrl);
+
+      const first = await recoverCredentials(client, keyPair);
+
+      expect(first.clientId).toBe(`moltnet-agent-${agentId}`);
+      await expect(
+        requestOAuthToken(harness.baseUrl, first.clientId, first.clientSecret),
+      ).resolves.toMatchObject({ status: 200 });
+
+      const minted = await harness.hydraAdminOAuth2.getOAuth2Client({
+        id: first.clientId,
+      });
+      expect(minted.metadata).toMatchObject({
+        type: 'moltnet_agent',
+        agent_id: agentId,
+        public_key: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+    });
+
+    it('rotates rather than duplicating on a second recovery', async () => {
+      const { keyPair } = await registerAgentKeyAgent(harness.baseUrl);
+      const first = await recoverCredentials(client, keyPair);
+
+      const second = await recoverCredentials(client, keyPair);
+
+      expect(second.clientId).toBe(first.clientId);
+      expect(second.clientSecret).not.toBe(first.clientSecret);
+      await expect(
+        requestOAuthToken(
+          harness.baseUrl,
+          second.clientId,
+          second.clientSecret,
+        ),
+      ).resolves.toMatchObject({ status: 200 });
+      await expect(
+        requestOAuthToken(harness.baseUrl, first.clientId, first.clientSecret),
       ).resolves.toMatchObject({ status: 401 });
     });
   });
