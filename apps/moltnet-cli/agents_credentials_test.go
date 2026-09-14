@@ -56,7 +56,7 @@ func TestAgentsCredentialsRecoverRequiresConfirmation(t *testing.T) {
 
 // newRecoveryTestServer serves the challenge, recovery, and token endpoints
 // the recover command touches, for the given key pair. It returns the server
-// and counters for the two recovery calls.
+// and call counters for the challenge and recovery endpoints.
 func newRecoveryTestServer(t *testing.T, keyPair *KeyPair) (*httptest.Server, *atomic.Int32, *atomic.Int32) {
 	t.Helper()
 	var challengeCalls atomic.Int32
@@ -1486,6 +1486,9 @@ func TestAgentsCredentialsRecoverDefaultsDestinationForAgentKeyIdentity(t *testi
 	if recoveryCalls.Load() != 1 {
 		t.Fatalf("recovery calls = %d, want 1", recoveryCalls.Load())
 	}
+	if !strings.Contains(stderr, "inherited from agent_key_ref") {
+		t.Fatalf("stderr does not name the inherited file provider:\n%s", stderr)
+	}
 
 	updated, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
@@ -1502,15 +1505,69 @@ func TestAgentsCredentialsRecoverDefaultsDestinationForAgentKeyIdentity(t *testi
 	}
 }
 
-func TestResolveRecoveryDestinationProviderStillRequiresFlagForPlaintextSecret(t *testing.T) {
-	t.Parallel()
-	creds := &CredentialsFile{
-		OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "plaintext"},
+func TestResolveRecoveryDestinationProvider(t *testing.T) {
+	t.Setenv(secretRootEnv, t.TempDir())
+	t.Setenv(secretRootWritableEnv, "1")
+	registry := NewSecretProviderRegistry()
+	fileRef := &SecretReference{Provider: fileProviderName, Key: "any"}
+
+	tests := []struct {
+		name      string
+		creds     CredentialsFile
+		requested string
+		want      string
+		wantErr   string
+	}{
+		{
+			name:      "explicit destination wins over every stored reference",
+			creds:     CredentialsFile{OAuth2: CredentialsOAuth2{ClientSecretRef: fileRef}},
+			requested: osKeyringProviderName,
+			want:      osKeyringProviderName,
+		},
+		{
+			name:  "existing client_secret_ref provider is reused",
+			creds: CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecretRef: fileRef}},
+			want:  fileProviderName,
+		},
+		{
+			name:    "plaintext client_secret requires an explicit destination",
+			creds:   CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "plaintext"}},
+			wantErr: "stored as plaintext",
+		},
+		{
+			name:  "agent-key-only identity inherits the agent key provider",
+			creds: CredentialsFile{AgentKeyRef: fileRef},
+			want:  fileProviderName,
+		},
+		{
+			name:  "client_id without any secret inherits the agent key provider",
+			creds: CredentialsFile{OAuth2: CredentialsOAuth2{ClientID: "client"}, AgentKeyRef: fileRef},
+			want:  fileProviderName,
+		},
+		{
+			name:  "no secret and no agent key falls back to the OS keyring",
+			creds: CredentialsFile{},
+			want:  osKeyringProviderName,
+		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			creds := tt.creds
 
-	_, err := resolveRecoveryDestinationProvider(creds, "", NewSecretProviderRegistry())
+			got, err := resolveRecoveryDestinationProvider(&creds, tt.requested, registry)
 
-	if err == nil || !strings.Contains(err.Error(), "--destination") {
-		t.Fatalf("error = %v, want --destination requirement", err)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("error = %v, want containing %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("resolve: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("provider = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

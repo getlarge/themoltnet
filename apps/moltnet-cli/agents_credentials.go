@@ -112,6 +112,10 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err != nil {
 		return err
 	}
+	if strings.TrimSpace(opts.destination) == "" && creds.OAuth2.ClientSecretRef == nil &&
+		destinationProvider == fileProviderName && opts.errOut != nil {
+		fmt.Fprintf(opts.errOut, "Storing the recovered OAuth2 secret with the %s provider inherited from agent_key_ref; pass --destination to choose another.\n", fileProviderName)
+	}
 
 	apiURL := resolveAPIURLFromCredentials(
 		opts.apiURL,
@@ -239,12 +243,12 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 }
 
 // resolveRecoveryDestinationProvider picks where the recovered OAuth2 secret
-// is stored. An explicit --destination always wins. Otherwise the existing
-// client_secret_ref provider is reused; an identity that has no OAuth2 client
-// yet (agent-key only, the daemon's managed-agent shape) inherits the provider
-// of its agent_key_ref, falling back to the OS keyring. A plaintext
-// client_secret still needs an explicit destination because moving away from
-// plaintext is a deliberate choice.
+// is stored. An explicit --destination always wins. Otherwise an existing
+// client_secret_ref provider is reused. A plaintext client_secret needs an
+// explicit destination, because moving away from plaintext is a deliberate
+// choice. With no OAuth2 secret at all (an agent-key-only identity, or an
+// OAuth2 block left with a client_id but no secret) the provider of
+// agent_key_ref is inherited, falling back to the OS keyring.
 func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (string, error) {
 	if strings.TrimSpace(requested) != "" {
 		return validateMigrationDestination(registry, requested)
@@ -252,13 +256,12 @@ func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string
 	switch {
 	case creds.OAuth2.ClientSecretRef != nil:
 		return validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider)
-	case creds.OAuth2.ClientID == "" && creds.OAuth2.ClientSecret == "":
-		if creds.AgentKeyRef != nil && creds.AgentKeyRef.Provider != "" {
-			return validateMigrationDestination(registry, creds.AgentKeyRef.Provider)
-		}
-		return validateMigrationDestination(registry, osKeyringProviderName)
-	default:
+	case strings.TrimSpace(creds.OAuth2.ClientSecret) != "":
 		return "", fmt.Errorf("--destination is required when oauth2.client_secret is stored as plaintext; choose the provider that should hold the recovered secret")
+	case creds.AgentKeyRef != nil && creds.AgentKeyRef.Provider != "":
+		return validateMigrationDestination(registry, creds.AgentKeyRef.Provider)
+	default:
+		return validateMigrationDestination(registry, osKeyringProviderName)
 	}
 }
 
