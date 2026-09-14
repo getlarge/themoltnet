@@ -24,6 +24,7 @@ import {
   validateStartupBinding,
 } from '../lib/agent-context.js';
 import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
+import { resolveAgentServerRoot } from '../lib/agent-server/store.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -57,7 +58,7 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
+import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -260,8 +261,15 @@ export async function runOnce(
     rootDir: profile.mountPath,
     path: profile.source,
   };
-  const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
-  activatePiCodingAgentDir(piAgentDir.path);
+  const piAgentDir = await resolvePiAgentDir({
+    repoRoot: sandbox.rootDir,
+    explicitPath: cfg.piCodingAgentDir,
+    storeRoot: resolveAgentServerRoot({ root: cfg.agentServerRoot }),
+    profiles: [profile],
+    env: cfg.profilePrerequisiteEnv,
+  });
+  process.once('exit', piAgentDir.cleanup);
+  activatePiCodingAgentDir(piAgentDir.path, piAgentDir.providerEnv);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
@@ -354,6 +362,7 @@ export async function runOnce(
       profileWorkspaceTtlSec: profile.workspaceTtlSec,
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
+      piAuthSource: piAgentDir.authSource ?? null,
     },
     'agent-daemon.starting',
   );

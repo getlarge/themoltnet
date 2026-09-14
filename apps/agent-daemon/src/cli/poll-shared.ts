@@ -28,6 +28,7 @@ import {
   validateStartupBinding,
 } from '../lib/agent-context.js';
 import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
+import { resolveAgentServerRoot } from '../lib/agent-server/store.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -63,7 +64,11 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
+import {
+  ensurePiAgentDir,
+  type ResolvedPiAgentDir,
+  resolvePiAgentDir,
+} from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -105,7 +110,7 @@ interface ProfileRuntime {
     path: string;
   };
   stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
-  piAgentDir: ReturnType<typeof ensurePiAgentDir>;
+  piAgentDir: ResolvedPiAgentDir;
   slotIdentity: DaemonSlotIdentity;
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
   preparedRuntime: AttestedDaemonRuntime;
@@ -366,6 +371,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     agent: ctx.agent,
   });
   const runtimeInstanceId = createRuntimeInstanceId();
+  // One process-wide Pi dir: env override, else a store-composed dir merged
+  // with the first profile's repo `.pi`, else per-profile repo `.pi` as before.
+  const processPiAgentDir = await resolvePiAgentDir({
+    repoRoot: profiles[0].mountPath,
+    explicitPath: cfg.piCodingAgentDir,
+    storeRoot: resolveAgentServerRoot({ root: cfg.agentServerRoot }),
+    profiles,
+    env: cfg.profilePrerequisiteEnv,
+  });
+  process.once('exit', processPiAgentDir.cleanup);
   const runtimes = new Map<string, ProfileRuntime>();
   for (const profile of profiles) {
     const common = parseCommonOptions(values, {
@@ -383,7 +398,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       rootDir: profile.mountPath,
       path: profile.source,
     };
-    const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
+    const piAgentDir =
+      processPiAgentDir.source === 'repo'
+        ? ensurePiAgentDir(sandbox.rootDir, '')
+        : processPiAgentDir;
     const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
     const slotIdentity: DaemonSlotIdentity = {
       agentName: common.agent,
@@ -418,7 +436,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     throw new Error('No runtime profiles resolved');
   }
   const piAgentDir = firstRuntime.piAgentDir;
-  activatePiCodingAgentDir(piAgentDir.path);
+  activatePiCodingAgentDir(piAgentDir.path, processPiAgentDir.providerEnv);
   const otelShutdown = await initWorkerOtel({
     serviceName: opts.serviceName,
     agent: ctx.agent,
@@ -534,6 +552,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       }),
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
+      piAuthSource: processPiAgentDir.authSource ?? null,
     },
     'agent-daemon.starting',
   );

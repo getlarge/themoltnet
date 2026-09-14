@@ -20,8 +20,13 @@ export interface DaemonConfig {
   profilePrerequisiteEnv: NodeJS.ProcessEnv;
   /** PATH used when resolving profile requiredTools. */
   profilePrerequisitePath: string;
-  /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
+  /**
+   * Optional Pi agent dir override. Empty = compose from the Agent Server
+   * provider store when one exists, else repo-local .pi.
+   */
   piCodingAgentDir: string;
+  /** `MOLTNET_AGENT_SERVER_ROOT`; empty = `~/.config/moltnet`. */
+  agentServerRoot: string;
   /**
    * Where the agent key comes from: `environment` when `MOLTNET_AGENT_KEY`
    * (or `_REF`) is set, otherwise `config` — an `agent_key_ref` in
@@ -71,6 +76,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
+    agentServerRoot: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
     credentialSource: detectCredentialSource(process.env),
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
@@ -127,8 +133,15 @@ function readBoolean(name: string, value: string | undefined): boolean {
   throw new Error(`${name} must be either true or false`);
 }
 
-export function activatePiCodingAgentDir(path: string): void {
+export function activatePiCodingAgentDir(
+  path: string,
+  providerEnv: Readonly<Record<string, string>> = {},
+): void {
   process.env['PI_CODING_AGENT_DIR'] = path;
+  // Store-resolved provider keys referenced by the composed models.json.
+  for (const [name, value] of Object.entries(providerEnv)) {
+    process.env[name] = value;
+  }
 }
 
 /** Env-derived defaults for `server` (single process.env entry point). */
