@@ -9,11 +9,11 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type * as Sdk from '@themoltnet/sdk';
+import type * as ApiClient from '@moltnet/api-client';
+import type * as CryptoService from '@moltnet/crypto-service';
 import {
   AuthenticationError,
   type MoltNetConfig,
-  MoltNetError,
   READ_ONLY_CAPABILITIES,
   SecretProviderRegistry,
   type Whoami,
@@ -30,19 +30,52 @@ import {
 } from './identity.js';
 import { AgentServerStore } from './store.js';
 
-const { connectMock, registerMock } = vi.hoisted(() => ({
+const { connectMock, enrollMock } = vi.hoisted(() => ({
   connectMock: vi.fn(),
-  registerMock: vi.fn(),
+  enrollMock: vi.fn(),
 }));
 
-vi.mock('@themoltnet/sdk', async (importOriginal) => ({
-  ...(await importOriginal<typeof Sdk>()),
-  register: registerMock,
+// The SDK register runs for real against the temp store; only the network
+// (API client), the keypair, and the post-registration connection are faked.
+vi.mock('@moltnet/crypto-service', async (importOriginal) => ({
+  ...(await importOriginal<typeof CryptoService>()),
+  cryptoService: {
+    generateKeyPair: vi.fn().mockResolvedValue({
+      publicKey: 'ed25519:public',
+      privateKey: 'private-seed',
+      fingerprint: 'FP-1',
+    }),
+    sign: vi.fn().mockResolvedValue('registration-proof'),
+    verify: vi.fn().mockResolvedValue(true),
+  },
+}));
+vi.mock('@moltnet/api-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof ApiClient>()),
+  createClient: vi.fn().mockReturnValue({}),
+  enrollAgent: enrollMock,
 }));
 vi.mock('@themoltnet/sdk/node', async (importOriginal) => ({
   ...(await importOriginal<typeof SdkNode>()),
   connect: connectMock,
 }));
+
+const enrollmentPayload = () =>
+  ({
+    data: {
+      agentId: 'agent-1',
+      identityId: 'identity-1',
+      fingerprint: 'FP-1',
+      publicKey: 'ed25519:public',
+      credential: {
+        type: 'agent_key',
+        key: { id: 'key-1' },
+        secret: 'agent-key-secret',
+      },
+    },
+    error: undefined,
+    request: new Request('http://localhost'),
+    response: new Response(),
+  }) as never;
 
 const roots: string[] = [];
 const whoami: Whoami = {
@@ -112,17 +145,7 @@ beforeEach(() => {
   connectMock.mockResolvedValue({
     agents: { whoami: vi.fn().mockResolvedValue(whoami) },
   });
-  registerMock.mockResolvedValue({
-    identity: {
-      subjectId: 'agent-1',
-      subjectType: 'agent',
-      publicKey: 'ed25519:public',
-      privateKey: 'private-seed',
-      fingerprint: 'FP-1',
-    },
-    credentials: { type: 'agent_key', secret: 'agent-key-secret' },
-    apiUrl: 'https://api.themolt.net',
-  });
+  enrollMock.mockResolvedValue(enrollmentPayload());
 });
 
 afterEach(() => {
@@ -147,7 +170,7 @@ describe('managed agent server agents', () => {
       }),
     ).rejects.toMatchObject({ code: 'registration_failed' });
 
-    expect(registerMock).not.toHaveBeenCalled();
+    expect(enrollMock).not.toHaveBeenCalled();
     expect(store.hasPendingRegistration('unsafe')).toBe(false);
   });
 
@@ -165,20 +188,10 @@ describe('managed agent server agents', () => {
     const finish = new Promise<void>((resolvePromise) => {
       finishRegistration = resolvePromise;
     });
-    registerMock.mockImplementationOnce(async () => {
+    enrollMock.mockImplementationOnce(async () => {
       registrationStarted();
       await finish;
-      return {
-        identity: {
-          subjectId: 'agent-1',
-          subjectType: 'agent' as const,
-          publicKey: 'ed25519:public',
-          privateKey: 'private-seed',
-          fingerprint: 'FP-1',
-        },
-        credentials: { type: 'agent_key' as const, secret: 'agent-key-secret' },
-        apiUrl: 'https://api.themolt.net',
-      };
+      return enrollmentPayload();
     });
 
     const first = createManagedAgent(store, secrets, {
@@ -198,7 +211,7 @@ describe('managed agent server agents', () => {
     await expect(first).resolves.toMatchObject({
       activation: { alias: 'same-alias' },
     });
-    expect(registerMock).toHaveBeenCalledTimes(1);
+    expect(enrollMock).toHaveBeenCalledTimes(1);
   });
 
   it('persists an exact agent-key-only MoltNetConfig without secret values', async () => {
@@ -325,7 +338,7 @@ describe('managed agent server agents', () => {
         enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
-    expect(registerMock).toHaveBeenCalledTimes(1);
+    expect(enrollMock).toHaveBeenCalledTimes(1);
 
     await expect(
       reconcileManagedRegistration(store, secrets, 'partial', 'resume'),
@@ -333,7 +346,7 @@ describe('managed agent server agents', () => {
       activation: { alias: 'partial', subjectId: 'agent-1' },
     });
     expect(store.hasPendingRegistration('partial')).toBe(false);
-    expect(registerMock).toHaveBeenCalledTimes(1);
+    expect(enrollMock).toHaveBeenCalledTimes(1);
   });
 
   it('explicitly abandons incomplete local registration artifacts', async () => {
@@ -342,7 +355,14 @@ describe('managed agent server agents', () => {
       root: store.secretsDir,
       writable: true,
     });
-    vi.spyOn(secrets, 'write').mockRejectedValueOnce(new Error('disk full'));
+    // The preflight probe and the seed write succeed; only the credential
+    // write fails, which is the last step before the whoami check.
+    const realWrite = secrets.write.bind(secrets);
+    vi.spyOn(secrets, 'write').mockImplementation((key, value) =>
+      key.startsWith('agent-key/')
+        ? Promise.reject(new Error('disk full'))
+        : realWrite(key, value),
+    );
     await expect(
       createManagedAgent(store, secrets, {
         name: 'abandoned',
@@ -397,7 +417,10 @@ describe('managed agent server agents', () => {
       root: store.secretsDir,
       writable: true,
     });
-    registerMock.mockRejectedValueOnce(new Error('response lost'));
+    // The SDK replays a dropped response once with the same signed request.
+    enrollMock
+      .mockRejectedValueOnce(new TypeError('response lost'))
+      .mockRejectedValueOnce(new TypeError('response lost'));
 
     await expect(
       createManagedAgent(store, secrets, {
@@ -415,7 +438,7 @@ describe('managed agent server agents', () => {
         enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
-    expect(registerMock).toHaveBeenCalledTimes(1);
+    expect(enrollMock).toHaveBeenCalledTimes(2);
   });
 
   it('clears the reservation after a definitive registration rejection', async () => {
@@ -424,12 +447,15 @@ describe('managed agent server agents', () => {
       root: store.secretsDir,
       writable: true,
     });
-    registerMock.mockRejectedValueOnce(
-      new MoltNetError('bad enrollment token', {
-        code: 'INVALID_TOKEN',
-        statusCode: 400,
-      }),
-    );
+    enrollMock.mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        type: 'urn:moltnet:problem:invalid-token',
+        title: 'Registration failed',
+        detail: 'bad enrollment token',
+        status: 400,
+      },
+    } as never);
 
     await expect(
       createManagedAgent(store, secrets, {
@@ -451,7 +477,7 @@ describe('managed agent server agents', () => {
         enrollmentToken: 'enroll-tok',
       }),
     ).resolves.toMatchObject({ activation: { alias: 'retryable' } });
-    expect(registerMock).toHaveBeenCalledTimes(2);
+    expect(enrollMock).toHaveBeenCalledTimes(2);
   });
 
   it('re-verifies a valid managed activation through the registry', async () => {
