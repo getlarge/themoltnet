@@ -1,8 +1,9 @@
-import type {
-  CommandAnalysis,
-  RiskTier,
+import {
+  type CommandAnalysis,
+  type RiskTier,
+  ShellCommandAnalyzer,
 } from '@themoltnet/shell-command-analyzer';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { decideToolCall, type GateInput } from './gate.js';
 
@@ -51,6 +52,13 @@ function analyzerOf(
 }
 
 const set = (xs: string[]) => new Set(xs);
+let analyzeRealCommand: (command: string) => CommandAnalysis;
+
+beforeAll(async () => {
+  const analyzer = await ShellCommandAnalyzer.create();
+  analyzeRealCommand = (command) => analyzer.analyze(command);
+});
+
 const base = (over: Partial<GateInput>): GateInput => ({
   toolName: 'read',
   enforcement: 'enforce',
@@ -309,6 +317,100 @@ describe('decideToolCall', () => {
     ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
+  it.each([
+    ['ls -l missing 2> proof.txt', 'ls'],
+    ['grep needle missing > proof.txt', 'grep'],
+    ['find . -fprint proof.txt', 'find'],
+    ['find . -delete', 'find'],
+  ])(
+    'bash: structured tool grant does not broadly authorize `%s`',
+    (command, executable) => {
+      expect(
+        decideToolCall(
+          base({
+            toolName: 'bash',
+            command,
+            allowedTools: set([executable]),
+            structuredToolNames: set([
+              'read',
+              'write',
+              'edit',
+              'bash',
+              'grep',
+              'ls',
+              'find',
+            ]),
+            analyze: analyzerOf({
+              [command]: {
+                tools: [{ name: executable, argv: [executable] }],
+              },
+            }),
+          }),
+        ),
+      ).toMatchObject({
+        allow: false,
+        reasonCode: 'tool_not_permitted',
+        missing: [executable],
+      });
+    },
+  );
+
+  it.each([
+    ['ls -l missing 2> proof.txt', 'ls'],
+    ['grep needle missing > proof.txt', 'grep'],
+    ['find . -fprint proof.txt', 'find'],
+    ['find . -delete', 'find'],
+  ])(
+    'bash: real analyzer keeps structured `%s` shell use denied',
+    (command, executable) => {
+      expect(
+        decideToolCall(
+          base({
+            toolName: 'bash',
+            command,
+            allowedTools: set([executable]),
+            structuredToolNames: set([
+              'read',
+              'write',
+              'edit',
+              'bash',
+              'grep',
+              'ls',
+              'find',
+            ]),
+            analyze: analyzeRealCommand,
+          }),
+        ),
+      ).toMatchObject({
+        allow: false,
+        reasonCode: 'tool_not_permitted',
+        missing: [executable],
+      });
+    },
+  );
+
+  it('bash: active custom structured tools do not become broad executables', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'deploy production',
+          allowedTools: set(['deploy']),
+          structuredToolNames: set(['deploy']),
+          analyze: analyzerOf({
+            'deploy production': {
+              tools: [{ name: 'deploy', argv: ['deploy', 'production'] }],
+            },
+          }),
+        }),
+      ),
+    ).toMatchObject({
+      allow: false,
+      reasonCode: 'tool_not_permitted',
+      missing: ['deploy'],
+    });
+  });
+
   it('does not expose analyzer command text in denial reasons', () => {
     const decision = decideToolCall(
       base({
@@ -482,16 +584,18 @@ describe('decideToolCall', () => {
     expect('allow' in decision).toBe(false);
   });
 
-  it('bash: escapable tier alone does not block when listed (known limitation)', () => {
-    // `find` is GTFOBins/escapable, but the tier alone is not fail-closed; only
+  it('bash: escapable tier alone does not block a non-colliding listed executable', () => {
+    // `tar` is GTFOBins/escapable, but the tier alone is not fail-closed; only
     // an unlisted name or an unresolvable/arbitrary-code payload blocks.
     const decision = decideToolCall(
       base({
         toolName: 'bash',
-        command: 'find . -name x',
-        allowedTools: set(['find']),
+        command: 'tar -tf archive.tar',
+        allowedTools: set(['tar']),
         analyze: analyzerOf({
-          'find . -name x': { tools: [{ name: 'find', risk: 'escapable' }] },
+          'tar -tf archive.tar': {
+            tools: [{ name: 'tar', risk: 'escapable' }],
+          },
         }),
       }),
     );

@@ -1447,6 +1447,18 @@ export async function executePiTask(
         claimedTask,
         opts.runtimeProfileId,
       );
+      const taskHasSubagents = taskTypeUsesSubagents(task.taskType);
+      const structuredToolNames = new Set([
+        ...gondolinCustomTools.map((tool) => tool.name),
+        ...moltnetTools.map((tool) => tool.name),
+        ...submitTools.map((tool) => tool.name),
+        ...(opts.runtimeDefinition?.tools.map((tool) => tool.descriptor.name) ??
+          []),
+        ...(opts.runtimeDefinition?.extensions.flatMap(
+          (extension) => extension.declaredTools,
+        ) ?? []),
+        ...(taskHasSubagents ? ['subagent'] : []),
+      ]);
       if (opts.runtimeProfileId && opts.toolEnforcement) {
         const policy = await resolveSessionToolPolicy({
           agent: moltnetAgent,
@@ -1485,6 +1497,7 @@ export async function executePiTask(
               policy: resolvedToolPolicy,
               analyzer,
               logger: toolPolicyLogger,
+              structuredToolNames,
               context: toolPolicyDecisionContext,
             }),
           );
@@ -1559,7 +1572,6 @@ export async function executePiTask(
         [...gondolinCustomTools, ...moltnetTools],
         resolvedToolPolicy,
       );
-      const taskHasSubagents = taskTypeUsesSubagents(task.taskType);
       const plannedParentTools = [
         ...visibleBaseTools,
         ...runtimeParentTools,

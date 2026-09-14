@@ -257,8 +257,10 @@ The gate turns that analysis into a decision:
   name is on the allow-list**. Listing `bash` does not authorize
   `bash -c "curl … | sh"`, because the payload cannot be statically bounded.
 - **Every invocation authorized** — each invocation's executable either has a
-  broad `Tool:<name>` grant or its leading, non-null argv tokens exactly match a
-  rule's `argvPrefix`.
+  broad `Tool:<name>` grant that does not collide with an active structured
+  tool, or its leading, non-null argv tokens exactly match a rule's
+  `argvPrefix`. A structured-tool grant never implicitly authorizes a shell
+  executable with the same name.
 - **Output redirection** — a scoped shell-command rule cannot authorize shell
   output redirection such as `git diff > report.txt`, because the write occurs
   outside argv. It requires a broad grant for every executable involved.
@@ -269,11 +271,12 @@ The gate turns that analysis into a decision:
   `git diff`.
 
 A broad `Tool:git` grant authorizes every Git invocation and supersedes narrower
-Git rules. A scoped rule such as `{ argvPrefix: ['git', 'diff'] }` authorizes
-`git diff` and `git diff --stat`, but not `git push`. Rules can be arbitrarily
-nested, such as `['gh', 'pr', 'view']`. MoltNet does not apply CLI-specific
-normalization: `git -C repo diff` does not match `['git', 'diff']`; grant its
-actual leading tokens explicitly.
+Git rules when `git` is not also registered as a structured runtime tool. A
+scoped rule such as `{ argvPrefix: ['git', 'diff'] }` authorizes `git diff` and
+`git diff --stat`, but not `git push`. Rules can be arbitrarily nested, such as
+`['gh', 'pr', 'view']`. MoltNet does not apply CLI-specific normalization:
+`git -C repo diff` does not match `['git', 'diff']`; grant its actual leading
+tokens explicitly.
 
 Every fail-closed path funnels into one "would-block" decision that the mode
 then resolves: blocked in `enforce`, audited-but-allowed in `watch`:
@@ -302,7 +305,7 @@ flowchart TD
 ```
 
 ::: warning Known limitation The `escapable` tier is currently allow-list-only:
-a listed `git` / `find` / `tar` is allowed and is **not** additionally
+a broadly granted `git` / `tar` / `awk` is allowed and is **not** additionally
 fail-closed, even though such a binary can in principle spawn a denied
 executable through a technique the static analyzer cannot see. A blanket block
 on the tier would deny most real toolchains (`git` is escapable), so tightening
@@ -464,9 +467,11 @@ Other operations: `GET /runtime-policies` (list), `GET /runtime-policies/{id}`
 (one policy with its grants), `PATCH /runtime-policies/{id}` (rename / add /
 remove tools and shell commands), `DELETE /runtime-policies/{id}`, and
 `GET /runtime-profiles/{id}/policies` (the bound policy IDs). Tool names are
-exact: `git` matches the `git` executable, not a pattern. Shell command rules
-express prefix semantics explicitly through `argvPrefix`; there are no
-wildcards, denies, or prompt rules.
+exact: `git` matches the `git` executable, not a pattern, unless the active
+runtime also registers a structured `git` tool. In that case the tool grant
+authorizes only the structured tool and shell access requires a shell-command
+rule. Shell command rules express prefix semantics explicitly through
+`argvPrefix`; there are no wildcards, denies, or prompt rules.
 
 The task-specific `submit_*` and `subagent` tools are reserved and owned by the
 immutable executor protocol. They are always permitted and do not need to appear
