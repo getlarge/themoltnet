@@ -10779,12 +10779,6 @@ func (s *CompleteTaskReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 	{
-		if s.ContentSignature.Set {
-			e.FieldStart("contentSignature")
-			s.ContentSignature.Encode(e)
-		}
-	}
-	{
 		if s.DaemonState.Set {
 			e.FieldStart("daemonState")
 			s.DaemonState.Encode(e)
@@ -10822,15 +10816,14 @@ func (s *CompleteTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCompleteTaskReq = [8]string{
-	0: "contentSignature",
-	1: "daemonState",
-	2: "executorFingerprint",
-	3: "executorManifest",
-	4: "executorSignature",
-	5: "output",
-	6: "outputCid",
-	7: "usage",
+var jsonFieldsNameOfCompleteTaskReq = [7]string{
+	0: "daemonState",
+	1: "executorFingerprint",
+	2: "executorManifest",
+	3: "executorSignature",
+	4: "output",
+	5: "outputCid",
+	6: "usage",
 }
 
 // Decode decodes CompleteTaskReq from json.
@@ -10842,16 +10835,6 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "contentSignature":
-			if err := func() error {
-				s.ContentSignature.Reset()
-				if err := s.ContentSignature.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"contentSignature\"")
-			}
 		case "daemonState":
 			if err := func() error {
 				s.DaemonState.Reset()
@@ -10893,7 +10876,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"executorSignature\"")
 			}
 		case "output":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Output.Decode(d); err != nil {
 					return err
@@ -10903,7 +10886,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"output\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.OutputCid = string(v)
@@ -10915,7 +10898,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
 		case "usage":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.Usage.Decode(d); err != nil {
 					return err
@@ -10934,7 +10917,7 @@ func (s *CompleteTaskReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b11100000,
+		0b01110000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

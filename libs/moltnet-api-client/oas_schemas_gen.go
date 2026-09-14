@@ -4342,11 +4342,6 @@ type CompleteTaskNotFound ProblemDetails
 func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
-	// Ignored. The attempt signature is the completion executorSignature, stored as the attempt
-	// contentSignature once it verifies against the claiming agent key.
-	//
-	// Deprecated: schema marks this property as deprecated.
-	ContentSignature    OptString                          `json:"contentSignature"`
 	DaemonState         OptNilDaemonState                  `json:"daemonState"`
 	ExecutorFingerprint OptString                          `json:"executorFingerprint"`
 	ExecutorManifest    OptCompleteTaskReqExecutorManifest `json:"executorManifest"`
@@ -4354,11 +4349,6 @@ type CompleteTaskReq struct {
 	Output              CompleteTaskReqOutput              `json:"output"`
 	OutputCid           string                             `json:"outputCid"`
 	Usage               TaskUsage                          `json:"usage"`
-}
-
-// GetContentSignature returns the value of ContentSignature.
-func (s *CompleteTaskReq) GetContentSignature() OptString {
-	return s.ContentSignature
 }
 
 // GetDaemonState returns the value of DaemonState.
@@ -4394,11 +4384,6 @@ func (s *CompleteTaskReq) GetOutputCid() string {
 // GetUsage returns the value of Usage.
 func (s *CompleteTaskReq) GetUsage() TaskUsage {
 	return s.Usage
-}
-
-// SetContentSignature sets the value of ContentSignature.
-func (s *CompleteTaskReq) SetContentSignature(val OptString) {
-	s.ContentSignature = val
 }
 
 // SetDaemonState sets the value of DaemonState.

@@ -12,7 +12,6 @@ import {
 interface CompleteBody {
   output: Record<string, unknown>;
   outputCid: string;
-  contentSignature?: string;
   executorManifest?: Record<string, unknown>;
   executorFingerprint?: string;
   executorSignature?: string;
@@ -118,17 +117,6 @@ describe('finalizeTask', () => {
     expect(stub.complete).toHaveBeenCalledTimes(1);
     const body = stub.complete.mock.calls[0][2];
     expect(body.output).toEqual({ branch: 'feat/x' });
-  });
-
-  it('does not send the deprecated contentSignature field', async () => {
-    const output = makeOutput('completed', { branch: 'feat/x' });
-    output.contentSignature = 'sig-abc';
-    await finalizeTask(stub.agent, output);
-
-    expect(stub.complete).toHaveBeenCalledTimes(1);
-    expect(stub.complete.mock.calls[0][2]).not.toHaveProperty(
-      'contentSignature',
-    );
   });
 
   it('binds the executor manifest signature to the completed output CID', async () => {

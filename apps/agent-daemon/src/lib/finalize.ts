@@ -138,8 +138,6 @@ export async function finalizeTask(
         output: output.output,
         outputCid: output.outputCid,
         usage: output.usage,
-        // The attestation's executorSignature is the attempt signature the
-        // server stores; the request's contentSignature field is ignored.
         ...(daemonState ? { daemonState } : {}),
         ...attestation,
       });
