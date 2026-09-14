@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.3](https://github.com/getlarge/themoltnet/compare/console-v0.15.2...console-v0.15.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* **packs:** let the server assign the unpin deadline from PACK_GC_COMPILE_TTL_DAYS ([0394030](https://github.com/getlarge/themoltnet/commit/03940307bb35b1c7f529900e09f474187b822248))
+
 ## [0.15.2](https://github.com/getlarge/themoltnet/compare/console-v0.15.1...console-v0.15.2) (2026-09-13)
 
 

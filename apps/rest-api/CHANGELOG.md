@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.57.3](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.2...rest-api-v0.57.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* **packs:** let the server assign the unpin deadline from PACK_GC_COMPILE_TTL_DAYS ([0394030](https://github.com/getlarge/themoltnet/commit/03940307bb35b1c7f529900e09f474187b822248))
+* **rest-api:** assign unpin deadline from PACK_GC_COMPILE_TTL_DAYS ([d26442e](https://github.com/getlarge/themoltnet/commit/d26442ea64d1aa9018bc0d47769a7a0133dc6797)), closes [#1858](https://github.com/getlarge/themoltnet/issues/1858)
+* **rest-api:** reject non-positive PACK_GC_COMPILE_TTL_DAYS ([345050e](https://github.com/getlarge/themoltnet/commit/345050ef5f1f904271429145e034fe5b5b0c3bdc))
+
 ## [0.57.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.1...rest-api-v0.57.2) (2026-09-13)
 
 

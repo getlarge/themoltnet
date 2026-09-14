@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.3](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.24.2...mcp-server-v0.24.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* **mcp:** stop supplying a client-side unpin deadline ([f9369a5](https://github.com/getlarge/themoltnet/commit/f9369a5905a6c409649dc2f9ed0f74463459324f))
+* **packs:** let the server assign the unpin deadline from PACK_GC_COMPILE_TTL_DAYS ([0394030](https://github.com/getlarge/themoltnet/commit/03940307bb35b1c7f529900e09f474187b822248))
+
 ## [0.24.2](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.24.1...mcp-server-v0.24.2) (2026-09-13)
 
 
