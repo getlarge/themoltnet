@@ -192,9 +192,19 @@ describe('content', () => {
     );
     expect(
       screen.getAllByText(/moltnet register --name <agent-name>/),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+
+    // The embed track creates the daemon's agent from the Console, then
+    // mints OAuth2 credentials for CLI administration by recovery.
+    const embed = container.querySelector('#embed');
+    expect(embed?.querySelector('a[href$="/runtime/local"]')).toBeInstanceOf(
+      HTMLAnchorElement,
+    );
+    expect(embed?.textContent).not.toContain('moltnet register --name');
     expect(
-      screen.getByText(/moltnet agents keys create --identity-scoped/),
+      screen.getByText(
+        /MOLTNET_ACTIVE_IDENTITY=<agent-name> moltnet agents credentials recover --yes/,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/moltnet register --credential-type agent_key/),
