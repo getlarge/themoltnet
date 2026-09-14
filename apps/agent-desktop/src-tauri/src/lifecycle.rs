@@ -672,7 +672,11 @@ mod tests {
 
     #[test]
     fn embedded_installer_has_a_pin_and_matching_trust_anchor() {
-        assert!(EMBEDDED_INSTALLER.contains("RELEASE_PINNED_VERSION=\"0.56.2\""));
+        let expected_pin = format!(
+            "RELEASE_PINNED_VERSION=\"{}\"",
+            env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION")
+        );
+        assert!(EMBEDDED_INSTALLER.contains(&expected_pin));
         assert!(EMBEDDED_INSTALLER.contains(RELEASE_SIGNER_PUBKEY_FOR_TEST));
         assert!(!EMBEDDED_INSTALLER.contains("RELEASE_SIGNER_PUBKEY=\"\""));
     }

@@ -18,11 +18,21 @@ cargo_version=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$cargo_
   exit 1
 }
 
-agent_cli_version=$(sed -nE 's/^const AGENT_CLI_VERSION: &str = "([0-9]+\.[0-9]+\.[0-9]+)";/\1/p' "$build_rs")
+agent_cli_version=$(sed -nE 's/^const DEFAULT_AGENT_CLI_VERSION: &str = "([0-9]+\.[0-9]+\.[0-9]+)";/\1/p' "$build_rs")
 [ -n "$agent_cli_version" ] || {
   echo "embedded Agent CLI release pin is empty or invalid" >&2
   exit 1
 }
+if [ -n "${AGENT_CLI_RELEASE_TAG:-}" ]; then
+  case "$AGENT_CLI_RELEASE_TAG" in
+    agent-daemon-v*) agent_cli_version=${AGENT_CLI_RELEASE_TAG#agent-daemon-v} ;;
+    *) echo "invalid Agent CLI release tag: $AGENT_CLI_RELEASE_TAG" >&2; exit 1 ;;
+  esac
+  [[ $agent_cli_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+    echo "invalid Agent CLI release version: $agent_cli_version" >&2
+    exit 1
+  }
+fi
 
 embedded_key=$(sed -nE 's/^    "(ssh-ed25519 [^"]+)";/\1/p' "$build_rs")
 landing_key=$(sed -nE 's/^  RELEASE_SIGNER_PUBKEY = "(ssh-ed25519 [^"]+)"/\1/p' "$landing_fly")
