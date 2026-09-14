@@ -312,6 +312,36 @@ describe('register (node)', () => {
     });
   });
 
+  it('treats a registration already in progress as possibly committed', async () => {
+    vi.mocked(registerAgent).mockResolvedValue({
+      data: undefined,
+      error: {
+        type: 'urn:moltnet:problem:conflict',
+        title: 'Conflict',
+        status: 409,
+      },
+    } as never);
+    const root = await freshRoot();
+    const provider = memoryProvider();
+
+    await expect(
+      register({
+        name: 'in-progress',
+        apiUrl: 'https://api.example.test',
+        secretProvider: provider,
+        configDir: join(root, 'identities', 'in-progress'),
+        connectAgent: fakeConnect().connectAgent,
+      }),
+    ).rejects.toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: undefined,
+      seedReference: {
+        provider: 'memory',
+        key: identitySeedKey('ABCD-1234-EF56-7890'),
+      },
+    });
+  });
+
   it('keeps the seed when the transport fails after the replay', async () => {
     vi.mocked(registerAgent).mockRejectedValue(
       new TypeError('connection reset'),

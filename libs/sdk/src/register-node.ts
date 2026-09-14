@@ -137,13 +137,18 @@ async function preflightProvider(
   return writable;
 }
 
+/**
+ * A 4xx is a definitive refusal, except 409: the registration route returns it
+ * while a registration for the same key is still in progress and may commit.
+ */
 function isDefinitiveRejection(error: unknown): error is MoltNetError {
   return (
     error instanceof MoltNetError &&
     !(error instanceof NetworkError) &&
     error.statusCode !== undefined &&
     error.statusCode >= 400 &&
-    error.statusCode < 500
+    error.statusCode < 500 &&
+    error.statusCode !== 409
   );
 }
 
