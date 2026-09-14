@@ -22,6 +22,13 @@ export type TaskProgressEvent =
       output?: unknown;
       outputCid?: string;
       completedExecutorFingerprint?: string;
+      /**
+       * Completion attestation signature, already verified by the HTTP
+       * layer against the claiming agent's key. Stamped onto
+       * `task_attempts.content_signature` with `signed_at`. Absent on
+       * unsigned completions and on events sent before this field existed.
+       */
+      contentSignature?: string | null;
       usage?: unknown;
       /**
        * Daemon-asserted runtime state at completion time (e.g. warm-slot
@@ -95,6 +102,8 @@ export interface TaskWorkflowDeps {
         | 'completedExecutorFingerprint'
         | 'error'
         | 'usage'
+        | 'contentSignature'
+        | 'signedAt'
         | 'daemonState'
       >
     >,
@@ -502,6 +511,8 @@ export function initTaskWorkflows(): void {
             attemptCount < maxAttempts;
           const now = new Date(await DBOS.now());
           const { taskNow, isTerminal } = await checkExternalTerminal();
+          const contentSignature =
+            evt.kind === 'completed' ? (evt.contentSignature ?? null) : null;
           await getDeps().transactionRunner.runInTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
@@ -521,6 +532,8 @@ export function initTaskWorkflows(): void {
                     ? (evt.error ?? null)
                     : null,
                 usage: evt.kind === 'completed' ? (evt.usage ?? null) : null,
+                contentSignature,
+                signedAt: contentSignature ? now : null,
                 // Stamp daemonState only on the completed branch (#1287).
                 // failed/cancelled attempts are not resumable by design.
                 daemonState:

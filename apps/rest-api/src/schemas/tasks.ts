@@ -266,7 +266,13 @@ export const CompleteTaskBodySchema = Type.Object(
     output: Type.Record(Type.String(), Type.Unknown()),
     outputCid: Type.String({ minLength: 1 }),
     usage: Type.Unsafe<TaskUsageType>(Type.Ref(TaskUsage.$id)),
-    contentSignature: Type.Optional(Type.String()),
+    contentSignature: Type.Optional(
+      Type.String({
+        deprecated: true,
+        description:
+          'Ignored. The attempt signature is the completion executorSignature, stored as the attempt contentSignature once it verifies against the claiming agent key.',
+      }),
+    ),
     executorManifest: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
     executorFingerprint: Type.Optional(Type.String({ minLength: 1 })),
     executorSignature: Type.Optional(Type.String({ minLength: 1 })),

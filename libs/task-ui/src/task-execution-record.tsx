@@ -121,8 +121,18 @@ export function TaskExecutionRecord({
               },
               {
                 label: 'Signature',
-                value: attempt?.contentSignature ? 'Signed' : 'Not signed',
+                value: attempt?.contentSignature
+                  ? 'Signed by the claiming agent (verified by server at completion)'
+                  : 'Not signed',
               },
+              ...(attempt?.contentSignature
+                ? [
+                    {
+                      label: 'Signed at',
+                      value: formatDateTime(attempt.signedAt),
+                    },
+                  ]
+                : []),
               {
                 label: 'Completed',
                 value: formatDateTime(attempt?.completedAt ?? task.completedAt),

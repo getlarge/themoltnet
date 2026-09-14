@@ -1,9 +1,12 @@
 import { KetoNamespace, PermissionCheckUnavailableError } from '@moltnet/auth';
 import {
+  buildExecutorCompleteAttestationPayload,
   computeBytesCid,
   computeExecutorManifestCid,
   computeJsonCid,
+  cryptoService,
   decodeBytesCidToSha256,
+  signExecutorAttestation,
 } from '@moltnet/crypto-service';
 import {
   DBOS,
@@ -2644,5 +2647,150 @@ describe('createTaskService.deleteMany', () => {
     expect(payload.err).toBeInstanceOf(Error);
     expect(payload.taskIds).toEqual([JUDGE_TASK]);
     expect(message).toBe('task.delete-many_keto_cleanup_failed');
+  });
+});
+
+describe('createTaskService.complete — completion signature', () => {
+  const FREEFORM_TASK = '44444444-4444-4444-8444-444444444444';
+  const attemptN = 1;
+  const output = { summary: 'Done.' };
+  const executorManifest = {
+    schemaVersion: 'moltnet:executor-manifest:v1',
+    runtime: { kind: 'e2e', version: '1' },
+  };
+  const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function setup() {
+    const keys = await cryptoService.generateKeyPair();
+    const runningTask = {
+      ...makeRunEvalTask(FREEFORM_TASK),
+      taskType: 'freeform',
+      input: { brief: 'Do the thing.' },
+      status: 'running',
+      acceptedAttemptN: null,
+      completedAt: null,
+      claimAgentId: AGENT_ID,
+      claimExpiresAt: new Date(Date.now() + 60_000),
+    } as unknown as DbTask;
+    const mocks = makeMocks({ visibleTasks: { [FREEFORM_TASK]: runningTask } });
+    const repo = mocks.taskRepository as unknown as Record<string, unknown>;
+    repo.findAttempt = vi.fn().mockResolvedValue({
+      taskId: FREEFORM_TASK,
+      attemptN,
+      claimedByAgentId: AGENT_ID,
+      status: 'running',
+      claimedExecutorFingerprint: executorFingerprint,
+    });
+    repo.findById = vi
+      .fn()
+      .mockResolvedValueOnce(runningTask)
+      .mockResolvedValue({ ...runningTask, status: 'completed' });
+    (mocks.agentRepository as unknown as Record<string, unknown>).findById = vi
+      .fn()
+      .mockResolvedValue({ id: AGENT_ID, publicKey: keys.publicKey });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+    const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'completed',
+      taskId: FREEFORM_TASK,
+      attemptN,
+    });
+    const outputCid = await computeJsonCid(output);
+    return { keys, service, send, outputCid };
+  }
+
+  it('forwards the verified completion signature to the attempt workflow', async () => {
+    const { keys, service, send, outputCid } = await setup();
+    const executorSignature = await signExecutorAttestation(
+      buildExecutorCompleteAttestationPayload({
+        taskId: FREEFORM_TASK,
+        attemptN,
+        outputCid,
+        executorFingerprint,
+      }),
+      keys.privateKey,
+    );
+
+    await service.complete(
+      FREEFORM_TASK,
+      attemptN,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      {
+        output,
+        outputCid,
+        usage: { inputTokens: 1, outputTokens: 1 },
+        executorManifest,
+        executorFingerprint,
+        executorSignature,
+      },
+    );
+
+    expect(send).toHaveBeenCalledWith(
+      `task:${FREEFORM_TASK}:attempt:${attemptN}`,
+      expect.objectContaining({
+        kind: 'completed',
+        completedExecutorFingerprint: executorFingerprint,
+        contentSignature: executorSignature,
+      }),
+      'progress',
+      expect.any(String),
+    );
+  });
+
+  it('sends no completion when the signature fails verification', async () => {
+    const { service, send, outputCid } = await setup();
+    const forgedSignature = await signExecutorAttestation(
+      buildExecutorCompleteAttestationPayload({
+        taskId: FREEFORM_TASK,
+        attemptN,
+        outputCid,
+        executorFingerprint,
+      }),
+      (await cryptoService.generateKeyPair()).privateKey,
+    );
+
+    await expect(
+      service.complete(FREEFORM_TASK, attemptN, AGENT_ID, KetoNamespace.Agent, {
+        output,
+        outputCid,
+        usage: { inputTokens: 1, outputTokens: 1 },
+        executorManifest,
+        executorFingerprint,
+        executorSignature: forgedSignature,
+      }),
+    ).rejects.toMatchObject({ code: 'invalid' });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('sends a null signature for an unsigned self-declared completion', async () => {
+    const { service, send, outputCid } = await setup();
+
+    await service.complete(
+      FREEFORM_TASK,
+      attemptN,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      {
+        output,
+        outputCid,
+        usage: { inputTokens: 1, outputTokens: 1 },
+        executorManifest,
+        executorFingerprint,
+      },
+    );
+
+    expect(send).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ kind: 'completed', contentSignature: null }),
+      'progress',
+      expect.any(String),
+    );
   });
 });

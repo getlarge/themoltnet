@@ -52,6 +52,7 @@ import {
   computeExecutorManifestCid,
   computeJsonCid,
   signExecutorAttestation,
+  verifyExecutorAttestation,
 } from '@moltnet/crypto-service';
 import { correlationSeals, tasks } from '@moltnet/database';
 import { connect } from '@themoltnet/sdk';
@@ -1614,6 +1615,26 @@ describe('Tasks API', () => {
         completeAttestation.executorFingerprint,
       );
       expect(attempts![0].completedExecutorManifest).toEqual(executorManifest);
+      // The verified completion signature is kept on the attempt and can be
+      // re-verified from the read model alone (#2269).
+      const recorded = attempts![0];
+      expect(recorded.contentSignature).toBe(
+        completeAttestation.executorSignature,
+      );
+      expect(recorded.signedAt).not.toBeNull();
+      expect(recorded.claimedByAgentId).toBe(claimer.agentId);
+      await expect(
+        verifyExecutorAttestation(
+          buildExecutorCompleteAttestationPayload({
+            taskId,
+            attemptN: recorded.attemptN,
+            outputCid: recorded.outputCid!,
+            executorFingerprint: recorded.completedExecutorFingerprint!,
+          }),
+          recorded.contentSignature!,
+          claimer.keyPair.publicKey,
+        ),
+      ).resolves.toBe(true);
     });
 
     it('rejects releaseVerifiedTool claims until release verifier is wired', async () => {

@@ -69,6 +69,11 @@ export interface VerifiedExecutorAttestation {
     trustLevel: 'agent_signed';
     evidence: Record<string, unknown>;
   };
+  /**
+   * The phase attestation signature, set only when it was verified against
+   * the calling agent's public key during this call.
+   */
+  verifiedSignature?: string;
 }
 
 export interface TaskInputArtifactObjectHead {

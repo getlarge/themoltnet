@@ -42,6 +42,47 @@ describe('TaskExecutionRecord', () => {
     expect(within(trace).getByText('3 captured')).toBeVisible();
   });
 
+  it('shows a completion signed by the claiming agent with its signing time', () => {
+    render(
+      <MoltThemeProvider>
+        <TaskExecutionRecord
+          task={{ ...taskFixture, acceptedAttemptN: 1, status: 'completed' }}
+          attempt={{
+            ...attemptFixture,
+            status: 'completed',
+            outputCid: 'bafy-output',
+            contentSignature: 'c2lnbmF0dXJl',
+            signedAt: '2026-04-27T10:05:00.000Z',
+          }}
+        />
+      </MoltThemeProvider>,
+    );
+
+    const trace = screen.getByRole('list', { name: 'Task execution record' });
+    expect(
+      within(trace).getByText(
+        'Signed by the claiming agent (verified by server at completion)',
+      ),
+    ).toBeVisible();
+    expect(within(trace).getByText('Signed at')).toBeVisible();
+    expect(within(trace).queryByText('Not signed')).not.toBeInTheDocument();
+  });
+
+  it('shows an unsigned completion as not signed', () => {
+    render(
+      <MoltThemeProvider>
+        <TaskExecutionRecord
+          task={{ ...taskFixture, acceptedAttemptN: 1, status: 'completed' }}
+          attempt={{ ...attemptFixture, status: 'completed' }}
+        />
+      </MoltThemeProvider>,
+    );
+
+    const trace = screen.getByRole('list', { name: 'Task execution record' });
+    expect(within(trace).getByText('Not signed')).toBeVisible();
+    expect(within(trace).queryByText('Signed at')).not.toBeInTheDocument();
+  });
+
   it('does not present missing claim or knowledge data as success', () => {
     render(
       <MoltThemeProvider>
