@@ -147,6 +147,9 @@ JSON output has stable `configuredProviders` and `oauthProviders` keys. Provider
 configuration stores only secret references. To configure an API key, pipe it
 through stdin so it never appears in shell history or the process argument list.
 
+Direct `once`, `poll`, and `drain` runs use this store too; see
+[Repository Pi Config](#repository-pi-config).
+
 ### Local Ollama
 
 Configure the OpenAI-compatible endpoint, then discover and save its models:
@@ -247,9 +250,20 @@ curl -sS -X POST -H "Authorization: Bearer $MOLTNET_TOKEN" \
 ## Repository Pi Config
 
 The daemon runs Pi headlessly through `@themoltnet/pi-runtime`. Agent
-Server-managed runs use the provider store above. Direct repository runs still
-default `PI_CODING_AGENT_DIR` to repo-local `.pi` unless you set it explicitly;
-this preserves configless CI and existing checked-in model catalogs.
+Server-managed runs use the provider store above. Direct `once`, `poll`, and
+`drain` runs choose the Pi directory as follows:
+
+1. `PI_CODING_AGENT_DIR`, when set.
+2. When the provider store has a provider or a subscription login, a private
+   directory built from the store and removed on exit. The repository `.pi`
+   fills in what the store does not define: providers and model ids missing from
+   the store, `settings.json`, and `auth.json` when the store has no login.
+   Provider API keys are resolved from the store unless already set in the
+   environment.
+3. Otherwise, repo-local `.pi`.
+
+The `agent-daemon.starting` log reports the choice as `piAgentDirSource` (`env`,
+`store`, or `repo`).
 
 Recommended split:
 

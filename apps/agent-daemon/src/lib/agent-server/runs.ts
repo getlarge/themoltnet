@@ -23,7 +23,6 @@ import { Transform } from 'node:stream';
 
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 import { resolveRuntimeProfiles } from '@themoltnet/agent-runtime';
-import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import {
   formatSecretReferenceString,
   parseSecretReferenceString,
@@ -38,6 +37,7 @@ import {
   externalAgentLocation,
   verifyAgentActivation,
 } from './identity.js';
+import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
@@ -388,40 +388,12 @@ export class RunManager {
       ]) {
         mkdirSync(dir, { recursive: true, mode: 0o700 });
       }
-      writePiConfig({
+      writeStorePiConfig(piDir, providers);
+      linkPiAuth(
+        this.store.piAuthJsonPath,
         piDir,
-        providers: Object.fromEntries(
-          Object.entries(providers).map(([providerId, provider]) => [
-            providerId,
-            {
-              api: provider.api,
-              ...(provider.apiKeyRef
-                ? { apiKeyEnvRef: `$${provider.envName}` }
-                : {}),
-              baseUrl: provider.baseUrl,
-              models: provider.models,
-            },
-          ]),
-        ),
-      });
-      // Subscription credentials: every run shares the store's pi/auth.json
-      // (pi lockfiles it and rotates tokens in place). A dangling link is
-      // fine — pi treats a missing auth.json as "no subscription auth".
-      // Failing to create the link is not fine: reporting the run as started
-      // would make a connected subscription silently unavailable to the
-      // child.
-      try {
-        (this.options.symlinkImpl ?? symlinkSync)(
-          this.store.piAuthJsonPath,
-          join(piDir, 'auth.json'),
-        );
-      } catch (cause) {
-        throw new AgentServerStoreError(
-          'io_error',
-          'could not link subscription credentials into the run',
-          { cause },
-        );
-      }
+        this.options.symlinkImpl ?? symlinkSync,
+      );
 
       const entry = this.entrypoint();
       logStream = createWriteStream(logPath, {

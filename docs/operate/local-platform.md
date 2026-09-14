@@ -86,8 +86,9 @@ and task testing that does not need `gh` mutation.
 ## Create A Runtime Profile
 
 The bootstrap script does not create runtime profiles. Create at least one
-team-scoped profile before starting the daemon. The provider/model must match
-your `.pi/models.json` and available Pi auth.
+team-scoped profile before starting the daemon. The provider/model must match a
+provider configured with `moltnet-agent providers` or listed in
+`.pi/models.json`.
 
 To give local daemon tasks the standard operating guide, copy the valid JSON
 from

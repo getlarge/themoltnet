@@ -57,7 +57,7 @@ import {
   parseCommonOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
+import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -260,8 +260,9 @@ export async function runOnce(
     rootDir: profile.mountPath,
     path: profile.source,
   };
-  const piAgentDir = ensurePiAgentDir(sandbox.rootDir, cfg.piCodingAgentDir);
-  activatePiCodingAgentDir(piAgentDir.path);
+  const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile]);
+  process.once('exit', piAgentDir.cleanup);
+  activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
