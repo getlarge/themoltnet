@@ -54,11 +54,11 @@ func TestAgentsCredentialsRecoverRequiresConfirmation(t *testing.T) {
 	}
 }
 
-func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
-	keyPair, err := GenerateKeyPair()
-	if err != nil {
-		t.Fatalf("generate key pair: %v", err)
-	}
+// newRecoveryTestServer serves the challenge, recovery, and token endpoints
+// the recover command touches, for the given key pair. It returns the server
+// and counters for the two recovery calls.
+func newRecoveryTestServer(t *testing.T, keyPair *KeyPair) (*httptest.Server, *atomic.Int32, *atomic.Int32) {
+	t.Helper()
 	var challengeCalls atomic.Int32
 	var recoveryCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(
@@ -134,7 +134,16 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer server.Close()
+	t.Cleanup(server.Close)
+	return server, &challengeCalls, &recoveryCalls
+}
+
+func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	server, challengeCalls, recoveryCalls := newRecoveryTestServer(t, keyPair)
 
 	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
 	secretRoot := t.TempDir()
@@ -1437,4 +1446,71 @@ type failingWriter struct{}
 
 func (failingWriter) Write([]byte) (int, error) {
 	return 0, errors.New("write failed")
+}
+
+func TestAgentsCredentialsRecoverDefaultsDestinationForAgentKeyIdentity(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	server, _, recoveryCalls := newRecoveryTestServer(t, keyPair)
+
+	secretRoot := t.TempDir()
+	t.Setenv(secretRootEnv, secretRoot)
+	t.Setenv(secretRootWritableEnv, "1")
+	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
+	credentials := &CredentialsFile{
+		SubjectID:   "subject-id",
+		SubjectType: SubjectTypeAgent,
+		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: AgentKeyKey("subject-id")},
+		Keys: CredentialsKeys{
+			PublicKey:   keyPair.PublicKey,
+			PrivateKey:  keyPair.PrivateKey,
+			Fingerprint: keyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{API: server.URL},
+	}
+	if _, err := WriteConfigTo(credentials, credentialsPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, stderr, err := executeCommand(
+		root,
+		"--credentials", credentialsPath,
+		"agents", "credentials", "recover", "--yes",
+	)
+	if err != nil {
+		t.Fatalf("recover without --destination: %v\nstderr: %s", err, stderr)
+	}
+	if recoveryCalls.Load() != 1 {
+		t.Fatalf("recovery calls = %d, want 1", recoveryCalls.Load())
+	}
+
+	updated, err := ReadConfigFrom(credentialsPath)
+	if err != nil {
+		t.Fatalf("read recovered credentials: %v", err)
+	}
+	if updated.OAuth2.ClientID != "recovered-client-id" ||
+		updated.OAuth2.ClientSecretRef == nil ||
+		updated.OAuth2.ClientSecretRef.Provider != fileProviderName ||
+		updated.OAuth2.ClientSecretRef.Key != OAuth2SecretKey("subject-id", "recovered-client-id") {
+		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
+	}
+	if updated.AgentKeyRef == nil || updated.AgentKeyRef.Key != AgentKeyKey("subject-id") {
+		t.Fatalf("agent key reference was not preserved: %#v", updated.AgentKeyRef)
+	}
+}
+
+func TestResolveRecoveryDestinationProviderStillRequiresFlagForPlaintextSecret(t *testing.T) {
+	t.Parallel()
+	creds := &CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "plaintext"},
+	}
+
+	_, err := resolveRecoveryDestinationProvider(creds, "", NewSecretProviderRegistry())
+
+	if err == nil || !strings.Contains(err.Error(), "--destination") {
+		t.Fatalf("error = %v, want --destination requirement", err)
+	}
 }

@@ -238,21 +238,28 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	return nil
 }
 
+// resolveRecoveryDestinationProvider picks where the recovered OAuth2 secret
+// is stored. An explicit --destination always wins. Otherwise the existing
+// client_secret_ref provider is reused; an identity that has no OAuth2 client
+// yet (agent-key only, the daemon's managed-agent shape) inherits the provider
+// of its agent_key_ref, falling back to the OS keyring. A plaintext
+// client_secret still needs an explicit destination because moving away from
+// plaintext is a deliberate choice.
 func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (string, error) {
-	if strings.TrimSpace(requested) == "" {
-		if creds.OAuth2.ClientSecretRef == nil {
-			return "", fmt.Errorf("--destination is required when oauth2.client_secret is plaintext")
-		}
-		if _, err := validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider); err != nil {
-			return "", err
-		}
-		return creds.OAuth2.ClientSecretRef.Provider, nil
+	if strings.TrimSpace(requested) != "" {
+		return validateMigrationDestination(registry, requested)
 	}
-	provider, err := validateMigrationDestination(registry, requested)
-	if err != nil {
-		return "", err
+	switch {
+	case creds.OAuth2.ClientSecretRef != nil:
+		return validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider)
+	case creds.OAuth2.ClientID == "" && creds.OAuth2.ClientSecret == "":
+		if creds.AgentKeyRef != nil && creds.AgentKeyRef.Provider != "" {
+			return validateMigrationDestination(registry, creds.AgentKeyRef.Provider)
+		}
+		return validateMigrationDestination(registry, osKeyringProviderName)
+	default:
+		return "", fmt.Errorf("--destination is required when oauth2.client_secret is stored as plaintext; choose the provider that should hold the recovered secret")
 	}
-	return provider, nil
 }
 
 func reconcileRecoveredCredentials(path string, original *CredentialsFile, clientID string, destination SecretReference) error {
