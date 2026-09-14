@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   createAgent,
+  postSelfRegistration,
   signedSelfRegistration,
   type TestAgent,
 } from './helpers.js';
@@ -75,18 +76,7 @@ describe('proof-based registration', () => {
 
   it('self-registers and returns a usable OAuth2 credential', async () => {
     const input = await signedSelfRegistration('oauth2');
-    const response = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'idempotency-key': input.idempotencyKey,
-      },
-      body: JSON.stringify({
-        publicKey: input.keyPair.publicKey,
-        proof: input.proof,
-        credentialType: input.credentialType,
-      }),
-    });
+    const response = await postSelfRegistration(harness.baseUrl, input);
     expect(response.status).toBe(200);
     const result = (await response.json()) as {
       agentId: string;
@@ -113,19 +103,7 @@ describe('proof-based registration', () => {
 
   it('reissues a usable credential when the exact request is retried', async () => {
     const input = await signedSelfRegistration('oauth2');
-    const request = () =>
-      fetch(`${harness.baseUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'idempotency-key': input.idempotencyKey,
-        },
-        body: JSON.stringify({
-          publicKey: input.keyPair.publicKey,
-          proof: input.proof,
-          credentialType: input.credentialType,
-        }),
-      });
+    const request = () => postSelfRegistration(harness.baseUrl, input);
 
     const first = await request();
     const second = await request();
@@ -181,19 +159,7 @@ describe('proof-based registration', () => {
     const second = await signedSelfRegistration('oauth2', keyPair);
     const register = (
       input: Awaited<ReturnType<typeof signedSelfRegistration>>,
-    ) =>
-      fetch(`${harness.baseUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'idempotency-key': input.idempotencyKey,
-        },
-        body: JSON.stringify({
-          publicKey: input.keyPair.publicKey,
-          proof: input.proof,
-          credentialType: input.credentialType,
-        }),
-      });
+    ) => postSelfRegistration(harness.baseUrl, input);
 
     const responses = await Promise.all([register(first), register(second)]);
     expect(responses.map((response) => response.status).sort()).toEqual([
@@ -229,18 +195,7 @@ describe('proof-based registration', () => {
 
   it('creates exactly one agent-key credential when selected', async () => {
     const input = await signedSelfRegistration('agent_key');
-    const response = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'idempotency-key': input.idempotencyKey,
-      },
-      body: JSON.stringify({
-        publicKey: input.keyPair.publicKey,
-        proof: input.proof,
-        credentialType: input.credentialType,
-      }),
-    });
+    const response = await postSelfRegistration(harness.baseUrl, input);
     expect(response.status).toBe(200);
     const result = (await response.json()) as {
       credential: { type: string; key: { id: string }; secret: string };
@@ -474,18 +429,7 @@ describe('proof-based registration', () => {
     // REQUEST, so reusing it would resolve to the failed workflow rather than
     // starting a new one.
     const retry = await signedSelfRegistration('oauth2', loser.input.keyPair);
-    const response = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'idempotency-key': retry.idempotencyKey,
-      },
-      body: JSON.stringify({
-        publicKey: retry.keyPair.publicKey,
-        proof: retry.proof,
-        credentialType: 'oauth2',
-      }),
-    });
+    const response = await postSelfRegistration(harness.baseUrl, retry);
     expect(response.status).toBe(200);
     const registered = (await response.json()) as {
       agentId: string;
