@@ -275,7 +275,7 @@ describe('register (node)', () => {
     expect(registerAgent).not.toHaveBeenCalled();
   });
 
-  it('removes the seed and writes nothing when the server rejects the registration', async () => {
+  it('keeps the seed and writes no config when the server rejects the registration', async () => {
     vi.mocked(registerAgent).mockResolvedValue({
       data: undefined,
       error: {
@@ -296,8 +296,17 @@ describe('register (node)', () => {
         configDir,
         connectAgent: fakeConnect().connectAgent,
       }),
-    ).rejects.toMatchObject({ code: 'registration_failed', statusCode: 403 });
-    expect(provider.values.size).toBe(0);
+    ).rejects.toMatchObject({
+      code: 'registration_failed',
+      statusCode: 403,
+      seedReference: {
+        provider: 'memory',
+        key: identitySeedKey('ABCD-1234-EF56-7890'),
+      },
+    });
+    expect([...provider.values.keys()]).toEqual([
+      identitySeedKey('ABCD-1234-EF56-7890'),
+    ]);
     await expect(stat(join(configDir, 'moltnet.json'))).rejects.toMatchObject({
       code: 'ENOENT',
     });
@@ -318,7 +327,15 @@ describe('register (node)', () => {
         configDir: join(root, 'identities', 'lost'),
         connectAgent: fakeConnect().connectAgent,
       }),
-    ).rejects.toBeInstanceOf(NetworkError);
+    ).rejects.toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: undefined,
+      cause: expect.any(NetworkError),
+      seedReference: {
+        provider: 'memory',
+        key: identitySeedKey('ABCD-1234-EF56-7890'),
+      },
+    });
     expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
       'dGVzdHByaXZrZXk=',
     );

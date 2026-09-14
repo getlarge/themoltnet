@@ -202,22 +202,28 @@ export async function register(
       signal: options.signal,
     });
   } catch (cause) {
+    // The seed is never deleted here. Even a rejection costs only an unused
+    // provider entry, while a failure that followed a commit would leave an
+    // identity nobody can recover.
+    const seedKept = `the identity seed (fingerprint ${keyPair.fingerprint}) is kept at ${seedRef.provider}:${seedRef.key}`;
     if (isDefinitiveRejection(cause)) {
-      await provider.delete(seedRef.key).catch(() => undefined);
       throw new RegisterIdentityError(
         'registration_failed',
-        `registration for "${alias}" was rejected (${cause.statusCode}): ${cause.detail?.trim() || cause.message}`,
+        `registration for "${alias}" was rejected (${cause.statusCode}): ${cause.detail?.trim() || cause.message}; ${seedKept}`,
         {
           cause,
           statusCode: cause.statusCode,
           detail: cause.detail,
           fingerprint: keyPair.fingerprint,
+          seedReference: seedRef,
         },
       );
     }
-    // Transport failure after the replay: the server may have committed.
-    // The seed stays so the identity can still be recovered by fingerprint.
-    throw cause;
+    throw new RegisterIdentityError(
+      'registration_incomplete',
+      `registration for "${alias}" did not complete and the server may have registered it; ${seedKept}`,
+      { cause, fingerprint: keyPair.fingerprint, seedReference: seedRef },
+    );
   }
 
   const { subjectId, fingerprint } = registration.identity;
@@ -267,7 +273,14 @@ export async function register(
     new RegisterIdentityError(
       'registration_incomplete',
       `${message}; ${recovery} completes it`,
-      { cause, subjectId, fingerprint, configPath, recoveryCommand: recovery },
+      {
+        cause,
+        subjectId,
+        fingerprint,
+        configPath,
+        recoveryCommand: recovery,
+        seedReference: seedRef,
+      },
     );
 
   // The config carries both references before the credential secret exists,

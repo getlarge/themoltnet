@@ -114,11 +114,15 @@ export type RegisterIdentityErrorCode =
 /**
  * Failure of the persisting `register()` in `@themoltnet/sdk/node`.
  *
- * `registration_failed` means the server rejected the request and nothing
- * was kept locally. `registration_incomplete` means the server committed the
- * identity; the seed and config that exist are enough for
- * `moltnet agents credentials recover --yes` to finish the job, which
- * `recoveryCommand` spells out.
+ * `registration_failed` means the server rejected the request and wrote no
+ * config. `registration_incomplete` means the server may have committed the
+ * identity: when `subjectId` is set it did, and the seed and config that exist
+ * are enough for `moltnet agents credentials recover --yes`
+ * (`recoveryCommand`); when it is not set the outcome is unknown.
+ *
+ * The identity seed is never deleted once stored, whatever the failure:
+ * `seedReference` names where it is kept, because a deleted seed can make a
+ * server-side identity permanently unrecoverable.
  */
 export class RegisterIdentityError extends MoltNetError {
   override readonly code: RegisterIdentityErrorCode;
@@ -126,6 +130,7 @@ export class RegisterIdentityError extends MoltNetError {
   readonly fingerprint?: string;
   readonly configPath?: string;
   readonly recoveryCommand?: string;
+  readonly seedReference?: { provider: string; key: string };
 
   constructor(
     code: RegisterIdentityErrorCode,
@@ -138,6 +143,7 @@ export class RegisterIdentityError extends MoltNetError {
       fingerprint?: string;
       configPath?: string;
       recoveryCommand?: string;
+      seedReference?: { provider: string; key: string };
     } = {},
   ) {
     super(message, {
@@ -152,5 +158,6 @@ export class RegisterIdentityError extends MoltNetError {
     this.fingerprint = options.fingerprint;
     this.configPath = options.configPath;
     this.recoveryCommand = options.recoveryCommand;
+    this.seedReference = options.seedReference;
   }
 }

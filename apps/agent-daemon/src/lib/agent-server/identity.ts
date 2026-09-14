@@ -157,7 +157,8 @@ export async function createManagedAgent(
     } catch (cause) {
       if (cause instanceof RegisterIdentityError) {
         if (cause.code === 'registration_failed') {
-          // The server rejected the request; nothing remote exists.
+          // The server rejected the request; nothing remote exists. The SDK
+          // keeps the stored seed, which only costs an unused secret entry.
           store.clearPendingRegistration(alias);
           throw new AgentServerIdentityError(
             'registration_failed',
@@ -187,7 +188,8 @@ export async function createManagedAgent(
       throw new AgentServerIdentityError(
         'registration_incomplete',
         cause instanceof RegisterIdentityError &&
-          cause.code === 'registration_incomplete'
+          cause.code === 'registration_incomplete' &&
+          cause.subjectId !== undefined
           ? `the remote agent was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
           : `registration for "${alias}" may be incomplete; inspect the remote API before changing its pending Agent Server record`,
         { cause },

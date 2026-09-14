@@ -457,17 +457,19 @@ describe('managed agent server agents', () => {
       },
     } as never);
 
-    await expect(
-      createManagedAgent(store, secrets, {
-        name: 'retryable',
-        apiUrl: 'https://api.themolt.net',
-        enrollmentToken: 'enroll-tok',
-      }),
-    ).rejects.toMatchObject({
-      code: 'registration_failed',
-      message:
-        'registration for "retryable" was rejected (400): bad enrollment token',
+    const rejection = createManagedAgent(store, secrets, {
+      name: 'retryable',
+      apiUrl: 'https://api.themolt.net',
+      enrollmentToken: 'enroll-tok',
     });
+    await expect(rejection).rejects.toMatchObject({
+      code: 'registration_failed',
+    });
+    await expect(rejection).rejects.toThrow(
+      'registration for "retryable" was rejected (400): bad enrollment token',
+    );
+    // The rejected registration keeps its seed; only an unused entry remains.
+    await expect(secrets.probe('identity/FP-1/seed')).resolves.toBe('present');
     expect(store.hasPendingRegistration('retryable')).toBe(false);
 
     await expect(
