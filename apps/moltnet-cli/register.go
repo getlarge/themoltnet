@@ -150,62 +150,128 @@ func runRegisterCmd(stdout, errOut io.Writer, apiURL, credentialType string, jso
 	return runRegisterCmdWithName(stdout, errOut, apiURL, credentialType, jsonOut, noMCP, "default")
 }
 
+type registerOpts struct {
+	stdout, errOut  io.Writer
+	apiURL          string
+	credentialType  string
+	name            string
+	destination     string
+	jsonOut, noMCP  bool
+	secretProviders *SecretProviderRegistry
+}
+
 func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType string, jsonOut, noMCP bool, name string) error {
-	url := strings.TrimRight(apiURL, "/")
-	if !jsonOut {
-		if strings.TrimSpace(name) == "" {
+	return runRegister(registerOpts{
+		stdout: stdout, errOut: errOut, apiURL: apiURL, credentialType: credentialType,
+		jsonOut: jsonOut, noMCP: noMCP, name: name,
+	})
+}
+
+// preflightSecretDestination proves the provider can store and remove a value
+// before any remote identity exists, so a missing keyring fails here.
+func preflightSecretDestination(registry *SecretProviderRegistry, destination string) error {
+	ref := SecretReference{
+		Provider: destination,
+		Key:      fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano()),
+	}
+	if err := registry.Store(ref, "credential-store-preflight"); err != nil {
+		return err
+	}
+	return registry.Delete(ref)
+}
+
+func runRegister(opts registerOpts) error {
+	url := strings.TrimRight(opts.apiURL, "/")
+	if !opts.jsonOut {
+		if strings.TrimSpace(opts.name) == "" {
 			return fmt.Errorf("--name is required unless --json is used")
 		}
-		if err := validateAgentName(name); err != nil {
+		if err := validateAgentName(opts.name); err != nil {
 			return err
 		}
 	}
-	if credentialType == credentialTypeAgentKey && !jsonOut {
+	if opts.credentialType == credentialTypeAgentKey && !opts.jsonOut {
 		return fmt.Errorf("agent_key bootstrap credentials are one-time secrets; use --json and store the result securely")
 	}
-	if !jsonOut {
-		provider := OSKeyringSecretProvider{}
-		preflightKey := fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano())
-		if err := provider.Set(preflightKey, "credential-store-preflight"); err != nil {
-			return fmt.Errorf("OS keyring is unavailable; registration was not attempted: %w", err)
+	if opts.jsonOut {
+		fmt.Fprintln(opts.errOut, "Generating Ed25519 keypair...")
+		result, err := DoRegister(url, opts.credentialType)
+		if err != nil {
+			return err
 		}
-		if err := provider.Delete(preflightKey); err != nil {
-			return fmt.Errorf("OS keyring cleanup failed; registration was not attempted: %w", err)
-		}
+		fmt.Fprintf(opts.errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, result.KeyPair.Fingerprint)
+		return outputJSON(opts.stdout, result)
 	}
 
-	fmt.Fprintln(errOut, "Generating Ed25519 keypair...")
-	result, err := DoRegister(url, credentialType)
+	registry := opts.secretProviders
+	if registry == nil {
+		registry = NewSecretProviderRegistry()
+	}
+	destination, err := validateMigrationDestination(registry, opts.destination)
+	if err != nil {
+		return fmt.Errorf("registration was not attempted: %w", err)
+	}
+	if err := preflightSecretDestination(registry, destination); err != nil {
+		return fmt.Errorf("secret provider %q is unavailable; registration was not attempted: %w", destination, err)
+	}
+	credPath, err := identityCredentialsPath(opts.name)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, result.KeyPair.Fingerprint)
-	if jsonOut {
-		return outputJSON(stdout, result)
+	if _, statErr := os.Stat(credPath); statErr == nil {
+		return fmt.Errorf("identity %q already exists at %s; choose another --name or remove it first", opts.name, credPath)
 	}
+
+	fmt.Fprintln(opts.errOut, "Generating Ed25519 keypair...")
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		return err
+	}
+	// The seed is durable before the network call so a failure after the
+	// server commits can never lose the keypair.
+	seedRef := SecretReference{Provider: destination, Key: IdentitySeedKey(kp.Fingerprint)}
+	if err := registry.Store(seedRef, kp.PrivateKey); err != nil {
+		return fmt.Errorf("store identity seed in %s; registration was not attempted: %w", destination, err)
+	}
+
+	result, err := DoRegisterWithKeyPair(url, opts.credentialType, kp)
+	if err != nil {
+		_ = registry.Delete(seedRef)
+		return err
+	}
+	fmt.Fprintf(opts.errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, result.KeyPair.Fingerprint)
 
 	credential := result.Response.Credential
 	secretRef := SecretReference{
-		Provider: osKeyringProviderName,
+		Provider: destination,
 		Key:      OAuth2SecretKey(result.Response.SubjectID, credential.ClientID),
 	}
-	if err := (OSKeyringSecretProvider{}).Set(secretRef.Key, credential.ClientSecret); err != nil {
-		return fmt.Errorf("store OAuth2 secret in the OS keyring: %w", err)
-	}
-	credPath, err := writeCentralIdentityConfig(name, &CredentialsFile{
+	// The config carries both references before the OAuth2 secret exists.
+	// From here on `moltnet agents credentials recover --yes` can replace a
+	// missing secret, so nothing below may delete the seed or the config.
+	credPath, err = writeCentralIdentityConfig(opts.name, &CredentialsFile{
 		SubjectID:    result.Response.SubjectID,
 		SubjectType:  result.Response.SubjectType,
 		OAuth2:       CredentialsOAuth2{ClientID: credential.ClientID, ClientSecretRef: &secretRef},
-		Keys:         CredentialsKeys{PublicKey: result.KeyPair.PublicKey, PrivateKey: result.KeyPair.PrivateKey, Fingerprint: result.KeyPair.Fingerprint},
+		Keys:         CredentialsKeys{PublicKey: kp.PublicKey, PrivateKeyRef: &seedRef, Fingerprint: kp.Fingerprint},
 		Endpoints:    CredentialsEndpoints{API: result.APIUrl, MCP: deriveMCPURL(url)},
 		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
 	})
 	if err != nil {
-		_ = (OSKeyringSecretProvider{}).Delete(secretRef.Key)
-		return fmt.Errorf("credentials could not be written; the new keyring entry was removed: %w", err)
+		return fmt.Errorf(
+			"the agent %s (fingerprint %s) is registered and its seed is stored under %s:%s, but the credentials file could not be written: %w",
+			result.Response.SubjectID, kp.Fingerprint, seedRef.Provider, seedRef.Key, err,
+		)
 	}
-	fmt.Fprintf(errOut, "Credentials written to %s\n", credPath)
-	reportRegistrationStored(errOut, result.APIUrl, credPath, name, noMCP)
+	if err := registry.Store(secretRef, credential.ClientSecret); err != nil {
+		fmt.Fprintf(opts.errOut, "Credentials written to %s\n", credPath)
+		return fmt.Errorf(
+			"store OAuth2 secret in %s: %w\nThe identity is registered and its config is written. Replace the secret with: MOLTNET_ACTIVE_IDENTITY=%s moltnet agents credentials recover --yes",
+			destination, err, opts.name,
+		)
+	}
+	fmt.Fprintf(opts.errOut, "Credentials written to %s\n", credPath)
+	reportRegistrationStored(opts.errOut, result.APIUrl, credPath, opts.name, opts.noMCP)
 	return nil
 }
 
