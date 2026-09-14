@@ -833,6 +833,8 @@
       "CompleteTaskBody": {
         "properties": {
           "contentSignature": {
+            "deprecated": true,
+            "description": "Ignored. The attempt signature is the completion executorSignature, stored as the attempt contentSignature once it verifies against the claiming agent key.",
             "type": "string"
           },
           "daemonState": {
@@ -41370,6 +41372,8 @@
               "schema": {
                 "properties": {
                   "contentSignature": {
+                    "deprecated": true,
+                    "description": "Ignored. The attempt signature is the completion executorSignature, stored as the attempt contentSignature once it verifies against the claiming agent key.",
                     "type": "string"
                   },
                   "daemonState": {

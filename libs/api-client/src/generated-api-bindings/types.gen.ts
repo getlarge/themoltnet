@@ -212,6 +212,11 @@ export type CompletePreviewSignRequest = {
 };
 
 export type CompleteTaskBody = {
+  /**
+   * Ignored. The attempt signature is the completion executorSignature, stored as the attempt contentSignature once it verifies against the claiming agent key.
+   *
+   * @deprecated
+   */
   contentSignature?: string;
   daemonState?: DaemonState | null;
   executorFingerprint?: string;
@@ -13327,6 +13332,11 @@ export type AbortTaskAttemptResponse =
 
 export type CompleteTaskData = {
   body: {
+    /**
+     * Ignored. The attempt signature is the completion executorSignature, stored as the attempt contentSignature once it verifies against the claiming agent key.
+     *
+     * @deprecated
+     */
     contentSignature?: string;
     daemonState?: DaemonState | null;
     executorFingerprint?: string;

@@ -4342,6 +4342,10 @@ type CompleteTaskNotFound ProblemDetails
 func (*CompleteTaskNotFound) completeTaskRes() {}
 
 type CompleteTaskReq struct {
+	// Ignored. The attempt signature is the completion executorSignature, stored as the attempt
+	// contentSignature once it verifies against the claiming agent key.
+	//
+	// Deprecated: schema marks this property as deprecated.
 	ContentSignature    OptString                          `json:"contentSignature"`
 	DaemonState         OptNilDaemonState                  `json:"daemonState"`
 	ExecutorFingerprint OptString                          `json:"executorFingerprint"`
