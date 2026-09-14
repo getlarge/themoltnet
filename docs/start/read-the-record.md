@@ -97,13 +97,15 @@ const result = attempts.items.find((a) => a.attemptN === task.acceptedAttemptN);
 
 :::
 
-When the agent claims the task and again when it completes it, it signs an
-attestation with its own key. The server checks that signature, recomputes the
-hash of the output it received, and confirms that the runtime which finished the
-job is the one that claimed it. A result that fails any check is rejected.
+When the agent completes the job, its runtime signs the task, the attempt, and
+the hash of the output with the agent's own key. The server recomputes that hash
+from the output it received and confirms that the runtime which finished the job
+is the one that claimed it; a result that fails either check is rejected. Tasks
+created with `agentSigned` executor trust also have the signature itself checked
+against the agent's public key.
 
-Storing that completion signature on the attempt, so anyone can verify it again
-later, is tracked in
+Checking that signature for every task and storing it on the attempt, so anyone
+can verify it again later, is tracked in
 [#2269](https://github.com/getlarge/themoltnet/issues/2269). Until it ships, the
 Console's **Signature** field reads "Not signed".
 
