@@ -28,7 +28,6 @@ import {
   validateStartupBinding,
 } from '../lib/agent-context.js';
 import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
-import { resolveAgentServerRoot } from '../lib/agent-server/store.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -64,11 +63,7 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
-import {
-  ensurePiAgentDir,
-  type ResolvedPiAgentDir,
-  resolvePiAgentDir,
-} from '../lib/pi-agent-dir.js';
+import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -110,7 +105,6 @@ interface ProfileRuntime {
     path: string;
   };
   stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
-  piAgentDir: ResolvedPiAgentDir;
   slotIdentity: DaemonSlotIdentity;
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
   preparedRuntime: AttestedDaemonRuntime;
@@ -371,16 +365,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     agent: ctx.agent,
   });
   const runtimeInstanceId = createRuntimeInstanceId();
-  // One process-wide Pi dir: env override, else a store-composed dir merged
-  // with the first profile's repo `.pi`, else per-profile repo `.pi` as before.
-  const processPiAgentDir = await resolvePiAgentDir({
-    repoRoot: profiles[0].mountPath,
-    explicitPath: cfg.piCodingAgentDir,
-    storeRoot: resolveAgentServerRoot({ root: cfg.agentServerRoot }),
+  // PI_CODING_AGENT_DIR is process-wide, so every profile shares one Pi dir.
+  const piAgentDir = await resolvePiAgentDir(
+    cfg,
+    profiles[0].mountPath,
     profiles,
-    env: cfg.profilePrerequisiteEnv,
-  });
-  process.once('exit', processPiAgentDir.cleanup);
+  );
+  process.once('exit', piAgentDir.cleanup);
+  activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   const runtimes = new Map<string, ProfileRuntime>();
   for (const profile of profiles) {
     const common = parseCommonOptions(values, {
@@ -398,10 +390,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       rootDir: profile.mountPath,
       path: profile.source,
     };
-    const piAgentDir =
-      processPiAgentDir.source === 'repo'
-        ? ensurePiAgentDir(sandbox.rootDir, '')
-        : processPiAgentDir;
     const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
     const slotIdentity: DaemonSlotIdentity = {
       agentName: common.agent,
@@ -425,7 +413,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       profile,
       sandbox,
       stateDirs,
-      piAgentDir,
       slotIdentity,
       executionPlans,
       preparedRuntime: preparedRuntimes.get(profile.id)!,
@@ -435,8 +422,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   if (!firstRuntime) {
     throw new Error('No runtime profiles resolved');
   }
-  const piAgentDir = firstRuntime.piAgentDir;
-  activatePiCodingAgentDir(piAgentDir.path, processPiAgentDir.providerEnv);
   const otelShutdown = await initWorkerOtel({
     serviceName: opts.serviceName,
     agent: ctx.agent,
@@ -552,7 +537,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       }),
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
-      piAuthSource: processPiAgentDir.authSource ?? null,
     },
     'agent-daemon.starting',
   );
@@ -718,7 +702,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
           retryTriage: createRuntimeProfileRetryTriage({
             runtimeProfile: selected.profile,
-            piAgentDir: selected.piAgentDir.path,
+            piAgentDir: piAgentDir.path,
             cwd: ctx.agentRootDir,
           }),
           executorAttestor: selected.preparedRuntime.attestor,

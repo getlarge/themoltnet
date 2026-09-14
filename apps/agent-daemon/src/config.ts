@@ -135,13 +135,10 @@ function readBoolean(name: string, value: string | undefined): boolean {
 
 export function activatePiCodingAgentDir(
   path: string,
-  providerEnv: Readonly<Record<string, string>> = {},
+  env: Readonly<Record<string, string>> = {},
 ): void {
   process.env['PI_CODING_AGENT_DIR'] = path;
-  // Store-resolved provider keys referenced by the composed models.json.
-  for (const [name, value] of Object.entries(providerEnv)) {
-    process.env[name] = value;
-  }
+  Object.assign(process.env, env);
 }
 
 /** Env-derived defaults for `server` (single process.env entry point). */
