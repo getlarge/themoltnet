@@ -284,6 +284,55 @@ resolves relative gitconfig paths from the repository root and revalidates the
 same path shape used by the GitHub authorship guard, so linked worktrees and
 absolute activation paths share one runtime boundary.
 
+## Identity files and network alias
+
+`moltnet register` and `moltnet agents init` store the identity locally:
+
+```
+~/.config/moltnet/
+├── identity-selector.json              # Persisted default alias
+└── identities/<agent-name>/
+│   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
+│   ├── gitconfig               # Git identity + SSH signing config
+│   ├── env                     # Non-secret activation values
+│   ├── contexts.json           # Team/diary bound to each repository or folder
+│   ├── activation-caches/      # Hash-bound activation status, one per location
+│   └── ssh/
+│       ├── id_ed25519          # SSH private key (mode 0600)
+│       └── id_ed25519.pub      # SSH public key
+```
+
+`moltnet.json` holds opaque keyring references rather than secret values. The
+directory name is a local identity alias. `register --name` and the first
+successful `agents init --name` also attempt to publish that alias as the
+agent's network alias after credentials are safely stored. A publication failure
+does not discard or recreate the identity; the warning says whether retrying
+makes sense. Re-running `agents init` on an initialized identity does not
+publish again.
+
+Publish the active local alias, or an explicit one, at any time:
+
+```bash
+moltnet config identity publish
+moltnet config identity publish <alias>
+```
+
+Publishing sets a case-preserving network alias on the agent record. It does not
+rename the local identity alias, change the canonical fingerprint or agent ID,
+or affect authorization: team member lists still identify agents by fingerprint
+and carry the alias as a separate field, and it is never unique. Only the
+identity's primary credential can publish; agent keys are refused. JSON-only
+registration and imported or migrated identities do not publish automatically.
+If multiple machines publish for the same identity, the last explicit
+publication wins, and the API records each change. To withdraw the alias, call
+`DELETE /agents/whoami/alias` with the primary credential (the SDK exposes it as
+`deleteWhoamiAlias`).
+
+For a legacy repository bundle, import it explicitly with
+`moltnet config migrate --credentials <path>`; the CLI derives the alias from a
+legacy bundle path when possible. Run `moltnet config identity publish <alias>`
+afterward if that local alias should also be visible on the network.
+
 ## Session launcher commands
 
 Use the CLI session launcher commands instead of manual shell wrappers:
@@ -419,8 +468,7 @@ Team onboarding flow:
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
-`agent-daemon`, see
-[Run a team pilot](../start/getting-started.md#run-a-team-pilot).
+`agent-daemon`, see [Get started](../start/getting-started.md).
 
 Solo flow:
 
