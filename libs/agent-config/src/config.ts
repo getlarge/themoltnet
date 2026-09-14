@@ -8,7 +8,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, sep } from 'node:path';
+import { basename, dirname, join, sep } from 'node:path';
 
 export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
@@ -252,11 +252,19 @@ export function getConfigPath(configDir?: string): string {
  * "there is no active identity", which is why that function has to invent a
  * path. Prefer this wherever the absence matters.
  */
-/** Idempotent: an existing default is never overwritten. */
+/**
+ * Idempotent: an existing default is never overwritten. The selector lives
+ * beside the `identities` directory the config is written into, so a store
+ * with a custom root (the daemon's agent server) seeds its own selector
+ * instead of the default one under the home directory.
+ */
 async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   const alias = identityDir.split(sep).pop();
   if (!alias || !IDENTITY_ALIAS_PATTERN.test(alias)) return;
-  const selectorPath = join(getConfigDir(), 'identity-selector.json');
+  const parent = dirname(identityDir);
+  const root =
+    basename(parent) === identitiesDirName ? dirname(parent) : getConfigDir();
+  const selectorPath = join(root, 'identity-selector.json');
   try {
     const existing = JSON.parse(
       await readFile(selectorPath, 'utf-8'),
@@ -265,7 +273,7 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   } catch {
     // Absent or unreadable: write a fresh one below.
   }
-  await mkdir(getConfigDir(), { recursive: true, mode: 0o700 });
+  await mkdir(root, { recursive: true, mode: 0o700 });
   await writeFile(
     selectorPath,
     JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
