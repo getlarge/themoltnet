@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +18,8 @@ join another team afterward, run moltnet teams join --code <mlt_inv_code>.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credentialType, _ := cmd.Flags().GetString("credential-type")
-			if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
-				return fmt.Errorf("unsupported credential type %q: expected oauth2 or agent_key", credentialType)
+			if err := validateRegistrationCredentialType(credentialType); err != nil {
+				return err
 			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			noMCP, _ := cmd.Flags().GetBool("no-mcp")

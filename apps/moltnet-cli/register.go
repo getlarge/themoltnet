@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -80,7 +82,7 @@ func flattenRegistrationResponse(response *moltnetapi.RegisterResponse) (*Regist
 
 func validateRegistrationCredentialType(credentialType string) error {
 	if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
-		return fmt.Errorf("credential type must be oauth2 or agent_key")
+		return fmt.Errorf("unsupported credential type %q: expected oauth2 or agent_key", credentialType)
 	}
 	return nil
 }
@@ -89,9 +91,6 @@ func validateRegistrationCredentialType(credentialType string) error {
 // membership is managed separately through `moltnet teams join` after the
 // registration credential has been stored.
 func DoRegister(apiURL, credentialType string) (*RegisterResult, error) {
-	if err := validateRegistrationCredentialType(credentialType); err != nil {
-		return nil, err
-	}
 	kp, err := GenerateKeyPair()
 	if err != nil {
 		return nil, err
@@ -213,7 +212,7 @@ func runRegister(opts registerOpts) error {
 		return err
 	}
 	if _, statErr := os.Stat(credPath); statErr == nil {
-		return fmt.Errorf("identity %q already exists at %s; choose another --name or remove it first", opts.name, credPath)
+		return identityExistsError(credPath)
 	}
 	secrets, err := openIdentitySecretStore(opts.secretProviders, opts.destination)
 	if err != nil {
@@ -228,41 +227,64 @@ func runRegister(opts registerOpts) error {
 
 	result, err := DoRegisterWithKeyPair(url, opts.credentialType, identity.KeyPair)
 	if err != nil {
-		// Never delete the seed here: a transport failure after the replay, a
-		// 5xx, or an undecodable 2xx can all follow a server-side commit.
-		return fmt.Errorf("%w\nRegistration did not complete locally (%s). If the server registered this identity, keep that seed: it is the only proof of ownership", err, identity.seedLocation())
+		return registrationFailure(err, url, identity)
 	}
-	fmt.Fprintf(opts.errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, identity.KeyPair.Fingerprint)
+	subjectID := result.Response.SubjectID
+	fmt.Fprintf(opts.errOut, "Registered as %s (fingerprint: %s)\n", subjectID, identity.KeyPair.Fingerprint)
 
 	credential := result.Response.Credential
-	secretRef := SecretReference{
-		Provider: identity.SeedRef.Provider,
-		Key:      OAuth2SecretKey(result.Response.SubjectID, credential.ClientID),
-	}
-	seedRef := identity.SeedRef
+	secretRef := secrets.ref(OAuth2SecretKey(subjectID, credential.ClientID))
 	// The config carries both references before the OAuth2 secret exists, so
 	// from here on the recover command can replace a missing secret.
 	if err := createIdentityConfig(&CredentialsFile{
-		SubjectID:    result.Response.SubjectID,
+		SubjectID:    subjectID,
 		SubjectType:  result.Response.SubjectType,
 		OAuth2:       CredentialsOAuth2{ClientID: credential.ClientID, ClientSecretRef: &secretRef},
-		Keys:         CredentialsKeys{PublicKey: identity.KeyPair.PublicKey, PrivateKeyRef: &seedRef, Fingerprint: identity.KeyPair.Fingerprint},
+		Keys:         CredentialsKeys{PublicKey: identity.KeyPair.PublicKey, PrivateKeyRef: &identity.SeedRef, Fingerprint: identity.KeyPair.Fingerprint},
 		Endpoints:    CredentialsEndpoints{API: result.APIUrl, MCP: deriveMCPURL(url)},
 		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}, credPath); err != nil {
-		return fmt.Errorf("write identity config: %w\nAgent %s is registered but has no local config (%s)", err, result.Response.SubjectID, identity.seedLocation())
+		if errors.Is(err, errIdentityExists) {
+			// The existing config belongs to whoever won the race, so the usual
+			// "move it aside" advice does not apply to this run's agent.
+			err = fmt.Errorf("identity %q was created by another command while this one registered", opts.name)
+		}
+		return fmt.Errorf("%w\nAgent %s is registered but has no local config (%s). Keep that seed: it is the only proof of ownership of the agent", err, subjectID, identity.seedLocation())
 	}
 	fmt.Fprintf(opts.errOut, "Credentials written to %s\n", credPath)
 
-	recoverCommand := fmt.Sprintf("MOLTNET_ACTIVE_IDENTITY=%s moltnet agents credentials recover --yes", opts.name)
 	if _, err := secrets.store(secretRef.Key, credential.ClientSecret); err != nil {
-		return fmt.Errorf("%w\nAgent %s is registered and its config is written; replace the secret with: %s", err, result.Response.SubjectID, recoverCommand)
+		return fmt.Errorf("%w\nAgent %s is registered and its config is written; replace the secret with: MOLTNET_ACTIVE_IDENTITY=%s moltnet agents credentials recover --yes", err, subjectID, opts.name)
 	}
+	// Only a warning, unlike writeCentralIdentityConfig: the agent is already
+	// registered and stored, and a rerun would be refused as an existing alias,
+	// so failing here would hide a usable identity behind an error.
 	if err := seedIdentitySelectorIfUnset(opts.name); err != nil {
 		fmt.Fprintf(opts.errOut, "Warning: %s was not selected as the default identity: %v\nSelect it with: moltnet config identity select %s\n", opts.name, err, opts.name)
 	}
 	reportRegistrationStored(opts.errOut, result.APIUrl, credPath, opts.name, opts.noMCP)
 	return nil
+}
+
+// registrationFailure explains a registration that did not complete. The seed
+// is kept either way: after a rejection it is merely unused, while any other
+// failure may follow a server-side commit that only the seed can prove.
+func registrationFailure(err error, apiURL string, identity *preparedIdentity) error {
+	if registrationRejected(err) {
+		return fmt.Errorf("%w\nThe server rejected the registration, so no agent was created (%s; that seed is unused)", err, identity.seedLocation())
+	}
+	return fmt.Errorf(
+		"%w\nThe server may have registered this identity (%s).\nCheck with: curl -fsS %s/agents/%s\nIf the agent exists, keep that seed: it is the only proof of ownership. Running register again generates a new keypair and can create a second agent",
+		err, identity.seedLocation(), apiURL, identity.KeyPair.Fingerprint,
+	)
+}
+
+// registrationRejected reports a definitive refusal: any 4xx except 409, which
+// the registration route returns while a registration for the same key is
+// still in progress and may yet commit.
+func registrationRejected(err error) bool {
+	status, ok := apiErrorStatus(err)
+	return ok && status >= 400 && status < 500 && status != http.StatusConflict
 }
 
 // reportRegistrationStored runs the best-effort steps after the new identity

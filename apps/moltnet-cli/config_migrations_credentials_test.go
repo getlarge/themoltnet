@@ -280,7 +280,7 @@ func TestConfigMigrateRejectsAmbiguousSeedAndPEMForms(t *testing.T) {
 	}
 }
 
-func TestValidateMigrationDestination(t *testing.T) {
+func TestResolveSecretDestination(t *testing.T) {
 	registry := NewSecretProviderRegistry()
 	root := t.TempDir()
 	cases := []struct {

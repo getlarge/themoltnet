@@ -178,6 +178,9 @@ func writeCentralIdentityConfig(alias string, config *CredentialsFile) (string, 
 	if _, err := WriteConfigTo(config, path); err != nil {
 		return "", err
 	}
+	// A failure here fails the write: this replaces a config in place, so the
+	// caller can simply retry. register only warns, because its rerun would be
+	// refused once the config exists.
 	if err := seedIdentitySelectorIfUnset(alias); err != nil {
 		return "", err
 	}
@@ -185,7 +188,8 @@ func writeCentralIdentityConfig(alias string, config *CredentialsFile) (string, 
 }
 
 // seedIdentitySelectorIfUnset makes alias the default identity when no default
-// is selected yet. An existing default is never replaced.
+// is selected yet. An existing default is never replaced. Callers choose
+// whether a failure is fatal, depending on whether a rerun can retry it.
 func seedIdentitySelectorIfUnset(alias string) error {
 	selector, err := readIdentitySelector()
 	if err != nil {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -42,22 +41,35 @@ func openIdentitySecretStore(registry *SecretProviderRegistry, destination strin
 	if err != nil {
 		return identitySecretStore{}, err
 	}
-	if err := preflightSecretDestination(registry, provider); err != nil {
+	store := identitySecretStore{registry: registry, provider: provider}
+	if err := store.preflight(); err != nil {
 		return identitySecretStore{}, fmt.Errorf("secret provider %q is unavailable: %w", provider, err)
 	}
-	return identitySecretStore{registry: registry, provider: provider}, nil
+	return store, nil
 }
 
-// preflightSecretDestination writes and removes a throwaway value.
-func preflightSecretDestination(registry *SecretProviderRegistry, provider string) error {
-	ref := SecretReference{
-		Provider: provider,
-		Key:      fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano()),
-	}
-	if err := registry.Store(ref, "credential-store-preflight"); err != nil {
+// preflight writes and removes a throwaway value.
+func (s identitySecretStore) preflight() error {
+	ref := s.ref(fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano()))
+	if err := s.registry.Store(ref, "credential-store-preflight"); err != nil {
 		return err
 	}
-	return registry.Delete(ref)
+	return s.registry.Delete(ref)
+}
+
+// ref names key in the store's provider without writing anything, so a config
+// can reference a secret before the secret is stored.
+func (s identitySecretStore) ref(key string) SecretReference {
+	return SecretReference{Provider: s.provider, Key: key}
+}
+
+// store writes one more secret to the same provider as the seed.
+func (s identitySecretStore) store(key, value string) (SecretReference, error) {
+	ref := s.ref(key)
+	if err := s.registry.Store(ref, value); err != nil {
+		return ref, fmt.Errorf("store secret in %s: %w", s.provider, err)
+	}
+	return ref, nil
 }
 
 // prepareIdentity generates a keypair and stores its seed.
@@ -66,20 +78,11 @@ func (s identitySecretStore) prepareIdentity() (*preparedIdentity, error) {
 	if err != nil {
 		return nil, err
 	}
-	ref := SecretReference{Provider: s.provider, Key: IdentitySeedKey(kp.Fingerprint)}
+	ref := s.ref(IdentitySeedKey(kp.Fingerprint))
 	if err := s.registry.Store(ref, kp.PrivateKey); err != nil {
 		return nil, fmt.Errorf("store identity seed in %s: %w", s.provider, err)
 	}
 	return &preparedIdentity{KeyPair: kp, SeedRef: ref}, nil
-}
-
-// store writes one more secret to the same provider as the seed.
-func (s identitySecretStore) store(key, value string) (SecretReference, error) {
-	ref := SecretReference{Provider: s.provider, Key: key}
-	if err := s.registry.Store(ref, value); err != nil {
-		return ref, fmt.Errorf("store secret in %s: %w", s.provider, err)
-	}
-	return ref, nil
 }
 
 // seedLocation names where the kept seed lives, for error messages.
@@ -87,25 +90,34 @@ func (p *preparedIdentity) seedLocation() string {
 	return fmt.Sprintf("fingerprint %s, seed kept at %s:%s", p.KeyPair.Fingerprint, p.SeedRef.Provider, p.SeedRef.Key)
 }
 
-// errIdentityExists reports that an identity config is already present.
+// withSeedLocation appends the kept seed to err, for every failure that
+// happens once the seed is stored.
+func (p *preparedIdentity) withSeedLocation(err error) error {
+	return fmt.Errorf("%w (%s)", err, p.seedLocation())
+}
+
+// errIdentityExists reports that an identity config is already present. Every
+// refusal to overwrite an identity wraps it through identityExistsError, so
+// callers branch with errors.Is and the advice reads the same everywhere.
 var errIdentityExists = errors.New("identity already exists")
+
+// identityExistsError names the existing config and the non-destructive way
+// to reuse its alias: moving the directory keeps the config, and the config
+// keeps referencing its seed and secrets wherever they are stored.
+func identityExistsError(path string) error {
+	return fmt.Errorf(
+		"%w at %s: choose another --name, or move %s aside to reuse the name (the moved config still references its seed and secrets)",
+		errIdentityExists, path, filepath.Dir(path),
+	)
+}
 
 // createIdentityConfig writes config at path only if nothing is there. The
 // check and the write share the CLI writer lock, so two concurrent commands
 // creating the same identity cannot overwrite each other.
 func createIdentityConfig(config *CredentialsFile, path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return fmt.Errorf("create config dir: %w", err)
+	err := writeConfigFile(config, path, safefile.Create)
+	if errors.Is(err, safefile.ErrExists) {
+		return identityExistsError(path)
 	}
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal config: %w", err)
-	}
-	if err := safefile.Create(path, append(data, '\n')); err != nil {
-		if errors.Is(err, safefile.ErrExists) {
-			return fmt.Errorf("%w at %s", errIdentityExists, path)
-		}
-		return fmt.Errorf("write config: %w", err)
-	}
-	return nil
+	return err
 }

@@ -72,6 +72,25 @@ func TestCreateWritesOnceAndRefusesAnExistingFile(t *testing.T) {
 	}
 }
 
+func TestCreateRefusesASymlinkAtTheTargetWithoutWritingThroughIt(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "elsewhere.json")
+	link := filepath.Join(dir, "moltnet.json")
+	// A dangling link: following it would create target.
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	err := Create(link, []byte("secret"))
+
+	if !errors.Is(err, ErrExists) {
+		t.Fatalf("create error = %v, want ErrExists", err)
+	}
+	if _, statErr := os.Lstat(target); !os.IsNotExist(statErr) {
+		t.Fatalf("create wrote through the symlink: %v", statErr)
+	}
+}
+
 func TestCreateLetsExactlyOneConcurrentWriterWin(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "moltnet.json")
 	const writers = 8

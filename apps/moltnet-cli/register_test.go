@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -66,10 +67,13 @@ func newRegisterTestServer(t *testing.T, cfg registerServerConfig) (*httptest.Se
 			cfg.onRequest(body)
 		}
 		if cfg.status != 0 && cfg.status != http.StatusOK {
-			w.Header().Set("Content-Type", "application/problem+json")
+			// The REST API sends problem+json only to clients that ask for it;
+			// the generated Go client does not, so it decodes application/json.
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(cfg.status)
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"type": "https://themolt.net/problems/registration-failed", "title": "Registration failed", "status": cfg.status,
+				"code": "REGISTRATION_FAILED",
 			})
 			return
 		}
@@ -124,8 +128,26 @@ func registerMemoryRegistry() (*SecretProviderRegistry, *memorySecretProvider, *
 	return registry, memory, &seedStored
 }
 
+// seedKeyFingerprint parses a seed key by round-tripping its fingerprint
+// through IdentitySeedKey, so a change to the production key format cannot
+// make the seed assertions in these tests pass vacuously.
+func seedKeyFingerprint(key string) (string, bool) {
+	const marker = "\x00"
+	prefix, suffix, _ := strings.Cut(IdentitySeedKey(marker), marker)
+	fingerprint, ok := strings.CutPrefix(key, prefix)
+	if !ok {
+		return "", false
+	}
+	fingerprint, ok = strings.CutSuffix(fingerprint, suffix)
+	if !ok || fingerprint == "" || IdentitySeedKey(fingerprint) != key {
+		return "", false
+	}
+	return fingerprint, true
+}
+
 func isIdentitySeedKey(key string) bool {
-	return strings.HasPrefix(key, "identity/") && strings.HasSuffix(key, "/seed")
+	_, ok := seedKeyFingerprint(key)
+	return ok
 }
 
 func storedSeedKeys(memory *memorySecretProvider) []string {
@@ -136,6 +158,40 @@ func storedSeedKeys(memory *memorySecretProvider) []string {
 		}
 	}
 	return keys
+}
+
+func isPreflightKey(key string) bool {
+	return strings.HasPrefix(key, "preflight/")
+}
+
+// failSetFor makes a memory provider reject writes to the keys fails matches.
+func failSetFor(fails func(key string) bool) func(key string) error {
+	return func(key string) error {
+		if fails(key) {
+			return errors.New("simulated store failure")
+		}
+		return nil
+	}
+}
+
+func TestIsIdentitySeedKeyFollowsTheProductionFormat(t *testing.T) {
+	tests := []struct {
+		key  string
+		want bool
+	}{
+		{key: IdentitySeedKey("ABCD-1234-EF56-7890"), want: true},
+		{key: IdentitySeedKey(""), want: false},
+		{key: OAuth2SecretKey(registerTestAgentID, registerTestClientID), want: false},
+		{key: "preflight/1/2", want: false},
+	}
+	for _, tt := range tests {
+		if got := isIdentitySeedKey(tt.key); got != tt.want {
+			t.Errorf("isIdentitySeedKey(%q) = %v, want %v", tt.key, got, tt.want)
+		}
+	}
+	if fingerprint, _ := seedKeyFingerprint(IdentitySeedKey("ABCD-1234-EF56-7890")); fingerprint != "ABCD-1234-EF56-7890" {
+		t.Errorf("seedKeyFingerprint round trip = %q", fingerprint)
+	}
 }
 
 func runTestRegister(t *testing.T, apiURL, name string, registry *SecretProviderRegistry) (string, error) {
@@ -348,7 +404,7 @@ func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 
 func TestRegisterStoresSeedBeforeRegisteringInTheDefaultProvider(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	registry, _, seedStored := registerMemoryRegistry()
+	registry, memory, seedStored := registerMemoryRegistry()
 	var seedStoredBeforeRequest atomic.Bool
 	server, _ := newRegisterTestServer(t, registerServerConfig{
 		onRequest: func(capturedRegistrationRequest) {
@@ -377,16 +433,28 @@ func TestRegisterStoresSeedBeforeRegisteringInTheDefaultProvider(t *testing.T) {
 		creds.OAuth2.ClientSecretRef == nil || creds.OAuth2.ClientSecretRef.Provider != osKeyringProviderName {
 		t.Fatalf("default destination is not the OS keyring: %#v / %#v", creds.Keys.PrivateKeyRef, creds.OAuth2.ClientSecretRef)
 	}
+	for key := range memory.values {
+		if strings.HasPrefix(key, "preflight/") {
+			t.Fatalf("the preflight probe left %s behind", key)
+		}
+	}
 }
 
 func TestRegisterKeepsTheSeedWhenRegistrationDoesNotComplete(t *testing.T) {
+	const (
+		rejected = "The server rejected the registration, so no agent was created"
+		unclear  = "The server may have registered this identity"
+	)
 	tests := []struct {
-		name string
-		cfg  registerServerConfig
+		name    string
+		cfg     registerServerConfig
+		want    string
+		notWant string
 	}{
-		{name: "definitive rejection", cfg: registerServerConfig{status: http.StatusBadRequest}},
-		{name: "server error that may follow a commit", cfg: registerServerConfig{status: http.StatusServiceUnavailable}},
-		{name: "committed but undecodable credential", cfg: registerServerConfig{credential: map[string]any{"type": "unknown"}}},
+		{name: "definitive rejection", cfg: registerServerConfig{status: http.StatusBadRequest}, want: rejected, notWant: unclear},
+		{name: "registration already in progress", cfg: registerServerConfig{status: http.StatusConflict}, want: unclear, notWant: rejected},
+		{name: "server error that may follow a commit", cfg: registerServerConfig{status: http.StatusServiceUnavailable}, want: unclear, notWant: rejected},
+		{name: "committed but undecodable credential", cfg: registerServerConfig{credential: map[string]any{"type": "unknown"}}, want: unclear, notWant: rejected},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -406,6 +474,17 @@ func TestRegisterKeepsTheSeedWhenRegistrationDoesNotComplete(t *testing.T) {
 			if !strings.Contains(err.Error(), "seed kept at os-keyring:"+seeds[0]) {
 				t.Fatalf("error does not name the kept seed %s: %v", seeds[0], err)
 			}
+			if !strings.Contains(err.Error(), tt.want) || strings.Contains(err.Error(), tt.notWant) {
+				t.Fatalf("error = %v, want %q and not %q", err, tt.want, tt.notWant)
+			}
+			if tt.want == unclear {
+				fingerprint, _ := seedKeyFingerprint(seeds[0])
+				for _, hint := range []string{server.URL + "/agents/" + fingerprint, "generates a new keypair"} {
+					if !strings.Contains(err.Error(), hint) {
+						t.Fatalf("error lacks %q: %v", hint, err)
+					}
+				}
+			}
 			path, pathErr := identityCredentialsPath("reg-incomplete")
 			if pathErr != nil {
 				t.Fatal(pathErr)
@@ -419,23 +498,18 @@ func TestRegisterKeepsTheSeedWhenRegistrationDoesNotComplete(t *testing.T) {
 
 func TestRegisterStopsBeforeTheNetworkWhenSecretsCannotBeStored(t *testing.T) {
 	tests := []struct {
-		name       string
-		failPrefix string
-		wantErr    string
+		name    string
+		fails   func(key string) bool
+		wantErr string
 	}{
-		{name: "provider preflight fails", failPrefix: "preflight/", wantErr: "is unavailable"},
-		{name: "seed store fails", failPrefix: "identity/", wantErr: "store identity seed"},
+		{name: "provider preflight fails", fails: isPreflightKey, wantErr: "is unavailable"},
+		{name: "seed store fails", fails: isIdentitySeedKey, wantErr: "store identity seed"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("HOME", t.TempDir())
 			registry, memory := newMemorySecretProviderRegistry()
-			memory.failSet = func(key string) error {
-				if strings.HasPrefix(key, tt.failPrefix) {
-					return errors.New("simulated store failure")
-				}
-				return nil
-			}
+			memory.failSet = failSetFor(tt.fails)
 			server, calls := newRegisterTestServer(t, registerServerConfig{})
 
 			_, err := runTestRegister(t, server.URL, "reg-no-store", registry)
@@ -473,8 +547,11 @@ func TestRegisterNamesTheKeptSeedWhenAnotherIdentityClaimedTheAlias(t *testing.T
 
 	_, err = runTestRegister(t, server.URL, "reg-race", registry)
 
-	if err == nil || !strings.Contains(err.Error(), "identity already exists") {
-		t.Fatalf("error = %v, want exclusive-create refusal", err)
+	if err == nil || !strings.Contains(err.Error(), `identity "reg-race" was created by another command`) {
+		t.Fatalf("error = %v, want the race named", err)
+	}
+	if strings.Contains(err.Error(), "move") {
+		t.Fatalf("the race must not advise moving the winner's config aside: %v", err)
 	}
 	seeds := storedSeedKeys(memory)
 	if len(seeds) != 1 || !strings.Contains(err.Error(), seeds[0]) || !strings.Contains(err.Error(), registerTestAgentID) {
@@ -567,8 +644,8 @@ func TestRegisterRefusesExistingAlias(t *testing.T) {
 
 	_, err = runTestRegister(t, server.URL, "reg-dup", registry)
 
-	if err == nil || !strings.Contains(err.Error(), "already exists") {
-		t.Fatalf("error = %v, want existing-alias refusal", err)
+	if !errors.Is(err, errIdentityExists) || !strings.Contains(err.Error(), "move "+filepath.Dir(path)+" aside") {
+		t.Fatalf("error = %v, want existing-alias refusal with a way to reuse the name", err)
 	}
 	if calls.Load() != 0 {
 		t.Fatalf("registration calls = %d, want 0", calls.Load())

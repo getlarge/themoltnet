@@ -407,16 +407,11 @@ func TestAgentsInitStoresSeedBeforeOnboardingAndKeepsItOnFailure(t *testing.T) {
 	if !seedStoredBeforeRequest.Load() {
 		t.Fatal("the identity seed was not stored before the onboarding request")
 	}
-	seeds := 0
-	for key := range memory.values {
-		if strings.HasPrefix(key, "identity/") {
-			seeds++
-		}
+	seeds := storedSeedKeys(memory)
+	if len(seeds) != 1 {
+		t.Fatalf("stored seeds = %v, want the one seed kept after the failure", seeds)
 	}
-	if seeds != 1 {
-		t.Fatalf("stored seeds = %d, want the one seed kept after the failure", seeds)
-	}
-	if !strings.Contains(err.Error(), "seed kept at os-keyring:identity/") {
+	if !strings.Contains(err.Error(), "seed kept at os-keyring:"+seeds[0]) {
 		t.Fatalf("error does not name the kept seed: %v", err)
 	}
 	path, pathErr := identityCredentialsPath("init-fails")
@@ -440,6 +435,11 @@ func TestAgentsInitRefusesAnIdentityItDidNotStart(t *testing.T) {
 		t.Error("local setup must not run for a refused identity")
 		return nil
 	})
+	var keyringWrites []string
+	memory.failSet = func(key string) error {
+		keyringWrites = append(keyringWrites, key)
+		return nil
+	}
 	path, err := identityCredentialsPath("from-register")
 	if err != nil {
 		t.Fatal(err)
@@ -463,8 +463,8 @@ func TestAgentsInitRefusesAnIdentityItDidNotStart(t *testing.T) {
 		out: &bytes.Buffer{}, errOut: &bytes.Buffer{},
 	})
 
-	if err == nil || !strings.Contains(err.Error(), "already exists") {
-		t.Fatalf("error = %v, want existing-identity refusal", err)
+	if !errors.Is(err, errIdentityExists) || !strings.Contains(err.Error(), "move "+filepath.Dir(path)+" aside") {
+		t.Fatalf("error = %v, want existing-identity refusal with a way to reuse the name", err)
 	}
 	if requests.Load() != 0 {
 		t.Fatalf("network requests = %d, want 0", requests.Load())
@@ -476,10 +476,149 @@ func TestAgentsInitRefusesAnIdentityItDidNotStart(t *testing.T) {
 	if !bytes.Equal(before, after) {
 		t.Fatal("the existing identity config was modified")
 	}
-	for key := range memory.values {
-		if strings.HasPrefix(key, "identity/") {
-			t.Fatalf("no seed may be generated for a refused identity, found %s", key)
+	// The refusal comes before the keyring is touched, not even a probe.
+	if len(keyringWrites) != 0 {
+		t.Fatalf("keyring writes = %v, want none for a refused identity", keyringWrites)
+	}
+}
+
+const agentsInitTestWorkflowID = "workflow-under-test"
+
+// newAgentsInitStartServer answers the onboarding start with a started
+// workflow, running onStart first, and counts every request it receives.
+func newAgentsInitStartServer(t *testing.T, onStart func()) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		if r.URL.Path != "/public/legreffier/start" {
+			http.NotFound(w, r)
+			return
 		}
+		if onStart != nil {
+			onStart()
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"workflowId":"` + agentsInitTestWorkflowID + `","manifestFormUrl":"https://example.test/manifest"}`))
+	}))
+	t.Cleanup(server.Close)
+	return server, &requests
+}
+
+func runTestAgentsInit(apiURL, name string) error {
+	return runAgentsInitCmd(agentsInitOpts{
+		apiURL: apiURL, apiURLExplicit: true, name: name,
+		noOpen: true, timeout: 5 * time.Second,
+		out: &bytes.Buffer{}, errOut: &bytes.Buffer{},
+	})
+}
+
+func TestAgentsInitStopsBeforeTheNetworkWhenSecretsCannotBeStored(t *testing.T) {
+	tests := []struct {
+		name    string
+		fails   func(key string) bool
+		wantErr string
+	}{
+		{name: "provider preflight fails", fails: isPreflightKey, wantErr: "is unavailable"},
+		{name: "seed store fails", fails: isIdentitySeedKey, wantErr: "store identity seed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			server, requests := newAgentsInitStartServer(t, nil)
+			memory := stubAgentsInitLocalSteps(t, func(agentsInitOpts, string, string, *CredentialsFile) error {
+				t.Error("local setup must not run when secrets cannot be stored")
+				return nil
+			})
+			memory.failSet = failSetFor(tt.fails)
+
+			err := runTestAgentsInit(server.URL, "init-no-store")
+
+			if err == nil || !strings.Contains(err.Error(), "initialization was not attempted") || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("error = %v, want %q before any network call", err, tt.wantErr)
+			}
+			if requests.Load() != 0 {
+				t.Fatalf("network requests = %d, want 0", requests.Load())
+			}
+			if seeds := storedSeedKeys(memory); len(seeds) != 0 {
+				t.Fatalf("stored seeds = %v, want none", seeds)
+			}
+		})
+	}
+}
+
+func TestAgentsInitNamesTheWorkflowAndSeedWhenTheStartCannotBeRecorded(t *testing.T) {
+	winner := &CredentialsFile{SubjectID: "concurrent-winner", SubjectType: SubjectTypeAgent}
+	tests := []struct {
+		name string
+		// interfere runs while the onboarding start is in flight.
+		interfere func(t *testing.T, configPath, statePath string)
+		wantErr   []string
+		// wantWinner reports that the interfering config must survive intact.
+		wantWinner bool
+	}{
+		{
+			name: "another command created the identity",
+			interfere: func(t *testing.T, configPath, _ string) {
+				if _, err := WriteConfigTo(winner, configPath); err != nil {
+					t.Errorf("write concurrent config: %v", err)
+				}
+			},
+			wantErr:    []string{"identity already exists", "onboarding workflow " + agentsInitTestWorkflowID},
+			wantWinner: true,
+		},
+		{
+			name: "the checkpoint cannot be written",
+			interfere: func(t *testing.T, _, statePath string) {
+				// A directory where the checkpoint belongs makes its write fail.
+				if err := os.MkdirAll(statePath, 0o700); err != nil {
+					t.Errorf("block checkpoint: %v", err)
+				}
+			},
+			wantErr: []string{
+				"Onboarding workflow " + agentsInitTestWorkflowID + " started",
+				"No agent exists until its GitHub App is created",
+				"run moltnet agents init --name init-unrecorded again",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
+			configPath, err := identityCredentialsPath("init-unrecorded")
+			if err != nil {
+				t.Fatal(err)
+			}
+			statePath := filepath.Join(filepath.Dir(configPath), agentsInitStateFile)
+			server, _ := newAgentsInitStartServer(t, func() { tt.interfere(t, configPath, statePath) })
+			memory := stubAgentsInitLocalSteps(t, func(agentsInitOpts, string, string, *CredentialsFile) error {
+				t.Error("local setup must not run when the start was not recorded")
+				return nil
+			})
+
+			err = runTestAgentsInit(server.URL, "init-unrecorded")
+
+			if err == nil {
+				t.Fatal("expected initialization to fail")
+			}
+			seeds := storedSeedKeys(memory)
+			if len(seeds) != 1 {
+				t.Fatalf("stored seeds = %v, want the one kept seed", seeds)
+			}
+			for _, want := range append(tt.wantErr, "seed kept at os-keyring:"+seeds[0]) {
+				if !strings.Contains(err.Error(), want) {
+					t.Fatalf("error lacks %q: %v", want, err)
+				}
+			}
+			if tt.wantWinner {
+				creds, readErr := ReadConfigFrom(configPath)
+				if readErr != nil || creds.SubjectID != "concurrent-winner" {
+					t.Fatalf("the concurrent identity config was overwritten: %#v, %v", creds, readErr)
+				}
+			} else if !strings.Contains(err.Error(), "move "+filepath.Dir(configPath)+" aside") {
+				t.Fatalf("error lacks the start-over step: %v", err)
+			}
+		})
 	}
 }
 
