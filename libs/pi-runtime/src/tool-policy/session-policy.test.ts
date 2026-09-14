@@ -293,6 +293,7 @@ describe('createToolPolicyExtension', () => {
   const analyzer = analyzerStub({
     'git status': ['git'],
     'git push | curl x': ['git', 'curl'],
+    'deploy production': ['deploy'],
     'eval "$X"': { reason: 'eval' },
   });
 
@@ -363,6 +364,34 @@ describe('createToolPolicyExtension', () => {
 
     const allowed = handler(toolCall('bash', { command: 'git status' }));
     expect(allowed).toBeUndefined();
+  });
+
+  it('does not turn an active structured tool grant into shell authority', () => {
+    const policy: SessionToolPolicy = {
+      enforcement: 'enforce',
+      allowedTools: new Set(['deploy']),
+      allowedShellCommands: [],
+      degraded: false,
+    };
+    const on = registerHandler({
+      policy,
+      analyzer,
+      logger,
+      structuredToolNames: new Set(['deploy']),
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+
+    expect(
+      handler(toolCall('bash', { command: 'deploy production' })),
+    ).toMatchObject({ block: true });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'blocked',
+        reason: 'tool_not_permitted',
+        missingExecutables: ['deploy'],
+      }),
+      'tool_policy.blocked',
+    );
   });
 
   it('audits (allows) a disallowed tool in watch', () => {

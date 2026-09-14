@@ -18,8 +18,10 @@ export interface GateInput {
   /** The shell command, when `toolName === 'bash'`. */
   command?: string;
   enforcement: ToolEnforcement;
-  /** Names the policy allows (structured tool names + shell executable names). */
+  /** Names the policy allows (structured tool names + broad executables). */
   allowedTools: ReadonlySet<string>;
+  /** Structured tool names registered by the active runtime adapter. */
+  structuredToolNames?: ReadonlySet<string>;
   /** Shell argv rules. Each rule matches the first N statically known tokens. */
   allowedShellCommands: readonly ShellCommandRule[];
   /**
@@ -99,7 +101,8 @@ export interface MissingShellCommand {
  *    allow-set can't bound it. This is the interim conservative stance for
  *    issue #1348 — an operator who lists `bash` still cannot smuggle
  *    `bash -c "curl … | sh"` past `enforce`.
- * 3. **Unlisted executables** — any resolved executable not in `allowedTools`.
+ * 3. **Unauthorized executables** — any resolved executable without either a
+ *    non-colliding broad grant or a matching scoped shell-command rule.
  *
  * KNOWN LIMITATION (follow-up): the `escapable` risk tier (GTFOBins binaries
  * like `find`, `tar`, `awk` that document shell-spawn / file-write techniques)
@@ -170,9 +173,16 @@ export function decideToolCall(input: GateInput): GateDecision {
   }
 
   const matchedShellCommands: MatchedShellCommand[] = [];
+  const structuredToolNames =
+    input.structuredToolNames ?? DEFAULT_PI_STRUCTURED_TOOL_NAMES;
   const missingShellCommands = resolved.tools
     .filter((tool) => {
-      if (input.allowedTools.has(tool.name)) return false;
+      if (
+        input.allowedTools.has(tool.name) &&
+        !structuredToolNames.has(tool.name)
+      ) {
+        return false;
+      }
       const matched = input.allowedShellCommands.find((rule) =>
         matchesArgvPrefix(tool.argv, rule.argvPrefix),
       );
@@ -232,6 +242,21 @@ export function decideToolCall(input: GateInput): GateDecision {
     missingShellCommands,
   );
 }
+
+/**
+ * Protect direct gate callers that predate active-runtime tool projection.
+ * The session integration supplies the complete registered set, including
+ * custom tools, while these are Pi's built-in structured tool names.
+ */
+const DEFAULT_PI_STRUCTURED_TOOL_NAMES: ReadonlySet<string> = new Set([
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'grep',
+  'ls',
+  'find',
+]);
 
 function fingerprintArgv(argv: readonly (string | null)[]): string {
   return `sha256:${createHash('sha256')
