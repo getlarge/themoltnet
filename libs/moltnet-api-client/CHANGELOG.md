@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.70.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.1...moltnet-api-client-v1.70.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **packs:** let the server assign the unpin deadline from PACK_GC_COMPILE_TTL_DAYS ([0394030](https://github.com/getlarge/themoltnet/commit/03940307bb35b1c7f529900e09f474187b822248))
+
+
+### Codegen
+
+* **api-client:** regenerate clients for optional unpin expiresAt ([515156c](https://github.com/getlarge/themoltnet/commit/515156c1490e83ac0ea021bcca2ab26538577f0b))
+* **api-client:** regenerate clients for the renderMethod pattern ([c375ac5](https://github.com/getlarge/themoltnet/commit/c375ac5f7bacd585dc76496a55fac0735ce74efb))
+
 ## [1.70.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.0...moltnet-api-client-v1.70.1) (2026-09-13)
 
 

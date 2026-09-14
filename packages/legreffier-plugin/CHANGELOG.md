@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.6.0...legreffier-plugin-v0.6.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **cli:** preserve ref visibility for App-authored gh writes ([3056c9e](https://github.com/getlarge/themoltnet/commit/3056c9e8d3adc75afcc4d00ee3c86e383b376d6d))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.5.0...legreffier-plugin-v0.6.0) (2026-09-11)
 
 

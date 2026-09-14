@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.3.2](https://github.com/getlarge/themoltnet/compare/cli-v2.3.1...cli-v2.3.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **cli:** preserve ref visibility for App-authored gh writes ([3056c9e](https://github.com/getlarge/themoltnet/commit/3056c9e8d3adc75afcc4d00ee3c86e383b376d6d))
+* **cli:** preserve ref visibility for App-authored gh writes ([db7a836](https://github.com/getlarge/themoltnet/commit/db7a83674daf01cfcf0e2b963fba8a8f45703b25)), closes [#2257](https://github.com/getlarge/themoltnet/issues/2257)
+* **packs:** let the server assign the unpin deadline from PACK_GC_COMPILE_TTL_DAYS ([0394030](https://github.com/getlarge/themoltnet/commit/03940307bb35b1c7f529900e09f474187b822248))
+
 ## [2.3.1](https://github.com/getlarge/themoltnet/compare/cli-v2.3.0...cli-v2.3.1) (2026-09-13)
 
 
