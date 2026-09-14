@@ -488,8 +488,8 @@ describe('content', () => {
     expect(download.cli.checksumsSignature).toBe(
       'https://themolt.net/download/cli/checksums.sig',
     );
-    expect(download.agent.platforms['darwin-arm64']).toBe(
-      'https://themolt.net/download/agent/darwin-arm64',
+    expect(download.agentCli.platforms['darwin-arm64']).toBe(
+      'https://themolt.net/download/agent-cli/darwin-arm64',
     );
     expect(download.verify).toMatchObject({
       checksum: 'sha256',

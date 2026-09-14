@@ -7,8 +7,12 @@ on:
         description: CLI version or release tag to pin.
         required: false
         type: string
-      agent_version:
-        description: Agent version or release tag to pin.
+      agent_cli_version:
+        description: Agent CLI version or release tag to pin.
+        required: false
+        type: string
+      agent_desktop_version:
+        description: Agent desktop version or release tag to pin.
         required: false
         type: string
   workflow_dispatch:
@@ -17,8 +21,12 @@ on:
         description: Optional CLI version; blank selects the latest published CLI release.
         required: false
         type: string
-      agent_version:
-        description: Optional agent version; blank selects the latest published agent release.
+      agent_cli_version:
+        description: Optional Agent CLI version; blank selects the latest published Agent CLI release.
+        required: false
+        type: string
+      agent_desktop_version:
+        description: Optional Agent desktop version; blank selects the latest published desktop release.
         required: false
         type: string
 
@@ -48,7 +56,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           CLI_INPUT: ${{ inputs.cli_version }}
-          AGENT_INPUT: ${{ inputs.agent_version }}
+          AGENT_CLI_INPUT: ${{ inputs.agent_cli_version }}
+          AGENT_DESKTOP_INPUT: ${{ inputs.agent_desktop_version }}
         run: |
           latest() {
             gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft \
@@ -56,11 +65,13 @@ jobs:
               | sed "s/^$1-v//"
           }
           CLI_VERSION="${CLI_INPUT#cli-v}"
-          AGENT_VERSION="${AGENT_INPUT#agent-daemon-v}"
+          AGENT_CLI_VERSION="${AGENT_CLI_INPUT#agent-daemon-v}"
+          AGENT_DESKTOP_VERSION="${AGENT_DESKTOP_INPUT#agent-desktop-v}"
           CLI_VERSION="${CLI_VERSION:-$(latest cli)}"
-          AGENT_VERSION="${AGENT_VERSION:-$(latest agent-daemon)}"
-          test -n "$CLI_VERSION" -o -n "$AGENT_VERSION"
-          CLI_VERSION="$CLI_VERSION" AGENT_VERSION="$AGENT_VERSION" bash tools/release/propose-download-pin.sh
+          AGENT_CLI_VERSION="${AGENT_CLI_VERSION:-$(latest agent-daemon)}"
+          AGENT_DESKTOP_VERSION="${AGENT_DESKTOP_VERSION:-$(latest agent-desktop)}"
+          test -n "$CLI_VERSION" -o -n "$AGENT_CLI_VERSION" -o -n "$AGENT_DESKTOP_VERSION"
+          CLI_VERSION="$CLI_VERSION" AGENT_CLI_VERSION="$AGENT_CLI_VERSION" AGENT_DESKTOP_VERSION="$AGENT_DESKTOP_VERSION" bash tools/release/propose-download-pin.sh
           if git diff --quiet -- apps/landing/nginx/default.conf.template; then
             echo changed=false >> "$GITHUB_OUTPUT"
           else
