@@ -129,8 +129,8 @@ the secret in. `--json` output is unchanged and still writes nothing.
 The in-memory function becomes module-private `requestRegistration()` in
 `libs/sdk/src/register.ts`. The root entry stops exporting `register`, `enroll`,
 `RegisterOptions`, and `RegisterResult`; `buildMcpConfig` and the message
-builders stay. This is a breaking change for `@themoltnet/sdk`, released as
-`feat(sdk)!`.
+builders stay. This changes the public SDK surface; it is released as a regular
+`feat(sdk)`.
 
 `@themoltnet/sdk/node` exports the new functions:
 
@@ -272,8 +272,8 @@ and are rebased onto `main` once #2259 merges:
 
 1. `feat(rest-api,cli): mint the OAuth2 client on credential recovery` (A).
 2. `fix(cli): store the identity seed as a reference on register` (B).
-3. `feat(sdk)!: register writes the identity store like the CLI` (C, includes
-   the daemon refactor and the selector fix).
+3. `feat(sdk): register writes the identity store like the CLI` (C, includes the
+   daemon refactor and the selector fix).
 4. `docs: Console-first onboarding` (D, includes the Console shortcut and the
    landing block). Lands after PR #2259 and PRs 1 to 3 so the text matches
    shipped behavior.
