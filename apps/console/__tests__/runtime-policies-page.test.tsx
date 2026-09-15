@@ -130,7 +130,7 @@ describe('RuntimePoliciesPage', () => {
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'Read-only inspection' },
     });
-    const toolInput = screen.getByLabelText('Exact tool name');
+    const toolInput = screen.getByLabelText('Tool name');
     fireEvent.change(toolInput, { target: { value: 'read' } });
     fireEvent.keyDown(toolInput, { key: 'Enter' });
     fireEvent.change(toolInput, { target: { value: 'grep' } });
@@ -166,9 +166,10 @@ describe('RuntimePoliciesPage', () => {
       target: { value: 'reviewer' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add shell command' }));
-    fireEvent.change(screen.getByLabelText('Executable'), {
+    fireEvent.change(screen.getByLabelText('Program'), {
       target: { value: 'gh' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Add token' }));
     fireEvent.change(screen.getByLabelText('Subcommand'), {
       target: { value: 'pr' },
     });
@@ -193,7 +194,7 @@ describe('RuntimePoliciesPage', () => {
     );
   });
 
-  it('explains that a tool grant covers a same-named shell program only when the runtime has no such tool', async () => {
+  it('describes tools and shell commands as separate grants', async () => {
     // Arrange
     renderPage();
 
@@ -202,13 +203,75 @@ describe('RuntimePoliciesPage', () => {
 
     // Assert
     expect(
+      screen.getByText('Runtime and MCP tools this policy allows, by name.'),
+    ).toBeVisible();
+    expect(
       screen.getByText(
-        /covers a shell program of the same name only when the runtime has no tool by that name/i,
+        'Shell commands this policy allows, matched from the program name onward. Output redirection is never allowed.',
       ),
     ).toBeVisible();
     expect(
       screen.queryByText(/authorize every shell invocation/i),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/same name/i)).not.toBeInTheDocument();
+  });
+
+  it('creates a one-token shell command rule', async () => {
+    // Arrange
+    apiMocks.createRuntimePolicy.mockResolvedValue({
+      data: makePolicy({ id: 'policy-git', name: 'git-access' }),
+      error: null,
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'New policy' }));
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'git-access' },
+    });
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Add shell command' }));
+    fireEvent.change(screen.getByLabelText('Program'), {
+      target: { value: 'git' },
+    });
+    expect(screen.queryByLabelText('Subcommand')).not.toBeInTheDocument();
+    expect(screen.getByText('git › …')).toBeVisible();
+    const editor = screen.getByRole('region', { name: 'New tool policy' });
+    const create = within(editor).getByRole('button', {
+      name: 'Create policy',
+    });
+    expect(create).toBeEnabled();
+    fireEvent.click(create);
+
+    // Assert
+    await waitFor(() =>
+      expect(apiMocks.createRuntimePolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            shellCommands: [{ argvPrefix: ['git'] }],
+          }),
+        }),
+      ),
+    );
+  });
+
+  it('removes a subcommand token down to a one-token rule', async () => {
+    // Arrange
+    setPolicies(
+      makePolicy({
+        id: 'policy-diff',
+        name: 'differ',
+        shellCommands: [{ argvPrefix: ['git', 'diff'] }],
+      }),
+    );
+    renderPage();
+    await screen.findByDisplayValue('differ');
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Remove token' }));
+
+    // Assert
+    expect(screen.getByText('git › …')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save policy' })).toBeEnabled();
   });
 
   it('does not claim a shell rule is covered by a same-named tool grant', async () => {
@@ -270,7 +333,7 @@ describe('RuntimePoliciesPage', () => {
       target: { value: 'Updated' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Remove read' }));
-    fireEvent.change(screen.getByLabelText('Exact tool name'), {
+    fireEvent.change(screen.getByLabelText('Tool name'), {
       target: { value: 'shell' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add tool' }));
@@ -361,7 +424,7 @@ describe('RuntimePoliciesPage', () => {
     expect(screen.getByRole('button', { name: 'New policy' })).toBeDisabled();
     expect(screen.getByLabelText('Name')).toBeDisabled();
     expect(screen.getByLabelText('Description')).toBeDisabled();
-    expect(screen.getByLabelText('Exact tool name')).toBeDisabled();
+    expect(screen.getByLabelText('Tool name')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Remove read' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Save policy' })).toBeDisabled();
     expect(

@@ -79,7 +79,7 @@ export function RuntimePoliciesPage() {
   const isCreating = selection.kind === 'create';
   const hasInvalidShellCommands = form.shellCommands.some(
     (rule) =>
-      rule.argvPrefix.length < 2 ||
+      rule.argvPrefix.length < 1 ||
       rule.argvPrefix.length > 8 ||
       rule.argvPrefix.some((token) => shellTokenError(token) !== undefined),
   );
@@ -501,17 +501,15 @@ function ToolNameEditor({
   return (
     <Stack gap={2}>
       <Stack gap={1}>
-        <Text variant="h4">Exact tools</Text>
+        <Text variant="h4">Tools</Text>
         <Text variant="caption" color="muted">
-          A tool grant authorizes the runtime tool with that name. It covers a
-          shell program of the same name only when the runtime has no tool by
-          that name. To grant shell access explicitly, add a shell command rule.
+          Runtime and MCP tools this policy allows, by name.
         </Text>
       </Stack>
       <Stack direction="row" align="end" gap={2} wrap>
         <div style={{ flex: '1 1 16rem' }}>
           <Input
-            label="Exact tool name"
+            label="Tool name"
             hint="Press Enter or choose Add tool. Duplicates are ignored."
             value={draft}
             disabled={disabled}
@@ -561,8 +559,8 @@ function ToolNameEditor({
         </Stack>
       ) : (
         <Text variant="caption" color="muted">
-          No broad tool grants. Add a tool only when every operation it exposes
-          should be available.
+          No tools. Add a tool only when every operation it exposes should be
+          available.
         </Text>
       )}
     </Stack>
@@ -625,15 +623,15 @@ function ShellCommandEditor({
         <Stack gap={1}>
           <Text variant="h4">Allowed shell commands</Text>
           <Text variant="caption" color="muted">
-            Match literal argv tokens from the executable onward. Extra
-            arguments after the configured tokens remain allowed.
+            Shell commands this policy allows, matched from the program name
+            onward. Output redirection is never allowed.
           </Text>
         </Stack>
         <Button
           variant="secondary"
           size="sm"
           disabled={disabled}
-          onClick={() => onChange([...shellCommands, { argvPrefix: ['', ''] }])}
+          onClick={() => onChange([...shellCommands, { argvPrefix: [''] }])}
         >
           Add shell command
         </Button>
@@ -641,8 +639,8 @@ function ShellCommandEditor({
 
       {shellCommands.length === 0 ? (
         <Text variant="caption" color="muted">
-          No scoped shell access. Add a command to grant a specific CLI path
-          without granting the whole executable.
+          No shell commands. Add a program name alone to allow any arguments, or
+          add tokens to allow a specific subcommand path.
         </Text>
       ) : (
         <Stack gap={3}>
@@ -681,7 +679,7 @@ function ShellCommandEditor({
                           size="sm"
                           label={
                             tokenIndex === 0
-                              ? 'Executable'
+                              ? 'Program'
                               : tokenIndex === 1
                                 ? 'Subcommand'
                                 : `Token ${tokenIndex + 1}`
@@ -704,7 +702,7 @@ function ShellCommandEditor({
                             )
                           }
                         />
-                        {tokenIndex >= 2 ? (
+                        {tokenIndex >= 1 ? (
                           <Button
                             variant="ghost"
                             size="sm"

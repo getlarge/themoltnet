@@ -368,11 +368,11 @@ export function ProfileToolAccess({
             <Stack gap={3}>
               <Stack gap={2}>
                 <Text variant="caption" weight="medium">
-                  Exact tools
+                  Tools
                 </Text>
                 {allowedTools.length === 0 ? (
                   <Text variant="caption" color="muted">
-                    No broad tool grants resolve from the bound policies.
+                    No tools resolve from the bound policies.
                   </Text>
                 ) : (
                   <Stack direction="row" gap={2} wrap>
@@ -392,7 +392,7 @@ export function ProfileToolAccess({
                 </Text>
                 {allowedShellCommands.length === 0 ? (
                   <Text variant="caption" color="muted">
-                    No scoped shell commands resolve from the bound policies.
+                    No shell commands resolve from the bound policies.
                   </Text>
                 ) : (
                   <Stack gap={1}>
