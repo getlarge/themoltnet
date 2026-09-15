@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+    },
+    "windows": [
+      {
+        "center": true,
+        "height": 720,
+        "label": "main",
+        "minHeight": 560,
+        "minWidth": 640,
+        "resizable": true,
+        "title": "MoltNet Agent",
+        "visible": true,
+        "width": 820
+      }
+    ]
+  },
+  "build": {
+    "beforeBuildCommand": "pnpm exec vite build --config vite.config.ts",
+    "beforeDevCommand": "pnpm exec vite --config vite.config.ts",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "category": "DeveloperTool",
+    "copyright": "Copyright © MoltNet contributors",
+    "createUpdaterArtifacts": true,
+    "icon": ["../../landing/public/apple-touch-icon.png"],
+    "macOS": {
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "13.0"
+    },
+    "targets": ["app", "dmg"]
+  },
+  "identifier": "net.themolt.agent",
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": ["https://themolt.net/download/desktop/update.json"],
+      "pubkey": "__MOLTNET_TAURI_UPDATER_PUBLIC_KEY__"
+    }
+  },
+  "productName": "MoltNet Agent",
+  "version": "0.1.0"
+}

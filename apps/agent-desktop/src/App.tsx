@@ -1,0 +1,451 @@
+/**
+ * THESIS: Make foreground ownership visible; never disguise the agent as a service.
+ * OWN-WORLD: Matte control surfaces, teal lifecycle flow, amber trust proof.
+ * STORY: Inspect state, consent at protected transitions, continue in Console.
+ * FIRST VIEWPORT: Identity header, live state rail, next action, bounded logs.
+ * FORM: Lifecycle ledger; sixth grounded Operate structure, seed 2688504d.
+ */
+import {
+  Button,
+  ConfirmDialog,
+  ControlSurface,
+  InlineNotice,
+  Logo,
+  SignatureStatus,
+  Stack,
+  Text,
+  useReducedMotion,
+  useTheme,
+} from '@themoltnet/design-system';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import {
+  desktopBridge,
+  type DesktopStatus,
+  INITIAL_STATUS,
+  type LifecycleState,
+} from './bridge.js';
+
+const STATE_LABELS: Record<LifecycleState, string> = {
+  checking: 'Checking',
+  needs_install: 'Agent bundle required',
+  installing: 'Installing verified bundle',
+  needs_trust: 'Local HTTPS trust required',
+  starting: 'Starting Agent Server',
+  running: 'Agent Server running',
+  update_available: 'Update available',
+  stopping: 'Stopping Agent Server',
+  removed: 'Agent bundle removed',
+  failed: 'Action required',
+};
+
+const FLOW: readonly LifecycleState[] = [
+  'checking',
+  'needs_install',
+  'installing',
+  'needs_trust',
+  'starting',
+  'running',
+] as const;
+
+type Confirmation =
+  | 'trust'
+  | 'update'
+  | 'desktop-update'
+  | 'remove'
+  | 'remove-ca'
+  | null;
+
+type OperationFeedback = {
+  tone: 'error' | 'success';
+  title: string;
+  message: string;
+};
+
+export function App() {
+  const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+  const [status, setStatus] = useState<DesktopStatus>(INITIAL_STATUS);
+  const [confirmation, setConfirmation] = useState<Confirmation>(null);
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<OperationFeedback | null>(null);
+  const [desktopUpdateVersion, setDesktopUpdateVersion] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+    let unsubscribeRemove: (() => void) | undefined;
+    void desktopBridge.status().then((next) => active && setStatus(next));
+    void desktopBridge
+      .subscribe((next) => active && setStatus(next))
+      .then((unlisten) => {
+        unsubscribe = unlisten;
+      });
+    void desktopBridge
+      .subscribeRemoveRequest(() => {
+        if (active) setConfirmation('remove');
+      })
+      .then((unlisten) => {
+        unsubscribeRemove = unlisten;
+      });
+    return () => {
+      active = false;
+      unsubscribe?.();
+      unsubscribeRemove?.();
+    };
+  }, []);
+
+  const run = useCallback(
+    async (
+      operation: () => Promise<DesktopStatus>,
+      successMessage?: string,
+    ) => {
+      setBusy(true);
+      setFeedback(null);
+      try {
+        setStatus(await operation());
+        if (successMessage) {
+          setFeedback({
+            tone: 'success',
+            title: 'Complete',
+            message: successMessage,
+          });
+        }
+      } catch (error) {
+        setFeedback({
+          tone: 'error',
+          title: 'Action could not be completed',
+          message:
+            error instanceof Error ? error.message : 'Please review the logs.',
+        });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
+
+  const currentIndex = FLOW.indexOf(status.state);
+  const setupComplete = ['running', 'update_available', 'stopping'].includes(
+    status.state,
+  );
+  const statusTone =
+    status.state === 'needs_trust'
+      ? 'identity'
+      : status.state === 'failed'
+        ? 'neutral'
+        : 'network';
+  const primary = useMemo(() => {
+    if (status.state === 'needs_install' || status.state === 'removed')
+      return {
+        label: 'Install verified agent',
+        action: () => void run(desktopBridge.install),
+      };
+    if (status.state === 'needs_trust')
+      return {
+        label: 'Review local HTTPS trust',
+        action: () => setConfirmation('trust'),
+      };
+    if (status.state === 'running')
+      return {
+        label: 'Open Console',
+        action: () => void desktopBridge.openConsole(),
+      };
+    if (status.state === 'update_available')
+      return {
+        label: 'Review Agent CLI update',
+        action: () => setConfirmation('update'),
+      };
+    if (status.state === 'failed')
+      return {
+        label: 'Retry',
+        action: () => void run(desktopBridge.retry),
+      };
+    return null;
+  }, [run, status.state]);
+
+  const confirm = async () => {
+    const action = confirmation;
+    setConfirmation(null);
+    if (action === 'trust') await run(desktopBridge.trust);
+    if (action === 'update') await run(desktopBridge.installUpdate);
+    if (action === 'desktop-update') {
+      setBusy(true);
+      setFeedback(null);
+      try {
+        await desktopBridge.installDesktopUpdate();
+      } catch (error) {
+        setFeedback({
+          tone: 'error',
+          title: 'Desktop update could not be installed',
+          message: error instanceof Error ? error.message : 'Please try again.',
+        });
+      } finally {
+        setBusy(false);
+      }
+    }
+    if (action === 'remove') await run(() => desktopBridge.remove(false));
+    if (action === 'remove-ca') await run(desktopBridge.removeTrust);
+  };
+
+  const checkDesktopUpdate = async () => {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const version = await desktopBridge.checkDesktopUpdate();
+      setDesktopUpdateVersion(version);
+      if (version) setConfirmation('desktop-update');
+      else
+        setFeedback({
+          tone: 'success',
+          title: 'MoltNet Agent is up to date',
+          message: 'No desktop update is available.',
+        });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        title: 'Desktop update check failed',
+        message: error instanceof Error ? error.message : 'Please try again.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <main
+      id="main-content"
+      tabIndex={-1}
+      style={{
+        minHeight: '100vh',
+        padding: theme.spacing[6],
+        background: theme.color.bg.void,
+      }}
+    >
+      <Stack gap={6} style={{ maxWidth: '760px', margin: '0 auto' }}>
+        <header>
+          <Stack direction="row" gap={4} align="center">
+            <Logo size={52} glow={!reducedMotion} />
+            <Stack gap={1} style={{ flex: 1 }}>
+              <Text variant="h2">MoltNet Agent</Text>
+              <Text color="secondary">
+                Secure local runtime for MoltNet agents.
+              </Text>
+            </Stack>
+            <SignatureStatus
+              state={status.trusted ? 'verified' : 'pending'}
+              label={status.trusted ? 'Local HTTPS trusted' : 'Trust pending'}
+            />
+          </Stack>
+        </header>
+
+        <ControlSurface as="section" tone={statusTone} active padding="lg">
+          <Stack gap={5}>
+            <Stack gap={2}>
+              <Text as="p" variant="overline" color="primary">
+                Current state
+              </Text>
+              <Text as="h1" variant="h3">
+                {STATE_LABELS[status.state]}
+              </Text>
+              <Text color="secondary" aria-live="polite" aria-atomic="true">
+                {status.message}
+              </Text>
+            </Stack>
+
+            <ol
+              className="lifecycle-ledger"
+              aria-label="Agent setup progress"
+              aria-describedby={
+                currentIndex < 0 ? 'lifecycle-branch' : undefined
+              }
+            >
+              {FLOW.map((state, index) => {
+                const complete = setupComplete || index < currentIndex;
+                const current = state === status.state;
+                return (
+                  <li
+                    key={state}
+                    aria-current={current ? 'step' : undefined}
+                    data-complete={complete || undefined}
+                    data-current={current || undefined}
+                    style={{
+                      color: current
+                        ? theme.color.primary.DEFAULT
+                        : complete
+                          ? theme.color.success.DEFAULT
+                          : theme.color.text.muted,
+                      borderColor: current
+                        ? theme.color.primary.DEFAULT
+                        : theme.color.border.DEFAULT,
+                    }}
+                  >
+                    <span aria-hidden="true">{complete ? '✓' : index + 1}</span>
+                    <Text as="span" variant="caption" color="secondary">
+                      {STATE_LABELS[state]}
+                    </Text>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {currentIndex < 0 ? (
+              <Text id="lifecycle-branch" variant="caption" color="secondary">
+                Current lifecycle branch: {STATE_LABELS[status.state]}.
+              </Text>
+            ) : null}
+
+            {status.state === 'failed' ? (
+              <InlineNotice tone="error" title="The server did not stay ready">
+                Review the bounded logs below, then retry. MoltNet will not
+                adopt or stop a server owned by another process.
+              </InlineNotice>
+            ) : null}
+
+            {feedback ? (
+              <InlineNotice tone={feedback.tone} title={feedback.title}>
+                {feedback.message}
+              </InlineNotice>
+            ) : null}
+
+            <Stack direction="row" gap={3} wrap>
+              {primary ? (
+                <Button onClick={primary.action} loading={busy}>
+                  {primary.label}
+                </Button>
+              ) : null}
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void run(
+                    desktopBridge.checkForUpdates,
+                    'Agent CLI update check finished.',
+                  )
+                }
+              >
+                Check Agent CLI update
+              </Button>
+            </Stack>
+            <Stack direction="row" gap={3} wrap>
+              <Button
+                variant="ghost"
+                onClick={() => void desktopBridge.openLogs()}
+              >
+                Open full logs
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() => void checkDesktopUpdate()}
+              >
+                Check app update
+              </Button>
+            </Stack>
+          </Stack>
+        </ControlSurface>
+
+        <ControlSurface
+          as="section"
+          padding="md"
+          aria-labelledby="details-title"
+        >
+          <Stack gap={4}>
+            <Stack direction="row" justify="space-between" align="center">
+              <Text id="details-title" as="h2" variant="h4">
+                Runtime details
+              </Text>
+              <Text mono variant="caption" color="muted">
+                {status.installedVersion
+                  ? `agent ${status.installedVersion}`
+                  : 'not installed'}
+              </Text>
+            </Stack>
+            {status.trustFingerprint ? (
+              <Text
+                mono
+                variant="caption"
+                color="accent"
+                style={{ overflowWrap: 'anywhere' }}
+              >
+                Local CA {status.trustFingerprint}
+              </Text>
+            ) : null}
+            <pre className="log-preview" aria-label="Recent Agent Server logs">
+              {status.logs.length
+                ? status.logs.slice(-12).join('\n')
+                : 'No Agent Server output yet.'}
+            </pre>
+            <Stack direction="row" justify="space-between" align="center" wrap>
+              <Text variant="caption" color="muted">
+                Quitting this app stops the Agent Server. Configuration stays in
+                ~/.config/moltnet.
+              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!status.trustFingerprint}
+                onClick={() => setConfirmation('remove-ca')}
+              >
+                Remove local CA…
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setConfirmation('remove')}
+              >
+                Remove agent bundle
+              </Button>
+            </Stack>
+          </Stack>
+        </ControlSurface>
+      </Stack>
+
+      <ConfirmDialog
+        open={confirmation === 'trust'}
+        title="Trust MoltNet local HTTPS?"
+        message={`macOS will add this per-user CA to your login Keychain so Console can reach the local Agent Server securely. Fingerprint: ${status.trustFingerprint ?? 'preparing…'}`}
+        confirmLabel="Trust local CA"
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => void confirm()}
+      />
+      <ConfirmDialog
+        open={confirmation === 'update'}
+        title="Install agent update?"
+        message={`Install the verified agent bundle ${status.availableVersion ?? ''}, restart the foreground server, and roll back automatically if readiness fails.`}
+        confirmLabel="Install and restart"
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => void confirm()}
+      />
+      <ConfirmDialog
+        open={confirmation === 'desktop-update'}
+        title="Install MoltNet Agent app update?"
+        message={`Install the independently signed desktop update ${desktopUpdateVersion ?? ''} and restart the app. The agent bundle update channel is unchanged.`}
+        confirmLabel="Install app update"
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => void confirm()}
+      />
+      <ConfirmDialog
+        open={confirmation === 'remove'}
+        title="Remove the agent bundle?"
+        message="This stops the Agent Server and removes only the installer-owned bundle. Identities and provider configuration in ~/.config/moltnet are preserved."
+        confirmLabel="Remove bundle"
+        destructive
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => void confirm()}
+      />
+      <ConfirmDialog
+        open={confirmation === 'remove-ca'}
+        title="Also remove local HTTPS trust?"
+        message="Remove only the per-user MoltNet local CA from the login Keychain. The agent bundle and ~/.config/moltnet configuration remain installed."
+        confirmLabel="Remove local CA"
+        cancelLabel="Keep local CA"
+        destructive
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => void confirm()}
+      />
+    </main>
+  );
+}

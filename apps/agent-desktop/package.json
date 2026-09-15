@@ -1,0 +1,219 @@
+{
+  "name": "@moltnet/agent-desktop",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "scripts": {},
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1",
+    "@themoltnet/design-system": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4",
+    "@testing-library/jest-dom": "catalog:",
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "jsdom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "namedInputs": {
+      "agentDesktopInstaller": [
+        "{workspaceRoot}/tools/release/agent-bundle/install.sh"
+      ],
+      "agentDesktopNative": [
+        "{projectRoot}/src-tauri/src/**/*.rs",
+        "{projectRoot}/src-tauri/build.rs",
+        "{projectRoot}/src-tauri/Cargo.toml",
+        "{projectRoot}/src-tauri/Cargo.lock",
+        "{projectRoot}/src-tauri/tauri.conf.json",
+        "{projectRoot}/src-tauri/capabilities/**/*.json",
+        "{workspaceRoot}/.tool-versions",
+        "{workspaceRoot}/apps/landing/public/apple-touch-icon.png"
+      ],
+      "agentDesktopRenderer": [
+        "{projectRoot}/src/**/*",
+        "{projectRoot}/index.html",
+        "{projectRoot}/package.json",
+        "{projectRoot}/tsconfig*.json",
+        "{projectRoot}/vite.config.ts",
+        "{projectRoot}/vitest.config.ts"
+      ],
+      "agentDesktopRendererProduction": [
+        "agentDesktopRenderer",
+        "!{projectRoot}/src/**/*.test.ts",
+        "!{projectRoot}/src/**/*.test.tsx",
+        "!{projectRoot}/src/test-setup.ts",
+        "!{projectRoot}/vitest.config.ts",
+        "!{projectRoot}/tsconfig.spec.json"
+      ]
+    },
+    "projectType": "application",
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:desktop"
+    ],
+    "targets": {
+      "lint": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/out-rust/lint"
+        ],
+        "inputs": [
+          "agentDesktopRenderer",
+          "agentDesktopNative",
+          "{projectRoot}/eslint.config.mjs"
+        ],
+        "options": {
+          "parallel": false,
+          "commands": [
+            {
+              "command": "eslint --config apps/agent-desktop/eslint.config.mjs apps/agent-desktop",
+              "forwardAllArgs": true
+            },
+            {
+              "command": "mise exec -- cargo fmt --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --check",
+              "forwardAllArgs": false
+            },
+            {
+              "command": "mise exec -- cargo clippy --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --all-targets --target-dir apps/agent-desktop/out-rust/lint -- -D warnings",
+              "forwardAllArgs": false
+            }
+          ]
+        }
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/out-tsc",
+          "{projectRoot}/out-rust/check"
+        ],
+        "inputs": [
+          "agentDesktopRendererProduction",
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "^production",
+          "sharedGlobals"
+        ],
+        "options": {
+          "parallel": false,
+          "commands": [
+            {
+              "command": "tsc -b apps/agent-desktop/tsconfig.lib.json --emitDeclarationOnly",
+              "forwardAllArgs": false
+            },
+            {
+              "command": "mise exec -- cargo check --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/check",
+              "forwardAllArgs": false
+            }
+          ]
+        }
+      },
+      "test": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/out-rust/test"
+        ],
+        "inputs": [
+          "agentDesktopRenderer",
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "^production",
+          "sharedGlobals"
+        ],
+        "options": {
+          "parallel": false,
+          "commands": [
+            {
+              "command": "vitest run --config apps/agent-desktop/vitest.config.ts",
+              "forwardAllArgs": false
+            },
+            {
+              "command": "mise exec -- cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test",
+              "forwardAllArgs": false
+            }
+          ]
+        }
+      },
+      "build": {
+        "executor": "nx:run-commands",
+        "outputs": [
+          "{projectRoot}/dist",
+          "{projectRoot}/out-rust/build"
+        ],
+        "inputs": [
+          "agentDesktopRendererProduction",
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "^production",
+          "sharedGlobals"
+        ],
+        "options": {
+          "parallel": false,
+          "commands": [
+            {
+              "command": "vite build --config apps/agent-desktop/vite.config.ts",
+              "forwardAllArgs": false
+            },
+            {
+              "command": "CARGO_TARGET_DIR=../out-rust/build mise exec -- pnpm --dir apps/agent-desktop exec tauri build --no-bundle",
+              "forwardAllArgs": false
+            }
+          ]
+        }
+      },
+      "tauri:dev": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "agentDesktopRenderer",
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "^production",
+          "sharedGlobals"
+        ],
+        "options": {
+          "command": "mise exec -- pnpm --dir apps/agent-desktop exec tauri dev"
+        }
+      },
+      "tauri:bundle": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "outputs": [
+          "{projectRoot}/out-rust/bundle"
+        ],
+        "inputs": [
+          "agentDesktopRendererProduction",
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "^production",
+          "sharedGlobals"
+        ],
+        "options": {
+          "command": "CARGO_TARGET_DIR=../out-rust/bundle mise exec -- pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin"
+        }
+      },
+      "release:validate": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "{workspaceRoot}/apps/landing/fly.toml",
+          "{workspaceRoot}/tools/release/agent-desktop/validate.sh"
+        ],
+        "options": {
+          "command": "bash tools/release/agent-desktop/validate.sh ."
+        }
+      }
+    }
+  }
+}

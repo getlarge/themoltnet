@@ -253,6 +253,9 @@
     },
     {
       "path": "libs/execution-integrations"
+    },
+    {
+      "path": "apps/agent-desktop"
     }
   ]
 }

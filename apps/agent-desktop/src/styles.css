@@ -1,0 +1,67 @@
+html,
+body,
+#root,
+[data-molt-theme] {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+a {
+  -webkit-app-region: no-drag;
+}
+
+.lifecycle-ledger {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lifecycle-ledger li {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid;
+}
+
+.lifecycle-ledger li > span:first-child {
+  font-family: var(--molt-font-mono);
+  font-size: 0.75rem;
+}
+
+.log-preview {
+  max-height: 11rem;
+  overflow: auto;
+  margin: 0;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--molt-bg-elevated);
+  color: var(--molt-text-secondary);
+  font-family: var(--molt-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .lifecycle-ledger {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
