@@ -12,7 +12,6 @@ export interface ApiTaskSourceOptions {
   taskId: string;
   /** Owning team context. Falls back to SDK task context when already known. */
   teamId?: string;
-  leaseTtlSec?: number;
   profileId?: string;
   /** Fingerprint of a manifest registered once for this agent. */
   executorFingerprint?: string;
@@ -31,7 +30,6 @@ export class ApiTaskSource implements TaskSource {
     const {
       agent,
       taskId,
-      leaseTtlSec,
       profileId,
       executorFingerprint,
       createClaimAttestation,
@@ -44,7 +42,6 @@ export class ApiTaskSource implements TaskSource {
           ...(profileId ? { profileId } : {}),
         });
     const claimBody = {
-      ...(leaseTtlSec ? { leaseTtlSec } : {}),
       ...(profileId ? { profileId } : {}),
       ...attestation,
     };

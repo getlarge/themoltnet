@@ -167,17 +167,10 @@ function serializeProfile(
     maxOutputTokens: row.maxOutputTokens ?? null,
     runtimeKind: row.runtimeKind ?? 'gondolin_pi',
     sandbox: row.sandbox as Record<string, unknown>,
-    sessionStorageMode: 'local',
-    workspaceStorageMode: 'local',
     defaultWorkspaceMode:
       (row.defaultWorkspaceMode as RuntimeProfileWorkspaceMode | null) ?? null,
     allowedWorkspaceModes:
       row.allowedWorkspaceModes as RuntimeProfileWorkspaceMode[],
-    sessionTtlSec: row.sessionTtlSec,
-    workspaceTtlSec: row.workspaceTtlSec,
-    leaseTtlSec: row.leaseTtlSec,
-    heartbeatIntervalMs: row.heartbeatIntervalMs,
-    maxBatchSize: row.maxBatchSize,
     maxTurns: row.maxTurns,
     maxBashTimeouts: row.maxBashTimeouts,
     toolEnforcement:
@@ -207,17 +200,11 @@ type ProfileDefinitionInput = {
   maxOutputTokens?: number | null;
   runtimeKind?: string;
   sandbox: unknown;
-  sessionStorageMode?: 'local';
-  workspaceStorageMode?: 'local';
   defaultWorkspaceMode?: RuntimeProfileWorkspaceMode | null;
   allowedWorkspaceModes?: RuntimeProfileWorkspaceMode[];
-  sessionTtlSec?: number;
-  workspaceTtlSec?: number;
-  leaseTtlSec?: number;
-  heartbeatIntervalMs?: number;
-  maxBatchSize?: number;
   maxTurns?: number;
   maxBashTimeouts?: number;
+  toolEnforcement?: RuntimeProfileToolEnforcement;
   requiredEnv?: string[];
   requiredTools?: string[];
   requiredExecutables?: string[];
@@ -336,15 +323,8 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           maxOutputTokens: body.maxOutputTokens ?? null,
           runtimeKind: body.runtimeKind ?? 'gondolin_pi',
           sandbox: body.sandbox,
-          sessionStorageMode: body.sessionStorageMode ?? 'local',
-          workspaceStorageMode: body.workspaceStorageMode ?? 'local',
           defaultWorkspaceMode: workspacePolicy.defaultWorkspaceMode,
           allowedWorkspaceModes: workspacePolicy.allowedWorkspaceModes,
-          sessionTtlSec: body.sessionTtlSec ?? 1800,
-          workspaceTtlSec: body.workspaceTtlSec ?? 1800,
-          leaseTtlSec: body.leaseTtlSec ?? 300,
-          heartbeatIntervalMs: body.heartbeatIntervalMs ?? 60_000,
-          maxBatchSize: body.maxBatchSize ?? 50,
           maxTurns: body.maxTurns ?? 0,
           maxBashTimeouts: body.maxBashTimeouts ?? 3,
           toolEnforcement: body.toolEnforcement ?? 'off',
@@ -478,8 +458,6 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
             : (existing.maxOutputTokens ?? null),
         runtimeKind: body.runtimeKind ?? existing.runtimeKind,
         sandbox: body.sandbox ?? existing.sandbox,
-        sessionStorageMode: body.sessionStorageMode ?? 'local',
-        workspaceStorageMode: body.workspaceStorageMode ?? 'local',
         defaultWorkspaceMode:
           'defaultWorkspaceMode' in body
             ? (body.defaultWorkspaceMode ?? null)
@@ -489,14 +467,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           body.allowedWorkspaceModes ??
             (existing.allowedWorkspaceModes as RuntimeProfileWorkspaceMode[]),
         ),
-        sessionTtlSec: body.sessionTtlSec ?? existing.sessionTtlSec,
-        workspaceTtlSec: body.workspaceTtlSec ?? existing.workspaceTtlSec,
-        leaseTtlSec: body.leaseTtlSec ?? existing.leaseTtlSec,
-        heartbeatIntervalMs:
-          body.heartbeatIntervalMs ?? existing.heartbeatIntervalMs,
-        maxBatchSize: body.maxBatchSize ?? existing.maxBatchSize,
         maxTurns: body.maxTurns ?? existing.maxTurns,
         maxBashTimeouts: body.maxBashTimeouts ?? existing.maxBashTimeouts,
+        toolEnforcement:
+          body.toolEnforcement ??
+          (existing.toolEnforcement as RuntimeProfileToolEnforcement | null) ??
+          'off',
         requiredEnv: normalizeList(body.requiredEnv ?? existing.requiredEnv),
         requiredTools: normalizeList(
           body.requiredTools ?? existing.requiredTools,
@@ -511,16 +487,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         allowedWorkspaceModes: next.allowedWorkspaceModes ?? [],
       });
       const definitionCid = await computeProfileDefinitionCid(next);
-      // tool_enforcement is an operational policy toggle, not part of the
-      // profile's behavioral definition, so it is patched directly and excluded
-      // from the definition CID.
-      const toolEnforcement =
-        'toolEnforcement' in body ? (body.toolEnforcement ?? 'off') : undefined;
       try {
         const row = await fastify.runtimeProfileRepository.update(existing.id, {
           ...next,
           definitionCid,
-          ...(toolEnforcement ? { toolEnforcement } : {}),
         });
         if (!row) throw createProblem('not-found');
         return serializeProfile(row);

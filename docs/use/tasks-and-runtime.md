@@ -112,7 +112,7 @@ Three independent clocks govern active work:
 | Clock                | Set by   | Boundary                                                         |
 | -------------------- | -------- | ---------------------------------------------------------------- |
 | `dispatchTimeoutSec` | Proposer | Claim to first heartbeat.                                        |
-| `leaseTtlSec`        | Daemon   | Sliding liveness window refreshed by each heartbeat.             |
+| Task lease           | Service  | 300-second sliding window refreshed by each heartbeat.           |
 | `runningTimeoutSec`  | Proposer | Fixed total budget from first heartbeat, even with healthy ones. |
 
 Dispatch, lease, and total-running timeouts record the attempt as `timed_out`.

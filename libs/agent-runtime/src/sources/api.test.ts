@@ -49,7 +49,6 @@ describe('ApiTaskSource', () => {
     const src = new ApiTaskSource({
       agent: makeAgent(claimMock),
       taskId: task.id,
-      leaseTtlSec: 120,
     });
 
     await expect(src.claim()).resolves.toEqual({
@@ -68,7 +67,7 @@ describe('ApiTaskSource', () => {
     });
     await expect(src.claim()).resolves.toBeNull();
     expect(claimMock).toHaveBeenCalledTimes(1);
-    expect(claimMock).toHaveBeenCalledWith(task.id, { leaseTtlSec: 120 });
+    expect(claimMock).toHaveBeenCalledWith(task.id, {});
   });
 
   it('surfaces claim failures', async () => {
@@ -140,14 +139,12 @@ describe('ApiTaskSource', () => {
     const src = new ApiTaskSource({
       agent: makeAgent(claimMock),
       taskId: task.id,
-      leaseTtlSec: 120,
       profileId,
     });
 
     await expect(src.claim()).resolves.toMatchObject({ profileId });
 
     expect(claimMock).toHaveBeenCalledWith(task.id, {
-      leaseTtlSec: 120,
       profileId,
     });
     await expect(src.claim()).resolves.toBeNull();

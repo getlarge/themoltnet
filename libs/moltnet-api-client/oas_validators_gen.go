@@ -2233,6 +2233,27 @@ func (s *BeginRuntimeSlotReq) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           86400,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.WarmRetentionSec)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "warmRetentionSec",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.WorkspaceId.Get(); ok {
 			if err := func() error {
 				if err := (validate.String{
@@ -5663,62 +5684,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.HeartbeatIntervalMs.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           3600000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "heartbeatIntervalMs",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.LeaseTtlSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           86400,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "leaseTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.MaxBashTimeouts.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -5743,34 +5708,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBashTimeouts",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.MaxBatchSize.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           1000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxBatchSize",
 			Error: err,
 		})
 	}
@@ -6085,52 +6022,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.SessionStorageMode.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.SessionTtlSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           86400,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.Temperature.Get(); ok {
 			if err := func() error {
 				if err := (validate.Float{
@@ -6247,52 +6138,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "topP",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.WorkspaceStorageMode.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.WorkspaceTtlSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           86400,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceTtlSec",
 			Error: err,
 		})
 	}
@@ -6854,15 +6699,6 @@ func (s CreateRuntimeProfileBodySandboxVfsShadowMode) Validate() error {
 	}
 }
 
-func (s CreateRuntimeProfileBodySessionStorageMode) Validate() error {
-	switch s {
-	case "local":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s CreateRuntimeProfileBodyThinkingLevel) Validate() error {
 	switch s {
 	case "off":
@@ -6889,15 +6725,6 @@ func (s CreateRuntimeProfileBodyToolEnforcement) Validate() error {
 	case "watch":
 		return nil
 	case "enforce":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s CreateRuntimeProfileBodyWorkspaceStorageMode) Validate() error {
-	switch s {
-	case "local":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -14949,6 +14776,27 @@ func (s *FinishRuntimeSlotReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "slotKey",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           86400,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.WarmRetentionSec)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "warmRetentionSec",
 			Error: err,
 		})
 	}
@@ -27136,48 +26984,6 @@ func (s *RuntimeProfile) Validate() error {
 			MinSet:        true,
 			Min:           0,
 			MaxSet:        true,
-			Max:           3600000,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.HeartbeatIntervalMs)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "heartbeatIntervalMs",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.LeaseTtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "leaseTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           0,
-			MaxSet:        true,
 			Max:           1000,
 			MinExclusive:  false,
 			MaxExclusive:  false,
@@ -27191,27 +26997,6 @@ func (s *RuntimeProfile) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBashTimeouts",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           1000,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.MaxBatchSize)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxBatchSize",
 			Error: err,
 		})
 	}
@@ -27533,38 +27318,6 @@ func (s *RuntimeProfile) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.SessionStorageMode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.SessionTtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.Temperature.Get(); ok {
 			if err := func() error {
 				if err := (validate.Float{
@@ -27674,38 +27427,6 @@ func (s *RuntimeProfile) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "topP",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.WorkspaceStorageMode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.WorkspaceTtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceTtlSec",
 			Error: err,
 		})
 	}
@@ -28022,48 +27743,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 			MinSet:        true,
 			Min:           0,
 			MaxSet:        true,
-			Max:           3600000,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.HeartbeatIntervalMs)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "heartbeatIntervalMs",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.LeaseTtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "leaseTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           0,
-			MaxSet:        true,
 			Max:           1000,
 			MinExclusive:  false,
 			MaxExclusive:  false,
@@ -28077,27 +27756,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBashTimeouts",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           1000,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.MaxBatchSize)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxBatchSize",
 			Error: err,
 		})
 	}
@@ -28419,38 +28077,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.SessionStorageMode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.SessionTtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.Temperature.Get(); ok {
 			if err := func() error {
 				if err := (validate.Float{
@@ -28560,38 +28186,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "topP",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.WorkspaceStorageMode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Int{
-			MinSet:        true,
-			Min:           1,
-			MaxSet:        true,
-			Max:           86400,
-			MinExclusive:  false,
-			MaxExclusive:  false,
-			MultipleOfSet: false,
-			MultipleOf:    0,
-			Pattern:       nil,
-		}).Validate(int64(s.WorkspaceTtlSec)); err != nil {
-			return errors.Wrap(err, "int")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceTtlSec",
 			Error: err,
 		})
 	}
@@ -29153,15 +28747,6 @@ func (s RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Validate() erro
 	}
 }
 
-func (s RuntimeProfileListResponseItemsItemSessionStorageMode) Validate() error {
-	switch s {
-	case "local":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s RuntimeProfileListResponseItemsItemThinkingLevel) Validate() error {
 	switch s {
 	case "off":
@@ -29188,15 +28773,6 @@ func (s RuntimeProfileListResponseItemsItemToolEnforcement) Validate() error {
 	case "watch":
 		return nil
 	case "enforce":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) Validate() error {
-	switch s {
-	case "local":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -29668,15 +29244,6 @@ func (s RuntimeProfileSandboxVfsShadowMode) Validate() error {
 	}
 }
 
-func (s RuntimeProfileSessionStorageMode) Validate() error {
-	switch s {
-	case "local":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s RuntimeProfileThinkingLevel) Validate() error {
 	switch s {
 	case "off":
@@ -29703,15 +29270,6 @@ func (s RuntimeProfileToolEnforcement) Validate() error {
 	case "watch":
 		return nil
 	case "enforce":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s RuntimeProfileWorkspaceStorageMode) Validate() error {
-	switch s {
-	case "local":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -36359,62 +35917,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.HeartbeatIntervalMs.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           3600000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "heartbeatIntervalMs",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.LeaseTtlSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           86400,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "leaseTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.MaxBashTimeouts.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -36439,34 +35941,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "maxBashTimeouts",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.MaxBatchSize.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           1000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxBatchSize",
 			Error: err,
 		})
 	}
@@ -36809,52 +36283,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.SessionStorageMode.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.SessionTtlSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           86400,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "sessionTtlSec",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.Temperature.Get(); ok {
 			if err := func() error {
 				if err := (validate.Float{
@@ -36971,52 +36399,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "topP",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.WorkspaceStorageMode.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceStorageMode",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.WorkspaceTtlSec.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           86400,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "workspaceTtlSec",
 			Error: err,
 		})
 	}
@@ -37578,15 +36960,6 @@ func (s UpdateRuntimeProfileBodySandboxVfsShadowMode) Validate() error {
 	}
 }
 
-func (s UpdateRuntimeProfileBodySessionStorageMode) Validate() error {
-	switch s {
-	case "local":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s UpdateRuntimeProfileBodyThinkingLevel) Validate() error {
 	switch s {
 	case "off":
@@ -37613,15 +36986,6 @@ func (s UpdateRuntimeProfileBodyToolEnforcement) Validate() error {
 	case "watch":
 		return nil
 	case "enforce":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s UpdateRuntimeProfileBodyWorkspaceStorageMode) Validate() error {
-	switch s {
-	case "local":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

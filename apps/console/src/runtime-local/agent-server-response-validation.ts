@@ -86,6 +86,12 @@ export const AgentServerStatusSchema = Type.Object({
   identities: Type.Array(AgentServerIdentityViewSchema),
   selectedIdentity: Type.Optional(Type.String()),
   providers: Type.Record(Type.String(), AgentServerProviderViewSchema),
+  runtimeSettings: Type.Optional(
+    Type.Object({
+      heartbeatIntervalMs: Type.Integer({ minimum: 0 }),
+      warmRetentionSec: Type.Integer({ minimum: 0, maximum: 86_400 }),
+    }),
+  ),
   runs: Type.Array(AgentServerRunViewSchema),
 });
 
@@ -114,4 +120,19 @@ export function parseAgentServerResponse<T extends TSchema>(
     throw new Error(`Local supervisor returned an invalid ${label} response`);
   }
   return value;
+}
+
+export function parseAgentServerStatus(value: unknown) {
+  const status = parseAgentServerResponse(
+    AgentServerStatusSchema,
+    value,
+    'status',
+  );
+  return {
+    ...status,
+    runtimeSettings: status.runtimeSettings ?? {
+      heartbeatIntervalMs: 60_000,
+      warmRetentionSec: 1800,
+    },
+  };
 }

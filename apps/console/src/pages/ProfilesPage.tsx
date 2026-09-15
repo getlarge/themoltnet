@@ -64,11 +64,6 @@ interface ProfileFormState {
   runtimeAllowedHosts: string;
   runtimeAllowedInternalHosts: string;
   sandboxJson: string;
-  sessionTtlSec: string;
-  workspaceTtlSec: string;
-  leaseTtlSec: string;
-  heartbeatIntervalMs: string;
-  maxBatchSize: string;
   maxTurns: string;
   maxBashTimeouts: string;
   defaultWorkspaceMode: RuntimeProfileWorkspaceMode | '';
@@ -98,11 +93,6 @@ const EMPTY_FORM: ProfileFormState = {
   runtimeAllowedHosts: '',
   runtimeAllowedInternalHosts: '',
   sandboxJson: '{}',
-  sessionTtlSec: '1800',
-  workspaceTtlSec: '1800',
-  leaseTtlSec: '300',
-  heartbeatIntervalMs: '60000',
-  maxBatchSize: '50',
   maxTurns: '0',
   maxBashTimeouts: '3',
   defaultWorkspaceMode: '',
@@ -117,16 +107,6 @@ const RUNTIME_PROFILE_DOCS_HREF = `${getConfig().docsUrl}/operate/runtime-profil
 const NEW_PROFILE_ID = '__new_runtime_profile__';
 
 const FIELD_HELP = {
-  sessionTtlSec:
-    'Maximum lifetime for one warm agent session before the daemon starts a fresh executor context.',
-  workspaceTtlSec:
-    'Maximum lifetime for the profile workspace. Warm sessions are capped by the lower of session TTL and workspace TTL.',
-  leaseTtlSec:
-    'Task claim lease duration sent to the API. The daemon must heartbeat before this expires or the task can be reclaimed.',
-  heartbeatIntervalMs:
-    'How often the daemon sends heartbeat and progress batches while a task is running.',
-  maxBatchSize:
-    'Maximum buffered runtime events sent in one progress flush before the reporter flushes immediately.',
   maxTurns:
     'Maximum tool-use turns allowed for one attempt. Use 0 to disable the profile default.',
   maxBashTimeouts:
@@ -634,41 +614,6 @@ export function ProfilesPage() {
                 gap: theme.spacing[3],
               }}
             >
-              <LabeledInput
-                label="Session TTL seconds"
-                help={FIELD_HELP.sessionTtlSec}
-                value={form.sessionTtlSec}
-                onChange={(value) => updateField('sessionTtlSec', value)}
-                type="number"
-              />
-              <LabeledInput
-                label="Workspace TTL seconds"
-                help={FIELD_HELP.workspaceTtlSec}
-                value={form.workspaceTtlSec}
-                onChange={(value) => updateField('workspaceTtlSec', value)}
-                type="number"
-              />
-              <LabeledInput
-                label="Lease TTL seconds"
-                help={FIELD_HELP.leaseTtlSec}
-                value={form.leaseTtlSec}
-                onChange={(value) => updateField('leaseTtlSec', value)}
-                type="number"
-              />
-              <LabeledInput
-                label="Heartbeat interval ms"
-                help={FIELD_HELP.heartbeatIntervalMs}
-                value={form.heartbeatIntervalMs}
-                onChange={(value) => updateField('heartbeatIntervalMs', value)}
-                type="number"
-              />
-              <LabeledInput
-                label="Max batch size"
-                help={FIELD_HELP.maxBatchSize}
-                value={form.maxBatchSize}
-                onChange={(value) => updateField('maxBatchSize', value)}
-                type="number"
-              />
               <LabeledInput
                 label="Max turns"
                 help={FIELD_HELP.maxTurns}
@@ -1564,11 +1509,6 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     runtimeAllowedInternalHosts:
       profile.sandbox.network?.allowedInternalHosts?.join(', ') ?? '',
     sandboxJson: JSON.stringify(sandbox, null, 2),
-    sessionTtlSec: String(profile.sessionTtlSec),
-    workspaceTtlSec: String(profile.workspaceTtlSec),
-    leaseTtlSec: String(profile.leaseTtlSec),
-    heartbeatIntervalMs: String(profile.heartbeatIntervalMs),
-    maxBatchSize: String(profile.maxBatchSize),
     maxTurns: String(profile.maxTurns),
     maxBashTimeouts: String(profile.maxBashTimeouts),
     defaultWorkspaceMode: profile.defaultWorkspaceMode ?? '',
@@ -1654,21 +1594,8 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     ),
     runtimeKind: requireText(form.runtimeKind, 'Runtime kind'),
     sandbox: sandboxWithNetwork,
-    sessionStorageMode: 'local',
-    workspaceStorageMode: 'local',
     defaultWorkspaceMode: form.defaultWorkspaceMode || null,
     allowedWorkspaceModes: form.allowedWorkspaceModes,
-    sessionTtlSec: parsePositiveInt(form.sessionTtlSec, 'Session TTL seconds'),
-    workspaceTtlSec: parsePositiveInt(
-      form.workspaceTtlSec,
-      'Workspace TTL seconds',
-    ),
-    leaseTtlSec: parsePositiveInt(form.leaseTtlSec, 'Lease TTL seconds'),
-    heartbeatIntervalMs: parseNonNegativeInt(
-      form.heartbeatIntervalMs,
-      'Heartbeat interval ms',
-    ),
-    maxBatchSize: parsePositiveInt(form.maxBatchSize, 'Max batch size'),
     maxTurns: parseNonNegativeInt(form.maxTurns, 'Max turns'),
     maxBashTimeouts: parseNonNegativeInt(
       form.maxBashTimeouts,
@@ -1705,14 +1632,6 @@ function parseCsv(value: string): string[] {
         .filter(Boolean),
     ),
   ];
-}
-
-function parsePositiveInt(value: string, label: string): number {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    throw new Error(`${label} must be a positive integer.`);
-  }
-  return parsed;
 }
 
 function parseNonNegativeInt(value: string, label: string): number {

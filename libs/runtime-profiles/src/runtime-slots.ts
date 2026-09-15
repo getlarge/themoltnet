@@ -72,6 +72,8 @@ export const RuntimeSlotListResponse = Type.Object(
 );
 export type RuntimeSlotListResponse = Static<typeof RuntimeSlotListResponse>;
 
+export const MAX_RUNTIME_WARM_RETENTION_SEC = 86_400;
+
 export const BeginRuntimeSlotBody = Type.Object(
   {
     agentName: Type.String({ minLength: 1, maxLength: 100 }),
@@ -88,6 +90,10 @@ export const BeginRuntimeSlotBody = Type.Object(
     workspaceKind: Type.Optional(RuntimeWorkspaceKind),
     lastTaskId: Type.String({ format: 'uuid' }),
     lastAttemptN: Type.Integer({ minimum: 1 }),
+    warmRetentionSec: Type.Integer({
+      minimum: 0,
+      maximum: MAX_RUNTIME_WARM_RETENTION_SEC,
+    }),
   },
   { $id: 'BeginRuntimeSlotBody', additionalProperties: false },
 );
@@ -103,6 +109,10 @@ export const FinishRuntimeSlotBody = Type.Object(
     taskId: Type.String({ format: 'uuid' }),
     attemptN: Type.Integer({ minimum: 1 }),
     sessionPath: Type.Optional(Type.String({ minLength: 1 })),
+    warmRetentionSec: Type.Integer({
+      minimum: 0,
+      maximum: MAX_RUNTIME_WARM_RETENTION_SEC,
+    }),
   },
   { $id: 'FinishRuntimeSlotBody', additionalProperties: false },
 );

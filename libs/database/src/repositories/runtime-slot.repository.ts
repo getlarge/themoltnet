@@ -2,15 +2,12 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
-  runtimeProfiles,
   type RuntimeSlot,
   runtimeSlots,
   type RuntimeWorkspace,
   runtimeWorkspaces,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
-
-const DEFAULT_RUNTIME_SLOT_TTL_SEC = 1800;
 
 export type RuntimeWorkspaceKind = 'origin' | 'fork' | 'scratch';
 
@@ -30,6 +27,7 @@ export interface BeginRuntimeSlotInput {
   workspaceKind?: RuntimeWorkspaceKind;
   lastTaskId: string;
   lastAttemptN: number;
+  warmRetentionSec: number;
 }
 
 export interface FinishRuntimeSlotInput {
@@ -42,6 +40,7 @@ export interface FinishRuntimeSlotInput {
   taskId: string;
   attemptN: number;
   sessionPath?: string | null;
+  warmRetentionSec: number;
 }
 
 export interface ResolvedRuntimeSlot {
@@ -61,9 +60,6 @@ export function createRuntimeSlotRepository(db: Database) {
   return {
     async begin(input: BeginRuntimeSlotInput): Promise<RuntimeSlot> {
       const now = Date.now();
-      const slotLifetimeSec = await resolveSlotLifetimeSec(
-        input.runtimeProfileId,
-      );
       const workspaceRowId = await upsertWorkspace(input, now);
       const [slot] = await getExecutor(db)
         .insert(runtimeSlots)
@@ -71,7 +67,7 @@ export function createRuntimeSlotRepository(db: Database) {
           agentName: input.agentName,
           createdAtMs: now,
           runtimeProfileId: input.runtimeProfileId,
-          expiresAtMs: now + slotLifetimeSec * 1000,
+          expiresAtMs: now + input.warmRetentionSec * 1000,
           lastAttemptN: input.lastAttemptN,
           lastTaskId: input.lastTaskId,
           lastUsedAtMs: now,
@@ -105,9 +101,8 @@ export function createRuntimeSlotRepository(db: Database) {
 
     async finish(input: FinishRuntimeSlotInput): Promise<RuntimeSlot | null> {
       const now = Date.now();
-      const slotLifetimeSec = await resolveSlotLifetimeSecForIdentity(input);
       const set = {
-        expiresAtMs: now + slotLifetimeSec * 1000,
+        expiresAtMs: now + input.warmRetentionSec * 1000,
         lastUsedAtMs: now,
         state: 'idle' as const,
         updatedAt: sql`now()`,
@@ -197,41 +192,6 @@ export function createRuntimeSlotRepository(db: Database) {
       return slot ?? null;
     },
   };
-
-  async function resolveSlotLifetimeSec(
-    runtimeProfileId: string,
-  ): Promise<number> {
-    const [profile] = await getExecutor(db)
-      .select({
-        sessionTtlSec: runtimeProfiles.sessionTtlSec,
-        workspaceTtlSec: runtimeProfiles.workspaceTtlSec,
-      })
-      .from(runtimeProfiles)
-      .where(eq(runtimeProfiles.id, runtimeProfileId))
-      .limit(1);
-    return profile
-      ? Math.min(profile.sessionTtlSec, profile.workspaceTtlSec)
-      : DEFAULT_RUNTIME_SLOT_TTL_SEC;
-  }
-
-  async function resolveSlotLifetimeSecForIdentity(
-    input: FinishRuntimeSlotInput,
-  ): Promise<number> {
-    const [slot] = await getExecutor(db)
-      .select({ runtimeProfileId: runtimeSlots.runtimeProfileId })
-      .from(runtimeSlots)
-      .where(
-        and(
-          slotIdentityWhere(input),
-          eq(runtimeSlots.lastTaskId, input.taskId),
-          eq(runtimeSlots.lastAttemptN, input.attemptN),
-        ),
-      )
-      .limit(1);
-    return slot?.runtimeProfileId
-      ? resolveSlotLifetimeSec(slot.runtimeProfileId)
-      : DEFAULT_RUNTIME_SLOT_TTL_SEC;
-  }
 
   async function upsertWorkspace(
     input: BeginRuntimeSlotInput,

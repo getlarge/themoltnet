@@ -25,6 +25,7 @@ export function createApiRuntimeSlotStore(args: {
           sessionPath: input.sessionPath ?? undefined,
           slotKey: input.slotKey,
           taskType: input.taskType,
+          warmRetentionSec: input.warmRetentionSec,
           workspaceId: input.workspaceId ?? undefined,
           workspaceKind: input.workspaceKind,
           worktreeBranch: input.worktreeBranch ?? undefined,
@@ -45,6 +46,7 @@ export function createApiRuntimeSlotStore(args: {
       provider: string,
       model: string,
       sessionPath: string | null,
+      warmRetentionSec: number,
     ) {
       await agent.runtimeSlots.finish(
         {
@@ -56,6 +58,7 @@ export function createApiRuntimeSlotStore(args: {
           sessionPath: sessionPath ?? undefined,
           slotKey,
           taskId,
+          warmRetentionSec,
         },
         {
           teamId,

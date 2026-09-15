@@ -68,6 +68,10 @@ export type AgentServerStatus = {
     [key: string]: AgentServerProvider;
   };
   runs: Array<AgentServerRun>;
+  runtimeSettings: {
+    heartbeatIntervalMs: number;
+    warmRetentionSec: number;
+  };
   selectedIdentity?: string;
   subscriptions: Array<AgentServerSubscription>;
   version: string;

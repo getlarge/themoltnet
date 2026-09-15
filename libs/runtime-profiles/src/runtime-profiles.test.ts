@@ -1,7 +1,56 @@
 import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
-import { RuntimeProfileSandbox } from './runtime-profiles.js';
+import {
+  RuntimeProfile,
+  runtimeProfileDefinitionPayload,
+  RuntimeProfileSandbox,
+} from './runtime-profiles.js';
+
+describe('RuntimeProfile contract', () => {
+  it('excludes local runtime-operation and storage fields', () => {
+    expect(
+      (RuntimeProfile as unknown as { additionalProperties: boolean })
+        .additionalProperties,
+    ).toBe(false);
+    for (const field of [
+      'heartbeatIntervalMs',
+      'leaseTtlSec',
+      'maxBatchSize',
+      'sessionStorageMode',
+      'workspaceStorageMode',
+      'sessionTtlSec',
+      'workspaceTtlSec',
+    ]) {
+      expect(RuntimeProfile.properties).not.toHaveProperty(field);
+    }
+  });
+
+  it('hashes only the reduced behavioral definition', () => {
+    const payload = runtimeProfileDefinitionPayload({
+      name: 'reviewer',
+      provider: 'Anthropic',
+      model: 'Claude-Sonnet-4-5',
+      sandbox: {},
+      maxTurns: 20,
+      maxBashTimeouts: 2,
+      toolEnforcement: 'enforce',
+      heartbeatIntervalMs: 1,
+      leaseTtlSec: 2,
+    } as Parameters<typeof runtimeProfileDefinitionPayload>[0] &
+      Record<string, unknown>);
+
+    expect(payload).toMatchObject({
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      maxTurns: 20,
+      maxBashTimeouts: 2,
+      toolEnforcement: 'enforce',
+    });
+    expect(payload).not.toHaveProperty('heartbeatIntervalMs');
+    expect(payload).not.toHaveProperty('leaseTtlSec');
+  });
+});
 
 describe('RuntimeProfileSandbox network policy', () => {
   it('accepts exact and wildcard hosts in both runtime allowlists', () => {

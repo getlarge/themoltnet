@@ -25,13 +25,8 @@ export interface ResolvedRuntimeProfile {
   topP: number | null;
   topK: number | null;
   maxOutputTokens: number | null;
-  leaseTtlSec: number;
-  heartbeatIntervalMs: number;
-  maxBatchSize: number;
   maxTurns: number;
   maxBashTimeouts: number;
-  sessionTtlSec: number;
-  workspaceTtlSec: number;
   defaultWorkspaceMode: RuntimeProfileWorkspaceMode | null;
   allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string[];
@@ -109,13 +104,8 @@ export async function resolveRuntimeProfile(options: {
     topP: profile.topP ?? null,
     topK: profile.topK ?? null,
     maxOutputTokens: profile.maxOutputTokens ?? null,
-    leaseTtlSec: profile.leaseTtlSec,
-    heartbeatIntervalMs: profile.heartbeatIntervalMs,
-    maxBatchSize: profile.maxBatchSize,
     maxTurns: profile.maxTurns,
     maxBashTimeouts: profile.maxBashTimeouts,
-    sessionTtlSec: profile.sessionTtlSec,
-    workspaceTtlSec: profile.workspaceTtlSec,
     defaultWorkspaceMode: profile.defaultWorkspaceMode ?? null,
     allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv,
@@ -183,12 +173,6 @@ export function validateRuntimeProfilePrerequisites(
       missingExecutables,
     );
   }
-}
-
-export function resolveProfileWarmSessionTtlSec(
-  profile: Pick<ResolvedRuntimeProfile, 'sessionTtlSec' | 'workspaceTtlSec'>,
-): number {
-  return Math.min(profile.sessionTtlSec, profile.workspaceTtlSec);
 }
 
 async function resolveProfileByName(options: {

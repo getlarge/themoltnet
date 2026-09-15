@@ -3,6 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  CreateRuntimeProfileBodySchema,
+  UpdateRuntimeProfileBodySchema,
+} from '../src/schemas/runtime-profiles.js';
+import {
   createMockServices,
   createTestApp,
   OWNER_ID,
@@ -28,20 +32,14 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     maxOutputTokens: null,
     runtimeKind: 'gondolin_pi',
     sandbox: {},
-    sessionStorageMode: 'local',
-    workspaceStorageMode: 'local',
     defaultWorkspaceMode: null,
     allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
-    sessionTtlSec: 1800,
-    workspaceTtlSec: 1800,
-    leaseTtlSec: 300,
-    heartbeatIntervalMs: 60_000,
-    maxBatchSize: 50,
     maxTurns: 0,
     maxBashTimeouts: 3,
     requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
     requiredTools: ['linear.issue.get', 'github.pr.create'],
     requiredExecutables: [],
+    toolEnforcement: 'watch',
     context: [
       {
         slug: 'linear-github-workflow',
@@ -74,6 +72,31 @@ describe('runtime profile routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+  });
+
+  it('keeps create and update payloads strict after removing device fields', () => {
+    const removedFields = [
+      'heartbeatIntervalMs',
+      'leaseTtlSec',
+      'maxBatchSize',
+      'sessionStorageMode',
+      'workspaceStorageMode',
+      'sessionTtlSec',
+      'workspaceTtlSec',
+    ];
+
+    for (const schema of [
+      CreateRuntimeProfileBodySchema,
+      UpdateRuntimeProfileBodySchema,
+    ]) {
+      expect(
+        (schema as unknown as { additionalProperties: boolean })
+          .additionalProperties,
+      ).toBe(false);
+      for (const field of removedFields) {
+        expect(schema.properties).not.toHaveProperty(field);
+      }
+    }
   });
 
   it('creates a runtime profile for a managed team', async () => {
@@ -128,9 +151,6 @@ describe('runtime profile routes', () => {
         },
         defaultWorkspaceMode: 'dedicated_worktree',
         allowedWorkspaceModes: ['none', 'dedicated_worktree'],
-        leaseTtlSec: 900,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 10,
         maxTurns: 30,
         maxBashTimeouts: 2,
         requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
@@ -163,9 +183,6 @@ describe('runtime profile routes', () => {
         },
       },
       runtimeKind: 'gondolin_pi',
-      leaseTtlSec: 300,
-      heartbeatIntervalMs: 60_000,
-      maxBatchSize: 50,
       maxTurns: 0,
       maxBashTimeouts: 3,
       defaultWorkspaceMode: null,
@@ -181,9 +198,6 @@ describe('runtime profile routes', () => {
         topP: 0.9,
         topK: 40,
         maxOutputTokens: 12_000,
-        leaseTtlSec: 900,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 10,
         maxTurns: 30,
         maxBashTimeouts: 2,
         sandbox: expect.objectContaining({
@@ -513,6 +527,34 @@ describe('runtime profile routes', () => {
         topK: 32,
         maxOutputTokens: 16_000,
       }),
+    );
+  });
+
+  it('preserves tool enforcement when update omits it', async () => {
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(
+      mockProfile({ toolEnforcement: 'enforce' }),
+    );
+    mocks.runtimeProfileRepository.update.mockResolvedValue(
+      mockProfile({
+        description: 'Updated description',
+        toolEnforcement: 'enforce',
+        revision: 2,
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { description: 'Updated description' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ toolEnforcement: 'enforce' });
+    expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
+      PROFILE_ID,
+      expect.objectContaining({ toolEnforcement: 'enforce' }),
     );
   });
 });

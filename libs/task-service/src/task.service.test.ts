@@ -1144,7 +1144,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
 
-  it('enqueues the attempt workflow inside the claim transaction', async () => {
+  it('owns the default 300-second lease and enqueues inside the claim transaction', async () => {
     const events: string[] = [];
     const enqueueWorkflowInCurrentTransaction = vi.fn(() => {
       events.push('enqueue');
@@ -1172,7 +1172,8 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       enqueueWorkflowInCurrentTransaction,
     });
 
-    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30);
+    const beforeClaimMs = Date.now();
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent);
 
     expect(events).toEqual(['tx:start', 'attempt', 'enqueue', 'tx:end']);
     expect(mocks.taskRepository.claimIfQueued).toHaveBeenCalledWith(
@@ -1182,6 +1183,10 @@ describe('createTaskService.claim — runtime profile attestation', () => {
         claimExpiresAt: expect.any(Date) as Date,
       }),
     );
+    const claimInput = mocks.taskRepository.claimIfQueued.mock.calls[0]?.[1];
+    const claimExpiresAtMs = claimInput?.claimExpiresAt?.getTime();
+    expect(claimExpiresAtMs).toBeGreaterThanOrEqual(beforeClaimMs + 300_000);
+    expect(claimExpiresAtMs).toBeLessThanOrEqual(Date.now() + 300_000);
     expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledTimes(1);
     expect(startWorkflow).not.toHaveBeenCalled();
     expect(getEvent).not.toHaveBeenCalled();

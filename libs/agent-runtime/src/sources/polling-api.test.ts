@@ -59,7 +59,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 'team-1',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -76,7 +75,7 @@ describe('PollingApiTaskSource', () => {
       },
       { teamId: 'team-1' },
     );
-    expect(claim).toHaveBeenCalledWith(task.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(task.id, {});
     expect(pollingTelemetry.recordCompletedRuntimePhase).toHaveBeenCalledWith(
       'moltnet.task_source.list',
       expect.objectContaining({ 'moltnet.task_source.candidates': 1 }),
@@ -107,7 +106,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 'team-1',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -135,7 +133,6 @@ describe('PollingApiTaskSource', () => {
     await new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 'team-1',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     }).claim();
     expect(pollingTelemetry.recordCompletedRuntimePhase).not.toHaveBeenCalled();
@@ -143,7 +140,6 @@ describe('PollingApiTaskSource', () => {
     await new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 'team-1',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       traceIdlePolling: true,
     }).claim();
@@ -181,7 +177,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       logger: silentLogger,
       executorFingerprint: 'bafkrei-registered',
@@ -193,11 +188,9 @@ describe('PollingApiTaskSource', () => {
     expect(claim).toHaveBeenCalledTimes(2);
     expect(createClaimAttestation).not.toHaveBeenCalled();
     expect(claim).toHaveBeenNthCalledWith(1, a.id, {
-      leaseTtlSec: 60,
       executorFingerprint: 'bafkrei-registered',
     });
     expect(claim).toHaveBeenNthCalledWith(2, b.id, {
-      leaseTtlSec: 60,
       executorFingerprint: 'bafkrei-registered',
     });
   });
@@ -210,7 +203,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, vi.fn()),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -233,7 +225,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, vi.fn()),
       teamId: 't',
       correlationId: 'run-empty',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       waitForFirstTaskMs: 100,
       pollIntervalMs: 10,
@@ -278,7 +269,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       correlationId: 'run-drained',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       waitAfterTaskMs: 100,
       pollIntervalMs: 10,
@@ -310,7 +300,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, vi.fn()),
       teamId: 't',
       correlationId: 'run-1721',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -340,7 +329,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       waitForFirstTaskMs: 1_000,
       pollIntervalMs: 1,
@@ -377,7 +365,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       waitAfterTaskMs: 100,
       pollIntervalMs: 1,
@@ -413,7 +400,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       // Tiny backoff so the test doesn't sit in real wall-clock sleep.
       pollIntervalMs: 1,
@@ -446,7 +432,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       profileId,
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -460,7 +445,6 @@ describe('PollingApiTaskSource', () => {
     expect(claim).toHaveBeenCalledWith(
       task.id,
       expect.objectContaining({
-        leaseTtlSec: 60,
         profileId,
       }),
     );
@@ -487,11 +471,7 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
-      profiles: [
-        { profileId: firstProfile, leaseTtlSec: 30 },
-        { profileId: secondProfile, leaseTtlSec: 90 },
-      ],
+      profiles: [{ profileId: firstProfile }, { profileId: secondProfile }],
       stopWhenEmpty: true,
     });
 
@@ -499,7 +479,6 @@ describe('PollingApiTaskSource', () => {
 
     expect(result?.profileId).toBe(firstProfile);
     expect(claim).toHaveBeenCalledWith(task.id, {
-      leaseTtlSec: 30,
       profileId: firstProfile,
     });
   });
@@ -525,11 +504,7 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
-      profiles: [
-        { profileId: firstProfile, leaseTtlSec: 30 },
-        { profileId: secondProfile, leaseTtlSec: 90 },
-      ],
+      profiles: [{ profileId: firstProfile }, { profileId: secondProfile }],
       stopWhenEmpty: true,
     });
 
@@ -537,7 +512,6 @@ describe('PollingApiTaskSource', () => {
 
     expect(result?.profileId).toBe(secondProfile);
     expect(claim).toHaveBeenCalledWith(pinned.id, {
-      leaseTtlSec: 90,
       profileId: secondProfile,
     });
   });
@@ -575,11 +549,7 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       diaryIds: ['88888888-8888-4888-8888-888888888888'],
-      leaseTtlSec: 60,
-      profiles: [
-        { profileId: firstProfile, leaseTtlSec: 30 },
-        { profileId: secondProfile, leaseTtlSec: 90 },
-      ],
+      profiles: [{ profileId: firstProfile }, { profileId: secondProfile }],
       stopWhenEmpty: true,
     });
 
@@ -648,11 +618,7 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       diaryIds: ['dddddddd-dddd-4ddd-8ddd-dddddddddddd'],
-      leaseTtlSec: 60,
-      profiles: [
-        { profileId: firstProfile, leaseTtlSec: 30 },
-        { profileId: secondProfile, leaseTtlSec: 90 },
-      ],
+      profiles: [{ profileId: firstProfile }, { profileId: secondProfile }],
       stopWhenEmpty: true,
     });
 
@@ -667,7 +633,6 @@ describe('PollingApiTaskSource', () => {
       { teamId: 't' },
     );
     expect(claim).toHaveBeenCalledWith(task.id, {
-      leaseTtlSec: 90,
       profileId: secondProfile,
     });
   });
@@ -681,7 +646,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, vi.fn()),
       teamId: 't',
       taskTypes: ['fulfill_brief', 'curate_pack'],
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -701,7 +665,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, vi.fn()),
       teamId: 't',
-      leaseTtlSec: 60,
       signal: ac.signal,
     });
 
@@ -723,7 +686,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -758,7 +720,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -767,7 +728,6 @@ describe('PollingApiTaskSource', () => {
     // The pinned-for-other-profile task must never have been claimed.
     expect(claim).toHaveBeenCalledTimes(1);
     expect(claim).toHaveBeenCalledWith(unrestricted.id, {
-      leaseTtlSec: 60,
       profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     });
   });
@@ -792,7 +752,6 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       profileId,
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
@@ -825,14 +784,13 @@ describe('PollingApiTaskSource', () => {
       agent: makeAgent(list, claim),
       teamId: 't',
       diaryIds: ['diary-keep'],
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
     });
 
     const result = await src.claim();
     expect(result?.task.id).toBe(matching.id);
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith(matching.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(matching.id, {});
   });
 
   it('continues scanning pages after locally unclaimable continuations', async () => {
@@ -872,7 +830,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       listLimit: 1,
       stopWhenEmpty: true,
       slotRegistry,
@@ -888,7 +845,7 @@ describe('PollingApiTaskSource', () => {
       { teamId: 't' },
     );
     expect(claim).toHaveBeenCalledOnce();
-    expect(claim).toHaveBeenCalledWith(claimable.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(claimable.id, {});
   });
 
   it('claims continuations when a durable remote session exists and the local session is missing', async () => {
@@ -928,7 +885,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       slotRegistry,
       sessionRegistry,
@@ -948,7 +904,7 @@ describe('PollingApiTaskSource', () => {
       '99999999-9999-4999-8999-999999999999',
       1,
     );
-    expect(claim).toHaveBeenCalledWith(continuation.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(continuation.id, {});
   });
 
   it('skips remote-only fork continuations when the source branch is not recoverable', async () => {
@@ -983,7 +939,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       slotRegistry,
       sessionRegistry,
@@ -1034,7 +989,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       slotRegistry,
       sessionRegistry,
@@ -1045,7 +999,7 @@ describe('PollingApiTaskSource', () => {
     const result = await src.claim();
 
     expect(result?.task.id).toBe(fork.id);
-    expect(claim).toHaveBeenCalledWith(fork.id, { leaseTtlSec: 60 });
+    expect(claim).toHaveBeenCalledWith(fork.id, {});
   });
 
   it('drains only after all visible pages are locally unclaimable', async () => {
@@ -1089,7 +1043,6 @@ describe('PollingApiTaskSource', () => {
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
       teamId: 't',
-      leaseTtlSec: 60,
       listLimit: 1,
       stopWhenEmpty: true,
       slotRegistry,
