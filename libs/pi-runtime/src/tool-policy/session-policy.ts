@@ -125,7 +125,7 @@ export async function resolveSessionToolPolicy(
       allowedTools: new Set(resolved.allowedTools),
       allowedShellCommands: shellCommands.map((rule) => {
         if (
-          rule.argvPrefix.length < 2 ||
+          rule.argvPrefix.length < 1 ||
           rule.argvPrefix.length > 8 ||
           rule.argvPrefix.some((token) => !token)
         ) {

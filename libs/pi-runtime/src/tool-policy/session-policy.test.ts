@@ -97,6 +97,63 @@ describe('resolveSessionToolPolicy', () => {
     expect(agent.runtimeProfiles.allowedTools).toHaveBeenCalledOnce();
   });
 
+  it('accepts one-token shell rules when cached off is refreshed to enforce, and registers the gate', async () => {
+    // Arrange
+    const agent = agentReturning('enforce', [], [{ argvPrefix: ['git'] }]);
+
+    // Act
+    const policy = await resolveSessionToolPolicy({
+      ...params,
+      agent,
+      enforcement: 'off',
+    });
+    const on = registerHandler({
+      policy,
+      analyzer: analyzerStub({
+        'git status': ['git'],
+        'curl x': ['curl'],
+      }),
+      logger,
+    });
+    const handler = on.mock.calls[0]?.[1] as (e: ToolCallEvent) => unknown;
+
+    // Assert
+    expect(policy).toMatchObject({
+      enforcement: 'enforce',
+      allowedShellCommands: [{ argvPrefix: ['git'] }],
+      degraded: false,
+    });
+    expect(on).toHaveBeenCalledWith('tool_call', expect.any(Function));
+    expect(
+      handler(toolCall('bash', { command: 'git status' })),
+    ).toBeUndefined();
+    expect(handler(toolCall('bash', { command: 'curl x' }))).toMatchObject({
+      block: true,
+    });
+  });
+
+  it.each([
+    ['an empty prefix', []],
+    ['more than 8 tokens', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']],
+    ['an empty token', ['git', '']],
+  ])(
+    'fails closed when the API returns a shell rule with %s',
+    async (_label, argvPrefix) => {
+      const policy = await resolveSessionToolPolicy({
+        ...params,
+        agent: agentReturning('enforce', [], [{ argvPrefix }]),
+        enforcement: 'enforce',
+      });
+
+      expect(policy).toEqual({
+        enforcement: 'enforce',
+        allowedTools: new Set(),
+        allowedShellCommands: [],
+        degraded: true,
+      });
+    },
+  );
+
   it('resolves the allow-set from the API for enforce (not degraded)', async () => {
     const policy = await resolveSessionToolPolicy({
       ...params,
