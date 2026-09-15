@@ -154,7 +154,7 @@ for a Manual Trigger → Create → built-in Wait → Get Result loop.
 
 ## Local development
 
-From the repository root:
+Canonical development happens in the MoltNet monorepo. From its root:
 
 ```bash
 pnpm exec nx run @themoltnet/n8n-nodes-moltnet:dev
@@ -165,20 +165,35 @@ user directory, and serves the editor at <http://localhost:5678>. Opening the
 editor needs no MoltNet infrastructure. Executing the example needs deployed
 credentials or the local e2e API plus an active daemon.
 
+The generated standalone repository can independently install, validate, and
+open the same node with:
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run dev
+```
+
+Submit source changes to
+[`getlarge/themoltnet`](https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet).
+The standalone repository is a release projection and overwrites direct edits.
+
 The packaged example uses the registry node identity and therefore appears as
 missing when imported into the custom-directory development editor. For local
 development, import
-[`examples/create-and-wait.local.workflow.json`](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.local.workflow.json),
+[`examples/create-and-wait.local.workflow.json`](https://github.com/getlarge/n8n-nodes-moltnet/blob/main/examples/create-and-wait.local.workflow.json),
 which uses n8n's `CUSTOM` loader identity. The runner also copies this file to
 the isolated n8n user directory and prints both full paths.
 
-### Credential source mirrors
+### Repository layout
 
-The public monorepo also contains regular copies of both credential sources in
-its root `credentials/` directory. n8n Creator Portal currently checks that
-path without applying this package's `repository.directory` metadata. The
-copies are intentional, byte-identical compatibility files, and `check:pack`
-rejects any drift from the canonical sources in this package.
+The published source repository places `credentials/`, `nodes/`, and
+`package.json` at its root, matching the n8n starter layout. It is generated
+from this monorepo package on each release, so the credentials have one
+canonical source and require no repository-root compatibility copies here.
 
 ## Scope
 

@@ -1,5 +1,3 @@
-// Mirrored byte-identically between the package and repository-root credentials
-// directories because the n8n Creator Portal pre-check requires both paths.
 import type {
   ICredentialTestRequest,
   ICredentialType,
@@ -22,7 +20,7 @@ export class MoltNetOAuth2Api implements ICredentialType {
   iconColor = 'orange' as const;
 
   documentationUrl =
-    'https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#credentials';
+    'https://github.com/getlarge/n8n-nodes-moltnet#credentials';
 
   // Keep the explicit type to match n8n's documented starter-kit shape.
   test: ICredentialTestRequest = {

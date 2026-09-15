@@ -128,7 +128,7 @@ describe('exact npm publication', () => {
     expect(result.stderr).toMatch(/ETIMEDOUT|timed out/i);
   });
 
-  it('keeps promotion gated when the exact-version scanner fails', () => {
+  it('keeps promotion gated on the standalone publication workflow', () => {
     const workspaceRoot = resolve(
       dirname(fileURLToPath(import.meta.url)),
       '../../..',
@@ -138,8 +138,16 @@ describe('exact npm publication', () => {
       'utf8',
     );
 
+    const standaloneWorkflow = readFileSync(
+      resolve(
+        workspaceRoot,
+        'libs/n8n-nodes-moltnet/standalone/overlay/.github/workflows/publish.yml',
+      ),
+      'utf8',
+    );
+
     expect(workflow).toMatch(
-      /promote-n8n-nodes-moltnet:[\s\S]*needs\.scan-n8n-nodes-moltnet\.result == 'success'/,
+      /promote-n8n-nodes-moltnet:[\s\S]*needs\.publish-n8n-nodes-moltnet\.result == 'success'/,
     );
     const promotionJob = workflow.match(
       / {2}promote-n8n-nodes-moltnet:[\s\S]*?(?=\n {2}publish-node-red:)/,
@@ -149,13 +157,23 @@ describe('exact npm publication', () => {
       /publish-n8n-nodes-moltnet:[\s\S]*timeout-minutes: 45/,
     );
     expect(workflow).toMatch(
-      /scan-n8n-nodes-moltnet:[\s\S]*grep -Fq "Package \$scan_package has passed all security checks"/,
+      /publish-n8n-nodes-moltnet:[\s\S]*scripts\/build-standalone\.mjs/,
     );
     expect(workflow).toMatch(
-      /scan-n8n-nodes-moltnet:[\s\S]*npx --yes @n8n\/scan-community-package@beta "\$scan_package"/,
+      /repositories: n8n-nodes-moltnet[\s\S]*permission-workflows: write/,
     );
-    expect(workflow).not.toMatch(
-      /scan-n8n-nodes-moltnet:[\s\S]*pnpm dlx @n8n\/scan-community-package/,
+    expect(workflow).toMatch(
+      /gh run watch "\$RUN_ID"[\s\S]*--repo getlarge\/n8n-nodes-moltnet[\s\S]*--exit-status/,
+    );
+    expect(workflow).not.toContain('scan-n8n-nodes-moltnet:');
+    expect(standaloneWorkflow).toMatch(
+      /grep -Fq "Package \$scan_package has passed all security checks"/,
+    );
+    expect(standaloneWorkflow).toMatch(
+      /npx --yes @n8n\/scan-community-package@beta "\$scan_package"/,
+    );
+    expect(standaloneWorkflow).not.toContain(
+      'pnpm dlx @n8n/scan-community-package',
     );
   });
 });

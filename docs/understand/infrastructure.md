@@ -613,10 +613,13 @@ SmartScreen prompt.
 
 **GitHub App setup:**
 
-1. Create a GitHub App (org or personal) with **Repository permissions >
-   Contents: Read and write**
+1. Create a GitHub App (org or personal) with these repository permissions:
+   **Contents: Read and write**, **Actions: Read and write**, and **Workflows:
+   Read and write**. The workflow permission lets the release automation write
+   the generated n8n repository's `.github/workflows/publish.yml` file.
 2. **Install the app** on the `getlarge` organization — select **"Only select
-   repositories"** and choose `homebrew-moltnet`
+   repositories"** and choose `homebrew-moltnet`, `scoop-moltnet`, and
+   `n8n-nodes-moltnet`
 3. Store the app credentials as repository secrets on `getlarge/themoltnet`:
 
 | Secret                    | Value                                     |
@@ -626,25 +629,30 @@ SmartScreen prompt.
 
 The workflow uses `actions/create-github-app-token@v3` to mint a scoped
 installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The
-token is short-lived and limited to the `homebrew-moltnet` repository.
+token is short-lived and each release step limits it to the distribution
+repository being updated.
 
 > **Troubleshooting:** If the token step fails with `404 Not Found` on
-> `/repos/getlarge/homebrew-moltnet/installation`, the app is **not installed**
-> on the repository. Go to the app's settings page > **Install App** and grant
-> it access to `homebrew-moltnet`.
+> `/repos/getlarge/<repository>/installation`, the app is **not installed** on
+> that repository. Go to the app's settings page > **Install App** and grant it
+> access to the named distribution repository.
 
 ### CI secrets summary
 
 | Secret                                              | Used by                                   | Purpose                                                                                                  |
 | --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`                            | `release-cli` job                         | GitHub App ID for Homebrew tap push                                                                      |
-| `MOLTNET_RELEASE_APP_KEY`                           | `release-cli` job                         | GitHub App private key (PEM)                                                                             |
+| `MOLTNET_RELEASE_APP_ID`                            | release jobs                              | GitHub App ID for distribution-repository pushes                                                         |
+| `MOLTNET_RELEASE_APP_KEY`                           | release jobs                              | GitHub App private key (PEM)                                                                             |
 | `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                 |
 | `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
 | `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
 | `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
 
-npm publishing requires no secrets; it uses OIDC trusted publishing.
+npm publishing requires no npm token; it uses OIDC trusted publishing. For
+`@themoltnet/n8n-nodes-moltnet`, configure the npm trusted publisher with
+repository `getlarge/n8n-nodes-moltnet` and workflow `publish.yml`. The monorepo
+release then projects the tagged package into that repository, whose tag
+workflow performs the npm publication.
 
 ## Ory Project Deployment
 

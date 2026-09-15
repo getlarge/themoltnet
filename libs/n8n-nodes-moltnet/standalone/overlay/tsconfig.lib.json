@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./out-tsc",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out-tsc",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "__tests__",
+    "scripts"
+  ],
+  "extends": "./tsconfig.json",
+  "include": ["credentials/**/*.ts", "nodes/**/*.ts", "vendor/**/*.ts"]
+}
