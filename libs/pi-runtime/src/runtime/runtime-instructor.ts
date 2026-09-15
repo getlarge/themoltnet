@@ -110,6 +110,8 @@ export function buildToolPolicyInstructions(
       ...renderShellCommandPrefixes(policy.allowedShellCommands),
       '- A visible `bash` tool does not grant broader shell authority. Do not',
       '  attempt commands outside those prefixes.',
+      '- Output redirection (`>`, `2>`, `>>`, `&>`) is never authorized, even',
+      '  for an authorized prefix. Write files with the structured file tools.',
     );
   }
   lines.push(

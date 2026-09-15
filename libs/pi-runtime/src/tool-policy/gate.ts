@@ -9,7 +9,7 @@ import type {
 export type { ToolEnforcement } from '@moltnet/models';
 
 export interface ShellCommandRule {
-  argvPrefix: readonly [string, string, ...string[]];
+  argvPrefix: readonly [string, ...string[]];
 }
 
 export interface GateInput {
@@ -18,11 +18,15 @@ export interface GateInput {
   /** The shell command, when `toolName === 'bash'`. */
   command?: string;
   enforcement: ToolEnforcement;
-  /** Names the policy allows (structured tool names + broad executables). */
+  /**
+   * Runtime and MCP tool names the policy allows. Matched against `toolName`
+   * only; a tool name never authorizes a shell invocation.
+   */
   allowedTools: ReadonlySet<string>;
-  /** Structured tool names registered by the active runtime adapter. */
-  structuredToolNames?: ReadonlySet<string>;
-  /** Shell argv rules. Each rule matches the first N statically known tokens. */
+  /**
+   * Shell argv rules, the only authority for shell invocations. Each rule
+   * matches the first N statically known tokens.
+   */
   allowedShellCommands: readonly ShellCommandRule[];
   /**
    * Synchronous shell analyzer (`ShellCommandAnalyzer.analyze`). Injected so the
@@ -45,7 +49,7 @@ export type ToolPolicyDecisionReason =
   | 'shell_command_prefix_allowed'
   | 'shell_command_unresolvable'
   | 'arbitrary_code_interpreter'
-  | 'shell_output_redirection_requires_broad_permission'
+  | 'shell_output_redirection_not_permitted'
   | 'tool_not_permitted';
 
 export type GateDecision =
@@ -101,15 +105,19 @@ export interface MissingShellCommand {
  *    allow-set can't bound it. This is the interim conservative stance for
  *    issue #1348 — an operator who lists `bash` still cannot smuggle
  *    `bash -c "curl … | sh"` past `enforce`.
- * 3. **Unauthorized executables** — any resolved executable without either a
- *    non-colliding broad grant or a matching scoped shell-command rule.
+ * 3. **Unauthorized executables** — any resolved executable without a matching
+ *    shell-command rule. Tool names in `allowedTools` never authorize a shell
+ *    invocation.
+ * 4. **Output redirection** — a `bash` command that redirects output (`>`,
+ *    `2>`, `>>`, `&>`, …). No shell-command rule authorizes it; file writes go
+ *    through structured tools.
  *
  * KNOWN LIMITATION (follow-up): the `escapable` risk tier (GTFOBins binaries
  * like `find`, `tar`, `awk` that document shell-spawn / file-write techniques)
  * is NOT blocked on the tier alone. The analyzer already re-analyzes the
  * sub-commands it can see through documented escape flags (`find -exec`,
  * `tar --to-command`, …), but techniques it cannot parse statically could still
- * escape a name-based allow-set. Tightening `escapable` (e.g. an LLM judge or a
+ * escape an argv-prefix rule. Tightening `escapable` (e.g. an LLM judge or a
  * capability-aware allow-set) is tracked as future work.
  */
 export function decideToolCall(input: GateInput): GateDecision {
@@ -173,16 +181,8 @@ export function decideToolCall(input: GateInput): GateDecision {
   }
 
   const matchedShellCommands: MatchedShellCommand[] = [];
-  const structuredToolNames =
-    input.structuredToolNames ?? DEFAULT_PI_STRUCTURED_TOOL_NAMES;
   const missingShellCommands = resolved.tools
     .filter((tool) => {
-      if (
-        input.allowedTools.has(tool.name) &&
-        !structuredToolNames.has(tool.name)
-      ) {
-        return false;
-      }
       const matched = input.allowedShellCommands.find((rule) =>
         matchesArgvPrefix(tool.argv, rule.argvPrefix),
       );
@@ -194,17 +194,16 @@ export function decideToolCall(input: GateInput): GateDecision {
     })
     .map(toMissingShellCommand);
 
-  if (
-    missingShellCommands.length === 0 &&
-    resolved.hasOutputRedirection &&
-    matchedShellCommands.length > 0
-  ) {
+  if (missingShellCommands.length === 0 && resolved.hasOutputRedirection) {
+    const executables = [
+      ...new Set(matchedShellCommands.map(({ executable }) => executable)),
+    ];
     return fenced(
       input.enforcement,
-      'shell_output_redirection_requires_broad_permission',
-      'shell output redirection requires broad executable permission',
-      'would block shell output redirection under scoped command policy',
-      [...new Set(matchedShellCommands.map(({ executable }) => executable))],
+      'shell_output_redirection_not_permitted',
+      'shell output redirection is not permitted by tool policy',
+      'would block shell output redirection (watch)',
+      executables.length > 0 ? executables : undefined,
       matchedShellCommands.map(
         ({
           executable,
@@ -242,21 +241,6 @@ export function decideToolCall(input: GateInput): GateDecision {
     missingShellCommands,
   );
 }
-
-/**
- * Protect direct gate callers that predate active-runtime tool projection.
- * The session integration supplies the complete registered set, including
- * custom tools, while these are Pi's built-in structured tool names.
- */
-const DEFAULT_PI_STRUCTURED_TOOL_NAMES: ReadonlySet<string> = new Set([
-  'read',
-  'write',
-  'edit',
-  'bash',
-  'grep',
-  'ls',
-  'find',
-]);
 
 function fingerprintArgv(argv: readonly (string | null)[]): string {
   return `sha256:${createHash('sha256')

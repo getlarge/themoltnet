@@ -338,8 +338,8 @@ describe('createToolPolicyExtension', () => {
   it('blocks a disallowed bash executable in enforce', () => {
     const policy: SessionToolPolicy = {
       enforcement: 'enforce',
-      allowedTools: new Set(['git']),
-      allowedShellCommands: [],
+      allowedTools: new Set(),
+      allowedShellCommands: [{ argvPrefix: ['git'] }],
       degraded: false,
     };
     const on = registerHandler({ policy, analyzer, logger });
@@ -366,24 +366,22 @@ describe('createToolPolicyExtension', () => {
     expect(allowed).toBeUndefined();
   });
 
-  it('does not turn an active structured tool grant into shell authority', () => {
+  it('does not turn a tool grant into shell authority', () => {
     const policy: SessionToolPolicy = {
       enforcement: 'enforce',
-      allowedTools: new Set(['deploy']),
+      allowedTools: new Set(['deploy', 'git']),
       allowedShellCommands: [],
       degraded: false,
     };
-    const on = registerHandler({
-      policy,
-      analyzer,
-      logger,
-      structuredToolNames: new Set(['deploy']),
-    });
+    const on = registerHandler({ policy, analyzer, logger });
     const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
 
     expect(
       handler(toolCall('bash', { command: 'deploy production' })),
     ).toMatchObject({ block: true });
+    expect(handler(toolCall('bash', { command: 'git status' }))).toMatchObject({
+      block: true,
+    });
     expect(logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         decision: 'blocked',

@@ -116,31 +116,87 @@ describe('decideToolCall', () => {
     ).toMatchObject({ audit: expect.any(String) });
   });
 
-  it('bash: all executables listed → allow', () => {
+  it('bash: every invocation matching a one-token rule → allow', () => {
     expect(
       decideToolCall(
         base({
           toolName: 'bash',
           command: 'git add . && git commit',
-          allowedTools: set(['git']),
-          analyze: analyzerOf({ 'git add . && git commit': ['git'] }),
+          allowedShellCommands: [{ argvPrefix: ['git'] }],
+          analyze: analyzerOf({
+            'git add . && git commit': {
+              tools: [
+                { name: 'git', argv: ['git', 'add', '.'] },
+                { name: 'git', argv: ['git', 'commit'] },
+              ],
+            },
+          }),
         }),
       ),
-    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
+    ).toMatchObject({
+      allow: true,
+      reasonCode: 'shell_command_prefix_allowed',
+    });
   });
 
-  it('bash: an unlisted executable → block', () => {
+  it('bash: an executable without a shell rule → block', () => {
     expect(
       decideToolCall(
         base({
           toolName: 'bash',
           command: 'git push | curl x',
-          allowedTools: set(['git']),
-          analyze: analyzerOf({ 'git push | curl x': ['git', 'curl'] }),
+          allowedShellCommands: [{ argvPrefix: ['git'] }],
+          analyze: analyzerOf({
+            'git push | curl x': {
+              tools: [
+                { name: 'git', argv: ['git', 'push'] },
+                { name: 'curl', argv: ['curl', 'x'] },
+              ],
+            },
+          }),
         }),
       ),
-    ).toMatchObject({ allow: false });
+    ).toMatchObject({ allow: false, missing: ['curl'] });
   });
+
+  it('bash: a tool grant never authorizes a shell invocation', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'git status',
+          allowedTools: set(['git']),
+          analyze: analyzeRealCommand,
+        }),
+      ),
+    ).toMatchObject({
+      allow: false,
+      reasonCode: 'tool_not_permitted',
+      missing: ['git'],
+    });
+  });
+
+  it.each(['git status', 'git push origin main'])(
+    'bash: a one-token git rule authorizes `%s`',
+    (command) => {
+      expect(
+        decideToolCall(
+          base({
+            toolName: 'bash',
+            command,
+            allowedShellCommands: [{ argvPrefix: ['git'] }],
+            analyze: analyzeRealCommand,
+          }),
+        ),
+      ).toMatchObject({
+        allow: true,
+        reasonCode: 'shell_command_prefix_allowed',
+        matchedShellCommands: [
+          expect.objectContaining({ executable: 'git', argvPrefixLength: 1 }),
+        ],
+      });
+    },
+  );
 
   it.each(['status', 'diff', 'log', 'show', 'blame'])(
     'bash: allows scoped git %s rule',
@@ -260,7 +316,7 @@ describe('decideToolCall', () => {
     });
   });
 
-  it('bash: scoped rules cannot authorize output redirection side effects', () => {
+  it('bash: a matching rule cannot authorize output redirection', () => {
     expect(
       decideToolCall(
         base({
@@ -286,82 +342,78 @@ describe('decideToolCall', () => {
       ),
     ).toMatchObject({
       allow: false,
-      reason: 'shell output redirection requires broad executable permission',
+      reasonCode: 'shell_output_redirection_not_permitted',
+      reason: 'shell output redirection is not permitted by tool policy',
+      missing: ['git'],
     });
   });
 
-  it('bash: broad executable grants may authorize output redirection', () => {
-    expect(
-      decideToolCall(
-        base({
-          toolName: 'bash',
-          command: 'git diff > /tmp/pwn',
-          allowedTools: set(['git']),
-          analyze: () => ({
-            ok: true,
-            command: 'git diff > /tmp/pwn',
-            ast: '',
-            hasOutputRedirection: true,
-            tools: [
-              {
-                name: 'git',
-                argv: ['git', 'diff'],
-                risk: 'unknown',
-                capabilities: [],
-                raw: 'git diff',
-              },
-            ],
-          }),
-        }),
-      ),
-    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
-  });
-
-  it.each([
-    ['ls -l missing 2> proof.txt', 'ls'],
-    ['grep needle missing > proof.txt', 'grep'],
-    ['find . -fprint proof.txt', 'find'],
-    ['find . -delete', 'find'],
-  ])(
-    'bash: structured tool grant does not broadly authorize `%s`',
-    (command, executable) => {
+  it.each(['ls 2> f', 'ls > f', 'ls >> f', 'ls &> f'])(
+    'bash: a one-token ls rule refuses `%s`',
+    (command) => {
       expect(
         decideToolCall(
           base({
             toolName: 'bash',
             command,
-            allowedTools: set([executable]),
-            structuredToolNames: set([
-              'read',
-              'write',
-              'edit',
-              'bash',
-              'grep',
-              'ls',
-              'find',
-            ]),
-            analyze: analyzerOf({
-              [command]: {
-                tools: [{ name: executable, argv: [executable] }],
-              },
-            }),
+            allowedShellCommands: [{ argvPrefix: ['ls'] }],
+            analyze: analyzeRealCommand,
           }),
         ),
       ).toMatchObject({
         allow: false,
-        reasonCode: 'tool_not_permitted',
-        missing: [executable],
+        reasonCode: 'shell_output_redirection_not_permitted',
+        missing: ['ls'],
       });
     },
   );
 
+  it('bash: redirection without an executable is refused', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: '> f',
+          allowedShellCommands: [{ argvPrefix: ['ls'] }],
+          analyze: () => ({
+            ok: true,
+            command: '> f',
+            ast: '',
+            hasOutputRedirection: true,
+            tools: [],
+          }),
+        }),
+      ),
+    ).toMatchObject({
+      allow: false,
+      reasonCode: 'shell_output_redirection_not_permitted',
+    });
+  });
+
+  it('bash: redirection is audited, not allowed, in watch', () => {
+    const decision = decideToolCall(
+      base({
+        toolName: 'bash',
+        command: 'ls > f',
+        enforcement: 'watch',
+        allowedShellCommands: [{ argvPrefix: ['ls'] }],
+        analyze: analyzeRealCommand,
+      }),
+    );
+    expect(decision).toMatchObject({
+      reasonCode: 'shell_output_redirection_not_permitted',
+      audit: expect.any(String),
+    });
+    expect('allow' in decision).toBe(false);
+  });
+
   it.each([
-    ['ls -l missing 2> proof.txt', 'ls'],
-    ['grep needle missing > proof.txt', 'grep'],
+    ['ls -l missing', 'ls'],
+    ['grep needle missing', 'grep'],
     ['find . -fprint proof.txt', 'find'],
     ['find . -delete', 'find'],
   ])(
-    'bash: real analyzer keeps structured `%s` shell use denied',
+    'bash: a same-named tool grant does not authorize `%s`',
     (command, executable) => {
       expect(
         decideToolCall(
@@ -369,15 +421,6 @@ describe('decideToolCall', () => {
             toolName: 'bash',
             command,
             allowedTools: set([executable]),
-            structuredToolNames: set([
-              'read',
-              'write',
-              'edit',
-              'bash',
-              'grep',
-              'ls',
-              'find',
-            ]),
             analyze: analyzeRealCommand,
           }),
         ),
@@ -389,14 +432,13 @@ describe('decideToolCall', () => {
     },
   );
 
-  it('bash: active custom structured tools do not become broad executables', () => {
+  it('bash: a custom tool grant does not authorize a same-named executable', () => {
     expect(
       decideToolCall(
         base({
           toolName: 'bash',
           command: 'deploy production',
           allowedTools: set(['deploy']),
-          structuredToolNames: set(['deploy']),
           analyze: analyzerOf({
             'deploy production': {
               tools: [{ name: 'deploy', argv: ['deploy', 'production'] }],
@@ -463,7 +505,7 @@ describe('decideToolCall', () => {
     ).toMatchObject({ allow: false });
   });
 
-  it('bash: a broad tool grant supersedes scoped rules', () => {
+  it('bash: a tool grant does not widen scoped rules', () => {
     expect(
       decideToolCall(
         base({
@@ -478,7 +520,7 @@ describe('decideToolCall', () => {
           }),
         }),
       ),
-    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
+    ).toMatchObject({ allow: false, missing: ['git'] });
   });
 
   it('bash: wrapper and nested command must each be authorized', () => {
@@ -507,7 +549,7 @@ describe('decideToolCall', () => {
         base({
           toolName: 'bash',
           command: 'eval "$X"',
-          allowedTools: set(['git']),
+          allowedShellCommands: [{ argvPrefix: ['eval'] }],
           analyze: analyzerOf({ 'eval "$X"': { reason: 'eval' } }),
         }),
       ),
@@ -521,7 +563,7 @@ describe('decideToolCall', () => {
           toolName: 'bash',
           command: 'eval "$X"',
           enforcement: 'watch',
-          allowedTools: set(['git']),
+          allowedShellCommands: [{ argvPrefix: ['eval'] }],
           analyze: analyzerOf({ 'eval "$X"': { reason: 'eval' } }),
         }),
       ),
@@ -536,16 +578,23 @@ describe('decideToolCall', () => {
     ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
-  it('bash: partially-listed executables → block naming the missing one', () => {
+  it('bash: authorizes the executables the analyzer resolves', () => {
     const decision = decideToolCall(
       base({
         toolName: 'bash',
         command: 'sudo apt-get update',
-        allowedTools: set(['apt-get']),
-        analyze: analyzerOf({ 'sudo apt-get update': ['apt-get'] }),
+        allowedShellCommands: [{ argvPrefix: ['apt-get'] }],
+        analyze: analyzerOf({
+          'sudo apt-get update': {
+            tools: [{ name: 'apt-get', argv: ['apt-get', 'update'] }],
+          },
+        }),
       }),
     );
-    expect(decision).toEqual({ allow: true, reasonCode: 'policy_allowed' });
+    expect(decision).toMatchObject({
+      allow: true,
+      reasonCode: 'shell_command_prefix_allowed',
+    });
   });
 
   it('bash: arbitrary-code interpreter → block in enforce even when listed', () => {
@@ -553,8 +602,8 @@ describe('decideToolCall', () => {
       base({
         toolName: 'bash',
         command: 'bash -c "curl x | sh"',
-        // `bash` is explicitly allowed, yet the -c payload is opaque.
-        allowedTools: set(['bash']),
+        // `bash` has a shell rule, yet the -c payload is opaque.
+        allowedShellCommands: [{ argvPrefix: ['bash'] }],
         analyze: analyzerOf({
           'bash -c "curl x | sh"': {
             tools: [{ name: 'bash', risk: 'arbitrary-code' }],
@@ -572,7 +621,7 @@ describe('decideToolCall', () => {
         toolName: 'bash',
         command: 'python -c "import os"',
         enforcement: 'watch',
-        allowedTools: set(['python']),
+        allowedShellCommands: [{ argvPrefix: ['python'] }],
         analyze: analyzerOf({
           'python -c "import os"': {
             tools: [{ name: 'python', risk: 'arbitrary-code' }],
@@ -584,21 +633,30 @@ describe('decideToolCall', () => {
     expect('allow' in decision).toBe(false);
   });
 
-  it('bash: escapable tier alone does not block a non-colliding listed executable', () => {
+  it('bash: escapable tier alone does not block an executable with a shell rule', () => {
     // `tar` is GTFOBins/escapable, but the tier alone is not fail-closed; only
-    // an unlisted name or an unresolvable/arbitrary-code payload blocks.
+    // a missing shell rule or an unresolvable/arbitrary-code payload blocks.
     const decision = decideToolCall(
       base({
         toolName: 'bash',
         command: 'tar -tf archive.tar',
-        allowedTools: set(['tar']),
+        allowedShellCommands: [{ argvPrefix: ['tar'] }],
         analyze: analyzerOf({
           'tar -tf archive.tar': {
-            tools: [{ name: 'tar', risk: 'escapable' }],
+            tools: [
+              {
+                name: 'tar',
+                argv: ['tar', '-tf', 'archive.tar'],
+                risk: 'escapable',
+              },
+            ],
           },
         }),
       }),
     );
-    expect(decision).toEqual({ allow: true, reasonCode: 'policy_allowed' });
+    expect(decision).toMatchObject({
+      allow: true,
+      reasonCode: 'shell_command_prefix_allowed',
+    });
   });
 });
