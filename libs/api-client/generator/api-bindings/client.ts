@@ -47,9 +47,9 @@ export const buildUrl: Client['buildUrl'] = (options) => {
   return addQuery(`${baseUrl}${path}`, options.query);
 };
 
-export const createConfig = <_T = ClientOptions>(
-  override: Config = {},
-): Config => ({ responseStyle: 'fields', throwOnError: false, ...override });
+export const createConfig = <T extends ClientOptions = ClientOptions>(
+  override: Config<T> = {},
+): Config<T> => ({ responseStyle: 'fields', throwOnError: false, ...override });
 
 export const createClient = (initial: Config = {}): Client => {
   let config = createConfig(initial);

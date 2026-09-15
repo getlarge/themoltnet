@@ -3,15 +3,14 @@
     "composite": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": "./out-tsc",
+    "outDir": "./dist/typecheck",
     "rootDir": ".",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "tsBuildInfoFile": "./dist/typecheck/tsconfig.tsbuildinfo",
     "types": ["node"]
   },
   "exclude": [
     "node_modules",
     "dist",
-    "out-tsc",
     "**/*.spec.ts",
     "**/*.test.ts",
     "__tests__",

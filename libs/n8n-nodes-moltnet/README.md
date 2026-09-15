@@ -202,10 +202,8 @@ the isolated n8n user directory and prints both full paths.
 
 The published source repository places `credentials/`, `nodes/`, and
 `package.json` at its root, matching the n8n starter layout. It is generated
-from this monorepo package on each release. Repository-root credential copies
-remain here temporarily for compatibility with any Creator Portal review of
-the last monorepo-published version; remove them after the first standalone
-version completes verification.
+from this monorepo package on each release. Creator Portal reviews use the
+standalone repository and its root credential sources.
 
 ## Scope
 

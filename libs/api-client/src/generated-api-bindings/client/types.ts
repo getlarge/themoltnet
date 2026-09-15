@@ -122,7 +122,6 @@ type OmitKeys<T, K> = Pick<T, Exclude<keyof T, K>>;
 export type Options<
   TData extends TDataShape = TDataShape,
   ThrowOnError extends boolean = boolean,
-  _TResponse = unknown,
   TResponseStyle extends ResponseStyle = 'fields',
 > = OmitKeys<
   RequestOptions<TResponseStyle, ThrowOnError>,
@@ -130,5 +129,5 @@ export type Options<
 > &
   ([TData] extends [never] ? unknown : Omit<TData, 'url'>);
 
-export interface QuerySerializerOptions {}
-export interface Auth {}
+export type QuerySerializerOptions = Record<string, never>;
+export type Auth = Record<string, never>;
