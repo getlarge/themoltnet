@@ -770,6 +770,14 @@ export interface TaskReadOptions {
   signal?: AbortSignal;
 }
 
+/** Per-call context for cancellable task heartbeats. */
+export interface TaskHeartbeatOptions {
+  /** Active team. Sets `x-moltnet-team-id` for the request when provided. */
+  teamId?: string;
+  /** Abort the underlying HTTP request when its deadline expires. */
+  signal?: AbortSignal;
+}
+
 /** Per-call context for task creation. */
 export interface TaskCreateOptions extends TaskRequestOptions {
   /** Retry key for task creation, scoped by team and authenticated proposer. */
@@ -880,7 +888,7 @@ export interface TasksNamespace {
     id: string,
     n: number,
     body?: TaskHeartbeatData['body'],
-    options?: TaskRequestOptions,
+    options?: TaskHeartbeatOptions,
   ): Promise<HeartbeatResponse>;
 
   complete(

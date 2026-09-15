@@ -231,15 +231,13 @@ export interface PollingApiTaskSourceOptions {
    * that sees a task wins, so unrestricted tasks use the first profile and
    * profile-pinned tasks use the first configured allowed profile.
    */
-  profiles?: { profileId: string; leaseTtlSec?: number }[];
+  profiles?: { profileId: string }[];
   /**
    * Optional further filter applied client-side after listing. Useful when
    * an agent should only act on tasks tied to specific diaries. Server has
    * no diary filter on `GET /tasks`, so this is post-filtered.
    */
   diaryIds?: string[];
-  /** Lease TTL passed to `claim` so the proposer/runtime contract holds. */
-  leaseTtlSec: number;
   /** Page size per list call. Defaults to 10 — we only need one claimable. */
   listLimit?: number;
   /** Idle backoff floor (ms). */
@@ -606,7 +604,6 @@ export class PollingApiTaskSource implements TaskSource {
           },
           () =>
             this.opts.agent.tasks.claim(task.id, {
-              leaseTtlSec: profile.leaseTtlSec ?? this.opts.leaseTtlSec,
               ...(profile.profileId ? { profileId: profile.profileId } : {}),
               ...attestation,
             }),
@@ -655,7 +652,6 @@ export class PollingApiTaskSource implements TaskSource {
     return [
       {
         ...(this.opts.profileId ? { profileId: this.opts.profileId } : {}),
-        leaseTtlSec: this.opts.leaseTtlSec,
       },
     ];
   }
@@ -684,7 +680,6 @@ export class PollingApiTaskSource implements TaskSource {
 
 interface CandidateProfile {
   profileId?: string;
-  leaseTtlSec?: number;
 }
 
 interface CandidateTask {

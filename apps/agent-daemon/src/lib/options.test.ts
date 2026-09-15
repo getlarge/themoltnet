@@ -1,170 +1,99 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  commonOptionDefs,
+  identityOptionDefs,
   MissingRequiredOptionError,
-  parseCommonOptions,
+  parseIdentityProcessOptions,
+  parseLocalOperationalSettings,
+  parseRuntimeCommandOptions,
+  runtimeCommandOptionDefs,
   validateTaskTypes,
 } from './options.js';
 
-describe('parseCommonOptions', () => {
+describe('runtime command options', () => {
   const valid = {
     agent: 'legreffier',
   };
 
   it('throws MissingRequiredOptionError when --agent is missing', () => {
-    expect(() => parseCommonOptions({ ...valid, agent: undefined })).toThrow(
-      MissingRequiredOptionError,
-    );
+    expect(() =>
+      parseIdentityProcessOptions({ ...valid, agent: undefined }),
+    ).toThrow(MissingRequiredOptionError);
     try {
-      parseCommonOptions({ ...valid, agent: undefined });
+      parseIdentityProcessOptions({ ...valid, agent: undefined });
     } catch (err) {
       expect(err).toBeInstanceOf(MissingRequiredOptionError);
       expect((err as MissingRequiredOptionError).flag).toBe('agent');
     }
   });
 
-  it('does not accept provider/model as common daemon options', () => {
-    const defs = commonOptionDefs();
+  it('keeps identity definitions free of runtime settings', () => {
+    const defs = identityOptionDefs();
 
     expect(defs).not.toHaveProperty('provider');
     expect(defs).not.toHaveProperty('model');
     expect(defs).not.toHaveProperty('guest-credential-mode');
+    expect(defs).not.toHaveProperty('heartbeat-interval-ms');
+    expect(defs).not.toHaveProperty('warm-retention-sec');
   });
 
   it('rejects --agent with traversal-unsafe characters', () => {
     expect(() =>
-      parseCommonOptions({ ...valid, agent: '../etc/passwd' }),
+      parseIdentityProcessOptions({ ...valid, agent: '../etc/passwd' }),
     ).toThrow(/must match/);
-    expect(() => parseCommonOptions({ ...valid, agent: 'has spaces' })).toThrow(
-      /must match/,
-    );
+    expect(() =>
+      parseIdentityProcessOptions({ ...valid, agent: 'has spaces' }),
+    ).toThrow(/must match/);
   });
 
-  it('returns parsed options with defaults for non-required flags', () => {
-    const result = parseCommonOptions(valid);
+  it('parses identity and local settings exactly once into separate groups', () => {
+    const result = parseRuntimeCommandOptions(valid);
+
     expect(result).toEqual({
-      agent: 'legreffier',
-      leaseTtlSec: 300,
-      heartbeatIntervalMs: 60_000,
-      maxBatchSize: 50,
-      flushIntervalMs: 200,
-      maxTurns: 0,
-      maxBashTimeouts: 3,
-      warmSessionTtlSec: 1800,
-      debug: false,
+      identity: { agent: 'legreffier', debug: false },
+      operations: { heartbeatIntervalMs: 60_000, warmRetentionSec: 1800 },
     });
   });
 
-  it('overrides defaults when explicit numeric flags are passed', () => {
-    const result = parseCommonOptions({
+  it('accepts only heartbeat and warm retention runtime flags', () => {
+    expect(runtimeCommandOptionDefs()).toMatchObject({
+      'heartbeat-interval-ms': { type: 'string' },
+      'warm-retention-sec': { type: 'string' },
+    });
+
+    const result = parseLocalOperationalSettings({
       ...valid,
-      'lease-ttl-sec': '60',
       'heartbeat-interval-ms': '5000',
-      'max-batch-size': '10',
-      'flush-interval-ms': '0',
-      'max-turns': '30',
-      'max-bash-timeouts': '5',
-      'warm-session-ttl-sec': '90',
+      'warm-retention-sec': '90',
     });
-    expect(result.leaseTtlSec).toBe(60);
-    expect(result.heartbeatIntervalMs).toBe(5_000);
-    expect(result.maxBatchSize).toBe(10);
-    expect(result.flushIntervalMs).toBe(0);
-    expect(result.maxTurns).toBe(30);
-    expect(result.maxBashTimeouts).toBe(5);
-    expect(result.warmSessionTtlSec).toBe(90);
+    expect(result).toEqual({
+      heartbeatIntervalMs: 5_000,
+      warmRetentionSec: 90,
+    });
   });
 
-  it('uses profile runtime defaults when explicit numeric flags are absent', () => {
-    const result = parseCommonOptions(valid, {
-      runtimeDefaults: {
-        leaseTtlSec: 900,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 7,
-        maxTurns: 30,
-        maxBashTimeouts: 2,
-        warmSessionTtlSec: 120,
-      },
-    });
-
-    expect(result.leaseTtlSec).toBe(900);
-    expect(result.heartbeatIntervalMs).toBe(15_000);
-    expect(result.maxBatchSize).toBe(7);
-    expect(result.maxTurns).toBe(30);
-    expect(result.maxBashTimeouts).toBe(2);
-    expect(result.warmSessionTtlSec).toBe(120);
-  });
-
-  it('lets explicit numeric flags override profile runtime defaults', () => {
-    const result = parseCommonOptions(
-      {
+  it('rejects negative and non-integer operational settings', () => {
+    expect(() =>
+      parseLocalOperationalSettings({
         ...valid,
-        'lease-ttl-sec': '60',
-        'heartbeat-interval-ms': '5000',
-        'max-batch-size': '10',
-        'max-turns': '15',
-        'max-bash-timeouts': '1',
-        'warm-session-ttl-sec': '90',
-      },
-      {
-        runtimeDefaults: {
-          leaseTtlSec: 900,
-          heartbeatIntervalMs: 15_000,
-          maxBatchSize: 7,
-          maxTurns: 30,
-          maxBashTimeouts: 2,
-          warmSessionTtlSec: 120,
-        },
-      },
-    );
-
-    expect(result.leaseTtlSec).toBe(60);
-    expect(result.heartbeatIntervalMs).toBe(5_000);
-    expect(result.maxBatchSize).toBe(10);
-    expect(result.maxTurns).toBe(15);
-    expect(result.maxBashTimeouts).toBe(1);
-    expect(result.warmSessionTtlSec).toBe(90);
-  });
-
-  it('accepts --max-turns=0 and --max-bash-timeouts=0 as "disabled"', () => {
-    const result = parseCommonOptions({
-      ...valid,
-      'max-turns': '0',
-      'max-bash-timeouts': '0',
-    });
-    expect(result.maxTurns).toBe(0);
-    expect(result.maxBashTimeouts).toBe(0);
-  });
-
-  it('rejects negative --max-turns / --max-bash-timeouts', () => {
-    expect(() => parseCommonOptions({ ...valid, 'max-turns': '-1' })).toThrow(
-      /non-negative integer/,
-    );
+        'heartbeat-interval-ms': '-1',
+      }),
+    ).toThrow(/non-negative integer/);
     expect(() =>
-      parseCommonOptions({ ...valid, 'max-bash-timeouts': '-1' }),
+      parseLocalOperationalSettings({
+        ...valid,
+        'warm-retention-sec': '60.5',
+      }),
     ).toThrow(/non-negative integer/);
   });
 
-  it('rejects --lease-ttl-sec=0 (must be positive)', () => {
+  it('rejects warm retention above one day', () => {
     expect(() =>
-      parseCommonOptions({ ...valid, 'lease-ttl-sec': '0' }),
-    ).toThrow(/positive integer/);
-  });
-
-  it('rejects --heartbeat-interval-ms=-1 (non-negative)', () => {
-    expect(() =>
-      parseCommonOptions({ ...valid, 'heartbeat-interval-ms': '-1' }),
-    ).toThrow(/non-negative integer/);
-  });
-
-  it('rejects non-integer numeric flags', () => {
-    expect(() =>
-      parseCommonOptions({ ...valid, 'lease-ttl-sec': '60.5' }),
-    ).toThrow(/positive integer/);
-    expect(() =>
-      parseCommonOptions({ ...valid, 'max-batch-size': 'not-a-number' }),
-    ).toThrow(/positive integer/);
+      parseLocalOperationalSettings({
+        ...valid,
+        'warm-retention-sec': '86401',
+      }),
+    ).toThrow(/no greater than 86400/);
   });
 });
 

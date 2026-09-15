@@ -8,6 +8,31 @@ describe('buildDaemonTaskExecutionPlan', () => {
     runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
   } as const;
 
+  it('disables warm slots and persistent sessions at zero retention', () => {
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: '11111111-1111-4111-8111-111111111111',
+        taskType: 'fulfill_brief',
+        title: null,
+        correlationId: '22222222-2222-4222-8222-222222222222',
+        input: { brief: 'Run cold' },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+      },
+      identity,
+      0,
+      {},
+      1,
+    );
+
+    expect(out.slotKey).toBeNull();
+    expect(out.slotId).toBeNull();
+    expect(out.sessionPersistence).toBeNull();
+    expect(out.workspaceScope).toBe('attempt');
+  });
+
   it('isolates concurrent workers while keeping the logical correlation key', () => {
     const task = {
       id: '11111111-1111-4111-8111-111111111111',

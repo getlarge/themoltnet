@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.71.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.2...moltnet-api-client-v1.71.0) (2026-09-15)
+
+
+### Features
+
+* **rest-api,cli:** mint the OAuth2 client on credential recovery ([7cf2bd1](https://github.com/getlarge/themoltnet/commit/7cf2bd17804485cd07593f692be6c6356178f8dd))
+
+
+### Bug Fixes
+
+* **tasks:** store and show the verified completion signature ([6fa5f80](https://github.com/getlarge/themoltnet/commit/6fa5f80effda240ebeecc5842ee0d404e915f640))
+
+
+### Codegen
+
+* **api:** regenerate clients for deprecated complete contentSignature ([c874f4b](https://github.com/getlarge/themoltnet/commit/c874f4b01c402964c475bc12dcf13c84eb8bca11)), closes [#2269](https://github.com/getlarge/themoltnet/issues/2269)
+
 ## [1.70.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.1...moltnet-api-client-v1.70.2) (2026-09-14)
 
 

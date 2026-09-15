@@ -222,9 +222,6 @@ describe('Agent daemon (e2e)', () => {
         runtimeKind: 'gondolin_pi',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
-        leaseTtlSec: 900,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 10,
         sandbox: {},
       },
       { teamId },
@@ -238,7 +235,6 @@ describe('Agent daemon (e2e)', () => {
       agent: agent,
       teamId: teamId,
       taskTypes: ['curate_pack'],
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       logger: silentLogger,
     });
@@ -269,7 +265,6 @@ describe('Agent daemon (e2e)', () => {
       agent: agent,
       teamId: teamId,
       taskTypes: ['curate_pack'],
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       logger: silentLogger,
     });
@@ -280,7 +275,6 @@ describe('Agent daemon (e2e)', () => {
       agent: agent,
       teamId: teamId,
       taskTypes: ['curate_pack'],
-      leaseTtlSec: 60,
       stopWhenEmpty: true,
       logger: silentLogger,
     });
@@ -306,14 +300,12 @@ describe('Agent daemon (e2e)', () => {
         agent: agent,
         teamId: teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           // 0 disables the periodic timer; the reporter still fires the
           // immediate startup heartbeat which is what we need to satisfy
           // DBOS recv('started').
@@ -400,14 +392,12 @@ describe('Agent daemon (e2e)', () => {
         agent,
         teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -507,14 +497,12 @@ describe('Agent daemon (e2e)', () => {
         agent,
         teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -597,14 +585,12 @@ describe('Agent daemon (e2e)', () => {
         agent: agent,
         teamId: teamId,
         taskTypes: ['freeform'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -687,14 +673,12 @@ describe('Agent daemon (e2e)', () => {
         agent: agent,
         teamId: teamId,
         taskTypes: ['pr_review'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -755,14 +739,12 @@ describe('Agent daemon (e2e)', () => {
         agent: agent,
         teamId: teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       onTaskFinished: (output) => finalizeTask(agent, output),
@@ -797,14 +779,12 @@ describe('Agent daemon (e2e)', () => {
         agent: agent,
         teamId: teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 250,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -898,14 +878,12 @@ describe('Agent daemon (e2e)', () => {
         agent: agent,
         teamId: teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -973,7 +951,7 @@ describe('Agent daemon (e2e)', () => {
       runtimeProfileId: runtimeProfile.id,
     };
     const correlationId = randomUUID();
-    const warmSessionTtlSec = 60;
+    const warmRetentionSec = 60;
 
     const first = await proposeFulfillBriefTask(correlationId);
     const firstOutput = await runStubbedSlotAwareTask({
@@ -985,7 +963,7 @@ describe('Agent daemon (e2e)', () => {
       slotIdentity,
       provider: runtimeProfile.provider,
       model: runtimeProfile.model,
-      warmSessionTtlSec,
+      warmRetentionSec,
     });
     expect(firstOutput.output.status).toBe('completed');
 
@@ -1011,7 +989,7 @@ describe('Agent daemon (e2e)', () => {
       slotIdentity,
       provider: runtimeProfile.provider,
       model: runtimeProfile.model,
-      warmSessionTtlSec,
+      warmRetentionSec,
     });
     expect(secondOutput.output.status).toBe('completed');
 
@@ -1070,7 +1048,7 @@ describe('Agent daemon (e2e)', () => {
       // Long TTL so the affinity filter's existsSync(sessionDir) check
       // still sees the local slot by the time the continuation task is
       // created and polled.
-      const warmSessionTtlSec = 600;
+      const warmRetentionSec = 600;
 
       try {
         // 1. Run a real freeform parent task through the stub harness.
@@ -1088,7 +1066,7 @@ describe('Agent daemon (e2e)', () => {
           slotIdentity,
           provider: runtimeProfile.provider,
           model: runtimeProfile.model,
-          warmSessionTtlSec,
+          warmRetentionSec,
         });
         expect(parentRun.output.status).toBe('completed');
 
@@ -1130,7 +1108,6 @@ describe('Agent daemon (e2e)', () => {
           agent,
           teamId,
           taskTypes: ['freeform'],
-          leaseTtlSec: 60,
           stopWhenEmpty: true,
           slotRegistry: slotStore,
           logger: silentLogger,
@@ -1143,7 +1120,7 @@ describe('Agent daemon (e2e)', () => {
         const planCache = createExecutionPlanCache({
           stateDirs,
           slotIdentity,
-          warmSessionTtlSec,
+          warmRetentionSec,
           slotRegistry: slotStore,
         });
         const continuationPlan = await planCache.getOrCreate(claimed!);
@@ -1201,7 +1178,7 @@ describe('Agent daemon (e2e)', () => {
         runtimeProfileId: runtimeProfile.id,
       };
       const correlationId = randomUUID();
-      const warmSessionTtlSec = 600;
+      const warmRetentionSec = 600;
 
       try {
         const parent = await proposeFreeformTask(correlationId);
@@ -1215,7 +1192,7 @@ describe('Agent daemon (e2e)', () => {
           slotIdentity,
           provider: runtimeProfile.provider,
           model: runtimeProfile.model,
-          warmSessionTtlSec,
+          warmRetentionSec,
           runtimeSessionStore,
           sessionMarker: seededMarker,
         });
@@ -1246,7 +1223,6 @@ describe('Agent daemon (e2e)', () => {
           agent,
           teamId,
           taskTypes: ['freeform'],
-          leaseTtlSec: 60,
           stopWhenEmpty: true,
           slotRegistry: slotStore,
           sessionRegistry: runtimeSessionStore,
@@ -1258,7 +1234,7 @@ describe('Agent daemon (e2e)', () => {
         const planCache = createExecutionPlanCache({
           stateDirs,
           slotIdentity,
-          warmSessionTtlSec,
+          warmRetentionSec,
           slotRegistry: slotStore,
           runtimeSessionStore,
         });
@@ -1306,9 +1282,6 @@ describe('Agent daemon (e2e)', () => {
           runtimeKind: 'gondolin_pi',
           provider: 'anthropic',
           model: 'claude-sonnet-4-5',
-          leaseTtlSec: 900,
-          heartbeatIntervalMs: 15_000,
-          maxBatchSize: 10,
           sandbox,
           ...overrides,
         },
@@ -1439,9 +1412,6 @@ describe('Agent daemon (e2e)', () => {
         expect(resolved.id).toBe(allowedProfile.id);
         expect(resolved.provider).toBe('anthropic');
         expect(resolved.model).toBe('claude-sonnet-4-5');
-        expect(resolved.leaseTtlSec).toBe(900);
-        expect(resolved.heartbeatIntervalMs).toBe(15_000);
-        expect(resolved.maxBatchSize).toBe(10);
         expect(resolved.sandboxConfig).toEqual(allowedProfile.sandbox);
 
         const executorManifest = {
@@ -1486,7 +1456,6 @@ describe('Agent daemon (e2e)', () => {
           teamId,
           taskTypes: ['curate_pack'],
           profileId: resolved.id,
-          leaseTtlSec: resolved.leaseTtlSec,
           stopWhenEmpty: true,
           logger: silentLogger,
           executorFingerprints: {
@@ -1567,7 +1536,7 @@ interface StubbedSlotAwareTaskArgs {
   slotIdentity: DaemonSlotIdentity;
   provider: string;
   model: string;
-  warmSessionTtlSec: number;
+  warmRetentionSec: number;
   runtimeSessionStore?: RuntimeSessionStore;
   sessionMarker?: string;
 }
@@ -1576,7 +1545,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const executionPlans = createExecutionPlanCache({
     stateDirs: args.stateDirs,
     slotIdentity: args.slotIdentity,
-    warmSessionTtlSec: args.warmSessionTtlSec,
+    warmRetentionSec: args.warmRetentionSec,
     slotRegistry: args.slotStore,
   });
   let usedExecutionPlan: Awaited<
@@ -1587,12 +1556,10 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
     source: new ApiTaskSource({
       agent: args.agent,
       taskId: args.taskId,
-      leaseTtlSec: 60,
     }),
     makeReporter: () =>
       new ApiTaskReporter({
         tasks: args.agent.tasks,
-        leaseTtlSec: 60,
         heartbeatIntervalMs: 0,
       }),
     executeTask: async (claimedTask, reporter) => {
@@ -1647,6 +1614,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
           worktreeBranch: executionPlan.worktreeBranch,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
+          warmRetentionSec: args.warmRetentionSec,
         });
       }
 
@@ -1684,6 +1652,7 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
                 executionPlan.sessionPersistence.sessionDir,
               )
             : null,
+          args.warmRetentionSec,
         );
       }
 

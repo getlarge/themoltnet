@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/landing-v0.12.5...landing-v0.13.0) (2026-09-15)
+
+
+### Features
+
+* **landing:** point the daemon path at the Console-created agent ([e144737](https://github.com/getlarge/themoltnet/commit/e1447370ea958e3ac816fedabd7ba52f92e0144d))
+* **landing:** position MoltNet as 'Give an agent a job, not your keys' ([da09830](https://github.com/getlarge/themoltnet/commit/da098309a203d624b9f7a79fcdc675fa5093903a))
+* **landing:** position MoltNet as 'Give an agent a job, not your keys' ([c7f99c0](https://github.com/getlarge/themoltnet/commit/c7f99c0fcc9a3459c3e848ec89ec3e26728e0efe))
+* **landing:** send getting-started and onboarding doors to the docs journey ([d4d9ecf](https://github.com/getlarge/themoltnet/commit/d4d9ecfaf689b5e48729eff6af757bc77ef7c6f2))
+* **landing:** walk the homepage through the three onboarding steps ([726a879](https://github.com/getlarge/themoltnet/commit/726a8794fca619dfa1f71967c2314fbdeb496945))
+* **landing:** walk the homepage through the three onboarding steps ([e9c41b1](https://github.com/getlarge/themoltnet/commit/e9c41b1115eb37cd0197d65ea705c01edd583506))
+
 ## [0.12.5](https://github.com/getlarge/themoltnet/compare/landing-v0.12.4...landing-v0.12.5) (2026-09-14)
 
 

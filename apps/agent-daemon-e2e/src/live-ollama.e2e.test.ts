@@ -125,13 +125,8 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
           runtimeKind: 'gondolin_pi',
           provider: LIVE_PROVIDER,
           model: LIVE_MODEL,
-          leaseTtlSec: 300,
-          heartbeatIntervalMs: 5_000,
-          maxBatchSize: 1,
           maxTurns: 14,
           maxBashTimeouts: 1,
-          sessionTtlSec: 600,
-          workspaceTtlSec: 600,
           defaultWorkspaceMode: 'shared_mount',
           allowedWorkspaceModes: ['shared_mount'],
           requiredEnv: ['OLLAMA_API_KEY'],
@@ -271,7 +266,6 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         agent,
         agentName,
         agentRoot,
-        maxTurns: 14,
         profileId: profile.id,
         sandboxRoot,
         taskId: artifactTask.id,
@@ -331,14 +325,12 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         agent,
         teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: agent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -464,7 +456,6 @@ async function runLiveTask(input: {
   sandboxRoot: string;
   taskId: string;
   teamId: string;
-  maxTurns?: number;
 }): Promise<number> {
   const oldCwd = process.cwd();
   try {
@@ -480,12 +471,8 @@ async function runLiveTask(input: {
       input.teamId,
       '--agent-root',
       input.agentRoot,
-      '--warm-session-ttl-sec',
+      '--warm-retention-sec',
       '600',
-      '--max-turns',
-      String(input.maxTurns ?? 14),
-      '--max-bash-timeouts',
-      '1',
     ]);
     expect(exitCode).toBe(0);
   } finally {

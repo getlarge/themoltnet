@@ -386,7 +386,14 @@ describe('agent server pairing', () => {
       },
     });
     expect(status.statusCode).toBe(200);
-    expect(status.json()).toMatchObject({ version: 'test', runs: [] });
+    expect(status.json()).toMatchObject({
+      version: 'test',
+      runtimeSettings: {
+        heartbeatIntervalMs: 60_000,
+        warmRetentionSec: 1800,
+      },
+      runs: [],
+    });
 
     const wrongToken = await app.inject({
       method: 'GET',
@@ -967,6 +974,10 @@ describe('agent server providers and runs', () => {
       'course-profile',
       '--task-types',
       'freeform',
+      '--heartbeat-interval-ms',
+      '60000',
+      '--warm-retention-sec',
+      '1800',
     ]);
     expect(options.env['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
     expect(options.env['MOLTNET_PRIVATE_KEY_REF']).toBe(

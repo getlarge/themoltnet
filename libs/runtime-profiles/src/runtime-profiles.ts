@@ -216,30 +216,6 @@ export const RuntimeProfileRef = Type.Object(
 );
 export type RuntimeProfileRef = Static<typeof RuntimeProfileRef>;
 
-export const RuntimeProfileLeaseTtlSec = Type.Integer({
-  minimum: 1,
-  maximum: 86_400,
-});
-export type RuntimeProfileLeaseTtlSec = Static<
-  typeof RuntimeProfileLeaseTtlSec
->;
-
-export const RuntimeProfileHeartbeatIntervalMs = Type.Integer({
-  minimum: 0,
-  maximum: 3_600_000,
-});
-export type RuntimeProfileHeartbeatIntervalMs = Static<
-  typeof RuntimeProfileHeartbeatIntervalMs
->;
-
-export const RuntimeProfileMaxBatchSize = Type.Integer({
-  minimum: 1,
-  maximum: 1_000,
-});
-export type RuntimeProfileMaxBatchSize = Static<
-  typeof RuntimeProfileMaxBatchSize
->;
-
 export const RuntimeProfileMaxTurns = Type.Integer({
   minimum: 0,
   maximum: 10_000,
@@ -269,18 +245,11 @@ export const RuntimeProfile = Type.Object(
     maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
     runtimeKind: RuntimeProfileRuntimeKind,
     sandbox: RuntimeProfileSandbox,
-    sessionStorageMode: Type.Literal('local'),
-    workspaceStorageMode: Type.Literal('local'),
     defaultWorkspaceMode: Type.Union([
       RuntimeProfileWorkspaceMode,
       Type.Null(),
     ]),
     allowedWorkspaceModes: RuntimeProfileAllowedWorkspaceModes,
-    sessionTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
-    workspaceTtlSec: Type.Integer({ minimum: 1, maximum: 86_400 }),
-    leaseTtlSec: RuntimeProfileLeaseTtlSec,
-    heartbeatIntervalMs: RuntimeProfileHeartbeatIntervalMs,
-    maxBatchSize: RuntimeProfileMaxBatchSize,
     maxTurns: RuntimeProfileMaxTurns,
     maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
     toolEnforcement: RuntimeProfileToolEnforcement,
@@ -317,17 +286,11 @@ export interface RuntimeProfileDefinitionInput {
   maxOutputTokens?: number | null;
   runtimeKind?: string;
   sandbox: unknown;
-  sessionStorageMode?: 'local';
-  workspaceStorageMode?: 'local';
   defaultWorkspaceMode?: string | null;
   allowedWorkspaceModes?: string[];
-  sessionTtlSec?: number;
-  workspaceTtlSec?: number;
-  leaseTtlSec?: number;
-  heartbeatIntervalMs?: number;
-  maxBatchSize?: number;
   maxTurns?: number;
   maxBashTimeouts?: number;
+  toolEnforcement?: string;
   requiredEnv?: string[];
   requiredTools?: string[];
   requiredExecutables?: string[];
@@ -355,8 +318,6 @@ export function runtimeProfileDefinitionPayload(
     maxOutputTokens: input.maxOutputTokens ?? null,
     runtimeKind: input.runtimeKind ?? 'gondolin_pi',
     sandbox: input.sandbox,
-    sessionStorageMode: input.sessionStorageMode ?? 'local',
-    workspaceStorageMode: input.workspaceStorageMode ?? 'local',
     defaultWorkspaceMode: input.defaultWorkspaceMode ?? null,
     allowedWorkspaceModes: [
       ...new Set(
@@ -367,13 +328,9 @@ export function runtimeProfileDefinitionPayload(
         ],
       ),
     ],
-    sessionTtlSec: input.sessionTtlSec ?? 1800,
-    workspaceTtlSec: input.workspaceTtlSec ?? 1800,
-    leaseTtlSec: input.leaseTtlSec ?? 300,
-    heartbeatIntervalMs: input.heartbeatIntervalMs ?? 60_000,
-    maxBatchSize: input.maxBatchSize ?? 50,
     maxTurns: input.maxTurns ?? 0,
     maxBashTimeouts: input.maxBashTimeouts ?? 3,
+    toolEnforcement: input.toolEnforcement ?? 'off',
     requiredEnv: list(input.requiredEnv),
     requiredTools: list(input.requiredTools),
     requiredExecutables: list(input.requiredExecutables),

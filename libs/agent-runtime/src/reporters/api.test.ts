@@ -18,8 +18,10 @@ import { ApiTaskReporter } from './api.js';
 
 function makeMockTasks(overrides: Partial<TasksNamespace> = {}): {
   tasks: TasksNamespace;
-  heartbeatMock: ReturnType<typeof vi.fn>;
-  appendMessagesMock: ReturnType<typeof vi.fn>;
+  heartbeatMock: ReturnType<typeof vi.fn<TasksNamespace['heartbeat']>>;
+  appendMessagesMock: ReturnType<
+    typeof vi.fn<TasksNamespace['appendMessages']>
+  >;
 } {
   const heartbeatMock = vi.fn<TasksNamespace['heartbeat']>().mockResolvedValue({
     claimExpiresAt: new Date(Date.now() + 90_000).toISOString(),
@@ -62,22 +64,19 @@ describe('ApiTaskReporter', () => {
     const { tasks, heartbeatMock, appendMessagesMock } = makeMockTasks();
     const reporter = new ApiTaskReporter({
       tasks,
-      leaseTtlSec: 90,
       heartbeatIntervalMs: 1_000,
-      // Single-message batches preserve the legacy one-POST-per-record
-      // behaviour this test was originally written against.
-      maxBatchSize: 1,
-      flushIntervalMs: 0,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 2 });
 
     // Immediate heartbeat must have fired during open()
     expect(heartbeatMock).toHaveBeenCalledTimes(1);
-    expect(heartbeatMock).toHaveBeenCalledWith(TASK_ID, 2, { leaseTtlSec: 90 });
+    expect(heartbeatMock.mock.calls[0]?.slice(0, 3)).toEqual([TASK_ID, 2, {}]);
+    const heartbeatOptions = heartbeatMock.mock.calls[0]?.[3];
+    expect(heartbeatOptions?.signal).toBeInstanceOf(AbortSignal);
 
     await reporter.record({ kind: 'info', payload: { event: 'started' } });
-
+    await vi.advanceTimersByTimeAsync(200);
     expect(appendMessagesMock).toHaveBeenCalledTimes(1);
 
     // Advance past the interval to fire the periodic heartbeat
@@ -94,8 +93,6 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 10,
-      flushIntervalMs: 0,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
@@ -123,15 +120,12 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 1,
-      flushIntervalMs: 0,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
 
-    await expect(
-      reporter.record({ kind: 'error', payload: { message: 'boom' } }),
-    ).rejects.toThrow(/append messages failed/);
+    await reporter.record({ kind: 'error', payload: { message: 'boom' } });
+    await expect(reporter.flush()).rejects.toThrow(/append messages failed/);
   });
 
   // Regression for issue #921: token-streaming workloads fire thousands of
@@ -142,8 +136,6 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 10,
-      flushIntervalMs: 200,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
@@ -180,24 +172,21 @@ describe('ApiTaskReporter', () => {
     });
   });
 
-  it('flushes synchronously when buffer reaches maxBatchSize', async () => {
+  it('flushes synchronously when the internal 50-message batch is full', async () => {
     const { tasks, appendMessagesMock } = makeMockTasks();
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 3,
-      flushIntervalMs: 200,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
 
-    await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
-    await reporter.record({ kind: 'text_delta', payload: { i: 1 } });
+    for (let i = 0; i < 49; i++) {
+      await reporter.record({ kind: 'text_delta', payload: { i } });
+    }
     expect(appendMessagesMock).not.toHaveBeenCalled();
 
-    // Third record hits the size cap and forces a flush without waiting
-    // for the interval.
-    await reporter.record({ kind: 'text_delta', payload: { i: 2 } });
+    await reporter.record({ kind: 'text_delta', payload: { i: 49 } });
     expect(appendMessagesMock).toHaveBeenCalledTimes(1);
   });
 
@@ -206,8 +195,6 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 100,
-      flushIntervalMs: 10_000,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
@@ -228,22 +215,16 @@ describe('ApiTaskReporter', () => {
     expect(body.messages).toHaveLength(2);
   });
 
-  it('falls back to default batching when options are NaN / non-integer', async () => {
+  it('uses the internal 200ms flush window', async () => {
     const { tasks, appendMessagesMock } = makeMockTasks();
-    // `??` would pass NaN through; we want the reporter to treat
-    // non-integer inputs as "use default". Otherwise `buffer.length >= NaN`
-    // is always false and batching is silently disabled.
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: Number.NaN,
-      flushIntervalMs: Number.NaN,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
     await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
 
-    // Default flushIntervalMs (200ms) should fire.
     await vi.advanceTimersByTimeAsync(200);
     expect(appendMessagesMock).toHaveBeenCalledTimes(1);
   });
@@ -257,8 +238,6 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 10,
-      flushIntervalMs: 100,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
@@ -266,7 +245,7 @@ describe('ApiTaskReporter', () => {
 
     // Timer-driven flush fires and fails; the error is stashed on the
     // reporter rather than thrown from inside the timer callback.
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(200);
     // Give the rejected promise a microtask turn to settle.
     await vi.advanceTimersByTimeAsync(0);
 
@@ -288,17 +267,15 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 2,
-      flushIntervalMs: 0,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
-    await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
-    // Second record hits size cap → flush → fails; error should surface
-    // AND the two messages should be back in the buffer for retry.
+    for (let i = 0; i < 49; i++) {
+      await reporter.record({ kind: 'text_delta', payload: { i } });
+    }
     await expect(
-      reporter.record({ kind: 'text_delta', payload: { i: 1 } }),
-    ).rejects.toThrow(/append messages failed.*2 messages restored for retry/);
+      reporter.record({ kind: 'text_delta', payload: { i: 49 } }),
+    ).rejects.toThrow(/append messages failed.*50 messages restored for retry/);
 
     // Next explicit flush should re-send the restored batch and succeed.
     await reporter.flush();
@@ -308,8 +285,10 @@ describe('ApiTaskReporter', () => {
       number,
       { messages: Array<{ payload: { i: number } }> },
     ];
-    expect(retryBody.messages).toHaveLength(2);
-    expect(retryBody.messages.map((m) => m.payload.i)).toEqual([0, 1]);
+    expect(retryBody.messages).toHaveLength(50);
+    expect(retryBody.messages.map((m) => m.payload.i)).toEqual(
+      Array.from({ length: 50 }, (_, i) => i),
+    );
   });
 
   // Regression for PR #925 review: close() must await any in-flight POST
@@ -329,15 +308,13 @@ describe('ApiTaskReporter', () => {
     const reporter = new ApiTaskReporter({
       tasks,
       heartbeatIntervalMs: 60_000,
-      maxBatchSize: 10,
-      flushIntervalMs: 100,
     });
 
     await reporter.open({ taskId: TASK_ID, attemptN: 1 });
     await reporter.record({ kind: 'text_delta', payload: { i: 0 } });
 
     // Timer flush fires, splices the buffer, and hangs on the pending POST.
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(200);
     expect(slowAppend).toHaveBeenCalledTimes(1);
 
     // Buffer is now empty. Start close(); it must await the in-flight POST
@@ -395,14 +372,13 @@ describe('ApiTaskReporter', () => {
       const reporter = new ApiTaskReporter({
         tasks,
         heartbeatIntervalMs: 60_000,
-        maxBatchSize: 1,
-        flushIntervalMs: 0,
       });
 
       await reporter.open({ taskId: TASK_ID, attemptN: 1 });
-      await expect(
-        reporter.record({ kind: 'info', payload: { event: 'started' } }),
-      ).rejects.toThrow(/append messages failed.*Team access denied/);
+      await reporter.record({ kind: 'info', payload: { event: 'started' } });
+      await expect(reporter.flush()).rejects.toThrow(
+        /append messages failed.*Team access denied/,
+      );
       expect(appendMock).toHaveBeenCalledTimes(1);
     });
 
@@ -418,19 +394,197 @@ describe('ApiTaskReporter', () => {
       const reporter = new ApiTaskReporter({
         tasks,
         heartbeatIntervalMs: 60_000,
-        maxBatchSize: 1,
-        flushIntervalMs: 0,
       });
 
       await reporter.open({ taskId: TASK_ID, attemptN: 1 });
-      const recordPromise = reporter.record({
+      await reporter.record({
         kind: 'info',
         payload: { event: 'started' },
       });
+      const recordPromise = reporter.flush();
       await vi.advanceTimersByTimeAsync(100);
       await recordPromise;
 
       expect(appendMock).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('serializes immediate heartbeats through heartbeatNow', async () => {
+    let resolveFirst: (() => void) | undefined;
+    let active = 0;
+    let maxActive = 0;
+    const heartbeat = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockImplementation(async () => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        if (heartbeat.mock.calls.length === 1) {
+          await new Promise<void>((resolve) => {
+            resolveFirst = resolve;
+          });
+        }
+        active -= 1;
+        return {
+          claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+          cancelled: false,
+          cancelReason: null,
+        };
+      });
+    const { tasks } = makeMockTasks({ heartbeat });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+    });
+
+    const opening = reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await vi.advanceTimersByTimeAsync(0);
+    const manual = reporter.heartbeatNow();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+
+    resolveFirst?.();
+    await opening;
+    await manual;
+
+    expect(heartbeat).toHaveBeenCalledTimes(2);
+    expect(maxActive).toBe(1);
+  });
+
+  it('coalesces periodic ticks while a heartbeat is in flight', async () => {
+    let resolvePeriodic: (() => void) | undefined;
+    const heartbeat = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockResolvedValueOnce({
+        claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolvePeriodic = () =>
+              resolve({
+                claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+                cancelled: false,
+                cancelReason: null,
+              });
+          }),
+      );
+    const { tasks } = makeMockTasks({ heartbeat });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 1_000,
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(heartbeat).toHaveBeenCalledTimes(2);
+    resolvePeriodic?.();
+    await reporter.close();
+  });
+
+  it('drains a queued immediate heartbeat before close returns', async () => {
+    let resolveHeartbeat: (() => void) | undefined;
+    const heartbeat = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockResolvedValueOnce({
+        claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveHeartbeat = () =>
+              resolve({
+                claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+                cancelled: false,
+                cancelReason: null,
+              });
+          }),
+      );
+    const { tasks } = makeMockTasks({ heartbeat });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 0,
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    const immediate = reporter.heartbeatNow();
+    await vi.advanceTimersByTimeAsync(0);
+    const closing = reporter.close();
+    let closed = false;
+    void closing.then(() => {
+      closed = true;
+    });
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(closed).toBe(false);
+    resolveHeartbeat?.();
+    await immediate;
+    await closing;
+    expect(closed).toBe(true);
+  });
+
+  it('logs periodic heartbeat failures with task context', async () => {
+    const failure = new Error('upstream unavailable');
+    const heartbeat = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockResolvedValueOnce({
+        claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      })
+      .mockRejectedValueOnce(failure);
+    const warn = vi.fn();
+    const { tasks } = makeMockTasks({ heartbeat });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 1_000,
+      logger: { warn },
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 7 });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(warn).toHaveBeenCalledWith(
+      { err: failure, taskId: TASK_ID, attemptN: 7 },
+      'agent-runtime.reporter.heartbeat_failed',
+    );
+    await reporter.close();
+  });
+
+  it('aborts a heartbeat request after the internal deadline', async () => {
+    const heartbeat = vi.fn<TasksNamespace['heartbeat']>(
+      (_id, _attempt, _body, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener('abort', () => {
+            reject(
+              options.signal?.reason instanceof Error
+                ? options.signal.reason
+                : new Error('Heartbeat request aborted'),
+            );
+          });
+        }),
+    );
+    const warn = vi.fn();
+    const { tasks } = makeMockTasks({ heartbeat });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 0,
+      logger: { warn },
+    });
+
+    const opening = reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    const rejected = expect(opening).rejects.toThrow(
+      'Heartbeat request timed out',
+    );
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    await rejected;
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });

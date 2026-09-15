@@ -26,6 +26,10 @@ function agentServerStatus() {
     agents: [],
     identities: [],
     providers: {},
+    runtimeSettings: {
+      heartbeatIntervalMs: 60_000,
+      warmRetentionSec: 1800,
+    },
     runs: [],
   };
 }

@@ -569,6 +569,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "warmRetentionSec": {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
           "workspaceId": {
             "minLength": 1,
             "type": "string"
@@ -612,7 +617,8 @@
           "slotKey",
           "taskType",
           "lastTaskId",
-          "lastAttemptN"
+          "lastAttemptN",
+          "warmRetentionSec"
         ],
         "type": "object"
       },
@@ -2005,24 +2011,9 @@
             "maxLength": 4096,
             "type": "string"
           },
-          "heartbeatIntervalMs": {
-            "maximum": 3600000,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "leaseTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "maxBashTimeouts": {
             "maximum": 1000,
             "minimum": 0,
-            "type": "integer"
-          },
-          "maxBatchSize": {
-            "maximum": 1000,
-            "minimum": 1,
             "type": "integer"
           },
           "maxOutputTokens": {
@@ -2193,17 +2184,6 @@
             },
             "type": "object"
           },
-          "sessionStorageMode": {
-            "enum": [
-              "local"
-            ],
-            "type": "string"
-          },
-          "sessionTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "temperature": {
             "anyOf": [
               {
@@ -2305,17 +2285,6 @@
                 "type": "number"
               }
             ]
-          },
-          "workspaceStorageMode": {
-            "enum": [
-              "local"
-            ],
-            "type": "string"
-          },
-          "workspaceTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
           }
         },
         "required": [
@@ -4118,6 +4087,11 @@
           "taskId": {
             "format": "uuid",
             "type": "string"
+          },
+          "warmRetentionSec": {
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -4127,7 +4101,8 @@
           "model",
           "slotKey",
           "taskId",
-          "attemptN"
+          "attemptN",
+          "warmRetentionSec"
         ],
         "type": "object"
       },
@@ -8804,28 +8779,13 @@
               }
             ]
           },
-          "heartbeatIntervalMs": {
-            "maximum": 3600000,
-            "minimum": 0,
-            "type": "integer"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
           },
-          "leaseTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "maxBashTimeouts": {
             "maximum": 1000,
             "minimum": 0,
-            "type": "integer"
-          },
-          "maxBatchSize": {
-            "maximum": 1000,
-            "minimum": 1,
             "type": "integer"
           },
           "maxOutputTokens": {
@@ -9000,17 +8960,6 @@
             },
             "type": "object"
           },
-          "sessionStorageMode": {
-            "enum": [
-              "local"
-            ],
-            "type": "string"
-          },
-          "sessionTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "teamId": {
             "format": "uuid",
             "type": "string"
@@ -9120,17 +9069,6 @@
           "updatedAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "workspaceStorageMode": {
-            "enum": [
-              "local"
-            ],
-            "type": "string"
-          },
-          "workspaceTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
           }
         },
         "required": [
@@ -9147,15 +9085,8 @@
           "maxOutputTokens",
           "runtimeKind",
           "sandbox",
-          "sessionStorageMode",
-          "workspaceStorageMode",
           "defaultWorkspaceMode",
           "allowedWorkspaceModes",
-          "sessionTtlSec",
-          "workspaceTtlSec",
-          "leaseTtlSec",
-          "heartbeatIntervalMs",
-          "maxBatchSize",
           "maxTurns",
           "maxBashTimeouts",
           "toolEnforcement",
@@ -9381,28 +9312,13 @@
                     }
                   ]
                 },
-                "heartbeatIntervalMs": {
-                  "maximum": 3600000,
-                  "minimum": 0,
-                  "type": "integer"
-                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
                 },
-                "leaseTtlSec": {
-                  "maximum": 86400,
-                  "minimum": 1,
-                  "type": "integer"
-                },
                 "maxBashTimeouts": {
                   "maximum": 1000,
                   "minimum": 0,
-                  "type": "integer"
-                },
-                "maxBatchSize": {
-                  "maximum": 1000,
-                  "minimum": 1,
                   "type": "integer"
                 },
                 "maxOutputTokens": {
@@ -9577,17 +9493,6 @@
                   },
                   "type": "object"
                 },
-                "sessionStorageMode": {
-                  "enum": [
-                    "local"
-                  ],
-                  "type": "string"
-                },
-                "sessionTtlSec": {
-                  "maximum": 86400,
-                  "minimum": 1,
-                  "type": "integer"
-                },
                 "teamId": {
                   "format": "uuid",
                   "type": "string"
@@ -9697,17 +9602,6 @@
                 "updatedAt": {
                   "format": "date-time",
                   "type": "string"
-                },
-                "workspaceStorageMode": {
-                  "enum": [
-                    "local"
-                  ],
-                  "type": "string"
-                },
-                "workspaceTtlSec": {
-                  "maximum": 86400,
-                  "minimum": 1,
-                  "type": "integer"
                 }
               },
               "required": [
@@ -9724,15 +9618,8 @@
                 "maxOutputTokens",
                 "runtimeKind",
                 "sandbox",
-                "sessionStorageMode",
-                "workspaceStorageMode",
                 "defaultWorkspaceMode",
                 "allowedWorkspaceModes",
-                "sessionTtlSec",
-                "workspaceTtlSec",
-                "leaseTtlSec",
-                "heartbeatIntervalMs",
-                "maxBatchSize",
                 "maxTurns",
                 "maxBashTimeouts",
                 "toolEnforcement",
@@ -14012,24 +13899,9 @@
             "maxLength": 4096,
             "type": "string"
           },
-          "heartbeatIntervalMs": {
-            "maximum": 3600000,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "leaseTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "maxBashTimeouts": {
             "maximum": 1000,
             "minimum": 0,
-            "type": "integer"
-          },
-          "maxBatchSize": {
-            "maximum": 1000,
-            "minimum": 1,
             "type": "integer"
           },
           "maxOutputTokens": {
@@ -14200,17 +14072,6 @@
             },
             "type": "object"
           },
-          "sessionStorageMode": {
-            "enum": [
-              "local"
-            ],
-            "type": "string"
-          },
-          "sessionTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
-          },
           "temperature": {
             "anyOf": [
               {
@@ -14312,17 +14173,6 @@
                 "type": "number"
               }
             ]
-          },
-          "workspaceStorageMode": {
-            "enum": [
-              "local"
-            ],
-            "type": "string"
-          },
-          "workspaceTtlSec": {
-            "maximum": 86400,
-            "minimum": 1,
-            "type": "integer"
           }
         },
         "type": "object"
@@ -14922,7 +14772,7 @@
   "info": {
     "description": "Infrastructure for AI agent autonomy — identity, memory, and authentication.",
     "title": "MoltNet REST API",
-    "version": "0.57.3"
+    "version": "0.58.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -34821,6 +34671,11 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "warmRetentionSec": {
+                    "maximum": 86400,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "workspaceId": {
                     "minLength": 1,
                     "type": "string"
@@ -34864,7 +34719,8 @@
                   "slotKey",
                   "taskType",
                   "lastTaskId",
-                  "lastAttemptN"
+                  "lastAttemptN",
+                  "warmRetentionSec"
                 ],
                 "type": "object"
               }
@@ -36212,6 +36068,11 @@
                   "taskId": {
                     "format": "uuid",
                     "type": "string"
+                  },
+                  "warmRetentionSec": {
+                    "maximum": 86400,
+                    "minimum": 0,
+                    "type": "integer"
                   }
                 },
                 "required": [
@@ -36221,7 +36082,8 @@
                   "model",
                   "slotKey",
                   "taskId",
-                  "attemptN"
+                  "attemptN",
+                  "warmRetentionSec"
                 ],
                 "type": "object"
               }

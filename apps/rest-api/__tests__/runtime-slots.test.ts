@@ -115,6 +115,7 @@ describe('runtime slot routes', () => {
         workspaceKind: 'origin',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
+        warmRetentionSec: 600,
       },
     });
 
@@ -132,6 +133,7 @@ describe('runtime slot routes', () => {
         runtimeProfileId: PROFILE_ID,
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
+        warmRetentionSec: 600,
       }),
     );
   });
@@ -155,6 +157,7 @@ describe('runtime slot routes', () => {
         taskType: 'freeform',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
+        warmRetentionSec: 600,
       },
     });
 
@@ -178,6 +181,7 @@ describe('runtime slot routes', () => {
         taskType: 'freeform',
         lastTaskId: TASK_ID,
         lastAttemptN: 1,
+        warmRetentionSec: 600,
       },
     });
 
@@ -240,6 +244,7 @@ describe('runtime slot routes', () => {
         taskId: TASK_ID,
         attemptN: 1,
         sessionPath: '/tmp/session/0002.jsonl',
+        warmRetentionSec: 600,
       },
     });
 
@@ -250,6 +255,7 @@ describe('runtime slot routes', () => {
         taskId: TASK_ID,
         attemptN: 1,
         sessionPath: '/tmp/session/0002.jsonl',
+        warmRetentionSec: 600,
       }),
     );
   });
@@ -269,6 +275,7 @@ describe('runtime slot routes', () => {
         slotKey: 'freeform:correlation:test',
         taskId: TASK_ID,
         attemptN: 1,
+        warmRetentionSec: 600,
       },
     });
 

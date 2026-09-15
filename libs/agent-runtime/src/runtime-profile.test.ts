@@ -2,7 +2,6 @@ import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfile,
   RuntimeProfilePrerequisiteError,
   validateRuntimeProfilePrerequisites,
@@ -21,13 +20,8 @@ const profile = {
   topP: 0.9,
   topK: 40,
   maxOutputTokens: 12_000,
-  leaseTtlSec: 900,
-  heartbeatIntervalMs: 15_000,
-  maxBatchSize: 10,
   maxTurns: 30,
   maxBashTimeouts: 2,
-  sessionTtlSec: 600,
-  workspaceTtlSec: 300,
   defaultWorkspaceMode: 'dedicated_worktree' as const,
   allowedWorkspaceModes: ['none', 'dedicated_worktree'],
   requiredEnv: [],
@@ -87,13 +81,8 @@ describe('resolveRuntimeProfile', () => {
       topP: 0.9,
       topK: 40,
       maxOutputTokens: 12_000,
-      leaseTtlSec: 900,
-      heartbeatIntervalMs: 15_000,
-      maxBatchSize: 10,
       maxTurns: 30,
       maxBashTimeouts: 2,
-      sessionTtlSec: 600,
-      workspaceTtlSec: 300,
       defaultWorkspaceMode: 'dedicated_worktree',
       allowedWorkspaceModes: ['none', 'dedicated_worktree'],
       requiredEnv: [],
@@ -175,17 +164,6 @@ describe('resolveRuntimeProfile', () => {
         cwd: '/tmp/workspace',
       }),
     ).rejects.toThrow(/belongs to team team-2/);
-  });
-
-  it('uses the smaller session/workspace TTL for runtime-slot resumability', () => {
-    expect(resolveProfileWarmSessionTtlSec(profile)).toBe(300);
-    expect(
-      resolveProfileWarmSessionTtlSec({
-        ...profile,
-        sessionTtlSec: 120,
-        workspaceTtlSec: 600,
-      }),
-    ).toBe(120);
   });
 
   it('accepts satisfied profile prerequisites', () => {

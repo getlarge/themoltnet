@@ -190,6 +190,7 @@ describe('Runtime slots API', () => {
     attemptN: number,
     sessionPath: string,
   ) {
+    const beforeBeginMs = Date.now();
     const { data, error, response } = await beginRuntimeSlot({
       client,
       auth: () => teammate.accessToken,
@@ -205,6 +206,7 @@ describe('Runtime slots API', () => {
         sessionPath,
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskType: 'curate_pack',
+        warmRetentionSec: 600,
         workspaceId: 'workspace-e2e',
         workspaceKind: 'origin',
         worktreeBranch: 'issue-1414',
@@ -213,6 +215,8 @@ describe('Runtime slots API', () => {
     });
     expect(error).toBeUndefined();
     expect(response.status).toBe(200);
+    expect(data!.expiresAtMs).toBeGreaterThanOrEqual(beforeBeginMs + 599_000);
+    expect(data!.expiresAtMs).toBeLessThanOrEqual(Date.now() + 601_000);
     return data!;
   }
 
@@ -226,6 +230,7 @@ describe('Runtime slots API', () => {
       '/tmp/moltnet/e2e-sessions/producer.jsonl',
     );
 
+    const beforeFinishMs = Date.now();
     const { data: finished, error: finishError } = await finishRuntimeSlot({
       client,
       auth: () => teammate.accessToken,
@@ -239,10 +244,15 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/producer-finished.jsonl',
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskId,
+        warmRetentionSec: 600,
       },
     });
     expect(finishError).toBeUndefined();
     expect(finished!.state).toBe('idle');
+    expect(finished!.expiresAtMs).toBeGreaterThanOrEqual(
+      beforeFinishMs + 599_000,
+    );
+    expect(finished!.expiresAtMs).toBeLessThanOrEqual(Date.now() + 601_000);
 
     const {
       data: resolved,
@@ -323,6 +333,7 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/stale-overwrite.jsonl',
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskId: first.taskId,
+        warmRetentionSec: 600,
       },
     });
 
@@ -361,6 +372,7 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/unclaimed.jsonl',
         slotKey: 'curate_pack:correlation:unclaimed',
         taskType: 'curate_pack',
+        warmRetentionSec: 600,
       },
     });
 
@@ -411,6 +423,7 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/non-member-overwrite.jsonl',
         slotKey: 'curate_pack:correlation:runtime-slots',
         taskId,
+        warmRetentionSec: 600,
       },
     });
     expect(notMemberFinish.response.status).toBe(403);
@@ -447,6 +460,7 @@ describe('Runtime slots API', () => {
         sessionPath: '/tmp/moltnet/e2e-sessions/wrong-team.jsonl',
         slotKey: 'curate_pack:correlation:wrong-team',
         taskType: 'curate_pack',
+        warmRetentionSec: 600,
       },
     });
 

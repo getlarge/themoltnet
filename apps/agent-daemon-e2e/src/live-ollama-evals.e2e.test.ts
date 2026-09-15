@@ -98,13 +98,8 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
         runtimeKind: 'gondolin_pi',
         provider: LIVE_PROVIDER,
         model: LIVE_MODEL,
-        leaseTtlSec: 300,
-        heartbeatIntervalMs: 5_000,
-        maxBatchSize: 1,
         maxTurns: 14,
         maxBashTimeouts: 1,
-        sessionTtlSec: 600,
-        workspaceTtlSec: 600,
         defaultWorkspaceMode: 'shared_mount',
         allowedWorkspaceModes: ['none', 'shared_mount'],
         requiredEnv: ['OLLAMA_API_KEY'],
@@ -187,12 +182,8 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
             teamId,
             '--agent-root',
             agentRoot,
-            '--warm-session-ttl-sec',
+            '--warm-retention-sec',
             '600',
-            '--max-turns',
-            '14',
-            '--max-bash-timeouts',
-            '1',
           ]);
         } finally {
           process.chdir(oldCwd);

@@ -2854,6 +2854,7 @@ type BeginRuntimeSlotReq struct {
 	SessionPath      OptString                           `json:"sessionPath"`
 	SlotKey          string                              `json:"slotKey"`
 	TaskType         string                              `json:"taskType"`
+	WarmRetentionSec int                                 `json:"warmRetentionSec"`
 	WorkspaceId      OptString                           `json:"workspaceId"`
 	WorkspaceKind    OptBeginRuntimeSlotReqWorkspaceKind `json:"workspaceKind"`
 	WorktreeBranch   OptString                           `json:"worktreeBranch"`
@@ -2908,6 +2909,11 @@ func (s *BeginRuntimeSlotReq) GetSlotKey() string {
 // GetTaskType returns the value of TaskType.
 func (s *BeginRuntimeSlotReq) GetTaskType() string {
 	return s.TaskType
+}
+
+// GetWarmRetentionSec returns the value of WarmRetentionSec.
+func (s *BeginRuntimeSlotReq) GetWarmRetentionSec() int {
+	return s.WarmRetentionSec
 }
 
 // GetWorkspaceId returns the value of WorkspaceId.
@@ -2978,6 +2984,11 @@ func (s *BeginRuntimeSlotReq) SetSlotKey(val string) {
 // SetTaskType sets the value of TaskType.
 func (s *BeginRuntimeSlotReq) SetTaskType(val string) {
 	s.TaskType = val
+}
+
+// SetWarmRetentionSec sets the value of WarmRetentionSec.
+func (s *BeginRuntimeSlotReq) SetWarmRetentionSec(val int) {
+	s.WarmRetentionSec = val
 }
 
 // SetWorkspaceId sets the value of WorkspaceId.
@@ -6568,10 +6579,7 @@ type CreateRuntimeProfileBody struct {
 	Context               []CreateRuntimeProfileBodyContextItem               `json:"context"`
 	DefaultWorkspaceMode  OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode  `json:"defaultWorkspaceMode"`
 	Description           OptString                                           `json:"description"`
-	HeartbeatIntervalMs   OptInt                                              `json:"heartbeatIntervalMs"`
-	LeaseTtlSec           OptInt                                              `json:"leaseTtlSec"`
 	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
-	MaxBatchSize          OptInt                                              `json:"maxBatchSize"`
 	MaxOutputTokens       OptNilInt                                           `json:"maxOutputTokens"`
 	MaxTurns              OptInt                                              `json:"maxTurns"`
 	Model                 string                                              `json:"model"`
@@ -6582,17 +6590,13 @@ type CreateRuntimeProfileBody struct {
 	RequiredTools         []string                                            `json:"requiredTools"`
 	RuntimeKind           OptString                                           `json:"runtimeKind"`
 	Sandbox               CreateRuntimeProfileBodySandbox                     `json:"sandbox"`
-	SessionStorageMode    OptCreateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
-	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
 	Temperature           OptNilFloat64                                       `json:"temperature"`
 	ThinkingLevel         OptNilCreateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
-	ToolEnforcement      OptCreateRuntimeProfileBodyToolEnforcement      `json:"toolEnforcement"`
-	TopK                 OptNilInt                                       `json:"topK"`
-	TopP                 OptNilFloat64                                   `json:"topP"`
-	WorkspaceStorageMode OptCreateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
+	ToolEnforcement OptCreateRuntimeProfileBodyToolEnforcement `json:"toolEnforcement"`
+	TopK            OptNilInt                                  `json:"topK"`
+	TopP            OptNilFloat64                              `json:"topP"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -6615,24 +6619,9 @@ func (s *CreateRuntimeProfileBody) GetDescription() OptString {
 	return s.Description
 }
 
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *CreateRuntimeProfileBody) GetHeartbeatIntervalMs() OptInt {
-	return s.HeartbeatIntervalMs
-}
-
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *CreateRuntimeProfileBody) GetLeaseTtlSec() OptInt {
-	return s.LeaseTtlSec
-}
-
 // GetMaxBashTimeouts returns the value of MaxBashTimeouts.
 func (s *CreateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
 	return s.MaxBashTimeouts
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *CreateRuntimeProfileBody) GetMaxBatchSize() OptInt {
-	return s.MaxBatchSize
 }
 
 // GetMaxOutputTokens returns the value of MaxOutputTokens.
@@ -6685,16 +6674,6 @@ func (s *CreateRuntimeProfileBody) GetSandbox() CreateRuntimeProfileBodySandbox 
 	return s.Sandbox
 }
 
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *CreateRuntimeProfileBody) GetSessionStorageMode() OptCreateRuntimeProfileBodySessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *CreateRuntimeProfileBody) GetSessionTtlSec() OptInt {
-	return s.SessionTtlSec
-}
-
 // GetTemperature returns the value of Temperature.
 func (s *CreateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
 	return s.Temperature
@@ -6720,16 +6699,6 @@ func (s *CreateRuntimeProfileBody) GetTopP() OptNilFloat64 {
 	return s.TopP
 }
 
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *CreateRuntimeProfileBody) GetWorkspaceStorageMode() OptCreateRuntimeProfileBodyWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *CreateRuntimeProfileBody) GetWorkspaceTtlSec() OptInt {
-	return s.WorkspaceTtlSec
-}
-
 // SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
 func (s *CreateRuntimeProfileBody) SetAllowedWorkspaceModes(val []CreateRuntimeProfileBodyAllowedWorkspaceModesItem) {
 	s.AllowedWorkspaceModes = val
@@ -6750,24 +6719,9 @@ func (s *CreateRuntimeProfileBody) SetDescription(val OptString) {
 	s.Description = val
 }
 
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *CreateRuntimeProfileBody) SetHeartbeatIntervalMs(val OptInt) {
-	s.HeartbeatIntervalMs = val
-}
-
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *CreateRuntimeProfileBody) SetLeaseTtlSec(val OptInt) {
-	s.LeaseTtlSec = val
-}
-
 // SetMaxBashTimeouts sets the value of MaxBashTimeouts.
 func (s *CreateRuntimeProfileBody) SetMaxBashTimeouts(val OptInt) {
 	s.MaxBashTimeouts = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *CreateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
-	s.MaxBatchSize = val
 }
 
 // SetMaxOutputTokens sets the value of MaxOutputTokens.
@@ -6820,16 +6774,6 @@ func (s *CreateRuntimeProfileBody) SetSandbox(val CreateRuntimeProfileBodySandbo
 	s.Sandbox = val
 }
 
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *CreateRuntimeProfileBody) SetSessionStorageMode(val OptCreateRuntimeProfileBodySessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *CreateRuntimeProfileBody) SetSessionTtlSec(val OptInt) {
-	s.SessionTtlSec = val
-}
-
 // SetTemperature sets the value of Temperature.
 func (s *CreateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
 	s.Temperature = val
@@ -6853,16 +6797,6 @@ func (s *CreateRuntimeProfileBody) SetTopK(val OptNilInt) {
 // SetTopP sets the value of TopP.
 func (s *CreateRuntimeProfileBody) SetTopP(val OptNilFloat64) {
 	s.TopP = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *CreateRuntimeProfileBody) SetWorkspaceStorageMode(val OptCreateRuntimeProfileBodyWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *CreateRuntimeProfileBody) SetWorkspaceTtlSec(val OptInt) {
-	s.WorkspaceTtlSec = val
 }
 
 type CreateRuntimeProfileBodyAllowedWorkspaceModesItem string
@@ -7264,40 +7198,6 @@ func (s *CreateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte
 	}
 }
 
-type CreateRuntimeProfileBodySessionStorageMode string
-
-const (
-	CreateRuntimeProfileBodySessionStorageModeLocal CreateRuntimeProfileBodySessionStorageMode = "local"
-)
-
-// AllValues returns all CreateRuntimeProfileBodySessionStorageMode values.
-func (CreateRuntimeProfileBodySessionStorageMode) AllValues() []CreateRuntimeProfileBodySessionStorageMode {
-	return []CreateRuntimeProfileBodySessionStorageMode{
-		CreateRuntimeProfileBodySessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateRuntimeProfileBodySessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateRuntimeProfileBodySessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateRuntimeProfileBodySessionStorageMode) UnmarshalText(data []byte) error {
-	switch CreateRuntimeProfileBodySessionStorageMode(data) {
-	case CreateRuntimeProfileBodySessionStorageModeLocal:
-		*s = CreateRuntimeProfileBodySessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type CreateRuntimeProfileBodyThinkingLevel string
 
 const (
@@ -7411,40 +7311,6 @@ func (s *CreateRuntimeProfileBodyToolEnforcement) UnmarshalText(data []byte) err
 		return nil
 	case CreateRuntimeProfileBodyToolEnforcementEnforce:
 		*s = CreateRuntimeProfileBodyToolEnforcementEnforce
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateRuntimeProfileBodyWorkspaceStorageMode string
-
-const (
-	CreateRuntimeProfileBodyWorkspaceStorageModeLocal CreateRuntimeProfileBodyWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all CreateRuntimeProfileBodyWorkspaceStorageMode values.
-func (CreateRuntimeProfileBodyWorkspaceStorageMode) AllValues() []CreateRuntimeProfileBodyWorkspaceStorageMode {
-	return []CreateRuntimeProfileBodyWorkspaceStorageMode{
-		CreateRuntimeProfileBodyWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateRuntimeProfileBodyWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateRuntimeProfileBodyWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch CreateRuntimeProfileBodyWorkspaceStorageMode(data) {
-	case CreateRuntimeProfileBodyWorkspaceStorageModeLocal:
-		*s = CreateRuntimeProfileBodyWorkspaceStorageModeLocal
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -21860,6 +21726,7 @@ type FinishRuntimeSlotReq struct {
 	SessionPath      OptString `json:"sessionPath"`
 	SlotKey          string    `json:"slotKey"`
 	TaskId           uuid.UUID `json:"taskId"`
+	WarmRetentionSec int       `json:"warmRetentionSec"`
 }
 
 // GetAgentName returns the value of AgentName.
@@ -21902,6 +21769,11 @@ func (s *FinishRuntimeSlotReq) GetTaskId() uuid.UUID {
 	return s.TaskId
 }
 
+// GetWarmRetentionSec returns the value of WarmRetentionSec.
+func (s *FinishRuntimeSlotReq) GetWarmRetentionSec() int {
+	return s.WarmRetentionSec
+}
+
 // SetAgentName sets the value of AgentName.
 func (s *FinishRuntimeSlotReq) SetAgentName(val string) {
 	s.AgentName = val
@@ -21940,6 +21812,11 @@ func (s *FinishRuntimeSlotReq) SetSlotKey(val string) {
 // SetTaskId sets the value of TaskId.
 func (s *FinishRuntimeSlotReq) SetTaskId(val uuid.UUID) {
 	s.TaskId = val
+}
+
+// SetWarmRetentionSec sets the value of WarmRetentionSec.
+func (s *FinishRuntimeSlotReq) SetWarmRetentionSec(val int) {
+	s.WarmRetentionSec = val
 }
 
 type FinishRuntimeSlotServiceUnavailable ProblemDetails
@@ -35929,52 +35806,6 @@ func (o OptCreateRuntimeProfileBodySandboxVfsShadowMode) Or(d CreateRuntimeProfi
 	return d
 }
 
-// NewOptCreateRuntimeProfileBodySessionStorageMode returns new OptCreateRuntimeProfileBodySessionStorageMode with value set to v.
-func NewOptCreateRuntimeProfileBodySessionStorageMode(v CreateRuntimeProfileBodySessionStorageMode) OptCreateRuntimeProfileBodySessionStorageMode {
-	return OptCreateRuntimeProfileBodySessionStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateRuntimeProfileBodySessionStorageMode is optional CreateRuntimeProfileBodySessionStorageMode.
-type OptCreateRuntimeProfileBodySessionStorageMode struct {
-	Value CreateRuntimeProfileBodySessionStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptCreateRuntimeProfileBodySessionStorageMode was set.
-func (o OptCreateRuntimeProfileBodySessionStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateRuntimeProfileBodySessionStorageMode) Reset() {
-	var v CreateRuntimeProfileBodySessionStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateRuntimeProfileBodySessionStorageMode) SetTo(v CreateRuntimeProfileBodySessionStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateRuntimeProfileBodySessionStorageMode) Get() (v CreateRuntimeProfileBodySessionStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateRuntimeProfileBodySessionStorageMode) Or(d CreateRuntimeProfileBodySessionStorageMode) CreateRuntimeProfileBodySessionStorageMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptCreateRuntimeProfileBodyToolEnforcement returns new OptCreateRuntimeProfileBodyToolEnforcement with value set to v.
 func NewOptCreateRuntimeProfileBodyToolEnforcement(v CreateRuntimeProfileBodyToolEnforcement) OptCreateRuntimeProfileBodyToolEnforcement {
 	return OptCreateRuntimeProfileBodyToolEnforcement{
@@ -36015,52 +35846,6 @@ func (o OptCreateRuntimeProfileBodyToolEnforcement) Get() (v CreateRuntimeProfil
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateRuntimeProfileBodyToolEnforcement) Or(d CreateRuntimeProfileBodyToolEnforcement) CreateRuntimeProfileBodyToolEnforcement {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateRuntimeProfileBodyWorkspaceStorageMode returns new OptCreateRuntimeProfileBodyWorkspaceStorageMode with value set to v.
-func NewOptCreateRuntimeProfileBodyWorkspaceStorageMode(v CreateRuntimeProfileBodyWorkspaceStorageMode) OptCreateRuntimeProfileBodyWorkspaceStorageMode {
-	return OptCreateRuntimeProfileBodyWorkspaceStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateRuntimeProfileBodyWorkspaceStorageMode is optional CreateRuntimeProfileBodyWorkspaceStorageMode.
-type OptCreateRuntimeProfileBodyWorkspaceStorageMode struct {
-	Value CreateRuntimeProfileBodyWorkspaceStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptCreateRuntimeProfileBodyWorkspaceStorageMode was set.
-func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateRuntimeProfileBodyWorkspaceStorageMode) Reset() {
-	var v CreateRuntimeProfileBodyWorkspaceStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateRuntimeProfileBodyWorkspaceStorageMode) SetTo(v CreateRuntimeProfileBodyWorkspaceStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Get() (v CreateRuntimeProfileBodyWorkspaceStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Or(d CreateRuntimeProfileBodyWorkspaceStorageMode) CreateRuntimeProfileBodyWorkspaceStorageMode {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -40699,52 +40484,6 @@ func (o OptUpdateRuntimeProfileBodySandboxVfsShadowMode) Or(d UpdateRuntimeProfi
 	return d
 }
 
-// NewOptUpdateRuntimeProfileBodySessionStorageMode returns new OptUpdateRuntimeProfileBodySessionStorageMode with value set to v.
-func NewOptUpdateRuntimeProfileBodySessionStorageMode(v UpdateRuntimeProfileBodySessionStorageMode) OptUpdateRuntimeProfileBodySessionStorageMode {
-	return OptUpdateRuntimeProfileBodySessionStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateRuntimeProfileBodySessionStorageMode is optional UpdateRuntimeProfileBodySessionStorageMode.
-type OptUpdateRuntimeProfileBodySessionStorageMode struct {
-	Value UpdateRuntimeProfileBodySessionStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateRuntimeProfileBodySessionStorageMode was set.
-func (o OptUpdateRuntimeProfileBodySessionStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateRuntimeProfileBodySessionStorageMode) Reset() {
-	var v UpdateRuntimeProfileBodySessionStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateRuntimeProfileBodySessionStorageMode) SetTo(v UpdateRuntimeProfileBodySessionStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateRuntimeProfileBodySessionStorageMode) Get() (v UpdateRuntimeProfileBodySessionStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateRuntimeProfileBodySessionStorageMode) Or(d UpdateRuntimeProfileBodySessionStorageMode) UpdateRuntimeProfileBodySessionStorageMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptUpdateRuntimeProfileBodyToolEnforcement returns new OptUpdateRuntimeProfileBodyToolEnforcement with value set to v.
 func NewOptUpdateRuntimeProfileBodyToolEnforcement(v UpdateRuntimeProfileBodyToolEnforcement) OptUpdateRuntimeProfileBodyToolEnforcement {
 	return OptUpdateRuntimeProfileBodyToolEnforcement{
@@ -40785,52 +40524,6 @@ func (o OptUpdateRuntimeProfileBodyToolEnforcement) Get() (v UpdateRuntimeProfil
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateRuntimeProfileBodyToolEnforcement) Or(d UpdateRuntimeProfileBodyToolEnforcement) UpdateRuntimeProfileBodyToolEnforcement {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateRuntimeProfileBodyWorkspaceStorageMode returns new OptUpdateRuntimeProfileBodyWorkspaceStorageMode with value set to v.
-func NewOptUpdateRuntimeProfileBodyWorkspaceStorageMode(v UpdateRuntimeProfileBodyWorkspaceStorageMode) OptUpdateRuntimeProfileBodyWorkspaceStorageMode {
-	return OptUpdateRuntimeProfileBodyWorkspaceStorageMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateRuntimeProfileBodyWorkspaceStorageMode is optional UpdateRuntimeProfileBodyWorkspaceStorageMode.
-type OptUpdateRuntimeProfileBodyWorkspaceStorageMode struct {
-	Value UpdateRuntimeProfileBodyWorkspaceStorageMode
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateRuntimeProfileBodyWorkspaceStorageMode was set.
-func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Reset() {
-	var v UpdateRuntimeProfileBodyWorkspaceStorageMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateRuntimeProfileBodyWorkspaceStorageMode) SetTo(v UpdateRuntimeProfileBodyWorkspaceStorageMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Get() (v UpdateRuntimeProfileBodyWorkspaceStorageMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Or(d UpdateRuntimeProfileBodyWorkspaceStorageMode) UpdateRuntimeProfileBodyWorkspaceStorageMode {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -48267,11 +47960,8 @@ type RuntimeProfile struct {
 	DefaultWorkspaceMode  NilRuntimeProfileDefaultWorkspaceMode     `json:"defaultWorkspaceMode"`
 	DefinitionCid         string                                    `json:"definitionCid"`
 	Description           NilString                                 `json:"description"`
-	HeartbeatIntervalMs   int                                       `json:"heartbeatIntervalMs"`
 	ID                    uuid.UUID                                 `json:"id"`
-	LeaseTtlSec           int                                       `json:"leaseTtlSec"`
 	MaxBashTimeouts       int                                       `json:"maxBashTimeouts"`
-	MaxBatchSize          int                                       `json:"maxBatchSize"`
 	MaxOutputTokens       NilInt                                    `json:"maxOutputTokens"`
 	MaxTurns              int                                       `json:"maxTurns"`
 	Model                 string                                    `json:"model"`
@@ -48283,19 +47973,15 @@ type RuntimeProfile struct {
 	Revision              int                                       `json:"revision"`
 	RuntimeKind           string                                    `json:"runtimeKind"`
 	Sandbox               RuntimeProfileSandbox                     `json:"sandbox"`
-	SessionStorageMode    RuntimeProfileSessionStorageMode          `json:"sessionStorageMode"`
-	SessionTtlSec         int                                       `json:"sessionTtlSec"`
 	TeamId                uuid.UUID                                 `json:"teamId"`
 	Temperature           NilFloat64                                `json:"temperature"`
 	ThinkingLevel         NilRuntimeProfileThinkingLevel            `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
-	ToolEnforcement      RuntimeProfileToolEnforcement      `json:"toolEnforcement"`
-	TopK                 NilInt                             `json:"topK"`
-	TopP                 NilFloat64                         `json:"topP"`
-	UpdatedAt            time.Time                          `json:"updatedAt"`
-	WorkspaceStorageMode RuntimeProfileWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      int                                `json:"workspaceTtlSec"`
+	ToolEnforcement RuntimeProfileToolEnforcement `json:"toolEnforcement"`
+	TopK            NilInt                        `json:"topK"`
+	TopP            NilFloat64                    `json:"topP"`
+	UpdatedAt       time.Time                     `json:"updatedAt"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -48338,29 +48024,14 @@ func (s *RuntimeProfile) GetDescription() NilString {
 	return s.Description
 }
 
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *RuntimeProfile) GetHeartbeatIntervalMs() int {
-	return s.HeartbeatIntervalMs
-}
-
 // GetID returns the value of ID.
 func (s *RuntimeProfile) GetID() uuid.UUID {
 	return s.ID
 }
 
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *RuntimeProfile) GetLeaseTtlSec() int {
-	return s.LeaseTtlSec
-}
-
 // GetMaxBashTimeouts returns the value of MaxBashTimeouts.
 func (s *RuntimeProfile) GetMaxBashTimeouts() int {
 	return s.MaxBashTimeouts
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *RuntimeProfile) GetMaxBatchSize() int {
-	return s.MaxBatchSize
 }
 
 // GetMaxOutputTokens returns the value of MaxOutputTokens.
@@ -48418,16 +48089,6 @@ func (s *RuntimeProfile) GetSandbox() RuntimeProfileSandbox {
 	return s.Sandbox
 }
 
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *RuntimeProfile) GetSessionStorageMode() RuntimeProfileSessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *RuntimeProfile) GetSessionTtlSec() int {
-	return s.SessionTtlSec
-}
-
 // GetTeamId returns the value of TeamId.
 func (s *RuntimeProfile) GetTeamId() uuid.UUID {
 	return s.TeamId
@@ -48461,16 +48122,6 @@ func (s *RuntimeProfile) GetTopP() NilFloat64 {
 // GetUpdatedAt returns the value of UpdatedAt.
 func (s *RuntimeProfile) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
-}
-
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *RuntimeProfile) GetWorkspaceStorageMode() RuntimeProfileWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *RuntimeProfile) GetWorkspaceTtlSec() int {
-	return s.WorkspaceTtlSec
 }
 
 // SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
@@ -48513,29 +48164,14 @@ func (s *RuntimeProfile) SetDescription(val NilString) {
 	s.Description = val
 }
 
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *RuntimeProfile) SetHeartbeatIntervalMs(val int) {
-	s.HeartbeatIntervalMs = val
-}
-
 // SetID sets the value of ID.
 func (s *RuntimeProfile) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *RuntimeProfile) SetLeaseTtlSec(val int) {
-	s.LeaseTtlSec = val
-}
-
 // SetMaxBashTimeouts sets the value of MaxBashTimeouts.
 func (s *RuntimeProfile) SetMaxBashTimeouts(val int) {
 	s.MaxBashTimeouts = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *RuntimeProfile) SetMaxBatchSize(val int) {
-	s.MaxBatchSize = val
 }
 
 // SetMaxOutputTokens sets the value of MaxOutputTokens.
@@ -48593,16 +48229,6 @@ func (s *RuntimeProfile) SetSandbox(val RuntimeProfileSandbox) {
 	s.Sandbox = val
 }
 
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *RuntimeProfile) SetSessionStorageMode(val RuntimeProfileSessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *RuntimeProfile) SetSessionTtlSec(val int) {
-	s.SessionTtlSec = val
-}
-
 // SetTeamId sets the value of TeamId.
 func (s *RuntimeProfile) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
@@ -48636,16 +48262,6 @@ func (s *RuntimeProfile) SetTopP(val NilFloat64) {
 // SetUpdatedAt sets the value of UpdatedAt.
 func (s *RuntimeProfile) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *RuntimeProfile) SetWorkspaceStorageMode(val RuntimeProfileWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *RuntimeProfile) SetWorkspaceTtlSec(val int) {
-	s.WorkspaceTtlSec = val
 }
 
 func (*RuntimeProfile) createRuntimeProfileRes() {}
@@ -48865,11 +48481,8 @@ type RuntimeProfileListResponseItemsItem struct {
 	DefaultWorkspaceMode  NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode     `json:"defaultWorkspaceMode"`
 	DefinitionCid         string                                                         `json:"definitionCid"`
 	Description           NilString                                                      `json:"description"`
-	HeartbeatIntervalMs   int                                                            `json:"heartbeatIntervalMs"`
 	ID                    uuid.UUID                                                      `json:"id"`
-	LeaseTtlSec           int                                                            `json:"leaseTtlSec"`
 	MaxBashTimeouts       int                                                            `json:"maxBashTimeouts"`
-	MaxBatchSize          int                                                            `json:"maxBatchSize"`
 	MaxOutputTokens       NilInt                                                         `json:"maxOutputTokens"`
 	MaxTurns              int                                                            `json:"maxTurns"`
 	Model                 string                                                         `json:"model"`
@@ -48881,19 +48494,15 @@ type RuntimeProfileListResponseItemsItem struct {
 	Revision              int                                                            `json:"revision"`
 	RuntimeKind           string                                                         `json:"runtimeKind"`
 	Sandbox               RuntimeProfileListResponseItemsItemSandbox                     `json:"sandbox"`
-	SessionStorageMode    RuntimeProfileListResponseItemsItemSessionStorageMode          `json:"sessionStorageMode"`
-	SessionTtlSec         int                                                            `json:"sessionTtlSec"`
 	TeamId                uuid.UUID                                                      `json:"teamId"`
 	Temperature           NilFloat64                                                     `json:"temperature"`
 	ThinkingLevel         NilRuntimeProfileListResponseItemsItemThinkingLevel            `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
-	ToolEnforcement      RuntimeProfileListResponseItemsItemToolEnforcement      `json:"toolEnforcement"`
-	TopK                 NilInt                                                  `json:"topK"`
-	TopP                 NilFloat64                                              `json:"topP"`
-	UpdatedAt            time.Time                                               `json:"updatedAt"`
-	WorkspaceStorageMode RuntimeProfileListResponseItemsItemWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      int                                                     `json:"workspaceTtlSec"`
+	ToolEnforcement RuntimeProfileListResponseItemsItemToolEnforcement `json:"toolEnforcement"`
+	TopK            NilInt                                             `json:"topK"`
+	TopP            NilFloat64                                         `json:"topP"`
+	UpdatedAt       time.Time                                          `json:"updatedAt"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -48936,29 +48545,14 @@ func (s *RuntimeProfileListResponseItemsItem) GetDescription() NilString {
 	return s.Description
 }
 
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *RuntimeProfileListResponseItemsItem) GetHeartbeatIntervalMs() int {
-	return s.HeartbeatIntervalMs
-}
-
 // GetID returns the value of ID.
 func (s *RuntimeProfileListResponseItemsItem) GetID() uuid.UUID {
 	return s.ID
 }
 
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *RuntimeProfileListResponseItemsItem) GetLeaseTtlSec() int {
-	return s.LeaseTtlSec
-}
-
 // GetMaxBashTimeouts returns the value of MaxBashTimeouts.
 func (s *RuntimeProfileListResponseItemsItem) GetMaxBashTimeouts() int {
 	return s.MaxBashTimeouts
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *RuntimeProfileListResponseItemsItem) GetMaxBatchSize() int {
-	return s.MaxBatchSize
 }
 
 // GetMaxOutputTokens returns the value of MaxOutputTokens.
@@ -49016,16 +48610,6 @@ func (s *RuntimeProfileListResponseItemsItem) GetSandbox() RuntimeProfileListRes
 	return s.Sandbox
 }
 
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *RuntimeProfileListResponseItemsItem) GetSessionStorageMode() RuntimeProfileListResponseItemsItemSessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *RuntimeProfileListResponseItemsItem) GetSessionTtlSec() int {
-	return s.SessionTtlSec
-}
-
 // GetTeamId returns the value of TeamId.
 func (s *RuntimeProfileListResponseItemsItem) GetTeamId() uuid.UUID {
 	return s.TeamId
@@ -49059,16 +48643,6 @@ func (s *RuntimeProfileListResponseItemsItem) GetTopP() NilFloat64 {
 // GetUpdatedAt returns the value of UpdatedAt.
 func (s *RuntimeProfileListResponseItemsItem) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
-}
-
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *RuntimeProfileListResponseItemsItem) GetWorkspaceStorageMode() RuntimeProfileListResponseItemsItemWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *RuntimeProfileListResponseItemsItem) GetWorkspaceTtlSec() int {
-	return s.WorkspaceTtlSec
 }
 
 // SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
@@ -49111,29 +48685,14 @@ func (s *RuntimeProfileListResponseItemsItem) SetDescription(val NilString) {
 	s.Description = val
 }
 
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *RuntimeProfileListResponseItemsItem) SetHeartbeatIntervalMs(val int) {
-	s.HeartbeatIntervalMs = val
-}
-
 // SetID sets the value of ID.
 func (s *RuntimeProfileListResponseItemsItem) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *RuntimeProfileListResponseItemsItem) SetLeaseTtlSec(val int) {
-	s.LeaseTtlSec = val
-}
-
 // SetMaxBashTimeouts sets the value of MaxBashTimeouts.
 func (s *RuntimeProfileListResponseItemsItem) SetMaxBashTimeouts(val int) {
 	s.MaxBashTimeouts = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *RuntimeProfileListResponseItemsItem) SetMaxBatchSize(val int) {
-	s.MaxBatchSize = val
 }
 
 // SetMaxOutputTokens sets the value of MaxOutputTokens.
@@ -49191,16 +48750,6 @@ func (s *RuntimeProfileListResponseItemsItem) SetSandbox(val RuntimeProfileListR
 	s.Sandbox = val
 }
 
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *RuntimeProfileListResponseItemsItem) SetSessionStorageMode(val RuntimeProfileListResponseItemsItemSessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *RuntimeProfileListResponseItemsItem) SetSessionTtlSec(val int) {
-	s.SessionTtlSec = val
-}
-
 // SetTeamId sets the value of TeamId.
 func (s *RuntimeProfileListResponseItemsItem) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
@@ -49234,16 +48783,6 @@ func (s *RuntimeProfileListResponseItemsItem) SetTopP(val NilFloat64) {
 // SetUpdatedAt sets the value of UpdatedAt.
 func (s *RuntimeProfileListResponseItemsItem) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *RuntimeProfileListResponseItemsItem) SetWorkspaceStorageMode(val RuntimeProfileListResponseItemsItemWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *RuntimeProfileListResponseItemsItem) SetWorkspaceTtlSec(val int) {
-	s.WorkspaceTtlSec = val
 }
 
 type RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem string
@@ -49645,40 +49184,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalText(
 	}
 }
 
-type RuntimeProfileListResponseItemsItemSessionStorageMode string
-
-const (
-	RuntimeProfileListResponseItemsItemSessionStorageModeLocal RuntimeProfileListResponseItemsItemSessionStorageMode = "local"
-)
-
-// AllValues returns all RuntimeProfileListResponseItemsItemSessionStorageMode values.
-func (RuntimeProfileListResponseItemsItemSessionStorageMode) AllValues() []RuntimeProfileListResponseItemsItemSessionStorageMode {
-	return []RuntimeProfileListResponseItemsItemSessionStorageMode{
-		RuntimeProfileListResponseItemsItemSessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileListResponseItemsItemSessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileListResponseItemsItemSessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileListResponseItemsItemSessionStorageMode) UnmarshalText(data []byte) error {
-	switch RuntimeProfileListResponseItemsItemSessionStorageMode(data) {
-	case RuntimeProfileListResponseItemsItemSessionStorageModeLocal:
-		*s = RuntimeProfileListResponseItemsItemSessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type RuntimeProfileListResponseItemsItemThinkingLevel string
 
 const (
@@ -49792,40 +49297,6 @@ func (s *RuntimeProfileListResponseItemsItemToolEnforcement) UnmarshalText(data 
 		return nil
 	case RuntimeProfileListResponseItemsItemToolEnforcementEnforce:
 		*s = RuntimeProfileListResponseItemsItemToolEnforcementEnforce
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type RuntimeProfileListResponseItemsItemWorkspaceStorageMode string
-
-const (
-	RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal RuntimeProfileListResponseItemsItemWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all RuntimeProfileListResponseItemsItemWorkspaceStorageMode values.
-func (RuntimeProfileListResponseItemsItemWorkspaceStorageMode) AllValues() []RuntimeProfileListResponseItemsItemWorkspaceStorageMode {
-	return []RuntimeProfileListResponseItemsItemWorkspaceStorageMode{
-		RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch RuntimeProfileListResponseItemsItemWorkspaceStorageMode(data) {
-	case RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal:
-		*s = RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -50077,40 +49548,6 @@ func (s *RuntimeProfileSandboxVfsShadowMode) UnmarshalText(data []byte) error {
 	}
 }
 
-type RuntimeProfileSessionStorageMode string
-
-const (
-	RuntimeProfileSessionStorageModeLocal RuntimeProfileSessionStorageMode = "local"
-)
-
-// AllValues returns all RuntimeProfileSessionStorageMode values.
-func (RuntimeProfileSessionStorageMode) AllValues() []RuntimeProfileSessionStorageMode {
-	return []RuntimeProfileSessionStorageMode{
-		RuntimeProfileSessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileSessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileSessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileSessionStorageMode) UnmarshalText(data []byte) error {
-	switch RuntimeProfileSessionStorageMode(data) {
-	case RuntimeProfileSessionStorageModeLocal:
-		*s = RuntimeProfileSessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type RuntimeProfileThinkingLevel string
 
 const (
@@ -50224,40 +49661,6 @@ func (s *RuntimeProfileToolEnforcement) UnmarshalText(data []byte) error {
 		return nil
 	case RuntimeProfileToolEnforcementEnforce:
 		*s = RuntimeProfileToolEnforcementEnforce
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type RuntimeProfileWorkspaceStorageMode string
-
-const (
-	RuntimeProfileWorkspaceStorageModeLocal RuntimeProfileWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all RuntimeProfileWorkspaceStorageMode values.
-func (RuntimeProfileWorkspaceStorageMode) AllValues() []RuntimeProfileWorkspaceStorageMode {
-	return []RuntimeProfileWorkspaceStorageMode{
-		RuntimeProfileWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch RuntimeProfileWorkspaceStorageMode(data) {
-	case RuntimeProfileWorkspaceStorageModeLocal:
-		*s = RuntimeProfileWorkspaceStorageModeLocal
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -57787,10 +57190,7 @@ type UpdateRuntimeProfileBody struct {
 	Context               []UpdateRuntimeProfileBodyContextItem               `json:"context"`
 	DefaultWorkspaceMode  OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode  `json:"defaultWorkspaceMode"`
 	Description           OptString                                           `json:"description"`
-	HeartbeatIntervalMs   OptInt                                              `json:"heartbeatIntervalMs"`
-	LeaseTtlSec           OptInt                                              `json:"leaseTtlSec"`
 	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
-	MaxBatchSize          OptInt                                              `json:"maxBatchSize"`
 	MaxOutputTokens       OptNilInt                                           `json:"maxOutputTokens"`
 	MaxTurns              OptInt                                              `json:"maxTurns"`
 	Model                 OptString                                           `json:"model"`
@@ -57801,17 +57201,13 @@ type UpdateRuntimeProfileBody struct {
 	RequiredTools         []string                                            `json:"requiredTools"`
 	RuntimeKind           OptString                                           `json:"runtimeKind"`
 	Sandbox               OptUpdateRuntimeProfileBodySandbox                  `json:"sandbox"`
-	SessionStorageMode    OptUpdateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
-	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
 	Temperature           OptNilFloat64                                       `json:"temperature"`
 	ThinkingLevel         OptNilUpdateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
-	ToolEnforcement      OptUpdateRuntimeProfileBodyToolEnforcement      `json:"toolEnforcement"`
-	TopK                 OptNilInt                                       `json:"topK"`
-	TopP                 OptNilFloat64                                   `json:"topP"`
-	WorkspaceStorageMode OptUpdateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
-	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
+	ToolEnforcement OptUpdateRuntimeProfileBodyToolEnforcement `json:"toolEnforcement"`
+	TopK            OptNilInt                                  `json:"topK"`
+	TopP            OptNilFloat64                              `json:"topP"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -57834,24 +57230,9 @@ func (s *UpdateRuntimeProfileBody) GetDescription() OptString {
 	return s.Description
 }
 
-// GetHeartbeatIntervalMs returns the value of HeartbeatIntervalMs.
-func (s *UpdateRuntimeProfileBody) GetHeartbeatIntervalMs() OptInt {
-	return s.HeartbeatIntervalMs
-}
-
-// GetLeaseTtlSec returns the value of LeaseTtlSec.
-func (s *UpdateRuntimeProfileBody) GetLeaseTtlSec() OptInt {
-	return s.LeaseTtlSec
-}
-
 // GetMaxBashTimeouts returns the value of MaxBashTimeouts.
 func (s *UpdateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
 	return s.MaxBashTimeouts
-}
-
-// GetMaxBatchSize returns the value of MaxBatchSize.
-func (s *UpdateRuntimeProfileBody) GetMaxBatchSize() OptInt {
-	return s.MaxBatchSize
 }
 
 // GetMaxOutputTokens returns the value of MaxOutputTokens.
@@ -57904,16 +57285,6 @@ func (s *UpdateRuntimeProfileBody) GetSandbox() OptUpdateRuntimeProfileBodySandb
 	return s.Sandbox
 }
 
-// GetSessionStorageMode returns the value of SessionStorageMode.
-func (s *UpdateRuntimeProfileBody) GetSessionStorageMode() OptUpdateRuntimeProfileBodySessionStorageMode {
-	return s.SessionStorageMode
-}
-
-// GetSessionTtlSec returns the value of SessionTtlSec.
-func (s *UpdateRuntimeProfileBody) GetSessionTtlSec() OptInt {
-	return s.SessionTtlSec
-}
-
 // GetTemperature returns the value of Temperature.
 func (s *UpdateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
 	return s.Temperature
@@ -57939,16 +57310,6 @@ func (s *UpdateRuntimeProfileBody) GetTopP() OptNilFloat64 {
 	return s.TopP
 }
 
-// GetWorkspaceStorageMode returns the value of WorkspaceStorageMode.
-func (s *UpdateRuntimeProfileBody) GetWorkspaceStorageMode() OptUpdateRuntimeProfileBodyWorkspaceStorageMode {
-	return s.WorkspaceStorageMode
-}
-
-// GetWorkspaceTtlSec returns the value of WorkspaceTtlSec.
-func (s *UpdateRuntimeProfileBody) GetWorkspaceTtlSec() OptInt {
-	return s.WorkspaceTtlSec
-}
-
 // SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
 func (s *UpdateRuntimeProfileBody) SetAllowedWorkspaceModes(val []UpdateRuntimeProfileBodyAllowedWorkspaceModesItem) {
 	s.AllowedWorkspaceModes = val
@@ -57969,24 +57330,9 @@ func (s *UpdateRuntimeProfileBody) SetDescription(val OptString) {
 	s.Description = val
 }
 
-// SetHeartbeatIntervalMs sets the value of HeartbeatIntervalMs.
-func (s *UpdateRuntimeProfileBody) SetHeartbeatIntervalMs(val OptInt) {
-	s.HeartbeatIntervalMs = val
-}
-
-// SetLeaseTtlSec sets the value of LeaseTtlSec.
-func (s *UpdateRuntimeProfileBody) SetLeaseTtlSec(val OptInt) {
-	s.LeaseTtlSec = val
-}
-
 // SetMaxBashTimeouts sets the value of MaxBashTimeouts.
 func (s *UpdateRuntimeProfileBody) SetMaxBashTimeouts(val OptInt) {
 	s.MaxBashTimeouts = val
-}
-
-// SetMaxBatchSize sets the value of MaxBatchSize.
-func (s *UpdateRuntimeProfileBody) SetMaxBatchSize(val OptInt) {
-	s.MaxBatchSize = val
 }
 
 // SetMaxOutputTokens sets the value of MaxOutputTokens.
@@ -58039,16 +57385,6 @@ func (s *UpdateRuntimeProfileBody) SetSandbox(val OptUpdateRuntimeProfileBodySan
 	s.Sandbox = val
 }
 
-// SetSessionStorageMode sets the value of SessionStorageMode.
-func (s *UpdateRuntimeProfileBody) SetSessionStorageMode(val OptUpdateRuntimeProfileBodySessionStorageMode) {
-	s.SessionStorageMode = val
-}
-
-// SetSessionTtlSec sets the value of SessionTtlSec.
-func (s *UpdateRuntimeProfileBody) SetSessionTtlSec(val OptInt) {
-	s.SessionTtlSec = val
-}
-
 // SetTemperature sets the value of Temperature.
 func (s *UpdateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
 	s.Temperature = val
@@ -58072,16 +57408,6 @@ func (s *UpdateRuntimeProfileBody) SetTopK(val OptNilInt) {
 // SetTopP sets the value of TopP.
 func (s *UpdateRuntimeProfileBody) SetTopP(val OptNilFloat64) {
 	s.TopP = val
-}
-
-// SetWorkspaceStorageMode sets the value of WorkspaceStorageMode.
-func (s *UpdateRuntimeProfileBody) SetWorkspaceStorageMode(val OptUpdateRuntimeProfileBodyWorkspaceStorageMode) {
-	s.WorkspaceStorageMode = val
-}
-
-// SetWorkspaceTtlSec sets the value of WorkspaceTtlSec.
-func (s *UpdateRuntimeProfileBody) SetWorkspaceTtlSec(val OptInt) {
-	s.WorkspaceTtlSec = val
 }
 
 type UpdateRuntimeProfileBodyAllowedWorkspaceModesItem string
@@ -58483,40 +57809,6 @@ func (s *UpdateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte
 	}
 }
 
-type UpdateRuntimeProfileBodySessionStorageMode string
-
-const (
-	UpdateRuntimeProfileBodySessionStorageModeLocal UpdateRuntimeProfileBodySessionStorageMode = "local"
-)
-
-// AllValues returns all UpdateRuntimeProfileBodySessionStorageMode values.
-func (UpdateRuntimeProfileBodySessionStorageMode) AllValues() []UpdateRuntimeProfileBodySessionStorageMode {
-	return []UpdateRuntimeProfileBodySessionStorageMode{
-		UpdateRuntimeProfileBodySessionStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateRuntimeProfileBodySessionStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateRuntimeProfileBodySessionStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateRuntimeProfileBodySessionStorageMode) UnmarshalText(data []byte) error {
-	switch UpdateRuntimeProfileBodySessionStorageMode(data) {
-	case UpdateRuntimeProfileBodySessionStorageModeLocal:
-		*s = UpdateRuntimeProfileBodySessionStorageModeLocal
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type UpdateRuntimeProfileBodyThinkingLevel string
 
 const (
@@ -58630,40 +57922,6 @@ func (s *UpdateRuntimeProfileBodyToolEnforcement) UnmarshalText(data []byte) err
 		return nil
 	case UpdateRuntimeProfileBodyToolEnforcementEnforce:
 		*s = UpdateRuntimeProfileBodyToolEnforcementEnforce
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateRuntimeProfileBodyWorkspaceStorageMode string
-
-const (
-	UpdateRuntimeProfileBodyWorkspaceStorageModeLocal UpdateRuntimeProfileBodyWorkspaceStorageMode = "local"
-)
-
-// AllValues returns all UpdateRuntimeProfileBodyWorkspaceStorageMode values.
-func (UpdateRuntimeProfileBodyWorkspaceStorageMode) AllValues() []UpdateRuntimeProfileBodyWorkspaceStorageMode {
-	return []UpdateRuntimeProfileBodyWorkspaceStorageMode{
-		UpdateRuntimeProfileBodyWorkspaceStorageModeLocal,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateRuntimeProfileBodyWorkspaceStorageMode) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateRuntimeProfileBodyWorkspaceStorageModeLocal:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalText(data []byte) error {
-	switch UpdateRuntimeProfileBodyWorkspaceStorageMode(data) {
-	case UpdateRuntimeProfileBodyWorkspaceStorageModeLocal:
-		*s = UpdateRuntimeProfileBodyWorkspaceStorageModeLocal
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

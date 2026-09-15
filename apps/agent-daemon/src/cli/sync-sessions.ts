@@ -8,9 +8,9 @@ import {
 } from '../lib/agent-context.js';
 import { isHelpFlag, SYNC_SESSIONS_HELP } from '../lib/help.js';
 import {
-  commonOptionDefs,
+  identityOptionDefs,
   MissingRequiredOptionError,
-  parseCommonOptions,
+  parseIdentityProcessOptions,
 } from '../lib/options.js';
 import { syncRuntimeSessions } from '../lib/runtime-session-sync.js';
 import { createApiRuntimeSessionStore } from '../lib/runtime-sessions.js';
@@ -26,7 +26,7 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
   const { values } = parseArgs({
     args: argv,
     options: {
-      ...commonOptionDefs(),
+      ...identityOptionDefs(),
       team: { type: 'string' },
       'runtime-profile-id': { type: 'string' },
       state: { type: 'string' },
@@ -41,9 +41,9 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
     return 1;
   }
 
-  let opts: ReturnType<typeof parseCommonOptions>;
+  let identity: ReturnType<typeof parseIdentityProcessOptions>;
   try {
-    opts = parseCommonOptions(values);
+    identity = parseIdentityProcessOptions(values);
   } catch (err) {
     if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
@@ -65,7 +65,7 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
     ? resolve(process.cwd(), values['agent-root'])
     : undefined;
   const cfg = loadConfig();
-  const ctx = await resolveAgentContext(opts.agent, {
+  const ctx = await resolveAgentContext(identity.agent, {
     // Without this the resolver always takes the config path, so a configless
     // MOLTNET_AGENT_KEY run demands a moltnet.json it was never meant to have.
     credentialSource: cfg.credentialSource,
@@ -82,7 +82,7 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
       taskReader: ctx.agent.tasks,
     },
     {
-      agentName: opts.agent,
+      agentName: identity.agent,
       dryRun: values['dry-run'] === true,
       limit,
       runtimeProfileId: values['runtime-profile-id'],

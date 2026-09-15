@@ -296,14 +296,12 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         agent: keyAgent,
         teamId,
         taskTypes: ['curate_pack'],
-        leaseTtlSec: 60,
         stopWhenEmpty: true,
         logger: silentLogger,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: keyAgent.tasks,
-          leaseTtlSec: 60,
           heartbeatIntervalMs: 0,
         }),
       executeTask: async (claimedTask, reporter) => {
@@ -415,9 +413,6 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         runtimeKind: 'gondolin_pi',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
-        leaseTtlSec: 300,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 10,
         sandbox: {},
       },
       { teamId },
@@ -437,7 +432,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         profile.id,
         '--team',
         teamId,
-        '--warm-session-ttl-sec',
+        '--warm-retention-sec',
         '600',
       ]);
       if (exitCode !== 0) {

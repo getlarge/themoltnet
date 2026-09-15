@@ -6676,6 +6676,10 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.TaskType)
 	}
 	{
+		e.FieldStart("warmRetentionSec")
+		e.Int(s.WarmRetentionSec)
+	}
+	{
 		if s.WorkspaceId.Set {
 			e.FieldStart("workspaceId")
 			s.WorkspaceId.Encode(e)
@@ -6701,7 +6705,7 @@ func (s *BeginRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotReq = [14]string{
+var jsonFieldsNameOfBeginRuntimeSlotReq = [15]string{
 	0:  "agentName",
 	1:  "lastAttemptN",
 	2:  "lastTaskId",
@@ -6712,10 +6716,11 @@ var jsonFieldsNameOfBeginRuntimeSlotReq = [14]string{
 	7:  "sessionPath",
 	8:  "slotKey",
 	9:  "taskType",
-	10: "workspaceId",
-	11: "workspaceKind",
-	12: "worktreeBranch",
-	13: "worktreePath",
+	10: "warmRetentionSec",
+	11: "workspaceId",
+	12: "workspaceKind",
+	13: "worktreeBranch",
+	14: "worktreePath",
 }
 
 // Decode decodes BeginRuntimeSlotReq from json.
@@ -6843,6 +6848,18 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
+		case "warmRetentionSec":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.WarmRetentionSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"warmRetentionSec\"")
+			}
 		case "workspaceId":
 			if err := func() error {
 				s.WorkspaceId.Reset()
@@ -6894,7 +6911,7 @@ func (s *BeginRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b00111111,
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -17074,27 +17091,9 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.HeartbeatIntervalMs.Set {
-			e.FieldStart("heartbeatIntervalMs")
-			s.HeartbeatIntervalMs.Encode(e)
-		}
-	}
-	{
-		if s.LeaseTtlSec.Set {
-			e.FieldStart("leaseTtlSec")
-			s.LeaseTtlSec.Encode(e)
-		}
-	}
-	{
 		if s.MaxBashTimeouts.Set {
 			e.FieldStart("maxBashTimeouts")
 			s.MaxBashTimeouts.Encode(e)
-		}
-	}
-	{
-		if s.MaxBatchSize.Set {
-			e.FieldStart("maxBatchSize")
-			s.MaxBatchSize.Encode(e)
 		}
 	}
 	{
@@ -17162,18 +17161,6 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		s.Sandbox.Encode(e)
 	}
 	{
-		if s.SessionStorageMode.Set {
-			e.FieldStart("sessionStorageMode")
-			s.SessionStorageMode.Encode(e)
-		}
-	}
-	{
-		if s.SessionTtlSec.Set {
-			e.FieldStart("sessionTtlSec")
-			s.SessionTtlSec.Encode(e)
-		}
-	}
-	{
 		if s.Temperature.Set {
 			e.FieldStart("temperature")
 			s.Temperature.Encode(e)
@@ -17203,48 +17190,29 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 			s.TopP.Encode(e)
 		}
 	}
-	{
-		if s.WorkspaceStorageMode.Set {
-			e.FieldStart("workspaceStorageMode")
-			s.WorkspaceStorageMode.Encode(e)
-		}
-	}
-	{
-		if s.WorkspaceTtlSec.Set {
-			e.FieldStart("workspaceTtlSec")
-			s.WorkspaceTtlSec.Encode(e)
-		}
-	}
 }
 
-var jsonFieldsNameOfCreateRuntimeProfileBody = [27]string{
+var jsonFieldsNameOfCreateRuntimeProfileBody = [20]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "defaultWorkspaceMode",
 	3:  "description",
-	4:  "heartbeatIntervalMs",
-	5:  "leaseTtlSec",
-	6:  "maxBashTimeouts",
-	7:  "maxBatchSize",
-	8:  "maxOutputTokens",
-	9:  "maxTurns",
-	10: "model",
-	11: "name",
-	12: "provider",
-	13: "requiredEnv",
-	14: "requiredExecutables",
-	15: "requiredTools",
-	16: "runtimeKind",
-	17: "sandbox",
-	18: "sessionStorageMode",
-	19: "sessionTtlSec",
-	20: "temperature",
-	21: "thinkingLevel",
-	22: "toolEnforcement",
-	23: "topK",
-	24: "topP",
-	25: "workspaceStorageMode",
-	26: "workspaceTtlSec",
+	4:  "maxBashTimeouts",
+	5:  "maxOutputTokens",
+	6:  "maxTurns",
+	7:  "model",
+	8:  "name",
+	9:  "provider",
+	10: "requiredEnv",
+	11: "requiredExecutables",
+	12: "requiredTools",
+	13: "runtimeKind",
+	14: "sandbox",
+	15: "temperature",
+	16: "thinkingLevel",
+	17: "toolEnforcement",
+	18: "topK",
+	19: "topP",
 }
 
 // Decode decodes CreateRuntimeProfileBody from json.
@@ -17252,7 +17220,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CreateRuntimeProfileBody to nil")
 	}
-	var requiredBitSet [4]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -17310,26 +17278,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "heartbeatIntervalMs":
-			if err := func() error {
-				s.HeartbeatIntervalMs.Reset()
-				if err := s.HeartbeatIntervalMs.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
-			}
-		case "leaseTtlSec":
-			if err := func() error {
-				s.LeaseTtlSec.Reset()
-				if err := s.LeaseTtlSec.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
-			}
 		case "maxBashTimeouts":
 			if err := func() error {
 				s.MaxBashTimeouts.Reset()
@@ -17339,16 +17287,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
-			}
-		case "maxBatchSize":
-			if err := func() error {
-				s.MaxBatchSize.Reset()
-				if err := s.MaxBatchSize.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
 		case "maxOutputTokens":
 			if err := func() error {
@@ -17371,7 +17309,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -17383,7 +17321,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -17395,7 +17333,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -17474,7 +17412,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -17482,26 +17420,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sandbox\"")
-			}
-		case "sessionStorageMode":
-			if err := func() error {
-				s.SessionStorageMode.Reset()
-				if err := s.SessionStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
-			}
-		case "sessionTtlSec":
-			if err := func() error {
-				s.SessionTtlSec.Reset()
-				if err := s.SessionTtlSec.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "temperature":
 			if err := func() error {
@@ -17553,26 +17471,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"topP\"")
 			}
-		case "workspaceStorageMode":
-			if err := func() error {
-				s.WorkspaceStorageMode.Reset()
-				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
-			}
-		case "workspaceTtlSec":
-			if err := func() error {
-				s.WorkspaceTtlSec.Reset()
-				if err := s.WorkspaceTtlSec.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
-			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -17582,10 +17480,9 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [4]uint8{
-		0b00000000,
-		0b00011100,
-		0b00000010,
+	for i, mask := range [3]uint8{
+		0b10000000,
+		0b01000011,
 		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
@@ -18489,44 +18386,6 @@ func (s *CreateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte
 	return s.Decode(d)
 }
 
-// Encode encodes CreateRuntimeProfileBodySessionStorageMode as json.
-func (s CreateRuntimeProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes CreateRuntimeProfileBodySessionStorageMode from json.
-func (s *CreateRuntimeProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateRuntimeProfileBodySessionStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch CreateRuntimeProfileBodySessionStorageMode(v) {
-	case CreateRuntimeProfileBodySessionStorageModeLocal:
-		*s = CreateRuntimeProfileBodySessionStorageModeLocal
-	default:
-		*s = CreateRuntimeProfileBodySessionStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s CreateRuntimeProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateRuntimeProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CreateRuntimeProfileBodyThinkingLevel as json.
 func (s CreateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -18613,44 +18472,6 @@ func (s CreateRuntimeProfileBodyToolEnforcement) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBodyToolEnforcement) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateRuntimeProfileBodyWorkspaceStorageMode as json.
-func (s CreateRuntimeProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes CreateRuntimeProfileBodyWorkspaceStorageMode from json.
-func (s *CreateRuntimeProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyWorkspaceStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch CreateRuntimeProfileBodyWorkspaceStorageMode(v) {
-	case CreateRuntimeProfileBodyWorkspaceStorageModeLocal:
-		*s = CreateRuntimeProfileBodyWorkspaceStorageModeLocal
-	default:
-		*s = CreateRuntimeProfileBodyWorkspaceStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s CreateRuntimeProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -44046,9 +43867,13 @@ func (s *FinishRuntimeSlotReq) encodeFields(e *jx.Encoder) {
 		e.FieldStart("taskId")
 		json.EncodeUUID(e, s.TaskId)
 	}
+	{
+		e.FieldStart("warmRetentionSec")
+		e.Int(s.WarmRetentionSec)
+	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotReq = [8]string{
+var jsonFieldsNameOfFinishRuntimeSlotReq = [9]string{
 	0: "agentName",
 	1: "attemptN",
 	2: "model",
@@ -44057,6 +43882,7 @@ var jsonFieldsNameOfFinishRuntimeSlotReq = [8]string{
 	5: "sessionPath",
 	6: "slotKey",
 	7: "taskId",
+	8: "warmRetentionSec",
 }
 
 // Decode decodes FinishRuntimeSlotReq from json.
@@ -44064,7 +43890,7 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode FinishRuntimeSlotReq to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -44162,6 +43988,18 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
+		case "warmRetentionSec":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.WarmRetentionSec = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"warmRetentionSec\"")
+			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -44171,8 +44009,9 @@ func (s *FinishRuntimeSlotReq) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11011111,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -75673,39 +75512,6 @@ func (s *OptCreateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []b
 	return s.Decode(d)
 }
 
-// Encode encodes CreateRuntimeProfileBodySessionStorageMode as json.
-func (o OptCreateRuntimeProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes CreateRuntimeProfileBodySessionStorageMode from json.
-func (o *OptCreateRuntimeProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptCreateRuntimeProfileBodySessionStorageMode to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptCreateRuntimeProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptCreateRuntimeProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CreateRuntimeProfileBodyToolEnforcement as json.
 func (o OptCreateRuntimeProfileBodyToolEnforcement) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -75735,39 +75541,6 @@ func (s OptCreateRuntimeProfileBodyToolEnforcement) MarshalJSON() ([]byte, error
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptCreateRuntimeProfileBodyToolEnforcement) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateRuntimeProfileBodyWorkspaceStorageMode as json.
-func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes CreateRuntimeProfileBodyWorkspaceStorageMode from json.
-func (o *OptCreateRuntimeProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptCreateRuntimeProfileBodyWorkspaceStorageMode to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptCreateRuntimeProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptCreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -78796,39 +78569,6 @@ func (s *OptUpdateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []b
 	return s.Decode(d)
 }
 
-// Encode encodes UpdateRuntimeProfileBodySessionStorageMode as json.
-func (o OptUpdateRuntimeProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes UpdateRuntimeProfileBodySessionStorageMode from json.
-func (o *OptUpdateRuntimeProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptUpdateRuntimeProfileBodySessionStorageMode to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptUpdateRuntimeProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptUpdateRuntimeProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes UpdateRuntimeProfileBodyToolEnforcement as json.
 func (o OptUpdateRuntimeProfileBodyToolEnforcement) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -78858,39 +78598,6 @@ func (s OptUpdateRuntimeProfileBodyToolEnforcement) MarshalJSON() ([]byte, error
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptUpdateRuntimeProfileBodyToolEnforcement) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateRuntimeProfileBodyWorkspaceStorageMode as json.
-func (o OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes UpdateRuntimeProfileBodyWorkspaceStorageMode from json.
-func (o *OptUpdateRuntimeProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptUpdateRuntimeProfileBodyWorkspaceStorageMode to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptUpdateRuntimeProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptUpdateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -97624,24 +97331,12 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		s.Description.Encode(e)
 	}
 	{
-		e.FieldStart("heartbeatIntervalMs")
-		e.Int(s.HeartbeatIntervalMs)
-	}
-	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
 	{
-		e.FieldStart("leaseTtlSec")
-		e.Int(s.LeaseTtlSec)
-	}
-	{
 		e.FieldStart("maxBashTimeouts")
 		e.Int(s.MaxBashTimeouts)
-	}
-	{
-		e.FieldStart("maxBatchSize")
-		e.Int(s.MaxBatchSize)
 	}
 	{
 		e.FieldStart("maxOutputTokens")
@@ -97700,14 +97395,6 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		s.Sandbox.Encode(e)
 	}
 	{
-		e.FieldStart("sessionStorageMode")
-		s.SessionStorageMode.Encode(e)
-	}
-	{
-		e.FieldStart("sessionTtlSec")
-		e.Int(s.SessionTtlSec)
-	}
-	{
 		e.FieldStart("teamId")
 		json.EncodeUUID(e, s.TeamId)
 	}
@@ -97735,17 +97422,9 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		e.FieldStart("updatedAt")
 		json.EncodeDateTime(e, s.UpdatedAt)
 	}
-	{
-		e.FieldStart("workspaceStorageMode")
-		s.WorkspaceStorageMode.Encode(e)
-	}
-	{
-		e.FieldStart("workspaceTtlSec")
-		e.Int(s.WorkspaceTtlSec)
-	}
 }
 
-var jsonFieldsNameOfRuntimeProfile = [35]string{
+var jsonFieldsNameOfRuntimeProfile = [28]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "createdAt",
@@ -97754,33 +97433,26 @@ var jsonFieldsNameOfRuntimeProfile = [35]string{
 	5:  "defaultWorkspaceMode",
 	6:  "definitionCid",
 	7:  "description",
-	8:  "heartbeatIntervalMs",
-	9:  "id",
-	10: "leaseTtlSec",
-	11: "maxBashTimeouts",
-	12: "maxBatchSize",
-	13: "maxOutputTokens",
-	14: "maxTurns",
-	15: "model",
-	16: "name",
-	17: "provider",
-	18: "requiredEnv",
-	19: "requiredExecutables",
-	20: "requiredTools",
-	21: "revision",
-	22: "runtimeKind",
-	23: "sandbox",
-	24: "sessionStorageMode",
-	25: "sessionTtlSec",
-	26: "teamId",
-	27: "temperature",
-	28: "thinkingLevel",
-	29: "toolEnforcement",
-	30: "topK",
-	31: "topP",
-	32: "updatedAt",
-	33: "workspaceStorageMode",
-	34: "workspaceTtlSec",
+	8:  "id",
+	9:  "maxBashTimeouts",
+	10: "maxOutputTokens",
+	11: "maxTurns",
+	12: "model",
+	13: "name",
+	14: "provider",
+	15: "requiredEnv",
+	16: "requiredExecutables",
+	17: "requiredTools",
+	18: "revision",
+	19: "runtimeKind",
+	20: "sandbox",
+	21: "teamId",
+	22: "temperature",
+	23: "thinkingLevel",
+	24: "toolEnforcement",
+	25: "topK",
+	26: "topP",
+	27: "updatedAt",
 }
 
 // Decode decodes RuntimeProfile from json.
@@ -97788,7 +97460,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RuntimeProfile to nil")
 	}
-	var requiredBitSet [5]uint8
+	var requiredBitSet [4]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -97892,20 +97564,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "heartbeatIntervalMs":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				v, err := d.Int()
-				s.HeartbeatIntervalMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
-			}
 		case "id":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -97916,20 +97576,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "leaseTtlSec":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				v, err := d.Int()
-				s.LeaseTtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
-			}
 		case "maxBashTimeouts":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBashTimeouts = int(v)
@@ -97940,20 +97588,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
-		case "maxBatchSize":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				v, err := d.Int()
-				s.MaxBatchSize = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxBatchSize\"")
-			}
 		case "maxOutputTokens":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.MaxOutputTokens.Decode(d); err != nil {
 					return err
@@ -97963,7 +97599,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
 			}
 		case "maxTurns":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxTurns = int(v)
@@ -97975,7 +97611,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -97987,7 +97623,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -97999,7 +97635,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -98011,7 +97647,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -98031,7 +97667,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredExecutables":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				s.RequiredExecutables = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -98051,7 +97687,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutables\"")
 			}
 		case "requiredTools":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -98071,7 +97707,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -98083,7 +97719,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.RuntimeKind = string(v)
@@ -98095,7 +97731,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -98104,30 +97740,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
-		case "sessionStorageMode":
-			requiredBitSet[3] |= 1 << 0
-			if err := func() error {
-				if err := s.SessionStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
-			}
-		case "sessionTtlSec":
-			requiredBitSet[3] |= 1 << 1
-			if err := func() error {
-				v, err := d.Int()
-				s.SessionTtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
-			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 2
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -98139,7 +97753,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "temperature":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.Temperature.Decode(d); err != nil {
 					return err
@@ -98149,7 +97763,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"temperature\"")
 			}
 		case "thinkingLevel":
-			requiredBitSet[3] |= 1 << 4
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				if err := s.ThinkingLevel.Decode(d); err != nil {
 					return err
@@ -98159,7 +97773,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"thinkingLevel\"")
 			}
 		case "toolEnforcement":
-			requiredBitSet[3] |= 1 << 5
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				if err := s.ToolEnforcement.Decode(d); err != nil {
 					return err
@@ -98169,7 +97783,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
 		case "topK":
-			requiredBitSet[3] |= 1 << 6
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				if err := s.TopK.Decode(d); err != nil {
 					return err
@@ -98179,7 +97793,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topK\"")
 			}
 		case "topP":
-			requiredBitSet[3] |= 1 << 7
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				if err := s.TopP.Decode(d); err != nil {
 					return err
@@ -98189,7 +97803,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topP\"")
 			}
 		case "updatedAt":
-			requiredBitSet[4] |= 1 << 0
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -98200,28 +97814,6 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
-		case "workspaceStorageMode":
-			requiredBitSet[4] |= 1 << 1
-			if err := func() error {
-				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
-			}
-		case "workspaceTtlSec":
-			requiredBitSet[4] |= 1 << 2
-			if err := func() error {
-				v, err := d.Int()
-				s.WorkspaceTtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
-			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -98231,12 +97823,11 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [5]uint8{
+	for i, mask := range [4]uint8{
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -98694,24 +98285,12 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		s.Description.Encode(e)
 	}
 	{
-		e.FieldStart("heartbeatIntervalMs")
-		e.Int(s.HeartbeatIntervalMs)
-	}
-	{
 		e.FieldStart("id")
 		json.EncodeUUID(e, s.ID)
 	}
 	{
-		e.FieldStart("leaseTtlSec")
-		e.Int(s.LeaseTtlSec)
-	}
-	{
 		e.FieldStart("maxBashTimeouts")
 		e.Int(s.MaxBashTimeouts)
-	}
-	{
-		e.FieldStart("maxBatchSize")
-		e.Int(s.MaxBatchSize)
 	}
 	{
 		e.FieldStart("maxOutputTokens")
@@ -98770,14 +98349,6 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		s.Sandbox.Encode(e)
 	}
 	{
-		e.FieldStart("sessionStorageMode")
-		s.SessionStorageMode.Encode(e)
-	}
-	{
-		e.FieldStart("sessionTtlSec")
-		e.Int(s.SessionTtlSec)
-	}
-	{
 		e.FieldStart("teamId")
 		json.EncodeUUID(e, s.TeamId)
 	}
@@ -98805,17 +98376,9 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		e.FieldStart("updatedAt")
 		json.EncodeDateTime(e, s.UpdatedAt)
 	}
-	{
-		e.FieldStart("workspaceStorageMode")
-		s.WorkspaceStorageMode.Encode(e)
-	}
-	{
-		e.FieldStart("workspaceTtlSec")
-		e.Int(s.WorkspaceTtlSec)
-	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [35]string{
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [28]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "createdAt",
@@ -98824,33 +98387,26 @@ var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [35]string{
 	5:  "defaultWorkspaceMode",
 	6:  "definitionCid",
 	7:  "description",
-	8:  "heartbeatIntervalMs",
-	9:  "id",
-	10: "leaseTtlSec",
-	11: "maxBashTimeouts",
-	12: "maxBatchSize",
-	13: "maxOutputTokens",
-	14: "maxTurns",
-	15: "model",
-	16: "name",
-	17: "provider",
-	18: "requiredEnv",
-	19: "requiredExecutables",
-	20: "requiredTools",
-	21: "revision",
-	22: "runtimeKind",
-	23: "sandbox",
-	24: "sessionStorageMode",
-	25: "sessionTtlSec",
-	26: "teamId",
-	27: "temperature",
-	28: "thinkingLevel",
-	29: "toolEnforcement",
-	30: "topK",
-	31: "topP",
-	32: "updatedAt",
-	33: "workspaceStorageMode",
-	34: "workspaceTtlSec",
+	8:  "id",
+	9:  "maxBashTimeouts",
+	10: "maxOutputTokens",
+	11: "maxTurns",
+	12: "model",
+	13: "name",
+	14: "provider",
+	15: "requiredEnv",
+	16: "requiredExecutables",
+	17: "requiredTools",
+	18: "revision",
+	19: "runtimeKind",
+	20: "sandbox",
+	21: "teamId",
+	22: "temperature",
+	23: "thinkingLevel",
+	24: "toolEnforcement",
+	25: "topK",
+	26: "topP",
+	27: "updatedAt",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItem from json.
@@ -98858,7 +98414,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItem to nil")
 	}
-	var requiredBitSet [5]uint8
+	var requiredBitSet [4]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -98962,20 +98518,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "heartbeatIntervalMs":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				v, err := d.Int()
-				s.HeartbeatIntervalMs = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
-			}
 		case "id":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -98986,20 +98530,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "leaseTtlSec":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				v, err := d.Int()
-				s.LeaseTtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
-			}
 		case "maxBashTimeouts":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBashTimeouts = int(v)
@@ -99010,20 +98542,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
-		case "maxBatchSize":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				v, err := d.Int()
-				s.MaxBatchSize = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxBatchSize\"")
-			}
 		case "maxOutputTokens":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.MaxOutputTokens.Decode(d); err != nil {
 					return err
@@ -99033,7 +98553,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
 			}
 		case "maxTurns":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxTurns = int(v)
@@ -99045,7 +98565,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -99057,7 +98577,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -99069,7 +98589,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -99081,7 +98601,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -99101,7 +98621,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredExecutables":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				s.RequiredExecutables = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -99121,7 +98641,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutables\"")
 			}
 		case "requiredTools":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -99141,7 +98661,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -99153,7 +98673,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.RuntimeKind = string(v)
@@ -99165,7 +98685,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -99174,30 +98694,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
-		case "sessionStorageMode":
-			requiredBitSet[3] |= 1 << 0
-			if err := func() error {
-				if err := s.SessionStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
-			}
-		case "sessionTtlSec":
-			requiredBitSet[3] |= 1 << 1
-			if err := func() error {
-				v, err := d.Int()
-				s.SessionTtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
-			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 2
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -99209,7 +98707,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "temperature":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.Temperature.Decode(d); err != nil {
 					return err
@@ -99219,7 +98717,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"temperature\"")
 			}
 		case "thinkingLevel":
-			requiredBitSet[3] |= 1 << 4
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				if err := s.ThinkingLevel.Decode(d); err != nil {
 					return err
@@ -99229,7 +98727,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"thinkingLevel\"")
 			}
 		case "toolEnforcement":
-			requiredBitSet[3] |= 1 << 5
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				if err := s.ToolEnforcement.Decode(d); err != nil {
 					return err
@@ -99239,7 +98737,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
 		case "topK":
-			requiredBitSet[3] |= 1 << 6
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				if err := s.TopK.Decode(d); err != nil {
 					return err
@@ -99249,7 +98747,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topK\"")
 			}
 		case "topP":
-			requiredBitSet[3] |= 1 << 7
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				if err := s.TopP.Decode(d); err != nil {
 					return err
@@ -99259,7 +98757,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topP\"")
 			}
 		case "updatedAt":
-			requiredBitSet[4] |= 1 << 0
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -99270,28 +98768,6 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
-		case "workspaceStorageMode":
-			requiredBitSet[4] |= 1 << 1
-			if err := func() error {
-				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
-			}
-		case "workspaceTtlSec":
-			requiredBitSet[4] |= 1 << 2
-			if err := func() error {
-				v, err := d.Int()
-				s.WorkspaceTtlSec = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
-			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -99301,12 +98777,11 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [5]uint8{
+	for i, mask := range [4]uint8{
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -100209,44 +99684,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalJSON(
 	return s.Decode(d)
 }
 
-// Encode encodes RuntimeProfileListResponseItemsItemSessionStorageMode as json.
-func (s RuntimeProfileListResponseItemsItemSessionStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RuntimeProfileListResponseItemsItemSessionStorageMode from json.
-func (s *RuntimeProfileListResponseItemsItemSessionStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemSessionStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RuntimeProfileListResponseItemsItemSessionStorageMode(v) {
-	case RuntimeProfileListResponseItemsItemSessionStorageModeLocal:
-		*s = RuntimeProfileListResponseItemsItemSessionStorageModeLocal
-	default:
-		*s = RuntimeProfileListResponseItemsItemSessionStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RuntimeProfileListResponseItemsItemSessionStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RuntimeProfileListResponseItemsItemSessionStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes RuntimeProfileListResponseItemsItemThinkingLevel as json.
 func (s RuntimeProfileListResponseItemsItemThinkingLevel) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -100333,44 +99770,6 @@ func (s RuntimeProfileListResponseItemsItemToolEnforcement) MarshalJSON() ([]byt
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileListResponseItemsItemToolEnforcement) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RuntimeProfileListResponseItemsItemWorkspaceStorageMode as json.
-func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RuntimeProfileListResponseItemsItemWorkspaceStorageMode from json.
-func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemWorkspaceStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RuntimeProfileListResponseItemsItemWorkspaceStorageMode(v) {
-	case RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal:
-		*s = RuntimeProfileListResponseItemsItemWorkspaceStorageModeLocal
-	default:
-		*s = RuntimeProfileListResponseItemsItemWorkspaceStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -101180,44 +100579,6 @@ func (s *RuntimeProfileSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes RuntimeProfileSessionStorageMode as json.
-func (s RuntimeProfileSessionStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RuntimeProfileSessionStorageMode from json.
-func (s *RuntimeProfileSessionStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RuntimeProfileSessionStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RuntimeProfileSessionStorageMode(v) {
-	case RuntimeProfileSessionStorageModeLocal:
-		*s = RuntimeProfileSessionStorageModeLocal
-	default:
-		*s = RuntimeProfileSessionStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RuntimeProfileSessionStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RuntimeProfileSessionStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes RuntimeProfileThinkingLevel as json.
 func (s RuntimeProfileThinkingLevel) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -101304,44 +100665,6 @@ func (s RuntimeProfileToolEnforcement) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileToolEnforcement) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RuntimeProfileWorkspaceStorageMode as json.
-func (s RuntimeProfileWorkspaceStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RuntimeProfileWorkspaceStorageMode from json.
-func (s *RuntimeProfileWorkspaceStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RuntimeProfileWorkspaceStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RuntimeProfileWorkspaceStorageMode(v) {
-	case RuntimeProfileWorkspaceStorageModeLocal:
-		*s = RuntimeProfileWorkspaceStorageModeLocal
-	default:
-		*s = RuntimeProfileWorkspaceStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RuntimeProfileWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RuntimeProfileWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -117404,27 +116727,9 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.HeartbeatIntervalMs.Set {
-			e.FieldStart("heartbeatIntervalMs")
-			s.HeartbeatIntervalMs.Encode(e)
-		}
-	}
-	{
-		if s.LeaseTtlSec.Set {
-			e.FieldStart("leaseTtlSec")
-			s.LeaseTtlSec.Encode(e)
-		}
-	}
-	{
 		if s.MaxBashTimeouts.Set {
 			e.FieldStart("maxBashTimeouts")
 			s.MaxBashTimeouts.Encode(e)
-		}
-	}
-	{
-		if s.MaxBatchSize.Set {
-			e.FieldStart("maxBatchSize")
-			s.MaxBatchSize.Encode(e)
 		}
 	}
 	{
@@ -117500,18 +116805,6 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.SessionStorageMode.Set {
-			e.FieldStart("sessionStorageMode")
-			s.SessionStorageMode.Encode(e)
-		}
-	}
-	{
-		if s.SessionTtlSec.Set {
-			e.FieldStart("sessionTtlSec")
-			s.SessionTtlSec.Encode(e)
-		}
-	}
-	{
 		if s.Temperature.Set {
 			e.FieldStart("temperature")
 			s.Temperature.Encode(e)
@@ -117541,48 +116834,29 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 			s.TopP.Encode(e)
 		}
 	}
-	{
-		if s.WorkspaceStorageMode.Set {
-			e.FieldStart("workspaceStorageMode")
-			s.WorkspaceStorageMode.Encode(e)
-		}
-	}
-	{
-		if s.WorkspaceTtlSec.Set {
-			e.FieldStart("workspaceTtlSec")
-			s.WorkspaceTtlSec.Encode(e)
-		}
-	}
 }
 
-var jsonFieldsNameOfUpdateRuntimeProfileBody = [27]string{
+var jsonFieldsNameOfUpdateRuntimeProfileBody = [20]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "defaultWorkspaceMode",
 	3:  "description",
-	4:  "heartbeatIntervalMs",
-	5:  "leaseTtlSec",
-	6:  "maxBashTimeouts",
-	7:  "maxBatchSize",
-	8:  "maxOutputTokens",
-	9:  "maxTurns",
-	10: "model",
-	11: "name",
-	12: "provider",
-	13: "requiredEnv",
-	14: "requiredExecutables",
-	15: "requiredTools",
-	16: "runtimeKind",
-	17: "sandbox",
-	18: "sessionStorageMode",
-	19: "sessionTtlSec",
-	20: "temperature",
-	21: "thinkingLevel",
-	22: "toolEnforcement",
-	23: "topK",
-	24: "topP",
-	25: "workspaceStorageMode",
-	26: "workspaceTtlSec",
+	4:  "maxBashTimeouts",
+	5:  "maxOutputTokens",
+	6:  "maxTurns",
+	7:  "model",
+	8:  "name",
+	9:  "provider",
+	10: "requiredEnv",
+	11: "requiredExecutables",
+	12: "requiredTools",
+	13: "runtimeKind",
+	14: "sandbox",
+	15: "temperature",
+	16: "thinkingLevel",
+	17: "toolEnforcement",
+	18: "topK",
+	19: "topP",
 }
 
 // Decode decodes UpdateRuntimeProfileBody from json.
@@ -117649,26 +116923,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "heartbeatIntervalMs":
-			if err := func() error {
-				s.HeartbeatIntervalMs.Reset()
-				if err := s.HeartbeatIntervalMs.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
-			}
-		case "leaseTtlSec":
-			if err := func() error {
-				s.LeaseTtlSec.Reset()
-				if err := s.LeaseTtlSec.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
-			}
 		case "maxBashTimeouts":
 			if err := func() error {
 				s.MaxBashTimeouts.Reset()
@@ -117678,16 +116932,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
-			}
-		case "maxBatchSize":
-			if err := func() error {
-				s.MaxBatchSize.Reset()
-				if err := s.MaxBatchSize.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
 		case "maxOutputTokens":
 			if err := func() error {
@@ -117816,26 +117060,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
-		case "sessionStorageMode":
-			if err := func() error {
-				s.SessionStorageMode.Reset()
-				if err := s.SessionStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
-			}
-		case "sessionTtlSec":
-			if err := func() error {
-				s.SessionTtlSec.Reset()
-				if err := s.SessionTtlSec.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
-			}
 		case "temperature":
 			if err := func() error {
 				s.Temperature.Reset()
@@ -117885,26 +117109,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"topP\"")
-			}
-		case "workspaceStorageMode":
-			if err := func() error {
-				s.WorkspaceStorageMode.Reset()
-				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
-			}
-		case "workspaceTtlSec":
-			if err := func() error {
-				s.WorkspaceTtlSec.Reset()
-				if err := s.WorkspaceTtlSec.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"workspaceTtlSec\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -118796,44 +118000,6 @@ func (s *UpdateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte
 	return s.Decode(d)
 }
 
-// Encode encodes UpdateRuntimeProfileBodySessionStorageMode as json.
-func (s UpdateRuntimeProfileBodySessionStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes UpdateRuntimeProfileBodySessionStorageMode from json.
-func (s *UpdateRuntimeProfileBodySessionStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodySessionStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch UpdateRuntimeProfileBodySessionStorageMode(v) {
-	case UpdateRuntimeProfileBodySessionStorageModeLocal:
-		*s = UpdateRuntimeProfileBodySessionStorageModeLocal
-	default:
-		*s = UpdateRuntimeProfileBodySessionStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s UpdateRuntimeProfileBodySessionStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateRuntimeProfileBodySessionStorageMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes UpdateRuntimeProfileBodyThinkingLevel as json.
 func (s UpdateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -118920,44 +118086,6 @@ func (s UpdateRuntimeProfileBodyToolEnforcement) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeProfileBodyToolEnforcement) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateRuntimeProfileBodyWorkspaceStorageMode as json.
-func (s UpdateRuntimeProfileBodyWorkspaceStorageMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes UpdateRuntimeProfileBodyWorkspaceStorageMode from json.
-func (s *UpdateRuntimeProfileBodyWorkspaceStorageMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyWorkspaceStorageMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch UpdateRuntimeProfileBodyWorkspaceStorageMode(v) {
-	case UpdateRuntimeProfileBodyWorkspaceStorageModeLocal:
-		*s = UpdateRuntimeProfileBodyWorkspaceStorageModeLocal
-	default:
-		*s = UpdateRuntimeProfileBodyWorkspaceStorageMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s UpdateRuntimeProfileBodyWorkspaceStorageMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

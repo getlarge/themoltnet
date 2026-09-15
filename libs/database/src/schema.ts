@@ -178,11 +178,6 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
 
-export const runtimeProfileStorageModeEnum = pgEnum(
-  'runtime_profile_storage_mode',
-  ['local'],
-);
-
 export const runtimeSlotStateEnum = pgEnum('runtime_slot_state', [
   'active',
   'idle',
@@ -1472,7 +1467,6 @@ export const runtimeProfiles = defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
-  storageModeEnum: runtimeProfileStorageModeEnum,
 });
 
 export type RuntimeProfile = typeof runtimeProfiles.$inferSelect;

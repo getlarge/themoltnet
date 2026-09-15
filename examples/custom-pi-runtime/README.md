@@ -294,9 +294,7 @@ the runtime kind and capability requirements unchanged:
   "requiredTools": ["github_issue_read"],
   "runtimeKind": "example_pi",
   "sandbox": {},
-  "sessionTtlSec": 300,
-  "toolEnforcement": "enforce",
-  "workspaceTtlSec": 300
+  "toolEnforcement": "enforce"
 }
 ```
 

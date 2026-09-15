@@ -8,6 +8,7 @@ import type { ResolvedRuntimeProfile } from '@themoltnet/agent-runtime';
 
 export const CURRENT_EFFECTIVE_POLICY_SNAPSHOT_VERSION: EffectivePolicySnapshotV1['version'] =
   'effective-policy:v1';
+const DEFAULT_EXECUTION_LEASE_TTL_SEC = 300;
 
 /** An already-composed, content-addressed authority result. */
 export interface ResolvedPolicyAuthority {
@@ -57,7 +58,7 @@ export function executionIntentFromRuntimeProfile(
     credentialRequirements: structuredClone(input.credentialRequirements),
     requiredCapabilities: [...(input.requiredCapabilities ?? [])],
     lease: {
-      ttlSec: input.profile.leaseTtlSec,
+      ttlSec: DEFAULT_EXECUTION_LEASE_TTL_SEC,
       requiredControls: [...(input.requiredLeaseControls ?? [])],
     },
     network: {

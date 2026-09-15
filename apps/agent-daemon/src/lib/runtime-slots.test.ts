@@ -60,6 +60,7 @@ describe('runtime slots', () => {
       workspaceKind: 'origin',
       worktreeBranch: 'issue-1414',
       worktreePath: '/tmp/worktree',
+      warmRetentionSec: 300,
     });
     await store.finishSlot(
       'bbbbbbbb-0000-0000-0000-000000000002',
@@ -73,6 +74,7 @@ describe('runtime slots', () => {
       'anthropic',
       'claude-sonnet-4-5',
       '/tmp/session/2.jsonl',
+      300,
     );
     const resolved = await store.findLatestSlotByTaskAttempt(
       'bbbbbbbb-0000-0000-0000-000000000002',
@@ -87,6 +89,7 @@ describe('runtime slots', () => {
     expect(begin).toHaveBeenCalledWith(
       expect.objectContaining({
         runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
+        warmRetentionSec: 300,
       }),
       { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
     );
@@ -95,6 +98,7 @@ describe('runtime slots', () => {
         attemptN: 1,
         runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
         taskId: 'aaaaaaaa-0000-0000-0000-000000000001',
+        warmRetentionSec: 300,
       }),
       { teamId: 'bbbbbbbb-0000-0000-0000-000000000002' },
     );

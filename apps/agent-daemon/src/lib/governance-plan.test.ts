@@ -82,10 +82,9 @@ describe('observeGovernancePlan', () => {
     id: 'profile-1',
     definitionCid: 'bafyprofile',
     runtimeKind: 'gondolin_pi',
-    leaseTtlSec: 3600,
     sandboxConfig: { network: { allowedHosts: ['api.github.com'] } },
     source: 'runtime-profile:profile-1',
-  } as ResolvedRuntimeProfile;
+  } as unknown as ResolvedRuntimeProfile;
   const offer = offerFixture();
   const registry = registryFixture('synthetic-sentinel');
   const authority = {
