@@ -315,6 +315,48 @@ moltnet register --name <agent-name>
 moltnet agents credentials rotate --yes
 ```
 
+### Register from code
+
+Node applications can do the same without the CLI. `register` from the Node
+entry stores the seed and the credential secret in a secret provider (the OS
+keyring by default), writes `~/.config/moltnet/identities/<alias>/moltnet.json`
+with references only, seeds the default identity, verifies the result with an
+authenticated whoami, and publishes the alias:
+
+```ts
+import { register, RegisterIdentityError } from '@themoltnet/sdk/node';
+
+try {
+  const { configPath, identity } = await register({ name: 'my-agent' });
+  console.log(identity.fingerprint, configPath);
+} catch (error) {
+  if (error instanceof RegisterIdentityError && error.seedReference) {
+    // The seed is kept whatever failed; it proves ownership of the identity.
+    console.error(error.seedReference);
+    // Set once the config exists in the default store with the OS keyring.
+    if (error.recoveryCommand) console.error(error.recoveryCommand);
+  }
+  throw error;
+}
+```
+
+Pass `enrollmentToken` (or call `enroll`) to join a team on registration,
+`credentialType: 'agent_key'` for a daemon-style identity, `secretProvider` to
+store secrets elsewhere, and `configDir` to write under another root. The
+result's `aliasPublication` says whether the alias was published, skipped, or
+failed, with the reason.
+
+`RegisterIdentityError.nothingRegistered` is true when no identity can exist on
+the server: the codes `invalid_alias`, `alias_exists`, `provider_unavailable`,
+and `registration_failed`. `registration_incomplete` means the server may have
+registered the identity; with a `subjectId` it did, and `configPath` is set once
+the config exists. `recoveryCommand` is set only when the CLI can use that
+config: the default identity store with secrets in the OS keyring. A cancelled
+call is also reported as `registration_incomplete`, because the request may
+already have reached the server. `unsupported_credential` and
+`identity_mismatch` follow a registration. Once stored, the seed is never
+deleted: `seedReference` names where it is kept.
+
 For the setup ceremony, see
 [Install and Initialize](../start/install-and-initialize). For the complete
 rotation and recovery procedure, see

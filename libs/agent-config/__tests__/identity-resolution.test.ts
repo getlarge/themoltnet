@@ -173,6 +173,22 @@ describe('identity resolution ladder', () => {
     await expect(resolveConfigDir()).rejects.toThrow(/not supported/);
   });
 
+  it('seeds the selector beside a custom identities root, not the default store', async () => {
+    const home = await freshHome();
+    const customRoot = join(home, 'agent-server');
+    const identityDir = join(customRoot, 'identities', 'managed-one');
+
+    await writeConfig(credentials('managed'), identityDir);
+
+    const seeded = JSON.parse(
+      await readFile(join(customRoot, 'identity-selector.json'), 'utf-8'),
+    ) as { version: number; default_identity?: string };
+    expect(seeded).toEqual({ version: 1, default_identity: 'managed-one' });
+    await expect(
+      readFile(join(getConfigDir(), 'identity-selector.json'), 'utf-8'),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   // The Go CLI never reads <config>/moltnet.json, so a fallback here gave one
   // contract two behaviours: the CLI reporting no identity while the SDK and
   // daemon silently used the retired document. Operators relocate it with

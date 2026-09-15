@@ -28,5 +28,6 @@ export {
   updateKeysConfig,
   updateOAuth2Config,
   writeConfig,
+  type WriteConfigOptions,
 } from './config.js';
 export { exportSSHKey } from './ssh.js';

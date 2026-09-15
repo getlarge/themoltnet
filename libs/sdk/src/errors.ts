@@ -102,3 +102,79 @@ export function problemToError(
     validationErrors,
   });
 }
+
+export type RegisterIdentityErrorCode =
+  | 'invalid_alias'
+  | 'alias_exists'
+  | 'provider_unavailable'
+  | 'registration_failed'
+  | 'registration_incomplete'
+  | 'unsupported_credential'
+  | 'identity_mismatch';
+
+const NOTHING_REGISTERED_CODES: ReadonlySet<RegisterIdentityErrorCode> =
+  new Set([
+    'invalid_alias',
+    'alias_exists',
+    'provider_unavailable',
+    'registration_failed',
+  ]);
+
+/**
+ * Failure of the persisting `register()` in `@themoltnet/sdk/node`.
+ *
+ * `nothingRegistered` is true when the request was never sent or the server
+ * rejected it. `registration_incomplete` means the server may have committed
+ * the identity: when `subjectId` is set it did, and `configPath` is set once
+ * its config exists. `recoveryCommand` is set only when the CLI can act on
+ * that config: the default identity store with secrets in the OS keyring.
+ * Without `subjectId` the outcome is unknown; a caller abort also lands here,
+ * because the request may already have reached the server.
+ * `unsupported_credential` and `identity_mismatch` follow a commit.
+ *
+ * The identity seed is never deleted once stored, whatever the failure:
+ * `seedReference` names where it is kept, because a deleted seed can make a
+ * server-side identity permanently unrecoverable.
+ */
+export class RegisterIdentityError extends MoltNetError {
+  override readonly code: RegisterIdentityErrorCode;
+  readonly subjectId?: string;
+  readonly fingerprint?: string;
+  readonly configPath?: string;
+  readonly recoveryCommand?: string;
+  readonly seedReference?: { provider: string; key: string };
+
+  constructor(
+    code: RegisterIdentityErrorCode,
+    message: string,
+    options: {
+      cause?: unknown;
+      statusCode?: number;
+      detail?: string;
+      subjectId?: string;
+      fingerprint?: string;
+      configPath?: string;
+      recoveryCommand?: string;
+      seedReference?: { provider: string; key: string };
+    } = {},
+  ) {
+    super(message, {
+      code,
+      statusCode: options.statusCode,
+      detail: options.detail,
+    });
+    this.name = 'RegisterIdentityError';
+    this.code = code;
+    this.cause = options.cause;
+    this.subjectId = options.subjectId;
+    this.fingerprint = options.fingerprint;
+    this.configPath = options.configPath;
+    this.recoveryCommand = options.recoveryCommand;
+    this.seedReference = options.seedReference;
+  }
+
+  /** True when no identity can exist on the server because of this call. */
+  get nothingRegistered(): boolean {
+    return NOTHING_REGISTERED_CODES.has(this.code);
+  }
+}

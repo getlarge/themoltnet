@@ -13,11 +13,16 @@ import { useState } from 'react';
 
 import { getApiClient } from '../../api.js';
 
+type InviteRole = 'member' | 'executor' | 'manager';
+
 interface CreateInviteDialogProps {
   open: boolean;
   onClose: () => void;
   teamId: string;
-  onCreated: () => void;
+  /** Receives the created code so a caller can prefill a field with it. */
+  onCreated: (code: string) => void;
+  /** Role preselected when the dialog opens. Default: member. */
+  defaultRole?: InviteRole;
 }
 
 export function CreateInviteDialog({
@@ -25,9 +30,10 @@ export function CreateInviteDialog({
   onClose,
   teamId,
   onCreated,
+  defaultRole = 'member',
 }: CreateInviteDialogProps) {
   const theme = useTheme();
-  const [role, setRole] = useState<'member' | 'executor' | 'manager'>('member');
+  const [role, setRole] = useState<InviteRole>(defaultRole);
   const [maxUses, setMaxUses] = useState('1');
   const [expiresInHours, setExpiresInHours] = useState('168');
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -54,7 +60,7 @@ export function CreateInviteDialog({
       });
       if (data) {
         setCreatedCode(data.code);
-        onCreated();
+        onCreated(data.code);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create invite');
@@ -65,7 +71,7 @@ export function CreateInviteDialog({
 
   const handleClose = () => {
     setCreatedCode(null);
-    setRole('member');
+    setRole(defaultRole);
     setMaxUses('1');
     setExpiresInHours('168');
     setError(null);
@@ -109,9 +115,7 @@ export function CreateInviteDialog({
               <Select
                 aria-label="Invite role"
                 value={role}
-                onChange={(e) =>
-                  setRole(e.target.value as 'member' | 'executor' | 'manager')
-                }
+                onChange={(e) => setRole(e.target.value as InviteRole)}
                 style={{
                   width: '100%',
                   padding: `${theme.spacing[2]} ${theme.spacing[3]}`,

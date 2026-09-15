@@ -102,10 +102,6 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		"/",
 	)
 
-	provider := OSKeyringSecretProvider{}
-	if err := agentsInitKeyringPreflight(provider); err != nil {
-		return err
-	}
 	if state == nil && agentInitRemoteComplete(creds) {
 		// No alias publication here: the network alias may have been
 		// published from another machine since, and the last explicit
@@ -116,11 +112,25 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		fmt.Fprintf(opts.out, "Agent %s is already initialized at %s\n", opts.name, configPath)
 		return nil
 	}
+	if state == nil && creds != nil {
+		// An identity exists that this command did not start (for example one
+		// created by `moltnet register`, or an init interrupted before its
+		// checkpoint was written). Starting over would generate a new keypair
+		// and overwrite the config, orphaning the existing identity and its seed.
+		return fmt.Errorf("agents init only creates new identities, and this one has no initialization checkpoint: %w", identityExistsError(configPath))
+	}
+
+	// Both early returns above store nothing, so the keyring is only probed
+	// once this run is going to write to it.
+	secrets, err := openIdentitySecretStore(agentsInitSecretProviders(), "")
+	if err != nil {
+		return fmt.Errorf("initialization was not attempted: %w", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), opts.timeout)
 	defer cancel()
 	if state == nil {
-		creds, state, err = startAgentsInit(ctx, apiURL, opts, configPath, statePath, provider)
+		creds, state, err = startAgentsInit(ctx, apiURL, opts, configPath, statePath, secrets)
 		if err != nil {
 			return err
 		}
@@ -128,7 +138,7 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		return fmt.Errorf("cannot resume initialization: %s is missing", configPath)
 	}
 
-	seed, err := resolveIdentitySeed(creds, NewSecretProviderRegistry())
+	seed, err := resolveIdentitySeed(creds, secrets.registry)
 	if err != nil {
 		return fmt.Errorf("resolve onboarding identity key: %w", err)
 	}
@@ -179,11 +189,8 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		if decryptErr != nil {
 			return fmt.Errorf("decrypt checkpointed GitHub App private key: %w", decryptErr)
 		}
-		githubRef := SecretReference{
-			Provider: osKeyringProviderName,
-			Key:      GitHubAppPrivateKeyKey(state.AppID),
-		}
-		if err := provider.Set(githubRef.Key, githubPEM); err != nil {
+		githubRef, err := secrets.store(GitHubAppPrivateKeyKey(state.AppID), githubPEM)
+		if err != nil {
 			return fmt.Errorf("store GitHub App private key: %w", err)
 		}
 		org := opts.org
@@ -251,11 +258,8 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	if err := writeAgentsInitState(statePath, state); err != nil {
 		return err
 	}
-	oauthRef := SecretReference{
-		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey(state.SubjectID, state.ClientID),
-	}
-	if err := provider.Set(oauthRef.Key, clientSecret); err != nil {
+	oauthRef, err := secrets.store(OAuth2SecretKey(state.SubjectID, state.ClientID), clientSecret)
+	if err != nil {
 		return fmt.Errorf("store OAuth2 client secret: %w", err)
 	}
 	creds.SubjectID = state.SubjectID
@@ -282,8 +286,8 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 // Unit-test seams: initialization needs a live OS keyring and GitHub, so tests
 // replace these to exercise the control flow around them.
 var (
-	agentsInitKeyringPreflight = preflightAgentInitKeyring
-	agentsInitCompleteLocal    = completeCentralIdentityInit
+	agentsInitSecretProviders = NewSecretProviderRegistry
+	agentsInitCompleteLocal   = completeCentralIdentityInit
 )
 
 // finishCreatedAgentsInit completes local setup for an identity this run
@@ -334,25 +338,31 @@ func prepareIdentityDirectory(alias string) (string, error) {
 	return dir, nil
 }
 
-func startAgentsInit(ctx context.Context, apiURL string, opts agentsInitOpts, configPath, statePath string, provider OSKeyringSecretProvider) (*CredentialsFile, *agentsInitState, error) {
-	kp, err := GenerateKeyPair()
-	if err != nil {
-		return nil, nil, err
-	}
+func startAgentsInit(ctx context.Context, apiURL string, opts agentsInitOpts, configPath, statePath string, secrets identitySecretStore) (*CredentialsFile, *agentsInitState, error) {
+	// Everything that does not need the keypair happens first, so its failures
+	// happen before a seed exists.
 	nonce, err := newRegistrationNonce()
 	if err != nil {
 		return nil, nil, err
 	}
+	client, err := newPublicAPIClient(apiURL)
+	if err != nil {
+		return nil, nil, err
+	}
+	// The seed is durable before the onboarding request, exactly as register
+	// does, so a failure after the server commits never loses the keypair.
+	// From here on every error names the kept seed.
+	identity, err := secrets.prepareIdentity()
+	if err != nil {
+		return nil, nil, fmt.Errorf("initialization was not attempted: %w", err)
+	}
+	kp := identity.KeyPair
 	proof, err := SignRawMessage(
 		buildSelfRegistrationMessage(nonce, kp.PublicKey, credentialTypeOAuth2),
 		kp.PrivateKey,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("sign onboarding request: %w", err)
-	}
-	client, err := newPublicAPIClient(apiURL)
-	if err != nil {
-		return nil, nil, err
+		return nil, nil, identity.withSeedLocation(fmt.Errorf("sign onboarding request: %w", err))
 	}
 	req := &moltnetapi.StartLegreffierOnboardingReq{
 		AgentName: opts.name, CredentialType: moltnetapi.StartLegreffierOnboardingReqCredentialTypeOAuth2,
@@ -363,27 +373,29 @@ func startAgentsInit(ctx context.Context, apiURL string, opts agentsInitOpts, co
 	}
 	res, err := client.StartLegreffierOnboarding(ctx, req, moltnetapi.StartLegreffierOnboardingParams{IdempotencyKey: nonce})
 	if err != nil {
-		return nil, nil, fmt.Errorf("start onboarding: %w", formatTransportError(err))
+		return nil, nil, identity.withSeedLocation(fmt.Errorf("start onboarding: %w", formatTransportError(err)))
 	}
 	started, ok := res.(*moltnetapi.StartLegreffierOnboardingOK)
 	if !ok {
-		return nil, nil, fmt.Errorf("start onboarding: %w", formatAPIError(res))
-	}
-	seedRef := SecretReference{Provider: osKeyringProviderName, Key: IdentitySeedKey(kp.Fingerprint)}
-	if err := provider.Set(seedRef.Key, kp.PrivateKey); err != nil {
-		return nil, nil, fmt.Errorf("store identity seed: %w", err)
+		return nil, nil, identity.withSeedLocation(fmt.Errorf("start onboarding: %w", formatAPIError(res)))
 	}
 	creds := &CredentialsFile{
-		Keys:         CredentialsKeys{PublicKey: kp.PublicKey, PrivateKeyRef: &seedRef, Fingerprint: kp.Fingerprint},
+		Keys:         CredentialsKeys{PublicKey: kp.PublicKey, PrivateKeyRef: &identity.SeedRef, Fingerprint: kp.Fingerprint},
 		Endpoints:    CredentialsEndpoints{API: apiURL, MCP: deriveMCPURL(apiURL)},
 		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}
-	if _, err := WriteConfigTo(creds, configPath); err != nil {
-		return nil, nil, err
+	if err := createIdentityConfig(creds, configPath); err != nil {
+		return nil, nil, identity.withSeedLocation(fmt.Errorf("%w (onboarding workflow %s)", err, started.WorkflowId))
 	}
 	state := &agentsInitState{WorkflowID: started.WorkflowId, ManifestURL: started.ManifestFormUrl, Phase: agentsInitPhaseStarted}
 	if err := writeAgentsInitState(statePath, state); err != nil {
-		return nil, nil, err
+		// The config now exists without a checkpoint, which a rerun refuses.
+		// No agent exists until the GitHub App is created from the manifest
+		// URL that only this run holds, so starting over is safe.
+		return nil, nil, identity.withSeedLocation(fmt.Errorf(
+			"%w\nOnboarding workflow %s started, but without its checkpoint this identity cannot be resumed. No agent exists until its GitHub App is created, so start over: move %s aside and run moltnet agents init --name %s again",
+			err, started.WorkflowId, filepath.Dir(configPath), opts.name,
+		))
 	}
 	fmt.Fprintf(opts.errOut, "Generated identity %s\n", kp.Fingerprint)
 	return creds, state, nil
@@ -565,13 +577,11 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	// Seed the selector when none exists, as register / init-from-env /
 	// migrate all do. Without this the primary onboarding path left no default
 	// identity, so every later command failed with "no active identity
-	// selected" unless MOLTNET_ACTIVE_IDENTITY was exported by hand.
-	if selector, err := readIdentitySelector(); err != nil {
+	// selected" unless MOLTNET_ACTIVE_IDENTITY was exported by hand. A failure
+	// here is resumable: rerunning init finds the complete identity and
+	// retries this step.
+	if err := seedIdentitySelectorIfUnset(opts.name); err != nil {
 		return err
-	} else if selector == nil || selector.DefaultIdentity == "" {
-		if err := writeIdentitySelector(opts.name); err != nil {
-			return err
-		}
 	}
 	// Warm the activation cache so `agents activation validate` does not
 	// report invalid immediately after a successful init.
@@ -590,17 +600,6 @@ func openBrowser(url string) error {
 		command, args = "xdg-open", []string{url}
 	}
 	return exec.Command(command, args...).Start()
-}
-
-func preflightAgentInitKeyring(provider OSKeyringSecretProvider) error {
-	key := fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano())
-	if err := provider.Set(key, "credential-store-preflight"); err != nil {
-		return fmt.Errorf("OS keyring is unavailable; initialization was not attempted: %w", err)
-	}
-	if err := provider.Delete(key); err != nil {
-		return fmt.Errorf("OS keyring cleanup failed; initialization was not attempted: %w", err)
-	}
-	return nil
 }
 
 func agentInitRemoteComplete(creds *CredentialsFile) bool {

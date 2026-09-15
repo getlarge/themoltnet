@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -78,16 +80,33 @@ func flattenRegistrationResponse(response *moltnetapi.RegisterResponse) (*Regist
 	}, nil
 }
 
+func validateRegistrationCredentialType(credentialType string) error {
+	if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
+		return fmt.Errorf("unsupported credential type %q: expected oauth2 or agent_key", credentialType)
+	}
+	return nil
+}
+
 // DoRegister generates a keypair and self-registers an identity. Team
 // membership is managed separately through `moltnet teams join` after the
 // registration credential has been stored.
 func DoRegister(apiURL, credentialType string) (*RegisterResult, error) {
-	if credentialType != credentialTypeOAuth2 && credentialType != credentialTypeAgentKey {
-		return nil, fmt.Errorf("credential type must be oauth2 or agent_key")
-	}
 	kp, err := GenerateKeyPair()
 	if err != nil {
 		return nil, err
+	}
+	return DoRegisterWithKeyPair(apiURL, credentialType, kp)
+}
+
+// DoRegisterWithKeyPair self-registers an identity whose keypair the caller
+// already holds. The register command stores the seed before calling this so
+// the keypair survives a failure after the server has committed.
+func DoRegisterWithKeyPair(apiURL, credentialType string, kp *KeyPair) (*RegisterResult, error) {
+	if err := validateRegistrationCredentialType(credentialType); err != nil {
+		return nil, err
+	}
+	if kp == nil {
+		return nil, fmt.Errorf("registration requires a generated keypair")
 	}
 	nonce, err := newRegistrationNonce()
 	if err != nil {
@@ -133,67 +152,139 @@ func DoRegister(apiURL, credentialType string) (*RegisterResult, error) {
 	return &RegisterResult{KeyPair: kp, Response: response, APIUrl: strings.TrimRight(apiURL, "/")}, nil
 }
 
-func runRegisterCmd(stdout, errOut io.Writer, apiURL, credentialType string, jsonOut, noMCP bool) error {
-	return runRegisterCmdWithName(stdout, errOut, apiURL, credentialType, jsonOut, noMCP, "default")
+type registerOpts struct {
+	stdout, errOut io.Writer
+	apiURL         string
+	credentialType string
+	// name is the local identity alias; required unless jsonOut is set.
+	name string
+	// destination is the secret provider for the seed and OAuth2 secret.
+	// Empty means the OS keyring (see resolveSecretDestination).
+	destination string
+	// jsonOut prints the credential pair to stdout and writes nothing locally.
+	jsonOut bool
+	noMCP   bool
+	// secretProviders is the registry that receives the secrets. Nil means
+	// the default registry (OS keyring, env, file).
+	secretProviders *SecretProviderRegistry
 }
 
-func runRegisterCmdWithName(stdout, errOut io.Writer, apiURL, credentialType string, jsonOut, noMCP bool, name string) error {
-	url := strings.TrimRight(apiURL, "/")
-	if !jsonOut {
-		if strings.TrimSpace(name) == "" {
-			return fmt.Errorf("--name is required unless --json is used")
-		}
-		if err := validateAgentName(name); err != nil {
-			return err
-		}
-	}
-	if credentialType == credentialTypeAgentKey && !jsonOut {
-		return fmt.Errorf("agent_key bootstrap credentials are one-time secrets; use --json and store the result securely")
-	}
-	if !jsonOut {
-		provider := OSKeyringSecretProvider{}
-		preflightKey := fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano())
-		if err := provider.Set(preflightKey, "credential-store-preflight"); err != nil {
-			return fmt.Errorf("OS keyring is unavailable; registration was not attempted: %w", err)
-		}
-		if err := provider.Delete(preflightKey); err != nil {
-			return fmt.Errorf("OS keyring cleanup failed; registration was not attempted: %w", err)
-		}
-	}
-
-	fmt.Fprintln(errOut, "Generating Ed25519 keypair...")
-	result, err := DoRegister(url, credentialType)
+// runRegisterJSON is the explicit print-only mode: nothing is stored, and the
+// caller is responsible for persisting the printed private key and secret.
+func runRegisterJSON(opts registerOpts) error {
+	fmt.Fprintln(opts.errOut, "Generating Ed25519 keypair...")
+	result, err := DoRegister(strings.TrimRight(opts.apiURL, "/"), opts.credentialType)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, result.KeyPair.Fingerprint)
-	if jsonOut {
-		return outputJSON(stdout, result)
+	fmt.Fprintf(opts.errOut, "Registered as %s (fingerprint: %s)\n", result.Response.SubjectID, result.KeyPair.Fingerprint)
+	return outputJSON(opts.stdout, result)
+}
+
+// runRegister creates a local identity in a recoverable order:
+//
+//  1. refuse an existing alias and preflight the secret provider;
+//  2. generate the keypair and store the seed, before any network call;
+//  3. register; the seed is kept whatever the outcome;
+//  4. create the config exclusively, with the seed and OAuth2 references;
+//  5. store the OAuth2 secret;
+//  6. seed the default identity and publish the alias, both best effort.
+//
+// From step 4 on, `moltnet agents credentials recover --yes` can finish any
+// failure. Before it, the error names the fingerprint and the kept seed.
+func runRegister(opts registerOpts) error {
+	if opts.jsonOut {
+		return runRegisterJSON(opts)
+	}
+	if strings.TrimSpace(opts.name) == "" {
+		return fmt.Errorf("--name is required unless --json is used")
+	}
+	if err := validateAgentName(opts.name); err != nil {
+		return err
+	}
+	if opts.credentialType == credentialTypeAgentKey {
+		return fmt.Errorf("agent_key bootstrap credentials are one-time secrets; use --json and store the result securely")
+	}
+	url := strings.TrimRight(opts.apiURL, "/")
+
+	credPath, err := identityCredentialsPath(opts.name)
+	if err != nil {
+		return err
+	}
+	if _, statErr := os.Stat(credPath); statErr == nil {
+		return identityExistsError(credPath)
+	}
+	secrets, err := openIdentitySecretStore(opts.secretProviders, opts.destination)
+	if err != nil {
+		return fmt.Errorf("registration was not attempted: %w", err)
 	}
 
+	fmt.Fprintln(opts.errOut, "Generating Ed25519 keypair...")
+	identity, err := secrets.prepareIdentity()
+	if err != nil {
+		return fmt.Errorf("registration was not attempted: %w", err)
+	}
+
+	result, err := DoRegisterWithKeyPair(url, opts.credentialType, identity.KeyPair)
+	if err != nil {
+		return registrationFailure(err, url, identity)
+	}
+	subjectID := result.Response.SubjectID
+	fmt.Fprintf(opts.errOut, "Registered as %s (fingerprint: %s)\n", subjectID, identity.KeyPair.Fingerprint)
+
 	credential := result.Response.Credential
-	secretRef := SecretReference{
-		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey(result.Response.SubjectID, credential.ClientID),
-	}
-	if err := (OSKeyringSecretProvider{}).Set(secretRef.Key, credential.ClientSecret); err != nil {
-		return fmt.Errorf("store OAuth2 secret in the OS keyring: %w", err)
-	}
-	credPath, err := writeCentralIdentityConfig(name, &CredentialsFile{
-		SubjectID:    result.Response.SubjectID,
+	secretRef := secrets.ref(OAuth2SecretKey(subjectID, credential.ClientID))
+	// The config carries both references before the OAuth2 secret exists, so
+	// from here on the recover command can replace a missing secret.
+	if err := createIdentityConfig(&CredentialsFile{
+		SubjectID:    subjectID,
 		SubjectType:  result.Response.SubjectType,
 		OAuth2:       CredentialsOAuth2{ClientID: credential.ClientID, ClientSecretRef: &secretRef},
-		Keys:         CredentialsKeys{PublicKey: result.KeyPair.PublicKey, PrivateKey: result.KeyPair.PrivateKey, Fingerprint: result.KeyPair.Fingerprint},
+		Keys:         CredentialsKeys{PublicKey: identity.KeyPair.PublicKey, PrivateKeyRef: &identity.SeedRef, Fingerprint: identity.KeyPair.Fingerprint},
 		Endpoints:    CredentialsEndpoints{API: result.APIUrl, MCP: deriveMCPURL(url)},
 		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
-	})
-	if err != nil {
-		_ = (OSKeyringSecretProvider{}).Delete(secretRef.Key)
-		return fmt.Errorf("credentials could not be written; the new keyring entry was removed: %w", err)
+	}, credPath); err != nil {
+		if errors.Is(err, errIdentityExists) {
+			// The existing config belongs to whoever won the race, so the usual
+			// "move it aside" advice does not apply to this run's agent.
+			err = fmt.Errorf("identity %q was created by another command while this one registered", opts.name)
+		}
+		return fmt.Errorf("%w\nAgent %s is registered but has no local config (%s). Keep that seed: it is the only proof of ownership of the agent", err, subjectID, identity.seedLocation())
 	}
-	fmt.Fprintf(errOut, "Credentials written to %s\n", credPath)
-	reportRegistrationStored(errOut, result.APIUrl, credPath, name, noMCP)
+	fmt.Fprintf(opts.errOut, "Credentials written to %s\n", credPath)
+
+	if _, err := secrets.store(secretRef.Key, credential.ClientSecret); err != nil {
+		return fmt.Errorf("%w\nAgent %s is registered and its config is written; replace the secret with: MOLTNET_ACTIVE_IDENTITY=%s moltnet agents credentials recover --yes", err, subjectID, opts.name)
+	}
+	// Only a warning, unlike writeCentralIdentityConfig: the agent is already
+	// registered and stored, and a rerun would be refused as an existing alias,
+	// so failing here would hide a usable identity behind an error.
+	if err := seedIdentitySelectorIfUnset(opts.name); err != nil {
+		fmt.Fprintf(opts.errOut, "Warning: %s was not selected as the default identity: %v\nSelect it with: moltnet config identity select %s\n", opts.name, err, opts.name)
+	}
+	reportRegistrationStored(opts.errOut, result.APIUrl, credPath, opts.name, opts.noMCP)
 	return nil
+}
+
+// registrationFailure explains a registration that did not complete. The seed
+// is kept either way: after a rejection it is merely unused, while any other
+// failure may follow a server-side commit that only the seed can prove.
+func registrationFailure(err error, apiURL string, identity *preparedIdentity) error {
+	if registrationRejected(err) {
+		return fmt.Errorf("%w\nThe server rejected the registration, so no agent was created (%s; that seed is unused)", err, identity.seedLocation())
+	}
+	return fmt.Errorf(
+		"%w\nThe server may have registered this identity (%s).\nCheck with: curl -fsS %s/agents/%s\nIf the agent exists, keep that seed: it is the only proof of ownership. Running register again generates a new keypair and can create a second agent",
+		err, identity.seedLocation(), apiURL, identity.KeyPair.Fingerprint,
+	)
+}
+
+// registrationRejected reports a definitive refusal: any 4xx except 409, which
+// the registration route returns while a registration for the same key is
+// still in progress and may yet commit.
+func registrationRejected(err error) bool {
+	status, ok := apiErrorStatus(err)
+	return ok && status >= 400 && status < 500 && status != http.StatusConflict
 }
 
 // reportRegistrationStored runs the best-effort steps after the new identity

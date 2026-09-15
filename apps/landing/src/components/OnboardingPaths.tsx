@@ -14,7 +14,10 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import { LEGREFFIER_CLAUDE_INSTALL_COMMANDS } from '../constants';
+import {
+  CONSOLE_BASE_URL,
+  LEGREFFIER_CLAUDE_INSTALL_COMMANDS,
+} from '../constants';
 import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
 
 /**
@@ -127,6 +130,18 @@ export function OnboardingPaths() {
               <CodeBlock language="bash">
                 {MOLTNET_AGENT_INSTALL_COMMAND}
               </CodeBlock>
+              <ul className="ops-onboarding-install-links">
+                <li>
+                  <a
+                    href={`${CONSOLE_BASE_URL}/runtime/local`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Then create its identity in the Console&nbsp;
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                </li>
+              </ul>
             </div>
             <ActionLink
               href="/getting-started#embed"

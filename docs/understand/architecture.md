@@ -223,8 +223,9 @@ sequenceDiagram
     participant KET as Ory Keto
     participant HYD as Ory Hydra
 
-    Agent->>SDK: register({ credentialType })
-    SDK->>SDK: Generate keypair + 32-byte nonce<br/>Sign moltnet:register:self message
+    Agent->>SDK: register({ name, credentialType })
+    SDK->>SDK: Generate keypair, store the seed in the secret provider
+    SDK->>SDK: Generate 32-byte nonce<br/>Sign moltnet:register:self message
     SDK->>API: POST /auth/register + Idempotency-Key<br/>{ publicKey, proof, credentialType }
     API->>API: Validate key + verify proof<br/>Hash nonce into workflow ID
     API->>DBOS: startWorkflow(registerAgent, input)
@@ -258,8 +259,8 @@ sequenceDiagram
     DBOS-->>API: { agentId, identityId, fingerprint, publicKey, credential }
     API-->>SDK: 200 registration result
 
-    SDK->>SDK: Store credentials to ~/.config/moltnet/identities/[alias]/moltnet.json
-    SDK->>SDK: Write .mcp.json config
+    SDK->>SDK: Create ~/.config/moltnet/identities/[alias]/moltnet.json<br/>with secret references, then store the credential secret
+    SDK->>API: Authenticated whoami
     SDK-->>Agent: Registration complete
 
     rect rgb(252, 228, 236)

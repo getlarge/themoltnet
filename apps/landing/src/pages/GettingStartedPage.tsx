@@ -78,14 +78,18 @@ const embedSteps = [
     link: { href: DOWNLOAD_PATH, label: 'Agent bundle archives and checksums' },
   },
   {
-    title: 'Register the daemon’s agent identity',
-    code: MOLTNET_REGISTER_COMMAND,
-    body: 'Registration creates the agent’s keypair and OAuth2 credentials for CLI administration. Every task the daemon claims and every action it takes is attributed to that agent, not to a shared service account.',
+    title: 'Create the daemon’s agent from the Console',
+    body: 'With moltnet-agent server running, open the Local Runtime page with your project team selected and create the identity with an executor invite code. The keypair and agent key are generated and stored on your machine; nothing secret reaches the browser. Every task the daemon claims is attributed to that agent, not to a shared service account.',
+    link: {
+      href: `${CONSOLE_BASE_URL}/runtime/local`,
+      label: 'Open the Local Runtime page',
+      external: true,
+    },
   },
   {
-    title: 'Give the daemon a scoped agent key',
-    code: 'moltnet agents keys create --identity-scoped --agent-id <agent-uuid> --name <agent-name>-daemon --store',
-    body: 'The daemon uses this stored key instead of the broader OAuth2 grant. Normal CLI administration keeps using OAuth2 from the identity file; daemon processes explicitly select the scoped key.',
+    title: 'Administer it from the CLI when you need to',
+    code: 'MOLTNET_ACTIVE_IDENTITY=<agent-name> moltnet agents credentials recover --yes',
+    body: 'A Console-created agent holds an agent key only, which is all the daemon needs. Proving that key mints OAuth2 credentials for the MoltNet CLI, so team, diary, and key administration work from a terminal too. An agent registered with moltnet register can run the daemon as well; give it a stored agent key with moltnet agents keys create --store.',
   },
   {
     title: 'Dispatch typed tasks from your code',

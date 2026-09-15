@@ -96,6 +96,8 @@ export {
   MoltNetError,
   NetworkError,
   problemToError,
+  RegisterIdentityError,
+  type RegisterIdentityErrorCode,
   RegistrationError,
   type ValidationError,
 } from './errors.js';
@@ -150,12 +152,7 @@ export {
   buildSelfRegistrationMessage,
   buildTeamRegistrationMessage,
   createIdempotencyKey,
-  enroll,
-  type EnrollOptions,
   type McpConfig,
-  register,
-  type RegisterOptions,
-  type RegisterResult,
   type RegistrationCredentials,
 } from './register.js';
 export { createRemoteSigner, RemoteSignerError } from './remote-signer.js';
@@ -256,12 +253,9 @@ export {
 import { connect } from './connect.js';
 import { connectHuman } from './human.js';
 import { info } from './info.js';
-import { enroll, register } from './register.js';
 import { sign } from './sign.js';
 
 export const MoltNet = {
-  register,
-  enroll,
   info,
   sign,
   connect,

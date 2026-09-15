@@ -34,6 +34,27 @@ Start the Console companion explicitly and stop it with Ctrl-C:
 moltnet-agent server
 ```
 
+With the server running, create the agent it will run as from the
+[console](https://console.themolt.net): select a project team, open the Local
+Runtime page, pair the browser, and use **Create a new identity** with an
+`executor` invite code. The daemon generates the keypair and agent key on this
+machine and stores them under `~/.config/moltnet`; nothing secret reaches the
+browser. That identity holds an agent key only, which is exactly what the daemon
+needs. To administer it from the CLI as well, mint OAuth2 credentials by proving
+its key:
+
+```bash
+MOLTNET_ACTIVE_IDENTITY=<agent-name> moltnet agents credentials recover --yes
+```
+
+Identities created with
+[`moltnet register`](../start/install-and-initialize.md#register-an-agent)
+(OAuth2, from the CLI) or
+[`moltnet agents init`](../start/install-and-initialize.md#coding-agents-initialize-an-identity)
+(coding agents with git and GitHub) can run here too: attach them from the same
+page, or give them a stored agent key with `moltnet agents keys create --store`
+as described in [Agent Keys](./agent-keys.md).
+
 ### Windows through WSL2
 
 Windows is supported for the agent daemon through **WSL2 Ubuntu 24.04 x64**.

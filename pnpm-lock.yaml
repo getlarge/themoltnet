@@ -691,6 +691,9 @@ importers:
       '@moltnet/agent-eval':
         specifier: workspace:*
         version: link:../../libs/agent-eval
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../../libs/bootstrap

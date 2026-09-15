@@ -11,25 +11,24 @@ import { basename, dirname, isAbsolute, join } from 'node:path';
 
 import {
   type Agent,
-  agentKeyKey,
   assertTrustedConfigApiUrl,
   AuthenticationError,
-  deriveMcpUrl,
-  identitySeedKey,
   isCanonicalConfig,
   type MoltNetConfig,
-  MoltNetError,
-  register,
   requireSecureCredentialApiUrl,
   resolveAgentKey,
   type SecretProviderRegistry,
   type Whoami,
 } from '@themoltnet/sdk';
 import {
+  boundedIdentitySignal,
   connect,
   type ConnectOptions,
   FILE_SECRET_PROVIDER,
   type FileSecretProvider,
+  register,
+  RegisterIdentityError,
+  type RegisterResult,
 } from '@themoltnet/sdk/node';
 
 import { assessIdentityPin, type IdentityPin } from '../identity-pin.js';
@@ -43,7 +42,6 @@ import {
 } from './store.js';
 
 const MAX_CONFIG_BYTES = 64 * 1024;
-const IDENTITY_OPERATION_TIMEOUT_MS = 15_000;
 const pendingAliases = new WeakMap<AgentServerStore, Set<string>>();
 
 export class AgentServerIdentityError extends Error {
@@ -126,7 +124,7 @@ export async function createManagedAgent(
     );
   }
   const releaseAlias = reserveAlias(store, alias);
-  let registered = false;
+  let registered: RegisterResult | undefined;
   try {
     let apiUrl: string;
     try {
@@ -141,102 +139,88 @@ export async function createManagedAgent(
     // This durable marker prevents a retry from creating a second remote
     // identity if registration commits but its response or a local write fails.
     store.reserveRegistration(alias, apiUrl);
-    const result = await register({
-      credentialType: 'agent_key',
-      apiUrl,
-      enrollmentToken: input.enrollmentToken,
-      signal: boundedIdentitySignal(input.signal),
-    });
-    if (result.credentials.type !== 'agent_key') {
+    // The SDK owns keypair, config, secret storage, and the authenticated
+    // whoami check, writing into this store's identity directory with the
+    // same recoverable order the CLI uses. The file provider keeps the
+    // references pointing at `<root>/secrets`.
+    try {
+      registered = await register({
+        name: alias,
+        apiUrl,
+        credentialType: 'agent_key',
+        enrollmentToken: input.enrollmentToken,
+        secretProvider: secrets,
+        configDir: store.identityDir(alias),
+        publishAlias: false,
+        signal: input.signal,
+        connectAgent,
+      });
+    } catch (cause) {
+      if (cause instanceof RegisterIdentityError) {
+        if (cause.nothingRegistered) {
+          // Nothing exists remotely, so the pending marker would only block a
+          // retry. The SDK keeps any stored seed, which costs an unused entry.
+          store.clearPendingRegistration(alias);
+          throw new AgentServerIdentityError(
+            cause.code === 'alias_exists'
+              ? 'agent_exists'
+              : 'registration_failed',
+            cause.message,
+            { cause },
+          );
+        }
+        if (cause.code === 'unsupported_credential') {
+          throw new AgentServerIdentityError(
+            'unsupported_credential',
+            `${cause.message}; agent server manages agent-key credentials only`,
+            { cause },
+          );
+        }
+        if (cause.code === 'identity_mismatch') {
+          throw new AgentServerIdentityError(
+            'verification_failed',
+            cause.message,
+            { cause },
+          );
+        }
+      }
       throw new AgentServerIdentityError(
-        'unsupported_credential',
-        `registration returned credential type "${result.credentials.type}"; agent server manages agent-key credentials only`,
+        'registration_incomplete',
+        incompleteRegistrationMessage(
+          alias,
+          cause instanceof RegisterIdentityError ? cause : {},
+        ),
+        { cause },
       );
     }
 
-    const now = new Date().toISOString();
-    const { subjectId, fingerprint, publicKey, privateKey } = result.identity;
-    registered = true;
-    const agentKeyReference = {
-      provider: FILE_SECRET_PROVIDER,
-      key: agentKeyKey(subjectId),
-    };
-    const seedReference = {
-      provider: FILE_SECRET_PROVIDER,
-      key: identitySeedKey(fingerprint),
-    };
-    const config: MoltNetConfig = {
-      subject_id: subjectId,
-      subject_type: 'agent',
-      registered_at: now,
-      agent_key_ref: agentKeyReference,
-      keys: {
-        public_key: publicKey,
-        fingerprint,
-        private_key_ref: seedReference,
-      },
-      endpoints: {
-        api: result.apiUrl,
-        mcp: deriveMcpUrl(result.apiUrl),
-      },
-    };
-    // Persist the non-secret recovery record first. If a later write fails,
-    // reserveAlias blocks accidental re-registration of the remote identity.
-    store.writeAgentConfig(alias, config);
-    await secrets.write(agentKeyReference.key, result.credentials.secret);
-    await secrets.write(seedReference.key, privateKey);
-    const whoami = await callWhoami(
-      connectAgent,
-      { agentKey: result.credentials.secret, apiUrl: result.apiUrl },
-      store.agentPath(alias),
-      input.signal,
-    );
-    assertIdentityMatches(
-      whoami,
-      { publicKey, fingerprint },
-      'authenticated whoami',
-      `new managed agent "${alias}"`,
-    );
-    assertSubjectMatches(
-      whoami,
-      config,
-      'authenticated whoami',
-      `managed config ${store.agentPath(alias)}`,
-    );
+    // register() has already verified the whoami against the registered
+    // subject, public key, and fingerprint.
+    const { config, whoami, identity } = registered;
     const boundTeamId = boundTeamIdFromWhoami(whoami);
     const activation: AgentActivation = {
       alias,
       source: 'managed',
       subjectId: whoami.subjectId,
-      publicKey,
-      fingerprint,
+      publicKey: identity.publicKey,
+      fingerprint: identity.fingerprint,
       ...(boundTeamId ? { boundTeamId } : {}),
-      createdAt: now,
-      apiUrl: result.apiUrl,
+      createdAt: config.registered_at,
+      apiUrl: config.endpoints.api,
     };
     store.writeActivation(activation);
     return { activation, config, ...(boundTeamId ? { boundTeamId } : {}) };
   } catch (cause) {
-    if (
-      !registered &&
-      cause instanceof MoltNetError &&
-      cause.statusCode !== undefined &&
-      cause.statusCode >= 400 &&
-      cause.statusCode < 500
-    ) {
-      store.clearPendingRegistration(alias);
-      throw new AgentServerIdentityError(
-        'registration_failed',
-        registrationRejectionMessage(alias, cause),
-        { cause },
-      );
-    }
+    if (cause instanceof AgentServerIdentityError) throw cause;
     if (store.hasPendingRegistration(alias)) {
       throw new AgentServerIdentityError(
         'registration_incomplete',
-        registered
-          ? `the remote agent was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
-          : `registration for "${alias}" may be incomplete; inspect the remote API before changing its pending Agent Server record`,
+        incompleteRegistrationMessage(
+          alias,
+          registered
+            ? { ...registered.identity, configPath: registered.configPath }
+            : {},
+        ),
         { cause },
       );
     }
@@ -246,13 +230,27 @@ export async function createManagedAgent(
   }
 }
 
-function registrationRejectionMessage(
+/**
+ * Guidance for a registration that may have committed. The HTTP response
+ * carries only this message, so it names the reconcile call and, when the
+ * server outcome is unknown, the fingerprint to look up first. Resume needs
+ * the written config, so without one only abandon is offered.
+ */
+function incompleteRegistrationMessage(
   alias: string,
-  cause: MoltNetError,
+  known: { subjectId?: string; fingerprint?: string; configPath?: string },
 ): string {
-  const status = cause.statusCode === undefined ? '' : ` (${cause.statusCode})`;
-  const detail = cause.detail?.trim() || cause.message;
-  return `registration for "${alias}" was rejected${status}: ${detail}`;
+  const endpoint = `POST /v1/agents/${alias}/reconcile`;
+  const reconcile = known.configPath
+    ? `Finish it with ${endpoint} and {"action":"resume"}, or discard the local record with {"action":"abandon"}.`
+    : `No local config was written, so it cannot be resumed; discard the local record with ${endpoint} and {"action":"abandon"}.`;
+  if (known.subjectId) {
+    return `the remote agent ${known.subjectId} was registered but local activation is incomplete. ${reconcile}`;
+  }
+  const fingerprint = known.fingerprint
+    ? ` (fingerprint ${known.fingerprint})`
+    : '';
+  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first. ${reconcile}`;
 }
 
 /** Resume a fully persisted registration or explicitly abandon local recovery. */
@@ -769,11 +767,6 @@ async function callWhoami(
       cause,
     );
   }
-}
-
-function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
-  const timeout = AbortSignal.timeout(IDENTITY_OPERATION_TIMEOUT_MS);
-  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 function identityFromConfig(config: MoltNetConfig): IdentityPin {

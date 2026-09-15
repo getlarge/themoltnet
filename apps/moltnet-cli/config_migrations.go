@@ -39,9 +39,12 @@ func subjectAwareConfigMigrations(destination string) []configMigration {
 	return append(defaultConfigMigrations(destination), newSubjectAnchorMigration(nil))
 }
 
-// validateMigrationDestination rejects destinations that cannot receive
-// secrets before any credentials are read.
-func validateMigrationDestination(registry *SecretProviderRegistry, destination string) (string, error) {
+// resolveSecretDestination returns the secret provider a command writes new
+// secrets to: the requested name, or the OS keyring when none is requested.
+// It is shared by every command that stores a secret (register, agents init,
+// credential recovery, agent keys, config migration, init-from-env) and
+// rejects a provider that cannot receive writes before anything is stored.
+func resolveSecretDestination(registry *SecretProviderRegistry, destination string) (string, error) {
 	destination = strings.TrimSpace(destination)
 	if destination == "" {
 		destination = defaultMigrationDestination
@@ -76,7 +79,7 @@ func runConfigMigrateCmd(w, errOut io.Writer, credPath, generatePath, runPath, d
 		name = names[0]
 	}
 	registry := NewSecretProviderRegistry()
-	destination, err := validateMigrationDestination(registry, destination)
+	destination, err := resolveSecretDestination(registry, destination)
 	if err != nil {
 		return err
 	}

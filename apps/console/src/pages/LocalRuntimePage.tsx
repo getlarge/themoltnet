@@ -23,6 +23,7 @@ import {
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
+import { CreateInviteDialog } from '../components/teams/CreateInviteDialog.js';
 import type {
   AgentServerRunView,
   StartRunBody,
@@ -288,6 +289,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const canManage = canManageTeam(selectedTeam?.role);
   const [name, setName] = useState('');
   const [enrollmentToken, setEnrollmentToken] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [tokenNote, setTokenNote] = useState<string | null>(null);
   const [identityAlias, setIdentityAlias] = useState('');
   const [busy, setBusy] = useState(false);
@@ -447,7 +449,31 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
           >
             Create identity
           </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={
+              busy ||
+              !selectedTeam ||
+              selectedTeam.personal === true ||
+              !canManage
+            }
+            onClick={() => setInviteOpen(true)}
+          >
+            Create invite code
+          </Button>
         </Stack>
+        {selectedTeam && selectedTeam.personal !== true ? (
+          <CreateInviteDialog
+            open={inviteOpen}
+            onClose={() => setInviteOpen(false)}
+            teamId={selectedTeam.id}
+            defaultRole="executor"
+            // The dialog stays open to show the code; the field is filled at
+            // the same time so closing it lands the reader on a ready form.
+            onCreated={(code) => setEnrollmentToken(code)}
+          />
+        ) : null}
       </Stack>
 
       <Divider />

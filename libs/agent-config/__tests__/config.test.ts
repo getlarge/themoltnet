@@ -121,6 +121,52 @@ describe('OAuth2 config updates', () => {
     expect(await readdir(dir)).toEqual(['moltnet.json']);
   });
 
+  it('creates a config exclusively and refuses to replace an existing one', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir, { exclusive: true });
+    const before = await readFile(join(dir, 'moltnet.json'), 'utf8');
+
+    await expect(
+      writeConfig({ ...config(), subject_id: 'other' }, dir, {
+        exclusive: true,
+      }),
+    ).rejects.toMatchObject({ code: 'EEXIST' });
+    expect(await readFile(join(dir, 'moltnet.json'), 'utf8')).toBe(before);
+    expect(await readdir(dir)).toEqual(['moltnet.json']);
+    expect((await stat(join(dir, 'moltnet.json'))).mode & 0o777).toBe(0o600);
+  });
+
+  it('lets exactly one of two concurrent exclusive writers win', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+
+    const results = await Promise.allSettled([
+      writeConfig({ ...config(), subject_id: 'first' }, dir, {
+        exclusive: true,
+      }),
+      writeConfig({ ...config(), subject_id: 'second' }, dir, {
+        exclusive: true,
+      }),
+    ]);
+
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(await readdir(dir)).toEqual(['moltnet.json']);
+  });
+
+  it('seeds the default identity only after an exclusive write commits', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'moltnet-store-'));
+    const dir = join(root, 'identities', 'taken');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'moltnet.json'), '{}');
+
+    await expect(
+      writeConfig(config(), dir, { exclusive: true }),
+    ).rejects.toMatchObject({ code: 'EEXIST' });
+
+    await expect(
+      stat(join(root, 'identity-selector.json')),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('leaves an existing config untouched when the write cannot be committed', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     await writeConfig(config(), dir);

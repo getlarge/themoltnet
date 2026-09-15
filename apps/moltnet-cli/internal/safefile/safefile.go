@@ -5,6 +5,7 @@ package safefile
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -140,6 +141,32 @@ func Write(path string, data []byte) error {
 		return err
 	}
 	defer lock.Close()
+	return writeLocked(lock.path, data)
+}
+
+// ErrExists reports that Create found a file already at the target path.
+var ErrExists = errors.New("file already exists")
+
+// Create writes path only when nothing exists there yet. The existence check
+// and the write happen under the shared CLI writer lock, so two cooperating
+// processes creating the same file cannot both succeed; the loser gets
+// ErrExists and the winner's contents are untouched.
+//
+// The check is an Lstat of the path as given, not of its canonical form. Lstat
+// still follows symlinked parent directories, so every spelling of one file
+// sees the same entry, and a symlink at the target itself, even a dangling one,
+// counts as existing rather than being written through.
+func Create(path string, data []byte) error {
+	lock, err := Acquire(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	if _, statErr := os.Lstat(lock.path); statErr == nil {
+		return fmt.Errorf("%s: %w", lock.path, ErrExists)
+	} else if !os.IsNotExist(statErr) {
+		return statErr
+	}
 	return writeLocked(lock.path, data)
 }
 

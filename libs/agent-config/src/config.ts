@@ -1,14 +1,17 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import {
   chmod,
+  link,
   mkdir,
+  open,
   readFile,
   rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, sep } from 'node:path';
+import { basename, dirname, join, sep } from 'node:path';
 
 export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
@@ -246,17 +249,22 @@ export function getConfigPath(configDir?: string): string {
 }
 
 /**
- * The active identity's document, or null when no identity resolves.
- *
- * The honest counterpart to getConfigPath: a `string` return cannot express
- * "there is no active identity", which is why that function has to invent a
- * path. Prefer this wherever the absence matters.
+ * Idempotent: an existing default is never overwritten. The selector lives
+ * beside the `identities` directory the config is written into, so a store
+ * with a custom root (the daemon's agent server) seeds its own selector
+ * instead of the default one under the home directory.
  */
-/** Idempotent: an existing default is never overwritten. */
 async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   const alias = identityDir.split(sep).pop();
   if (!alias || !IDENTITY_ALIAS_PATTERN.test(alias)) return;
-  const selectorPath = join(getConfigDir(), 'identity-selector.json');
+  const parent = dirname(identityDir);
+  const root =
+    basename(parent) === identitiesDirName
+      ? dirname(parent)
+      : // Not under an `identities` directory, so no store root can be
+        // inferred from the path: fall back to the default store root.
+        getConfigDir();
+  const selectorPath = join(root, 'identity-selector.json');
   try {
     const existing = JSON.parse(
       await readFile(selectorPath, 'utf-8'),
@@ -265,7 +273,7 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   } catch {
     // Absent or unreadable: write a fresh one below.
   }
-  await mkdir(getConfigDir(), { recursive: true, mode: 0o700 });
+  await mkdir(root, { recursive: true, mode: 0o700 });
   await writeFile(
     selectorPath,
     JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
@@ -273,6 +281,13 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   );
 }
 
+/**
+ * The active identity's document, or null when no identity resolves.
+ *
+ * The honest counterpart to getConfigPath: a `string` return cannot express
+ * "there is no active identity", which is why that function has to invent a
+ * path. Prefer this wherever the absence matters.
+ */
 export async function resolveConfigPath(
   configDir?: string,
 ): Promise<string | null> {
@@ -315,9 +330,19 @@ async function readConfigFile(path: string): Promise<ReadMoltNetConfig | null> {
   }
 }
 
+export interface WriteConfigOptions {
+  /**
+   * Create the config only if none exists; otherwise reject with an `EEXIST`
+   * error and leave the existing file untouched. The check and the write are
+   * one atomic link, so two concurrent writers cannot both succeed.
+   */
+  exclusive?: boolean;
+}
+
 export async function writeConfig(
   config: MoltNetConfig,
   configDir?: string,
+  options: WriteConfigOptions = {},
 ): Promise<string> {
   assertCanonicalConfig(config);
   const dir = await resolveConfigDir(configDir);
@@ -328,24 +353,70 @@ export async function writeConfig(
   }
   await mkdir(dir, { recursive: true, mode: 0o700 });
   const filePath = join(dir, 'moltnet.json');
+  const contents = JSON.stringify(config, null, 2) + '\n';
+  // Write to a sibling temp file, then commit it so the config is either fully
+  // committed or untouched; callers rely on this when rolling back secrets.
+  // An exclusive write commits with link(), which fails if the target exists;
+  // a normal write replaces the target with rename().
+  const tempPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(tempPath, contents, { mode: 0o600 });
+    await chmod(tempPath, 0o600);
+    if (options.exclusive) {
+      await linkExclusive(tempPath, filePath, contents);
+    } else {
+      await rename(tempPath, filePath);
+    }
+  } finally {
+    await rm(tempPath, { force: true }).catch(() => undefined);
+  }
   // Seed the selector when none is set, as the Go CLI and the daemon store both
   // do. Without it a first identity created from JS is unreachable by every
   // other consumer unless the operator exports MOLTNET_ACTIVE_IDENTITY by hand.
+  // Only after the commit, so a writer that lost an exclusive race never
+  // points the selector at a config it did not write.
   await seedIdentitySelectorIfUnset(dir);
-  // Write to a sibling temp file and rename so the config is either fully
-  // committed or untouched; callers rely on this when rolling back secrets.
-  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  return filePath;
+}
+
+/** Error codes of a filesystem that cannot create hard links. */
+const HARD_LINK_UNSUPPORTED = new Set([
+  'ENOTSUP',
+  'EOPNOTSUPP',
+  'ENOSYS',
+  'EPERM',
+  'EXDEV',
+]);
+
+/**
+ * Create `filePath` from `tempPath` only if nothing is there. Without hard
+ * links, an exclusive open keeps the create-once guarantee; a reader may then
+ * briefly see a partial file, and a failed write removes what it created.
+ */
+async function linkExclusive(
+  tempPath: string,
+  filePath: string,
+  contents: string,
+): Promise<void> {
   try {
-    await writeFile(tempPath, JSON.stringify(config, null, 2) + '\n', {
-      mode: 0o600,
-    });
-    await chmod(tempPath, 0o600);
-    await rename(tempPath, filePath);
+    await link(tempPath, filePath);
+    return;
   } catch (error) {
-    await rm(tempPath, { force: true }).catch(() => undefined);
+    if (
+      !HARD_LINK_UNSUPPORTED.has((error as NodeJS.ErrnoException).code ?? '')
+    ) {
+      throw error;
+    }
+  }
+  const handle = await open(filePath, 'wx', 0o600);
+  try {
+    await handle.writeFile(contents);
+  } catch (error) {
+    await handle.close();
+    await rm(filePath, { force: true });
     throw error;
   }
-  return filePath;
+  await handle.close();
 }
 
 export async function updateConfigSection(

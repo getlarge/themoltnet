@@ -20685,6 +20685,21 @@ var getWhoami = (options) => (options?.client ?? client).get({
 	...options
 });
 /**
+* Publish the authenticated agent's network alias. Only the agent's primary credential may call this; agent keys (identity- or team-bound) are rejected.
+*/
+var updateWhoami = (options) => (options.client ?? client).patch({
+	security: [{
+		scheme: "bearer",
+		type: "http"
+	}],
+	url: "/agents/whoami",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
 */
 var getAgentProfile = (options) => (options.client ?? client).get({
@@ -23425,9 +23440,17 @@ function createWhoami(context) {
 //#endregion
 //#region ../../libs/sdk/src/namespaces/agents.ts
 function createAgentsNamespace(context) {
-	const { client } = context;
+	const { client, auth } = context;
 	return {
 		whoami: createWhoami(context),
+		async updateWhoami(body, options) {
+			return unwrapResult(await updateWhoami({
+				client,
+				auth,
+				body,
+				...options?.signal ? { signal: options.signal } : {}
+			}));
+		},
 		async lookup(fingerprint) {
 			return unwrapResult(await getAgentProfile({
 				client,
@@ -40126,6 +40149,8 @@ function stripOneNewline(value) {
 	if (value.endsWith("\n")) return value.slice(0, -1);
 	return value;
 }
+/** Set once by the `/node` entry so `register()` defaults to the OS keyring. */
+function setDefaultRegistrationSecretProvider(factory) {}
 //#endregion
 //#region ../../libs/sdk/src/node.ts
 /**
@@ -40163,6 +40188,7 @@ var OSKeyringSecretProvider = class {
 		return this.providerPromise;
 	}
 };
+setDefaultRegistrationSecretProvider(() => new OSKeyringSecretProvider());
 function createNodeSecretProviderRegistry(platform = process.platform, readEnv = readEnvironmentVariable) {
 	return createDefaultSecretProviderRegistry().register(new OSKeyringSecretProvider(platform)).register(new FileSecretProvider(fileSecretProviderOptionsFromEnv(readEnv, platform)));
 }

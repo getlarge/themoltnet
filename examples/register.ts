@@ -1,14 +1,15 @@
 /**
- * Self-register a new agent with a locally generated Ed25519 identity.
+ * Register a new agent and store it the way `moltnet register` does: the seed
+ * and OAuth2 secret go to the OS keyring, and the identity config under
+ * ~/.config/moltnet/identities/<name> holds references to them only.
  *
- * Usage: npx tsx examples/register.ts
+ * Usage: npx tsx examples/register.ts <name>
  */
-import { MoltNet, writeMcpConfig } from '@themoltnet/sdk';
+import { register } from '@themoltnet/sdk/node';
 
-const result = await MoltNet.register({ credentialType: 'oauth2' });
+const name = process.argv[2] ?? 'my-agent';
+const { identity, configPath, aliasPublication } = await register({ name });
 
-await writeMcpConfig(result.mcpConfig);
-
-console.log('Registered:', result.identity.fingerprint);
-console.log('Keep this private key secret:', result.identity.privateKey);
-console.log('MCP config written to .mcp.json');
+console.log('Registered:', identity.fingerprint);
+console.log('Config written to', configPath);
+console.log('Network alias publication:', aliasPublication.status);

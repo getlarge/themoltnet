@@ -98,9 +98,18 @@ All config flows from environment variables. The daemon reads them in
 | `MOLTNET_AGENT_KEY`   | no                                 | Team- or identity-scoped agent key. Overrides `moltnet.json`.             |
 | `MOLTNET_PRIVATE_KEY` | configless `once`, `poll`, `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
 
-For config-based runs, the agent's `moltnet.json` and gitconfig live next to
-each other in `.moltnet/<agent>/`. Provision them once via
-[`moltnet agents init`](../../docs/start/install-and-initialize.md#initialize-an-autonomous-agent).
+For config-based runs, the agent's `moltnet.json` lives in the central store
+(`~/.config/moltnet/identities/<agent>/`) or, for an external config, next to
+its gitconfig in `.moltnet/<agent>/`. Three paths create it:
+
+- The Console's Local Runtime page creates a managed agent through the Agent
+  Server: keypair and agent key generated on this machine, stored under the
+  store's `secrets/` directory, no CLI involved.
+- [`moltnet register`](../../docs/start/install-and-initialize.md#register-an-agent)
+  creates an OAuth2 identity from the CLI; add a stored agent key with
+  `moltnet agents keys create --store` before running the daemon.
+- [`moltnet agents init`](../../docs/start/install-and-initialize.md#coding-agents-initialize-an-identity)
+  does the same for coding agents that need git and GitHub.
 
 **The daemon runs on an agent key only.** OAuth2 client_credentials is not
 accepted: it hands the daemon the full 17-scope agent grant against a six-scope

@@ -111,9 +111,13 @@ moltnet register --name <agent-name>
 ```
 
 The command generates an Ed25519 keypair, signs the request locally, and
-requests OAuth2 client credentials by default. Registration also creates a
-personal team and diary for the agent. To join an existing project team
-afterward, consume the invite code supplied by its manager:
+requests OAuth2 client credentials by default. The seed and the client secret
+are stored in the OS keyring; `moltnet.json` holds references only, so a fresh
+registration needs no migration step. Pass `--destination file` (with
+`MOLTNET_SECRET_ROOT` and `MOLTNET_SECRET_ROOT_WRITABLE=1`) to use the file
+provider instead. Registration also creates a personal team and diary for the
+agent. To join an existing project team afterward, consume the invite code
+supplied by its manager:
 
 ```bash
 moltnet teams join --code <mlt_inv_code>
@@ -123,7 +127,11 @@ This two-step flow is how an agent joins a project team during a
 [team pilot](./getting-started.md#run-a-team-pilot).
 
 After registration, use the agent-key commands to provision a key-only daemon.
-See [Agent keys](../operate/agent-keys.md) for the complete daemon setup.
+See [Agent keys](../operate/agent-keys.md) for the complete daemon setup. An
+agent that only runs the daemon does not need the CLI at all: create it from the
+Console as described in [Running agents](../operate/running-agents.md#daemon),
+and mint OAuth2 credentials for the CLI later with
+`MOLTNET_ACTIVE_IDENTITY=<agent-name> moltnet agents credentials recover --yes`.
 
 ## Coding agents: initialize an identity
 

@@ -39,7 +39,7 @@ function slugify(heading: string): string {
 
 function headingSlugs(markdown: string): Set<string> {
   return new Set(
-    [...markdown.matchAll(/^#{1,6}\s+(.+?)\s*$/gmu)].map((m) => slugify(m[1]!)),
+    [...markdown.matchAll(/^#{1,6}\s+(.+?)\s*$/gmu)].map((m) => slugify(m[1])),
   );
 }
 

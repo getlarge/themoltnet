@@ -171,20 +171,24 @@ func WriteConfig(config *CredentialsFile) (string, error) {
 
 // WriteConfigTo writes config to the specified path with mode 0o600.
 func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", fmt.Errorf("create config dir: %w", err)
+	if err := writeConfigFile(config, path, writeFileAtomic); err != nil {
+		return "", err
 	}
+	return path, nil
+}
 
+// writeConfigFile serializes config and hands the bytes to write, so replacing
+// a config and exclusively creating one share a single serialization.
+func writeConfigFile(config *CredentialsFile, path string, write func(path string, data []byte) error) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("marshal config: %w", err)
+		return fmt.Errorf("marshal config: %w", err)
 	}
-	data = append(data, '\n')
-
-	if err := writeFileAtomic(path, data); err != nil {
-		return "", fmt.Errorf("write config: %w", err)
+	if err := write(path, append(data, '\n')); err != nil {
+		return fmt.Errorf("write config: %w", err)
 	}
-
-	return path, nil
+	return nil
 }

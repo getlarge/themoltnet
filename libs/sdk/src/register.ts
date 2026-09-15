@@ -7,6 +7,7 @@ import {
   buildTeamRegistrationMessage,
 } from '@moltnet/models';
 
+import { withTimeout } from './abort.js';
 import {
   normalizeOptionalApiUrl,
   requireSecureCredentialApiUrl,
@@ -17,20 +18,28 @@ import { MoltNetError, NetworkError, problemToError } from './errors.js';
 export { buildSelfRegistrationMessage, buildTeamRegistrationMessage };
 export type { BootstrapCredentialType };
 
-export interface RegisterOptions {
+export type RegistrationKeyPair = Awaited<
+  ReturnType<typeof cryptoService.generateKeyPair>
+>;
+
+export interface RequestRegistrationOptions {
   credentialType: BootstrapCredentialType;
   /** Redeem this token into its issuing team instead of self-registering. */
   enrollmentToken?: string;
   apiUrl?: string;
+  /**
+   * Keypair to register. The persisting `register()` in the node entry stores
+   * the seed before calling here so a failure after the server commits never
+   * loses it; when absent a fresh keypair is generated.
+   */
+  keyPair?: RegistrationKeyPair;
   /** Abort registration and any replay request. */
   signal?: AbortSignal;
-}
-
-export interface EnrollOptions extends Omit<
-  RegisterOptions,
-  'enrollmentToken'
-> {
-  enrollmentToken: string;
+  /**
+   * Abort each attempt after this long. Bounding attempts rather than the
+   * whole call keeps the replay meaningful after a timed-out first attempt.
+   */
+  attemptTimeoutMs?: number;
 }
 
 export type RegistrationCredentials = RegisterResponse['credential'];
@@ -47,7 +56,7 @@ export interface McpConfig {
   };
 }
 
-export interface RegisterResult {
+export interface RegistrationRequestResult {
   identity: {
     publicKey: string;
     privateKey: string;
@@ -57,7 +66,6 @@ export interface RegisterResult {
     subjectType: 'agent';
   };
   credentials: RegistrationCredentials;
-  mcpConfig: McpConfig;
   apiUrl: string;
 }
 
@@ -92,14 +100,20 @@ export function buildMcpConfig(
   };
 }
 
-export async function register(
-  options: RegisterOptions,
-): Promise<RegisterResult> {
+/**
+ * The in-memory registration request: sign the proof, call the API once with
+ * a replay on transport failure, and return keys plus credentials without
+ * persisting anything. The package root does not export this; the persisting
+ * `register()` in `@themoltnet/sdk/node` is the public entry point.
+ */
+export async function requestRegistration(
+  options: RequestRegistrationOptions,
+): Promise<RegistrationRequestResult> {
   const apiUrl = requireSecureCredentialApiUrl(
     normalizeOptionalApiUrl(options.apiUrl),
   );
   const enrollmentToken = options.enrollmentToken;
-  const keyPair = await cryptoService.generateKeyPair();
+  const keyPair = options.keyPair ?? (await cryptoService.generateKeyPair());
   const idempotencyKey = createIdempotencyKey();
   const tokenHash = enrollmentToken
     ? await crypto.subtle.digest(
@@ -134,19 +148,28 @@ export async function register(
         proof,
         credentialType: options.credentialType,
       },
-      ...(options.signal ? { signal: options.signal } : {}),
     };
-    const send = () =>
-      enrollmentToken
+    const send = () => {
+      const signal =
+        options.attemptTimeoutMs === undefined
+          ? options.signal
+          : withTimeout(options.attemptTimeoutMs, options.signal);
+      const attempt = { ...request, ...(signal ? { signal } : {}) };
+      return enrollmentToken
         ? enrollAgent({
-            ...request,
+            ...attempt,
             body: { ...request.body, token: enrollmentToken },
           })
-        : registerAgent(request);
+        : registerAgent(attempt);
+    };
     let result;
     try {
       result = await send();
-    } catch {
+    } catch (error) {
+      // The caller gave up: a replay with its aborted signal would only fail
+      // again and hide why. The caller still sees an unclear outcome, because
+      // the aborted request may already have reached the server.
+      if (options.signal?.aborted) throw error;
       // A transport failure may mean the server committed but the credential
       // response was dropped. Replay this exact signed request once with the
       // same nonce so the durable workflow returns its recorded result.
@@ -181,11 +204,6 @@ export async function register(
       subjectType: 'agent',
     },
     credentials: data.credential,
-    mcpConfig: buildMcpConfig(apiUrl, data.credential),
     apiUrl,
   };
-}
-
-export function enroll(options: EnrollOptions): Promise<RegisterResult> {
-  return register(options);
 }
