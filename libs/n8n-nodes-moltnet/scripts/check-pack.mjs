@@ -73,13 +73,10 @@ try {
   // this script adds the n8n manifest, CommonJS, host-peer, and cloud-safety
   // probes that are specific to community nodes.
   execFileSync(
-    isStandaloneRepository ? 'npm' : 'pnpm',
+    isStandaloneRepository ? process.execPath : 'pnpm',
     isStandaloneRepository
       ? [
-          'exec',
-          '--',
-          'tsx',
-          'scripts/check-pack-shared.ts',
+          'scripts/check-pack-shared.mjs',
           '--package',
           packageRoot,
           '--repository-url',
@@ -132,6 +129,10 @@ try {
     'n8n-workflow must remain a host peer dependency',
   );
   if (isStandaloneRepository) {
+    assert(
+      manifest.n8n?.strict === true,
+      'Standalone package must enable n8n strict mode for Cloud verification',
+    );
     assert(
       manifest.repository?.url === standaloneRepositoryUrl &&
         manifest.repository?.directory === undefined,

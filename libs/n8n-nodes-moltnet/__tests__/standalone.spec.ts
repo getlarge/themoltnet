@@ -65,6 +65,9 @@ describe('standalone repository projection', () => {
       'This repository is generated',
     );
     expect(readFileSync(join(first, 'SOURCE.md'), 'utf8')).toContain(sourceSha);
+    expect(readFileSync(join(first, 'eslint.config.mjs'), 'utf8')).toBe(
+      "import { config } from '@n8n/node-cli/eslint';\n\nexport default config;\n",
+    );
     expect(
       readFileSync(join(first, 'credentials/MoltNetAgentApi.credentials.ts')),
     ).toEqual(
@@ -91,8 +94,11 @@ describe('standalone repository projection', () => {
       ),
     ).toThrow();
     expect(
-      readFileSync(join(first, 'scripts/check-pack-shared.ts'), 'utf8'),
+      readFileSync(join(first, 'scripts/check-pack-shared.mjs'), 'utf8'),
     ).toContain('checkNoMissingRelativeJsImports');
+    expect(() =>
+      readFileSync(join(first, 'scripts/check-pack-shared.ts')),
+    ).toThrow();
   });
 
   it('emits a standalone npm manifest without owning its npm lockfile', () => {
@@ -108,6 +114,8 @@ describe('standalone repository projection', () => {
       url: 'git+https://github.com/getlarge/n8n-nodes-moltnet.git',
     });
     expect(manifest.nx).toBeUndefined();
+    expect(manifest.n8n.strict).toBe(true);
+    expect(manifest.devDependencies.tsx).toBeUndefined();
     expect(manifest.devDependencies['@moltnet/api-client']).toBeUndefined();
     expect(JSON.stringify(manifest)).not.toMatch(/(?:workspace|catalog):/u);
     expect(() => readFileSync(join(output, 'package-lock.json'))).toThrow();

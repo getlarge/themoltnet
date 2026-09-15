@@ -13,6 +13,8 @@ import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import ts from 'typescript';
+
 import { resolvePackFilename } from './pack-result.mjs';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -106,6 +108,7 @@ function standaloneManifest(manifest) {
     url: 'https://github.com/getlarge/n8n-nodes-moltnet/issues',
   };
   result.repository = { type: 'git', url: standaloneRepository };
+  result.n8n.strict = true;
   result.scripts = {
     build: 'vite build',
     'check:pack': 'node scripts/check-pack.mjs',
@@ -115,8 +118,24 @@ function standaloneManifest(manifest) {
     typecheck: 'tsc --build tsconfig.json --emitDeclarationOnly',
   };
   delete result.devDependencies['@moltnet/api-client'];
+  delete result.devDependencies.tsx;
   delete result.nx;
   return result;
+}
+
+async function writeStandaloneCheckPack(output) {
+  const source = await readFile(sharedCheckPack, 'utf8');
+  const transpiled = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: sharedCheckPack,
+  });
+  await writeFile(
+    resolve(output, 'scripts/check-pack-shared.mjs'),
+    transpiled.outputText,
+  );
 }
 
 async function prependGeneratedNotice(output, sourceRef, sourceSha) {
@@ -166,7 +185,7 @@ export async function buildStandalone({ output, sourceRef, sourceSha }) {
       filter: (source) => !source.endsWith('/client/plugin.ts'),
     },
   );
-  await cp(sharedCheckPack, resolve(output, 'scripts/check-pack-shared.ts'));
+  await writeStandaloneCheckPack(output);
 
   const manifest = standaloneManifest(await normalizedManifest());
   await writeFile(
