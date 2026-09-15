@@ -12,8 +12,12 @@ import {
 /**
  * Immutable, content-addressed effective runtime-policy snapshots.
  *
- * The hash is computed from the canonical v1 payload:
+ * The hash is computed from the canonical payload
  * `{ version, runtimeKind, enforcement, allowedTools, allowedShellCommands }`.
+ * `schema_version` is `effective-policy:v2` for new rows; older
+ * `effective-policy:v1` rows stay valid and are evaluated under v2 semantics
+ * (see `EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION` in
+ * `@moltnet/runtime-policy-service`).
  * Reusable policies remain mutable in Keto; task attempts
  * reference one of these immutable rows instead of resolving the live graph.
  */

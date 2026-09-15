@@ -7,8 +7,8 @@ import type {
 import { TOOL_ENFORCEMENT_VALUES, type ToolEnforcement } from '@moltnet/models';
 import {
   canonicalEffectivePolicySnapshot,
-  EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
   hashEffectivePolicySnapshot,
+  isSupportedEffectivePolicySnapshotVersion,
 } from '@moltnet/runtime-policy-service';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
 import type {
@@ -80,7 +80,10 @@ export function createMoltNetTaskAuthorityProvider(
     snapshot: RuntimePolicySnapshot,
     expectedHash: string,
   ): { authority: VerifiedSnapshotAuthority } | { reason: string } => {
-    if (snapshot.schemaVersion !== EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION) {
+    // v1 and v2 snapshots both verify against their own hash namespace. A
+    // pinned v1 snapshot is evaluated under the current (v2) semantics, which
+    // can only remove access; see EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION.
+    if (!isSupportedEffectivePolicySnapshotVersion(snapshot.schemaVersion)) {
       return { reason: 'schema_version_mismatch' };
     }
     if (
@@ -92,6 +95,7 @@ export function createMoltNetTaskAuthorityProvider(
     let canonical;
     try {
       canonical = canonicalEffectivePolicySnapshot({
+        version: snapshot.schemaVersion,
         runtimeKind: snapshot.runtimeKind,
         enforcement: snapshot.enforcement,
         allowedTools: snapshot.allowedTools,

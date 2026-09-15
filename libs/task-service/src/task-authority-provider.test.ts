@@ -8,6 +8,7 @@ import type {
 import {
   canonicalEffectivePolicySnapshot,
   hashEffectivePolicySnapshot,
+  LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
 } from '@moltnet/runtime-policy-service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -365,6 +366,38 @@ describe('MoltNet TaskAuthorityProvider', () => {
 
   it('denies a missing pinned executor manifest', async () => {
     await expectDenied(setup({ executor: null }), 'executor_manifest_missing');
+  });
+
+  it('keeps a pinned v1 snapshot loadable under the current semantics', async () => {
+    // Arrange
+    const legacyCanonical = canonicalEffectivePolicySnapshot({
+      version: LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git', 'read'],
+      allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+    });
+    const legacyHash = hashEffectivePolicySnapshot(legacyCanonical);
+    const context = setup({
+      attempt: attempt({ policySnapshotHash: legacyHash }),
+      snapshot: snapshot({
+        hash: legacyHash,
+        schemaVersion: legacyCanonical.version,
+        allowedTools: legacyCanonical.allowedTools,
+        allowedShellCommands: legacyCanonical.allowedShellCommands,
+      }),
+    });
+
+    // Act
+    const decision = await context.provider.authorizeTask(request);
+
+    // Assert
+    expect(legacyHash).not.toBe(SNAPSHOT_HASH);
+    expect(decision).toMatchObject({
+      allowed: true,
+      reason: 'active_pinned_authority',
+      claims: { policySnapshotHash: legacyHash },
+    });
   });
 
   it('denies an unsupported snapshot schema version', async () => {

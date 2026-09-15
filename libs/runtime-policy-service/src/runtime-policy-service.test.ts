@@ -14,7 +14,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   canonicalEffectivePolicySnapshot,
   createRuntimePolicyService,
+  EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
   hashEffectivePolicySnapshot,
+  isSupportedEffectivePolicySnapshotVersion,
+  LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
   type RuntimePolicyServiceDeps,
   type RuntimePolicySubject,
 } from './runtime-policy-service.js';
@@ -699,6 +702,7 @@ describe('createRuntimePolicyService', () => {
 describe('effective policy snapshot hashing', () => {
   it('is stable across tool order and duplicates', () => {
     const first = canonicalEffectivePolicySnapshot({
+      version: LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
       runtimeKind: 'gondolin_pi',
       enforcement: 'enforce',
       allowedTools: ['git', 'read', 'git'],
@@ -708,6 +712,7 @@ describe('effective policy snapshot hashing', () => {
       ],
     });
     const second = canonicalEffectivePolicySnapshot({
+      version: LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
       runtimeKind: 'gondolin_pi',
       enforcement: 'enforce',
       allowedTools: ['read', 'git'],
@@ -721,6 +726,44 @@ describe('effective policy snapshot hashing', () => {
     expect(hashEffectivePolicySnapshot(first)).toBe(
       'sha256:b7edae997658459ed86632f4d5197676391b39516aca28294241fe179a685a74',
     );
+  });
+
+  it('creates new snapshots under the v2 namespace', () => {
+    // Arrange
+    const input = {
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce' as const,
+      allowedTools: ['git', 'read'],
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'] as [string, string] },
+      ],
+    };
+
+    // Act
+    const current = canonicalEffectivePolicySnapshot(input);
+    const legacy = canonicalEffectivePolicySnapshot({
+      ...input,
+      version: LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
+    });
+
+    // Assert
+    expect(EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION).toBe(
+      'effective-policy:v2',
+    );
+    expect(current.version).toBe('effective-policy:v2');
+    expect(legacy.version).toBe('effective-policy:v1');
+    expect(hashEffectivePolicySnapshot(current)).not.toBe(
+      hashEffectivePolicySnapshot(legacy),
+    );
+  });
+
+  it.each([
+    ['effective-policy:v1', true],
+    ['effective-policy:v2', true],
+    ['effective-policy:v3', false],
+    ['v999', false],
+  ])('supports snapshot version %s: %s', (version, supported) => {
+    expect(isSupportedEffectivePolicySnapshotVersion(version)).toBe(supported);
   });
 
   it('canonicalizes distinct shell-command rules independent of order', () => {

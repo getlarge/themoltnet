@@ -156,11 +156,41 @@ function decodeStoredShellCommands(
   );
 }
 
+/**
+ * Effective policy snapshot versions. The version is part of the hashed
+ * payload, so each version has its own hash namespace.
+ *
+ * - `effective-policy:v1`: snapshots created while a `tools` entry could also
+ *   authorize a same-named shell program and shell rules needed 2+ tokens.
+ * - `effective-policy:v2`: `tools` authorize runtime and MCP tools only; shell
+ *   invocations need a 1-8 token `shellCommands` rule; no rule authorizes
+ *   output redirection.
+ *
+ * New snapshots are always v2. v1 snapshots stay loadable so pinned attempts
+ * keep verifying, and they are evaluated under the v2 semantics. That
+ * reinterpretation can only remove access: v1 never contained one-token rules,
+ * and the v2 gate ignores `tools` for shell and refuses redirection.
+ */
 export const EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION =
+  'effective-policy:v2' as const;
+export const LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION =
   'effective-policy:v1' as const;
 
-export interface EffectivePolicySnapshotV1 {
-  version: typeof EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION;
+export type EffectivePolicySnapshotVersion =
+  | typeof EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION
+  | typeof LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION;
+
+export function isSupportedEffectivePolicySnapshotVersion(
+  version: string,
+): version is EffectivePolicySnapshotVersion {
+  return (
+    version === EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION ||
+    version === LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION
+  );
+}
+
+export interface EffectivePolicySnapshot {
+  version: EffectivePolicySnapshotVersion;
   runtimeKind: string;
   enforcement: ToolEnforcement;
   allowedTools: string[];
@@ -168,13 +198,15 @@ export interface EffectivePolicySnapshotV1 {
 }
 
 export function canonicalEffectivePolicySnapshot(input: {
+  /** Defaults to the current version; pass a stored version to re-verify it. */
+  version?: EffectivePolicySnapshotVersion;
   runtimeKind: string;
   enforcement: ToolEnforcement;
   allowedTools: readonly string[];
   allowedShellCommands: readonly ShellCommandRule[];
-}): EffectivePolicySnapshotV1 {
+}): EffectivePolicySnapshot {
   return {
-    version: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
+    version: input.version ?? EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
     runtimeKind: input.runtimeKind,
     enforcement: input.enforcement,
     allowedTools: [...new Set(input.allowedTools)].sort(),
@@ -185,7 +217,7 @@ export function canonicalEffectivePolicySnapshot(input: {
 }
 
 export function hashEffectivePolicySnapshot(
-  snapshot: EffectivePolicySnapshotV1,
+  snapshot: EffectivePolicySnapshot,
 ): string {
   return `sha256:${createHash('sha256')
     .update(canonicalJson(snapshot))

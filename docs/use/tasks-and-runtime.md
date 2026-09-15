@@ -237,7 +237,11 @@ claim does not keep reading until the mutable policy remains stable forever.
 
 The resulting immutable snapshot contains `version`, `runtimeKind`,
 `enforcement`, `allowedTools`, and `allowedShellCommands`; its canonical SHA-256
-hash is its sole policy identity.
+hash is its sole policy identity. The version is part of the hashed content, so
+new `effective-policy:v2` snapshots never share a hash with older
+`effective-policy:v1` snapshots. See
+[Agent Security](../understand/agent-security.md#snapshot-versions) for how v1
+snapshots are evaluated.
 
 The claim transaction acquires a non-blocking advisory lock for continuations,
 when needed, changes `queued` to `dispatched` with a compare-and-set, and

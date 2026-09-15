@@ -374,6 +374,17 @@ The daemon enforces tool policy through a Pi extension that gates every
 Claim/execution hash drift emits one informational `tool_policy.snapshot_drift`
 record and never blocks execution; see the canonical lifecycle linked above.
 
+### Snapshot versions
+
+Effective policy snapshots carry a version inside their hashed content. New
+snapshots are `effective-policy:v2`: `tools` authorize runtime and MCP tools
+only, shell invocations need a 1 to 8 token `shellCommands` rule, and no rule
+authorizes output redirection. Snapshots created before this change are
+`effective-policy:v1` and keep their original hash, so attempts pinned to them
+still verify. A v1 snapshot is reinterpreted under the v2 rules. That can only
+remove access: v1 never held one-token rules, a `tools` entry no longer
+authorizes a shell program, and redirection is refused.
+
 ### Fail-closed and degraded resolution
 
 Authorization is fail-closed. If the allowed-tools fetch **fails or times out**
