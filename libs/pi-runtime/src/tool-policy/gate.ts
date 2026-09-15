@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 
 import type { ToolEnforcement } from '@moltnet/models';
+import {
+  grantsShellExecutable,
+  PI_BUILTIN_STRUCTURED_TOOL_NAMES,
+} from '@moltnet/models/tool-grants';
 import type {
   CommandAnalysis,
   RiskTier,
@@ -179,7 +183,7 @@ export function decideToolCall(input: GateInput): GateDecision {
     .filter((tool) => {
       if (
         input.allowedTools.has(tool.name) &&
-        !structuredToolNames.has(tool.name)
+        grantsShellExecutable(tool.name, structuredToolNames)
       ) {
         return false;
       }
@@ -248,15 +252,9 @@ export function decideToolCall(input: GateInput): GateDecision {
  * The session integration supplies the complete registered set, including
  * custom tools, while these are Pi's built-in structured tool names.
  */
-const DEFAULT_PI_STRUCTURED_TOOL_NAMES: ReadonlySet<string> = new Set([
-  'read',
-  'write',
-  'edit',
-  'bash',
-  'grep',
-  'ls',
-  'find',
-]);
+const DEFAULT_PI_STRUCTURED_TOOL_NAMES: ReadonlySet<string> = new Set(
+  PI_BUILTIN_STRUCTURED_TOOL_NAMES,
+);
 
 function fingerprintArgv(argv: readonly (string | null)[]): string {
   return `sha256:${createHash('sha256')

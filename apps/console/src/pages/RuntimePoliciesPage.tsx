@@ -9,6 +9,10 @@ import {
   getRuntimePolicyOptions,
   listRuntimePoliciesOptions,
 } from '@moltnet/api-client/query';
+import {
+  grantsShellExecutable,
+  PI_BUILTIN_STRUCTURED_TOOL_NAMES,
+} from '@moltnet/models';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Badge,
@@ -385,6 +389,7 @@ export function RuntimePoliciesPage() {
                 </label>
                 <ToolNameEditor
                   tools={form.tools}
+                  shellCommands={form.shellCommands}
                   disabled={!canManage}
                   onChange={(tools) =>
                     setForm((current) => ({ ...current, tools }))
@@ -471,10 +476,12 @@ export function RuntimePoliciesPage() {
 
 function ToolNameEditor({
   tools,
+  shellCommands,
   disabled,
   onChange,
 }: {
   tools: string[];
+  shellCommands: ShellCommandRule[];
   disabled: boolean;
   onChange: (tools: string[]) => void;
 }) {
@@ -483,6 +490,11 @@ function ToolNameEditor({
   const normalizedTools = useMemo(
     () => [...tools].sort((a, b) => a.localeCompare(b)),
     [tools],
+  );
+  const structuredOnlyTools = normalizedTools.filter(
+    (tool) =>
+      !grantsShellExecutable(tool) &&
+      !shellCommands.some((rule) => rule.argvPrefix[0] === tool),
   );
 
   function addTool() {
@@ -504,8 +516,10 @@ function ToolNameEditor({
       <Stack gap={1}>
         <Text variant="h4">Exact tools</Text>
         <Text variant="caption" color="muted">
-          Exact tool grants also authorize every shell invocation of an
-          executable with the same name.
+          Exact tool grants also authorize shell invocations of the same-named
+          executable, except built-in structured tools (
+          {PI_BUILTIN_STRUCTURED_TOOL_NAMES.join(', ')}). Those need a shell
+          command rule.
         </Text>
       </Stack>
       <Stack direction="row" align="end" gap={2} wrap>
@@ -565,6 +579,15 @@ function ToolNameEditor({
           should be available.
         </Text>
       )}
+      {structuredOnlyTools.length > 0 ? (
+        <Text variant="caption" color="muted">
+          {structuredOnlyTools.join(', ')}{' '}
+          {structuredOnlyTools.length === 1
+            ? 'grants the structured tool only.'
+            : 'grant the structured tools only.'}{' '}
+          Shell use needs a shell command rule.
+        </Text>
+      ) : null}
     </Stack>
   );
 }
@@ -649,7 +672,10 @@ function ShellCommandEditor({
       ) : (
         <Stack gap={3}>
           {shellCommands.map((rule, ruleIndex) => {
-            const redundant = broadTools.includes(rule.argvPrefix[0] ?? '');
+            const executable = rule.argvPrefix[0] ?? '';
+            const redundant =
+              broadTools.includes(executable) &&
+              grantsShellExecutable(executable);
             return (
               <fieldset
                 key={ruleIndex}

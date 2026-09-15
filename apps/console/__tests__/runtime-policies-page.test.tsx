@@ -198,6 +198,87 @@ describe('RuntimePoliciesPage', () => {
     );
   });
 
+  it('explains that built-in structured tool grants do not cover shell executables', async () => {
+    // Arrange
+    renderPage();
+
+    // Act
+    fireEvent.click(await screen.findByRole('button', { name: 'New policy' }));
+
+    // Assert
+    expect(
+      screen.getByText(
+        /same-named executable, except built-in structured tools \(read, write, edit, bash, ls, find, grep\)/i,
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/authorize every shell invocation/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not flag a shell rule as redundant when its executable is a structured tool', async () => {
+    // Arrange
+    setPolicies(
+      makePolicy({
+        id: 'policy-ls',
+        name: 'lister',
+        tools: ['ls'],
+        shellCommands: [{ argvPrefix: ['ls', '-l'] }],
+      }),
+    );
+
+    // Act
+    renderPage();
+    await screen.findByDisplayValue('lister');
+
+    // Assert
+    expect(screen.getByText('ls › -l › …')).toBeVisible();
+    expect(screen.queryByText(/redundant/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/structured tool only/i)).not.toBeInTheDocument();
+  });
+
+  it('still flags a shell rule as redundant when its executable is broadly granted', async () => {
+    // Arrange
+    setPolicies(
+      makePolicy({
+        id: 'policy-git',
+        name: 'git-reader',
+        tools: ['git'],
+        shellCommands: [{ argvPrefix: ['git', 'diff'] }],
+      }),
+    );
+
+    // Act
+    renderPage();
+    await screen.findByDisplayValue('git-reader');
+
+    // Assert
+    expect(screen.getByRole('status')).toHaveTextContent(/git.*redundant/i);
+  });
+
+  it('notes when a structured tool grant has no shell rule of the same name', async () => {
+    // Arrange
+    setPolicies(
+      makePolicy({
+        id: 'policy-grep',
+        name: 'searcher',
+        tools: ['grep', 'gh', 'ls'],
+        shellCommands: [{ argvPrefix: ['ls', '-l'] }],
+      }),
+    );
+
+    // Act
+    renderPage();
+    await screen.findByDisplayValue('searcher');
+
+    // Assert
+    expect(
+      screen.getByText(
+        'grep grants the structured tool only. Shell use needs a shell command rule.',
+      ),
+    ).toBeVisible();
+  });
+
   it('updates metadata using exact add/remove tool deltas', async () => {
     const policy = makePolicy({
       id: 'policy-update',

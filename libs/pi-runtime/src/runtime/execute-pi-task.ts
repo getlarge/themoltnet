@@ -35,6 +35,7 @@ import type {
   AgentSigningCapability,
 } from '@moltnet/crypto-service/agent-signing';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
+import { PI_BUILTIN_STRUCTURED_TOOL_NAMES } from '@moltnet/models/tool-grants';
 import type { ContextRef } from '@moltnet/runtime-profiles';
 import {
   type Context,
@@ -112,15 +113,8 @@ import {
 } from '../tool-policy/session-policy.js';
 import { resumeVm } from '../vm.js';
 
-export const GONDOLIN_TOOL_NAMES = [
-  'read',
-  'write',
-  'edit',
-  'bash',
-  'ls',
-  'find',
-  'grep',
-] as const;
+/** Pi's built-in structured tools, backed by Gondolin in the guest VM. */
+export const GONDOLIN_TOOL_NAMES = PI_BUILTIN_STRUCTURED_TOOL_NAMES;
 
 const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
   'GIT_CONFIG_GLOBAL',
