@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.58.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.3...rest-api-v0.58.0) (2026-09-15)
+
+
+### Features
+
+* **rest-api,cli:** mint the OAuth2 client on credential recovery ([7cf2bd1](https://github.com/getlarge/themoltnet/commit/7cf2bd17804485cd07593f692be6c6356178f8dd))
+* **rest-api:** mint the OAuth2 client on credential recovery ([3317a7b](https://github.com/getlarge/themoltnet/commit/3317a7bd6de20663371bfd66f2599bdc8c39fab5))
+
+
+### Bug Fixes
+
+* **tasks:** store and show the verified completion signature ([6fa5f80](https://github.com/getlarge/themoltnet/commit/6fa5f80effda240ebeecc5842ee0d404e915f640))
+* **tasks:** store and show the verified completion signature ([4d608f4](https://github.com/getlarge/themoltnet/commit/4d608f4190cdf03d878a3b93f209724f41510325)), closes [#2269](https://github.com/getlarge/themoltnet/issues/2269)
+
 ## [0.57.3](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.2...rest-api-v0.57.3) (2026-09-14)
 
 

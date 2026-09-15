@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/console-v0.15.3...console-v0.16.0) (2026-09-15)
+
+
+### Features
+
+* **console:** create the executor invite code from the Local Runtime page ([6b8098c](https://github.com/getlarge/themoltnet/commit/6b8098c01144a629082c370282cd49a9404cd88a))
+* **console:** show onboarding as the three journey steps linked to the docs ([164bc98](https://github.com/getlarge/themoltnet/commit/164bc9824ba1606d9ce53253f8352c7bfbca2e99))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.142.0
+
 ## [0.15.3](https://github.com/getlarge/themoltnet/compare/console-v0.15.2...console-v0.15.3) (2026-09-14)
 
 
