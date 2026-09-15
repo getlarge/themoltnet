@@ -74,7 +74,12 @@ describe('agent server client', () => {
 
     await client.startPairing();
     token = 'paired-token';
-    await client.status();
+    await expect(client.status()).resolves.toMatchObject({
+      runtimeSettings: {
+        heartbeatIntervalMs: 60_000,
+        warmRetentionSec: 1800,
+      },
+    });
 
     for (const [input, init] of fetchMock.mock.calls) {
       expect(init).toMatchObject({ targetAddressSpace: 'loopback' });

@@ -9,10 +9,7 @@
   ],
   "defaultWorkspaceMode": "dedicated_worktree",
   "description": "Read-only GLM-5.2 runtime for LeGreffier PR complexity and security review tasks.",
-  "heartbeatIntervalMs": 60000,
-  "leaseTtlSec": 300,
   "maxBashTimeouts": 3,
-  "maxBatchSize": 1,
   "maxOutputTokens": 16384,
   "maxTurns": 40,
   "model": "glm-5.2:cloud",
@@ -35,10 +32,6 @@
       "shadowMode": "deny"
     }
   },
-  "sessionStorageMode": "local",
-  "sessionTtlSec": 7200,
   "temperature": 0.1,
-  "toolEnforcement": "watch",
-  "workspaceStorageMode": "local",
-  "workspaceTtlSec": 3600
+  "toolEnforcement": "watch"
 }

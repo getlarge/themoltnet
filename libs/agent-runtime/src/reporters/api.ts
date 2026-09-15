@@ -9,10 +9,14 @@ export interface ApiTaskReporterOptions {
   /** Owning team context. Falls back to SDK task context when already known. */
   teamId?: string;
   heartbeatIntervalMs?: number;
+  logger?: {
+    warn(context: Record<string, unknown>, message: string): void;
+  };
 }
 
 const MAX_BATCH_SIZE = 50;
 const FLUSH_INTERVAL_MS = 200;
+const HEARTBEAT_TIMEOUT_MS = 30_000;
 
 type BufferedMessage = {
   kind: TaskMessage['kind'];
@@ -46,6 +50,7 @@ export class ApiTaskReporter implements TaskReporter {
   private attemptN = 0;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private heartbeatQueue: Promise<void> = Promise.resolve();
+  private heartbeatPendingCount = 0;
   private initialHeartbeatSucceeded = false;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private finalizedUsage: TaskUsage | null = null;
@@ -112,9 +117,10 @@ export class ApiTaskReporter implements TaskReporter {
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
     if (intervalMs > 0) {
       this.heartbeatTimer = setInterval(() => {
+        if (this.heartbeatPendingCount > 0) return;
         void this.heartbeatNow().catch(() => {
-          // Transient heartbeat failures should not crash the process from
-          // inside a timer. The runtime owns terminal failure handling.
+          // `heartbeatNow` logs the failure. A periodic connectivity blip must
+          // not crash the process from inside a timer.
         });
       }, intervalMs);
     }
@@ -249,6 +255,7 @@ export class ApiTaskReporter implements TaskReporter {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+    await this.drainHeartbeats();
     // Drain remaining buffered messages so the completion signal never
     // races ahead of in-flight records.
     await this.flush();
@@ -263,6 +270,7 @@ export class ApiTaskReporter implements TaskReporter {
       clearTimeout(this.flushTimer);
       this.flushTimer = null;
     }
+    await this.drainHeartbeats();
     // Always wait for any in-flight POST first: a timer-driven flush may
     // have spliced the buffer to empty and fired the request microseconds
     // before close() was invoked. Without this await we'd return while the
@@ -307,34 +315,60 @@ export class ApiTaskReporter implements TaskReporter {
 
   /** Send a heartbeat after all earlier heartbeat checks have settled. */
   heartbeatNow(): Promise<void> {
-    const pending = this.heartbeatQueue.then(() =>
-      this.sendHeartbeatWithCompatibilityRetry(),
-    );
+    this.heartbeatPendingCount += 1;
+    const pending = this.heartbeatQueue.then(() => this.sendHeartbeatBounded());
     this.heartbeatQueue = pending.catch(() => undefined);
+    void pending.then(
+      () => {
+        this.heartbeatPendingCount -= 1;
+      },
+      () => {
+        this.heartbeatPendingCount -= 1;
+      },
+    );
     return pending;
+  }
+
+  private async sendHeartbeatBounded(): Promise<void> {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(new Error('Heartbeat request timed out')),
+      HEARTBEAT_TIMEOUT_MS,
+    );
+    try {
+      await this.sendHeartbeatWithCompatibilityRetry(controller.signal);
+    } catch (err) {
+      this.warn(
+        { err, taskId: this.taskId, attemptN: this.attemptN },
+        'agent-runtime.reporter.heartbeat_failed',
+      );
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   /**
    * Preserve bounded compatibility with pre-database-authority servers. Only
    * the initial 403 is retried; all other failures still surface immediately.
    */
-  private async sendHeartbeatWithCompatibilityRetry(): Promise<void> {
+  private async sendHeartbeatWithCompatibilityRetry(
+    signal: AbortSignal,
+  ): Promise<void> {
     if (this.initialHeartbeatSucceeded) {
-      await this.sendHeartbeat();
+      await this.sendHeartbeat(signal);
       return;
     }
     const maxAttempts = 5;
     const baseDelayMs = 100;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        await this.sendHeartbeat();
+        await this.sendHeartbeat(signal);
         this.initialHeartbeatSucceeded = true;
         return;
       } catch (err) {
         if (attempt === maxAttempts || !isLegacyClaimantLag403(err)) throw err;
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, baseDelayMs * attempt);
-        });
+        await abortableDelay(baseDelayMs * attempt, signal);
       }
     }
   }
@@ -361,7 +395,7 @@ export class ApiTaskReporter implements TaskReporter {
     }
   }
 
-  private async sendHeartbeat(): Promise<void> {
+  private async sendHeartbeat(signal: AbortSignal): Promise<void> {
     const response = this.opts.teamId
       ? await this.opts.tasks.heartbeat(
           this.taskId,
@@ -369,9 +403,15 @@ export class ApiTaskReporter implements TaskReporter {
           {},
           {
             teamId: this.opts.teamId,
+            signal,
           },
         )
-      : await this.opts.tasks.heartbeat(this.taskId, this.attemptN, {});
+      : await this.opts.tasks.heartbeat(
+          this.taskId,
+          this.attemptN,
+          {},
+          { signal },
+        );
     // The server reports cancellation via a 200 response with
     // cancelled:true so the worker gets a clean abort signal instead
     // of having to interpret a 409 envelope (#938). Once observed, abort
@@ -412,4 +452,49 @@ export class ApiTaskReporter implements TaskReporter {
       this.heartbeatTimer = null;
     }
   }
+
+  private async drainHeartbeats(): Promise<void> {
+    try {
+      await this.heartbeatQueue;
+    } catch {
+      // Individual heartbeat failures are logged at the request boundary.
+    }
+  }
+
+  private warn(context: Record<string, unknown>, message: string): void {
+    if (this.opts.logger) {
+      this.opts.logger.warn(context, message);
+      return;
+    }
+    const detail = context['err'];
+    console.error(
+      `${message} for task ${this.taskId} attempt ${this.attemptN}: ${
+        detail instanceof Error ? detail.message : String(detail)
+      }`,
+    );
+  }
+}
+
+function abortableDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(abortReason(signal));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timeout);
+      reject(abortReason(signal));
+    };
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function abortReason(signal: AbortSignal): Error {
+  return signal.reason instanceof Error
+    ? signal.reason
+    : new Error('Heartbeat aborted');
 }

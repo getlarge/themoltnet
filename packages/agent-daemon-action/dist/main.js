@@ -31479,6 +31479,7 @@ _Object_({ items: _Array_(_Object_({
 	}, { $id: "RuntimeSlot" }),
 	workspace: Union([RuntimeWorkspace, Null()])
 }, { $id: "ResolvedRuntimeSlot" })) }, { $id: "RuntimeSlotListResponse" });
+var MAX_RUNTIME_WARM_RETENTION_SEC = 86400;
 _Object_({
 	agentName: String$1({
 		minLength: 1,
@@ -31508,7 +31509,7 @@ _Object_({
 	lastAttemptN: Integer({ minimum: 1 }),
 	warmRetentionSec: Integer({
 		minimum: 0,
-		maximum: 86400
+		maximum: MAX_RUNTIME_WARM_RETENTION_SEC
 	})
 }, {
 	$id: "BeginRuntimeSlotBody",
@@ -31534,7 +31535,7 @@ _Object_({
 	sessionPath: Optional(String$1({ minLength: 1 })),
 	warmRetentionSec: Integer({
 		minimum: 0,
-		maximum: 86400
+		maximum: MAX_RUNTIME_WARM_RETENTION_SEC
 	})
 }, {
 	$id: "FinishRuntimeSlotBody",
@@ -37087,7 +37088,8 @@ function createTasksNamespace(context) {
 					id,
 					n
 				},
-				body
+				body,
+				signal: options?.signal
 			}));
 		},
 		async complete(id, n, body, options) {

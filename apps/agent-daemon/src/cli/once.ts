@@ -214,6 +214,23 @@ export async function runOnce(
     teamId: values.team,
     cwd: daemonRootDir,
   });
+  const { logger, shutdown: shutdownLogger } = createRootLogger({
+    name: 'agent-daemon.once',
+    level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
+  });
+  const rootLogger = logger.child({
+    mode: 'once',
+    agent: identity.agent,
+    provider: profile.provider,
+    model: profile.model,
+    thinkingLevel: profile.thinkingLevel,
+    temperature: profile.temperature,
+    topP: profile.topP,
+    topK: profile.topK,
+    maxOutputTokens: profile.maxOutputTokens,
+    runtimeProfileId: profile.id,
+    runtimeProfileName: profile.name,
+  });
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
     agent: ctx.agent,
@@ -272,24 +289,6 @@ export async function runOnce(
         : {}),
       'moltnet.runtime_profile.id': profile.id,
     },
-  });
-
-  const { logger, shutdown: shutdownLogger } = createRootLogger({
-    name: 'agent-daemon.once',
-    level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
-  });
-  const rootLogger = logger.child({
-    mode: 'once',
-    agent: identity.agent,
-    provider: profile.provider,
-    model: profile.model,
-    thinkingLevel: profile.thinkingLevel,
-    temperature: profile.temperature,
-    topP: profile.topP,
-    topK: profile.topK,
-    maxOutputTokens: profile.maxOutputTokens,
-    runtimeProfileId: profile.id,
-    runtimeProfileName: profile.name,
   });
 
   rootLogger.info(
@@ -570,6 +569,7 @@ export async function runOnce(
           tasks: ctx.agent.tasks,
           teamId: profile.teamId,
           heartbeatIntervalMs: operations.heartbeatIntervalMs,
+          logger: rootLogger,
         }),
       // Finalize inside the runtime loop so the correlation anchor writer
       // sees the claimedTask alongside its output. once mode only ever

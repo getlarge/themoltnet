@@ -24,12 +24,12 @@ import {
   AgentServerAgentViewSchema,
   AgentServerProviderViewSchema,
   AgentServerRunViewSchema,
-  AgentServerStatusSchema,
   AgentServerSubscriptionLoginSchema,
   DiscoverModelsSchema,
   PairingClaimedSchema,
   PairingStartedSchema,
   parseAgentServerResponse,
+  parseAgentServerStatus,
   ProblemSchema,
 } from './agent-server-response-validation.js';
 
@@ -197,9 +197,7 @@ export function createAgentServerClient(options: {
       return `${base}${approvalPath}`;
     },
     status() {
-      return request('GET', '/v1/status', (value) =>
-        parseAgentServerResponse(AgentServerStatusSchema, value, 'status'),
-      );
+      return request('GET', '/v1/status', parseAgentServerStatus);
     },
     createAgent(body: CreateAgentBody) {
       return request(

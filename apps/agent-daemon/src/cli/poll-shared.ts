@@ -84,8 +84,6 @@ export interface PollSharedArgs {
   runtimeAdapter?: DaemonRuntimeAdapter;
 }
 
-type ProfileRuntime = PreparedRuntimeProfile;
-
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
   if (isHelpFlag(opts.argv)) {
     console.log(opts.helpText);
@@ -293,9 +291,20 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     teamId,
     cwd: daemonRootDir,
   });
+  const { logger, shutdown: shutdownLogger } = createRootLogger({
+    name: `agent-daemon.${opts.modeLabel}`,
+    level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
+  });
+  const rootLogger = logger.child({
+    mode: opts.modeLabel,
+    agent: identity.agent,
+    teamId,
+    runtimeProfileIds: resolvedProfiles.map((profile) => profile.id),
+    runtimeProfileNames: resolvedProfiles.map((profile) => profile.name),
+  });
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
   const profiles: typeof resolvedProfiles = [];
-  const runtimes = new Map<string, ProfileRuntime>();
+  const runtimes = new Map<string, PreparedRuntimeProfile>();
   const skippedProfileBoundaries: Array<{
     profile: (typeof resolvedProfiles)[number];
     error: GuestEnvironmentBoundaryError;
@@ -363,17 +372,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
   });
 
-  const { logger, shutdown: shutdownLogger } = createRootLogger({
-    name: `agent-daemon.${opts.modeLabel}`,
-    level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
-  });
-  const rootLogger = logger.child({
-    mode: opts.modeLabel,
-    agent: identity.agent,
-    teamId,
-    runtimeProfileIds: profiles.map((p) => p.id),
-    runtimeProfileNames: profiles.map((p) => p.name),
-  });
   for (const { profile, error } of skippedProfileBoundaries) {
     rootLogger.warn(
       {
@@ -560,6 +558,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           tasks: ctx.agent.tasks,
           teamId: claimedTask.task.teamId,
           heartbeatIntervalMs: operations.heartbeatIntervalMs,
+          logger: rootLogger,
         });
       },
       // Finalize each task as soon as the executor resolves — long-
@@ -914,9 +913,9 @@ function resolveMainWorktree(mountPath: string): string | null {
 }
 
 function runtimeForClaimedTask(
-  runtimes: ReadonlyMap<string, ProfileRuntime>,
+  runtimes: ReadonlyMap<string, PreparedRuntimeProfile>,
   claimedTask: ClaimedTask,
-): ProfileRuntime {
+): PreparedRuntimeProfile {
   if (!claimedTask.profileId) {
     throw new Error(
       `Claimed task ${claimedTask.task.id} did not include a selected runtime profile`,
@@ -926,9 +925,9 @@ function runtimeForClaimedTask(
 }
 
 function requireRuntime(
-  runtimes: ReadonlyMap<string, ProfileRuntime>,
+  runtimes: ReadonlyMap<string, PreparedRuntimeProfile>,
   profileId: string,
-): ProfileRuntime {
+): PreparedRuntimeProfile {
   const runtime = runtimes.get(profileId);
   if (!runtime) {
     throw new Error(`No runtime profile configured for ${profileId}`);

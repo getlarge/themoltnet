@@ -254,6 +254,8 @@ export class RunManager {
                 extraArgs: ['--agent-root', agentRoot],
               };
             })();
+    const runtimeSettings =
+      this.options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS;
     const args = [
       ...(runtimeModule ? ['--runtime', runtimeModule] : []),
       spec.mode,
@@ -265,15 +267,9 @@ export class RunManager {
       '--task-types',
       spec.taskTypes.join(','),
       '--heartbeat-interval-ms',
-      String(
-        (this.options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS)
-          .heartbeatIntervalMs,
-      ),
+      String(runtimeSettings.heartbeatIntervalMs),
       '--warm-retention-sec',
-      String(
-        (this.options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS)
-          .warmRetentionSec,
-      ),
+      String(runtimeSettings.warmRetentionSec),
       ...target.extraArgs,
     ];
 

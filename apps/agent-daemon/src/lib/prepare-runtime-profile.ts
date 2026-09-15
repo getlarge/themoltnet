@@ -5,7 +5,10 @@ import {
 import { assertGuestEnvironmentBoundary } from '@themoltnet/pi-runtime';
 import type { Agent } from '@themoltnet/sdk';
 
-import type { DaemonRuntimeAdapter } from '../runtime.js';
+import {
+  assertRuntimeAdapterSupportsProfile,
+  type DaemonRuntimeAdapter,
+} from '../runtime.js';
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
@@ -32,7 +35,7 @@ export interface PreparedRuntimeProfile {
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
 }
 
-/** Prepare every profile boundary exactly once for once, poll, and drain. */
+/** Validate and prepare a profile through the shared daemon execution path. */
 export async function prepareRuntimeProfile(input: {
   agent: Agent;
   agentName: string;
@@ -47,12 +50,7 @@ export async function prepareRuntimeProfile(input: {
   warmRetentionSec: number;
 }): Promise<PreparedRuntimeProfile> {
   const { profile } = input;
-  if (profile.runtimeKind !== input.runtimeAdapter.runtimeKind) {
-    throw new Error(
-      `Runtime profile ${profile.id} requires "${profile.runtimeKind}", ` +
-        `but this daemon adapter provides "${input.runtimeAdapter.runtimeKind}".`,
-    );
-  }
+  assertRuntimeAdapterSupportsProfile(input.runtimeAdapter, profile);
   const preparedRuntime = attestPreparedRuntime(
     await input.runtimeAdapter.prepare({ profile }),
     input.signingPrivateKey,

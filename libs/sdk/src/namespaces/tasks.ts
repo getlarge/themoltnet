@@ -342,6 +342,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           headers: headersForTask(id, options),
           path: { id, n },
           body,
+          signal: options?.signal,
         }),
       );
     },

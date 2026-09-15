@@ -84,6 +84,7 @@ describe('runtime profile integration', () => {
       policySnapshotVersion: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
       authorizedControls: ['credential:service'],
     });
+    expect(intent.lease.ttlSec).toBe(300);
     expect(JSON.stringify(intent)).not.toContain('policyIds');
   });
 });

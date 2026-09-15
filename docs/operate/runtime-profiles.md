@@ -9,9 +9,9 @@ For the daemon that loads these profiles, see
 [Running Agents](./running-agents.md).
 
 Runtime profiles are reusable, team-scoped daemon configurations. They carry
-provider/model, runtime kind, sandbox policy, local prerequisites, timing
-defaults, and optional context. Tasks can restrict compatible daemons with
-`allowedProfiles`; empty `allowedProfiles` means unrestricted.
+provider/model, runtime kind, sandbox and workspace policy, local prerequisites,
+execution limits, and optional context. Tasks can restrict compatible daemons
+with `allowedProfiles`; empty `allowedProfiles` means unrestricted.
 
 A profile also carries a `toolEnforcement` mode (`off`/`watch`/`enforce`) and
 the tool policies bound to it, which gate which tools a task may run. See
@@ -345,7 +345,18 @@ profile policy. Direct runs accept `--heartbeat-interval-ms` (default `60000`)
 and `--warm-retention-sec` (default `1800`). Agent Server accepts the same
 settings, applies them to child runs, and exposes their effective values from
 `GET /v1/status`. Task leases default to 300 seconds in the Tasks service;
-lower-level Tasks API clients may still request a different lease.
+lower-level Tasks API clients may still request a different lease. Reporter
+batching is internal and fixed at 50 messages or 200 milliseconds.
+
+The profile reduction that moved those operational settings to the daemon is a
+coordinated breaking cut. Deploy the REST API, SDK/clients, Agent Server,
+Console, and daemon from the same release rather than running a mixed-version
+fleet. Existing profile CIDs remain historical opaque identifiers and are not
+backfilled. The first edit after upgrading computes a new CID from the reduced
+behavioral payload, so CIDs minted on opposite sides of this boundary are not
+directly comparable. `toolEnforcement` remains in that payload because it
+changes execution behavior; changing it rotates the CID and requires workers to
+re-register the updated profile authority.
 
 In daemon mode:
 

@@ -86,6 +86,15 @@ describe('runtime command options', () => {
       }),
     ).toThrow(/non-negative integer/);
   });
+
+  it('rejects warm retention above one day', () => {
+    expect(() =>
+      parseLocalOperationalSettings({
+        ...valid,
+        'warm-retention-sec': '86401',
+      }),
+    ).toThrow(/no greater than 86400/);
+  });
 });
 
 describe('validateTaskTypes', () => {

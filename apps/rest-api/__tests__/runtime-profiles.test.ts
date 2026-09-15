@@ -39,6 +39,7 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
     requiredTools: ['linear.issue.get', 'github.pr.create'],
     requiredExecutables: [],
+    toolEnforcement: 'watch',
     context: [
       {
         slug: 'linear-github-workflow',
@@ -526,6 +527,34 @@ describe('runtime profile routes', () => {
         topK: 32,
         maxOutputTokens: 16_000,
       }),
+    );
+  });
+
+  it('preserves tool enforcement when update omits it', async () => {
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(
+      mockProfile({ toolEnforcement: 'enforce' }),
+    );
+    mocks.runtimeProfileRepository.update.mockResolvedValue(
+      mockProfile({
+        description: 'Updated description',
+        toolEnforcement: 'enforce',
+        revision: 2,
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { description: 'Updated description' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ toolEnforcement: 'enforce' });
+    expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
+      PROFILE_ID,
+      expect.objectContaining({ toolEnforcement: 'enforce' }),
     );
   });
 });

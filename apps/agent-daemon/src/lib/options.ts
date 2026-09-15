@@ -1,5 +1,6 @@
 // No default for agent — it is operator-specific and silently
 // misconfigures on any other machine. Required, not optional.
+import { MAX_RUNTIME_WARM_RETENTION_SEC } from '@moltnet/runtime-profiles';
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 import { knownTaskTypesList } from './help.js';
@@ -69,6 +70,7 @@ export function parseLocalOperationalSettings(
       args['warm-retention-sec'],
       'warm-retention-sec',
       DEFAULT_LOCAL_OPERATIONAL_SETTINGS.warmRetentionSec,
+      MAX_RUNTIME_WARM_RETENTION_SEC,
     ),
   };
 }
@@ -86,12 +88,13 @@ function parseNonNegativeInt(
   raw: string | undefined,
   name: string,
   defaultValue: number,
+  maximum = Number.MAX_SAFE_INTEGER,
 ): number {
   if (raw === undefined) return defaultValue;
   const value = Number(raw);
-  if (!Number.isInteger(value) || value < 0) {
+  if (!Number.isInteger(value) || value < 0 || value > maximum) {
     throw new Error(
-      `Invalid --${name} "${raw}": must be a non-negative integer`,
+      `Invalid --${name} "${raw}": must be a non-negative integer no greater than ${maximum}`,
     );
   }
   return value;
