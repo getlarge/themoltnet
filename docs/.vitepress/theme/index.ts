@@ -34,8 +34,8 @@ const InteractiveTeamsExample = defineAsyncComponent(
 const LoginButton = defineAsyncComponent(
   () => import('./components/LoginButton.vue'),
 );
-const PilotProgress = defineAsyncComponent(
-  () => import('./components/PilotProgress.vue'),
+const JourneyProgress = defineAsyncComponent(
+  () => import('./components/JourneyProgress.vue'),
 );
 const RuntimeProfileContextRecipe = defineAsyncComponent(
   () => import('./components/RuntimeProfileContextRecipe.vue'),
@@ -268,7 +268,7 @@ export default {
     app.component('InteractivePacksExample', InteractivePacksExample);
     app.component('InteractiveTasksExample', InteractiveTasksExample);
     app.component('InteractiveTeamsExample', InteractiveTeamsExample);
-    app.component('PilotProgress', PilotProgress);
+    app.component('JourneyProgress', JourneyProgress);
     app.component('LoginButton', LoginButton);
     app.component('RuntimeProfileContextRecipe', RuntimeProfileContextRecipe);
     app.component('TeamSelector', TeamSelector);

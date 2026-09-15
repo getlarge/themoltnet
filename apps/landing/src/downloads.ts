@@ -54,8 +54,8 @@ export const DOWNLOAD_INSTALL_PATH = `${DOWNLOAD_PATH}#install`;
 export const DOWNLOAD_VERIFY_PATH = `${DOWNLOAD_PATH}#verify`;
 
 /**
- * Package-manager installs for the CLI, in the order the Download page and
- * the getting-started agent track present them. Each manager verifies what it
+ * Package-manager installs for the CLI, in the order the Download page
+ * presents them. Each manager verifies what it
  * installs (notarization, the signed APT index, the Scoop manifest hash, the
  * npm registry), so this list is the "no manual checksum" path.
  */
@@ -115,7 +115,7 @@ export function cliVerifyCommands(
   platform: PlatformId = 'darwin-arm64',
 ): string {
   // Lines stay within ~62 columns so the block reads without horizontal
-  // scroll in the narrowest place it is shown (the getting-started steps).
+  // scroll in the narrowest place it is shown.
   return [
     `# 1. Download the ${PLATFORM_LABELS[platform]} archive, the`,
     '#    checksum list, and its signature. -J keeps the versioned',

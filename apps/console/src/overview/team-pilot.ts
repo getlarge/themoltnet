@@ -32,39 +32,60 @@ export interface PilotTask {
   title?: string | null;
 }
 
-export type PilotMilestoneId =
-  | 'team'
-  | 'diary'
-  | 'agent-key'
-  | 'runtime-profile'
-  | 'accepted-task';
+/**
+ * The three journey steps owned by `docs/start` (agent job journey design,
+ * decision 7). The Console computes live state for each step and links to the
+ * docs page that explains it; the journey copy itself lives in the docs.
+ */
+export type PilotStepId = 'identity' | 'job' | 'record';
 
 type EvidenceStatus = 'complete' | 'incomplete' | 'loading' | 'unavailable';
 
-export type PilotMilestoneStatus =
+export type PilotStepStatus =
   | 'complete'
   | 'next'
   | 'upcoming'
   | 'loading'
   | 'unavailable';
 
-export interface PilotMilestone {
-  id: PilotMilestoneId;
+interface PilotLink {
+  href: string;
   label: string;
+}
+
+export interface PilotStep {
+  id: PilotStepId;
+  /** The journey step name, identical in the docs and the Console. */
+  label: string;
+  /** The current state of the step, derived from live evidence. */
   title: string;
   detail: string;
-  action: { href: string; label: string };
-  status: PilotMilestoneStatus;
+  /** Docs path relative to the docs origin, e.g. `/start/agent-identity`. */
+  docsPath: string;
+  /** In-Console action for the current state. */
+  action: PilotLink;
+  status: PilotStepStatus;
 }
 
 export interface TeamPilotBriefing {
   isActivated: boolean;
-  milestones: PilotMilestone[];
-  nextMilestone: PilotMilestone | null;
+  steps: PilotStep[];
+  nextStep: PilotStep | null;
+  /** The completed task whose record is the payoff of step 3. */
+  recordTask: { id: string; title: string | null } | null;
 }
 
-interface MilestoneDraft extends Omit<PilotMilestone, 'status'> {
+interface CheckDraft {
+  title: string;
+  detail: string;
+  action: PilotLink;
   evidence: EvidenceStatus;
+}
+
+interface StepDefinition {
+  id: PilotStepId;
+  label: string;
+  docsPath: string;
 }
 
 interface BuildTeamPilotInput {
@@ -81,6 +102,24 @@ interface BuildTeamPilotInput {
   canManage: boolean;
 }
 
+const STEP_DEFINITIONS = {
+  identity: {
+    id: 'identity',
+    label: 'Give an agent its own identity',
+    docsPath: '/start/agent-identity',
+  },
+  job: {
+    id: 'job',
+    label: "Give it a job it can't overstep",
+    docsPath: '/start/first-task',
+  },
+  record: {
+    id: 'record',
+    label: 'Read what it did',
+    docsPath: '/start/read-the-record',
+  },
+} as const satisfies Record<PilotStepId, StepDefinition>;
+
 const activeTaskStatuses = new Set([
   'waiting',
   'queued',
@@ -96,16 +135,12 @@ function resourceEvidence<T>(
   return predicate(resource.data) ? 'complete' : 'incomplete';
 }
 
-function unavailableDraft(
-  id: PilotMilestoneId,
-  label: string,
+function unknownCheck(
   noun: string,
   href: string,
   evidence: 'loading' | 'unavailable',
-): MilestoneDraft {
+): CheckDraft {
   return {
-    id,
-    label,
     title:
       evidence === 'loading'
         ? `Checking ${noun.toLowerCase()}…`
@@ -119,6 +154,240 @@ function unavailableDraft(
   };
 }
 
+/** The first prerequisite that is not complete decides the step's state. */
+function currentCheck(checks: CheckDraft[], done: CheckDraft): CheckDraft {
+  return checks.find((check) => check.evidence !== 'complete') ?? done;
+}
+
+function teamCheck(
+  team: BuildTeamPilotInput['team'],
+): CheckDraft & { projectTeam: PilotTeam | null } {
+  const projectTeam =
+    team.status === 'ready' && team.data && !team.data.personal
+      ? team.data
+      : null;
+  const evidence = resourceEvidence(team, (selected) =>
+    Boolean(selected && !selected.personal),
+  );
+  if (evidence === 'loading' || evidence === 'unavailable') {
+    return { ...unknownCheck('Teams', '/teams', evidence), projectTeam };
+  }
+  return {
+    title:
+      evidence === 'complete'
+        ? 'Project team selected'
+        : 'Select a project team',
+    detail:
+      evidence === 'complete'
+        ? `${projectTeam?.name ?? 'This project team'} is the active shared scope.`
+        : 'Choose or create a non-personal team for shared tasks, runtime configuration, and knowledge.',
+    action: { href: '/teams', label: 'Teams' },
+    evidence,
+    projectTeam,
+  };
+}
+
+function diaryCheck(
+  diaries: BuildTeamPilotInput['diaries'],
+  hasProjectTeam: boolean,
+  canManage: boolean,
+): CheckDraft {
+  const evidence = hasProjectTeam
+    ? resourceEvidence(diaries, (items) =>
+        items.some((diary) => diary.visibility === 'moltnet'),
+      )
+    : 'incomplete';
+  if (evidence === 'loading' || evidence === 'unavailable') {
+    return unknownCheck('Diaries', '/diaries', evidence);
+  }
+  const sharedDiary =
+    diaries.status === 'ready'
+      ? diaries.data.find((diary) => diary.visibility === 'moltnet')
+      : undefined;
+  return {
+    title:
+      evidence === 'complete'
+        ? 'Shared diary ready'
+        : canManage
+          ? 'Create a shared diary'
+          : 'Shared diary needed',
+    detail:
+      evidence === 'complete'
+        ? `${sharedDiary?.name ?? 'The project diary'} uses MoltNet team visibility.`
+        : canManage
+          ? 'Create a team diary with MoltNet visibility so agents can retain attributable project context.'
+          : 'Ask a team owner or manager to create a diary with MoltNet visibility.',
+    action: { href: '/diaries', label: 'Diaries' },
+    evidence,
+  };
+}
+
+function agentCheck(
+  members: BuildTeamPilotInput['members'],
+  agentKeys: BuildTeamPilotInput['agentKeys'],
+  canManage: boolean,
+): CheckDraft {
+  if (members.status !== 'ready') {
+    return unknownCheck('Team members', '/teams', members.status);
+  }
+  const agentMembers = members.data.filter(
+    (member) => member.subjectType === 'agent',
+  );
+  if (agentMembers.length === 0) {
+    return {
+      title: 'Add a team agent',
+      detail: canManage
+        ? 'Add an agent to the project team. It acts under its own name and key, not yours.'
+        : 'Ask a team owner or manager to add an agent to this project team.',
+      action: { href: '/teams', label: 'Teams' },
+      evidence: 'incomplete',
+    };
+  }
+  if (agentKeys.status !== 'ready') {
+    return unknownCheck('Agent Keys', '/runtime/agent-keys', agentKeys.status);
+  }
+
+  const agentIds = new Set(agentMembers.map((member) => member.subjectId));
+  const hasActiveKey = agentKeys.data.items.some(
+    (key) => key.status === 'active' && agentIds.has(key.agentId),
+  );
+  if (!hasActiveKey && agentKeys.data.isPartial) {
+    return unknownCheck('Agent Keys', '/runtime/agent-keys', 'unavailable');
+  }
+  return {
+    title: hasActiveKey ? 'Agent and key ready' : 'Activate an agent key',
+    detail: hasActiveKey
+      ? 'A visible team agent has a matching active credential. Daemon process state is verified outside the Console.'
+      : canManage
+        ? 'Issue or rotate an active key for one of the project team agents.'
+        : 'Ask a team owner or manager to issue an active key for a project agent.',
+    action: { href: '/runtime/agent-keys', label: 'Agent Keys' },
+    evidence: hasActiveKey ? 'complete' : 'incomplete',
+  };
+}
+
+function profileCheck(
+  runtimeProfiles: BuildTeamPilotInput['runtimeProfiles'],
+  canManage: boolean,
+): CheckDraft {
+  const evidence = resourceEvidence(
+    runtimeProfiles,
+    (profiles) => profiles.length > 0,
+  );
+  if (evidence === 'loading' || evidence === 'unavailable') {
+    return unknownCheck('Runtime Profiles', '/runtime/profiles', evidence);
+  }
+  return {
+    title:
+      evidence === 'complete'
+        ? 'Runtime profile ready'
+        : canManage
+          ? 'Create a runtime profile'
+          : 'Runtime profile needed',
+    detail:
+      evidence === 'complete'
+        ? 'The team has a runtime profile that bounds what a claimed task may do.'
+        : canManage
+          ? 'Set the provider, model, workspace, and the tools the agent may use. In enforce mode the runtime refuses anything else.'
+          : 'Ask a team owner or manager to create a runtime profile for this team.',
+    action: { href: '/runtime/profiles', label: 'Runtime Profiles' },
+    evidence,
+  };
+}
+
+function taskCreatedCheck(
+  activityTasks: BuildTeamPilotInput['activityTasks'],
+  completedTasks: BuildTeamPilotInput['completedTasks'],
+  canManage: boolean,
+): CheckDraft {
+  const hasCompleted =
+    completedTasks.status === 'ready' && completedTasks.data.length > 0;
+  const evidence: EvidenceStatus = hasCompleted
+    ? 'complete'
+    : resourceEvidence(activityTasks, (tasks) => tasks.length > 0);
+  if (evidence === 'loading' || evidence === 'unavailable') {
+    return unknownCheck('Tasks', '/tasks', evidence);
+  }
+  return {
+    title:
+      evidence === 'complete'
+        ? 'First task created'
+        : canManage
+          ? 'Create the first task'
+          : 'First task needed',
+    detail:
+      evidence === 'complete'
+        ? 'The team has a task for its agent to claim.'
+        : canManage
+          ? 'Give the agent one small job with a clear definition of done.'
+          : 'Ask a team owner or manager to create the first task.',
+    action: canManage
+      ? { href: '/tasks?create=1', label: 'New Task' }
+      : { href: '/tasks', label: 'Tasks' },
+    evidence,
+  };
+}
+
+function recordCheck(
+  activityTasks: BuildTeamPilotInput['activityTasks'],
+  completedTasks: BuildTeamPilotInput['completedTasks'],
+): CheckDraft & { recordTask: PilotTask | null } {
+  const recordTask =
+    completedTasks.status === 'ready'
+      ? (completedTasks.data.find(
+          (task) =>
+            task.status === 'completed' && task.acceptedAttemptN !== null,
+        ) ?? null)
+      : null;
+  if (recordTask) {
+    return {
+      title: 'See what your agent did',
+      detail:
+        'The task keeps every attempt, the policy it ran under, and its output, tied to the agent that produced it.',
+      action: {
+        href: `/tasks/${recordTask.id}`,
+        label: 'See what your agent did',
+      },
+      evidence: 'complete',
+      recordTask,
+    };
+  }
+
+  let evidence = resourceEvidence(completedTasks, () => false);
+  if (evidence === 'incomplete' && activityTasks.status !== 'ready') {
+    evidence = activityTasks.status;
+  }
+  if (evidence === 'loading' || evidence === 'unavailable') {
+    return { ...unknownCheck('Tasks', '/tasks', evidence), recordTask: null };
+  }
+
+  const activeTask =
+    activityTasks.status === 'ready'
+      ? activityTasks.data.find((task) => activeTaskStatuses.has(task.status))
+      : undefined;
+  if (activeTask) {
+    return {
+      title: 'Follow the first task',
+      detail:
+        'Open the task to follow each step while the agent works. The record stays on the task when it completes.',
+      action: {
+        href: `/tasks/${activeTask.id}`,
+        label: activeTask.title ?? 'Active task',
+      },
+      evidence: 'incomplete',
+      recordTask: null,
+    };
+  }
+  return {
+    title: 'No completed task yet',
+    detail:
+      'Open Tasks to see what happened to the last run. A failed attempt is on the record too.',
+    action: { href: '/tasks', label: 'Tasks' },
+    evidence: 'incomplete',
+    recordTask: null,
+  };
+}
+
 export function buildTeamPilotBriefing({
   team,
   diaries,
@@ -129,242 +398,66 @@ export function buildTeamPilotBriefing({
   activityTasks,
   canManage,
 }: BuildTeamPilotInput): TeamPilotBriefing {
-  const projectTeam =
-    team.status === 'ready' && team.data && !team.data.personal
-      ? team.data
-      : null;
-  const teamEvidence = resourceEvidence(team, (selected) =>
-    Boolean(selected && !selected.personal),
+  const teamState = teamCheck(team);
+  const identity = currentCheck(
+    [teamState, agentCheck(members, agentKeys, canManage)],
+    {
+      title: 'Agent identity ready',
+      detail: 'A project agent has its own active key.',
+      action: { href: '/runtime/agent-keys', label: 'Agent Keys' },
+      evidence: 'complete',
+    },
   );
 
-  const drafts: MilestoneDraft[] = [];
-  drafts.push(
-    teamEvidence === 'loading' || teamEvidence === 'unavailable'
-      ? unavailableDraft(
-          'team',
-          'Project team',
-          'Teams',
-          '/teams',
-          teamEvidence,
-        )
-      : {
-          id: 'team',
-          label: 'Project team',
-          title:
-            teamEvidence === 'complete'
-              ? 'Project team selected'
-              : 'Select a project team',
-          detail:
-            teamEvidence === 'complete'
-              ? `${projectTeam?.name ?? 'This project team'} is the active shared scope.`
-              : 'Choose or create a non-personal team for shared tasks, runtime configuration, and knowledge.',
-          action: { href: '/teams', label: 'Teams' },
-          evidence: teamEvidence,
-        },
+  const job = currentCheck(
+    [
+      diaryCheck(diaries, teamState.projectTeam !== null, canManage),
+      profileCheck(runtimeProfiles, canManage),
+      taskCreatedCheck(activityTasks, completedTasks, canManage),
+    ],
+    {
+      title: 'First job created',
+      detail:
+        'The team has a shared diary, a runtime profile, and a task for its agent.',
+      action: { href: '/tasks', label: 'Tasks' },
+      evidence: 'complete',
+    },
   );
 
-  const diaryEvidence = projectTeam
-    ? resourceEvidence(diaries, (items) =>
-        items.some((diary) => diary.visibility === 'moltnet'),
-      )
-    : 'incomplete';
-  const sharedDiary =
-    diaries.status === 'ready'
-      ? diaries.data.find((diary) => diary.visibility === 'moltnet')
-      : undefined;
-  drafts.push(
-    diaryEvidence === 'loading' || diaryEvidence === 'unavailable'
-      ? unavailableDraft(
-          'diary',
-          'Shared diary',
-          'Diaries',
-          '/diaries',
-          diaryEvidence,
-        )
-      : {
-          id: 'diary',
-          label: 'Shared diary',
-          title:
-            diaryEvidence === 'complete'
-              ? 'Shared diary ready'
-              : canManage
-                ? 'Create a shared diary'
-                : 'Shared diary needed',
-          detail:
-            diaryEvidence === 'complete'
-              ? `${sharedDiary?.name ?? 'The project diary'} uses MoltNet team visibility.`
-              : canManage
-                ? 'Create a team diary with MoltNet visibility so agents can retain attributable project context.'
-                : 'Ask a team owner or manager to create a diary with MoltNet visibility.',
-          action: { href: '/diaries', label: 'Diaries' },
-          evidence: diaryEvidence,
-        },
-  );
+  const record = recordCheck(activityTasks, completedTasks);
 
-  const agentMembers =
-    members.status === 'ready'
-      ? members.data.filter((member) => member.subjectType === 'agent')
-      : [];
-  let agentEvidence: EvidenceStatus;
-  let agentTitle = 'Add a team agent';
-  let agentDetail = canManage
-    ? 'Add an agent to the project team before issuing its runtime credential.'
-    : 'Ask a team owner or manager to add an agent to this project team.';
-  let agentAction = { href: '/teams', label: 'Teams' };
-  let agentUnavailableNoun = 'Team members';
+  const drafts: Array<StepDefinition & CheckDraft> = [
+    { ...STEP_DEFINITIONS.identity, ...identity },
+    { ...STEP_DEFINITIONS.job, ...job },
+    { ...STEP_DEFINITIONS.record, ...record },
+  ];
 
-  if (members.status !== 'ready') {
-    agentEvidence = members.status;
-  } else if (agentMembers.length === 0) {
-    agentEvidence = 'incomplete';
-  } else if (agentKeys.status !== 'ready') {
-    agentEvidence = agentKeys.status;
-    agentUnavailableNoun = 'Agent Keys';
-  } else {
-    agentUnavailableNoun = 'Agent Keys';
-    const agentIds = new Set(agentMembers.map((member) => member.subjectId));
-    const hasActiveKey = agentKeys.data.items.some(
-      (key) => key.status === 'active' && agentIds.has(key.agentId),
-    );
-    agentEvidence = hasActiveKey
-      ? 'complete'
-      : agentKeys.data.isPartial
-        ? 'unavailable'
-        : 'incomplete';
-    agentTitle = hasActiveKey ? 'Agent and key ready' : 'Activate an agent key';
-    agentDetail = hasActiveKey
-      ? 'A visible team agent has a matching active credential. Daemon process state is verified outside the Console.'
-      : canManage
-        ? 'Issue or rotate an active key for one of the project team agents.'
-        : 'Ask a team owner or manager to issue an active key for a project agent.';
-    agentAction = { href: '/runtime/agent-keys', label: 'Agent Keys' };
-  }
-  drafts.push(
-    agentEvidence === 'loading' || agentEvidence === 'unavailable'
-      ? unavailableDraft(
-          'agent-key',
-          'Ready agent',
-          agentUnavailableNoun,
-          agentAction.href,
-          agentEvidence,
-        )
-      : {
-          id: 'agent-key',
-          label: 'Ready agent',
-          title: agentTitle,
-          detail: agentDetail,
-          action: agentAction,
-          evidence: agentEvidence,
-        },
-  );
-
-  const profileEvidence = resourceEvidence(
-    runtimeProfiles,
-    (profiles) => profiles.length > 0,
-  );
-  drafts.push(
-    profileEvidence === 'loading' || profileEvidence === 'unavailable'
-      ? unavailableDraft(
-          'runtime-profile',
-          'Runtime profile',
-          'Runtime Profiles',
-          '/runtime/profiles',
-          profileEvidence,
-        )
-      : {
-          id: 'runtime-profile',
-          label: 'Runtime profile',
-          title:
-            profileEvidence === 'complete'
-              ? 'Runtime profile ready'
-              : canManage
-                ? 'Create a runtime profile'
-                : 'Runtime profile needed',
-          detail:
-            profileEvidence === 'complete'
-              ? 'The team has an execution profile available for task claims.'
-              : canManage
-                ? 'Define the provider, model, workspace, and policy boundary the daemon may execute.'
-                : 'Ask a team owner or manager to create a runtime profile for this pilot.',
-          action: { href: '/runtime/profiles', label: 'Runtime Profiles' },
-          evidence: profileEvidence,
-        },
-  );
-
-  let acceptedTaskEvidence = resourceEvidence(completedTasks, (tasks) =>
-    tasks.some(
-      (task) => task.status === 'completed' && task.acceptedAttemptN !== null,
-    ),
-  );
-  if (
-    acceptedTaskEvidence === 'incomplete' &&
-    activityTasks.status !== 'ready'
-  ) {
-    acceptedTaskEvidence = activityTasks.status;
-  }
-  const activeTask =
-    activityTasks.status === 'ready'
-      ? activityTasks.data.find((task) => activeTaskStatuses.has(task.status))
-      : undefined;
-  const taskAction = activeTask
-    ? {
-        href: `/tasks/${activeTask.id}`,
-        label: activeTask.title ?? 'Active task',
-      }
-    : canManage
-      ? { href: '/tasks?create=1', label: 'New Task' }
-      : { href: '/tasks', label: 'Tasks' };
-  drafts.push(
-    acceptedTaskEvidence === 'loading' || acceptedTaskEvidence === 'unavailable'
-      ? unavailableDraft(
-          'accepted-task',
-          'Accepted task',
-          'Tasks',
-          '/tasks',
-          acceptedTaskEvidence,
-        )
-      : {
-          id: 'accepted-task',
-          label: 'Accepted task',
-          title:
-            acceptedTaskEvidence === 'complete'
-              ? 'First task accepted'
-              : activeTask
-                ? 'Finish the first task'
-                : canManage
-                  ? 'Run the first supervised task'
-                  : 'First supervised task needed',
-          detail:
-            acceptedTaskEvidence === 'complete'
-              ? 'A completed task has an accepted attempt. The team pilot is activated.'
-              : activeTask
-                ? 'Open the current task, supervise its result, and accept the completed attempt.'
-                : canManage
-                  ? 'Queue a narrow task, supervise the run, and accept the completed attempt.'
-                  : 'Ask a team owner or manager to run and accept the first supervised task.',
-          action: taskAction,
-          evidence: acceptedTaskEvidence,
-        },
-  );
-
-  const nextIndex = drafts.findIndex(
-    (milestone) => milestone.evidence !== 'complete',
-  );
-  const milestones = drafts.map<PilotMilestone>((draft, index) => {
-    let status: PilotMilestoneStatus;
+  const nextIndex = drafts.findIndex((step) => step.evidence !== 'complete');
+  const steps = drafts.map<PilotStep>((draft, index) => {
+    let status: PilotStepStatus;
     if (draft.evidence === 'complete') status = 'complete';
     else if (index !== nextIndex) status = 'upcoming';
     else if (draft.evidence === 'loading') status = 'loading';
     else if (draft.evidence === 'unavailable') status = 'unavailable';
     else status = 'next';
 
-    const { evidence: _evidence, ...milestone } = draft;
-    return { ...milestone, status };
+    return {
+      id: draft.id,
+      label: draft.label,
+      title: draft.title,
+      detail: draft.detail,
+      docsPath: draft.docsPath,
+      action: draft.action,
+      status,
+    };
   });
 
   return {
     isActivated: nextIndex === -1,
-    milestones,
-    nextMilestone: nextIndex === -1 ? null : (milestones[nextIndex] ?? null),
+    steps,
+    nextStep: nextIndex === -1 ? null : (steps[nextIndex] ?? null),
+    recordTask: record.recordTask
+      ? { id: record.recordTask.id, title: record.recordTask.title ?? null }
+      : null,
   };
 }

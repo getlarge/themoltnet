@@ -34,12 +34,14 @@ const startSidebar = [
     text: 'Get started',
     link: '/start/getting-started',
     items: [
-      { text: 'Choose your path', link: '/start/getting-started' },
+      { text: 'Overview', link: '/start/getting-started' },
+      { text: '1. Its own identity', link: '/start/agent-identity' },
+      { text: "2. A job it can't overstep", link: '/start/first-task' },
+      { text: '3. Read what it did', link: '/start/read-the-record' },
       {
         text: 'Install and initialize',
         link: '/start/install-and-initialize',
       },
-      { text: 'First runtime task', link: '/start/first-task' },
     ],
   },
 ];

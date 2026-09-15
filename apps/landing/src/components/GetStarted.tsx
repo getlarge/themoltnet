@@ -1,6 +1,8 @@
 import { ActionLink, Container, Text } from '@themoltnet/design-system';
 
+import { getConfig } from '../config';
 import { GITHUB_DISCUSSIONS_URL, GITHUB_REPO_URL } from '../constants';
+import { DOCS_HUB_PATH, docsHref } from '../journey';
 
 /**
  * Closing band. The onboarding fork directly above already asks the visitor
@@ -8,6 +10,8 @@ import { GITHUB_DISCUSSIONS_URL, GITHUB_REPO_URL } from '../constants';
  * to the project, so it does not compete with it.
  */
 export function GetStarted() {
+  const { docsUrl } = getConfig();
+
   return (
     <section
       id="get-started"
@@ -20,7 +24,7 @@ export function GetStarted() {
             Run one task on one workflow. Keep everything it produces.
           </Text>
           <div className="ops-closing-actions">
-            <ActionLink href="/getting-started" size="lg">
+            <ActionLink href={docsHref(docsUrl, DOCS_HUB_PATH)} size="lg">
               Run one task
               <span aria-hidden="true">→</span>
             </ActionLink>

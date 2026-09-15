@@ -37,8 +37,8 @@ import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import {
   buildTeamPilotBriefing,
-  type PilotMilestone,
   type PilotResource,
+  type PilotStep,
 } from '../overview/team-pilot.js';
 import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
@@ -184,6 +184,8 @@ export function OverviewPage() {
         </InlineNotice>
       ) : !briefing.isActivated ? (
         <TeamPilot briefing={briefing} />
+      ) : briefing.recordTask ? (
+        <FirstRecordLine taskId={briefing.recordTask.id} />
       ) : null}
 
       {hasProjectTeam && !teamsLoading && !teamError ? (
@@ -447,6 +449,10 @@ export function OverviewPage() {
   );
 }
 
+function docsHref(path: string) {
+  return `${getConfig().docsUrl.replace(/\/$/, '')}${path}`;
+}
+
 function TeamPilot({
   briefing,
 }: {
@@ -454,13 +460,15 @@ function TeamPilot({
 }) {
   const theme = useTheme();
   const [, navigate] = useLocation();
-  const next = briefing.nextMilestone;
+  const next = briefing.nextStep;
   if (!next) return null;
 
-  const completedCount = briefing.milestones.filter(
-    (milestone) => milestone.status === 'complete',
+  const stepCount = briefing.steps.length;
+  const nextNumber = briefing.steps.indexOf(next) + 1;
+  const completedCount = briefing.steps.filter(
+    (step) => step.status === 'complete',
   ).length;
-  const actionVariant =
+  const guideVariant =
     next.status === 'next' ? ('primary' as const) : ('secondary' as const);
 
   return (
@@ -493,11 +501,10 @@ function TeamPilot({
             </span>
             <Stack gap={0}>
               <Text variant="overline" color="primary">
-                Team pilot
+                Getting started
               </Text>
               <Text variant="caption" color="muted">
-                {completedCount} of {briefing.milestones.length} milestones
-                verified
+                {completedCount} of {stepCount} steps done
               </Text>
             </Stack>
           </Stack>
@@ -517,40 +524,41 @@ function TeamPilot({
                 ? 'Unavailable'
                 : next.status === 'loading'
                   ? 'Checking'
-                  : 'Next action'}
+                  : `Step ${nextNumber} of ${stepCount}`}
             </Badge>
             <Text id="pilot-heading" variant="h2">
-              {next.title}
+              {next.label}
             </Text>
+            <Text weight="medium">{next.title}</Text>
             <Text color="secondary" style={{ maxWidth: '68ch' }}>
               {next.detail}
             </Text>
           </Stack>
 
           <Stack direction="row" gap={2} wrap>
+            <ActionLink
+              variant={guideVariant}
+              size="sm"
+              href={docsHref(next.docsPath)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Read step {nextNumber} in the docs
+              <ExternalLink aria-hidden="true" size={15} />
+            </ActionLink>
             <Button
-              variant={actionVariant}
+              variant="secondary"
               size="sm"
               onClick={() => navigate(next.action.href)}
             >
               {next.action.label}
               <ArrowRight aria-hidden="true" size={16} />
             </Button>
-            <ActionLink
-              variant="ghost"
-              size="sm"
-              href={`${getConfig().docsUrl.replace(/\/$/, '')}/operate/running-agents`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Agent daemon setup
-              <ExternalLink aria-hidden="true" size={15} />
-            </ActionLink>
           </Stack>
         </Stack>
 
         <ol
-          aria-label="Team pilot milestones"
+          aria-label="Getting started steps"
           style={{
             display: 'grid',
             gap: theme.spacing[1],
@@ -559,8 +567,8 @@ function TeamPilot({
             padding: 0,
           }}
         >
-          {briefing.milestones.map((milestone) => (
-            <PilotMilestoneRow key={milestone.id} milestone={milestone} />
+          {briefing.steps.map((step, index) => (
+            <PilotStepRow key={step.id} number={index + 1} step={step} />
           ))}
         </ol>
       </div>
@@ -568,26 +576,26 @@ function TeamPilot({
   );
 }
 
-function PilotMilestoneRow({ milestone }: { milestone: PilotMilestone }) {
+function PilotStepRow({ number, step }: { number: number; step: PilotStep }) {
   const theme = useTheme();
-  const isCurrent = ['next', 'loading', 'unavailable'].includes(
-    milestone.status,
-  );
+  const [, navigate] = useLocation();
+  const isCurrent = ['next', 'loading', 'unavailable'].includes(step.status);
   const statusLabel = {
-    complete: 'Complete',
+    complete: 'Done',
     next: 'Next',
     upcoming: 'Upcoming',
     loading: 'Checking',
     unavailable: 'Unavailable',
-  }[milestone.status];
+  }[step.status];
   const icon =
-    milestone.status === 'complete' ? (
+    step.status === 'complete' ? (
       <CheckCircle2 aria-hidden="true" size={18} />
     ) : isCurrent ? (
       <CircleDot aria-hidden="true" size={18} />
     ) : (
       <Circle aria-hidden="true" size={18} />
     );
+  const showRecordLink = step.id === 'record' && step.status === 'complete';
 
   return (
     <li
@@ -597,7 +605,7 @@ function PilotMilestoneRow({ milestone }: { milestone: PilotMilestone }) {
         background: isCurrent ? theme.color.bg.elevated : 'transparent',
         borderRadius: theme.radius.md,
         color:
-          milestone.status === 'complete' || isCurrent
+          step.status === 'complete' || isCurrent
             ? theme.color.text.DEFAULT
             : theme.color.text.muted,
         display: 'grid',
@@ -610,7 +618,7 @@ function PilotMilestoneRow({ milestone }: { milestone: PilotMilestone }) {
       <span
         style={{
           color:
-            milestone.status === 'complete'
+            step.status === 'complete'
               ? theme.color.success.DEFAULT
               : isCurrent
                 ? theme.color.primary.DEFAULT
@@ -620,11 +628,82 @@ function PilotMilestoneRow({ milestone }: { milestone: PilotMilestone }) {
       >
         {icon}
       </span>
-      <Text weight={isCurrent ? 'medium' : 'normal'}>{milestone.label}</Text>
+      <Stack gap={0}>
+        <Text weight={isCurrent ? 'medium' : 'normal'}>
+          <a
+            href={docsHref(step.docsPath)}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'inherit', textUnderlineOffset: '0.2em' }}
+          >
+            {number}. {step.label}
+          </a>
+        </Text>
+        {showRecordLink ? (
+          <Text variant="caption">
+            <a
+              href={step.action.href}
+              onClick={(event) => {
+                event.preventDefault();
+                navigate(step.action.href);
+              }}
+              style={{ color: theme.color.primary.DEFAULT }}
+            >
+              {step.action.label}
+            </a>
+          </Text>
+        ) : null}
+      </Stack>
       <Text variant="caption" color={isCurrent ? 'secondary' : 'muted'}>
         {statusLabel}
       </Text>
     </li>
+  );
+}
+
+/**
+ * Once all three steps are done the card collapses to one line that keeps
+ * the payoff reachable: the record of the first completed task.
+ */
+function FirstRecordLine({ taskId }: { taskId: string }) {
+  const theme = useTheme();
+  const [, navigate] = useLocation();
+  const href = `/tasks/${taskId}`;
+
+  return (
+    <ControlSurface as="section" padding="sm" aria-label="First task record">
+      <Stack
+        direction="row"
+        gap={3}
+        align="center"
+        justify="space-between"
+        wrap
+      >
+        <Stack direction="row" gap={2} align="center">
+          <span
+            style={{
+              color: theme.color.success.DEFAULT,
+              display: 'inline-flex',
+            }}
+          >
+            <CheckCircle2 aria-hidden="true" size={18} />
+          </span>
+          <Text>Your agent completed its first task.</Text>
+        </Stack>
+        <ActionLink
+          variant="secondary"
+          size="sm"
+          href={href}
+          onClick={(event) => {
+            event.preventDefault();
+            navigate(href);
+          }}
+        >
+          See what your agent did
+          <ArrowRight aria-hidden="true" size={16} />
+        </ActionLink>
+      </Stack>
+    </ControlSurface>
   );
 }
 

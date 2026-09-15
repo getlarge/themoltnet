@@ -1,11 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -149,12 +143,11 @@ describe('OverviewPage', () => {
         name: 'System status',
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Team pilot')).toBeVisible();
+    expect(screen.getByText('Getting started')).toBeVisible();
     expect(
-      await screen.findByRole('heading', {
-        name: 'Finish the first task',
-      }),
+      await screen.findByRole('heading', { name: 'Read what it did' }),
     ).toBeVisible();
+    expect(screen.getByText('Follow the first task')).toBeVisible();
     expect(screen.getByText('Coordinate durable work')).toBeVisible();
     expect(screen.getByText('Bound execution authority')).toBeVisible();
     expect(screen.getByText('Retain accountable context')).toBeVisible();
@@ -248,14 +241,41 @@ describe('OverviewPage', () => {
 
     expect(screen.getByText('Select a project team')).toBeVisible();
     expect(mocks.listTasks).not.toHaveBeenCalled();
-    expect(screen.getByText('Team pilot')).toBeVisible();
+    expect(screen.getByText('Getting started')).toBeVisible();
     expect(
       screen.queryByRole('heading', { name: 'System status' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
-  it('removes the pilot briefing after an accepted completed task', async () => {
+  it('presents the three journey steps, each linked to its docs page', async () => {
+    mocks.listTasks.mockResolvedValue({ items: [], total: 0 });
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
+    expect(
+      await screen.findByRole('heading', {
+        name: "Give it a job it can't overstep",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText('Step 2 of 3')).toBeVisible();
+    const steps = screen.getByRole('list', { name: 'Getting started steps' });
+    const links = within(steps).getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      'https://docs.themolt.net/start/agent-identity',
+      'https://docs.themolt.net/start/first-task',
+      'https://docs.themolt.net/start/read-the-record',
+    ]);
+    expect(
+      screen.getByRole('link', { name: /Read step 2 in the docs/ }),
+    ).toHaveAttribute('href', 'https://docs.themolt.net/start/first-task');
+
+    fireEvent.click(screen.getByRole('button', { name: /New Task/ }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/tasks?create=1');
+    expect(screen.queryByText(/accept the completed attempt/i)).toBeNull();
+  });
+
+  it('collapses the steps to one line linking the completed task record', async () => {
     mocks.listCompletedTasks.mockResolvedValue({
       items: [
         {
@@ -270,12 +290,14 @@ describe('OverviewPage', () => {
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
-    expect(
-      await screen.findByRole('heading', { name: 'System status' }),
-    ).toBeVisible();
-    await waitFor(() => {
-      expect(screen.queryByText('Team pilot')).not.toBeInTheDocument();
+    const recordLink = await screen.findByRole('link', {
+      name: /See what your agent did/,
     });
+    expect(recordLink).toHaveAttribute('href', '/tasks/task-complete');
+    expect(screen.queryByText('Getting started')).not.toBeInTheDocument();
+
+    fireEvent.click(recordLink);
+    expect(mocks.navigate).toHaveBeenCalledWith('/tasks/task-complete');
   });
 
   it('renders unavailable evidence instead of diary setup instructions', async () => {
@@ -288,11 +310,7 @@ describe('OverviewPage', () => {
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
-    expect(
-      await screen.findByRole('heading', { name: 'Diaries unavailable' }),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole('heading', { name: 'Create a shared diary' }),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Diaries unavailable')).toBeVisible();
+    expect(screen.queryByText('Create a shared diary')).not.toBeInTheDocument();
   });
 });

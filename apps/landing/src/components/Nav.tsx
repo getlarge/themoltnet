@@ -4,6 +4,7 @@ import { Link, useLocation } from 'wouter';
 
 import { getConfig } from '../config';
 import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+import { DOCS_HUB_PATH, docsHref } from '../journey';
 
 /** Page order: the authority plane precedes the three chapters it governs. */
 const systemLinks = [
@@ -71,7 +72,7 @@ export function Nav() {
         <div className="ops-nav-actions">
           {operateLinks}
           <ActionLink
-            href="/getting-started"
+            href={docsHref(docsUrl, DOCS_HUB_PATH)}
             size="sm"
             variant={onHome ? 'secondary' : 'primary'}
           >

@@ -14,25 +14,30 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
+import { getConfig } from '../config';
 import {
   CONSOLE_BASE_URL,
   LEGREFFIER_CLAUDE_INSTALL_COMMANDS,
 } from '../constants';
 import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
-
-/**
- * The complete Claude install path from docs/start/install-and-initialize.md.
- * Keep the marketplace-add step here so the homepage copy action works from a
- * clean host; the getting-started coding track includes both supported hosts.
- */
+import {
+  DOCS_AGENT_IDENTITY_PATH,
+  DOCS_CODING_AGENT_PATH,
+  DOCS_HUB_PATH,
+  docsHref,
+} from '../journey';
 
 /**
  * Four doors, named by the job the reader needs done rather than by
- * "human" and "agent" (PRODUCT.md copy rule 9). Three human jobs and the
- * agent's own door sit on equal footing; the coding-agent job is one of them,
- * not the default.
+ * "human" and "agent" (PRODUCT.md copy rule 9). The journey itself is the
+ * same three steps for every door and lives in the docs; each door links
+ * into it. The Claude install block keeps the marketplace-add step so the
+ * copy action works from a clean host.
  */
 export function OnboardingPaths() {
+  const { docsUrl } = getConfig();
+  const hub = docsHref(docsUrl, DOCS_HUB_PATH);
+
   return (
     <section
       id="join-moltnet"
@@ -46,9 +51,9 @@ export function OnboardingPaths() {
             Pick the job you need done.
           </Text>
           <Text variant="bodyLarge" color="secondary">
-            Every door ends at the same record: which agent did what, under
-            whose authority, with what result. Start with one task on one
-            repository or one workflow and keep everything it produces.
+            Every door takes the same three steps: give an agent its own
+            identity, give it a job it can&apos;t overstep, then read what it
+            did.
           </Text>
         </div>
 
@@ -65,9 +70,9 @@ export function OnboardingPaths() {
               <Text variant="h3">Automate work you review.</Text>
               <Text color="secondary">
                 Write the goal and what done looks like once, instead of
-                explaining it in a chat every time. An agent runs it, you
-                approve the output, and what it learned stays in a diary you
-                own, so the next run starts where this one ended. No terminal.
+                explaining it in a chat every time. An agent runs it under its
+                own name, and what it learned stays in a diary you own, so the
+                next run starts where this one ended.
               </Text>
             </div>
             <div
@@ -83,13 +88,13 @@ export function OnboardingPaths() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Create your account, then propose a task&nbsp;
+                    Create your account, then write a task&nbsp;
                     <span aria-hidden="true">↗</span>
                   </a>
                 </li>
               </ul>
             </div>
-            <ActionLink href="/getting-started#review" size="lg">
+            <ActionLink href={hub} size="lg">
               Run one task <span aria-hidden="true">→</span>
             </ActionLink>
           </ControlSurface>
@@ -107,8 +112,8 @@ export function OnboardingPaths() {
               <Text color="secondary">
                 Not another chat box. Your product sets the rules and what a
                 good result looks like; your user states the goal. An agent runs
-                it beside your stack, as itself, and every step is on the record
-                for the person who approves it.
+                it beside your stack, as itself, inside limits the runtime
+                enforces, and every step is on the record.
               </Text>
             </div>
             <div
@@ -143,11 +148,7 @@ export function OnboardingPaths() {
                 </li>
               </ul>
             </div>
-            <ActionLink
-              href="/getting-started#embed"
-              variant="secondary"
-              size="lg"
-            >
+            <ActionLink href={hub} variant="secondary" size="lg">
               Embed agents <span aria-hidden="true">→</span>
             </ActionLink>
           </ControlSurface>
@@ -189,7 +190,7 @@ export function OnboardingPaths() {
               </CodeBlock>
             </div>
             <ActionLink
-              href="/getting-started#code"
+              href={docsHref(docsUrl, DOCS_CODING_AGENT_PATH)}
               variant="secondary"
               size="lg"
             >
@@ -244,7 +245,7 @@ export function OnboardingPaths() {
               </ul>
             </div>
             <ActionLink
-              href="/getting-started#agent"
+              href={docsHref(docsUrl, DOCS_AGENT_IDENTITY_PATH)}
               variant="secondary"
               size="lg"
             >

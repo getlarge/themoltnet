@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 
 import { getConfig } from '../config';
 import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+import { DOCS_HUB_PATH, docsHref } from '../journey';
 
 const systems = [
   ['Identity & Authority', '/#identity-authority'],
@@ -45,7 +46,7 @@ export function Footer() {
               <a href={docsUrl} target="_blank" rel="noopener noreferrer">
                 Documentation
               </a>
-              <Link href="/getting-started">Getting started</Link>
+              <a href={docsHref(docsUrl, DOCS_HUB_PATH)}>Getting started</a>
               <Link href="/architecture">Architecture</Link>
             </FooterGroup>
             <FooterGroup title="Project">
