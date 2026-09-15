@@ -65,7 +65,10 @@ describe('runtime tool-policy routes', () => {
           name: 'ci',
           description: 'CI tools',
           tools: ['git', 'gh'],
-          shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+          shellCommands: [
+            { argvPrefix: ['gh', 'pr', 'view'] },
+            { argvPrefix: ['git'] },
+          ],
         },
       });
 
@@ -75,7 +78,10 @@ describe('runtime tool-policy routes', () => {
         teamId: TEAM_ID,
         name: 'ci',
         tools: ['gh', 'git'],
-        shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+        shellCommands: [
+          { argvPrefix: ['gh', 'pr', 'view'] },
+          { argvPrefix: ['git'] },
+        ],
       });
       expect(mocks.runtimePolicyRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -89,7 +95,7 @@ describe('runtime tool-policy routes', () => {
       ).toHaveBeenCalledWith(POLICY_ID, {
         teamId: TEAM_ID,
         addTools: ['gh', 'git'],
-        addShellCommands: ['v1/gh/pr/view'],
+        addShellCommands: ['v1/gh/pr/view', 'v1/git'],
       });
     });
 
@@ -131,14 +137,14 @@ describe('runtime tool-policy routes', () => {
       expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
     });
 
-    it('rejects shell command rules with fewer than two tokens', async () => {
+    it('rejects shell command rules without tokens', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/runtime-policies',
         headers: TEAM_HEADERS,
         payload: {
           name: 'ci',
-          shellCommands: [{ argvPrefix: ['git'] }],
+          shellCommands: [{ argvPrefix: [] }],
         },
       });
 

@@ -50000,7 +50000,8 @@ func (*SetRuntimeProfilePoliciesUnauthorized) setRuntimeProfilePoliciesRes() {}
 
 // Ref: #/components/schemas/ShellCommandRule
 type ShellCommandRule struct {
-	// Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.
+	// Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted;
+	// output redirection is never permitted.
 	ArgvPrefix []string `json:"argvPrefix"`
 }
 

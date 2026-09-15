@@ -106,11 +106,15 @@ describe('Tool-policy enforcement (daemon)', () => {
   it('enforce: resolves the union allow-set and blocks disallowed tools', async () => {
     const profile = await createProfile(`enforce-${Date.now()}`, 'enforce');
     const p1 = await createPolicy(`p1-${Date.now()}`, ['read', 'ls']);
-    const p2 = await createPolicy(`p2-${Date.now()}`, ['git', 'grep', 'find']);
+    const p2 = await createPolicy(`p2-${Date.now()}`, ['gh', 'grep', 'find']);
     const p3 = await createPolicy(
       `p3-${Date.now()}`,
       [],
-      [{ argvPrefix: ['gh', 'pr', 'view'] }, { argvPrefix: ['ls', '-la'] }],
+      [
+        { argvPrefix: ['gh', 'pr', 'view'] },
+        { argvPrefix: ['ls', '-la'] },
+        { argvPrefix: ['git'] },
+      ],
     );
     await agent.runtimeProfiles.setPolicies(profile.id, [p1.id, p2.id, p3.id], {
       teamId,
@@ -127,13 +131,14 @@ describe('Tool-policy enforcement (daemon)', () => {
     expect(policy.enforcement).toBe('enforce');
     expect([...policy.allowedTools].sort()).toEqual([
       'find',
-      'git',
+      'gh',
       'grep',
       'ls',
       'read',
     ]);
     expect(policy.allowedShellCommands).toEqual([
       { argvPrefix: ['gh', 'pr', 'view'] },
+      { argvPrefix: ['git'] },
       { argvPrefix: ['ls', '-la'] },
     ]);
 
@@ -169,7 +174,8 @@ describe('Tool-policy enforcement (daemon)', () => {
       }),
     ).toMatchObject({ allow: false });
 
-    // Bash: every executable needs broad authority or a scoped command grant.
+    // Bash: every executable needs a matching shell command rule. Tool names
+    // (`gh`, `ls`, …) never authorize a shell invocation.
     expect(
       decideToolCall({
         toolName: 'bash',

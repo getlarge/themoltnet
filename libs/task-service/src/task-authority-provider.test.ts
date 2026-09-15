@@ -8,6 +8,7 @@ import type {
 import {
   canonicalEffectivePolicySnapshot,
   hashEffectivePolicySnapshot,
+  LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
 } from '@moltnet/runtime-policy-service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -367,6 +368,38 @@ describe('MoltNet TaskAuthorityProvider', () => {
     await expectDenied(setup({ executor: null }), 'executor_manifest_missing');
   });
 
+  it('keeps a pinned v1 snapshot loadable under the current semantics', async () => {
+    // Arrange
+    const legacyCanonical = canonicalEffectivePolicySnapshot({
+      version: LEGACY_EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git', 'read'],
+      allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+    });
+    const legacyHash = hashEffectivePolicySnapshot(legacyCanonical);
+    const context = setup({
+      attempt: attempt({ policySnapshotHash: legacyHash }),
+      snapshot: snapshot({
+        hash: legacyHash,
+        schemaVersion: legacyCanonical.version,
+        allowedTools: legacyCanonical.allowedTools,
+        allowedShellCommands: legacyCanonical.allowedShellCommands,
+      }),
+    });
+
+    // Act
+    const decision = await context.provider.authorizeTask(request);
+
+    // Assert
+    expect(legacyHash).not.toBe(SNAPSHOT_HASH);
+    expect(decision).toMatchObject({
+      allowed: true,
+      reason: 'active_pinned_authority',
+      claims: { policySnapshotHash: legacyHash },
+    });
+  });
+
   it('denies an unsupported snapshot schema version', async () => {
     await expectDenied(
       setup({ snapshot: snapshot({ schemaVersion: 'v999' }) }),
@@ -383,18 +416,57 @@ describe('MoltNet TaskAuthorityProvider', () => {
     );
   });
 
-  it('denies structurally invalid pinned shell-command authority', async () => {
-    await expectDenied(
-      setup({
-        snapshot: snapshot({
-          allowedShellCommands: [
-            { argvPrefix: ['git'] },
-          ] as unknown as RuntimePolicySnapshot['allowedShellCommands'],
-        }),
+  it('grants active pinned authority for a one-token shell-command snapshot', async () => {
+    // Arrange
+    const oneTokenCanonical = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['read'],
+      allowedShellCommands: [{ argvPrefix: ['git'] }],
+    });
+    const oneTokenHash = hashEffectivePolicySnapshot(oneTokenCanonical);
+    const context = setup({
+      attempt: attempt({ policySnapshotHash: oneTokenHash }),
+      snapshot: snapshot({
+        hash: oneTokenHash,
+        schemaVersion: oneTokenCanonical.version,
+        allowedTools: oneTokenCanonical.allowedTools,
+        allowedShellCommands: oneTokenCanonical.allowedShellCommands,
       }),
-      'authority_binding_invalid',
-    );
+    });
+
+    // Act
+    const decision = await context.provider.authorizeTask(request);
+
+    // Assert
+    expect(oneTokenCanonical.allowedShellCommands).toEqual([
+      { argvPrefix: ['git'] },
+    ]);
+    expect(decision).toMatchObject({
+      allowed: true,
+      reason: 'active_pinned_authority',
+      claims: { policySnapshotHash: oneTokenHash },
+    });
   });
+
+  it.each([
+    ['an empty prefix', []],
+    ['more than 8 tokens', ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']],
+  ])(
+    'denies pinned shell-command authority with %s',
+    async (_label, argvPrefix) => {
+      await expectDenied(
+        setup({
+          snapshot: snapshot({
+            allowedShellCommands: [
+              { argvPrefix },
+            ] as unknown as RuntimePolicySnapshot['allowedShellCommands'],
+          }),
+        }),
+        'authority_binding_invalid',
+      );
+    },
+  );
 
   it('denies a snapshot that does not match the pinned executor runtime', async () => {
     await expectDenied(

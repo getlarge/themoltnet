@@ -1433,7 +1433,7 @@ export async function executePiTask(
         | Awaited<ReturnType<typeof resolveSessionToolPolicy>>
         | undefined;
       let unavailableRuntimeShellCommands: Array<{
-        argvPrefix: readonly [string, string, ...string[]];
+        argvPrefix: readonly [string, ...string[]];
       }> = [];
       let verifiedGuestExecutables: string[] = [];
       const toolPolicyLogger: ToolPolicyLogger = opts.toolPolicyLogger ?? {
@@ -1448,17 +1448,6 @@ export async function executePiTask(
         opts.runtimeProfileId,
       );
       const taskHasSubagents = taskTypeUsesSubagents(task.taskType);
-      const structuredToolNames = new Set([
-        ...gondolinCustomTools.map((tool) => tool.name),
-        ...moltnetTools.map((tool) => tool.name),
-        ...submitTools.map((tool) => tool.name),
-        ...(opts.runtimeDefinition?.tools.map((tool) => tool.descriptor.name) ??
-          []),
-        ...(opts.runtimeDefinition?.extensions.flatMap(
-          (extension) => extension.declaredTools,
-        ) ?? []),
-        ...(taskHasSubagents ? ['subagent'] : []),
-      ]);
       if (opts.runtimeProfileId && opts.toolEnforcement) {
         const policy = await resolveSessionToolPolicy({
           agent: moltnetAgent,
@@ -1497,7 +1486,6 @@ export async function executePiTask(
               policy: resolvedToolPolicy,
               analyzer,
               logger: toolPolicyLogger,
-              structuredToolNames,
               context: toolPolicyDecisionContext,
             }),
           );

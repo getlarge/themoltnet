@@ -125,14 +125,14 @@ export async function resolveSessionToolPolicy(
       allowedTools: new Set(resolved.allowedTools),
       allowedShellCommands: shellCommands.map((rule) => {
         if (
-          rule.argvPrefix.length < 2 ||
+          rule.argvPrefix.length < 1 ||
           rule.argvPrefix.length > 8 ||
           rule.argvPrefix.some((token) => !token)
         ) {
           throw new Error('runtime returned an invalid shell command rule');
         }
         return {
-          argvPrefix: rule.argvPrefix as [string, string, ...string[]],
+          argvPrefix: rule.argvPrefix as [string, ...string[]],
         };
       }),
       executionPolicySnapshotHash: resolved.policySnapshotHash,
@@ -219,7 +219,6 @@ export function decideForEvent(
   event: ToolCallEvent,
   policy: SessionToolPolicy,
   analyze: ShellCommandAnalyzer['analyze'],
-  structuredToolNames?: ReadonlySet<string>,
 ): GateDecision {
   const command =
     event.toolName === 'bash'
@@ -230,7 +229,6 @@ export function decideForEvent(
     command,
     enforcement: policy.enforcement,
     allowedTools: policy.allowedTools,
-    structuredToolNames,
     allowedShellCommands: policy.allowedShellCommands,
     analyze,
   });
@@ -240,8 +238,6 @@ export interface ToolPolicyExtensionDeps {
   policy: SessionToolPolicy;
   analyzer: ShellCommandAnalyzer;
   logger: ToolPolicyLogger;
-  /** Structured tool names registered by the active runtime adapter. */
-  structuredToolNames?: ReadonlySet<string>;
   context?: ToolPolicyDecisionContext;
 }
 
@@ -287,11 +283,8 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
     if (deps.policy.enforcement === 'off') return;
 
     pi.on('tool_call', (event): ToolCallEventResult | void => {
-      const decision = decideForEvent(
-        event,
-        deps.policy,
-        (command) => deps.analyzer.analyze(command),
-        deps.structuredToolNames,
+      const decision = decideForEvent(event, deps.policy, (command) =>
+        deps.analyzer.analyze(command),
       );
 
       if ('allow' in decision && decision.allow) {

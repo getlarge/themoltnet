@@ -1,12 +1,12 @@
 export interface ToolPolicyEscapeCase {
   name: string;
-  policyShape: 'structured-only' | 'narrow-shell' | 'broad-executable';
+  policyShape: 'tool-grant-only' | 'narrow-shell' | 'one-token-shell';
   command: string;
   expectedAllow: boolean;
   reasonCode:
     | 'policy_allowed'
     | 'shell_command_prefix_allowed'
-    | 'shell_output_redirection_requires_broad_permission'
+    | 'shell_output_redirection_not_permitted'
     | 'tool_not_permitted';
   missing?: string[];
   technique: string;
@@ -20,7 +20,7 @@ export interface ToolPolicyEscapeCase {
  */
 export const TOOL_POLICY_ESCAPE_CASES: ToolPolicyEscapeCase[] = [
   {
-    name: 'allows a narrowly granted structured-name executable',
+    name: 'allows a command matching a narrow ls shell rule',
     policyShape: 'narrow-shell',
     command: 'ls -la',
     expectedAllow: true,
@@ -33,14 +33,14 @@ export const TOOL_POLICY_ESCAPE_CASES: ToolPolicyEscapeCase[] = [
     policyShape: 'narrow-shell',
     command: 'ls -la 2> proof.txt',
     expectedAllow: false,
-    reasonCode: 'shell_output_redirection_requires_broad_permission',
+    reasonCode: 'shell_output_redirection_not_permitted',
     missing: ['ls'],
     technique: 'stderr-redirection',
     source: 'issue-2275',
   },
   {
-    name: 'blocks a different ls command through a structured ls grant',
-    policyShape: 'structured-only',
+    name: 'blocks a different ls command through an ls tool grant',
+    policyShape: 'tool-grant-only',
     command: 'ls -l missing 2> proof.txt',
     expectedAllow: false,
     reasonCode: 'tool_not_permitted',
@@ -49,8 +49,8 @@ export const TOOL_POLICY_ESCAPE_CASES: ToolPolicyEscapeCase[] = [
     source: 'issue-2275',
   },
   {
-    name: 'blocks stdout redirection through a structured grep grant',
-    policyShape: 'structured-only',
+    name: 'blocks stdout redirection through a grep tool grant',
+    policyShape: 'tool-grant-only',
     command: 'grep needle missing > proof.txt',
     expectedAllow: false,
     reasonCode: 'tool_not_permitted',
@@ -59,8 +59,8 @@ export const TOOL_POLICY_ESCAPE_CASES: ToolPolicyEscapeCase[] = [
     source: 'issue-2275',
   },
   {
-    name: 'blocks find file output through a structured find grant',
-    policyShape: 'structured-only',
+    name: 'blocks find file output through a find tool grant',
+    policyShape: 'tool-grant-only',
     command: 'find . -fprint proof.txt',
     expectedAllow: false,
     reasonCode: 'tool_not_permitted',
@@ -69,8 +69,8 @@ export const TOOL_POLICY_ESCAPE_CASES: ToolPolicyEscapeCase[] = [
     source: 'issue-2275',
   },
   {
-    name: 'blocks find deletion through a structured find grant',
-    policyShape: 'structured-only',
+    name: 'blocks find deletion through a find tool grant',
+    policyShape: 'tool-grant-only',
     command: 'find . -delete',
     expectedAllow: false,
     reasonCode: 'tool_not_permitted',
@@ -79,12 +79,32 @@ export const TOOL_POLICY_ESCAPE_CASES: ToolPolicyEscapeCase[] = [
     source: 'issue-2275',
   },
   {
-    name: 'preserves redirection for a non-colliding broad executable grant',
-    policyShape: 'broad-executable',
-    command: 'git diff > proof.txt',
+    name: 'allows any git arguments through a one-token git shell rule',
+    policyShape: 'one-token-shell',
+    command: 'git push origin main',
     expectedAllow: true,
-    reasonCode: 'policy_allowed',
+    reasonCode: 'shell_command_prefix_allowed',
+    technique: 'plain-command',
+    source: 'issue-2275',
+  },
+  {
+    name: 'blocks stdout redirection despite a one-token git shell rule',
+    policyShape: 'one-token-shell',
+    command: 'git diff > proof.txt',
+    expectedAllow: false,
+    reasonCode: 'shell_output_redirection_not_permitted',
+    missing: ['git'],
     technique: 'stdout-redirection',
+    source: 'issue-2275',
+  },
+  {
+    name: 'blocks a shell program granted only as a tool name',
+    policyShape: 'tool-grant-only',
+    command: 'gh pr merge 1725',
+    expectedAllow: false,
+    reasonCode: 'tool_not_permitted',
+    missing: ['gh'],
+    technique: 'tool-name-as-executable',
     source: 'issue-2275',
   },
 ];

@@ -12,7 +12,8 @@ const ToolNameSchema = Type.String({
   minLength: 1,
   maxLength: 128,
   pattern: TOOL_NAME_PATTERN,
-  description: 'A tool identifier, e.g. an executable name like "git".',
+  description:
+    'A runtime or MCP tool name, e.g. "read". Never authorizes a shell invocation.',
 });
 
 const ShellCommandTokenSchema = Type.String({
@@ -24,10 +25,10 @@ const ShellCommandTokenSchema = Type.String({
 export const ShellCommandRuleSchema = Type.Object(
   {
     argvPrefix: Type.Array(ShellCommandTokenSchema, {
-      minItems: 2,
+      minItems: 1,
       maxItems: 8,
       description:
-        'Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.',
+        'Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted; output redirection is never permitted.',
     }),
   },
   { $id: 'ShellCommandRule', additionalProperties: false },

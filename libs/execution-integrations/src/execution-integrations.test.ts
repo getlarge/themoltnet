@@ -11,7 +11,7 @@ import {
 } from '@moltnet/runtime-execution';
 import {
   EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
-  type EffectivePolicySnapshotV1,
+  type EffectivePolicySnapshot,
 } from '@moltnet/runtime-policy-service';
 import type { ResolvedRuntimeProfile } from '@themoltnet/agent-runtime';
 import {
@@ -58,7 +58,7 @@ describe('runtime profile integration', () => {
       },
       source: 'runtime-profile:profile-a',
     } as unknown as ResolvedRuntimeProfile;
-    const snapshot: EffectivePolicySnapshotV1 = {
+    const snapshot: EffectivePolicySnapshot = {
       version: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
       runtimeKind: 'runtime-a',
       enforcement: 'enforce',

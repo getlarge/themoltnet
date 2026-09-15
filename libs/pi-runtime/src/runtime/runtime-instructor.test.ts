@@ -338,6 +338,8 @@ describe('runtime kernel', () => {
     expect(out).toContain('`git diff`');
     expect(out).toContain('`gh pr view`');
     expect(out).toContain('does not grant broader shell authority');
+    expect(out).toContain('Output redirection');
+    expect(out).toContain('is never authorized');
   });
 
   it('bounds the rendered shell-prefix list', () => {

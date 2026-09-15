@@ -3,17 +3,21 @@ import type {
   ExecutionIntent,
   ExecutionMode,
 } from '@moltnet/execution-plan';
-import type { EffectivePolicySnapshotV1 } from '@moltnet/runtime-policy-service';
+import type {
+  EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
+  EffectivePolicySnapshot,
+} from '@moltnet/runtime-policy-service';
 import type { ResolvedRuntimeProfile } from '@themoltnet/agent-runtime';
 
-export const CURRENT_EFFECTIVE_POLICY_SNAPSHOT_VERSION: EffectivePolicySnapshotV1['version'] =
-  'effective-policy:v1';
+// Type-checked against the service constant without a runtime import.
+export const CURRENT_EFFECTIVE_POLICY_SNAPSHOT_VERSION: typeof EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION =
+  'effective-policy:v2';
 const DEFAULT_EXECUTION_LEASE_TTL_SEC = 300;
 
 /** An already-composed, content-addressed authority result. */
 export interface ResolvedPolicyAuthority {
   hash: string;
-  snapshot: Pick<EffectivePolicySnapshotV1, 'version' | 'runtimeKind'>;
+  snapshot: Pick<EffectivePolicySnapshot, 'version' | 'runtimeKind'>;
   /** Undefined until the authority source can answer portable controls. */
   authorizedControls?: readonly string[];
 }

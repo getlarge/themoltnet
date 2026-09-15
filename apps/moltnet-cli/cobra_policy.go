@@ -88,16 +88,18 @@ stdin.
   {
     "name": "read-only-review",
     "description": "Inspection access for PR review tasks.",
-    "tools": ["read", "grep", "glob"],
+    "tools": ["read", "grep"],
     "shellCommands": [
       { "argvPrefix": ["git", "diff"] },
-      { "argvPrefix": ["git", "log"] }
+      { "argvPrefix": ["gh"] }
     ]
   }
 
-"tools" names runtime tools. Each shellCommands entry is an argv prefix matched
-from the executable onward; extra argv tokens stay permitted, so
-["git", "diff"] also allows "git diff --stat HEAD~1".
+"tools" names runtime and MCP tools; a tool name never authorizes a shell
+command. Each shellCommands entry is an argv prefix of 1 to 8 tokens matched
+from the program name onward. Extra argv tokens stay permitted, so
+["git", "diff"] also allows "git diff --stat HEAD~1" and ["gh"] allows any gh
+command. No shell command rule allows output redirection (>, 2>, >>, &>).
 
 A JSON file is preferred over a wide flag surface for the same reason it is for
 sandbox policies: the allow-list is a security artifact worth reviewing,
@@ -129,7 +131,7 @@ The patch is additive and subtractive rather than a whole-document
 replacement, so it names only the delta:
 
   {
-    "addTools": ["glob"],
+    "addTools": ["edit"],
     "removeTools": ["write"],
     "addShellCommands": [{ "argvPrefix": ["git", "show"] }],
     "removeShellCommands": [{ "argvPrefix": ["git", "push"] }]

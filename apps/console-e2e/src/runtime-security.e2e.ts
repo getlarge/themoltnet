@@ -5,12 +5,14 @@ import { expect, type Page, test } from '@playwright/test';
 
 import { type ConnectedAgent, provisionAgent } from './helpers/agent-seed.js';
 import {
+  addPolicyShellCommand,
   CONSOLE_URL,
   createNativeSessionToken,
   createTestUser,
   createTokenSessionApiClient,
   expectConsoleOverview,
   loginViaBrowser,
+  policyToolNameInput,
   registerViaBrowser,
 } from './helpers/index.js';
 
@@ -104,19 +106,15 @@ test.describe.serial('Runtime security console', () => {
     await policyEditor
       .getByLabel('Description')
       .fill('Inspection-only tool access');
-    const toolInput = policyEditor.getByLabel('Exact tool name');
+    const toolInput = policyToolNameInput(policyEditor);
     await toolInput.fill('read');
     await toolInput.press('Enter');
     await toolInput.fill('grep');
     await toolInput.press('Enter');
-    await policyEditor
-      .getByRole('button', { name: 'Add shell command' })
-      .click();
-    await policyEditor.getByLabel('Executable').fill('gh');
-    await policyEditor.getByLabel('Subcommand').fill('pr');
-    await policyEditor.getByRole('button', { name: 'Add token' }).click();
-    await policyEditor.getByLabel('Token 3').fill('view');
+    await addPolicyShellCommand(policyEditor, ['gh', 'pr', 'view']);
     await expect(policyEditor.getByText('gh › pr › view › …')).toBeVisible();
+    await addPolicyShellCommand(policyEditor, ['git']);
+    await expect(policyEditor.getByText('git › …')).toBeVisible();
     await policyEditor.getByRole('button', { name: 'Create policy' }).click();
     const savedPolicyEditor = page.getByRole('region', {
       name: 'Tool policy editor',
@@ -150,6 +148,9 @@ test.describe.serial('Runtime security console', () => {
     ).toBeVisible();
     await expect(
       toolAccess.locator('code').filter({ hasText: 'gh › pr › view › …' }),
+    ).toBeVisible();
+    await expect(
+      toolAccess.locator('code').filter({ hasText: /^git › …$/ }),
     ).toBeVisible();
 
     await toolAccess.getByRole('radio', { name: /enforce/i }).check();
@@ -256,7 +257,7 @@ test.describe.serial('Runtime security console', () => {
     await page.getByRole('link', { name: 'Tool policies' }).click();
     await page.getByRole('button', { name: new RegExp(policyName) }).click();
     await page.getByRole('button', { name: 'Remove read' }).click();
-    await page.getByLabel('Exact tool name').fill('bash');
+    await policyToolNameInput(page).fill('bash');
     await page.getByRole('button', { name: 'Add tool' }).click();
     await page.getByRole('button', { name: 'Save policy' }).click();
 

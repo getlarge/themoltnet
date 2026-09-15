@@ -2340,7 +2340,7 @@ export type SetProfilePoliciesBody = {
 
 export type ShellCommandRule = {
   /**
-   * Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.
+   * Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted; output redirection is never permitted.
    */
   argvPrefix: Array<string>;
 };
