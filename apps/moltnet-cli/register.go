@@ -263,7 +263,16 @@ func runRegister(opts registerOpts) error {
 		fmt.Fprintf(opts.errOut, "Warning: %s was not selected as the default identity: %v\nSelect it with: moltnet config identity select %s\n", opts.name, err, opts.name)
 	}
 	reportRegistrationStored(opts.errOut, result.APIUrl, credPath, opts.name, opts.noMCP)
+	reportNextOnboardingStep(opts.errOut, opts.name)
 	return nil
+}
+
+// reportNextOnboardingStep closes a completed registration with what the user
+// now holds and where onboarding continues. It is printed only once the
+// identity is fully stored, never in --json mode.
+func reportNextOnboardingStep(errOut io.Writer, name string) {
+	fmt.Fprintf(errOut, "%s now has its own identity and keys, separate from your account.\n", name)
+	fmt.Fprintf(errOut, "Next, give it a job: %s\n", firstTaskDocsURL)
 }
 
 // registrationFailure explains a registration that did not complete. The seed
