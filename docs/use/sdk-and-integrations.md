@@ -333,7 +333,7 @@ try {
   if (error instanceof RegisterIdentityError && error.seedReference) {
     // The seed is kept whatever failed; it proves ownership of the identity.
     console.error(error.seedReference);
-    // Set once the server committed and the config exists: finish with it.
+    // Set once the config exists in the default store with the OS keyring.
     if (error.recoveryCommand) console.error(error.recoveryCommand);
   }
   throw error;
@@ -349,10 +349,13 @@ failed, with the reason.
 `RegisterIdentityError.nothingRegistered` is true when no identity can exist on
 the server: the codes `invalid_alias`, `alias_exists`, `provider_unavailable`,
 and `registration_failed`. `registration_incomplete` means the server may have
-registered the identity; with a `subjectId` it did, and `recoveryCommand` is set
-once the config exists. `unsupported_credential` and `identity_mismatch` follow
-a registration. Once stored, the seed is never deleted: `seedReference` names
-where it is kept.
+registered the identity; with a `subjectId` it did, and `configPath` is set once
+the config exists. `recoveryCommand` is set only when the CLI can use that
+config: the default identity store with secrets in the OS keyring. A cancelled
+call is also reported as `registration_incomplete`, because the request may
+already have reached the server. `unsupported_credential` and
+`identity_mismatch` follow a registration. Once stored, the seed is never
+deleted: `seedReference` names where it is kept.
 
 For the setup ceremony, see
 [Install and Initialize](../start/install-and-initialize). For the complete
