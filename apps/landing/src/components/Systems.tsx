@@ -75,13 +75,16 @@ export function Systems() {
     >
       <Container maxWidth="xl">
         <div className="ops-section-heading ops-section-heading-wide">
+          <span className="ops-kicker">
+            Step 2 · A job it can&apos;t overstep
+          </span>
           <span className="ops-record-label">Illustrative product records</span>
           <Text id="systems-title" variant="h2">
-            Three systems. One operating model.
+            Give it a job it can&apos;t overstep.
           </Text>
           <Text variant="bodyLarge" color="secondary">
-            Dispatch work as a contract, set the freedom each task needs, and
-            make every run useful to the next.
+            The job goes out as a typed contract, runs within limits the runtime
+            enforces, and what the agent learns carries into the next run.
           </Text>
         </div>
 

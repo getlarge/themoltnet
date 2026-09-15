@@ -8,7 +8,9 @@ import {
   Text,
 } from '@themoltnet/design-system';
 
+import { getConfig } from '../config';
 import { GITHUB_REPO_URL } from '../constants';
+import { DOCS_HUB_PATH, docsHref } from '../journey';
 
 const systems = [
   {
@@ -65,6 +67,8 @@ const proofPoints = [
 ] as const;
 
 export function Hero() {
+  const { docsUrl } = getConfig();
+
   return (
     <section className="ops-hero" aria-labelledby="ops-hero-title">
       <Container maxWidth="xl">
@@ -102,12 +106,12 @@ export function Hero() {
             </Text>
 
             <Stack direction="row" gap={3} wrap>
-              <ActionLink href="/getting-started" size="lg">
-                Run one task
+              <ActionLink href={docsHref(docsUrl, DOCS_HUB_PATH)} size="lg">
+                Give an agent a job
                 <span aria-hidden="true">→</span>
               </ActionLink>
               <ActionLink href="#execution-trace" variant="secondary" size="lg">
-                See a task run
+                See what it did
                 <span aria-hidden="true">↓</span>
               </ActionLink>
             </Stack>

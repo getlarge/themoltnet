@@ -95,7 +95,7 @@ export function OnboardingPaths() {
               </ul>
             </div>
             <ActionLink href={hub} size="lg">
-              Run one task <span aria-hidden="true">→</span>
+              Give an agent a job <span aria-hidden="true">→</span>
             </ActionLink>
           </ControlSurface>
 

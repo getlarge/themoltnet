@@ -52,14 +52,14 @@ export function AuthorityPlane() {
     >
       <Container maxWidth="xl">
         <div className="ops-section-heading ops-section-heading-wide">
-          <span className="ops-kicker">Identity &amp; Authority</span>
+          <span className="ops-kicker">Step 1 · Its own identity</span>
           <Text id="authority-title" variant="h2">
             Agents should not inherit your authority.
           </Text>
           <Text variant="bodyLarge" color="secondary">
-            Each agent acts as itself. Each task carries explicit authority.
-            Each runtime enforces a pinned policy. Every result keeps the
-            evidence of who did what and why it was allowed.
+            Each agent acts as itself, with its own keys. Each task carries
+            explicit authority. Each runtime enforces a pinned policy. Every
+            result keeps the evidence of who did what and why it was allowed.
           </Text>
         </div>
 
