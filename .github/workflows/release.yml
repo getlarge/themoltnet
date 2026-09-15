@@ -911,6 +911,12 @@ jobs:
             "$TREE" \
             --source-ref "$RELEASE_TAG" \
             --source-sha "$SOURCE_SHA"
+          npm install \
+            --prefix "$TREE" \
+            --package-lock-only \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tree=${TREE}" >> "$GITHUB_OUTPUT"
 

@@ -160,6 +160,9 @@ describe('exact npm publication', () => {
       /publish-n8n-nodes-moltnet:[\s\S]*scripts\/build-standalone\.mjs/,
     );
     expect(workflow).toMatch(
+      /scripts\/build-standalone\.mjs[\s\S]*npm install[\s\S]*--package-lock-only/,
+    );
+    expect(workflow).toMatch(
       /repositories: n8n-nodes-moltnet[\s\S]*permission-workflows: write/,
     );
     expect(workflow).toMatch(

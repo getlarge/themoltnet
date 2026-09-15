@@ -131,22 +131,6 @@ function standaloneManifest(manifest) {
   return result;
 }
 
-async function updatePackageLock(output, manifest) {
-  const path = resolve(output, 'package-lock.json');
-  const lock = JSON.parse(await readFile(path, 'utf8'));
-  lock.name = manifest.name;
-  lock.version = manifest.version;
-  const root = lock.packages?.[''];
-  if (!root) throw new Error('Standalone package-lock is missing packages[""]');
-  root.name = manifest.name;
-  root.version = manifest.version;
-  root.license = manifest.license;
-  root.devDependencies = manifest.devDependencies;
-  root.peerDependencies = manifest.peerDependencies;
-  root.engines = manifest.engines;
-  await writeFile(path, `${JSON.stringify(lock, null, 2)}\n`);
-}
-
 async function prependGeneratedNotice(output, sourceRef, sourceSha) {
   const path = resolve(output, 'README.md');
   const readme = await readFile(path, 'utf8');
@@ -191,7 +175,6 @@ export async function buildStandalone({ output, sourceRef, sourceSha }) {
     resolve(output, 'package.json'),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
-  await updatePackageLock(output, manifest);
   await prependGeneratedNotice(output, sourceRef, sourceSha);
 }
 

@@ -82,15 +82,12 @@ describe('standalone repository projection', () => {
     expect(publishWorkflow).toContain('@n8n/scan-community-package@beta');
   });
 
-  it('emits a standalone npm manifest and matching lock root', () => {
+  it('emits a standalone npm manifest without owning its npm lockfile', () => {
     const output = join(temporaryDirectory(), 'repository');
     build(output);
 
     const manifest = JSON.parse(
       readFileSync(join(output, 'package.json'), 'utf8'),
-    );
-    const lock = JSON.parse(
-      readFileSync(join(output, 'package-lock.json'), 'utf8'),
     );
 
     expect(manifest.repository).toEqual({
@@ -100,7 +97,7 @@ describe('standalone repository projection', () => {
     expect(manifest.nx).toBeUndefined();
     expect(manifest.devDependencies['@moltnet/api-client']).toBeUndefined();
     expect(JSON.stringify(manifest)).not.toMatch(/(?:workspace|catalog):/u);
-    expect(lock.packages[''].devDependencies).toEqual(manifest.devDependencies);
+    expect(() => readFileSync(join(output, 'package-lock.json'))).toThrow();
   });
 
   it('refuses to replace a non-empty output directory', () => {
