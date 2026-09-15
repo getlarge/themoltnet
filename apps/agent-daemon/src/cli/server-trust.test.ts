@@ -70,4 +70,88 @@ describe('server trust machine-readable contract', () => {
     ).toBe(0);
     expect(tls.removeLocalCa).toHaveBeenCalledOnce();
   });
+
+  it('reports unsupported platforms without preparing TLS material', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    tls.isMacos.mockReturnValue(false);
+
+    expect(
+      await runTrustCommand(['--status', '--json'], '/tmp/moltnet-test'),
+    ).toBe(0);
+
+    expect(tls.ensureLocalTlsMaterial).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      JSON.stringify({
+        supported: false,
+        trusted: false,
+        fingerprint: null,
+      }),
+    );
+  });
+
+  it('returns a failure code when TLS preparation fails', async () => {
+    const error = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    tls.ensureLocalTlsMaterial.mockRejectedValue(new Error('keychain denied'));
+
+    const code = await runTrustCommand(
+      ['--status', '--json'],
+      '/tmp/moltnet-test',
+    );
+
+    expect(code).toBe(1);
+    expect(error).toHaveBeenCalledWith(
+      'Agent Server trust command failed: keychain denied',
+    );
+  });
+
+  it('rejects conflicting status mutation flags', async () => {
+    const error = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    const code = await runTrustCommand(
+      ['--status', '--yes'],
+      '/tmp/moltnet-test',
+    );
+
+    expect(code).toBe(1);
+    expect(error).toHaveBeenCalledWith(
+      'Usage: moltnet-agent server trust --status [--json]',
+    );
+    expect(tls.ensureLocalTlsMaterial).not.toHaveBeenCalled();
+  });
+
+  it('prints successful human-readable operations to stdout', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    expect(await runTrustCommand(['--yes'], '/tmp/moltnet-test')).toBe(0);
+    expect(log).toHaveBeenCalledWith(
+      'MoltNet local HTTPS trust is ready for this macOS user.',
+    );
+
+    expect(
+      await runTrustCommand(['--remove', '--yes'], '/tmp/moltnet-test'),
+    ).toBe(0);
+    expect(log).toHaveBeenCalledWith(
+      'Removed the MoltNet local CA from your login keychain.',
+    );
+  });
+
+  it('rejects server-only flags in trust mode', async () => {
+    const error = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    const code = await runTrustCommand(
+      ['--port', '17374', '--status', '--json'],
+      '/tmp/moltnet-test',
+    );
+
+    expect(code).toBe(1);
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('Unknown option'),
+    );
+  });
 });

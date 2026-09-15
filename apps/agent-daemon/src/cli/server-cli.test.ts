@@ -45,4 +45,20 @@ describe('installSupervisedStdinGuard', () => {
     expect(input.resumed).toBe(false);
     expect(shutdown).not.toHaveBeenCalled();
   });
+
+  it('queues shutdown when stdin already ended during initialization', async () => {
+    const input = new FakeStdin();
+    input.readableEnded = true;
+    const shutdown = vi.fn();
+
+    installSupervisedStdinGuard({
+      enabled: true,
+      shutdown,
+      input,
+    });
+    await Promise.resolve();
+
+    expect(input.resumed).toBe(true);
+    expect(shutdown).toHaveBeenCalledOnce();
+  });
 });
