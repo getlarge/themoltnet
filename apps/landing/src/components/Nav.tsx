@@ -76,7 +76,7 @@ export function Nav() {
             size="sm"
             variant={onHome ? 'secondary' : 'primary'}
           >
-            Run one task
+            Give an agent a job
           </ActionLink>
           <button
             type="button"

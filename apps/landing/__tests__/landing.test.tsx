@@ -134,11 +134,16 @@ describe('content', () => {
   it('Hero carries the one primary action and keeps proof in-page', () => {
     wrapWithRouter(<Hero />);
 
-    const primary = screen.getAllByRole('link', { name: 'Run one task' });
+    const primary = screen.getAllByRole('link', {
+      name: 'Give an agent a job',
+    });
     expect(primary).toHaveLength(1);
-    expect(primary[0]).toHaveAttribute('href', '/getting-started');
+    expect(primary[0]).toHaveAttribute(
+      'href',
+      'https://docs.themolt.net/start/getting-started',
+    );
     expect(
-      screen.getByRole('link', { name: 'See a task run' }),
+      screen.getByRole('link', { name: 'See what it did' }),
     ).toHaveAttribute('href', '#execution-trace');
     // Every proof chip is a route into evidence, not just the first one.
     expect(
@@ -320,11 +325,11 @@ describe('content', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('Hero keeps the control-plane narrative as the first scroll', () => {
+  it('Hero points its secondary action at the record of a run', () => {
     wrap(<Hero />);
 
     expect(
-      screen.getByRole('link', { name: /see a task run/i }),
+      screen.getByRole('link', { name: /see what it did/i }),
     ).toHaveAttribute('href', '#execution-trace');
   });
 
@@ -346,7 +351,7 @@ describe('content', () => {
     wrap(<Systems />);
     expect(
       screen.getByRole('heading', {
-        name: 'Three systems. One operating model.',
+        name: "Give it a job it can't overstep.",
       }),
     ).toBeInTheDocument();
     expect(
@@ -437,7 +442,7 @@ describe('content', () => {
 
     // Each door links into the docs journey.
     for (const [name, href] of [
-      ['Run one task', 'https://docs.themolt.net/start/getting-started'],
+      ['Give an agent a job', 'https://docs.themolt.net/start/getting-started'],
       ['Embed agents', 'https://docs.themolt.net/start/getting-started'],
       [
         'Set up a coding agent',
@@ -504,12 +509,11 @@ describe('content', () => {
   it('GetStarted closes with the same primary action as the nav', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByRole('heading', { name: /run one task on one workflow/i }),
+      screen.getByRole('heading', { name: /give one agent one job/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /run one task/i })).toHaveAttribute(
-      'href',
-      'https://docs.themolt.net/start/getting-started',
-    );
+    expect(
+      screen.getByRole('link', { name: /give an agent a job/i }),
+    ).toHaveAttribute('href', 'https://docs.themolt.net/start/getting-started');
     expect(screen.queryByText(/choose your path/i)).not.toBeInTheDocument();
   });
 
@@ -517,10 +521,9 @@ describe('content', () => {
     const hub = 'https://docs.themolt.net/start/getting-started';
 
     const nav = wrapWithRouter(<Nav />, '/architecture');
-    expect(screen.getByRole('link', { name: 'Run one task' })).toHaveAttribute(
-      'href',
-      hub,
-    );
+    expect(
+      screen.getByRole('link', { name: 'Give an agent a job' }),
+    ).toHaveAttribute('href', hub);
     nav.unmount();
 
     wrapWithRouter(<Footer />);

@@ -21,11 +21,11 @@ export function GetStarted() {
       <Container maxWidth="xl">
         <div className="ops-closing-band">
           <Text id="get-started-title" variant="h3">
-            Run one task on one workflow. Keep everything it produces.
+            Give one agent one job. Keep the record of what it did.
           </Text>
           <div className="ops-closing-actions">
             <ActionLink href={docsHref(docsUrl, DOCS_HUB_PATH)} size="lg">
-              Run one task
+              Give an agent a job
               <span aria-hidden="true">→</span>
             </ActionLink>
             <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">

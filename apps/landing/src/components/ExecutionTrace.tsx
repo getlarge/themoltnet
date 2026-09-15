@@ -67,11 +67,12 @@ export function ExecutionTrace() {
     >
       <Container maxWidth="xl">
         <div className="ops-section-heading">
+          <span className="ops-kicker">Step 3 · Read what it did</span>
           <span className="ops-record-label">
             Illustrative record · one task
           </span>
           <Text id="trace-title" variant="h2">
-            One task. Every decision stays attached.
+            Read what it did. Every decision stays attached.
           </Text>
           <Text variant="bodyLarge" color="secondary">
             MoltNet keeps the contract, claimant, runtime profile, policy
