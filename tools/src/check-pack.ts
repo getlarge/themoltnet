@@ -35,8 +35,11 @@ interface PackEntry {
   size: number;
 }
 
-const repositoryUrlPattern =
-  /^(?:git\+)?https:\/\/github\.com\/getlarge\/themoltnet(?:\.git)?$/;
+const canonicalRepositoryUrl = 'https://github.com/getlarge/themoltnet';
+
+function normalizeRepositoryUrl(url: string): string {
+  return url.replace(/^git\+/, '').replace(/\.git$/, '');
+}
 
 /**
  * Run `npm pack --dry-run --json` in `pkgDir` and return the tarball entry
@@ -258,12 +261,13 @@ export function checkNoPrivateWorkspaceDeps(
 }
 
 /**
- * Assert npm provenance metadata identifies this repository and the package's
- * directory inside the monorepo.
+ * Assert npm provenance metadata identifies the expected repository and, for
+ * monorepo packages, its expected directory.
  */
 export function checkRepositoryMetadata(
   pkg: Record<string, unknown>,
-  expectedDirectory: string,
+  expectedDirectory: string | null,
+  expectedRepositoryUrl = canonicalRepositoryUrl,
 ): string[] {
   const repository = pkg.repository;
   if (
@@ -272,7 +276,7 @@ export function checkRepositoryMetadata(
     Array.isArray(repository)
   ) {
     return [
-      `repository metadata missing (npm provenance requires the canonical repository object for ${expectedDirectory})`,
+      `repository metadata missing (npm provenance requires ${expectedRepositoryUrl})`,
     ];
   }
 
@@ -283,21 +287,33 @@ export function checkRepositoryMetadata(
   }
   if (
     typeof metadata.url !== 'string' ||
-    !repositoryUrlPattern.test(metadata.url)
+    normalizeRepositoryUrl(metadata.url) !==
+      normalizeRepositoryUrl(expectedRepositoryUrl)
+  ) {
+    errors.push(`repository.url must identify ${expectedRepositoryUrl}`);
+  }
+  if (
+    expectedDirectory === null
+      ? metadata.directory !== undefined
+      : metadata.directory !== expectedDirectory
   ) {
     errors.push(
-      'repository.url must identify https://github.com/getlarge/themoltnet',
-    );
-  }
-  if (metadata.directory !== expectedDirectory) {
-    errors.push(
-      `repository.directory must be "${expectedDirectory}" (got ${JSON.stringify(metadata.directory)})`,
+      expectedDirectory === null
+        ? `repository.directory must be omitted (got ${JSON.stringify(metadata.directory)})`
+        : `repository.directory must be "${expectedDirectory}" (got ${JSON.stringify(metadata.directory)})`,
     );
   }
   return errors;
 }
 
-function checkPackage(pkgDir: string): boolean {
+function checkPackage(
+  pkgDir: string,
+  expectedRepositoryUrl = canonicalRepositoryUrl,
+  expectedDirectory: string | null = relative(root, pkgDir).replaceAll(
+    '\\',
+    '/',
+  ),
+): boolean {
   const pkgPath = join(pkgDir, 'package.json');
   let pkg: Record<string, unknown>;
   try {
@@ -338,10 +354,7 @@ function checkPackage(pkgDir: string): boolean {
     ...checkNoMissingRelativeJsImports(pkgDir, paths),
     ...checkNoWorkspaceDtsLeak(pkgDir, paths),
     ...checkNoPrivateWorkspaceDeps(pkg),
-    ...checkRepositoryMetadata(
-      pkg,
-      relative(root, pkgDir).replaceAll('\\', '/'),
-    ),
+    ...checkRepositoryMetadata(pkg, expectedDirectory, expectedRepositoryUrl),
   ];
 
   if (errors.length > 0) {
@@ -361,13 +374,20 @@ if (invokedDirectly) {
   const { values } = parseArgs({
     options: {
       package: { type: 'string', short: 'p' },
+      'repository-url': { type: 'string' },
+      'repository-directory': { type: 'string' },
     },
     strict: true,
   });
 
   if (values.package) {
     const pkgDir = resolve(values.package);
-    const ok = checkPackage(pkgDir);
+    const expectedRepositoryUrl =
+      values['repository-url'] ?? canonicalRepositoryUrl;
+    const expectedDirectory = values['repository-url']
+      ? (values['repository-directory'] ?? null)
+      : relative(root, pkgDir).replaceAll('\\', '/');
+    const ok = checkPackage(pkgDir, expectedRepositoryUrl, expectedDirectory);
     process.exit(ok ? 0 : 1);
   }
 

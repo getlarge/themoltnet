@@ -141,8 +141,21 @@ describe('checkRepositoryMetadata', () => {
     const errors = checkRepositoryMetadata({}, 'libs/example');
 
     expect(errors).toEqual([
-      'repository metadata missing (npm provenance requires the canonical repository object for libs/example)',
+      'repository metadata missing (npm provenance requires https://github.com/getlarge/themoltnet)',
     ]);
+  });
+
+  it('accepts omitted directory metadata for a standalone repository', () => {
+    const repositoryUrl =
+      'git+https://github.com/getlarge/n8n-nodes-moltnet.git';
+    const pkg = {
+      repository: {
+        type: 'git',
+        url: repositoryUrl,
+      },
+    };
+
+    expect(checkRepositoryMetadata(pkg, null, repositoryUrl)).toEqual([]);
   });
 
   it('rejects provenance URL and monorepo directory mismatches', () => {

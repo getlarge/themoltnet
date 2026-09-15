@@ -179,7 +179,17 @@ npm run dev
 
 Submit source changes to
 [`getlarge/themoltnet`](https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet).
-The standalone repository is a release projection and overwrites direct edits.
+Each monorepo release opens or refreshes a standalone release PR. That PR
+replaces generated package content, while the standalone repository keeps
+ownership of its workflows, npm lockfile, and publication tooling. npm
+publication and the n8n scanner run only after a maintainer merges that PR.
+
+| State                           | Recovery                                                                    |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| Proposal job failed             | Rerun it; the same standalone release branch and PR are refreshed.          |
+| Standalone PR CI failed         | Fix generated content in the monorepo, or standalone-owned tooling there.   |
+| Merge succeeded, publish failed | Rerun standalone `publish.yml`; exact publication safely reconciles reruns. |
+| Publish succeeded, scan failed  | Rerun the standalone scan job.                                              |
 
 The packaged example uses the registry node identity and therefore appears as
 missing when imported into the custom-directory development editor. For local
@@ -192,8 +202,10 @@ the isolated n8n user directory and prints both full paths.
 
 The published source repository places `credentials/`, `nodes/`, and
 `package.json` at its root, matching the n8n starter layout. It is generated
-from this monorepo package on each release, so the credentials have one
-canonical source and require no repository-root compatibility copies here.
+from this monorepo package on each release. Repository-root credential copies
+remain here temporarily for compatibility with any Creator Portal review of
+the last monorepo-published version; remove them after the first standalone
+version completes verification.
 
 ## Scope
 

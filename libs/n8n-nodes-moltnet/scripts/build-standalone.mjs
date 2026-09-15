@@ -9,14 +9,17 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { resolvePackFilename } from './pack-result.mjs';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(packageRoot, '../..');
 const overlayRoot = resolve(packageRoot, 'standalone/overlay');
 const apiClientRoot = resolve(repositoryRoot, 'libs/api-client/src');
+const sharedCheckPack = resolve(repositoryRoot, 'tools/src/check-pack.ts');
 const standaloneRepository =
   'git+https://github.com/getlarge/n8n-nodes-moltnet.git';
 
@@ -32,18 +35,10 @@ const copiedPaths = [
   'examples',
   'nodes',
   'scripts/check-pack.mjs',
+  'scripts/dev.mjs',
+  'scripts/pack-result.mjs',
   'vite.config.mjs',
   'vitest.config.ts',
-];
-const apiBindingPaths = [
-  'api-bindings.ts',
-  'generated-api-bindings/client/client.ts',
-  'generated-api-bindings/client/index.ts',
-  'generated-api-bindings/client/types.ts',
-  'generated-api-bindings/custom.gen.ts',
-  'generated-api-bindings/index.ts',
-  'generated-api-bindings/sdk.gen.ts',
-  'generated-api-bindings/types.gen.ts',
 ];
 
 function parseArguments(argv) {
@@ -83,24 +78,17 @@ async function assertEmptyOutput(output) {
 async function normalizedManifest() {
   const temporary = await mkdtemp(join(tmpdir(), 'moltnet-n8n-manifest-'));
   try {
-    const packed = JSON.parse(
+    const tarball = resolvePackFilename(
       execFileSync(
         'pnpm',
         ['pack', '--pack-destination', temporary, '--json'],
-        { cwd: packageRoot, encoding: 'utf8' },
+        {
+          cwd: packageRoot,
+          encoding: 'utf8',
+        },
       ),
+      temporary,
     );
-    const packResult = Array.isArray(packed)
-      ? packed[0]
-      : packed.filename
-        ? packed
-        : Object.values(packed)[0];
-    if (!packResult || typeof packResult.filename !== 'string') {
-      throw new Error('pnpm pack did not return a package filename');
-    }
-    const tarball = isAbsolute(packResult.filename)
-      ? packResult.filename
-      : resolve(temporary, packResult.filename);
     return JSON.parse(
       execFileSync('tar', ['-xOf', tarball, 'package/package.json'], {
         encoding: 'utf8',
@@ -121,7 +109,7 @@ function standaloneManifest(manifest) {
   result.scripts = {
     build: 'vite build',
     'check:pack': 'node scripts/check-pack.mjs',
-    dev: 'n8n-node dev',
+    dev: 'node scripts/dev.mjs',
     lint: 'n8n-node lint',
     test: 'vitest run',
     typecheck: 'tsc --build tsconfig.json --emitDeclarationOnly',
@@ -164,11 +152,21 @@ export async function buildStandalone({ output, sourceRef, sourceSha }) {
     });
   }
   await cp(overlayRoot, output, { force: true, recursive: true });
-  for (const relative of apiBindingPaths) {
-    const target = resolve(output, 'vendor/moltnet-api-bindings', relative);
-    await mkdir(dirname(target), { recursive: true });
-    await cp(resolve(apiClientRoot, relative), target);
-  }
+  const vendoredBindings = resolve(output, 'vendor/moltnet-api-bindings');
+  await mkdir(vendoredBindings, { recursive: true });
+  await cp(
+    resolve(apiClientRoot, 'api-bindings.ts'),
+    resolve(vendoredBindings, 'api-bindings.ts'),
+  );
+  await cp(
+    resolve(apiClientRoot, 'generated-api-bindings'),
+    resolve(vendoredBindings, 'generated-api-bindings'),
+    {
+      recursive: true,
+      filter: (source) => !source.endsWith('/client/plugin.ts'),
+    },
+  );
+  await cp(sharedCheckPack, resolve(output, 'scripts/check-pack-shared.ts'));
 
   const manifest = standaloneManifest(await normalizedManifest());
   await writeFile(

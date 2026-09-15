@@ -13,6 +13,7 @@ import { join, relative, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const packageRoot = resolve(__dirname, '..');
+const repositoryRoot = resolve(packageRoot, '../..');
 const generator = resolve(packageRoot, 'scripts/build-standalone.mjs');
 const sourceRef = 'n8n-nodes-moltnet-v0.6.0';
 const sourceSha = 'a'.repeat(40);
@@ -74,12 +75,24 @@ describe('standalone repository projection', () => {
     expect(
       readFileSync(join(first, 'nodes/MoltNet/ApiBindings.ts'), 'utf8'),
     ).toContain('../../vendor/moltnet-api-bindings/api-bindings.js');
-    const publishWorkflow = readFileSync(
-      join(first, '.github/workflows/publish.yml'),
-      'utf8',
-    );
-    expect(publishWorkflow).toContain('id-token: write');
-    expect(publishWorkflow).toContain('@n8n/scan-community-package@beta');
+    expect(() =>
+      readFileSync(join(first, '.github/workflows/ci.yml')),
+    ).toThrow();
+    expect(() => readFileSync(join(first, 'package-lock.json'))).toThrow();
+    expect(() =>
+      readFileSync(join(first, 'scripts/publish-exact.mjs')),
+    ).toThrow();
+    expect(() =>
+      readFileSync(
+        join(
+          first,
+          'vendor/moltnet-api-bindings/generated-api-bindings/client/plugin.ts',
+        ),
+      ),
+    ).toThrow();
+    expect(
+      readFileSync(join(first, 'scripts/check-pack-shared.ts'), 'utf8'),
+    ).toContain('checkNoMissingRelativeJsImports');
   });
 
   it('emits a standalone npm manifest without owning its npm lockfile', () => {
@@ -114,6 +127,27 @@ describe('standalone repository projection', () => {
     expect(result.stderr).toContain('is not empty');
     expect(readFileSync(join(output, 'owned-by-someone-else'), 'utf8')).toBe(
       'preserve me',
+    );
+  });
+
+  it('hands releases off through a standalone pull request', () => {
+    const workflow = readFileSync(
+      join(repositoryRoot, '.github/workflows/release.yml'),
+      'utf8',
+    );
+    const proposal = workflow.match(
+      / {2}propose-n8n-nodes-moltnet:[\s\S]*?(?=\n {2}promote-n8n-nodes-moltnet:)/,
+    )?.[0];
+
+    expect(proposal).toContain('timeout-minutes: 20');
+    expect(proposal).toContain('permission-pull-requests: write');
+    expect(proposal).not.toContain('permission-actions: write');
+    expect(proposal).not.toContain('permission-workflows: write');
+    expect(proposal).toContain('gh pr create');
+    expect(proposal).toContain('--force-with-lease');
+    expect(proposal).not.toContain('gh run watch');
+    expect(workflow).toMatch(
+      /promote-n8n-nodes-moltnet:[\s\S]*needs\.propose-n8n-nodes-moltnet\.result == 'success'/,
     );
   });
 });

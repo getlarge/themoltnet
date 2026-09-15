@@ -11,9 +11,11 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+
+import { resolvePackFilename } from './pack-result.mjs';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sourceManifest = JSON.parse(
@@ -70,21 +72,30 @@ try {
   // declaration, private-dependency, and provenance checks first. The rest of
   // this script adds the n8n manifest, CommonJS, host-peer, and cloud-safety
   // probes that are specific to community nodes.
-  if (!isStandaloneRepository) {
-    execFileSync(
-      'pnpm',
-      [
-        'exec',
-        'tsx',
-        '../../tools/src/check-pack.ts',
-        '--package',
-        packageRoot,
-      ],
-      { cwd: packageRoot, stdio: 'inherit' },
-    );
-  }
+  execFileSync(
+    isStandaloneRepository ? 'npm' : 'pnpm',
+    isStandaloneRepository
+      ? [
+          'exec',
+          '--',
+          'tsx',
+          'scripts/check-pack-shared.ts',
+          '--package',
+          packageRoot,
+          '--repository-url',
+          standaloneRepositoryUrl,
+        ]
+      : [
+          'exec',
+          'tsx',
+          '../../tools/src/check-pack.ts',
+          '--package',
+          packageRoot,
+        ],
+    { cwd: packageRoot, stdio: 'inherit' },
+  );
 
-  const packed = JSON.parse(
+  const tarball = resolvePackFilename(
     execFileSync(
       isStandaloneRepository ? 'npm' : 'pnpm',
       ['pack', '--pack-destination', temporaryRoot, '--json'],
@@ -99,21 +110,8 @@ try {
           : process.env,
       },
     ),
+    temporaryRoot,
   );
-  const packResult = Array.isArray(packed)
-    ? packed[0]
-    : packed.filename
-      ? packed
-      : Object.values(packed)[0];
-  const filename = packResult?.filename;
-  assert(
-    typeof filename === 'string',
-    'package pack did not return a filename',
-  );
-
-  const tarball = isAbsolute(filename)
-    ? filename
-    : resolve(temporaryRoot, filename);
   mkdirSync(extractedRoot, { recursive: true });
   execFileSync('tar', ['-xzf', tarball, '-C', extractedRoot]);
 

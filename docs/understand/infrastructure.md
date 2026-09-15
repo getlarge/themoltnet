@@ -636,9 +636,19 @@ repository-scoped installation tokens for each release destination.
 
 npm publishing requires no npm token; it uses OIDC trusted publishing. For
 `@themoltnet/n8n-nodes-moltnet`, configure the npm trusted publisher with
-repository `getlarge/n8n-nodes-moltnet` and workflow `publish.yml`. The monorepo
-release then projects the tagged package into that repository, whose tag
-workflow performs the npm publication.
+repository `getlarge/n8n-nodes-moltnet`, workflow `publish.yml`, and environment
+`npm`. The monorepo release validates the tagged package and opens or refreshes
+a generated PR in that repository. Merging the standalone PR publishes the npm
+package, records its version tag, and runs the exact-version n8n scanner
+asynchronously; the monorepo GitHub release does not imply that npm publication
+has completed.
+
+| State                           | Recovery                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| Proposal job failed             | Rerun it; the same standalone release branch and PR are refreshed.        |
+| Standalone PR CI failed         | Fix generated content in the monorepo, or standalone-owned tooling there. |
+| Merge succeeded, publish failed | Rerun `publish.yml` with `workflow_dispatch`.                             |
+| Publish succeeded, scan failed  | Rerun the standalone scan job.                                            |
 
 ## Ory Project Deployment
 
