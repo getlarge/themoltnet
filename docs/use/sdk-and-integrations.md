@@ -333,7 +333,7 @@ try {
   if (error instanceof RegisterIdentityError && error.seedReference) {
     // The seed is kept whatever failed; it proves ownership of the identity.
     console.error(error.seedReference);
-    // Set when the server committed: finish locally with this command.
+    // Set once the server committed and the config exists: finish with it.
     if (error.recoveryCommand) console.error(error.recoveryCommand);
   }
   throw error;
@@ -342,12 +342,17 @@ try {
 
 Pass `enrollmentToken` (or call `enroll`) to join a team on registration,
 `credentialType: 'agent_key'` for a daemon-style identity, `secretProvider` to
-store secrets elsewhere, and `configDir` to write under another root. Error
-codes: `alias_exists`, `provider_unavailable`, `registration_failed` (the server
-rejected the request), `registration_incomplete` (the server may have registered
-the identity; with a `subjectId` it did, so run the recovery command),
-`unsupported_credential`, `identity_mismatch`. Once stored, the seed is never
-deleted: `seedReference` names where it is kept.
+store secrets elsewhere, and `configDir` to write under another root. The
+result's `aliasPublication` says whether the alias was published, skipped, or
+failed, with the reason.
+
+`RegisterIdentityError.nothingRegistered` is true when no identity can exist on
+the server: the codes `invalid_alias`, `alias_exists`, `provider_unavailable`,
+and `registration_failed`. `registration_incomplete` means the server may have
+registered the identity; with a `subjectId` it did, and `recoveryCommand` is set
+once the config exists. `unsupported_credential` and `identity_mismatch` follow
+a registration. Once stored, the seed is never deleted: `seedReference` names
+where it is kept.
 
 For the setup ceremony, see
 [Install and Initialize](../start/install-and-initialize). For the complete
