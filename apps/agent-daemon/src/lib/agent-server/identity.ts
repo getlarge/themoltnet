@@ -162,7 +162,9 @@ export async function createManagedAgent(
           // retry. The SDK keeps any stored seed, which costs an unused entry.
           store.clearPendingRegistration(alias);
           throw new AgentServerIdentityError(
-            'registration_failed',
+            cause.code === 'alias_exists'
+              ? 'agent_exists'
+              : 'registration_failed',
             cause.message,
             { cause },
           );
@@ -213,7 +215,12 @@ export async function createManagedAgent(
     if (store.hasPendingRegistration(alias)) {
       throw new AgentServerIdentityError(
         'registration_incomplete',
-        incompleteRegistrationMessage(alias, registered?.identity ?? {}),
+        incompleteRegistrationMessage(
+          alias,
+          registered
+            ? { ...registered.identity, configPath: registered.configPath }
+            : {},
+        ),
         { cause },
       );
     }
@@ -226,20 +233,24 @@ export async function createManagedAgent(
 /**
  * Guidance for a registration that may have committed. The HTTP response
  * carries only this message, so it names the reconcile call and, when the
- * server outcome is unknown, the fingerprint to look up first.
+ * server outcome is unknown, the fingerprint to look up first. Resume needs
+ * the written config, so without one only abandon is offered.
  */
 function incompleteRegistrationMessage(
   alias: string,
-  known: { subjectId?: string; fingerprint?: string },
+  known: { subjectId?: string; fingerprint?: string; configPath?: string },
 ): string {
-  const reconcile = `POST /v1/agents/${alias}/reconcile with {"action":"resume"} finishes it, and {"action":"abandon"} discards the local record`;
+  const endpoint = `POST /v1/agents/${alias}/reconcile`;
+  const reconcile = known.configPath
+    ? `Finish it with ${endpoint} and {"action":"resume"}, or discard the local record with {"action":"abandon"}.`
+    : `No local config was written, so it cannot be resumed; discard the local record with ${endpoint} and {"action":"abandon"}.`;
   if (known.subjectId) {
-    return `the remote agent ${known.subjectId} was registered but local activation is incomplete; ${reconcile}`;
+    return `the remote agent ${known.subjectId} was registered but local activation is incomplete. ${reconcile}`;
   }
   const fingerprint = known.fingerprint
     ? ` (fingerprint ${known.fingerprint})`
     : '';
-  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first, then ${reconcile}`;
+  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first. ${reconcile}`;
 }
 
 /** Resume a fully persisted registration or explicitly abandon local recovery. */

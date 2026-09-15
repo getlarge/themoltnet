@@ -111,10 +111,11 @@ function fakeConnect(
 
 function memoryProvider(
   failOn?: (key: string) => boolean,
+  name = 'memory',
 ): SecretProvider & { values: Map<string, string> } {
   const values = new Map<string, string>();
   return {
-    name: 'memory',
+    name,
     capabilities: READ_WRITE_CAPABILITIES,
     values,
     read: (key) => Promise.resolve(values.get(key) ?? null),
@@ -138,6 +139,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   for (const root of roots.splice(0)) {
     await rm(root, { recursive: true, force: true });
   }
@@ -217,9 +219,16 @@ describe('register (node)', () => {
     );
   });
 
-  it('bounds each registration attempt with its own timeout signal', async () => {
-    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+  it('bounds each registration attempt without replacing the caller signal', async () => {
+    let attemptSignal: AbortSignal | undefined;
+    vi.mocked(registerAgent).mockImplementation(((options: {
+      signal?: AbortSignal;
+    }) => {
+      attemptSignal = options.signal;
+      return Promise.resolve(success(oauthResponse));
+    }) as typeof registerAgent);
     const root = await freshRoot();
+    const controller = new AbortController();
 
     await register({
       name: 'bounded',
@@ -227,11 +236,37 @@ describe('register (node)', () => {
       secretProvider: memoryProvider(),
       configDir: join(root, 'identities', 'bounded'),
       connectAgent: fakeConnect().connectAgent,
+      signal: controller.signal,
     });
 
-    expect(vi.mocked(registerAgent).mock.calls[0]?.[0]).toMatchObject({
-      signal: expect.any(AbortSignal),
+    expect(attemptSignal).toBeInstanceOf(AbortSignal);
+    expect(attemptSignal).not.toBe(controller.signal);
+    expect(attemptSignal?.aborted).toBe(false);
+    controller.abort();
+    expect(attemptSignal?.aborted).toBe(true);
+  });
+
+  it('gives whoami and alias publication separate timeout budgets', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+    const root = await freshRoot();
+    const { connectAgent, whoamiFn, updateWhoamiFn } = fakeConnect();
+
+    await register({
+      name: 'budgets',
+      apiUrl: 'https://api.example.test',
+      secretProvider: memoryProvider(),
+      configDir: join(root, 'identities', 'budgets'),
+      connectAgent,
     });
+
+    const [whoamiOptions] = whoamiFn.mock.calls[0] as [{ signal: AbortSignal }];
+    const [, publishOptions] = updateWhoamiFn.mock.calls[0] as [
+      unknown,
+      { signal: AbortSignal },
+    ];
+    expect(whoamiOptions.signal).toBeInstanceOf(AbortSignal);
+    expect(publishOptions.signal).toBeInstanceOf(AbortSignal);
+    expect(publishOptions.signal).not.toBe(whoamiOptions.signal);
   });
 
   it('does not replay the registration once the caller has aborted', async () => {
@@ -542,12 +577,13 @@ describe('register (node)', () => {
     );
   });
 
-  it('leaves a recoverable config when the credential secret cannot be stored', async () => {
+  it('offers the CLI recovery command for the default store and OS keyring', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const root = await freshRoot();
-    const configDir = join(root, 'identities', 'flaky');
+    vi.stubEnv('HOME', root);
     const provider = memoryProvider(
       (key) => key === oauth2SecretKey('agent-123', 'client-id'),
+      'os-keyring',
     );
     const { connectAgent } = fakeConnect();
 
@@ -555,29 +591,31 @@ describe('register (node)', () => {
       name: 'flaky',
       apiUrl: 'https://api.example.test',
       secretProvider: provider,
-      configDir,
       connectAgent,
     }).catch((error: unknown) => error);
 
+    const configPath = join(getIdentityDir('flaky'), 'moltnet.json');
     expect(failure).toBeInstanceOf(RegisterIdentityError);
     expect(failure).toMatchObject({
       code: 'registration_incomplete',
       subjectId: 'agent-123',
       fingerprint: 'ABCD-1234-EF56-7890',
-      configPath: join(configDir, 'moltnet.json'),
+      configPath,
       recoveryCommand:
         'MOLTNET_ACTIVE_IDENTITY=flaky moltnet agents credentials recover --yes',
       seedReference: {
-        provider: 'memory',
+        provider: 'os-keyring',
         key: identitySeedKey('ABCD-1234-EF56-7890'),
       },
     });
     // The secret is stored before the whoami, so a failed store never verifies.
     expect(connectAgent).not.toHaveBeenCalled();
-    const config = JSON.parse(
-      await readFile(join(configDir, 'moltnet.json'), 'utf-8'),
-    ) as Record<string, unknown>;
-    expect(config).toMatchObject({
+    expect(
+      JSON.parse(await readFile(configPath, 'utf-8')) as Record<
+        string,
+        unknown
+      >,
+    ).toMatchObject({
       subject_id: 'agent-123',
       oauth2: { client_id: 'client-id' },
     });
@@ -586,7 +624,7 @@ describe('register (node)', () => {
     );
   });
 
-  it('leaves everything recoverable when the authenticated whoami fails', async () => {
+  it('names the kept material instead of a CLI command for a custom store', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const root = await freshRoot();
     const configDir = join(root, 'identities', 'unverified');
@@ -608,20 +646,51 @@ describe('register (node)', () => {
       subjectId: 'agent-123',
       fingerprint: 'ABCD-1234-EF56-7890',
       configPath: join(configDir, 'moltnet.json'),
-      recoveryCommand:
-        'MOLTNET_ACTIVE_IDENTITY=unverified moltnet agents credentials recover --yes',
+      recoveryCommand: undefined,
       seedReference: {
         provider: 'memory',
         key: identitySeedKey('ABCD-1234-EF56-7890'),
       },
+      message: expect.stringContaining(
+        `the config at ${join(configDir, 'moltnet.json')}`,
+      ),
     });
-    await expect(stat(join(configDir, 'moltnet.json'))).resolves.toBeDefined();
     expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
       'dGVzdHByaXZrZXk=',
     );
     expect(provider.values.get(oauth2SecretKey('agent-123', 'client-id'))).toBe(
       'client-secret',
     );
+  });
+
+  it('reports a written config whose default identity could not be selected', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+    const root = await freshRoot();
+    vi.stubEnv('HOME', root);
+    // A directory where the selector file belongs makes seeding it fail.
+    await mkdir(join(root, '.config', 'moltnet', 'identity-selector.json'), {
+      recursive: true,
+    });
+
+    const failure = await register({
+      name: 'unselected',
+      apiUrl: 'https://api.example.test',
+      secretProvider: memoryProvider(undefined, 'os-keyring'),
+      connectAgent: fakeConnect().connectAgent,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: 'agent-123',
+      recoveryCommand:
+        'MOLTNET_ACTIVE_IDENTITY=unselected moltnet agents credentials recover --yes',
+      message: expect.stringContaining(
+        'could not be selected as the default identity',
+      ),
+    });
+    await expect(
+      stat(join(getIdentityDir('unselected'), 'moltnet.json')),
+    ).resolves.toBeDefined();
   });
 
   it.each([
@@ -654,6 +723,7 @@ describe('register (node)', () => {
       expect(failure).toMatchObject({
         code: 'identity_mismatch',
         configPath: join(configDir, 'moltnet.json'),
+        recoveryCommand: undefined,
         seedReference: {
           provider: 'memory',
           key: identitySeedKey('ABCD-1234-EF56-7890'),

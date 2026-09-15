@@ -167,7 +167,8 @@ export async function requestRegistration(
       result = await send();
     } catch (error) {
       // The caller gave up: a replay with its aborted signal would only fail
-      // again and hide why.
+      // again and hide why. The caller still sees an unclear outcome, because
+      // the aborted request may already have reached the server.
       if (options.signal?.aborted) throw error;
       // A transport failure may mean the server committed but the credential
       // response was dropped. Replay this exact signed request once with the

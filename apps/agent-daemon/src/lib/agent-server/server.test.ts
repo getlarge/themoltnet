@@ -1029,6 +1029,28 @@ describe('agent server providers and runs', () => {
     );
   });
 
+  it('answers 409 for a pending registration that cannot be resumed', async () => {
+    const { app, store } = await fixture();
+    const token = await pair(app);
+    // A pending record whose config was never written cannot be resumed.
+    store.reserveRegistration('pending-bot', 'https://api.themolt.net');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/agents/pending-bot/reconcile',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: { action: 'resume' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'registration_incomplete' });
+  });
+
   it('rejects a managed registration API override before forwarding its enrollment token', async () => {
     const { app } = await fixture();
     const token = await pair(app);

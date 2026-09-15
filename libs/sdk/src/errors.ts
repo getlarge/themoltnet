@@ -125,9 +125,12 @@ const NOTHING_REGISTERED_CODES: ReadonlySet<RegisterIdentityErrorCode> =
  *
  * `nothingRegistered` is true when the request was never sent or the server
  * rejected it. `registration_incomplete` means the server may have committed
- * the identity: when `subjectId` is set it did, and when `recoveryCommand` is
- * also set the stored config is enough for it; without `subjectId` the outcome
- * is unknown. `unsupported_credential` and `identity_mismatch` follow a commit.
+ * the identity: when `subjectId` is set it did, and `configPath` is set once
+ * its config exists. `recoveryCommand` is set only when the CLI can act on
+ * that config: the default identity store with secrets in the OS keyring.
+ * Without `subjectId` the outcome is unknown; a caller abort also lands here,
+ * because the request may already have reached the server.
+ * `unsupported_credential` and `identity_mismatch` follow a commit.
  *
  * The identity seed is never deleted once stored, whatever the failure:
  * `seedReference` names where it is kept, because a deleted seed can make a

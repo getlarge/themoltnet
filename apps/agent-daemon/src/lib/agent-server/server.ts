@@ -960,7 +960,13 @@ function normalizeAgentServerError(error: unknown): {
   }
   if (error instanceof AgentServerIdentityError) {
     return {
-      statusCode: error.code === 'agent_exists' ? 409 : 400,
+      // Both conflict with existing local state: an agent, or a pending
+      // registration that must be reconciled before a retry.
+      statusCode:
+        error.code === 'agent_exists' ||
+        error.code === 'registration_incomplete'
+          ? 409
+          : 400,
       code: error.code,
       message: error.message,
     };

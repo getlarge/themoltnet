@@ -152,6 +152,21 @@ describe('OAuth2 config updates', () => {
     expect(await readdir(dir)).toEqual(['moltnet.json']);
   });
 
+  it('seeds the default identity only after an exclusive write commits', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'moltnet-store-'));
+    const dir = join(root, 'identities', 'taken');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'moltnet.json'), '{}');
+
+    await expect(
+      writeConfig(config(), dir, { exclusive: true }),
+    ).rejects.toMatchObject({ code: 'EEXIST' });
+
+    await expect(
+      stat(join(root, 'identity-selector.json')),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
   it('leaves an existing config untouched when the write cannot be committed', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     await writeConfig(config(), dir);

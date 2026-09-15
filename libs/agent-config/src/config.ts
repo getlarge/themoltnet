@@ -4,6 +4,7 @@ import {
   chmod,
   link,
   mkdir,
+  open,
   readFile,
   rename,
   rm,
@@ -352,29 +353,70 @@ export async function writeConfig(
   }
   await mkdir(dir, { recursive: true, mode: 0o700 });
   const filePath = join(dir, 'moltnet.json');
-  // Seed the selector when none is set, as the Go CLI and the daemon store both
-  // do. Without it a first identity created from JS is unreachable by every
-  // other consumer unless the operator exports MOLTNET_ACTIVE_IDENTITY by hand.
-  await seedIdentitySelectorIfUnset(dir);
+  const contents = JSON.stringify(config, null, 2) + '\n';
   // Write to a sibling temp file, then commit it so the config is either fully
   // committed or untouched; callers rely on this when rolling back secrets.
   // An exclusive write commits with link(), which fails if the target exists;
   // a normal write replaces the target with rename().
   const tempPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(tempPath, JSON.stringify(config, null, 2) + '\n', {
-      mode: 0o600,
-    });
+    await writeFile(tempPath, contents, { mode: 0o600 });
     await chmod(tempPath, 0o600);
     if (options.exclusive) {
-      await link(tempPath, filePath);
+      await linkExclusive(tempPath, filePath, contents);
     } else {
       await rename(tempPath, filePath);
     }
   } finally {
     await rm(tempPath, { force: true }).catch(() => undefined);
   }
+  // Seed the selector when none is set, as the Go CLI and the daemon store both
+  // do. Without it a first identity created from JS is unreachable by every
+  // other consumer unless the operator exports MOLTNET_ACTIVE_IDENTITY by hand.
+  // Only after the commit, so a writer that lost an exclusive race never
+  // points the selector at a config it did not write.
+  await seedIdentitySelectorIfUnset(dir);
   return filePath;
+}
+
+/** Error codes of a filesystem that cannot create hard links. */
+const HARD_LINK_UNSUPPORTED = new Set([
+  'ENOTSUP',
+  'EOPNOTSUPP',
+  'ENOSYS',
+  'EPERM',
+  'EXDEV',
+]);
+
+/**
+ * Create `filePath` from `tempPath` only if nothing is there. Without hard
+ * links, an exclusive open keeps the create-once guarantee; a reader may then
+ * briefly see a partial file, and a failed write removes what it created.
+ */
+async function linkExclusive(
+  tempPath: string,
+  filePath: string,
+  contents: string,
+): Promise<void> {
+  try {
+    await link(tempPath, filePath);
+    return;
+  } catch (error) {
+    if (
+      !HARD_LINK_UNSUPPORTED.has((error as NodeJS.ErrnoException).code ?? '')
+    ) {
+      throw error;
+    }
+  }
+  const handle = await open(filePath, 'wx', 0o600);
+  try {
+    await handle.writeFile(contents);
+  } catch (error) {
+    await handle.close();
+    await rm(filePath, { force: true });
+    throw error;
+  }
+  await handle.close();
 }
 
 export async function updateConfigSection(

@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Whoami } from '@moltnet/api-client';
@@ -29,6 +29,7 @@ import {
   agentKeyKey,
   identitySeedKey,
   oauth2SecretKey,
+  OS_KEYRING_SECRET_PROVIDER,
   type SecretProvider,
 } from './secrets.js';
 
@@ -79,6 +80,13 @@ export interface RegisterResult {
 
 /** Bound for one identity operation such as an authenticated whoami. */
 const IDENTITY_OPERATION_TIMEOUT_MS = 15_000;
+/**
+ * Bound for the post-registration connection, which also covers OAuth2 token
+ * acquisition: one operation budget each for the token, whoami, and alias
+ * publication.
+ */
+const POST_REGISTRATION_CONNECTION_TIMEOUT_MS =
+  3 * IDENTITY_OPERATION_TIMEOUT_MS;
 /** Bound for each registration attempt; the Go CLI's HTTP client uses the same. */
 const REGISTRATION_ATTEMPT_TIMEOUT_MS = 30_000;
 
@@ -116,6 +124,25 @@ async function exists(path: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * The subject of the config at `path`: `undefined` when no config is there,
+ * `null` when one is there but names no readable subject.
+ */
+async function configSubject(path: string): Promise<string | null | undefined> {
+  let raw: string;
+  try {
+    raw = await readFile(path, 'utf-8');
+  } catch {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { subject_id?: unknown };
+    return typeof parsed.subject_id === 'string' ? parsed.subject_id : null;
+  } catch {
+    return null;
   }
 }
 
@@ -317,32 +344,53 @@ export async function register(
         }
       : { ...base, agent_key_ref: credentialRef };
 
+  // The CLI command finds an identity only in its default store with secrets in
+  // the OS keyring. Elsewhere (a custom configDir or provider, such as the
+  // daemon's store) it would fail, so the error names the kept material instead.
+  const recovery =
+    configDir === getIdentityDir(alias) &&
+    provider.name === OS_KEYRING_SECRET_PROVIDER
+      ? recoveryCommand(alias)
+      : undefined;
+  const incomplete = (message: string, cause: unknown) =>
+    new RegisterIdentityError(
+      'registration_incomplete',
+      recovery
+        ? `${message}; ${recovery} completes it`
+        : `${message}; the config at ${configPath} and ${seedKept}`,
+      {
+        cause,
+        ...committed,
+        configPath,
+        ...(recovery ? { recoveryCommand: recovery } : {}),
+      },
+    );
+
   // The config carries both references before the credential secret exists,
-  // so from here on the CLI recovery command can finish the job. It is created
+  // so from here on the recovery material is complete. It is created
   // exclusively: a concurrent registration of the same alias must not lose its
   // config to this one.
   try {
     await writeConfig(config, configDir, { exclusive: true });
   } catch (cause) {
-    // Checked on disk rather than by error code: mkdir also reports EEXIST
-    // when a file stands where the identity directory should be.
-    const raced = await exists(configPath);
+    // Decided by what is on disk, not the error code: mkdir also reports
+    // EEXIST when a file stands where the identity directory should be.
+    const onDisk = await configSubject(configPath);
+    if (onDisk === subjectId) {
+      // The config committed and only seeding the default identity failed.
+      throw incomplete(
+        `the agent ${subjectId} is registered and its config is written, but it could not be selected as the default identity`,
+        cause,
+      );
+    }
     throw new RegisterIdentityError(
       'registration_incomplete',
-      raced
+      onDisk !== undefined
         ? `the agent ${subjectId} is registered, but identity "${alias}" was created by another process meanwhile, so its config was not written; ${seedKept}`
         : `the agent ${subjectId} is registered, but its config could not be written; ${seedKept}`,
       { cause, ...committed },
     );
   }
-
-  const recovery = recoveryCommand(alias);
-  const incomplete = (message: string, cause: unknown) =>
-    new RegisterIdentityError(
-      'registration_incomplete',
-      `${message}; ${recovery} completes it`,
-      { cause, ...committed, configPath, recoveryCommand: recovery },
-    );
 
   try {
     await provider.write(
@@ -358,7 +406,12 @@ export async function register(
     );
   }
 
-  const signal = boundedIdentitySignal(options.signal);
+  // Each request gets its own operation budget, so a slow whoami cannot eat
+  // into alias publication; the connection bound covers token acquisition.
+  const connectionSignal = withTimeout(
+    POST_REGISTRATION_CONNECTION_TIMEOUT_MS,
+    options.signal,
+  );
   let agents: Agent['agents'];
   let whoami: Whoami;
   try {
@@ -368,11 +421,17 @@ export async function register(
             clientId: credentials.clientId,
             clientSecret: credentials.clientSecret,
             apiUrl: registration.apiUrl,
-            signal,
+            signal: connectionSignal,
           }
-        : { agentKey: credentials.secret, apiUrl: registration.apiUrl, signal };
+        : {
+            agentKey: credentials.secret,
+            apiUrl: registration.apiUrl,
+            signal: connectionSignal,
+          };
     agents = (await connectAgent(connectOptions)).agents;
-    whoami = await agents.whoami({ signal });
+    whoami = await agents.whoami({
+      signal: boundedIdentitySignal(options.signal),
+    });
   } catch (cause) {
     throw incomplete(
       `the agent ${subjectId} is registered and stored, but the authenticated whoami failed`,
@@ -399,7 +458,10 @@ export async function register(
   // rejected, so publication is an OAuth2-only step.
   if (credentials.type === 'oauth2' && options.publishAlias !== false) {
     try {
-      const updated = await agents.updateWhoami({ alias }, { signal });
+      const updated = await agents.updateWhoami(
+        { alias },
+        { signal: boundedIdentitySignal(options.signal) },
+      );
       aliasPublication =
         updated.subjectId === subjectId
           ? { status: 'published' }

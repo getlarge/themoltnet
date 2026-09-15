@@ -330,7 +330,7 @@ describe('managed agent server agents', () => {
     // The registration committed, so the message names the agent and the
     // reconcile call rather than asking the operator to look it up.
     await expect(partial).rejects.toThrow(
-      'the remote agent agent-1 was registered but local activation is incomplete; POST /v1/agents/partial/reconcile',
+      'the remote agent agent-1 was registered but local activation is incomplete. Finish it with POST /v1/agents/partial/reconcile and {"action":"resume"}',
     );
     expect(store.readAgentConfig('partial')).toMatchObject({
       subject_id: 'agent-1',
@@ -437,7 +437,7 @@ describe('managed agent server agents', () => {
       code: 'registration_incomplete',
     });
     await expect(uncertain).rejects.toThrow(
-      'registration for "uncertain" may have completed on the server (fingerprint FP-1); look the agent up first, then POST /v1/agents/uncertain/reconcile',
+      'registration for "uncertain" may have completed on the server (fingerprint FP-1); look the agent up first. No local config was written, so it cannot be resumed; discard the local record with POST /v1/agents/uncertain/reconcile and {"action":"abandon"}.',
     );
     expect(store.hasPendingRegistration('uncertain')).toBe(true);
 
@@ -477,6 +477,28 @@ describe('managed agent server agents', () => {
         enrollmentToken: 'enroll-tok',
       }),
     ).resolves.toMatchObject({ activation: { alias: 'no-store' } });
+  });
+
+  it('reports an existing identity found by the SDK as agent_exists', async () => {
+    const store = freshStore();
+    const secrets = new FileSecretProvider({
+      root: store.secretsDir,
+      writable: true,
+    });
+    // A config the store could not read, so the reservation let it through.
+    mkdirSync(store.identityDir('unreadable'), { recursive: true });
+    writeFileSync(store.agentPath('unreadable'), '{}');
+    vi.spyOn(store, 'readAgentConfig').mockReturnValue(null);
+
+    await expect(
+      createManagedAgent(store, secrets, {
+        name: 'unreadable',
+        apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
+      }),
+    ).rejects.toMatchObject({ code: 'agent_exists' });
+    expect(enrollMock).not.toHaveBeenCalled();
+    expect(store.hasPendingRegistration('unreadable')).toBe(false);
   });
 
   it('clears the reservation after a definitive registration rejection', async () => {
