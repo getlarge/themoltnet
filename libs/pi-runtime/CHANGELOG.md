@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.15.3...pi-runtime-v0.16.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pi-runtime:** shell programs listed in tools no longer authorize shell invocations; add shellCommands rules instead. Output redirection is refused for every shell rule. The reason code shell_output_redirection_requires_broad_permission is renamed shell_output_redirection_not_permitted.
+
+### Features
+
+* **pi-runtime:** shell access only through shellCommands ([154be47](https://github.com/getlarge/themoltnet/commit/154be47cb3266ac2d827e0055188efaae357a8da))
+
+
+### Bug Fixes
+
+* **console:** match policy editor to structured tool grants ([d054f1e](https://github.com/getlarge/themoltnet/commit/d054f1efe37e166af2bbe51022abc32ff97b367f))
+* **console:** state tool grant rule without a structured tool list ([26dab1e](https://github.com/getlarge/themoltnet/commit/26dab1e32ec0d872ba1daaed6266bd491233951d))
+* **pi-runtime:** accept one-token shell rules in session policy resolution ([e232747](https://github.com/getlarge/themoltnet/commit/e23274725d1899ddfa221db4da101bf6619ecfba))
+
 ## [0.15.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.15.2...pi-runtime-v0.15.3) (2026-09-15)
 
 

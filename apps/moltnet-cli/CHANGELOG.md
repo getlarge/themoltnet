@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/getlarge/themoltnet/compare/cli-v2.4.0...cli-v3.0.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **runtime-policies:** policies must express shell access with shellCommands rules; tools: ["git"] becomes shellCommands: [{ "argvPrefix": ["git"] }].
+
+### Features
+
+* **runtime-policies:** allow one-token shell command rules ([c59c995](https://github.com/getlarge/themoltnet/commit/c59c995b6d5998ec1d714227434101532f63bfce))
+
 ## [2.4.0](https://github.com/getlarge/themoltnet/compare/cli-v2.3.2...cli-v2.4.0) (2026-09-15)
 
 
