@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import {
   chmod,
+  link,
   mkdir,
   readFile,
   rename,
@@ -246,13 +248,6 @@ export function getConfigPath(configDir?: string): string {
 }
 
 /**
- * The active identity's document, or null when no identity resolves.
- *
- * The honest counterpart to getConfigPath: a `string` return cannot express
- * "there is no active identity", which is why that function has to invent a
- * path. Prefer this wherever the absence matters.
- */
-/**
  * Idempotent: an existing default is never overwritten. The selector lives
  * beside the `identities` directory the config is written into, so a store
  * with a custom root (the daemon's agent server) seeds its own selector
@@ -263,7 +258,11 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   if (!alias || !IDENTITY_ALIAS_PATTERN.test(alias)) return;
   const parent = dirname(identityDir);
   const root =
-    basename(parent) === identitiesDirName ? dirname(parent) : getConfigDir();
+    basename(parent) === identitiesDirName
+      ? dirname(parent)
+      : // Not under an `identities` directory, so no store root can be
+        // inferred from the path: fall back to the default store root.
+        getConfigDir();
   const selectorPath = join(root, 'identity-selector.json');
   try {
     const existing = JSON.parse(
@@ -281,6 +280,13 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   );
 }
 
+/**
+ * The active identity's document, or null when no identity resolves.
+ *
+ * The honest counterpart to getConfigPath: a `string` return cannot express
+ * "there is no active identity", which is why that function has to invent a
+ * path. Prefer this wherever the absence matters.
+ */
 export async function resolveConfigPath(
   configDir?: string,
 ): Promise<string | null> {
@@ -323,9 +329,19 @@ async function readConfigFile(path: string): Promise<ReadMoltNetConfig | null> {
   }
 }
 
+export interface WriteConfigOptions {
+  /**
+   * Create the config only if none exists; otherwise reject with an `EEXIST`
+   * error and leave the existing file untouched. The check and the write are
+   * one atomic link, so two concurrent writers cannot both succeed.
+   */
+  exclusive?: boolean;
+}
+
 export async function writeConfig(
   config: MoltNetConfig,
   configDir?: string,
+  options: WriteConfigOptions = {},
 ): Promise<string> {
   assertCanonicalConfig(config);
   const dir = await resolveConfigDir(configDir);
@@ -340,18 +356,23 @@ export async function writeConfig(
   // do. Without it a first identity created from JS is unreachable by every
   // other consumer unless the operator exports MOLTNET_ACTIVE_IDENTITY by hand.
   await seedIdentitySelectorIfUnset(dir);
-  // Write to a sibling temp file and rename so the config is either fully
+  // Write to a sibling temp file, then commit it so the config is either fully
   // committed or untouched; callers rely on this when rolling back secrets.
-  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  // An exclusive write commits with link(), which fails if the target exists;
+  // a normal write replaces the target with rename().
+  const tempPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(tempPath, JSON.stringify(config, null, 2) + '\n', {
       mode: 0o600,
     });
     await chmod(tempPath, 0o600);
-    await rename(tempPath, filePath);
-  } catch (error) {
+    if (options.exclusive) {
+      await link(tempPath, filePath);
+    } else {
+      await rename(tempPath, filePath);
+    }
+  } finally {
     await rm(tempPath, { force: true }).catch(() => undefined);
-    throw error;
   }
   return filePath;
 }

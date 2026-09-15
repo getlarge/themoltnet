@@ -207,8 +207,74 @@ describe('register (node)', () => {
       { alias: 'reg-test' },
       expect.anything(),
     );
-    expect(result.aliasPublished).toBe(true);
+    expect(result.aliasPublication).toEqual({ status: 'published' });
     expect(result.whoami).toEqual(whoami);
+    expect([...provider.values.keys()].sort()).toEqual(
+      [
+        identitySeedKey('ABCD-1234-EF56-7890'),
+        oauth2SecretKey('agent-123', 'client-id'),
+      ].sort(),
+    );
+  });
+
+  it('bounds each registration attempt with its own timeout signal', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+    const root = await freshRoot();
+
+    await register({
+      name: 'bounded',
+      apiUrl: 'https://api.example.test',
+      secretProvider: memoryProvider(),
+      configDir: join(root, 'identities', 'bounded'),
+      connectAgent: fakeConnect().connectAgent,
+    });
+
+    expect(vi.mocked(registerAgent).mock.calls[0]?.[0]).toMatchObject({
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it('does not replay the registration once the caller has aborted', async () => {
+    const controller = new AbortController();
+    vi.mocked(registerAgent).mockImplementation((() => {
+      controller.abort();
+      return Promise.reject(new DOMException('aborted', 'AbortError'));
+    }) as typeof registerAgent);
+    const root = await freshRoot();
+
+    await expect(
+      register({
+        name: 'aborted',
+        apiUrl: 'https://api.example.test',
+        secretProvider: memoryProvider(),
+        configDir: join(root, 'identities', 'aborted'),
+        connectAgent: fakeConnect().connectAgent,
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: undefined,
+    });
+    expect(registerAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an invalid alias with a typed error before touching anything', async () => {
+    const provider = memoryProvider();
+
+    const failure = await register({
+      name: '../escape',
+      apiUrl: 'https://api.example.test',
+      secretProvider: provider,
+      connectAgent: fakeConnect().connectAgent,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(RegisterIdentityError);
+    expect(failure).toMatchObject({
+      code: 'invalid_alias',
+      nothingRegistered: true,
+    });
+    expect(provider.values.size).toBe(0);
+    expect(registerAgent).not.toHaveBeenCalled();
   });
 
   it('enrolls with an agent key, stores it, and skips alias publication', async () => {
@@ -239,7 +305,7 @@ describe('register (node)', () => {
       expect.objectContaining({ agentKey: 'agent-key-secret' }),
     );
     expect(updateWhoamiFn).not.toHaveBeenCalled();
-    expect(result.aliasPublished).toBe(false);
+    expect(result.aliasPublication).toEqual({ status: 'skipped' });
   });
 
   it('refuses an alias whose config already exists before any network call', async () => {
@@ -256,7 +322,7 @@ describe('register (node)', () => {
         configDir,
         connectAgent: fakeConnect().connectAgent,
       }),
-    ).rejects.toMatchObject({ code: 'alias_exists' });
+    ).rejects.toMatchObject({ code: 'alias_exists', nothingRegistered: true });
     expect(registerAgent).not.toHaveBeenCalled();
   });
 
@@ -271,7 +337,10 @@ describe('register (node)', () => {
         configDir: join(root, 'identities', 'no-provider'),
         connectAgent: fakeConnect().connectAgent,
       }),
-    ).rejects.toMatchObject({ code: 'provider_unavailable' });
+    ).rejects.toMatchObject({
+      code: 'provider_unavailable',
+      nothingRegistered: true,
+    });
     expect(registerAgent).not.toHaveBeenCalled();
   });
 
@@ -299,6 +368,7 @@ describe('register (node)', () => {
     ).rejects.toMatchObject({
       code: 'registration_failed',
       statusCode: 403,
+      nothingRegistered: true,
       seedReference: {
         provider: 'memory',
         key: identitySeedKey('ABCD-1234-EF56-7890'),
@@ -312,34 +382,135 @@ describe('register (node)', () => {
     });
   });
 
-  it('treats a registration already in progress as possibly committed', async () => {
-    vi.mocked(registerAgent).mockResolvedValue({
-      data: undefined,
-      error: {
-        type: 'urn:moltnet:problem:conflict',
-        title: 'Conflict',
-        status: 409,
-      },
-    } as never);
+  it.each([
+    { status: 409, reason: 'a registration already in progress' },
+    { status: 500, reason: 'a server error' },
+  ])(
+    'treats $reason ($status) as possibly committed and keeps the seed',
+    async ({ status }) => {
+      vi.mocked(registerAgent).mockResolvedValue({
+        data: undefined,
+        error: { type: 'urn:moltnet:problem:any', title: 'Failed', status },
+      } as never);
+      const root = await freshRoot();
+      const provider = memoryProvider();
+
+      await expect(
+        register({
+          name: 'unclear',
+          apiUrl: 'https://api.example.test',
+          secretProvider: provider,
+          configDir: join(root, 'identities', 'unclear'),
+          connectAgent: fakeConnect().connectAgent,
+        }),
+      ).rejects.toMatchObject({
+        code: 'registration_incomplete',
+        subjectId: undefined,
+        nothingRegistered: false,
+        seedReference: {
+          provider: 'memory',
+          key: identitySeedKey('ABCD-1234-EF56-7890'),
+        },
+      });
+      expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
+        'dGVzdHByaXZrZXk=',
+      );
+    },
+  );
+
+  it('keeps the seed and writes no config when the credential type is unexpected', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(agentKeyResponse));
     const root = await freshRoot();
+    const configDir = join(root, 'identities', 'wrong-type');
     const provider = memoryProvider();
 
-    await expect(
-      register({
-        name: 'in-progress',
-        apiUrl: 'https://api.example.test',
-        secretProvider: provider,
-        configDir: join(root, 'identities', 'in-progress'),
-        connectAgent: fakeConnect().connectAgent,
-      }),
-    ).rejects.toMatchObject({
-      code: 'registration_incomplete',
-      subjectId: undefined,
+    const failure = await register({
+      name: 'wrong-type',
+      apiUrl: 'https://api.example.test',
+      secretProvider: provider,
+      configDir,
+      connectAgent: fakeConnect().connectAgent,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      code: 'unsupported_credential',
+      subjectId: 'agent-123',
       seedReference: {
         provider: 'memory',
         key: identitySeedKey('ABCD-1234-EF56-7890'),
       },
+      recoveryCommand: undefined,
     });
+    expect([...provider.values.keys()]).toEqual([
+      identitySeedKey('ABCD-1234-EF56-7890'),
+    ]);
+    await expect(stat(join(configDir, 'moltnet.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
+
+  it('keeps the seed and names the race when another process creates the identity during registration', async () => {
+    const root = await freshRoot();
+    const configDir = join(root, 'identities', 'raced');
+    vi.mocked(registerAgent).mockImplementation(async () => {
+      await mkdir(configDir, { recursive: true });
+      await writeFile(join(configDir, 'moltnet.json'), '{"winner":true}');
+      return success(oauthResponse);
+    });
+    const provider = memoryProvider();
+
+    const failure = await register({
+      name: 'raced',
+      apiUrl: 'https://api.example.test',
+      secretProvider: provider,
+      configDir,
+      connectAgent: fakeConnect().connectAgent,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: 'agent-123',
+      recoveryCommand: undefined,
+      message: expect.stringContaining('created by another process'),
+    });
+    expect(await readFile(join(configDir, 'moltnet.json'), 'utf-8')).toBe(
+      '{"winner":true}',
+    );
+    expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
+      'dGVzdHByaXZrZXk=',
+    );
+  });
+
+  it('keeps the seed when the config cannot be written', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+    const root = await freshRoot();
+    // A file where the identity directory belongs makes the write fail.
+    const configDir = join(root, 'identities', 'blocked');
+    await mkdir(join(root, 'identities'), { recursive: true });
+    await writeFile(configDir, 'not a directory');
+    const provider = memoryProvider();
+
+    const failure = await register({
+      name: 'blocked',
+      apiUrl: 'https://api.example.test',
+      secretProvider: provider,
+      configDir,
+      connectAgent: fakeConnect().connectAgent,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: 'agent-123',
+      recoveryCommand: undefined,
+      seedReference: {
+        provider: 'memory',
+        key: identitySeedKey('ABCD-1234-EF56-7890'),
+      },
+      message: expect.stringContaining('its config could not be written'),
+    });
+    expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
+      'dGVzdHByaXZrZXk=',
+    );
   });
 
   it('keeps the seed when the transport fails after the replay', async () => {
@@ -378,13 +549,14 @@ describe('register (node)', () => {
     const provider = memoryProvider(
       (key) => key === oauth2SecretKey('agent-123', 'client-id'),
     );
+    const { connectAgent } = fakeConnect();
 
     const failure = await register({
       name: 'flaky',
       apiUrl: 'https://api.example.test',
       secretProvider: provider,
       configDir,
-      connectAgent: fakeConnect().connectAgent,
+      connectAgent,
     }).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(RegisterIdentityError);
@@ -393,10 +565,15 @@ describe('register (node)', () => {
       subjectId: 'agent-123',
       fingerprint: 'ABCD-1234-EF56-7890',
       configPath: join(configDir, 'moltnet.json'),
-      recoveryCommand: expect.stringContaining(
-        'moltnet agents credentials recover --yes',
-      ),
+      recoveryCommand:
+        'MOLTNET_ACTIVE_IDENTITY=flaky moltnet agents credentials recover --yes',
+      seedReference: {
+        provider: 'memory',
+        key: identitySeedKey('ABCD-1234-EF56-7890'),
+      },
     });
+    // The secret is stored before the whoami, so a failed store never verifies.
+    expect(connectAgent).not.toHaveBeenCalled();
     const config = JSON.parse(
       await readFile(join(configDir, 'moltnet.json'), 'utf-8'),
     ) as Record<string, unknown>;
@@ -409,25 +586,90 @@ describe('register (node)', () => {
     );
   });
 
-  it('rejects when the authenticated whoami names a different identity', async () => {
+  it('leaves everything recoverable when the authenticated whoami fails', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const root = await freshRoot();
-    const { connectAgent } = fakeConnect({
-      whoami: { ...whoami, fingerprint: 'ZZZZ-0000-0000-0000' },
-    });
+    const configDir = join(root, 'identities', 'unverified');
+    const provider = memoryProvider();
+    const connectAgent = vi
+      .fn()
+      .mockRejectedValue(new NetworkError('connection reset'));
 
-    await expect(
-      register({
-        name: 'mismatch',
-        apiUrl: 'https://api.example.test',
-        secretProvider: memoryProvider(),
-        configDir: join(root, 'identities', 'mismatch'),
-        connectAgent,
-      }),
-    ).rejects.toMatchObject({ code: 'identity_mismatch' });
+    const failure = await register({
+      name: 'unverified',
+      apiUrl: 'https://api.example.test',
+      secretProvider: provider,
+      configDir,
+      connectAgent,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({
+      code: 'registration_incomplete',
+      subjectId: 'agent-123',
+      fingerprint: 'ABCD-1234-EF56-7890',
+      configPath: join(configDir, 'moltnet.json'),
+      recoveryCommand:
+        'MOLTNET_ACTIVE_IDENTITY=unverified moltnet agents credentials recover --yes',
+      seedReference: {
+        provider: 'memory',
+        key: identitySeedKey('ABCD-1234-EF56-7890'),
+      },
+    });
+    await expect(stat(join(configDir, 'moltnet.json'))).resolves.toBeDefined();
+    expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
+      'dGVzdHByaXZrZXk=',
+    );
+    expect(provider.values.get(oauth2SecretKey('agent-123', 'client-id'))).toBe(
+      'client-secret',
+    );
   });
 
-  it('reports a failed alias publication without failing registration', async () => {
+  it.each([
+    {
+      field: 'fingerprint',
+      whoami: { ...whoami, fingerprint: 'ZZZZ-0000-0000-0000' },
+      named: 'fingerprint ZZZZ-0000-0000-0000',
+    },
+    {
+      field: 'a missing public key',
+      whoami: { ...whoami, publicKey: undefined },
+      named: 'public key (none)',
+    },
+  ])(
+    'rejects a whoami with a mismatched $field and names what it returned',
+    async ({ whoami: returned, named }) => {
+      vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+      const root = await freshRoot();
+      const configDir = join(root, 'identities', 'mismatch');
+      const provider = memoryProvider();
+
+      const failure = await register({
+        name: 'mismatch',
+        apiUrl: 'https://api.example.test',
+        secretProvider: provider,
+        configDir,
+        connectAgent: fakeConnect({ whoami: returned }).connectAgent,
+      }).catch((error: unknown) => error);
+
+      expect(failure).toMatchObject({
+        code: 'identity_mismatch',
+        configPath: join(configDir, 'moltnet.json'),
+        seedReference: {
+          provider: 'memory',
+          key: identitySeedKey('ABCD-1234-EF56-7890'),
+        },
+        message: expect.stringContaining(named),
+      });
+      await expect(
+        stat(join(configDir, 'moltnet.json')),
+      ).resolves.toBeDefined();
+      expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
+        'dGVzdHByaXZrZXk=',
+      );
+    },
+  );
+
+  it('reports a failed alias publication with its reason without failing registration', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const root = await freshRoot();
     const { connectAgent, updateWhoamiFn } = fakeConnect();
@@ -443,7 +685,28 @@ describe('register (node)', () => {
       connectAgent,
     });
 
-    expect(result.aliasPublished).toBe(false);
+    expect(result.aliasPublication).toEqual({
+      status: 'failed',
+      error: 'forbidden',
+    });
+  });
+
+  it('skips alias publication for OAuth2 when publishAlias is false', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+    const root = await freshRoot();
+    const { connectAgent, updateWhoamiFn } = fakeConnect();
+
+    const result = await register({
+      name: 'quiet',
+      apiUrl: 'https://api.example.test',
+      secretProvider: memoryProvider(),
+      configDir: join(root, 'identities', 'quiet'),
+      connectAgent,
+      publishAlias: false,
+    });
+
+    expect(updateWhoamiFn).not.toHaveBeenCalled();
+    expect(result.aliasPublication).toEqual({ status: 'skipped' });
   });
 
   it('defaults to the OS keyring provider and the identities directory', () => {

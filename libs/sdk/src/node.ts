@@ -12,6 +12,8 @@ import {
   fileSecretProviderOptionsFromEnv,
 } from './file-secret-provider.js';
 import {
+  type AliasPublication,
+  boundedIdentitySignal,
   enroll,
   register,
   type RegisterOptions,
@@ -147,7 +149,14 @@ export {
 } from './file-secret-provider.js';
 export { MOLTNET_SECRET_SERVICE };
 export type { AmbientConnectOptions as ConnectOptions };
-export { enroll, register, type RegisterOptions, type RegisterResult };
+export {
+  type AliasPublication,
+  boundedIdentitySignal,
+  enroll,
+  register,
+  type RegisterOptions,
+  type RegisterResult,
+};
 export {
   RegisterIdentityError,
   type RegisterIdentityErrorCode,

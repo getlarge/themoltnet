@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { Whoami } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
 
+import { withTimeout } from './abort.js';
 import type { Agent } from './agent.js';
 import {
   normalizeOptionalApiUrl,
@@ -11,9 +12,9 @@ import {
 } from './api-url.js';
 import { connect, type ConnectOptions } from './connect.js';
 import {
-  assertIdentityAlias,
   deriveMcpUrl,
   getIdentityDir,
+  IDENTITY_ALIAS_PATTERN,
   type MoltNetConfig,
   type SecretReference,
   writeConfig,
@@ -58,16 +59,33 @@ export interface RegisterOptions {
   connectAgent?: ConnectForRegistration;
 }
 
+/**
+ * Outcome of publishing the alias as the network alias. `skipped` covers agent
+ * keys, which the API refuses for publication, and `publishAlias: false`.
+ */
+export type AliasPublication =
+  | { status: 'published' }
+  | { status: 'skipped' }
+  | { status: 'failed'; error: string };
+
 export interface RegisterResult {
   alias: string;
   configPath: string;
   config: MoltNetConfig;
   identity: { subjectId: string; publicKey: string; fingerprint: string };
   whoami: Whoami;
-  aliasPublished: boolean;
+  aliasPublication: AliasPublication;
 }
 
+/** Bound for one identity operation such as an authenticated whoami. */
 const IDENTITY_OPERATION_TIMEOUT_MS = 15_000;
+/** Bound for each registration attempt; the Go CLI's HTTP client uses the same. */
+const REGISTRATION_ATTEMPT_TIMEOUT_MS = 30_000;
+
+/** `signal`, also aborted after `IDENTITY_OPERATION_TIMEOUT_MS`. */
+export function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
+  return withTimeout(IDENTITY_OPERATION_TIMEOUT_MS, signal);
+}
 
 let defaultProviderFactory: (() => SecretProvider) | undefined;
 
@@ -86,11 +104,6 @@ function defaultProvider(): SecretProvider {
     );
   }
   return defaultProviderFactory();
-}
-
-function boundedSignal(signal?: AbortSignal): AbortSignal {
-  const timeout = AbortSignal.timeout(IDENTITY_OPERATION_TIMEOUT_MS);
-  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 function recoveryCommand(alias: string): string {
@@ -140,6 +153,7 @@ async function preflightProvider(
 /**
  * A 4xx is a definitive refusal, except 409: the registration route returns it
  * while a registration for the same key is still in progress and may commit.
+ * Keep in step with `registrationRejected` in apps/moltnet-cli/register.go.
  */
 function isDefinitiveRejection(error: unknown): error is MoltNetError {
   return (
@@ -152,17 +166,44 @@ function isDefinitiveRejection(error: unknown): error is MoltNetError {
   );
 }
 
+/** The first whoami field that does not match the registered identity. */
+function whoamiMismatch(
+  whoami: Whoami,
+  expected: { subjectId: string; publicKey: string; fingerprint: string },
+): string | undefined {
+  if (whoami.subjectType !== 'agent') {
+    return `subject type "${whoami.subjectType}"`;
+  }
+  if (whoami.subjectId !== expected.subjectId) {
+    return `subject ${whoami.subjectId}`;
+  }
+  if (whoami.publicKey !== expected.publicKey) {
+    return `public key ${whoami.publicKey ?? '(none)'}`;
+  }
+  if (whoami.fingerprint !== expected.fingerprint) {
+    return `fingerprint ${whoami.fingerprint ?? '(none)'}`;
+  }
+  return undefined;
+}
+
 /**
  * Register an identity the way `moltnet register --name` does: the seed is
- * stored first, the config is written with references right after the server
- * commits, the credential secret is stored last, and the result is verified
- * with an authenticated whoami. A failure after the commit leaves everything
- * `moltnet agents credentials recover --yes` needs.
+ * stored first, the config is created exclusively with references right after
+ * the server commits, the credential secret is stored last, and the result is
+ * verified with an authenticated whoami. Every failure after the seed is
+ * stored names where it is kept; once the config exists,
+ * `moltnet agents credentials recover --yes` can finish the job.
  */
 export async function register(
   options: RegisterOptions,
 ): Promise<RegisterResult> {
-  const alias = assertIdentityAlias(options.name);
+  if (!IDENTITY_ALIAS_PATTERN.test(options.name)) {
+    throw new RegisterIdentityError(
+      'invalid_alias',
+      `invalid identity alias "${options.name}": use 1-63 letters, digits, ".", "_" or "-", starting with a letter or digit`,
+    );
+  }
+  const alias = options.name;
   const credentialType = options.credentialType ?? 'oauth2';
   const apiUrl = requireSecureCredentialApiUrl(
     normalizeOptionalApiUrl(options.apiUrl),
@@ -196,6 +237,10 @@ export async function register(
       { cause },
     );
   }
+  // The seed is never deleted from here on: a rejection costs only an unused
+  // provider entry, while a failure that followed a commit would otherwise
+  // leave an identity nobody can recover.
+  const seedKept = `the identity seed (fingerprint ${keyPair.fingerprint}) is kept at ${seedRef.provider}:${seedRef.key}`;
 
   let registration: RegistrationRequestResult;
   try {
@@ -205,12 +250,9 @@ export async function register(
       apiUrl,
       keyPair,
       signal: options.signal,
+      attemptTimeoutMs: REGISTRATION_ATTEMPT_TIMEOUT_MS,
     });
   } catch (cause) {
-    // The seed is never deleted here. Even a rejection costs only an unused
-    // provider entry, while a failure that followed a commit would leave an
-    // identity nobody can recover.
-    const seedKept = `the identity seed (fingerprint ${keyPair.fingerprint}) is kept at ${seedRef.provider}:${seedRef.key}`;
     if (isDefinitiveRejection(cause)) {
       throw new RegisterIdentityError(
         'registration_failed',
@@ -233,12 +275,13 @@ export async function register(
 
   const { subjectId, fingerprint } = registration.identity;
   const credentials = registration.credentials;
-  const recovery = recoveryCommand(alias);
+  // Every failure below follows a server-side commit.
+  const committed = { subjectId, fingerprint, seedReference: seedRef };
   if (credentials.type !== credentialType) {
     throw new RegisterIdentityError(
       'unsupported_credential',
-      `registration returned credential type "${credentials.type}", expected "${credentialType}"`,
-      { subjectId, fingerprint, recoveryCommand: recovery },
+      `registration returned credential type "${credentials.type}", expected "${credentialType}"; agent ${subjectId} is registered and ${seedKept}`,
+      committed,
     );
   }
 
@@ -274,30 +317,33 @@ export async function register(
         }
       : { ...base, agent_key_ref: credentialRef };
 
-  const incomplete = (message: string, cause?: unknown) =>
+  // The config carries both references before the credential secret exists,
+  // so from here on the CLI recovery command can finish the job. It is created
+  // exclusively: a concurrent registration of the same alias must not lose its
+  // config to this one.
+  try {
+    await writeConfig(config, configDir, { exclusive: true });
+  } catch (cause) {
+    // Checked on disk rather than by error code: mkdir also reports EEXIST
+    // when a file stands where the identity directory should be.
+    const raced = await exists(configPath);
+    throw new RegisterIdentityError(
+      'registration_incomplete',
+      raced
+        ? `the agent ${subjectId} is registered, but identity "${alias}" was created by another process meanwhile, so its config was not written; ${seedKept}`
+        : `the agent ${subjectId} is registered, but its config could not be written; ${seedKept}`,
+      { cause, ...committed },
+    );
+  }
+
+  const recovery = recoveryCommand(alias);
+  const incomplete = (message: string, cause: unknown) =>
     new RegisterIdentityError(
       'registration_incomplete',
       `${message}; ${recovery} completes it`,
-      {
-        cause,
-        subjectId,
-        fingerprint,
-        configPath,
-        recoveryCommand: recovery,
-        seedReference: seedRef,
-      },
+      { cause, ...committed, configPath, recoveryCommand: recovery },
     );
 
-  // The config carries both references before the credential secret exists,
-  // so from here on the CLI recovery command can finish the job.
-  try {
-    await writeConfig(config, configDir);
-  } catch (cause) {
-    throw incomplete(
-      `the agent ${subjectId} is registered and its seed is stored, but the config could not be written`,
-      cause,
-    );
-  }
   try {
     await provider.write(
       credentialRef.key,
@@ -312,7 +358,7 @@ export async function register(
     );
   }
 
-  const signal = boundedSignal(options.signal);
+  const signal = boundedIdentitySignal(options.signal);
   let agents: Agent['agents'];
   let whoami: Whoami;
   try {
@@ -333,29 +379,39 @@ export async function register(
       cause,
     );
   }
-  if (
-    whoami.subjectType !== 'agent' ||
-    whoami.subjectId !== subjectId ||
-    (whoami.publicKey !== undefined &&
-      whoami.publicKey !== keyPair.publicKey) ||
-    (whoami.fingerprint !== undefined && whoami.fingerprint !== fingerprint)
-  ) {
+  const mismatch = whoamiMismatch(whoami, {
+    subjectId,
+    publicKey: keyPair.publicKey,
+    fingerprint,
+  });
+  if (mismatch) {
+    // No recovery command: recovery would act on the credential's identity,
+    // which is exactly what disagrees with the registration.
     throw new RegisterIdentityError(
       'identity_mismatch',
-      `authenticated whoami does not match the registered identity ${subjectId}`,
-      { subjectId, fingerprint, configPath },
+      `authenticated whoami returned ${mismatch}, which does not match the registered identity ${subjectId}; its config is at ${configPath} and ${seedKept}`,
+      { ...committed, configPath },
     );
   }
 
-  let aliasPublished = false;
+  let aliasPublication: AliasPublication = { status: 'skipped' };
   // PATCH /agents/whoami accepts only the primary credential; an agent key is
   // rejected, so publication is an OAuth2-only step.
   if (credentials.type === 'oauth2' && options.publishAlias !== false) {
     try {
       const updated = await agents.updateWhoami({ alias }, { signal });
-      aliasPublished = updated.subjectId === subjectId;
-    } catch {
-      aliasPublished = false;
+      aliasPublication =
+        updated.subjectId === subjectId
+          ? { status: 'published' }
+          : {
+              status: 'failed',
+              error: `the API answered for subject ${updated.subjectId}`,
+            };
+    } catch (cause) {
+      aliasPublication = {
+        status: 'failed',
+        error: cause instanceof Error ? cause.message : String(cause),
+      };
     }
   }
 
@@ -365,7 +421,7 @@ export async function register(
     config,
     identity: { subjectId, publicKey: keyPair.publicKey, fingerprint },
     whoami,
-    aliasPublished,
+    aliasPublication,
   };
 }
 

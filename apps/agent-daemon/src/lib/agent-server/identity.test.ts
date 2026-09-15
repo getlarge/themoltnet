@@ -319,13 +319,19 @@ describe('managed agent server agents', () => {
       throw new Error('disk full');
     });
 
-    await expect(
-      createManagedAgent(store, secrets, {
-        name: 'partial',
-        apiUrl: 'https://api.themolt.net',
-        enrollmentToken: 'enroll-tok',
-      }),
-    ).rejects.toMatchObject({ code: 'registration_incomplete' });
+    const partial = createManagedAgent(store, secrets, {
+      name: 'partial',
+      apiUrl: 'https://api.themolt.net',
+      enrollmentToken: 'enroll-tok',
+    });
+    await expect(partial).rejects.toMatchObject({
+      code: 'registration_incomplete',
+    });
+    // The registration committed, so the message names the agent and the
+    // reconcile call rather than asking the operator to look it up.
+    await expect(partial).rejects.toThrow(
+      'the remote agent agent-1 was registered but local activation is incomplete; POST /v1/agents/partial/reconcile',
+    );
     expect(store.readAgentConfig('partial')).toMatchObject({
       subject_id: 'agent-1',
       subject_type: 'agent',
@@ -422,13 +428,17 @@ describe('managed agent server agents', () => {
       .mockRejectedValueOnce(new TypeError('response lost'))
       .mockRejectedValueOnce(new TypeError('response lost'));
 
-    await expect(
-      createManagedAgent(store, secrets, {
-        name: 'uncertain',
-        apiUrl: 'https://api.themolt.net',
-        enrollmentToken: 'enroll-tok',
-      }),
-    ).rejects.toMatchObject({ code: 'registration_incomplete' });
+    const uncertain = createManagedAgent(store, secrets, {
+      name: 'uncertain',
+      apiUrl: 'https://api.themolt.net',
+      enrollmentToken: 'enroll-tok',
+    });
+    await expect(uncertain).rejects.toMatchObject({
+      code: 'registration_incomplete',
+    });
+    await expect(uncertain).rejects.toThrow(
+      'registration for "uncertain" may have completed on the server (fingerprint FP-1); look the agent up first, then POST /v1/agents/uncertain/reconcile',
+    );
     expect(store.hasPendingRegistration('uncertain')).toBe(true);
 
     await expect(
@@ -439,6 +449,34 @@ describe('managed agent server agents', () => {
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
     expect(enrollMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears the reservation when the secret store fails before registering', async () => {
+    const store = freshStore();
+    const secrets = new FileSecretProvider({
+      root: store.secretsDir,
+      writable: true,
+    });
+    // The preflight probe is the first write.
+    vi.spyOn(secrets, 'write').mockRejectedValueOnce(new Error('read-only'));
+
+    await expect(
+      createManagedAgent(store, secrets, {
+        name: 'no-store',
+        apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
+      }),
+    ).rejects.toMatchObject({ code: 'registration_failed' });
+    expect(enrollMock).not.toHaveBeenCalled();
+    expect(store.hasPendingRegistration('no-store')).toBe(false);
+
+    await expect(
+      createManagedAgent(store, secrets, {
+        name: 'no-store',
+        apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
+      }),
+    ).resolves.toMatchObject({ activation: { alias: 'no-store' } });
   });
 
   it('clears the reservation after a definitive registration rejection', async () => {

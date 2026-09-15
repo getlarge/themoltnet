@@ -104,6 +104,7 @@ export function problemToError(
 }
 
 export type RegisterIdentityErrorCode =
+  | 'invalid_alias'
   | 'alias_exists'
   | 'provider_unavailable'
   | 'registration_failed'
@@ -111,14 +112,22 @@ export type RegisterIdentityErrorCode =
   | 'unsupported_credential'
   | 'identity_mismatch';
 
+const NOTHING_REGISTERED_CODES: ReadonlySet<RegisterIdentityErrorCode> =
+  new Set([
+    'invalid_alias',
+    'alias_exists',
+    'provider_unavailable',
+    'registration_failed',
+  ]);
+
 /**
  * Failure of the persisting `register()` in `@themoltnet/sdk/node`.
  *
- * `registration_failed` means the server rejected the request and wrote no
- * config. `registration_incomplete` means the server may have committed the
- * identity: when `subjectId` is set it did, and the seed and config that exist
- * are enough for `moltnet agents credentials recover --yes`
- * (`recoveryCommand`); when it is not set the outcome is unknown.
+ * `nothingRegistered` is true when the request was never sent or the server
+ * rejected it. `registration_incomplete` means the server may have committed
+ * the identity: when `subjectId` is set it did, and when `recoveryCommand` is
+ * also set the stored config is enough for it; without `subjectId` the outcome
+ * is unknown. `unsupported_credential` and `identity_mismatch` follow a commit.
  *
  * The identity seed is never deleted once stored, whatever the failure:
  * `seedReference` names where it is kept, because a deleted seed can make a
@@ -159,5 +168,10 @@ export class RegisterIdentityError extends MoltNetError {
     this.configPath = options.configPath;
     this.recoveryCommand = options.recoveryCommand;
     this.seedReference = options.seedReference;
+  }
+
+  /** True when no identity can exist on the server because of this call. */
+  get nothingRegistered(): boolean {
+    return NOTHING_REGISTERED_CODES.has(this.code);
   }
 }

@@ -21,12 +21,14 @@ import {
   type Whoami,
 } from '@themoltnet/sdk';
 import {
+  boundedIdentitySignal,
   connect,
   type ConnectOptions,
   FILE_SECRET_PROVIDER,
   type FileSecretProvider,
   register,
   RegisterIdentityError,
+  type RegisterResult,
 } from '@themoltnet/sdk/node';
 
 import { assessIdentityPin, type IdentityPin } from '../identity-pin.js';
@@ -40,7 +42,6 @@ import {
 } from './store.js';
 
 const MAX_CONFIG_BYTES = 64 * 1024;
-const IDENTITY_OPERATION_TIMEOUT_MS = 15_000;
 const pendingAliases = new WeakMap<AgentServerStore, Set<string>>();
 
 export class AgentServerIdentityError extends Error {
@@ -123,6 +124,7 @@ export async function createManagedAgent(
     );
   }
   const releaseAlias = reserveAlias(store, alias);
+  let registered: RegisterResult | undefined;
   try {
     let apiUrl: string;
     try {
@@ -141,7 +143,6 @@ export async function createManagedAgent(
     // whoami check, writing into this store's identity directory with the
     // same recoverable order the CLI uses. The file provider keeps the
     // references pointing at `<root>/secrets`.
-    let registered;
     try {
       registered = await register({
         name: alias,
@@ -156,16 +157,14 @@ export async function createManagedAgent(
       });
     } catch (cause) {
       if (cause instanceof RegisterIdentityError) {
-        if (cause.code === 'registration_failed') {
-          // The server rejected the request; nothing remote exists. The SDK
-          // keeps the stored seed, which only costs an unused secret entry.
+        if (cause.nothingRegistered) {
+          // Nothing exists remotely, so the pending marker would only block a
+          // retry. The SDK keeps any stored seed, which costs an unused entry.
           store.clearPendingRegistration(alias);
           throw new AgentServerIdentityError(
             'registration_failed',
             cause.message,
-            {
-              cause,
-            },
+            { cause },
           );
         }
         if (cause.code === 'unsupported_credential') {
@@ -179,30 +178,23 @@ export async function createManagedAgent(
           throw new AgentServerIdentityError(
             'verification_failed',
             cause.message,
-            {
-              cause,
-            },
+            { cause },
           );
         }
       }
       throw new AgentServerIdentityError(
         'registration_incomplete',
-        cause instanceof RegisterIdentityError &&
-          cause.code === 'registration_incomplete' &&
-          cause.subjectId !== undefined
-          ? `the remote agent was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`
-          : `registration for "${alias}" may be incomplete; inspect the remote API before changing its pending Agent Server record`,
+        incompleteRegistrationMessage(
+          alias,
+          cause instanceof RegisterIdentityError ? cause : {},
+        ),
         { cause },
       );
     }
 
+    // register() has already verified the whoami against the registered
+    // subject, public key, and fingerprint.
     const { config, whoami, identity } = registered;
-    assertIdentityMatches(
-      whoami,
-      { publicKey: identity.publicKey, fingerprint: identity.fingerprint },
-      'authenticated whoami',
-      `new managed agent "${alias}"`,
-    );
     const boundTeamId = boundTeamIdFromWhoami(whoami);
     const activation: AgentActivation = {
       alias,
@@ -221,7 +213,7 @@ export async function createManagedAgent(
     if (store.hasPendingRegistration(alias)) {
       throw new AgentServerIdentityError(
         'registration_incomplete',
-        `the remote agent was registered but local activation is incomplete; reconcile or clear its pending Agent Server record before retrying`,
+        incompleteRegistrationMessage(alias, registered?.identity ?? {}),
         { cause },
       );
     }
@@ -229,6 +221,25 @@ export async function createManagedAgent(
   } finally {
     releaseAlias();
   }
+}
+
+/**
+ * Guidance for a registration that may have committed. The HTTP response
+ * carries only this message, so it names the reconcile call and, when the
+ * server outcome is unknown, the fingerprint to look up first.
+ */
+function incompleteRegistrationMessage(
+  alias: string,
+  known: { subjectId?: string; fingerprint?: string },
+): string {
+  const reconcile = `POST /v1/agents/${alias}/reconcile with {"action":"resume"} finishes it, and {"action":"abandon"} discards the local record`;
+  if (known.subjectId) {
+    return `the remote agent ${known.subjectId} was registered but local activation is incomplete; ${reconcile}`;
+  }
+  const fingerprint = known.fingerprint
+    ? ` (fingerprint ${known.fingerprint})`
+    : '';
+  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first, then ${reconcile}`;
 }
 
 /** Resume a fully persisted registration or explicitly abandon local recovery. */
@@ -745,11 +756,6 @@ async function callWhoami(
       cause,
     );
   }
-}
-
-function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
-  const timeout = AbortSignal.timeout(IDENTITY_OPERATION_TIMEOUT_MS);
-  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 function identityFromConfig(config: MoltNetConfig): IdentityPin {
