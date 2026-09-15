@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.58.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.58.0...rest-api-v0.58.1) (2026-09-15)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.11.0
+
 ## [0.58.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.57.3...rest-api-v0.58.0) (2026-09-15)
 
 

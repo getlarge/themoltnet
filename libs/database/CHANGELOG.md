@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/database-v0.10.2...database-v0.11.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **agent-runtime:** simplify runtime profile boundary
+
+### Features
+
+* **agent-runtime:** simplify runtime profile boundary ([b595fa6](https://github.com/getlarge/themoltnet/commit/b595fa6c8f782e24d32031ed4d69d5dd76fe3f90))
+
 ## [0.10.2](https://github.com/getlarge/themoltnet/compare/database-v0.10.1...database-v0.10.2) (2026-09-13)
 
 
