@@ -426,6 +426,24 @@ Published packages use the `@themoltnet` npm scope. Releases are managed by [rel
 2. Merging the release PR creates GitHub releases + tags
 3. CI jobs publish to npm with `--provenance` (OIDC, no stored tokens)
 
+**No major version bumps.** Majors are forbidden unless the maintainer explicitly
+asks for one in the task at hand.
+
+- Never mark a commit as breaking: no `!` after the type or scope
+  (`feat(api)!:`) and no `BREAKING CHANGE:` footer. release-please turns either
+  into a major for every package whose files the commit touches, including
+  linked-versions siblings. Describe a behaviour change in the commit body
+  instead.
+- Every package at `1.0.0` or above sets `"versioning": "always-bump-minor"` in
+  `release-please-config.json`, and packages below `1.0.0` are capped by
+  `bump-minor-pre-major`. A new package that reaches `1.0.0` must get the same
+  setting in the PR that releases it.
+- Go library modules (`libs/moltnet-api-client`, `libs/dspy-adapters`) cannot
+  publish `v2+` without a `/vN` module path; a major there breaks the CLI
+  `go.mod` sync and every Go consumer.
+- If a release PR proposes a major anyway, do not merge it: fix the commit
+  history or the config first.
+
 **Initial publish for new packages:**
 
 1. Add the package to `release-please-config.json` and `.release-please-manifest.json`
