@@ -132,19 +132,16 @@ describe('review runtime definitions', () => {
 
   // Every executable the daemon audit stream showed reviewers using. If one is
   // missing, `watch` mode logs it as tool_not_permitted on every call and
-  // `enforce` would fail the review outright.
+  // `enforce` would fail the review outright. Shell programs are granted only
+  // through shellCommands; `tools` names runtime and MCP tools.
   it('grants the executables a review actually runs', () => {
-    for (const tool of [
-      'cat',
-      'cd',
-      'find',
-      'grep',
-      'head',
-      'ls',
-      'pwd',
-      'read',
-      'tail',
-    ]) {
+    const shellPrograms = reviewPolicy.shellCommands
+      .filter((rule) => rule.argvPrefix.length === 1)
+      .map((rule) => rule.argvPrefix[0]);
+    for (const program of ['cat', 'cd', 'grep', 'head', 'ls', 'pwd', 'tail']) {
+      expect(shellPrograms).toContain(program);
+    }
+    for (const tool of ['find', 'grep', 'ls', 'read']) {
       expect(reviewPolicy.tools).toContain(tool);
     }
     const gitPrefixes = reviewPolicy.shellCommands
@@ -169,5 +166,9 @@ describe('review runtime definitions', () => {
     }
     expect(reviewPolicy.tools).not.toContain('bash');
     expect(reviewPolicy.tools).not.toContain('write');
+    // Programs that can write files or run commands without a redirect.
+    for (const program of ['awk', 'echo', 'find', 'sed']) {
+      expect(all).not.toContain(program);
+    }
   });
 });

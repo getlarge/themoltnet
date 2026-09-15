@@ -1,6 +1,6 @@
 {
-  "description": "Read-only inspection tools for LeGreffier PR complexity and security review tasks.",
-  "name": "legreffier-review-readonly-v1",
+  "description": "Read-only tools for multi-lens GitHub deep reviews.",
+  "name": "multi-lens-review-readonly-v1",
   "shellCommands": [
     {
       "argvPrefix": ["git", "blame"]
@@ -42,12 +42,6 @@
       "argvPrefix": ["cat"]
     },
     {
-      "argvPrefix": ["cd"]
-    },
-    {
-      "argvPrefix": ["cut"]
-    },
-    {
       "argvPrefix": ["grep"]
     },
     {
@@ -57,25 +51,7 @@
       "argvPrefix": ["ls"]
     },
     {
-      "argvPrefix": ["pwd"]
-    },
-    {
-      "argvPrefix": ["sha256sum"]
-    },
-    {
-      "argvPrefix": ["sort"]
-    },
-    {
       "argvPrefix": ["tail"]
-    },
-    {
-      "argvPrefix": ["tr"]
-    },
-    {
-      "argvPrefix": ["uniq"]
-    },
-    {
-      "argvPrefix": ["wc"]
     }
   ],
   "tools": [
@@ -88,7 +64,16 @@
     "moltnet_get_task",
     "moltnet_list_entries",
     "moltnet_list_task_artifacts",
+    "moltnet_list_task_attempts",
+    "moltnet_list_task_messages",
+    "moltnet_pack_get",
+    "moltnet_pack_provenance",
+    "moltnet_pack_render",
+    "moltnet_rendered_pack_get",
+    "moltnet_rendered_pack_list",
+    "moltnet_review_session_errors",
     "moltnet_search_entries",
-    "read"
+    "read",
+    "submit_freeform_output"
   ]
 }
