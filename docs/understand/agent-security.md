@@ -303,10 +303,10 @@ A one-token rule such as `{ argvPrefix: ['git'] }` authorizes every Git
 invocation that does not redirect output. A longer rule such as
 `{ argvPrefix: ['git', 'diff'] }` authorizes `git diff` and `git diff --stat`,
 but not `git push`. A `Tool:git` grant authorizes only a runtime or MCP tool
-named `git`, never the `git` program. Rules can be arbitrarily nested, such as
-`['gh', 'pr', 'view']`. MoltNet does not apply CLI-specific normalization:
-`git -C repo diff` does not match `['git', 'diff']`; grant its actual leading
-tokens explicitly.
+named `git`, never the `git` program. Rules can name nested command paths up to
+the 8-token limit, such as `['gh', 'pr', 'view']`. MoltNet does not apply
+CLI-specific normalization: `git -C repo diff` does not match `['git', 'diff']`;
+grant its actual leading tokens explicitly.
 
 Every fail-closed path funnels into one "would-block" decision that the mode
 then resolves: blocked in `enforce`, audited-but-allowed in `watch`:
