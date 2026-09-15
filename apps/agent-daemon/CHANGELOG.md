@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.57.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.56.2...agent-daemon-v0.57.0) (2026-09-15)
+
+
+### Features
+
+* **agent-daemon:** compose Pi dir from provider store for direct runs ([e032249](https://github.com/getlarge/themoltnet/commit/e032249a6ff024fd6718c29134ab9d0672ca2b25))
+* **agent-daemon:** compose Pi dir from provider store for direct runs ([274cc12](https://github.com/getlarge/themoltnet/commit/274cc12b83a3fa30873efe3381dc0e16a687473d))
+
+
+### Bug Fixes
+
+* **sdk:** bound registration attempts and keep every register failure actionable ([609a760](https://github.com/getlarge/themoltnet/commit/609a7602c2dfe2c9372c23f03bfe7e4a97ddfaff))
+* **sdk:** give each post-registration call its own budget and scope recovery hints ([2dd5195](https://github.com/getlarge/themoltnet/commit/2dd519558c5498f609edba99267ec0a217dbbd05))
+* **sdk:** register never deletes a stored seed ([888bff1](https://github.com/getlarge/themoltnet/commit/888bff19d7cc85f8be33861f96cde5d250962d94))
+* **tasks:** store and show the verified completion signature ([6fa5f80](https://github.com/getlarge/themoltnet/commit/6fa5f80effda240ebeecc5842ee0d404e915f640))
+* **tasks:** store and show the verified completion signature ([4d608f4](https://github.com/getlarge/themoltnet/commit/4d608f4190cdf03d878a3b93f209724f41510325)), closes [#2269](https://github.com/getlarge/themoltnet/issues/2269)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.3
+    * @themoltnet/pi-runtime bumped to 0.15.3
+    * @themoltnet/sdk bumped to 0.142.0
+
 ## [0.56.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.56.1...agent-daemon-v0.56.2) (2026-09-13)
 
 

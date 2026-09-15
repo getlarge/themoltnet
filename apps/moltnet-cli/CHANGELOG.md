@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.4.0](https://github.com/getlarge/themoltnet/compare/cli-v2.3.2...cli-v2.4.0) (2026-09-15)
+
+
+### Features
+
+* **cli:** point register at the next onboarding step ([0083bb8](https://github.com/getlarge/themoltnet/commit/0083bb83b871dfec800650ff2d08b6e76edbb85f))
+* **cli:** point register at the next onboarding step ([f482df9](https://github.com/getlarge/themoltnet/commit/f482df977e0d73df75900137c3543dd84ec9526f))
+* **rest-api,cli:** mint the OAuth2 client on credential recovery ([7cf2bd1](https://github.com/getlarge/themoltnet/commit/7cf2bd17804485cd07593f692be6c6356178f8dd))
+
+
+### Bug Fixes
+
+* **cli:** agents init stores the seed before onboarding through the shared helpers ([1eeae80](https://github.com/getlarge/themoltnet/commit/1eeae8005b99e348cf7c7b1a6232872623f065f5))
+* **cli:** default the recovery destination for agent-key identities ([f1b3c88](https://github.com/getlarge/themoltnet/commit/f1b3c8868b081a502bca126f191f8db28c6700d7))
+* **cli:** give register and agents init failures a recoverable next step ([ee97d49](https://github.com/getlarge/themoltnet/commit/ee97d49e351dee7268f63bf4cd4dd7e4863758f7))
+* **cli:** name the real OAuth2 state when choosing a recovery destination ([0130d2a](https://github.com/getlarge/themoltnet/commit/0130d2a3bb50927a7cb9ae80d20fdf1a92fdbc74))
+* **cli:** print the inherited destination notice once the secret is verified ([c5792cf](https://github.com/getlarge/themoltnet/commit/c5792cfe1349867aca1dd0f6c4e4de192a464c41))
+* **cli:** register never deletes a stored seed ([b04802c](https://github.com/getlarge/themoltnet/commit/b04802cbdeb390a74336ae0be486e69cef3178bc))
+* **cli:** register stores the seed and secret as references ([893d907](https://github.com/getlarge/themoltnet/commit/893d9075268670bae982f03ad9a3ae1b6aaee1b0))
+
 ## [2.3.2](https://github.com/getlarge/themoltnet/compare/cli-v2.3.1...cli-v2.3.2) (2026-09-14)
 
 

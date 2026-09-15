@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.15.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.15.2...pi-runtime-v0.15.3) (2026-09-15)
+
+
+### Bug Fixes
+
+* **pi-runtime:** separate structured tools from shell grants ([164b7eb](https://github.com/getlarge/themoltnet/commit/164b7ebbf63232cc518ded815ddd9297062b4d80))
+* **pi-runtime:** separate structured tools from shell grants ([7570499](https://github.com/getlarge/themoltnet/commit/757049988364893d31b4c18f70cfece15650dfff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.0.3
+    * @themoltnet/sdk bumped to 0.142.0
+
 ## [0.15.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.15.1...pi-runtime-v0.15.2) (2026-09-13)
 
 

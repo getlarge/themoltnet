@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.142.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.141.1...sdk-v0.142.0) (2026-09-15)
+
+
+### Features
+
+* **sdk:** register writes the identity store like the CLI ([46741ba](https://github.com/getlarge/themoltnet/commit/46741baaa6c11feddd5ae047365d26c3fbb94d2f))
+
+
+### Bug Fixes
+
+* **sdk:** bound registration attempts and keep every register failure actionable ([609a760](https://github.com/getlarge/themoltnet/commit/609a7602c2dfe2c9372c23f03bfe7e4a97ddfaff))
+* **sdk:** give each post-registration call its own budget and scope recovery hints ([2dd5195](https://github.com/getlarge/themoltnet/commit/2dd519558c5498f609edba99267ec0a217dbbd05))
+* **sdk:** register never deletes a stored seed ([888bff1](https://github.com/getlarge/themoltnet/commit/888bff19d7cc85f8be33861f96cde5d250962d94))
+* **sdk:** treat a registration already in progress as possibly committed ([15f524a](https://github.com/getlarge/themoltnet/commit/15f524a0930b3249a93b86fc2b451a80cd5fa618))
+
 ## [0.141.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.141.0...sdk-v0.141.1) (2026-09-11)
 
 
