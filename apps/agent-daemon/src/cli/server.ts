@@ -54,6 +54,12 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   const trustRequested = argv[0] === 'trust';
   const commandArgs = trustRequested ? argv.slice(1) : argv;
   const envConfig = loadAgentServerEnvConfig();
+  if (trustRequested) {
+    return runTrustCommand(
+      commandArgs,
+      resolveAgentServerRoot({ root: envConfig.root }),
+    );
+  }
   const { values } = parseArgs({
     args: commandArgs,
     options: {
@@ -63,10 +69,6 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       'api-url': { type: 'string' },
       'heartbeat-interval-ms': { type: 'string' },
       'warm-retention-sec': { type: 'string' },
-      remove: { type: 'boolean' },
-      status: { type: 'boolean' },
-      yes: { type: 'boolean' },
-      json: { type: 'boolean' },
       supervised: { type: 'boolean' },
     },
   });
@@ -88,7 +90,6 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     values['api-url'] ?? (envConfig.apiUrl || DEFAULT_API_URL);
   const runtimeSettings = parseLocalOperationalSettings(values);
 
-  if (trustRequested) return runTrustCommand(commandArgs, root);
   const store = new AgentServerStore(root).ensure();
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.server',
@@ -199,79 +200,97 @@ interface TrustStatus {
 
 export async function runTrustCommand(
   argv: string[],
-  root: string,
+  defaultRoot: string,
 ): Promise<number> {
-  const statusRequested = argv.includes('--status');
-  const removeRequested = argv.includes('--remove');
-  const yes = argv.includes('--yes');
-  const json = argv.includes('--json');
-  if (statusRequested && (removeRequested || yes)) {
-    console.error('Usage: moltnet-agent server trust --status [--json]');
-    return 1;
-  }
-  if (!isMacos()) {
-    if (json) {
-      printTrustStatus({
-        supported: false,
-        trusted: false,
-        fingerprint: null,
-      });
+  try {
+    const { values } = parseArgs({
+      args: argv,
+      options: {
+        root: { type: 'string' },
+        remove: { type: 'boolean' },
+        status: { type: 'boolean' },
+        yes: { type: 'boolean' },
+        json: { type: 'boolean' },
+      },
+    });
+    const root = values.root ?? defaultRoot;
+    const statusRequested = Boolean(values.status);
+    const removeRequested = Boolean(values.remove);
+    const yes = Boolean(values.yes);
+    const json = Boolean(values.json);
+    if (statusRequested && (removeRequested || yes)) {
+      console.error('Usage: moltnet-agent server trust --status [--json]');
+      return 1;
+    }
+    if (!isMacos()) {
+      if (json) {
+        printTrustStatus({
+          supported: false,
+          trusted: false,
+          fingerprint: null,
+        });
+        return 0;
+      }
+      console.error(
+        'Local HTTPS trust setup is currently supported on macOS only.',
+      );
+      return 1;
+    }
+
+    const material = await ensureLocalTlsMaterial(root);
+    if (statusRequested) {
+      const trusted = await isLocalCaTrusted(root);
+      if (json)
+        printTrustStatus({
+          supported: true,
+          trusted,
+          fingerprint: material.fingerprint,
+        });
+      else
+        console.log(
+          trusted
+            ? `MoltNet local CA ${material.fingerprint} is trusted.`
+            : `MoltNet local CA ${material.fingerprint} is not trusted.`,
+        );
       return 0;
     }
-    console.error(
-      'Local HTTPS trust setup is currently supported on macOS only.',
-    );
-    return 1;
-  }
 
-  const material = await ensureLocalTlsMaterial(root);
-  if (statusRequested) {
-    const trusted = await isLocalCaTrusted(root);
-    if (json)
-      printTrustStatus({
-        supported: true,
-        trusted,
-        fingerprint: material.fingerprint,
-      });
-    else
-      console.log(
-        trusted
-          ? `MoltNet local CA ${material.fingerprint} is trusted.`
-          : `MoltNet local CA ${material.fingerprint} is not trusted.`,
+    if (json && !yes) {
+      console.error(
+        'Machine-readable trust changes require --yes after native app consent.',
       );
-    return 0;
-  }
+      return 1;
+    }
 
-  if (json && !yes) {
-    console.error(
-      'Machine-readable trust changes require --yes after native app consent.',
-    );
-    return 1;
-  }
+    if (removeRequested) {
+      await removeLocalCa(root);
+      if (json)
+        printTrustStatus({
+          supported: true,
+          trusted: false,
+          fingerprint: material.fingerprint,
+        });
+      else
+        console.log('Removed the MoltNet local CA from your login keychain.');
+      return 0;
+    }
 
-  if (removeRequested) {
-    await removeLocalCa(root);
+    if (yes) await trustLocalCa(root);
+    else await ensureTrustedLocalTls(root);
     if (json)
       printTrustStatus({
         supported: true,
-        trusted: false,
+        trusted: await isLocalCaTrusted(root),
         fingerprint: material.fingerprint,
       });
-    else
-      console.error('Removed the MoltNet local CA from your login keychain.');
+    else console.log('MoltNet local HTTPS trust is ready for this macOS user.');
     return 0;
+  } catch (cause) {
+    console.error(
+      `Agent Server trust command failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+    return 1;
   }
-
-  if (yes) await trustLocalCa(root);
-  else await ensureTrustedLocalTls(root);
-  if (json)
-    printTrustStatus({
-      supported: true,
-      trusted: await isLocalCaTrusted(root),
-      fingerprint: material.fingerprint,
-    });
-  else console.error('MoltNet local HTTPS trust is ready for this macOS user.');
-  return 0;
 }
 
 function printTrustStatus(status: TrustStatus): void {
@@ -315,9 +334,10 @@ function waitForAgentServerShutdown(
 ): Promise<number> {
   return new Promise<number>((resolvePromise) => {
     let shuttingDown = false;
-    const shutdown = (): void => {
+    const shutdown = (source?: 'stdin'): void => {
       if (shuttingDown) return;
       shuttingDown = true;
+      if (source === 'stdin') console.error('shutting down: stdin EOF');
       shutdownController.abort({ source: 'shutdown' });
       void (async () => {
         app.server.closeAllConnections();
@@ -369,11 +389,11 @@ function waitForAgentServerShutdown(
     };
     const handlers = installShutdownSignalHandlers({
       logDrain: () => console.error('shutting down: stopping runs…'),
-      drain: shutdown,
+      drain: () => shutdown(),
     });
     const stdinGuard = installSupervisedStdinGuard({
       enabled: supervised,
-      shutdown,
+      shutdown: () => shutdown('stdin'),
     });
   });
 }
