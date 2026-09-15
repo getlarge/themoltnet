@@ -155,11 +155,27 @@ bind to the tool-policy revision described below. :::
 
 ## Runtime tool policies
 
-A **tool policy** is a team-scoped, named allow-list of tool names, for example
-a `field-inspector` policy that permits `read`, `grep`, and `find`. Policies are
-reusable: many runtime profiles can bind the same policy, and one profile can
-bind several. The effective allow-set for a profile is the **union** of the
-tools across every policy bound to it.
+A **tool policy** is a team-scoped, named allow-list with two separate kinds of
+grant:
+
+- **`tools`** — runtime and MCP tools, matched by exact name. A
+  `field-inspector` policy might permit `read`, `grep`, and `find`. A tool name
+  never authorizes a shell invocation.
+- **`shellCommands`** — shell commands, matched by argv prefix. They are the
+  only way to authorize a shell invocation.
+
+Policies are reusable: many runtime profiles can bind the same policy, and one
+profile can bind several. The effective allow-set for a profile is the **union**
+of the tools and shell commands across every policy bound to it.
+
+::: warning Breaking change A `tools` entry no longer authorizes a shell program
+of the same name, and no shell command rule authorizes output redirection. Move
+every shell program listed in `tools` to a `shellCommands` rule:
+`"tools": ["git"]` becomes `"shellCommands": [{ "argvPrefix": ["git"] }]`. A
+one-token rule allows the program with any arguments. Commands that redirect
+output (`>`, `2>`, `>>`, `&>`) are refused under every rule; write files with
+structured tools instead. Run the profile in `watch` first to find calls that
+now need a rule. :::
 
 Policies are inert on their own. A profile turns them on with its **enforcement
 mode**:
@@ -194,9 +210,9 @@ team/agent/profile relation, and keeps the SQL row small.
 - `runtime_policies` (SQL) — the policy's team, name, description, and audit
   columns. Metadata only.
 - Keto relations — the actual grants, shaped as
-  `RuntimeProfile#policies → RuntimePolicy#tool → Tool:<name>` for broad tool
-  access and `RuntimePolicy#command → ShellCommand:<identifier>` for scoped
-  shell access.
+  `RuntimeProfile#policies → RuntimePolicy#tool → Tool:<name>` for runtime and
+  MCP tools and `RuntimePolicy#command → ShellCommand:<identifier>` for shell
+  commands.
 - `runtime_profiles.tool_enforcement` (SQL) — the `off`/`watch`/`enforce` mode
   for the profile.
 
@@ -235,17 +251,18 @@ Shell command identifiers use versioned, per-token URI encoding. Each UTF-8
 token is encoded independently with RFC 3986 unreserved characters
 (`A-Z a-z 0-9 - . _ ~`) left literal and uppercase `%HH` escapes for everything
 else. Spaces are `%20`, never `+`; a slash inside one token is `%2F`. For
-example, `npm run test:unit` is `ShellCommand:v1/npm/run/test%3Aunit`.
+example, `npm run test:unit` is `ShellCommand:v1/npm/run/test%3Aunit` and the
+one-token rule `git` is `ShellCommand:v1/git`. A rule has 1 to 8 tokens.
 Identifiers are accepted only when decoding and canonical re-encoding produces
 the same bytes. Unknown versions, malformed UTF-8 or escapes, control
 characters, and non-canonical encodings fail policy resolution closed.
 
 ### How tools are extracted from a command
 
-A structured tool call (`read`, `write`, a custom tool) authorizes against its
-own name directly. A `bash` call is the hard case: a shell command can invoke
-many executables, wrap them (`sudo`, `env`, `timeout`), or hide them behind
-interpreters.
+A structured tool call (`read`, `write`, a custom or MCP tool) authorizes
+against its own name in `tools`. A `bash` call is the hard case: a shell command
+can invoke many executables, wrap them (`sudo`, `env`, `timeout`), or hide them
+behind interpreters.
 
 MoltNet resolves this statically with
 [`@themoltnet/shell-command-analyzer`](https://www.npmjs.com/package/@themoltnet/shell-command-analyzer),
@@ -266,27 +283,27 @@ The gate turns that analysis into a decision:
 - **Unresolvable command** — command substitution, `eval`, a non-literal command
   name, or unparseable input. **Fail-closed** in `enforce` (blocked), audited in
   `watch`.
-- **`arbitrary-code` tier** — blocked in `enforce` **even when the interpreter
-  name is on the allow-list**. Listing `bash` does not authorize
+- **`arbitrary-code` tier** — blocked in `enforce` **even when a rule matches
+  the interpreter**. A `["bash"]` rule does not authorize
   `bash -c "curl … | sh"`, because the payload cannot be statically bounded.
-- **Every invocation authorized** — each invocation's executable either has a
-  broad `Tool:<name>` grant that does not collide with an active structured
-  tool, or its leading, non-null argv tokens exactly match a rule's
-  `argvPrefix`. A structured-tool grant never implicitly authorizes a shell
-  executable with the same name.
-- **Output redirection** — a scoped shell-command rule cannot authorize shell
-  output redirection such as `git diff > report.txt`, because the write occurs
-  outside argv. It requires a broad grant for every executable involved.
+- **Every invocation authorized** — each invocation's leading, non-null argv
+  tokens exactly match a rule's `argvPrefix`. Names in `tools` never authorize a
+  shell invocation, whatever the runtime registers.
+- **Output redirection** — no shell command rule authorizes output redirection
+  (`>`, `2>`, `>>`, `&>`, …), whatever its length, because the write occurs
+  outside argv. `git diff > report.txt` is refused even with a `["git"]` rule.
+  Write files through structured tools.
 - **Any invocation unauthorized** — the entire expression is blocked in
   `enforce`, audited in `watch`. Thus `git diff && git push` requires permission
   for both invocations. Wrappers and nested commands are separate invocations,
   so `sudo -u deploy git diff` requires permission for both `sudo …` and
   `git diff`.
 
-A broad `Tool:git` grant authorizes every Git invocation and supersedes narrower
-Git rules when `git` is not also registered as a structured runtime tool. A
-scoped rule such as `{ argvPrefix: ['git', 'diff'] }` authorizes `git diff` and
-`git diff --stat`, but not `git push`. Rules can be arbitrarily nested, such as
+A one-token rule such as `{ argvPrefix: ['git'] }` authorizes every Git
+invocation that does not redirect output. A longer rule such as
+`{ argvPrefix: ['git', 'diff'] }` authorizes `git diff` and `git diff --stat`,
+but not `git push`. A `Tool:git` grant authorizes only a runtime or MCP tool
+named `git`, never the `git` program. Rules can be arbitrarily nested, such as
 `['gh', 'pr', 'view']`. MoltNet does not apply CLI-specific normalization:
 `git -C repo diff` does not match `['git', 'diff']`; grant its actual leading
 tokens explicitly.
@@ -304,9 +321,11 @@ flowchart TD
     RES -->|no| FENCE["would-block"]
     RES -->|yes| ARB{"arbitrary-code<br/>interpreter?"}
     ARB -->|"yes — even if listed"| FENCE
-    ARB -->|no| ALLEXEC{"every invocation<br/>broadly or narrowly allowed?"}
-    ALLEXEC -->|yes| ALLOW
+    ARB -->|no| ALLEXEC{"every invocation<br/>matches a shell rule?"}
+    ALLEXEC -->|yes| REDIR{"output<br/>redirection?"}
     ALLEXEC -->|no| FENCE
+    REDIR -->|no| ALLOW
+    REDIR -->|yes| FENCE
     LISTED -->|yes| ALLOW
     LISTED -->|no| FENCE
     FENCE --> FMODE{"mode?"}
@@ -318,12 +337,12 @@ flowchart TD
 ```
 
 ::: warning Known limitation The `escapable` tier is currently allow-list-only:
-a broadly granted `git` / `tar` / `awk` is allowed and is **not** additionally
-fail-closed, even though such a binary can in principle spawn a denied
-executable through a technique the static analyzer cannot see. A blanket block
-on the tier would deny most real toolchains (`git` is escapable), so tightening
-it wants a capability-aware allow-set rather than a tier-wide block. Tracked as
-follow-up work. :::
+a `git` / `tar` / `awk` invocation that matches a shell command rule is allowed
+and is **not** additionally fail-closed, even though such a binary can in
+principle spawn a denied executable through a technique the static analyzer
+cannot see. A blanket block on the tier would deny most real toolchains (`git`
+is escapable), so tightening it wants a capability-aware allow-set rather than a
+tier-wide block. Tracked as follow-up work. :::
 
 ### Wiring in Pi and the daemon
 
@@ -480,11 +499,10 @@ Other operations: `GET /runtime-policies` (list), `GET /runtime-policies/{id}`
 (one policy with its grants), `PATCH /runtime-policies/{id}` (rename / add /
 remove tools and shell commands), `DELETE /runtime-policies/{id}`, and
 `GET /runtime-profiles/{id}/policies` (the bound policy IDs). Tool names are
-exact: `git` matches the `git` executable, not a pattern, unless the active
-runtime also registers a structured `git` tool. In that case the tool grant
-authorizes only the structured tool and shell access requires a shell-command
-rule. Shell command rules express prefix semantics explicitly through
-`argvPrefix`; there are no wildcards, denies, or prompt rules.
+exact: `read` matches the tool named `read`, not a pattern, and a tool name
+never authorizes a shell command. Shell command rules express prefix semantics
+explicitly through `argvPrefix` (1 to 8 tokens); there are no wildcards, denies,
+or prompt rules, and no rule authorizes output redirection.
 
 The task-specific `submit_*` and `subagent` tools are reserved and owned by the
 immutable executor protocol. They are always permitted and do not need to appear

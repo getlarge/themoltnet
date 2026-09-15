@@ -518,12 +518,12 @@ context cannot edit the kernel text. Code-side validation and credential
 injection enforce credentials, sandbox and workspace facts, untrusted context,
 and the structured submit-output wire protocol. The kernel also reports the
 session-start effective policy: enforcement mode, authorized structured tools,
-and exact shell-command prefixes. In enforced profiles, `bash` is not exposed
-when the resolved shell-command set is empty. With enforcement `off`, every
-registered tool and every shell command exposed by the runtime is
-policy-permitted. The kernel states that explicitly and treats installed
-executables as live sandbox state to discover when needed; it does not invent a
-static executable inventory.
+exact shell-command prefixes, and that output redirection is never authorized.
+In enforced profiles, `bash` is not exposed when the resolved shell-command set
+is empty. With enforcement `off`, every registered tool and every shell command
+exposed by the runtime is policy-permitted. The kernel states that explicitly
+and treats installed executables as live sandbox state to discover when needed;
+it does not invent a static executable inventory.
 
 ## Prompt Ownership Catalogue
 
