@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -53,8 +59,23 @@ function renderApp() {
   );
 }
 
+let publishStatus: ((status: DesktopStatus) => void) | undefined;
+let requestRemove: (() => void) | undefined;
+
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.mocked(desktopBridge.status).mockResolvedValue(status());
+  vi.mocked(desktopBridge.retry).mockResolvedValue(status());
+  vi.mocked(desktopBridge.subscribe).mockImplementation((handler) => {
+    publishStatus = handler;
+    return Promise.resolve(() => undefined);
+  });
+  vi.mocked(desktopBridge.subscribeRemoveRequest).mockImplementation(
+    (handler) => {
+      requestRemove = handler;
+      return Promise.resolve(() => undefined);
+    },
+  );
 });
 
 describe('MoltNet Agent desktop renderer', () => {
@@ -138,5 +159,66 @@ describe('MoltNet Agent desktop renderer', () => {
     expect(
       screen.getByText('Current lifecycle branch: Update available.'),
     ).toBeVisible();
+  });
+
+  it('surfaces operation failures and lets a failed lifecycle retry', async () => {
+    const error = new Error('Agent Server could not bind its port');
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    vi.mocked(desktopBridge.status).mockResolvedValue(
+      status({ state: 'failed', message: 'The Agent Server exited.' }),
+    );
+    vi.mocked(desktopBridge.retry).mockRejectedValue(error);
+    renderApp();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+
+    expect(
+      await screen.findByText('Agent Server could not bind its port'),
+    ).toBeVisible();
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
+
+  it('renders status and removal requests received from Tauri events', async () => {
+    renderApp();
+    await screen.findByRole('heading', { name: 'Agent Server running' });
+
+    act(() => publishStatus?.(status({ state: 'stopped' })));
+    expect(
+      screen.getByRole('heading', { name: 'Agent Server stopped' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Start Agent Server' }),
+    ).toBeEnabled();
+
+    act(() => requestRemove?.());
+    expect(screen.getByRole('dialog')).toHaveAccessibleName(
+      'Remove the agent bundle?',
+    );
+  });
+
+  it('guards confirmed operations against repeated activation', async () => {
+    vi.mocked(desktopBridge.status).mockResolvedValue(
+      status({ state: 'needs_trust', trusted: false }),
+    );
+    let finishTrust: ((next: DesktopStatus) => void) | undefined;
+    vi.mocked(desktopBridge.trust).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishTrust = resolve;
+        }),
+    );
+    renderApp();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Review local HTTPS trust' }),
+    );
+    const confirm = screen.getByRole('button', { name: 'Trust local CA' });
+
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(desktopBridge.trust).toHaveBeenCalledOnce();
+    act(() => finishTrust?.(status()));
   });
 });
