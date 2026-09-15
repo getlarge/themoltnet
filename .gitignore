@@ -229,7 +229,6 @@ out-tsc/
 /apps/agent-desktop/out-rust/
 /apps/agent-desktop/src-tauri/gen/
 /apps/agent-desktop/src-tauri/target/
-/apps/agent-desktop/src-tauri/apps/agent-desktop/out-rust/
 
 # Context evals outputs
 evals/runs

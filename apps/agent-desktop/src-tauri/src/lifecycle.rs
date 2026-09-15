@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
+#[cfg(unix)]
+use std::os::unix::process::ExitStatusExt;
 use std::{
     collections::VecDeque,
-    fs,
+    fs::{self, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::PathBuf,
-    process::{Child, Command, Stdio},
+    process::{Child, Command, ExitStatus, Output, Stdio},
     sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
@@ -13,6 +15,8 @@ use std::{
 const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
 const HEALTH_URL: &str = "https://127.0.0.1:17374/health";
 const MAX_LOG_LINES: usize = 400;
+const MAX_START_ATTEMPTS: usize = 2;
+const HEALTH_CHECK_TIMEOUT_SECS: &str = "1";
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
 const EMBEDDED_INSTALLER: &str = include_str!(concat!(env!("OUT_DIR"), "/install-agent.sh"));
@@ -29,6 +33,7 @@ pub enum LifecycleState {
     Running,
     UpdateAvailable,
     Stopping,
+    Stopped,
     Removed,
     Failed,
 }
@@ -57,6 +62,24 @@ struct TrustResult {
     supported: bool,
     trusted: bool,
     fingerprint: Option<String>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum ExitAction {
+    None,
+    Retry,
+    Failed,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum UpdateOutcome {
+    Updated,
+    RolledBack { update_error: String },
+}
+
+enum UpdateStep<'a> {
+    Install(&'a str),
+    Start,
 }
 
 pub struct LifecycleManager {
@@ -158,13 +181,13 @@ impl LifecycleManager {
         let update: UpdateResult = serde_json::from_slice(&output.stdout)
             .map_err(|error| format!("invalid update response: {error}"))?;
         self.status.available_version = update.latest_version.clone();
-        if update.update_available {
+        if update.update_available && update.latest_version.is_none() {
+            return self.fail("the update response omitted its available version");
+        }
+        if let Some(latest_version) = update.latest_version.filter(|_| update.update_available) {
             self.set_state(
                 LifecycleState::UpdateAvailable,
-                &format!(
-                    "Agent {} is ready to install after consent.",
-                    update.latest_version.unwrap_or_else(|| "update".into())
-                ),
+                &format!("Agent {latest_version} is ready to install after consent."),
             );
         } else {
             self.set_state(LifecycleState::Running, "The agent bundle is up to date.");
@@ -181,38 +204,52 @@ impl LifecycleManager {
         if !valid_version(&version) {
             return self.fail("the reported update version was not a stable semantic version");
         }
-        let previous_version = self.status.installed_version.clone();
+        let Some(previous_version) = self.status.installed_version.clone() else {
+            return self
+                .fail("the installed Agent CLI version is unavailable; reinstall before updating");
+        };
+        if !valid_version(&previous_version) {
+            return self
+                .fail("the installed Agent CLI version is invalid; reinstall before updating");
+        }
         self.stop_server()?;
         self.set_state(
             LifecycleState::Installing,
             &format!("Installing verified agent {version}…"),
         );
-        if let Err(error) = self.run_installer(Some(&version), false) {
-            return self.fail(&format!("verified Agent CLI update failed: {error}"));
-        }
-        self.refresh_installed_version();
-        self.status.available_version = None;
-        self.retry_used = false;
-        match self.start_server() {
-            Ok(status) => Ok(status),
-            Err(update_error) => {
-                self.push_log("Updated server failed readiness; rolling back Agent CLI.");
-                let Some(previous_version) = previous_version else {
-                    return self.fail(&format!(
-                        "Agent CLI update failed readiness and no rollback version was available: {update_error}"
-                    ));
-                };
-                if let Err(rollback_error) = self.run_installer(Some(&previous_version), false) {
-                    return self.fail(&format!(
-                        "Agent CLI update failed ({update_error}); rollback failed: {rollback_error}"
-                    ));
-                }
+        let outcome = execute_update(&version, &previous_version, |step| match step {
+            UpdateStep::Install(target) => {
+                self.run_installer(Some(target), false)?;
                 self.refresh_installed_version();
-                self.push_log(&format!(
-                    "Rolled back to Agent CLI {previous_version}; restarting."
-                ));
+                Ok(())
+            }
+            UpdateStep::Start => {
                 self.retry_used = false;
-                self.start_server()
+                self.start_server().map(|_| ())
+            }
+        })
+        .inspect_err(|error| {
+            let _ = self.fail::<()>(error);
+        })?;
+        match outcome {
+            UpdateOutcome::Updated => {
+                self.status.available_version = None;
+                Ok(self.snapshot())
+            }
+            UpdateOutcome::RolledBack { update_error } => {
+                self.status.available_version = Some(version.clone());
+                self.set_state(
+                    LifecycleState::UpdateAvailable,
+                    &format!(
+                        "Agent CLI {version} did not become ready. Version {previous_version} was restored."
+                    ),
+                );
+                self.push_log(&format!(
+                    "Agent CLI update failed ({update_error}); rolled back to {previous_version}."
+                ));
+                Err(format!(
+                    "Agent CLI {version} failed readiness; restored {previous_version}: {update_error}"
+                ))
             }
         }
     }
@@ -263,9 +300,19 @@ impl LifecycleManager {
         let deadline = Instant::now() + STOP_TIMEOUT;
         loop {
             match child.try_wait() {
-                Ok(Some(_)) => break,
+                Ok(Some(status)) => {
+                    self.push_log(&format!(
+                        "Agent Server stopped ({})",
+                        describe_exit_status(status)
+                    ));
+                    break;
+                }
                 Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(100)),
                 Ok(None) => {
+                    self.push_log(&format!(
+                        "Agent Server did not stop within {} seconds; sending SIGKILL.",
+                        STOP_TIMEOUT.as_secs()
+                    ));
                     child
                         .kill()
                         .map_err(|error| format!("force stop failed: {error}"))?;
@@ -277,32 +324,40 @@ impl LifecycleManager {
                 }
             }
         }
+        self.set_state(LifecycleState::Stopped, "The Agent Server is stopped.");
         Ok(self.snapshot())
     }
 
-    pub fn inspect_exit(&mut self) -> bool {
-        let exited = self
+    pub fn inspect_exit(&mut self) -> ExitAction {
+        let status = self
             .child
             .as_mut()
-            .and_then(|child| child.try_wait().ok().flatten())
-            .is_some();
-        if exited {
-            self.child = None;
-            if !self.retry_used {
-                self.retry_used = true;
-                self.push_log("Agent Server exited unexpectedly; retrying once.");
-                if self.start_server().is_ok() {
-                    self.retry_used = true;
-                    return true;
-                }
-                return true;
-            }
+            .and_then(|child| child.try_wait().ok().flatten());
+        let Some(status) = status else {
+            return ExitAction::None;
+        };
+        self.child = None;
+        self.push_log(&format!(
+            "Agent Server exited unexpectedly ({}).",
+            describe_exit_status(status)
+        ));
+        if !self.retry_used {
+            self.retry_used = true;
             self.set_state(
-                LifecycleState::Failed,
-                "The Agent Server exited unexpectedly. Use Retry after reviewing logs.",
+                LifecycleState::Starting,
+                "The Agent Server exited unexpectedly. Retrying once…",
             );
+            return ExitAction::Retry;
         }
-        exited
+        self.set_state(
+            LifecycleState::Failed,
+            "The Agent Server exited unexpectedly. Use Retry after reviewing logs.",
+        );
+        ExitAction::Failed
+    }
+
+    pub fn retry_after_exit(&mut self) -> Result<DesktopStatus, String> {
+        self.start_server()
     }
 
     pub fn open_console(&self) -> Result<(), String> {
@@ -317,7 +372,7 @@ impl LifecycleManager {
 
     fn start_server(&mut self) -> Result<DesktopStatus, String> {
         self.require_installed()?;
-        if self.child.is_none() && health_ready() {
+        if self.child.is_none() && health_ready().is_ok() {
             return self.fail(
                 "Another process already owns the local Agent Server. It was left untouched.",
             );
@@ -327,14 +382,18 @@ impl LifecycleManager {
             "Starting the supervised Agent Server…",
         );
 
-        for attempt in 0..=1 {
-            let mut child = Command::new(self.executable())
+        let mut last_failure = "Agent Server failed to start".to_string();
+        for attempt in 0..MAX_START_ATTEMPTS {
+            let mut child = match Command::new(self.executable())
                 .args(["server", "--supervised"])
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .map_err(|error| format!("could not start Agent Server: {error}"))?;
+            {
+                Ok(child) => child,
+                Err(error) => return self.fail(&format!("could not start Agent Server: {error}")),
+            };
             if let Some(stdout) = child.stdout.take() {
                 capture_lines(stdout, Arc::clone(&self.logs));
             }
@@ -343,34 +402,45 @@ impl LifecycleManager {
             }
             let deadline = Instant::now() + START_TIMEOUT;
             loop {
-                if health_ready() {
-                    self.child = Some(child);
-                    self.retry_used = attempt > 0;
-                    self.set_state(
-                        LifecycleState::Running,
-                        "Ready. Open Console to pair this server process.",
-                    );
-                    return Ok(self.snapshot());
-                }
-                if child
-                    .try_wait()
-                    .map_err(|error| error.to_string())?
-                    .is_some()
-                {
-                    if attempt == 0 {
-                        self.push_log("Agent Server exited before readiness; retrying once.");
-                        break;
+                let health_error = match health_ready() {
+                    Ok(()) => {
+                        self.child = Some(child);
+                        self.retry_used = attempt > 0;
+                        self.set_state(
+                            LifecycleState::Running,
+                            "Ready. Open Console to pair this server process.",
+                        );
+                        return Ok(self.snapshot());
                     }
-                    return self.fail("Agent Server exited before readiness twice");
+                    Err(error) => error,
+                };
+                if let Some(status) = child.try_wait().map_err(|error| error.to_string())? {
+                    last_failure = format!(
+                        "Agent Server exited before readiness ({})",
+                        describe_exit_status(status)
+                    );
+                    self.push_log(&last_failure);
+                    if attempt + 1 < MAX_START_ATTEMPTS {
+                        self.push_log("Retrying Agent Server startup once.");
+                    }
+                    break;
                 }
                 if Instant::now() >= deadline {
+                    self.push_log(&format!(
+                        "Agent Server readiness exceeded {} seconds; force-stopping child.",
+                        START_TIMEOUT.as_secs()
+                    ));
                     let _ = child.kill();
-                    return self.fail("Agent Server did not become ready within 12 seconds");
+                    let _ = child.wait();
+                    return self.fail(&format!(
+                        "Agent Server did not become ready within {} seconds; last health probe: {health_error}",
+                        START_TIMEOUT.as_secs()
+                    ));
                 }
                 thread::sleep(Duration::from_millis(200));
             }
         }
-        self.fail("Agent Server failed to start")
+        self.fail(&last_failure)
     }
 
     fn trust_status(&self) -> Result<TrustResult, String> {
@@ -384,7 +454,7 @@ impl LifecycleManager {
         self.status.trust_fingerprint = trust.fingerprint.clone();
     }
 
-    fn run_agent(&self, args: &[&str]) -> Result<std::process::Output, String> {
+    fn run_agent(&self, args: &[&str]) -> Result<Output, String> {
         let output = Command::new(self.executable())
             .args(args)
             .output()
@@ -392,7 +462,7 @@ impl LifecycleManager {
         if output.status.success() {
             Ok(output)
         } else {
-            Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+            Err(command_failure("agent command", &output))
         }
     }
 
@@ -409,7 +479,9 @@ impl LifecycleManager {
         let mut command = Command::new("/bin/sh");
         command
             .arg(script.path())
-            .env("MOLTNET_AGENT_HOME", self.install_root());
+            .env("MOLTNET_AGENT_HOME", self.install_root())
+            .env_remove("MOLTNET_AGENT_ALLOW_UNVERIFIED")
+            .env_remove("MOLTNET_AGENT_ALLOW_UNSIGNED");
         if let Some(version) = version {
             command.env("MOLTNET_AGENT_VERSION", version);
         }
@@ -420,7 +492,7 @@ impl LifecycleManager {
         if output.status.success() {
             Ok(())
         } else {
-            Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+            Err(command_failure("Agent CLI installer", &output))
         }
     }
 
@@ -452,6 +524,9 @@ impl LifecycleManager {
 
     fn push_log(&self, line: &str) {
         push_bounded(&self.logs, line.to_string());
+        if let Err(error) = self.persist_log(line) {
+            eprintln!("could not persist Agent desktop supervisor log: {error}");
+        }
     }
 
     fn install_root(&self) -> PathBuf {
@@ -464,6 +539,17 @@ impl LifecycleManager {
 
     fn logs_directory(&self) -> PathBuf {
         self.home.join(".config/moltnet/agent-server/logs")
+    }
+
+    fn persist_log(&self, line: &str) -> Result<(), String> {
+        let directory = self.logs_directory();
+        fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(directory.join("desktop-supervisor.log"))
+            .map_err(|error| error.to_string())?;
+        writeln!(file, "{line}").map_err(|error| error.to_string())
     }
 }
 
@@ -484,22 +570,22 @@ fn push_bounded(logs: &Arc<Mutex<VecDeque<String>>>, line: String) {
     }
 }
 
-fn health_ready() -> bool {
+fn health_ready() -> Result<(), String> {
     fixed_command(
         "/usr/bin/curl",
         &[
-            "--insecure",
             "--silent",
+            "--show-error",
             "--fail",
             "--max-time",
-            "1",
+            HEALTH_CHECK_TIMEOUT_SECS,
             HEALTH_URL,
         ],
     )
-    .is_ok()
+    .map(|_| ())
 }
 
-fn fixed_command(program: &str, args: &[&str]) -> Result<std::process::Output, String> {
+fn fixed_command(program: &str, args: &[&str]) -> Result<Output, String> {
     const PROGRAMS: &[&str] = &["/usr/bin/curl", "/usr/bin/open"];
     if !PROGRAMS.contains(&program) {
         return Err("program is not allowlisted".into());
@@ -508,11 +594,59 @@ fn fixed_command(program: &str, args: &[&str]) -> Result<std::process::Output, S
         .args(args)
         .output()
         .map_err(|error| format!("{program} failed: {error}"))?;
-    output
-        .status
-        .success()
-        .then_some(output)
-        .ok_or_else(|| format!("{program} exited unsuccessfully"))
+    if output.status.success() {
+        Ok(output)
+    } else {
+        Err(command_failure(program, &output))
+    }
+}
+
+fn command_failure(label: &str, output: &Output) -> String {
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let detail = if !stderr.is_empty() {
+        stderr
+    } else if !stdout.is_empty() {
+        stdout
+    } else {
+        "no command output".to_string()
+    };
+    format!(
+        "{label} failed ({}): {detail}",
+        describe_exit_status(output.status)
+    )
+}
+
+fn describe_exit_status(status: ExitStatus) -> String {
+    if let Some(code) = status.code() {
+        return format!("exit code {code}");
+    }
+    #[cfg(unix)]
+    if let Some(signal) = status.signal() {
+        return format!("signal {signal}");
+    }
+    "unknown exit status".to_string()
+}
+
+fn execute_update(
+    version: &str,
+    previous_version: &str,
+    mut perform: impl FnMut(UpdateStep<'_>) -> Result<(), String>,
+) -> Result<UpdateOutcome, String> {
+    perform(UpdateStep::Install(version))
+        .map_err(|error| format!("verified Agent CLI update failed: {error}"))?;
+    let Err(update_error) = perform(UpdateStep::Start) else {
+        return Ok(UpdateOutcome::Updated);
+    };
+    perform(UpdateStep::Install(previous_version)).map_err(|rollback_error| {
+        format!("Agent CLI update failed ({update_error}); rollback failed: {rollback_error}")
+    })?;
+    perform(UpdateStep::Start).map_err(|restart_error| {
+        format!(
+            "Agent CLI update failed ({update_error}); restored {previous_version} but restart failed: {restart_error}"
+        )
+    })?;
+    Ok(UpdateOutcome::RolledBack { update_error })
 }
 
 fn home_directory() -> Result<PathBuf, String> {
@@ -523,9 +657,13 @@ fn home_directory() -> Result<PathBuf, String> {
 }
 
 fn valid_version(value: &str) -> bool {
-    let mut pieces = value.split('.');
-    pieces.clone().count() == 3
-        && pieces.all(|piece| !piece.is_empty() && piece.chars().all(|char| char.is_ascii_digit()))
+    // Keep this stable X.Y.Z rule aligned with tools/release/sync-cli-go-mod.sh
+    // and tools/release/propose-download-pin.sh.
+    let pieces = value.split('.').collect::<Vec<_>>();
+    pieces.len() == 3
+        && pieces
+            .iter()
+            .all(|piece| !piece.is_empty() && piece.chars().all(|char| char.is_ascii_digit()))
 }
 
 #[cfg(test)]
@@ -556,8 +694,76 @@ mod tests {
     #[test]
     fn stable_version_validation_rejects_path_and_prerelease_input() {
         assert!(valid_version("1.2.3"));
+        assert!(!valid_version(""));
+        assert!(!valid_version("1.2"));
         assert!(!valid_version("../1.2.3"));
         assert!(!valid_version("1.2.3-beta"));
+    }
+
+    #[test]
+    fn failed_update_restores_previous_version_and_restarts_it() {
+        let mut steps = Vec::new();
+        let mut starts = 0;
+
+        let outcome = execute_update("2.0.0", "1.0.0", |step| match step {
+            UpdateStep::Install(version) => {
+                steps.push(format!("install:{version}"));
+                Ok(())
+            }
+            UpdateStep::Start => {
+                starts += 1;
+                steps.push(format!("start:{starts}"));
+                if starts == 1 {
+                    Err("readiness failed".into())
+                } else {
+                    Ok(())
+                }
+            }
+        })
+        .expect("rollback should recover the previous version");
+
+        assert_eq!(
+            outcome,
+            UpdateOutcome::RolledBack {
+                update_error: "readiness failed".into()
+            }
+        );
+        assert_eq!(
+            steps,
+            ["install:2.0.0", "start:1", "install:1.0.0", "start:2"]
+        );
+    }
+
+    #[test]
+    fn supervisor_messages_are_persisted_for_post_mortem_debugging() {
+        let home = tempfile::tempdir().unwrap();
+        let manager = LifecycleManager::new(home.path().to_path_buf());
+
+        manager.push_log("Agent Server retry scheduled");
+
+        let log = fs::read_to_string(
+            home.path()
+                .join(".config/moltnet/agent-server/logs/desktop-supervisor.log"),
+        )
+        .unwrap();
+        assert_eq!(log, "Agent Server retry scheduled\n");
+    }
+
+    #[test]
+    fn stopped_children_reach_a_terminal_state() {
+        let home = tempfile::tempdir().unwrap();
+        let mut manager = LifecycleManager::new(home.path().to_path_buf());
+        manager.child = Some(
+            Command::new("/bin/sh")
+                .args(["-c", "sleep 60"])
+                .spawn()
+                .unwrap(),
+        );
+
+        let status = manager.stop_server().unwrap();
+
+        assert_eq!(status.state, LifecycleState::Stopped);
+        assert_eq!(status.message, "The Agent Server is stopped.");
     }
 
     #[test]

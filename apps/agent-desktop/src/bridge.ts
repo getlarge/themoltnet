@@ -10,6 +10,7 @@ export type LifecycleState =
   | 'running'
   | 'update_available'
   | 'stopping'
+  | 'stopped'
   | 'removed'
   | 'failed';
 
