@@ -203,10 +203,8 @@ with Runtime profile "no-hands" and Task type "freeform".
 ```
 
 ```bash [CLI]
-# Runs outside the Agent Server read Pi config from ./.pi by default. To use
-# providers configured with `moltnet-agent providers`, point at that store:
-export PI_CODING_AGENT_DIR="$HOME/.config/moltnet/pi"
-
+# Uses the providers configured with `moltnet-agent providers` or on the
+# Local Runtime page.
 moltnet-agent poll \
   --agent <agent-name> \
   --team "$MOLTNET_TEAM_ID" \
