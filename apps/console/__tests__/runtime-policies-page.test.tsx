@@ -154,7 +154,7 @@ describe('RuntimePoliciesPage', () => {
     );
   });
 
-  it('builds an ordered shell command rule and explains broad-tool overlap', async () => {
+  it('builds an ordered shell command rule', async () => {
     apiMocks.createRuntimePolicy.mockResolvedValue({
       data: makePolicy({ id: 'policy-2', name: 'reviewer' }),
       error: null,
@@ -178,11 +178,6 @@ describe('RuntimePoliciesPage', () => {
     });
     expect(screen.getByText('gh › pr › view › …')).toBeVisible();
 
-    const toolInput = screen.getByLabelText('Exact tool name');
-    fireEvent.change(toolInput, { target: { value: 'gh' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add tool' }));
-    expect(screen.getByRole('status')).toHaveTextContent(/gh.*redundant/i);
-
     const editor = screen.getByRole('region', { name: 'New tool policy' });
     fireEvent.click(
       within(editor).getByRole('button', { name: 'Create policy' }),
@@ -198,7 +193,7 @@ describe('RuntimePoliciesPage', () => {
     );
   });
 
-  it('explains that built-in structured tool grants do not cover shell executables', async () => {
+  it('explains that a tool grant covers a same-named shell program only when the runtime has no such tool', async () => {
     // Arrange
     renderPage();
 
@@ -208,7 +203,7 @@ describe('RuntimePoliciesPage', () => {
     // Assert
     expect(
       screen.getByText(
-        /same-named executable, except built-in structured tools \(read, write, edit, bash, ls, find, grep\)/i,
+        /covers a shell program of the same name only when the runtime has no tool by that name/i,
       ),
     ).toBeVisible();
     expect(
@@ -216,67 +211,29 @@ describe('RuntimePoliciesPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not flag a shell rule as redundant when its executable is a structured tool', async () => {
+  it('does not claim a shell rule is covered by a same-named tool grant', async () => {
     // Arrange
     setPolicies(
       makePolicy({
-        id: 'policy-ls',
-        name: 'lister',
-        tools: ['ls'],
-        shellCommands: [{ argvPrefix: ['ls', '-l'] }],
+        id: 'policy-overlap',
+        name: 'overlap',
+        tools: ['git', 'ls'],
+        shellCommands: [
+          { argvPrefix: ['git', 'diff'] },
+          { argvPrefix: ['ls', '-l'] },
+        ],
       }),
     );
 
     // Act
     renderPage();
-    await screen.findByDisplayValue('lister');
+    await screen.findByDisplayValue('overlap');
 
     // Assert
+    expect(screen.getByText('git › diff › …')).toBeVisible();
     expect(screen.getByText('ls › -l › …')).toBeVisible();
     expect(screen.queryByText(/redundant/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/structured tool only/i)).not.toBeInTheDocument();
-  });
-
-  it('still flags a shell rule as redundant when its executable is broadly granted', async () => {
-    // Arrange
-    setPolicies(
-      makePolicy({
-        id: 'policy-git',
-        name: 'git-reader',
-        tools: ['git'],
-        shellCommands: [{ argvPrefix: ['git', 'diff'] }],
-      }),
-    );
-
-    // Act
-    renderPage();
-    await screen.findByDisplayValue('git-reader');
-
-    // Assert
-    expect(screen.getByRole('status')).toHaveTextContent(/git.*redundant/i);
-  });
-
-  it('notes when a structured tool grant has no shell rule of the same name', async () => {
-    // Arrange
-    setPolicies(
-      makePolicy({
-        id: 'policy-grep',
-        name: 'searcher',
-        tools: ['grep', 'gh', 'ls'],
-        shellCommands: [{ argvPrefix: ['ls', '-l'] }],
-      }),
-    );
-
-    // Act
-    renderPage();
-    await screen.findByDisplayValue('searcher');
-
-    // Assert
-    expect(
-      screen.getByText(
-        'grep grants the structured tool only. Shell use needs a shell command rule.',
-      ),
-    ).toBeVisible();
+    expect(screen.queryByText(/already permits/i)).not.toBeInTheDocument();
   });
 
   it('updates metadata using exact add/remove tool deltas', async () => {
