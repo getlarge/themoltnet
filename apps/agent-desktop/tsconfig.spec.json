@@ -5,7 +5,13 @@
     "outDir": "./out-tsc/spec",
     "rootDir": ".",
     "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
-    "types": ["vitest/globals", "vitest/importMeta", "vite/client", "node"]
+    "types": [
+      "vitest",
+      "vitest/globals",
+      "vitest/importMeta",
+      "vite/client",
+      "node"
+    ]
   },
   "extends": "./tsconfig.json",
   "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.d.ts"],

@@ -1,6 +1,6 @@
 mod lifecycle;
 
-use lifecycle::{DesktopStatus, LifecycleManager};
+use lifecycle::{DesktopStatus, ExitAction, LifecycleManager};
 use std::{sync::Mutex, thread, time::Duration};
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
@@ -11,13 +11,29 @@ use tauri_plugin_updater::UpdaterExt;
 
 const STATUS_EVENT: &str = "agent-desktop://status";
 
-#[derive(Default)]
 struct AppState {
     lifecycle: Mutex<LifecycleManager>,
+    latest_status: Mutex<DesktopStatus>,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        let lifecycle = LifecycleManager::default();
+        let latest_status = lifecycle.snapshot();
+        Self {
+            lifecycle: Mutex::new(lifecycle),
+            latest_status: Mutex::new(latest_status),
+        }
+    }
 }
 
 fn publish(app: &AppHandle, status: &DesktopStatus) {
-    let _ = app.emit(STATUS_EVENT, status);
+    if let Ok(mut latest) = app.state::<AppState>().latest_status.lock() {
+        *latest = status.clone();
+    }
+    if let Err(error) = app.emit(STATUS_EVENT, status) {
+        eprintln!("could not publish Agent desktop status: {error}");
+    }
 }
 
 fn operate(
@@ -25,12 +41,13 @@ fn operate(
     operation: impl FnOnce(&mut LifecycleManager) -> Result<DesktopStatus, String>,
 ) -> Result<DesktopStatus, String> {
     let state = app.state::<AppState>();
-    let mut lifecycle = state
-        .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?;
-    let result = operation(&mut lifecycle);
-    let snapshot = lifecycle.snapshot();
+    let (result, snapshot) = {
+        let mut lifecycle = state.lifecycle.try_lock().map_err(|_| {
+            "another desktop lifecycle operation is already in progress".to_string()
+        })?;
+        let result = operation(&mut lifecycle);
+        (result, lifecycle.snapshot())
+    };
     publish(app, &snapshot);
     result.map(|_| snapshot)
 }
@@ -38,10 +55,10 @@ fn operate(
 #[tauri::command]
 fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
     state
-        .lifecycle
+        .latest_status
         .lock()
-        .map(|lifecycle| lifecycle.snapshot())
-        .map_err(|_| "desktop lifecycle lock was poisoned".into())
+        .map(|status| status.clone())
+        .map_err(|_| "desktop status lock was poisoned".into())
 }
 
 #[tauri::command]
@@ -73,8 +90,8 @@ fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 fn open_console(state: State<'_, AppState>) -> Result<(), String> {
     state
         .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?
+        .try_lock()
+        .map_err(|_| "another desktop lifecycle operation is already in progress".to_string())?
         .open_console()
 }
 
@@ -82,8 +99,8 @@ fn open_console(state: State<'_, AppState>) -> Result<(), String> {
 fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
     state
         .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?
+        .try_lock()
+        .map_err(|_| "another desktop lifecycle operation is already in progress".to_string())?
         .open_logs()
 }
 
@@ -156,14 +173,18 @@ fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
             "show" => show_status(app),
             "console" => {
                 let state = app.state::<AppState>();
-                if let Ok(lifecycle) = state.lifecycle.lock() {
-                    let _ = lifecycle.open_console();
+                if let Ok(lifecycle) = state.lifecycle.try_lock() {
+                    if let Err(error) = lifecycle.open_console() {
+                        eprintln!("could not open MoltNet Console: {error}");
+                    }
                 };
             }
             "logs" => {
                 let state = app.state::<AppState>();
-                if let Ok(lifecycle) = state.lifecycle.lock() {
-                    let _ = lifecycle.open_logs();
+                if let Ok(lifecycle) = state.lifecycle.try_lock() {
+                    if let Err(error) = lifecycle.open_logs() {
+                        eprintln!("could not open Agent Server logs: {error}");
+                    }
                 };
             }
             "update" => {
@@ -175,7 +196,9 @@ fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
             }
             "remove" => {
                 show_status(app);
-                let _ = app.emit("agent-desktop://request-remove", ());
+                if let Err(error) = app.emit("agent-desktop://request-remove", ()) {
+                    eprintln!("could not publish Agent bundle removal request: {error}");
+                }
             }
             "quit" => {
                 let handle = app.clone();
@@ -202,20 +225,22 @@ fn start_lifecycle(app: AppHandle) {
     thread::spawn(move || loop {
         thread::sleep(Duration::from_secs(2));
         let state = app.state::<AppState>();
-        let exited = state
-            .lifecycle
-            .lock()
-            .map(|mut lifecycle| {
-                let exited = lifecycle.inspect_exit();
-                if exited {
-                    publish(&app, &lifecycle.snapshot());
-                }
-                exited
-            })
-            .unwrap_or(false);
-        if exited {
-            // The startup path already performs one automatic early-exit retry.
-            // Later crashes remain visible and require the explicit Retry action.
+        let inspected = state.lifecycle.try_lock().ok().map(|mut lifecycle| {
+            let action = lifecycle.inspect_exit();
+            let snapshot = lifecycle.snapshot();
+            (action, snapshot)
+        });
+        let Some((action, snapshot)) = inspected else {
+            continue;
+        };
+        if action != ExitAction::None {
+            publish(&app, &snapshot);
+        }
+        if action == ExitAction::Retry {
+            let retry = app.clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                let _ = operate(&retry, LifecycleManager::retry_after_exit);
+            });
         }
     });
 }
