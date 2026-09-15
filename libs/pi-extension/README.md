@@ -433,12 +433,11 @@ const executor = createPiTaskExecutor({
 });
 
 const runtime = new AgentRuntime({
-  source: new ApiTaskSource({ baseUrl, taskId, auth, leaseTtlSec: 300 }),
+  source: new ApiTaskSource({ baseUrl, taskId, auth }),
   makeReporter: () =>
     new ApiTaskReporter({
       baseUrl,
       auth,
-      leaseTtlSec: 300,
       heartbeatIntervalMs: 60_000,
     }),
   executeTask: executor,

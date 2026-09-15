@@ -53,12 +53,11 @@ describe('runtime profile integration', () => {
       id: 'profile-a',
       definitionCid: 'bafy-profile',
       runtimeKind: 'runtime-a',
-      leaseTtlSec: 300,
       sandboxConfig: {
         network: { allowedHosts: ['api.example.test'] },
       },
       source: 'runtime-profile:profile-a',
-    } as ResolvedRuntimeProfile;
+    } as unknown as ResolvedRuntimeProfile;
     const snapshot: EffectivePolicySnapshotV1 = {
       version: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
       runtimeKind: 'runtime-a',

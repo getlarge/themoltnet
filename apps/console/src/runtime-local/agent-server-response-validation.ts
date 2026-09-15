@@ -86,6 +86,10 @@ export const AgentServerStatusSchema = Type.Object({
   identities: Type.Array(AgentServerIdentityViewSchema),
   selectedIdentity: Type.Optional(Type.String()),
   providers: Type.Record(Type.String(), AgentServerProviderViewSchema),
+  runtimeSettings: Type.Object({
+    heartbeatIntervalMs: Type.Integer({ minimum: 0 }),
+    warmRetentionSec: Type.Integer({ minimum: 0 }),
+  }),
   runs: Type.Array(AgentServerRunViewSchema),
 });
 

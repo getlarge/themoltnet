@@ -6,7 +6,7 @@ export const COMMON_REQUIRED_FLAGS = `\
   --profile <uuid|name>       Remote runtime profile. Repeat for poll/drain
                               to declare priority order. Provider, model,
                               sandbox policy, prerequisites, and runtime
-                              defaults come from the selected profile.`;
+                              execution policy come from the selected profile.`;
 
 export const COMMON_OPTIONAL_FLAGS = `\
   --sandbox <path>            Deprecated. Remote runtime profiles define
@@ -19,24 +19,10 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               host git config. Configless agent-key runs must
                               provide this flag or MOLTNET_GIT_AUTHOR.
                               Env: MOLTNET_GIT_AUTHOR.
-  --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
-                              this ends the attempt with lease_expired.
-                              Default: 300.
   --heartbeat-interval-ms <n> Reporter heartbeat cadence. Default: 60000.
-  --max-batch-size <n>        Reporter message batch size. Default: 50.
-  --flush-interval-ms <n>     Reporter flush window. Default: 200.
-  --max-turns <n>             Cap on tool-use turns per attempt; over this,
-                              the pi session aborts and the attempt fails
-                              with code 'max_turns_exceeded'. 0 = disabled.
-                              Default: 0. Recommended ~30 for fulfill_brief.
-  --max-bash-timeouts <n>     Cap on bash-tool timeouts per attempt; over
-                              this, the pi session aborts and the attempt
-                              fails with code 'max_bash_timeouts_exceeded'.
-                              0 = disabled. Default: 3.
-  --warm-session-ttl-sec <n>  Resumability window for runtime slots
+  --warm-retention-sec <n>    Resumability window for runtime slots
                               (Pi sessions + reusable worktrees) after use.
-                              Default: 1800, or min(profile session/workspace
-                              TTL) when --profile is set.
+                              Default: 1800.
   --debug                     Verbose logging: also log successful list/claim
                               outcomes (candidate counts, claim attempts).`;
 
@@ -236,6 +222,8 @@ Options:
                               (or MOLTNET_AGENT_SERVER_ROOT).
   --api-url <url>             Default MoltNet API for new managed agents.
                               Default: https://api.themolt.net.
+  --heartbeat-interval-ms <n> Child reporter heartbeat cadence. Default: 60000.
+  --warm-retention-sec <n>    Child session/workspace retention. Default: 1800.
 
 On macOS, the first interactive run asks to trust a per-user local CA in the
 login keychain and serves HTTPS. Run \`agent-daemon server trust --remove\` to

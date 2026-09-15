@@ -111,11 +111,8 @@ const profile = await agent.runtimeProfiles.create(
     provider: 'ollama-cloud',
     model: 'gemma4:31b-cloud',
     runtimeKind: 'gondolin_pi',
-    leaseTtlSec: 300,
-    heartbeatIntervalMs: 60_000,
-    maxBatchSize: 50,
-    sessionTtlSec: 1800,
-    workspaceTtlSec: 1800,
+    maxTurns: 30,
+    maxBashTimeouts: 3,
     requiredEnv: ['OLLAMA_API_KEY'],
     requiredTools: ['read', 'write', 'edit', 'bash'],
     requiredExecutables: ['git', 'gh'],
@@ -158,7 +155,10 @@ moltnet start --agent local-dev -- sh -c '
 '
 ```
 
-Leave it running. It idles until a compatible task lands in the queue.
+Leave it running. It idles until a compatible task lands in the queue. Use
+`--heartbeat-interval-ms` and `--warm-retention-sec` to change the local
+60-second heartbeat cadence or 30-minute session/workspace retention. These
+settings belong to the daemon host and are not stored in the runtime profile.
 
 ## Create And Watch A Smoke Task
 

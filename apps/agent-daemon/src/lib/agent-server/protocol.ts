@@ -131,6 +131,10 @@ export const AgentServerStatusSchema = Type.Object(
     selectedIdentity: Type.Optional(Type.String()),
     providers: Type.Record(Type.String(), schemaRef(AgentServerProviderSchema)),
     runs: Type.Array(schemaRef(AgentServerRunSchema)),
+    runtimeSettings: Type.Object({
+      heartbeatIntervalMs: Type.Integer({ minimum: 0 }),
+      warmRetentionSec: Type.Integer({ minimum: 0 }),
+    }),
   },
   { $id: 'AgentServerStatus' },
 );

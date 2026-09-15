@@ -86,6 +86,10 @@ const agentServerState = {
         hasApiKey: true,
       },
     },
+    runtimeSettings: {
+      heartbeatIntervalMs: 60_000,
+      warmRetentionSec: 1800,
+    },
     runs: [],
   },
 };

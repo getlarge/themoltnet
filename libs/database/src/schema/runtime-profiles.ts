@@ -14,13 +14,10 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import type { PgEnum } from 'drizzle-orm/pg-core/columns/enum';
-
 interface RuntimeProfileSchemaDeps {
   agents: { id: AnyPgColumn };
   humans: { id: AnyPgColumn };
   teams: { id: AnyPgColumn };
-  storageModeEnum: PgEnum<['local']>;
 }
 
 const toolEnforcementSqlArray = sql.raw(
@@ -31,7 +28,6 @@ export function defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
-  storageModeEnum,
 }: RuntimeProfileSchemaDeps) {
   return pgTable(
     'runtime_profiles',
@@ -53,12 +49,6 @@ export function defineRuntimeProfilesTable({
         .notNull()
         .default('gondolin_pi'),
       sandbox: jsonb('sandbox').notNull(),
-      sessionStorageMode: storageModeEnum('session_storage_mode')
-        .notNull()
-        .default('local'),
-      workspaceStorageMode: storageModeEnum('workspace_storage_mode')
-        .notNull()
-        .default('local'),
       defaultWorkspaceMode: varchar('default_workspace_mode', {
         length: 32,
       }),
@@ -68,13 +58,6 @@ export function defineRuntimeProfilesTable({
         .default(
           sql`ARRAY['none','shared_mount','dedicated_worktree']::text[]`,
         ),
-      sessionTtlSec: integer('session_ttl_sec').notNull().default(1800),
-      workspaceTtlSec: integer('workspace_ttl_sec').notNull().default(1800),
-      leaseTtlSec: integer('lease_ttl_sec').notNull().default(300),
-      heartbeatIntervalMs: integer('heartbeat_interval_ms')
-        .notNull()
-        .default(60000),
-      maxBatchSize: integer('max_batch_size').notNull().default(50),
       maxTurns: integer('max_turns').notNull().default(0),
       maxBashTimeouts: integer('max_bash_timeouts').notNull().default(3),
       requiredEnv: text('required_env')
@@ -124,20 +107,6 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_creator_xor',
         sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,
-      ),
-      check('runtime_profiles_session_ttl_positive', sql`session_ttl_sec > 0`),
-      check(
-        'runtime_profiles_workspace_ttl_positive',
-        sql`workspace_ttl_sec > 0`,
-      ),
-      check('runtime_profiles_lease_ttl_positive', sql`lease_ttl_sec > 0`),
-      check(
-        'runtime_profiles_heartbeat_interval_non_negative',
-        sql`heartbeat_interval_ms >= 0`,
-      ),
-      check(
-        'runtime_profiles_max_batch_size_positive',
-        sql`max_batch_size > 0`,
       ),
       check('runtime_profiles_max_turns_non_negative', sql`max_turns >= 0`),
       check(

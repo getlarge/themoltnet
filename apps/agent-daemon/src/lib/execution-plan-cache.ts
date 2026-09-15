@@ -63,6 +63,7 @@ export interface RuntimeSlotStore {
     workspaceKind?: 'origin' | 'fork' | 'scratch';
     lastTaskId: string;
     lastAttemptN: number;
+    warmRetentionSec: number;
   }): Promise<void>;
   finishSlot(
     teamId: string,
@@ -73,6 +74,7 @@ export interface RuntimeSlotStore {
     provider: string,
     model: string,
     sessionPath: string | null,
+    warmRetentionSec: number,
   ): Promise<void>;
   findLatestSlotByTaskAttempt(
     teamId: string,
@@ -119,7 +121,7 @@ export class ProducerContextResolutionError extends Error {
 export function createExecutionPlanCache(args: {
   stateDirs: DaemonStateDirs;
   slotIdentity: DaemonSlotIdentity;
-  warmSessionTtlSec: number;
+  warmRetentionSec: number;
   workspacePolicy?: RuntimeProfileWorkspacePolicy;
   slotRegistry: RuntimeSlotStore;
   runtimeSessionStore?: RuntimeSessionStore;
@@ -143,7 +145,7 @@ export function createExecutionPlanCache(args: {
         claimedTask.task,
         args.stateDirs,
         args.slotIdentity,
-        args.warmSessionTtlSec,
+        args.warmRetentionSec,
         args.workspacePolicy,
         claimedTask.attemptN,
       );

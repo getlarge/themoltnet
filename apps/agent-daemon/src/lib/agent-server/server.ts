@@ -28,6 +28,10 @@ import Fastify, {
 } from 'fastify';
 
 import {
+  DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
+  type LocalOperationalSettings,
+} from '../options.js';
+import {
   ProviderConfigurationError,
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
@@ -148,6 +152,8 @@ export interface BuildAgentServerOptions {
   tls?: { key: string; cert: string };
   /** Default MoltNet API URL for newly created managed agents. */
   defaultApiUrl: string;
+  /** Effective settings inherited by every child run. */
+  runtimeSettings?: LocalOperationalSettings;
   /** Environment-selected identity, ahead of the persisted default. */
   activeIdentity?: string;
   version: string;
@@ -450,6 +456,8 @@ function registerStatusRoute(
         ...(selected ? { selectedIdentity: selected } : {}),
         providers: options.providers.list(),
         runs: runViews(runs),
+        runtimeSettings:
+          options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
       };
     },
   );

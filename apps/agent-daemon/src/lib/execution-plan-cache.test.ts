@@ -20,6 +20,9 @@ const PROFILE_ID = 'dddddddd-0000-4000-8000-000000000004';
 const SLOT_TTL_MS = 300_000;
 
 type BeginSlotInput = Parameters<RuntimeSlotStore['beginSlot']>[0];
+type FakeBeginSlotInput = Omit<BeginSlotInput, 'warmRetentionSec'> & {
+  warmRetentionSec?: number;
+};
 
 class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
   private readonly slotsByAttempt = new Map<
@@ -27,12 +30,13 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
     ResolvedRuntimeSlotContext
   >();
 
-  async beginSlot(input: BeginSlotInput): Promise<void> {
+  async beginSlot(input: FakeBeginSlotInput): Promise<void> {
     this.slotsByAttempt.set(
       attemptKey(input.teamId, input.lastTaskId, input.lastAttemptN),
       {
         slot: {
-          expiresAtMs: Date.now() + SLOT_TTL_MS,
+          expiresAtMs:
+            Date.now() + (input.warmRetentionSec ?? SLOT_TTL_MS / 1000) * 1000,
           id: input.slotKey,
           runtimeProfileId: input.runtimeProfileId,
         },
@@ -64,11 +68,12 @@ class InMemoryRuntimeSlotStore implements RuntimeSlotStore {
     _provider: string,
     _model: string,
     sessionPath: string | null,
+    warmRetentionSec = SLOT_TTL_MS / 1000,
   ): Promise<void> {
     const slot = this.slotsByAttempt.get(attemptKey(teamId, taskId, attemptN));
     if (!slot) return;
 
-    slot.slot.expiresAtMs = Date.now() + SLOT_TTL_MS;
+    slot.slot.expiresAtMs = Date.now() + warmRetentionSec * 1000;
     if (slot.session) {
       slot.session.sessionPath = sessionPath;
     }
@@ -141,6 +146,7 @@ async function finishProducerSlot(
     'p',
     'm',
     args.sessionPath,
+    SLOT_TTL_MS / 1000,
   );
 }
 
@@ -189,7 +195,7 @@ describe('createExecutionPlanCache', () => {
         runtimeInstanceId: 'worker-b',
         runtimeProfileId: PROFILE_ID,
       },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -253,7 +259,7 @@ describe('createExecutionPlanCache', () => {
         runtimeInstanceId: 'worker-b',
         runtimeProfileId: PROFILE_ID,
       },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -331,7 +337,7 @@ describe('createExecutionPlanCache', () => {
         agentName: 'local-eval-943',
         runtimeProfileId: PROFILE_ID,
       },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -418,7 +424,7 @@ describe('createExecutionPlanCache', () => {
         agentName: 'local-eval-943',
         runtimeProfileId: PROFILE_ID,
       },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -495,7 +501,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -575,7 +581,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -659,7 +665,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       workspacePolicy: { allowedWorkspaceModes: ['dedicated_worktree'] },
       slotRegistry: slotStore,
       sourceAttemptResolver: sourceAttemptResolverWithRevision(revision),
@@ -741,7 +747,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
       runtimeSessionStore,
     });
@@ -813,7 +819,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
       runtimeSessionStore,
     });
@@ -878,7 +884,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: new InMemoryRuntimeSlotStore(),
       runtimeSessionStore,
       sourceAttemptResolver: sourceAttemptResolverWithBranch('feat/parent'),
@@ -940,7 +946,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: new InMemoryRuntimeSlotStore(),
       runtimeSessionStore,
       sourceAttemptResolver: sourceAttemptResolverWithBranch('feat/parent'),
@@ -1004,7 +1010,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: new InMemoryRuntimeSlotStore(),
       runtimeSessionStore,
       sourceAttemptResolver: sourceAttemptResolverWithBranch(null),
@@ -1077,7 +1083,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
       runtimeSessionStore,
     });
@@ -1155,7 +1161,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -1212,7 +1218,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -1285,7 +1291,7 @@ describe('createExecutionPlanCache', () => {
         agentName: 'local-eval-943',
         runtimeProfileId: PROFILE_ID,
       },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       slotRegistry: slotStore,
     });
 
@@ -1347,7 +1353,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       workspacePolicy: { allowedWorkspaceModes: ['none'] },
       slotRegistry: slotStore,
     });
@@ -1419,7 +1425,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       workspacePolicy: { allowedWorkspaceModes: ['dedicated_worktree'] },
       slotRegistry: slotStore,
     });
@@ -1458,7 +1464,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       workspacePolicy: { allowedWorkspaceModes: ['shared_mount'] },
       slotRegistry: new InMemoryRuntimeSlotStore(),
     });
@@ -1497,7 +1503,7 @@ describe('createExecutionPlanCache', () => {
     const cache = createExecutionPlanCache({
       stateDirs,
       slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
-      warmSessionTtlSec: 300,
+      warmRetentionSec: 300,
       workspacePolicy: { allowedWorkspaceModes: ['dedicated_worktree'] },
       slotRegistry: new InMemoryRuntimeSlotStore(),
     });

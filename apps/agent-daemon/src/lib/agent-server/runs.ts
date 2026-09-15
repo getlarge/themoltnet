@@ -33,6 +33,10 @@ import {
 import { connect } from '@themoltnet/sdk/node';
 
 import {
+  DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
+  type LocalOperationalSettings,
+} from '../options.js';
+import {
   type ActivatedAgent,
   externalAgentLocation,
   verifyAgentActivation,
@@ -137,6 +141,8 @@ export interface RunManagerOptions {
   maxActiveRunsPerAgent?: number;
   /** Operator-owned allowlist used to resolve profile runtime kinds locally. */
   runtimeRegistry?: RuntimeRegistry;
+  /** Settings forwarded identically to every supervised child run. */
+  runtimeSettings?: LocalOperationalSettings;
   /** Injectable preflight boundary for HTTP integration tests. */
   resolveRuntimeModule?: (
     spec: RunSpec,
@@ -258,6 +264,16 @@ export class RunManager {
       ...spec.profiles.flatMap((profile) => ['--profile', profile]),
       '--task-types',
       spec.taskTypes.join(','),
+      '--heartbeat-interval-ms',
+      String(
+        (this.options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS)
+          .heartbeatIntervalMs,
+      ),
+      '--warm-retention-sec',
+      String(
+        (this.options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS)
+          .warmRetentionSec,
+      ),
       ...target.extraArgs,
     ];
 

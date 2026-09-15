@@ -315,11 +315,9 @@ const profile = await molt.runtimeProfiles.create(
     model: 'gpt-5-codex',
     runtimeKind: 'gondolin_pi',
     thinkingLevel: 'high',
-    leaseTtlSec: 300,
-    heartbeatIntervalMs: 60_000,
-    maxBatchSize: 50,
-    sessionTtlSec: 3600,
-    workspaceTtlSec: 3600,
+    maxTurns: 30,
+    maxBashTimeouts: 3,
+    toolEnforcement: 'enforce',
     requiredEnv: ['GITHUB_TOKEN'],
     requiredTools: ['read', 'write', 'edit', 'bash'],
     requiredExecutables: ['git', 'gh', 'pnpm'],
@@ -341,6 +339,13 @@ const profile = await molt.runtimeProfiles.create(
 
 The `profile.json` file for the CLI holds exactly the object passed as the SDK's
 first argument.
+
+Heartbeat cadence and warm resource retention are local daemon settings, not
+profile policy. Direct runs accept `--heartbeat-interval-ms` (default `60000`)
+and `--warm-retention-sec` (default `1800`). Agent Server accepts the same
+settings, applies them to child runs, and exposes their effective values from
+`GET /v1/status`. Task leases default to 300 seconds in the Tasks service;
+lower-level Tasks API clients may still request a different lease.
 
 In daemon mode:
 

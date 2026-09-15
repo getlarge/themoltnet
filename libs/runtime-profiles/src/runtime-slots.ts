@@ -88,6 +88,7 @@ export const BeginRuntimeSlotBody = Type.Object(
     workspaceKind: Type.Optional(RuntimeWorkspaceKind),
     lastTaskId: Type.String({ format: 'uuid' }),
     lastAttemptN: Type.Integer({ minimum: 1 }),
+    warmRetentionSec: Type.Integer({ minimum: 0, maximum: 86_400 }),
   },
   { $id: 'BeginRuntimeSlotBody', additionalProperties: false },
 );
@@ -103,6 +104,7 @@ export const FinishRuntimeSlotBody = Type.Object(
     taskId: Type.String({ format: 'uuid' }),
     attemptN: Type.Integer({ minimum: 1 }),
     sessionPath: Type.Optional(Type.String({ minLength: 1 })),
+    warmRetentionSec: Type.Integer({ minimum: 0, maximum: 86_400 }),
   },
   { $id: 'FinishRuntimeSlotBody', additionalProperties: false },
 );

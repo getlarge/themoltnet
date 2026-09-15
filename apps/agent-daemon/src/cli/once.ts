@@ -6,15 +6,10 @@ import {
   ApiTaskReporter,
   ApiTaskSource,
   createLocalSeedSigner,
-  resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfile,
   type TaskExecutor,
-  validateRuntimeProfilePrerequisites,
 } from '@themoltnet/agent-runtime';
-import {
-  assertGuestEnvironmentBoundary,
-  findMainWorktree,
-} from '@themoltnet/pi-runtime';
+import { findMainWorktree } from '@themoltnet/pi-runtime';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
@@ -28,16 +23,9 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import { createRuntimeInstanceId } from '../lib/daemon-slot-identity.js';
+import { ProducerContextResolutionError } from '../lib/execution-plan-cache.js';
 import {
-  createRuntimeInstanceId,
-  type DaemonSlotIdentity,
-} from '../lib/daemon-slot-identity.js';
-import {
-  createExecutionPlanCache,
-  ProducerContextResolutionError,
-} from '../lib/execution-plan-cache.js';
-import {
-  attestPreparedRuntime,
   resolveExecutorSigningPrivateKey,
   validateDaemonScopes,
   validateExecutorSigningIdentity,
@@ -51,13 +39,14 @@ import {
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
-  commonOptionDefs,
-  type CommonOptions,
   MissingRequiredOptionError,
-  parseCommonOptions,
+  parseRuntimeCommandOptions,
+  runtimeCommandOptionDefs,
+  type RuntimeCommandOptions,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
+import { prepareRuntimeProfile } from '../lib/prepare-runtime-profile.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -73,13 +62,9 @@ import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
-import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
-import {
-  assertRuntimeAdapterSupportsProfile,
-  type DaemonRuntimeAdapter,
-} from '../runtime.js';
+import { type DaemonRuntimeAdapter } from '../runtime.js';
 
 export async function runOnce(
   argv: string[],
@@ -93,7 +78,7 @@ export async function runOnce(
   const { values } = parseArgs({
     args: argv,
     options: {
-      ...commonOptionDefs(),
+      ...runtimeCommandOptionDefs(),
       'task-id': { type: 'string', short: 't' },
       team: { type: 'string' },
       sandbox: { type: 'string' },
@@ -113,9 +98,9 @@ export async function runOnce(
     console.error(ONCE_HELP);
     return 1;
   }
-  let opts: CommonOptions;
+  let commandOptions: RuntimeCommandOptions;
   try {
-    opts = parseCommonOptions(values);
+    commandOptions = parseRuntimeCommandOptions(values);
   } catch (err) {
     if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
@@ -124,6 +109,7 @@ export async function runOnce(
     }
     throw err;
   }
+  const { identity, operations } = commandOptions;
   if (values.sandbox) {
     console.error(
       'Cannot use --sandbox. ' +
@@ -143,7 +129,6 @@ export async function runOnce(
     ) === 'off'
       ? null
       : loadRuntimeCredentialConfig(credentialSources);
-  const initialOpts = opts;
   // Credential resolution follows --agent-root only when it was actually
   // passed. The old cwd default meant "search the current checkout", which is
   // exactly the repository auto-discovery the central-store cutover removed.
@@ -154,7 +139,7 @@ export async function runOnce(
     await (async () => {
       let gate = 'resolve_agent_context';
       try {
-        const resolvedContext = await resolveAgentContext(initialOpts.agent, {
+        const resolvedContext = await resolveAgentContext(identity.agent, {
           agentRootDir: explicitAgentRootDir,
           credentialSource: cfg.credentialSource,
           envApiUrl: cfg.apiUrl,
@@ -183,7 +168,7 @@ export async function runOnce(
         });
         gate = 'resolve_agent_identity';
         const agentIdentity = await resolveDaemonAgentIdentity({
-          agentName: initialOpts.agent,
+          agentName: identity.agent,
           whoami,
           credentialSource: cfg.credentialSource,
           agentDir: resolvedContext.agentDir,
@@ -203,9 +188,9 @@ export async function runOnce(
       } catch (error) {
         await logDaemonStartupFailure({
           serviceName: 'agent-daemon.once',
-          level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
+          level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
           gate,
-          agent: initialOpts.agent,
+          agent: identity.agent,
           credentialSource: cfg.credentialSource,
           error,
         });
@@ -229,41 +214,6 @@ export async function runOnce(
     teamId: values.team,
     cwd: daemonRootDir,
   });
-  assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-  const preparedRuntime = attestPreparedRuntime(
-    await runtimeAdapter.prepare({ profile }),
-    signingPrivateKey,
-  );
-  validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
-    tools: preparedRuntime.tools,
-    executables: preparedRuntime.executables,
-  });
-  assertGuestEnvironmentBoundary({
-    forwardEnv: profile.requiredEnv,
-    sandboxEnv: profile.sandboxConfig.env,
-  });
-  await ctx.agent.tasks.registerExecutorManifest(
-    await preparedRuntime.attestor.registration(),
-  );
-  opts = parseCommonOptions(values, {
-    runtimeDefaults: {
-      leaseTtlSec: profile.leaseTtlSec,
-      heartbeatIntervalMs: profile.heartbeatIntervalMs,
-      maxBatchSize: profile.maxBatchSize,
-      maxTurns: profile.maxTurns,
-      maxBashTimeouts: profile.maxBashTimeouts,
-      warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
-    },
-  });
-  const sandbox = {
-    config: profile.sandboxConfig,
-    rootDir: profile.mountPath,
-    path: profile.source,
-  };
-  const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile]);
-  process.once('exit', piAgentDir.cleanup);
-  activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
-  const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
     agent: ctx.agent,
@@ -275,30 +225,31 @@ export async function runOnce(
     agent: ctx.agent,
   });
   const runtimeInstanceId = createRuntimeInstanceId();
-  const slotIdentity: DaemonSlotIdentity = {
-    agentName: opts.agent,
-    runtimeProfileId: profile.id,
+  const prepared = await prepareRuntimeProfile({
+    agent: ctx.agent,
+    agentName: identity.agent,
+    profile,
+    prerequisiteEnv: cfg.profilePrerequisiteEnv,
+    runtimeAdapter,
     runtimeInstanceId,
-  };
-  const executionPlans = createExecutionPlanCache({
-    stateDirs,
-    slotIdentity,
-    warmSessionTtlSec: opts.warmSessionTtlSec,
-    workspacePolicy: {
-      defaultWorkspaceMode: profile.defaultWorkspaceMode,
-      allowedWorkspaceModes: profile.allowedWorkspaceModes,
-    },
+    signingPrivateKey,
     slotRegistry,
     runtimeSessionStore,
     sourceAttemptResolver,
+    warmRetentionSec: operations.warmRetentionSec,
   });
+  const { executionPlans, preparedRuntime, sandbox, slotIdentity, stateDirs } =
+    prepared;
+  const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile]);
+  process.once('exit', piAgentDir.cleanup);
+  activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',
     agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
       'moltnet.task.id': taskId,
-      'moltnet.agent.name': opts.agent,
+      'moltnet.agent.name': identity.agent,
       'moltnet.credential.source': ctx.credentialSource,
       'moltnet.llm.provider': profile.provider,
       'moltnet.llm.model': profile.model,
@@ -325,11 +276,11 @@ export async function runOnce(
 
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.once',
-    level: cfg.logLevel || (opts.debug ? 'debug' : 'info'),
+    level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
   });
   const rootLogger = logger.child({
     mode: 'once',
-    agent: opts.agent,
+    agent: identity.agent,
     provider: profile.provider,
     model: profile.model,
     thinkingLevel: profile.thinkingLevel,
@@ -345,14 +296,11 @@ export async function runOnce(
     {
       sandbox: sandbox.path,
       taskId,
-      leaseTtlSec: opts.leaseTtlSec,
-      heartbeatIntervalMs: opts.heartbeatIntervalMs,
-      maxTurns: opts.maxTurns,
-      maxBashTimeouts: opts.maxBashTimeouts,
-      warmSessionTtlSec: opts.warmSessionTtlSec,
+      heartbeatIntervalMs: operations.heartbeatIntervalMs,
+      maxTurns: profile.maxTurns,
+      maxBashTimeouts: profile.maxBashTimeouts,
+      warmRetentionSec: operations.warmRetentionSec,
       profileId: profile.id,
-      profileSessionTtlSec: profile.sessionTtlSec,
-      profileWorkspaceTtlSec: profile.workspaceTtlSec,
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
     },
@@ -368,7 +316,7 @@ export async function runOnce(
         taskReader: ctx.agent.tasks,
       },
       {
-        agentName: opts.agent,
+        agentName: identity.agent,
         mainWorktree: resolveMainWorktree(sandbox.rootDir),
         runtimeInstanceId,
         runtimeProfileId: profile.id,
@@ -448,7 +396,7 @@ export async function runOnce(
 
   try {
     const rawExecuteTask = preparedRuntime.createTaskExecutor({
-      agentName: opts.agent,
+      agentName: identity.agent,
       moltnetAgent: ctx.agent,
       agentIdentity,
       hostCapabilitySigner,
@@ -484,8 +432,8 @@ export async function runOnce(
         executionPlans.getOrCreate(claimedTask),
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
       toolPolicyLogger: rootLogger,
-      maxTurns: opts.maxTurns,
-      maxBashTimeouts: opts.maxBashTimeouts,
+      maxTurns: profile.maxTurns,
+      maxBashTimeouts: profile.maxBashTimeouts,
     });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
       if (runtimeCredentialConfig) {
@@ -558,6 +506,7 @@ export async function runOnce(
           workspaceKind: executionPlan.workspaceKind,
           lastTaskId: claimedTask.task.id,
           lastAttemptN: claimedTask.attemptN,
+          warmRetentionSec: operations.warmRetentionSec,
         });
       }
       // Publish the live attempt number so a SIGINT/SIGTERM `drain` can
@@ -596,6 +545,7 @@ export async function runOnce(
                   executionPlan.sessionPersistence.sessionDir,
                 )
               : null,
+            operations.warmRetentionSec,
           );
         }
       }
@@ -612,7 +562,6 @@ export async function runOnce(
         agent: ctx.agent,
         taskId,
         teamId: profile.teamId,
-        leaseTtlSec: opts.leaseTtlSec,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,
       }),
@@ -620,10 +569,7 @@ export async function runOnce(
         new ApiTaskReporter({
           tasks: ctx.agent.tasks,
           teamId: profile.teamId,
-          leaseTtlSec: opts.leaseTtlSec,
-          heartbeatIntervalMs: opts.heartbeatIntervalMs,
-          maxBatchSize: opts.maxBatchSize,
-          flushIntervalMs: opts.flushIntervalMs,
+          heartbeatIntervalMs: operations.heartbeatIntervalMs,
         }),
       // Finalize inside the runtime loop so the correlation anchor writer
       // sees the claimedTask alongside its output. once mode only ever

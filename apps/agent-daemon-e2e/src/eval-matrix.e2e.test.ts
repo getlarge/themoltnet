@@ -14,7 +14,7 @@
  *
  * WARM-SLOT: the judge resolves the producer's runtime slot from the DB, so it
  * survives across the two `runOnce` calls as long as the producer slot has not
- * expired (long `--warm-session-ttl-sec`).
+ * expired (long `--warm-retention-sec`).
  */
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -74,13 +74,8 @@ async function createProfile(
       runtimeKind: 'gondolin_pi',
       provider: PROVIDER,
       model,
-      leaseTtlSec: 300,
-      heartbeatIntervalMs: 5_000,
-      maxBatchSize: 1,
       maxTurns: 14,
       maxBashTimeouts: 1,
-      sessionTtlSec: 1_200,
-      workspaceTtlSec: 1_200,
       defaultWorkspaceMode: 'shared_mount',
       allowedWorkspaceModes: ['none', 'shared_mount'],
       requiredEnv: ['OLLAMA_API_KEY'],
@@ -119,12 +114,8 @@ async function runTaskOnce(input: {
       input.teamId,
       '--agent-root',
       input.agentRoot,
-      '--warm-session-ttl-sec',
+      '--warm-retention-sec',
       WARM_TTL_SEC,
-      '--max-turns',
-      '14',
-      '--max-bash-timeouts',
-      '1',
     ]);
     if (exitCode !== 0) {
       throw new Error(`runOnce exited ${exitCode} for task ${input.taskId}`);

@@ -149,6 +149,7 @@ export type BeginRuntimeSlotBody = {
   sessionPath?: string;
   slotKey: string;
   taskType: string;
+  warmRetentionSec: number;
   workspaceId?: string;
   workspaceKind?: 'origin' | 'fork' | 'scratch';
   worktreeBranch?: string;
@@ -526,10 +527,7 @@ export type CreateRuntimeProfileBody = {
   }>;
   defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
-  heartbeatIntervalMs?: number;
-  leaseTtlSec?: number;
   maxBashTimeouts?: number;
-  maxBatchSize?: number;
   maxOutputTokens?: number | null;
   maxTurns?: number;
   model: string;
@@ -559,8 +557,6 @@ export type CreateRuntimeProfileBody = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  sessionStorageMode?: 'local';
-  sessionTtlSec?: number;
   temperature?: null | number;
   thinkingLevel?:
     | 'off'
@@ -576,8 +572,6 @@ export type CreateRuntimeProfileBody = {
   toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
-  workspaceStorageMode?: 'local';
-  workspaceTtlSec?: number;
 };
 
 export type CreateTaskBody = {
@@ -954,6 +948,7 @@ export type FinishRuntimeSlotBody = {
   sessionPath?: string;
   slotKey: string;
   taskId: string;
+  warmRetentionSec: number;
 };
 
 export type Health = {
@@ -1764,11 +1759,11 @@ export type RecoveryChallengeResponse = {
 
 export type RecoveryCredentialsResponse = {
   /**
-   * Actual server-resolved Hydra OAuth2 client identifier whose secret was replaced
+   * Server-resolved Hydra OAuth2 client identifier: the existing client whose secret was replaced, or the client created for an agent that had none
    */
   clientId: string;
   /**
-   * X25519 sealed envelope containing the replacement OAuth2 client secret
+   * X25519 sealed envelope containing the issued OAuth2 client secret: the replacement for an existing client, or the secret of the client created for an agent that had none
    */
   sealedClientSecret: string;
 };
@@ -2099,11 +2094,8 @@ export type RuntimeProfile = {
   defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   definitionCid: string;
   description: string | null;
-  heartbeatIntervalMs: number;
   id: string;
-  leaseTtlSec: number;
   maxBashTimeouts: number;
-  maxBatchSize: number;
   maxOutputTokens: number | null;
   maxTurns: number;
   model: string;
@@ -2134,8 +2126,6 @@ export type RuntimeProfile = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  sessionStorageMode: 'local';
-  sessionTtlSec: number;
   teamId: string;
   temperature: null | number;
   thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
@@ -2146,8 +2136,6 @@ export type RuntimeProfile = {
   topK: number | null;
   topP: null | number;
   updatedAt: string;
-  workspaceStorageMode: 'local';
-  workspaceTtlSec: number;
 };
 
 export type RuntimeProfileContext = {
@@ -2172,11 +2160,8 @@ export type RuntimeProfileListResponse = {
     defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
     definitionCid: string;
     description: string | null;
-    heartbeatIntervalMs: number;
     id: string;
-    leaseTtlSec: number;
     maxBashTimeouts: number;
-    maxBatchSize: number;
     maxOutputTokens: number | null;
     maxTurns: number;
     model: string;
@@ -2207,8 +2192,6 @@ export type RuntimeProfileListResponse = {
         shadowMode?: 'deny' | 'tmpfs';
       };
     };
-    sessionStorageMode: 'local';
-    sessionTtlSec: number;
     teamId: string;
     temperature: null | number;
     thinkingLevel:
@@ -2226,8 +2209,6 @@ export type RuntimeProfileListResponse = {
     topK: number | null;
     topP: null | number;
     updatedAt: string;
-    workspaceStorageMode: 'local';
-    workspaceTtlSec: number;
   }>;
 };
 
@@ -3089,10 +3070,7 @@ export type UpdateRuntimeProfileBody = {
   }>;
   defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
-  heartbeatIntervalMs?: number;
-  leaseTtlSec?: number;
   maxBashTimeouts?: number;
-  maxBatchSize?: number;
   maxOutputTokens?: number | null;
   maxTurns?: number;
   model?: string;
@@ -3122,8 +3100,6 @@ export type UpdateRuntimeProfileBody = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  sessionStorageMode?: 'local';
-  sessionTtlSec?: number;
   temperature?: null | number;
   thinkingLevel?:
     | 'off'
@@ -3139,8 +3115,6 @@ export type UpdateRuntimeProfileBody = {
   toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
-  workspaceStorageMode?: 'local';
-  workspaceTtlSec?: number;
 };
 
 export type UpdateTaskMetadataBody = {
@@ -7658,7 +7632,7 @@ export type RenderContextPackData = {
   body: {
     pinned?: boolean;
     /**
-     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     * Render method label. Server render methods start with "server:" and must omit renderedMarkdown; caller-authored methods start with "agent:", "pi:" or "agent-" and require it.
      */
     renderMethod: string;
     /**
@@ -7727,7 +7701,7 @@ export type PreviewRenderedPackData = {
    */
   body: {
     /**
-     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     * Render method label. Server render methods start with "server:" and must omit renderedMarkdown; caller-authored methods start with "agent:", "pi:" or "agent-" and require it.
      */
     renderMethod: string;
     /**
@@ -8171,10 +8145,6 @@ export type RecoverAgentCredentialsErrors = {
    * Default Response
    */
   400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
   /**
    * Default Response
    */
@@ -11081,6 +11051,7 @@ export type BeginRuntimeSlotData = {
     sessionPath?: string;
     slotKey: string;
     taskType: string;
+    warmRetentionSec: number;
     workspaceId?: string;
     workspaceKind?: 'origin' | 'fork' | 'scratch';
     worktreeBranch?: string;
@@ -11538,6 +11509,7 @@ export type FinishRuntimeSlotData = {
     sessionPath?: string;
     slotKey: string;
     taskId: string;
+    warmRetentionSec: number;
   };
   headers: {
     /**

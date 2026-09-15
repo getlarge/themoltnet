@@ -9,13 +9,9 @@ import {
   type ClaimedTask,
   createLocalSeedSigner,
   PollingApiTaskSource,
-  type ResolvedRuntimeProfile,
-  resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfiles,
-  validateRuntimeProfilePrerequisites,
 } from '@themoltnet/agent-runtime';
 import {
-  assertGuestEnvironmentBoundary,
   findMainWorktree,
   GuestEnvironmentBoundaryError,
 } from '@themoltnet/pi-runtime';
@@ -32,17 +28,9 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
+import { createRuntimeInstanceId } from '../lib/daemon-slot-identity.js';
+import { ProducerContextResolutionError } from '../lib/execution-plan-cache.js';
 import {
-  createRuntimeInstanceId,
-  type DaemonSlotIdentity,
-} from '../lib/daemon-slot-identity.js';
-import {
-  createExecutionPlanCache,
-  ProducerContextResolutionError,
-} from '../lib/execution-plan-cache.js';
-import {
-  type AttestedDaemonRuntime,
-  attestPreparedRuntime,
   resolveExecutorSigningPrivateKey,
   validateDaemonScopes,
   validateExecutorSigningIdentity,
@@ -56,14 +44,18 @@ import {
 import { isHelpFlag } from '../lib/help.js';
 import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
-  commonOptionDefs,
-  type CommonOptions,
   MissingRequiredOptionError,
-  parseCommonOptions,
+  parseRuntimeCommandOptions,
+  runtimeCommandOptionDefs,
+  type RuntimeCommandOptions,
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
+import {
+  type PreparedRuntimeProfile,
+  prepareRuntimeProfile,
+} from '../lib/prepare-runtime-profile.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -79,13 +71,9 @@ import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
-import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
-import {
-  assertRuntimeAdapterSupportsProfile,
-  type DaemonRuntimeAdapter,
-} from '../runtime.js';
+import type { DaemonRuntimeAdapter } from '../runtime.js';
 
 export interface PollSharedArgs {
   argv: string[];
@@ -96,19 +84,7 @@ export interface PollSharedArgs {
   runtimeAdapter?: DaemonRuntimeAdapter;
 }
 
-interface ProfileRuntime {
-  common: CommonOptions;
-  profile: ResolvedRuntimeProfile;
-  sandbox: {
-    config: ResolvedRuntimeProfile['sandboxConfig'];
-    rootDir: string;
-    path: string;
-  };
-  stateDirs: ReturnType<typeof ensureDaemonStateDirs>;
-  slotIdentity: DaemonSlotIdentity;
-  executionPlans: ReturnType<typeof createExecutionPlanCache>;
-  preparedRuntime: AttestedDaemonRuntime;
-}
+type ProfileRuntime = PreparedRuntimeProfile;
 
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
   if (isHelpFlag(opts.argv)) {
@@ -119,7 +95,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const { values } = parseArgs({
     args: opts.argv,
     options: {
-      ...commonOptionDefs(),
+      ...runtimeCommandOptionDefs(),
       team: { type: 'string' },
       'task-types': { type: 'string' },
       'correlation-id': { type: 'string' },
@@ -156,9 +132,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     return 1;
   }
   const diaryIds = parseCsv(values['diary-ids']);
-  let baseCommon: CommonOptions;
+  let commandOptions: RuntimeCommandOptions;
   try {
-    baseCommon = parseCommonOptions(values);
+    commandOptions = parseRuntimeCommandOptions(values);
   } catch (err) {
     if (err instanceof MissingRequiredOptionError) {
       console.error(`${err.message}\n`);
@@ -167,6 +143,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     }
     throw err;
   }
+  const { identity, operations } = commandOptions;
   const pollIntervalMs = optionalPositiveInt(
     values['poll-interval-ms'],
     'poll-interval-ms',
@@ -241,7 +218,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   } = await (async () => {
     let gate = 'resolve_agent_context';
     try {
-      const resolvedContext = await resolveAgentContext(baseCommon.agent, {
+      const resolvedContext = await resolveAgentContext(identity.agent, {
         agentRootDir: explicitAgentRootDir,
         credentialSource: cfg.credentialSource,
         envApiUrl: cfg.apiUrl,
@@ -269,7 +246,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       });
       gate = 'resolve_agent_identity';
       const agentIdentity = await resolveDaemonAgentIdentity({
-        agentName: baseCommon.agent,
+        agentName: identity.agent,
         whoami,
         credentialSource: cfg.credentialSource,
         agentDir: resolvedContext.agentDir,
@@ -290,9 +267,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     } catch (error) {
       await logDaemonStartupFailure({
         serviceName: `agent-daemon.${opts.modeLabel}`,
-        level: cfg.logLevel || (baseCommon.debug ? 'debug' : 'info'),
+        level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
         gate,
-        agent: baseCommon.agent,
+        agent: identity.agent,
         credentialSource: cfg.credentialSource,
         error,
       });
@@ -317,31 +294,39 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     cwd: daemonRootDir,
   });
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
-  const preparedRuntimes = new Map<string, AttestedDaemonRuntime>();
   const profiles: typeof resolvedProfiles = [];
+  const runtimes = new Map<string, ProfileRuntime>();
   const skippedProfileBoundaries: Array<{
     profile: (typeof resolvedProfiles)[number];
     error: GuestEnvironmentBoundaryError;
   }> = [];
+  const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
+  const runtimeSessionStore = createApiRuntimeSessionStore({
+    agent: ctx.agent,
+    logger: {
+      warn: (context, message) => rootLogger.warn(context, message),
+    },
+  });
+  const sourceAttemptResolver = createApiSourceAttemptResolver({
+    agent: ctx.agent,
+  });
+  const runtimeInstanceId = createRuntimeInstanceId();
   for (const profile of resolvedProfiles) {
     try {
-      assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-      const prepared = attestPreparedRuntime(
-        await runtimeAdapter.prepare({ profile }),
+      const prepared = await prepareRuntimeProfile({
+        agent: ctx.agent,
+        agentName: identity.agent,
+        profile,
+        prerequisiteEnv: cfg.profilePrerequisiteEnv,
+        runtimeAdapter,
+        runtimeInstanceId,
         signingPrivateKey,
-      );
-      validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
-        tools: prepared.tools,
-        executables: prepared.executables,
+        slotRegistry,
+        runtimeSessionStore,
+        sourceAttemptResolver,
+        warmRetentionSec: operations.warmRetentionSec,
       });
-      assertGuestEnvironmentBoundary({
-        forwardEnv: profile.requiredEnv,
-        sandboxEnv: profile.sandboxConfig.env,
-      });
-      await ctx.agent.tasks.registerExecutorManifest(
-        await prepared.attestor.registration(),
-      );
-      preparedRuntimes.set(profile.id, prepared);
+      runtimes.set(profile.id, prepared);
       profiles.push(profile);
     } catch (error) {
       if (!(error instanceof GuestEnvironmentBoundaryError)) throw error;
@@ -354,17 +339,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       .join('; ');
     throw new Error(`No safe runtime profiles remain. ${details}`);
   }
-  const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
-  const runtimeSessionStore = createApiRuntimeSessionStore({
-    agent: ctx.agent,
-    logger: {
-      warn: (context, message) => rootLogger.warn(context, message),
-    },
-  });
-  const sourceAttemptResolver = createApiSourceAttemptResolver({
-    agent: ctx.agent,
-  });
-  const runtimeInstanceId = createRuntimeInstanceId();
   // PI_CODING_AGENT_DIR is process-wide, so every profile shares one Pi dir.
   const piAgentDir = await resolvePiAgentDir(
     cfg,
@@ -373,53 +347,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
-  const runtimes = new Map<string, ProfileRuntime>();
-  for (const profile of profiles) {
-    const common = parseCommonOptions(values, {
-      runtimeDefaults: {
-        leaseTtlSec: profile.leaseTtlSec,
-        heartbeatIntervalMs: profile.heartbeatIntervalMs,
-        maxBatchSize: profile.maxBatchSize,
-        maxTurns: profile.maxTurns,
-        maxBashTimeouts: profile.maxBashTimeouts,
-        warmSessionTtlSec: resolveProfileWarmSessionTtlSec(profile),
-      },
-    });
-    const sandbox = {
-      config: profile.sandboxConfig,
-      rootDir: profile.mountPath,
-      path: profile.source,
-    };
-    const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
-    const slotIdentity: DaemonSlotIdentity = {
-      agentName: common.agent,
-      runtimeProfileId: profile.id,
-      runtimeInstanceId,
-    };
-    const executionPlans = createExecutionPlanCache({
-      stateDirs,
-      slotIdentity,
-      warmSessionTtlSec: common.warmSessionTtlSec,
-      workspacePolicy: {
-        defaultWorkspaceMode: profile.defaultWorkspaceMode,
-        allowedWorkspaceModes: profile.allowedWorkspaceModes,
-      },
-      slotRegistry,
-      runtimeSessionStore,
-      sourceAttemptResolver,
-    });
-    runtimes.set(profile.id, {
-      common,
-      profile,
-      sandbox,
-      stateDirs,
-      slotIdentity,
-      executionPlans,
-      preparedRuntime: preparedRuntimes.get(profile.id)!,
-    });
-  }
-  const firstRuntime = runtimes.get(profiles[0].id);
-  if (!firstRuntime) {
+  if (!runtimes.has(profiles[0].id)) {
     throw new Error('No runtime profiles resolved');
   }
   const otelShutdown = await initWorkerOtel({
@@ -428,7 +356,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
       'moltnet.team.id': teamId,
-      'moltnet.agent.name': baseCommon.agent,
+      'moltnet.agent.name': identity.agent,
       'moltnet.credential.source': ctx.credentialSource,
       'moltnet.runtime_profile.count': String(profiles.length),
       'moltnet.runtime_profile.ids': profiles.map((p) => p.id).join(','),
@@ -437,11 +365,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: `agent-daemon.${opts.modeLabel}`,
-    level: cfg.logLevel || (baseCommon.debug ? 'debug' : 'info'),
+    level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
   });
   const rootLogger = logger.child({
     mode: opts.modeLabel,
-    agent: baseCommon.agent,
+    agent: identity.agent,
     teamId,
     runtimeProfileIds: profiles.map((p) => p.id),
     runtimeProfileNames: profiles.map((p) => p.name),
@@ -524,13 +452,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           topK: profile.topK,
           maxOutputTokens: profile.maxOutputTokens,
           sandbox: runtime.sandbox.path,
-          leaseTtlSec: runtime.common.leaseTtlSec,
-          heartbeatIntervalMs: runtime.common.heartbeatIntervalMs,
-          maxTurns: runtime.common.maxTurns,
-          maxBashTimeouts: runtime.common.maxBashTimeouts,
-          warmSessionTtlSec: runtime.common.warmSessionTtlSec,
-          profileSessionTtlSec: profile.sessionTtlSec,
-          profileWorkspaceTtlSec: profile.workspaceTtlSec,
+          heartbeatIntervalMs: operations.heartbeatIntervalMs,
+          maxTurns: profile.maxTurns,
+          maxBashTimeouts: profile.maxBashTimeouts,
+          warmRetentionSec: operations.warmRetentionSec,
           defaultWorkspaceMode: profile.defaultWorkspaceMode,
           allowedWorkspaceModes: profile.allowedWorkspaceModes,
         };
@@ -560,7 +485,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             taskReader: ctx.agent.tasks,
           },
           {
-            agentName: selected.common.agent,
+            agentName: identity.agent,
             mainWorktree: resolveMainWorktree(selected.sandbox.rootDir),
             runtimeInstanceId,
             runtimeProfileId: profile.id,
@@ -605,10 +530,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         correlationId: values['correlation-id'],
         profiles: profiles.map((profile) => ({
           profileId: profile.id,
-          leaseTtlSec: requireRuntime(runtimes, profile.id).common.leaseTtlSec,
         })),
         diaryIds: diaryIds.length > 0 ? diaryIds : undefined,
-        leaseTtlSec: firstRuntime.common.leaseTtlSec,
         listLimit,
         pollIntervalMs,
         maxPollIntervalMs,
@@ -616,7 +539,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         stopWhenEmpty: opts.stopWhenEmpty,
         waitForFirstTaskMs: waitForFirstTaskSec * 1_000,
         waitAfterTaskMs: waitAfterTaskSec * 1_000,
-        debug: baseCommon.debug,
+        debug: identity.debug,
         traceIdlePolling: cfg.traceIdlePolling,
         logger: rootLogger,
         executorFingerprints: Object.fromEntries(
@@ -633,14 +556,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         sourceAttemptResolver,
       }),
       makeReporter: (claimedTask) => {
-        const selected = runtimeForClaimedTask(runtimes, claimedTask);
         return new ApiTaskReporter({
           tasks: ctx.agent.tasks,
           teamId: claimedTask.task.teamId,
-          leaseTtlSec: selected.common.leaseTtlSec,
-          heartbeatIntervalMs: selected.common.heartbeatIntervalMs,
-          maxBatchSize: selected.common.maxBatchSize,
-          flushIntervalMs: selected.common.flushIntervalMs,
+          heartbeatIntervalMs: operations.heartbeatIntervalMs,
         });
       },
       // Finalize each task as soon as the executor resolves — long-
@@ -718,14 +637,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       },
       executeTask: async (claimedTask, reporter) => {
         const selected = runtimeForClaimedTask(runtimes, claimedTask);
-        const {
-          common,
-          executionPlans,
-          profile,
-          sandbox,
-          slotIdentity,
-          stateDirs,
-        } = selected;
+        const { executionPlans, profile, sandbox, slotIdentity, stateDirs } =
+          selected;
         if (runtimeCredentialConfig) {
           await observeGovernancePlanSafely({
             config: runtimeCredentialConfig,
@@ -875,10 +788,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             workspaceKind: executionPlan.workspaceKind,
             lastTaskId: claimedTask.task.id,
             lastAttemptN: claimedTask.attemptN,
+            warmRetentionSec: operations.warmRetentionSec,
           });
         }
         const rawExecuteTask = selected.preparedRuntime.createTaskExecutor({
-          agentName: common.agent,
+          agentName: identity.agent,
           moltnetAgent: ctx.agent,
           agentIdentity,
           hostCapabilitySigner,
@@ -913,8 +827,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           makeExecutionPlan: (task) => executionPlans.getOrCreate(task),
           makeOnTurnEvent: makeTurnEventHandlerFactory(taskLogger),
           toolPolicyLogger: taskLogger,
-          maxTurns: common.maxTurns,
-          maxBashTimeouts: common.maxBashTimeouts,
+          maxTurns: profile.maxTurns,
+          maxBashTimeouts: profile.maxBashTimeouts,
         });
         try {
           active = {
@@ -952,6 +866,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
                     executionPlan.sessionPersistence.sessionDir,
                   )
                 : null,
+              operations.warmRetentionSec,
             );
           }
         }

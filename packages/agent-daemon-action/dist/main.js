@@ -31319,18 +31319,6 @@ var RuntimeProfileRef = _Object_({ profileId: String$1({ format: "uuid" }) }, {
 	$id: "RuntimeProfileRef",
 	additionalProperties: false
 });
-var RuntimeProfileLeaseTtlSec = Integer({
-	minimum: 1,
-	maximum: 86400
-});
-var RuntimeProfileHeartbeatIntervalMs = Integer({
-	minimum: 0,
-	maximum: 36e5
-});
-var RuntimeProfileMaxBatchSize = Integer({
-	minimum: 1,
-	maximum: 1e3
-});
 var RuntimeProfileMaxTurns = Integer({
 	minimum: 0,
 	maximum: 1e4
@@ -31359,21 +31347,8 @@ _Object_({
 	maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
 	runtimeKind: RuntimeProfileRuntimeKind,
 	sandbox: RuntimeProfileSandbox,
-	sessionStorageMode: Literal("local"),
-	workspaceStorageMode: Literal("local"),
 	defaultWorkspaceMode: Union([RuntimeProfileWorkspaceMode, Null()]),
 	allowedWorkspaceModes: RuntimeProfileAllowedWorkspaceModes,
-	sessionTtlSec: Integer({
-		minimum: 1,
-		maximum: 86400
-	}),
-	workspaceTtlSec: Integer({
-		minimum: 1,
-		maximum: 86400
-	}),
-	leaseTtlSec: RuntimeProfileLeaseTtlSec,
-	heartbeatIntervalMs: RuntimeProfileHeartbeatIntervalMs,
-	maxBatchSize: RuntimeProfileMaxBatchSize,
 	maxTurns: RuntimeProfileMaxTurns,
 	maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
 	toolEnforcement: RuntimeProfileToolEnforcement,
@@ -31530,7 +31505,11 @@ _Object_({
 	worktreeBranch: Optional(String$1({ minLength: 1 })),
 	workspaceKind: Optional(RuntimeWorkspaceKind),
 	lastTaskId: String$1({ format: "uuid" }),
-	lastAttemptN: Integer({ minimum: 1 })
+	lastAttemptN: Integer({ minimum: 1 }),
+	warmRetentionSec: Integer({
+		minimum: 0,
+		maximum: 86400
+	})
 }, {
 	$id: "BeginRuntimeSlotBody",
 	additionalProperties: false
@@ -31552,7 +31531,11 @@ _Object_({
 	slotKey: String$1({ minLength: 1 }),
 	taskId: String$1({ format: "uuid" }),
 	attemptN: Integer({ minimum: 1 }),
-	sessionPath: Optional(String$1({ minLength: 1 }))
+	sessionPath: Optional(String$1({ minLength: 1 })),
+	warmRetentionSec: Integer({
+		minimum: 0,
+		maximum: 86400
+	})
 }, {
 	$id: "FinishRuntimeSlotBody",
 	additionalProperties: false

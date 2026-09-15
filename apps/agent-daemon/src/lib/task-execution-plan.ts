@@ -58,7 +58,7 @@ export function buildDaemonTaskExecutionPlan(
   >,
   stateDirs: DaemonStateDirs,
   identity: DaemonSlotIdentity,
-  warmSessionTtlSec: number,
+  warmRetentionSec: number,
   runtimeProfileWorkspacePolicy: RuntimeProfileWorkspacePolicy = {},
   attemptN?: number,
 ): DaemonTaskExecutionPlan {
@@ -69,7 +69,7 @@ export function buildDaemonTaskExecutionPlan(
     runtimeProfileWorkspacePolicy,
   );
   const slotKey =
-    warmSessionTtlSec > 0 && descriptor.sessionKey
+    warmRetentionSec > 0 && descriptor.sessionKey
       ? buildRuntimeSlotKey(descriptor.sessionKey, identity.runtimeInstanceId)
       : null;
   const workspaceScope =

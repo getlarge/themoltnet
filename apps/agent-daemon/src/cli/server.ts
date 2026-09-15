@@ -36,6 +36,7 @@ import {
 } from '../lib/agent-server/tls.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
+import { parseLocalOperationalSettings } from '../lib/options.js';
 import { ProviderConfigurationService } from '../lib/provider-configuration.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 
@@ -60,6 +61,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       'allowed-origins': { type: 'string' },
       root: { type: 'string' },
       'api-url': { type: 'string' },
+      'heartbeat-interval-ms': { type: 'string' },
+      'warm-retention-sec': { type: 'string' },
       remove: { type: 'boolean' },
     },
   });
@@ -79,6 +82,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   const root = values.root ?? resolveAgentServerRoot({ root: envConfig.root });
   const defaultApiUrl =
     values['api-url'] ?? (envConfig.apiUrl || DEFAULT_API_URL);
+  const runtimeSettings = parseLocalOperationalSettings(values);
 
   const store = new AgentServerStore(root).ensure();
   if (trustRequested) return runTrustCommand(commandArgs, root);
@@ -117,6 +121,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             baseEnv: processEnvSnapshot(),
             logger,
             runtimeRegistry: new RuntimeRegistry(store.root),
+            runtimeSettings,
           });
           const tls = isMacos() ? await ensureTrustedLocalTls(root) : undefined;
           const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
@@ -133,6 +138,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             selfOrigin,
             ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),
             defaultApiUrl,
+            runtimeSettings,
             ...(envConfig.activeIdentity
               ? { activeIdentity: envConfig.activeIdentity }
               : {}),

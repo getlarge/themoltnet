@@ -8,22 +8,11 @@ export interface ApiTaskReporterOptions {
   tasks: TasksNamespace;
   /** Owning team context. Falls back to SDK task context when already known. */
   teamId?: string;
-  leaseTtlSec?: number;
   heartbeatIntervalMs?: number;
-  /**
-   * Max messages buffered before a synchronous flush is triggered.
-   * Defaults to 50. Set to 1 to flush after every `record()` (legacy
-   * one-POST-per-message behaviour; not recommended — produces 429s under
-   * token-streaming workloads).
-   */
-  maxBatchSize?: number;
-  /**
-   * Time window for coalescing `record()` calls. When the buffer is non-empty,
-   * the reporter flushes after at most this many ms. Defaults to 200ms.
-   * Set to 0 to disable time-based flushing (flushes only on size / finalize).
-   */
-  flushIntervalMs?: number;
 }
+
+const MAX_BATCH_SIZE = 50;
+const FLUSH_INTERVAL_MS = 200;
 
 type BufferedMessage = {
   kind: TaskMessage['kind'];
@@ -46,7 +35,7 @@ function isLegacyClaimantLag403(err: unknown): boolean {
  * - `open()` fires an immediate heartbeat (satisfies DBOS recv('started', 300s))
  *   then starts the periodic timer
  * - `record()` enqueues into an in-memory buffer; the buffer is flushed when
- *   it reaches `maxBatchSize`, when `flushIntervalMs` elapses, or on
+ *   it reaches 50 messages, after 200ms, or on
  *   `finalize()` / `close()`. Flushes call `tasks.appendMessages` with the
  *   full batch in a single POST. This is required because per-delta POSTs
  *   for streaming providers (one per token) overwhelm the API rate limiter.
@@ -56,6 +45,8 @@ export class ApiTaskReporter implements TaskReporter {
   private taskId = '';
   private attemptN = 0;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private heartbeatQueue: Promise<void> = Promise.resolve();
+  private initialHeartbeatSucceeded = false;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private finalizedUsage: TaskUsage | null = null;
 
@@ -79,24 +70,7 @@ export class ApiTaskReporter implements TaskReporter {
   private readonly cancelController = new AbortController();
   private observedCancelReason: string | null = null;
 
-  private readonly maxBatchSize: number;
-  private readonly flushIntervalMs: number;
-
-  constructor(private readonly opts: ApiTaskReporterOptions) {
-    // `??` only substitutes the default for null/undefined, so a caller
-    // passing `NaN` (e.g. from a failed `Number(flag)` upstream) would slip
-    // through and silently disable batching (`x >= NaN` is always false).
-    // Validate integer-ness here too — belt-and-braces against callers that
-    // don't replicate the work-task CLI guards.
-    const maxBatchSize = Number.isInteger(opts.maxBatchSize)
-      ? (opts.maxBatchSize as number)
-      : 50;
-    const flushIntervalMs = Number.isInteger(opts.flushIntervalMs)
-      ? (opts.flushIntervalMs as number)
-      : 200;
-    this.maxBatchSize = Math.max(1, maxBatchSize);
-    this.flushIntervalMs = Math.max(0, flushIntervalMs);
-  }
+  constructor(private readonly opts: ApiTaskReporterOptions) {}
 
   getUsage(): TaskUsage | null {
     return this.finalizedUsage;
@@ -123,6 +97,7 @@ export class ApiTaskReporter implements TaskReporter {
     this.attemptN = ctx.attemptN;
     this.firstAppendSucceeded = false;
     this.firstUsefulEventEmitted = false;
+    this.initialHeartbeatSucceeded = false;
 
     // Send immediately so the DBOS workflow receives the 'started' signal
     // before the dispatch timeout (default 5 min). Without this, fast tasks
@@ -131,13 +106,13 @@ export class ApiTaskReporter implements TaskReporter {
     await traceRuntimePhase(
       'moltnet.reporter.open',
       { 'moltnet.task.attempt': this.attemptN },
-      () => this.sendInitialHeartbeat(),
+      () => this.heartbeatNow(),
     );
 
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
     if (intervalMs > 0) {
       this.heartbeatTimer = setInterval(() => {
-        void this.sendHeartbeat().catch(() => {
+        void this.heartbeatNow().catch(() => {
           // Transient heartbeat failures should not crash the process from
           // inside a timer. The runtime owns terminal failure handling.
         });
@@ -170,14 +145,14 @@ export class ApiTaskReporter implements TaskReporter {
       timestamp: new Date().toISOString(),
     });
 
-    if (this.buffer.length >= this.maxBatchSize) {
+    if (this.buffer.length >= MAX_BATCH_SIZE) {
       // Synchronous flush: guarantees backpressure — the caller awaits the
       // network round-trip once per batch instead of once per message.
       await this.flush();
       return;
     }
 
-    if (this.flushIntervalMs > 0 && !this.flushTimer) {
+    if (!this.flushTimer) {
       this.flushTimer = setTimeout(() => {
         this.flushTimer = null;
         void this.flush().catch((err) => {
@@ -197,7 +172,7 @@ export class ApiTaskReporter implements TaskReporter {
             this.pendingError = wrapped;
           }
         });
-      }, this.flushIntervalMs);
+      }, FLUSH_INTERVAL_MS);
     }
   }
 
@@ -230,10 +205,10 @@ export class ApiTaskReporter implements TaskReporter {
         // The batch was spliced out of the buffer before the network call.
         // Restore the messages to the FRONT of the buffer so a subsequent
         // flush can retry them in the original order. Bound the buffer to
-        // `maxBatchSize * 3` to prevent unbounded growth under sustained
+        // three batches to prevent unbounded growth under sustained
         // failure: if restoring would overflow the cap, drop the oldest
         // overflow and log the loss so it's visible in Axiom/stderr.
-        const overflowCap = this.maxBatchSize * 3;
+        const overflowCap = MAX_BATCH_SIZE * 3;
         const restoredCount = batch.length;
         let droppedCount = 0;
         if (this.buffer.length + batch.length > overflowCap) {
@@ -330,16 +305,30 @@ export class ApiTaskReporter implements TaskReporter {
     }
   }
 
+  /** Send a heartbeat after all earlier heartbeat checks have settled. */
+  heartbeatNow(): Promise<void> {
+    const pending = this.heartbeatQueue.then(() =>
+      this.sendHeartbeatWithCompatibilityRetry(),
+    );
+    this.heartbeatQueue = pending.catch(() => undefined);
+    return pending;
+  }
+
   /**
    * Preserve bounded compatibility with pre-database-authority servers. Only
    * the initial 403 is retried; all other failures still surface immediately.
    */
-  private async sendInitialHeartbeat(): Promise<void> {
+  private async sendHeartbeatWithCompatibilityRetry(): Promise<void> {
+    if (this.initialHeartbeatSucceeded) {
+      await this.sendHeartbeat();
+      return;
+    }
     const maxAttempts = 5;
     const baseDelayMs = 100;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
         await this.sendHeartbeat();
+        this.initialHeartbeatSucceeded = true;
         return;
       } catch (err) {
         if (attempt === maxAttempts || !isLegacyClaimantLag403(err)) throw err;
@@ -373,14 +362,16 @@ export class ApiTaskReporter implements TaskReporter {
   }
 
   private async sendHeartbeat(): Promise<void> {
-    const body = this.opts.leaseTtlSec
-      ? { leaseTtlSec: this.opts.leaseTtlSec }
-      : {};
     const response = this.opts.teamId
-      ? await this.opts.tasks.heartbeat(this.taskId, this.attemptN, body, {
-          teamId: this.opts.teamId,
-        })
-      : await this.opts.tasks.heartbeat(this.taskId, this.attemptN, body);
+      ? await this.opts.tasks.heartbeat(
+          this.taskId,
+          this.attemptN,
+          {},
+          {
+            teamId: this.opts.teamId,
+          },
+        )
+      : await this.opts.tasks.heartbeat(this.taskId, this.attemptN, {});
     // The server reports cancellation via a 200 response with
     // cancelled:true so the worker gets a clean abort signal instead
     // of having to interpret a 409 envelope (#938). Once observed, abort
