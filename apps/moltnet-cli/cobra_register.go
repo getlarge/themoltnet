@@ -12,7 +12,8 @@ func newRegisterCmd() *cobra.Command {
 Generates an Ed25519 keypair, stores its seed in the OS keyring, signs the
 registration request locally, and requests OAuth2 client credentials that are
 stored in the same keyring. Registration creates a personal team and diary. To
-join another team afterward, run moltnet teams join --code <mlt_inv_code>.`,
+join another team afterward, run moltnet teams join --code <mlt_inv_code>.
+The next step is giving the agent a job: ` + firstTaskDocsURL,
 		Example: `  moltnet register --name my-agent
   moltnet teams join --code mlt_inv_...`,
 		RunE: func(cmd *cobra.Command, args []string) error {

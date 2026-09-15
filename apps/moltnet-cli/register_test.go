@@ -402,6 +402,40 @@ func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 	}
 }
 
+func TestRegisterPointsAtTheNextOnboardingStep(t *testing.T) {
+	// Arrange
+	t.Setenv("HOME", t.TempDir())
+	registry, _ := newMemorySecretProviderRegistry()
+	server, _ := newRegisterTestServer(t, registerServerConfig{})
+	var stdout, stderr bytes.Buffer
+
+	// Act
+	err := runRegister(registerOpts{
+		stdout: &stdout, errOut: &stderr,
+		apiURL: server.URL, credentialType: credentialTypeOAuth2, name: "reg-next",
+		secretProviders: registry,
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("register: %v\nstderr: %s", err, stderr.String())
+	}
+	for _, want := range []string{
+		"reg-next now has its own identity and keys, separate from your account.",
+		"Next, give it a job: " + firstTaskDocsURL,
+	} {
+		if !strings.Contains(stderr.String(), want) {
+			t.Fatalf("stderr missing %q:\n%s", want, stderr.String())
+		}
+	}
+	if firstTaskDocsURL != "https://docs.themolt.net/start/first-task" {
+		t.Fatalf("firstTaskDocsURL = %q", firstTaskDocsURL)
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout must stay empty, got %q", stdout.String())
+	}
+}
+
 func TestRegisterStoresSeedBeforeRegisteringInTheDefaultProvider(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	registry, memory, seedStored := registerMemoryRegistry()
@@ -462,10 +496,13 @@ func TestRegisterKeepsTheSeedWhenRegistrationDoesNotComplete(t *testing.T) {
 			registry, memory, _ := registerMemoryRegistry()
 			server, _ := newRegisterTestServer(t, tt.cfg)
 
-			_, err := runTestRegister(t, server.URL, "reg-incomplete", registry)
+			stderr, err := runTestRegister(t, server.URL, "reg-incomplete", registry)
 
 			if err == nil {
 				t.Fatal("expected registration to fail")
+			}
+			if strings.Contains(stderr, firstTaskDocsURL) || strings.Contains(err.Error(), firstTaskDocsURL) {
+				t.Fatalf("an incomplete registration must not point at the next step:\n%s", stderr)
 			}
 			seeds := storedSeedKeys(memory)
 			if len(seeds) != 1 {
@@ -578,10 +615,13 @@ func TestRegisterKeepsIdentityRecoverableWhenSecretStoreFails(t *testing.T) {
 	}
 	server, _ := newRegisterTestServer(t, registerServerConfig{})
 
-	_, err := runTestRegister(t, server.URL, "reg-flaky", registry)
+	stderr, err := runTestRegister(t, server.URL, "reg-flaky", registry)
 
 	if err == nil || !strings.Contains(err.Error(), "moltnet agents credentials recover --yes") {
 		t.Fatalf("error = %v, want recovery guidance", err)
+	}
+	if strings.Contains(stderr, firstTaskDocsURL) {
+		t.Fatalf("a partly stored identity must not point at the next step:\n%s", stderr)
 	}
 	path, pathErr := identityCredentialsPath("reg-flaky")
 	if pathErr != nil {
@@ -661,14 +701,27 @@ func TestRegisterJSONPrintsCredentialsAndWritesNothing(t *testing.T) {
 	server, _ := newRegisterTestServer(t, registerServerConfig{})
 	var stdout bytes.Buffer
 
+	var stderr bytes.Buffer
+
 	err := runRegister(registerOpts{
-		stdout: &stdout, errOut: &bytes.Buffer{},
+		stdout: &stdout, errOut: &stderr,
 		apiURL: server.URL, credentialType: credentialTypeOAuth2,
 		jsonOut: true, secretProviders: registry,
 	})
 
 	if err != nil {
 		t.Fatalf("register --json: %v", err)
+	}
+	if strings.Contains(stdout.String()+stderr.String(), firstTaskDocsURL) {
+		t.Fatalf("--json must not print the next step:\nstdout: %s\nstderr: %s", stdout.String(), stderr.String())
+	}
+	decoder := json.NewDecoder(bytes.NewReader(stdout.Bytes()))
+	var whole map[string]any
+	if err := decoder.Decode(&whole); err != nil {
+		t.Fatalf("stdout is not JSON: %v\n%s", err, stdout.String())
+	}
+	if decoder.More() {
+		t.Fatalf("stdout has content after the JSON document:\n%s", stdout.String())
 	}
 	var printed map[string]any
 	if err := json.Unmarshal(stdout.Bytes(), &printed); err != nil {

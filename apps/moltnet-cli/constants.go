@@ -3,6 +3,12 @@ package main
 const defaultAPIURL = "https://api.themolt.net"
 const defaultMCPURL = "https://mcp.themolt.net/mcp"
 
+// docsBaseURL is the public documentation site; build doc links from it.
+const docsBaseURL = "https://docs.themolt.net"
+
+// firstTaskDocsURL is the onboarding step that follows registration.
+const firstTaskDocsURL = docsBaseURL + "/start/first-task"
+
 const agentKeyEnv = "MOLTNET_AGENT_KEY"
 const agentKeyRefEnv = "MOLTNET_AGENT_KEY_REF"
 const apiURLEnv = "MOLTNET_API_URL"
