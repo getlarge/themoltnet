@@ -203,7 +203,29 @@ For lazy adapters, optional native dependencies, dynamic imports, and command
 branches, add a focused smoke that exercises that path. Do not claim the smoke
 loads the full module graph unless it actually invokes those paths.
 
+### 9. Refuse major version bumps
+
+Majors are forbidden unless the maintainer explicitly asked for one.
+
+- In a release-please PR, compare `.release-please-manifest.json` before and
+  after. Any first number that increases (including `0.x` to `1.0.0`) blocks
+  the merge.
+- Check `release-please-config.json`: every package at `1.0.0` or above must
+  set `"versioning": "always-bump-minor"`.
+- Before committing, never mark a change as breaking: no `type(scope)!:` and no
+  `BREAKING CHANGE:` footer. Describe the behaviour change in the body.
+
 ## Common mistakes and how they happen
+
+### Breaking-change commits released unwanted majors (September 2026)
+
+Commits marked `feat(pi-runtime)!:` and `feat(runtime-policies)!:` released
+the Go API client as `v2.0.0` then `v3.0.0` and the linked CLI group as
+`3.0.0`. The release workflow failed because a Go module without a `/v3` path
+cannot be `v3.0.0`. An earlier guard, `bump-minor-pre-major`, only caps majors
+below `1.0.0`, so it no longer protected packages that had passed `1.0.0`.
+`always-bump-minor` on every `>=1.0.0` package and a ban on breaking markers
+replace it.
 
 ### Missing repository metadata (the tasks-orchestrator incident)
 

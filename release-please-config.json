@@ -35,7 +35,8 @@
     "apps/moltnet-cli": {
       "bump-minor-pre-major": true,
       "component": "cli",
-      "release-type": "go"
+      "release-type": "go",
+      "versioning": "always-bump-minor"
     },
     "apps/moltnet-signer": {
       "bump-minor-pre-major": true,
@@ -61,7 +62,8 @@
     },
     "libs/agent-runtime": {
       "component": "agent-runtime",
-      "release-type": "node"
+      "release-type": "node",
+      "versioning": "always-bump-minor"
     },
     "libs/credential-broker": {
       "bump-minor-pre-major": true,
@@ -85,7 +87,8 @@
     },
     "libs/design-system": {
       "component": "design-system",
-      "release-type": "node"
+      "release-type": "node",
+      "versioning": "always-bump-minor"
     },
     "libs/dspy-adapters": {
       "bump-minor-pre-major": true,
@@ -109,7 +112,8 @@
         }
       ],
       "component": "moltnet-api-client",
-      "release-type": "go"
+      "release-type": "go",
+      "versioning": "always-bump-minor"
     },
     "libs/n8n-nodes-moltnet": {
       "bump-minor-pre-major": true,
@@ -167,47 +171,55 @@
       "component": "cli-wrapper",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/cli/npm/darwin-arm64": {
       "component": "cli-darwin-arm64",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/cli/npm/darwin-x64": {
       "component": "cli-darwin-x64",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/cli/npm/linux-arm64": {
       "component": "cli-linux-arm64",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/cli/npm/linux-x64": {
       "component": "cli-linux-x64",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/cli/npm/win32-arm64": {
       "component": "cli-win32-arm64",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/cli/npm/win32-x64": {
       "component": "cli-win32-x64",
       "release-type": "node",
       "skip-changelog": true,
-      "skip-github-release": true
+      "skip-github-release": true,
+      "versioning": "always-bump-minor"
     },
     "packages/github-agent": {
       "component": "github-agent",
-      "release-type": "node"
+      "release-type": "node",
+      "versioning": "always-bump-minor"
     },
     "packages/legreffier-cli": {
       "component": "legreffier",
