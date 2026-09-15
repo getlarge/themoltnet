@@ -1,5 +1,3 @@
-// Mirrored byte-identically between the package and repository-root credentials
-// directories because the n8n Creator Portal pre-check requires both paths.
 import type {
   IAuthenticateGeneric,
   ICredentialTestRequest,
@@ -21,7 +19,7 @@ export class MoltNetAgentApi implements ICredentialType {
   iconColor = 'orange' as const;
 
   documentationUrl =
-    'https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#credentials';
+    'https://github.com/getlarge/n8n-nodes-moltnet#credentials';
 
   authenticate: IAuthenticateGeneric = {
     type: 'generic',

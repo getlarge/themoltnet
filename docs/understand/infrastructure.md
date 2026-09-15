@@ -611,40 +611,44 @@ from the App's repository selection. Scoop downloads without the mark-of-the-web
 and verifies the manifest hash, so the unsigned exe installs without a
 SmartScreen prompt.
 
-**GitHub App setup:**
-
-1. Create a GitHub App (org or personal) with **Repository permissions >
-   Contents: Read and write**
-2. **Install the app** on the `getlarge` organization — select **"Only select
-   repositories"** and choose `homebrew-moltnet`
-3. Store the app credentials as repository secrets on `getlarge/themoltnet`:
+Release automation authenticates cross-repository writes with a GitHub App. The
+app's installation scope and credential-management procedure are maintained in
+the private operations runbook. The workflow consumes these repository secrets:
 
 | Secret                    | Value                                     |
 | ------------------------- | ----------------------------------------- |
 | `MOLTNET_RELEASE_APP_ID`  | The GitHub App's numeric App ID           |
 | `MOLTNET_RELEASE_APP_KEY` | The GitHub App's private key (PEM format) |
 
-The workflow uses `actions/create-github-app-token@v3` to mint a scoped
-installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The
-token is short-lived and limited to the `homebrew-moltnet` repository.
-
-> **Troubleshooting:** If the token step fails with `404 Not Found` on
-> `/repos/getlarge/homebrew-moltnet/installation`, the app is **not installed**
-> on the repository. Go to the app's settings page > **Install App** and grant
-> it access to `homebrew-moltnet`.
+The workflow uses `actions/create-github-app-token@v3` to mint short-lived,
+repository-scoped installation tokens for each release destination.
 
 ### CI secrets summary
 
 | Secret                                              | Used by                                   | Purpose                                                                                                  |
 | --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`                            | `release-cli` job                         | GitHub App ID for Homebrew tap push                                                                      |
-| `MOLTNET_RELEASE_APP_KEY`                           | `release-cli` job                         | GitHub App private key (PEM)                                                                             |
+| `MOLTNET_RELEASE_APP_ID`                            | release jobs                              | GitHub App ID for distribution-repository pushes                                                         |
+| `MOLTNET_RELEASE_APP_KEY`                           | release jobs                              | GitHub App private key (PEM)                                                                             |
 | `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                 |
 | `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
 | `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
 | `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
 
-npm publishing requires no secrets; it uses OIDC trusted publishing.
+npm publishing requires no npm token; it uses OIDC trusted publishing. For
+`@themoltnet/n8n-nodes-moltnet`, configure the npm trusted publisher with
+repository `getlarge/n8n-nodes-moltnet`, workflow `publish.yml`, and environment
+`npm`. The monorepo release validates the tagged package and opens or refreshes
+a generated PR in that repository. Merging the standalone PR publishes the npm
+package, records its version tag, and runs the exact-version n8n scanner
+asynchronously; the monorepo GitHub release does not imply that npm publication
+has completed.
+
+| State                           | Recovery                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------- |
+| Proposal job failed             | Rerun it; the same standalone release branch and PR are refreshed.        |
+| Standalone PR CI failed         | Fix generated content in the monorepo, or standalone-owned tooling there. |
+| Merge succeeded, publish failed | Rerun `publish.yml` with `workflow_dispatch`.                             |
+| Publish succeeded, scan failed  | Rerun the standalone scan job.                                            |
 
 ## Ory Project Deployment
 

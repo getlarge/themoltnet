@@ -851,21 +851,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-n8n-nodes-moltnet:
-    name: Publish MoltNet n8n nodes to npm
+  propose-n8n-nodes-moltnet:
+    name: Propose MoltNet n8n standalone release
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.n8n-nodes-moltnet == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write
     outputs:
       version: ${{ steps.package-version.outputs.version }}
+      source-sha: ${{ steps.package-version.outputs.source-sha }}
+      pr-url: ${{ steps.standalone.outputs.pr-url }}
     steps:
       - uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           persist-credentials: false
+          ref: ${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}
 
       - uses: pnpm/action-setup@v6
 
@@ -887,56 +890,144 @@ jobs:
 
       - run: pnpm exec nx run @themoltnet/n8n-nodes-moltnet:check:pack
 
-      - name: Read exact package version
+      - name: Verify release tag and build standalone repository tree
         id: package-version
-        run: node -p '"version=" + require("./libs/n8n-nodes-moltnet/package.json").version' >> "$GITHUB_OUTPUT"
-
-      - name: Publish or reconcile @themoltnet/n8n-nodes-moltnet
         env:
-          PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
-        run: >-
-          pnpm exec tsx tools/src/release/npm-publish-exact.cli.ts
-          --package @themoltnet/n8n-nodes-moltnet
-          --version "$PACKAGE_VERSION"
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./libs/n8n-nodes-moltnet/package.json').version")
+          EXPECTED_TAG="n8n-nodes-moltnet-v${VERSION}"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "Expected ${EXPECTED_TAG}, got ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+          SOURCE_SHA=$(git rev-parse HEAD)
+          TAG_SHA=$(git rev-parse "${RELEASE_TAG}^{commit}")
+          if [ "$SOURCE_SHA" != "$TAG_SHA" ]; then
+            echo "Checkout ${SOURCE_SHA} does not match ${RELEASE_TAG} (${TAG_SHA})" >&2
+            exit 1
+          fi
+          TREE="$RUNNER_TEMP/n8n-nodes-moltnet-tree"
+          node libs/n8n-nodes-moltnet/scripts/build-standalone.mjs \
+            "$TREE" \
+            --source-ref "$RELEASE_TAG" \
+            --source-sha "$SOURCE_SHA"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "source-sha=${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tree=${TREE}" >> "$GITHUB_OUTPUT"
 
-  scan-n8n-nodes-moltnet:
-    name: Scan exact MoltNet n8n package
-    needs: [resolve-publish, publish-n8n-nodes-moltnet]
-    if: >-
-      always() &&
-      needs.resolve-publish.outputs.n8n-nodes-moltnet == 'true' &&
-      needs.publish-n8n-nodes-moltnet.result == 'success' &&
-      !failure() && !cancelled()
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/setup-node@v6
+      - name: Generate GitHub App token for standalone repository
+        uses: actions/create-github-app-token@v3
+        id: standalone-token
         with:
-          node-version: 24
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: n8n-nodes-moltnet
+          permission-contents: write
+          permission-pull-requests: write
 
-      - name: Scan exact published community package
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 6
-          retry_wait_seconds: 30
-          # Scanner releases can print a failed report while returning status 0.
-          # Require its explicit success marker so release promotion fails closed.
-          command: |-
-            scan_package="@themoltnet/n8n-nodes-moltnet@${{ needs.publish-n8n-nodes-moltnet.outputs.version }}"
-            scan_output="$(npx --yes @n8n/scan-community-package@beta "$scan_package" 2>&1)" || { scan_status=$?; printf '%s\n' "$scan_output"; exit "$scan_status"; }
-            printf '%s\n' "$scan_output"
-            printf '%s\n' "$scan_output" | grep -Fq "Package $scan_package has passed all security checks"
+      - name: Open or refresh standalone release PR
+        id: standalone
+        env:
+          GH_TOKEN: ${{ steps.standalone-token.outputs.token }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}
+          SOURCE_SHA: ${{ steps.package-version.outputs.source-sha }}
+          TREE: ${{ steps.package-version.outputs.tree }}
+          VERSION: ${{ steps.package-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          REPO="$RUNNER_TEMP/n8n-nodes-moltnet"
+          OWNED="$RUNNER_TEMP/n8n-nodes-moltnet-owned"
+          BRANCH="release/v${VERSION}"
+
+          gh auth setup-git
+          gh repo clone getlarge/n8n-nodes-moltnet "$REPO" -- --quiet
+
+          cd "$REPO"
+          REMOTE_BRANCH_SHA=$(git ls-remote --heads origin "refs/heads/${BRANCH}" | awk '{print $1}')
+          if [ -n "$REMOTE_BRANCH_SHA" ]; then
+            git fetch --quiet origin "${BRANCH}:refs/remotes/origin/${BRANCH}"
+          fi
+          git checkout --quiet -B "$BRANCH" origin/main
+
+          mkdir -p "$OWNED/scripts"
+          cp -a .github "$OWNED/.github"
+          cp package-lock.json "$OWNED/package-lock.json"
+          cp scripts/publish-exact.mjs "$OWNED/scripts/publish-exact.mjs"
+          cp scripts/publish-exact.test.mjs "$OWNED/scripts/publish-exact.test.mjs"
+          find "$REPO" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "$TREE"/. "$REPO"/
+          cp -a "$OWNED/.github" "$REPO/.github"
+          cp "$OWNED/package-lock.json" "$REPO/package-lock.json"
+          mkdir -p "$REPO/scripts"
+          cp "$OWNED/scripts/publish-exact.mjs" "$REPO/scripts/publish-exact.mjs"
+          cp "$OWNED/scripts/publish-exact.test.mjs" "$REPO/scripts/publish-exact.test.mjs"
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "getlarge/n8n-nodes-moltnet already contains ${RELEASE_TAG}"
+            echo "pr-url=" >> "$GITHUB_OUTPUT"
+            {
+              echo "## n8n standalone release"
+              echo
+              echo "${RELEASE_TAG} is already present on the standalone main branch."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          git -c user.name='MoltNet Release Bot' \
+            -c user.email='261968324+moltnet-release-bot[bot]@users.noreply.github.com' \
+            -c commit.gpgSign=false commit --quiet \
+            -m "release: MoltNet n8n nodes v${VERSION}" \
+            -m "Generated from getlarge/themoltnet ${RELEASE_TAG} (${SOURCE_SHA})."
+
+          if [ -n "$REMOTE_BRANCH_SHA" ]; then
+            git push --quiet \
+              --force-with-lease="refs/heads/${BRANCH}:${REMOTE_BRANCH_SHA}" \
+              origin "HEAD:${BRANCH}"
+          else
+            git push --quiet --set-upstream origin "HEAD:${BRANCH}"
+          fi
+
+          PR_URL=$(gh pr list \
+            --repo getlarge/n8n-nodes-moltnet \
+            --head "$BRANCH" \
+            --state open \
+            --json url \
+            --jq '.[0].url // empty')
+          if [ -z "$PR_URL" ]; then
+            PR_BODY=$(printf '%s\n' \
+              "Generated from getlarge/themoltnet ${RELEASE_TAG} (${SOURCE_SHA})." \
+              '' \
+              'The monorepo owns generated package content. This repository owns its workflows, npm lockfile, and publication tooling.')
+            PR_URL=$(gh pr create \
+              --repo getlarge/n8n-nodes-moltnet \
+              --base main \
+              --head "$BRANCH" \
+              --title "release: MoltNet n8n nodes v${VERSION}" \
+              --body "$PR_BODY")
+          fi
+          echo "pr-url=${PR_URL}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## n8n standalone release proposal"
+            echo
+            echo "- Version: ${VERSION}"
+            echo "- Source: ${SOURCE_SHA}"
+            echo "- Pull request: ${PR_URL}"
+            echo
+            echo "npm publication and scanning begin after this PR is approved and merged."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   promote-n8n-nodes-moltnet:
     name: Publish MoltNet n8n GitHub release
-    needs: [resolve-publish, scan-n8n-nodes-moltnet]
+    needs: [resolve-publish, propose-n8n-nodes-moltnet]
     if: >-
       always() &&
       needs.resolve-publish.outputs.n8n-nodes-moltnet == 'true' &&
-      needs.scan-n8n-nodes-moltnet.result == 'success' &&
+      needs.propose-n8n-nodes-moltnet.result == 'success' &&
       !failure() && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -1,3 +1,10 @@
+import type {
+  IDataObject,
+  IExecuteFunctions,
+  IHttpRequestMethods,
+  ILoadOptionsFunctions,
+} from 'n8n-workflow';
+
 import {
   type ApiRequest,
   cancelTask,
@@ -11,19 +18,9 @@ import {
   type Task,
   type TaskAttempt,
   type TaskListResponse,
-} from '@moltnet/api-client/api-bindings';
-import type {
-  IDataObject,
-  IExecuteFunctions,
-  IHttpRequestMethods,
-  ILoadOptionsFunctions,
-} from 'n8n-workflow';
+} from './ApiBindings.js';
 
-export type {
-  Task,
-  TaskAttempt,
-  TaskStatus,
-} from '@moltnet/api-client/api-bindings';
+export type { Task, TaskAttempt, TaskStatus } from './ApiBindings.js';
 export type TaskListQuery = NonNullable<ListTasksData['query']>;
 export type CreateTaskBody = CreateTaskData['body'];
 

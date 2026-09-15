@@ -72,6 +72,12 @@
     ],
     "targets": {
       "build": {
+        "inputs": [
+          "production",
+          "^production",
+          "!{projectRoot}/standalone/**",
+          "!{projectRoot}/scripts/build-standalone.mjs"
+        ],
         "dependsOn": [
           "^build",
           "^typecheck"
