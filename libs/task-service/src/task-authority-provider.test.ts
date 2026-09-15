@@ -388,7 +388,7 @@ describe('MoltNet TaskAuthorityProvider', () => {
       setup({
         snapshot: snapshot({
           allowedShellCommands: [
-            { argvPrefix: ['git'] },
+            { argvPrefix: [] },
           ] as unknown as RuntimePolicySnapshot['allowedShellCommands'],
         }),
       }),

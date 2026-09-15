@@ -11,6 +11,7 @@ import {
 
 describe('shell command identifiers', () => {
   it.each([
+    [['git'], 'v1/git'],
     [['git', 'diff'], 'v1/git/diff'],
     [['npm', 'run', 'test:unit'], 'v1/npm/run/test%3Aunit'],
     [['tool/name', 'with space'], 'v1/tool%2Fname/with%20space'],
@@ -27,7 +28,8 @@ describe('shell command identifiers', () => {
 
   it.each([
     'v2/git/diff',
-    'v1/git',
+    'v1',
+    'v1/',
     'v1/git/',
     'v1/git/%',
     'v1/git/%2f',
@@ -55,7 +57,12 @@ describe('shell command identifiers', () => {
       encodeShellCommandRule({
         argvPrefix: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'],
       }),
-    ).toThrow(/2–8 tokens/);
+    ).toThrow(/1–8 tokens/);
+    expect(() =>
+      encodeShellCommandRule({
+        argvPrefix: [] as unknown as ShellCommandRule['argvPrefix'],
+      }),
+    ).toThrow(/1–8 tokens/);
   });
 
   it('rejects malformed Unicode input instead of replacing it', () => {

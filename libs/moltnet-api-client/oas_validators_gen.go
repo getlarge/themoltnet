@@ -29766,7 +29766,7 @@ func (s *ShellCommandRule) Validate() error {
 			return errors.New("nil is invalid value")
 		}
 		if err := (validate.Array{
-			MinLength:    2,
+			MinLength:    1,
 			MinLengthSet: true,
 			MaxLength:    8,
 			MaxLengthSet: true,

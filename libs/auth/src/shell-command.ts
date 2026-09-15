@@ -1,15 +1,11 @@
-type ArgvPrefix = readonly [
-  executable: string,
-  subcommand: string,
-  ...nestedTokens: string[],
-];
+type ArgvPrefix = readonly [executable: string, ...arguments: string[]];
 
 export interface ShellCommandRule {
   argvPrefix: ArgvPrefix;
 }
 
 export const SHELL_COMMAND_ENCODING_VERSION = 'v1';
-export const MIN_SHELL_COMMAND_TOKENS = 2;
+export const MIN_SHELL_COMMAND_TOKENS = 1;
 export const MAX_SHELL_COMMAND_TOKENS = 8;
 export const MAX_SHELL_COMMAND_TOKEN_CHARACTERS = 128;
 export const MAX_SHELL_COMMAND_IDENTIFIER_BYTES = 1024;

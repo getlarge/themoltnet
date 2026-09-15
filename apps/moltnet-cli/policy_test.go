@@ -271,6 +271,50 @@ func TestPolicyCreateSendsDefinition(t *testing.T) {
 	}
 }
 
+func TestPolicyCreateSendsOneTokenShellCommand(t *testing.T) {
+	// Arrange
+	handler := &stubPolicyHandler{}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+	path := writeTempPolicyFile(t, `{
+	  "name": "read-only-review",
+	  "shellCommands": [{ "argvPrefix": ["git"] }]
+	}`)
+
+	// Act
+	err := runPolicyCreateCmd(io.Discard, apiSrv.URL, credPath, path, testPolicyTeam.String())
+
+	// Assert
+	if err != nil {
+		t.Fatalf("runPolicyCreateCmd() error: %v", err)
+	}
+	body := handler.createBody.Value
+	if len(body.ShellCommands) != 1 || len(body.ShellCommands[0].ArgvPrefix) != 1 ||
+		body.ShellCommands[0].ArgvPrefix[0] != "git" {
+		t.Fatalf("expected one [git] argv prefix, got %v", body.ShellCommands)
+	}
+}
+
+func TestPolicyCreateRejectsEmptyShellCommand(t *testing.T) {
+	// Arrange
+	handler := &stubPolicyHandler{}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+	path := writeTempPolicyFile(t, `{
+	  "name": "read-only-review",
+	  "shellCommands": [{ "argvPrefix": [] }]
+	}`)
+
+	// Act
+	err := runPolicyCreateCmd(io.Discard, apiSrv.URL, credPath, path, testPolicyTeam.String())
+
+	// Assert
+	if err == nil {
+		t.Fatalf("expected an error for an empty argv prefix")
+	}
+	if handler.createBody.Value.Name != "" {
+		t.Fatalf("expected no request to reach the API, got %v", handler.createBody.Value)
+	}
+}
+
 func TestPolicyUpdateSendsAddRemovePatch(t *testing.T) {
 	// Arrange
 	handler := &stubPolicyHandler{}

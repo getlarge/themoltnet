@@ -271,7 +271,7 @@
           },
           "allowedTools": {
             "items": {
-              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "description": "A runtime or MCP tool name, e.g. \"read\". Never authorizes a shell invocation.",
               "maxLength": 128,
               "minLength": 1,
               "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
@@ -1878,7 +1878,7 @@
           },
           "tools": {
             "items": {
-              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "description": "A runtime or MCP tool name, e.g. \"read\". Never authorizes a shell invocation.",
               "maxLength": 128,
               "minLength": 1,
               "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
@@ -8598,7 +8598,7 @@
           },
           "tools": {
             "items": {
-              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "description": "A runtime or MCP tool name, e.g. \"read\". Never authorizes a shell invocation.",
               "maxLength": 128,
               "minLength": 1,
               "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
@@ -10398,7 +10398,7 @@
         "additionalProperties": false,
         "properties": {
           "argvPrefix": {
-            "description": "Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.",
+            "description": "Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted; output redirection is never permitted.",
             "items": {
               "description": "One literal argv token.",
               "maxLength": 128,
@@ -10406,7 +10406,7 @@
               "type": "string"
             },
             "maxItems": 8,
-            "minItems": 2,
+            "minItems": 1,
             "type": "array"
           }
         },
@@ -13733,7 +13733,7 @@
           },
           "addTools": {
             "items": {
-              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "description": "A runtime or MCP tool name, e.g. \"read\". Never authorizes a shell invocation.",
               "maxLength": 128,
               "minLength": 1,
               "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
@@ -13768,7 +13768,7 @@
           },
           "removeTools": {
             "items": {
-              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "description": "A runtime or MCP tool name, e.g. \"read\". Never authorizes a shell invocation.",
               "maxLength": 128,
               "minLength": 1,
               "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",

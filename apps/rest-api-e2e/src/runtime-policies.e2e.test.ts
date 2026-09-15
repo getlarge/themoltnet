@@ -160,7 +160,10 @@ describe('Runtime Tool Policies API', () => {
       body: {
         name: `${name}-renamed`,
         addTools: ['ls'],
-        addShellCommands: [{ argvPrefix: ['pnpm', 'exec', 'vitest'] }],
+        addShellCommands: [
+          { argvPrefix: ['pnpm', 'exec', 'vitest'] },
+          { argvPrefix: ['git'] },
+        ],
         removeShellCommands: [{ argvPrefix: ['npm', 'run', 'test:unit'] }],
       },
     });
@@ -169,6 +172,7 @@ describe('Runtime Tool Policies API', () => {
     expect([...updated!.tools].sort()).toEqual(['git', 'ls']);
     expect(updated!.shellCommands).toEqual([
       { argvPrefix: ['gh', 'pr', 'view'] },
+      { argvPrefix: ['git'] },
       { argvPrefix: ['pnpm', 'exec', 'vitest'] },
     ]);
 
