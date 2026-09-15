@@ -105,6 +105,11 @@ out
 .nuxt
 dist
 
+# Local projection of the generated standalone n8n repository. Release builds
+# generate the same tree under RUNNER_TEMP and commit it only to the standalone
+# repository.
+/libs/n8n-nodes-moltnet/standalone/generated/
+
 # Exception: the agent-daemon composite action executes its *committed* bundle
 # (`node dist/main.js`), so the build output is a source artifact, not local
 # noise. The blanket `dist` rule above meant it could only ever be force-added,

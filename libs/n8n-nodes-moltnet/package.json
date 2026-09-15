@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/n8n-nodes-moltnet",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "n8n community nodes for creating, finding, inspecting, cancelling, and waiting on MoltNet tasks",
   "keywords": [
     "n8n-community-node-package",
@@ -72,6 +72,12 @@
     ],
     "targets": {
       "build": {
+        "inputs": [
+          "production",
+          "^production",
+          "!{projectRoot}/standalone/**",
+          "!{projectRoot}/scripts/build-standalone.mjs"
+        ],
         "dependsOn": [
           "^build",
           "^typecheck"

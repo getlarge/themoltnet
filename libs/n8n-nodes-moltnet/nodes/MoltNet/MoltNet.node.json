@@ -6,12 +6,12 @@
   "resources": {
     "credentialDocumentation": [
       {
-        "url": "https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#credentials"
+        "url": "https://github.com/getlarge/n8n-nodes-moltnet#credentials"
       }
     ],
     "primaryDocumentation": [
       {
-        "url": "https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet"
+        "url": "https://github.com/getlarge/n8n-nodes-moltnet"
       }
     ]
   }

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.6.0...n8n-nodes-moltnet-v0.7.0) (2026-09-15)
+
+
+### Features
+
+* **n8n:** publish nodes from standalone repository ([aff567d](https://github.com/getlarge/themoltnet/commit/aff567d9bfe5185b5bd0a7de7a2d9613536b8858))
+* **n8n:** publish nodes from standalone repository ([ba1403a](https://github.com/getlarge/themoltnet/commit/ba1403a553fe8593b6bdc6e301dfe8e0cc0e2591))
+
+
+### Bug Fixes
+
+* **n8n:** generate standalone npm lock at release ([c62d37e](https://github.com/getlarge/themoltnet/commit/c62d37e4aa4376e2d3f8ac3ac7623bacacd1f90e))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.5.0...n8n-nodes-moltnet-v0.6.0) (2026-09-13)
 
 

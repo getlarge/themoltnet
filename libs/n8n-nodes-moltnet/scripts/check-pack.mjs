@@ -15,8 +15,17 @@ import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { resolvePackFilename } from './pack-result.mjs';
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const repositoryRoot = resolve(packageRoot, '../..');
+const sourceManifest = JSON.parse(
+  readFileSync(resolve(packageRoot, 'package.json'), 'utf8'),
+);
+const standaloneRepositoryUrl =
+  'git+https://github.com/getlarge/n8n-nodes-moltnet.git';
+const isStandaloneRepository =
+  sourceManifest.repository?.url === standaloneRepositoryUrl &&
+  sourceManifest.repository?.directory === undefined;
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'moltnet-n8n-pack-'));
 const extractedRoot = join(temporaryRoot, 'extracted');
 const consumerRoot = join(temporaryRoot, 'consumer');
@@ -31,16 +40,6 @@ const requiredFiles = [
   'examples/create-and-wait.workflow.json',
   'README.md',
   'LICENSE.md',
-];
-const credentialSources = [
-  {
-    portal: 'credentials/MoltNetAgentApi.credentials.ts',
-    source: 'credentials/MoltNetAgentApi.credentials.ts',
-  },
-  {
-    portal: 'credentials/MoltNetOAuth2Api.credentials.ts',
-    source: 'credentials/MoltNetOAuth2Api.credentials.ts',
-  },
 ];
 const forbiddenRuntimePatterns = [
   [/\bglobalThis\b/u, 'uses the restricted global globalThis'],
@@ -69,52 +68,50 @@ function listFiles(root, prefix = '') {
 }
 
 try {
-  for (const credential of credentialSources) {
-    try {
-      execFileSync('git', ['ls-files', '--error-unmatch', credential.portal], {
-        cwd: repositoryRoot,
-        stdio: 'pipe',
-      });
-    } catch {
-      throw new Error(
-        `Creator Portal requires ${credential.portal} to be tracked from the Git repository root`,
-      );
-    }
-
-    const portalCredentialPath = resolve(repositoryRoot, credential.portal);
-    const credentialSource = readFileSync(
-      resolve(packageRoot, credential.source),
-      'utf8',
-    );
-    assert(
-      readFileSync(portalCredentialPath, 'utf8') === credentialSource,
-      `${credential.portal} must be a byte-identical checked-in copy of the package credential source`,
-    );
-  }
-
   // Run the repository-wide entrypoint, source-leak, relative-import,
   // declaration, private-dependency, and provenance checks first. The rest of
   // this script adds the n8n manifest, CommonJS, host-peer, and cloud-safety
   // probes that are specific to community nodes.
   execFileSync(
-    'pnpm',
-    ['exec', 'tsx', '../../tools/src/check-pack.ts', '--package', packageRoot],
+    isStandaloneRepository ? 'npm' : 'pnpm',
+    isStandaloneRepository
+      ? [
+          'exec',
+          '--',
+          'tsx',
+          'scripts/check-pack-shared.ts',
+          '--package',
+          packageRoot,
+          '--repository-url',
+          standaloneRepositoryUrl,
+        ]
+      : [
+          'exec',
+          'tsx',
+          '../../tools/src/check-pack.ts',
+          '--package',
+          packageRoot,
+        ],
     { cwd: packageRoot, stdio: 'inherit' },
   );
 
-  const packed = JSON.parse(
+  const tarball = resolvePackFilename(
     execFileSync(
-      'pnpm',
+      isStandaloneRepository ? 'npm' : 'pnpm',
       ['pack', '--pack-destination', temporaryRoot, '--json'],
-      { cwd: packageRoot, encoding: 'utf8' },
+      {
+        cwd: packageRoot,
+        encoding: 'utf8',
+        env: isStandaloneRepository
+          ? {
+              ...process.env,
+              npm_config_cache: join(temporaryRoot, 'npm-cache'),
+            }
+          : process.env,
+      },
     ),
+    temporaryRoot,
   );
-  const filename = Array.isArray(packed)
-    ? packed[0]?.filename
-    : packed.filename;
-  assert(typeof filename === 'string', 'pnpm pack did not return a filename');
-
-  const tarball = resolve(packageRoot, filename);
   mkdirSync(extractedRoot, { recursive: true });
   execFileSync('tar', ['-xzf', tarball, '-C', extractedRoot]);
 
@@ -134,6 +131,22 @@ try {
     manifest.peerDependencies?.['n8n-workflow'] === '*',
     'n8n-workflow must remain a host peer dependency',
   );
+  if (isStandaloneRepository) {
+    assert(
+      manifest.repository?.url === standaloneRepositoryUrl &&
+        manifest.repository?.directory === undefined,
+      'Standalone package repository metadata must identify getlarge/n8n-nodes-moltnet without a directory',
+    );
+    assert(
+      !JSON.stringify(manifest).includes('workspace:') &&
+        !JSON.stringify(manifest).includes('catalog:'),
+      'Standalone package manifest must not retain workspace or catalog protocols',
+    );
+    assert(
+      manifest.nx === undefined,
+      'Standalone package manifest must not retain Nx configuration',
+    );
+  }
 
   for (const file of requiredFiles) {
     assert(files.includes(file), `Packed package is missing ${file}`);

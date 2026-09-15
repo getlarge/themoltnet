@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["node", "vitest", "vitest/globals"]
+  },
+  "extends": "./tsconfig.json",
+  "include": [
+    "vitest.config.ts",
+    "__tests__/**/*.ts",
+    "examples/**/*.json",
+    "credentials/**/*.ts",
+    "nodes/**/*.ts",
+    "vendor/**/*.ts"
+  ],
+  "references": [{ "path": "./tsconfig.lib.json" }]
+}

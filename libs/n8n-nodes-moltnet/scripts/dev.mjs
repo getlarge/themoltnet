@@ -30,9 +30,17 @@ const n8nBinary = resolve(
   process.platform === 'win32' ? 'n8n.cmd' : 'n8n',
 );
 const n8nManifest = resolve(runtimeFolder, 'node_modules/n8n/package.json');
+const usesPnpm = !existsSync(resolve(packageRoot, 'package-lock.json'));
+
+function viteCommand(...args) {
+  return usesPnpm
+    ? ['pnpm', ['exec', 'vite', ...args]]
+    : ['npm', ['exec', '--', 'vite', ...args]];
+}
 
 function runBuild() {
-  const result = spawnSync('pnpm', ['exec', 'vite', 'build'], {
+  const [command, args] = viteCommand('build');
+  const result = spawnSync(command, args, {
     cwd: packageRoot,
     stdio: 'inherit',
   });
@@ -104,8 +112,9 @@ linkPackage();
 ensureN8nRuntime();
 writeLocalWorkflow();
 
+const [viteBinary, viteArgs] = viteCommand('build', '--watch');
 const children = [
-  spawn('pnpm', ['exec', 'vite', 'build', '--watch'], {
+  spawn(viteBinary, viteArgs, {
     cwd: packageRoot,
     stdio: 'inherit',
   }),
