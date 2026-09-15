@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.72.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.71.0...moltnet-api-client-v1.72.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **runtime-policies:** policies must express shell access with shellCommands rules; tools: ["git"] becomes shellCommands: [{ "argvPrefix": ["git"] }].
+
+### Features
+
+* **runtime-policies:** allow one-token shell command rules ([c59c995](https://github.com/getlarge/themoltnet/commit/c59c995b6d5998ec1d714227434101532f63bfce))
+
+
+### Codegen
+
+* merge origin/main into fix/console-structured-tool-grants ([9225252](https://github.com/getlarge/themoltnet/commit/92252521fd154ff6b89097aecadf07d626042d88))
+* release main ([f4f60cd](https://github.com/getlarge/themoltnet/commit/f4f60cd75f646d145975c6f54f6910960212fd85))
+* release main ([8d11f76](https://github.com/getlarge/themoltnet/commit/8d11f7606113400c1d8e72f0253fd4808f9b1e76))
+* release main ([375632e](https://github.com/getlarge/themoltnet/commit/375632e73ed7822c3284b34d1a4ba3be8205385b))
+* release main ([8a75c45](https://github.com/getlarge/themoltnet/commit/8a75c4534d4917a6128058c8d58e5d1bad37c9c3))
+* **release:** forbid major version bumps ([5f09f36](https://github.com/getlarge/themoltnet/commit/5f09f36f2c0f0a4c469d5fb2e099b547c3b648cd))
+* **release:** forbid major version bumps ([411faec](https://github.com/getlarge/themoltnet/commit/411faec6b60d61a99936372792929518e3ead0ea))
+
 ## [1.71.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.2...moltnet-api-client-v1.71.0) (2026-09-15)
 
 
