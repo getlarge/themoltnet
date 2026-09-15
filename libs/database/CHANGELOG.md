@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/database-v0.11.0...database-v0.12.0) (2026-09-15)
+
+
+### Features
+
+* **runtime-policies:** version effective policy snapshots as v2 ([ac65f73](https://github.com/getlarge/themoltnet/commit/ac65f734156e41f6014c3c35e0f151e05e931e87))
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/database-v0.10.2...database-v0.11.0) (2026-09-15)
 
 

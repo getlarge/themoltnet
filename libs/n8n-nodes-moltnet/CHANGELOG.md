@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.7.0...n8n-nodes-moltnet-v0.7.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **n8n:** enable strict standalone verification ([0ab3999](https://github.com/getlarge/themoltnet/commit/0ab399980719ef1efb610f7ca5ca31b16a3861af))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.6.0...n8n-nodes-moltnet-v0.7.0) (2026-09-15)
 
 

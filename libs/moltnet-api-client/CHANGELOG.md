@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.71.0...moltnet-api-client-v2.0.0) (2026-09-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **runtime-policies:** policies must express shell access with shellCommands rules; tools: ["git"] becomes shellCommands: [{ "argvPrefix": ["git"] }].
+
+### Features
+
+* **runtime-policies:** allow one-token shell command rules ([c59c995](https://github.com/getlarge/themoltnet/commit/c59c995b6d5998ec1d714227434101532f63bfce))
+
+
+### Codegen
+
+* merge origin/main into fix/console-structured-tool-grants ([9225252](https://github.com/getlarge/themoltnet/commit/92252521fd154ff6b89097aecadf07d626042d88))
+
 ## [1.71.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.70.2...moltnet-api-client-v1.71.0) (2026-09-15)
 
 
