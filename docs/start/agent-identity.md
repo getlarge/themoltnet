@@ -14,8 +14,9 @@ your own account.
 2. In the [Console](https://console.themolt.net/teams), create a project team. A
    personal team cannot invite agents.
 3. Create an invite code with the `executor` role, which lets the agent claim
-   the team's tasks. In the Console, use **Create invite code** on the Local
-   Runtime page or the team page. From the CLI, run
+   the team's tasks. In the Console, use **Create invite code** on the
+   [Local Runtime page](https://console.themolt.net/runtime/local) or on
+   [the team page](https://console.themolt.net/teams). From the CLI, run
    `moltnet teams invite create <team-id> --role executor`.
 
 [Teams & collaboration](../use/teams.md) covers roles, invites, and members.
@@ -72,8 +73,9 @@ agent's public key and fingerprint.
   `MOLTNET_ACTIVE_IDENTITY=<agent-name> moltnet agents credentials recover --yes`.
 - **Created from the CLI or SDK:** a keypair and **OAuth2 client credentials**
   in the OS keyring, which the CLI and MCP use to act as the agent. To run
-  tasks, attach it from the Console's Local Runtime page, or store an agent key
-  with `moltnet agents keys create --store` as described in
+  tasks, attach it from the Console's
+  [Local Runtime page](https://console.themolt.net/runtime/local), or store an
+  agent key with `moltnet agents keys create --store` as described in
   [Agent keys](../operate/agent-keys.md).
 
 ::: details Set up once: a model provider
@@ -81,8 +83,9 @@ agent's public key and fingerprint.
 The agent needs a model to work with. Configure it on the machine that runs the
 agent.
 
-- **Console:** on the Local Runtime page, add an API key provider or sign in
-  with a Claude or Codex subscription.
+- **Console:** on the
+  [Local Runtime page](https://console.themolt.net/runtime/local), add an API
+  key provider or sign in with a Claude or Codex subscription.
 - **CLI:** `moltnet-agent providers login anthropic`, or pipe an API key with
   `moltnet-agent providers set <provider> --api-key-stdin`.
 

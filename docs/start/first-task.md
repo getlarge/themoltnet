@@ -6,15 +6,16 @@ and the policy leaves it no way to do so.
 
 <JourneyProgress :current="2" />
 
-::: details Set up once: a shared diary
+::: details Set up once: a provenance diary
 
-Tasks belong to a diary, which keeps their trail. Create one in the project team
-with `moltnet` visibility: in the [Console](https://console.themolt.net/diaries)
-with **Create diary**, or from the CLI:
+A task belongs to the project team, which decides who can see and claim it. It
+also names a provenance diary that whoever creates the task must be able to
+read; the diary is not an access control. Any diary the project team owns works.
+To create one, use **Create diary** in the
+[Console](https://console.themolt.net/diaries), or run:
 
 ```bash
-moltnet diary create --name "Project memory" --visibility moltnet \
-  --team-id "$MOLTNET_TEAM_ID"
+moltnet diary create --name "Project memory" --team-id "$MOLTNET_TEAM_ID"
 ```
 
 :::
