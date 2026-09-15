@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -113,6 +113,8 @@ jobs:
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
       agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}
       agent-daemon-tag-name: ${{ steps.release.outputs['apps/agent-daemon--tag_name'] }}
+      agent-desktop-release-created: ${{ steps.release.outputs['apps/agent-desktop--release_created'] }}
+      agent-desktop-tag-name: ${{ steps.release.outputs['apps/agent-desktop--tag_name'] }}
       console-release-created: ${{ steps.release.outputs['apps/console--release_created'] }}
       console-tag-name: ${{ steps.release.outputs['apps/console--tag_name'] }}
       console-version: ${{ steps.release.outputs['apps/console--version'] }}
@@ -271,6 +273,8 @@ jobs:
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
       agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
       agent-daemon-tag: ${{ steps.resolve.outputs.agent-daemon-tag }}
+      agent-desktop: ${{ steps.resolve.outputs.agent-desktop }}
+      agent-desktop-tag: ${{ steps.resolve.outputs.agent-desktop-tag }}
       docker-has-releases: ${{ steps.resolve-docker.outputs.has-releases }}
       docker-matrix: ${{ steps.resolve-docker.outputs.matrix }}
     steps:
@@ -330,6 +334,8 @@ jobs:
           RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
           RP_AGENT_DAEMON_CREATED: ${{ needs.release-please.outputs.agent-daemon-release-created }}
           RP_AGENT_DAEMON_TAG: ${{ needs.release-please.outputs.agent-daemon-tag-name }}
+          RP_AGENT_DESKTOP_CREATED: ${{ needs.release-please.outputs.agent-desktop-release-created }}
+          RP_AGENT_DESKTOP_TAG: ${{ needs.release-please.outputs.agent-desktop-tag-name }}
           RP_CONSOLE_CREATED: ${{ needs.release-please.outputs.console-release-created }}
           RP_CONSOLE_TAG: ${{ needs.release-please.outputs.console-tag-name }}
           RP_CONSOLE_VERSION: ${{ needs.release-please.outputs.console-version }}
@@ -447,6 +453,7 @@ jobs:
           resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
           resolve "node-red-theme" "$RP_NODE_RED_THEME_CREATED" "$RP_NODE_RED_THEME_TAG" "node-red-theme"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
+          resolve "agent-desktop" "$RP_AGENT_DESKTOP_CREATED" "$RP_AGENT_DESKTOP_TAG" "agent-desktop"
 
           resolve_docker "console" "$RP_CONSOLE_CREATED" "$RP_CONSOLE_TAG" "$RP_CONSOLE_VERSION" "console"
           resolve_docker "database" "$RP_DATABASE_CREATED" "$RP_DATABASE_TAG" "$RP_DATABASE_VERSION" "database"
@@ -2435,6 +2442,147 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  release-agent-desktop:
+    name: Sign, notarize, and publish MoltNet Agent for Mac
+    needs: [resolve-publish, finalize-agent-daemon-release]
+    if: >-
+      ${{ always() && needs.resolve-publish.outputs.agent-desktop == 'true' &&
+      (needs.resolve-publish.outputs.agent-daemon != 'true' ||
+      needs.finalize-agent-daemon-release.result == 'success') &&
+      !failure() && !cancelled() }}
+    runs-on: macos-14
+    timeout-minutes: 75
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .tool-versions
+          cache: pnpm
+
+      - uses: jdx/mise-action@v3
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Refuse incomplete signing material
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+        run: bash tools/release/agent-desktop/validate.sh . --release
+
+      - name: Import Developer ID identity
+        id: certificate
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/agent-desktop.keychain-db"
+          password=$(openssl rand -hex 16)
+          printf '%s' "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -v -p codesigning "$keychain" | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          [ -n "$identity" ] || { echo "Developer ID Application identity is missing" >&2; exit 1; }
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed updater and app bundles
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ steps.certificate.outputs.identity }}
+          APPLE_API_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
+          APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/notary.p8
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+        run: |
+          printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
+          chmod 600 "$APPLE_API_KEY_PATH"
+          export TAURI_CONFIG="{\"plugins\":{\"updater\":{\"pubkey\":$(printf '%s' "$TAURI_UPDATER_PUBLIC_KEY" | jq -Rs .)}}}"
+          if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
+            export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
+          fi
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle
+          rm -f "$APPLE_API_KEY_PATH"
+
+      - name: Verify and materialize release assets
+        id: artifacts
+        env:
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+        run: |
+          version=${RELEASE_TAG#agent-desktop-v}
+          bundle=apps/agent-desktop/out-rust/bundle/aarch64-apple-darwin/release/bundle
+          app=$(find "$bundle/macos" -maxdepth 1 -name '*.app' -print -quit)
+          dmg=$(find "$bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)
+          updater=$(find "$bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)
+          signature="$updater.sig"
+          [ -d "$app" ] && [ -f "$dmg" ] && [ -f "$updater" ] && [ -s "$signature" ] || {
+            echo "refusing incomplete Agent desktop artifacts" >&2
+            exit 1
+          }
+          mise exec -- cargo run \
+            --manifest-path apps/agent-desktop/src-tauri/Cargo.toml \
+            --locked \
+            --target-dir apps/agent-desktop/out-rust/bundle \
+            --bin verify-updater-signature \
+            -- "$TAURI_UPDATER_PUBLIC_KEY" "$signature" "$updater"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl --assess --type execute --verbose=2 "$app"
+          xcrun stapler validate "$app"
+          xcrun stapler validate "$dmg"
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = "13.0" ]
+          mkdir -p dist/agent-desktop
+          ditto -c -k --keepParent "$app" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.zip"
+          cp "$dmg" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.dmg"
+          cp "$updater" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.tar.gz"
+          cp "$signature" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.tar.gz.sig"
+          updater_signature=$(cat "$signature")
+          jq -n \
+            --arg version "$version" \
+            --arg signature "$updater_signature" \
+            --arg url "https://github.com/getlarge/themoltnet/releases/download/$RELEASE_TAG/MoltNet-Agent_${version}_aarch64.app.tar.gz" \
+            '{version:$version,notes:"Signed MoltNet Agent desktop update",pub_date:(now|todate),platforms:{"darwin-aarch64":{signature:$signature,url:$url}}}' \
+            > dist/agent-desktop/latest.json
+
+      - name: Upload and verify every release artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+        run: |
+          gh release upload "$RELEASE_TAG" dist/agent-desktop/* --clobber
+          mkdir -p "$RUNNER_TEMP/agent-desktop-uploaded"
+          for artifact in dist/agent-desktop/*; do
+            name=$(basename "$artifact")
+            gh release download "$RELEASE_TAG" \
+              --pattern "$name" \
+              --dir "$RUNNER_TEMP/agent-desktop-uploaded" \
+              --clobber
+            cmp --silent "$artifact" "$RUNNER_TEMP/agent-desktop-uploaded/$name" || {
+              echo "uploaded artifact verification failed: $name" >&2
+              exit 1
+            }
+          done
+          gh release edit "$RELEASE_TAG" --draft=false
+
   # release-please's "go" release type tags the lib but never edits go.mod in
   # dependent modules, and goreleaser builds the CLI with GOWORK=off — so a pin
   # left behind here silently ships an old client. This opens the bump as a
@@ -2458,16 +2606,24 @@ jobs:
   # while the normal landing release/deploy path remains unchanged.
   propose-download-pin:
     name: Propose stable download pin update
-    needs: [resolve-publish, release-cli, finalize-agent-daemon-release]
+    needs:
+      [
+        resolve-publish,
+        release-cli,
+        finalize-agent-daemon-release,
+        release-agent-desktop,
+      ]
     if: >-
       always() && !cancelled() &&
-      (needs.resolve-publish.outputs.cli == 'true' || needs.resolve-publish.outputs.agent-daemon == 'true') &&
+      (needs.resolve-publish.outputs.cli == 'true' || needs.resolve-publish.outputs.agent-daemon == 'true' || needs.resolve-publish.outputs.agent-desktop == 'true') &&
       (needs.resolve-publish.outputs.cli != 'true' || needs.release-cli.result == 'success') &&
-      (needs.resolve-publish.outputs.agent-daemon != 'true' || needs.finalize-agent-daemon-release.result == 'success')
+      (needs.resolve-publish.outputs.agent-daemon != 'true' || needs.finalize-agent-daemon-release.result == 'success') &&
+      (needs.resolve-publish.outputs.agent-desktop != 'true' || needs.release-agent-desktop.result == 'success')
     uses: ./.github/workflows/publish-download-pins.yml
     with:
       cli_version: ${{ needs.resolve-publish.outputs.cli == 'true' && needs.resolve-publish.outputs.cli-tag || '' }}
-      agent_version: ${{ needs.resolve-publish.outputs.agent-daemon == 'true' && needs.resolve-publish.outputs.agent-daemon-tag || '' }}
+      agent_cli_version: ${{ needs.resolve-publish.outputs.agent-daemon == 'true' && needs.resolve-publish.outputs.agent-daemon-tag || '' }}
+      agent_desktop_version: ${{ needs.resolve-publish.outputs.agent-desktop == 'true' && needs.resolve-publish.outputs.agent-desktop-tag || '' }}
     secrets: inherit
 
   publish-design-system:

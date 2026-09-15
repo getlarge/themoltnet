@@ -12,6 +12,11 @@
       "component": "agent-daemon",
       "release-type": "node"
     },
+    "apps/agent-desktop": {
+      "bump-minor-pre-major": true,
+      "component": "agent-desktop",
+      "release-type": "node"
+    },
     "apps/console": {
       "bump-minor-pre-major": true,
       "component": "console",

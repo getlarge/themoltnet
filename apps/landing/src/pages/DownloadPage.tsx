@@ -16,15 +16,16 @@ import { Link } from 'wouter';
 
 import { NAV_OFFSET } from '../constants';
 import {
-  AGENT_PLATFORMS,
-  agentDownloadPath,
-  agentVerifyCommands,
+  AGENT_CLI_PLATFORMS,
+  agentCliDownloadPath,
+  agentCliVerifyCommands,
   CLI_CHECKSUMS_PATH,
   CLI_CHECKSUMS_SIGNATURE_PATH,
   CLI_INSTALLERS,
   CLI_PLATFORMS,
   cliDownloadPath,
   cliVerifyCommands,
+  DESKTOP_MACOS_ARM64_PATH,
   PLATFORM_LABELS,
   type PlatformId,
 } from '../downloads';
@@ -39,7 +40,8 @@ const SECTION_IDS = ['all', 'install', 'verify', 'trust'] as const;
  */
 type DownloadManifest = {
   cli?: { version?: string; tag?: string };
-  agent?: { version?: string; tag?: string };
+  agentCli?: { version?: string; tag?: string };
+  agentDesktop?: { version?: string; tag?: string };
   signer?: { principal?: string; namespace?: string; publicKey?: string };
 };
 
@@ -69,7 +71,7 @@ const ALTERNATIVE_INSTALLS = [
   })),
   {
     id: 'agent',
-    title: 'Agent daemon (macOS / Linux / WSL2)',
+    title: 'Agent CLI (macOS / Linux / WSL2)',
     command: MOLTNET_AGENT_INSTALL_COMMAND,
     body: 'Installs the signed self-contained moltnet-agent bundle. Run moltnet-agent server explicitly after installation. Re-run to upgrade; --uninstall removes it.',
   },
@@ -105,10 +107,11 @@ export function DownloadPage() {
     typeof navigator === 'undefined' ? '' : navigator.userAgent,
   );
   const cliVersion = manifest?.cli?.version;
-  const agentVersion = manifest?.agent?.version;
+  const agentCliVersion = manifest?.agentCli?.version;
+  const agentDesktopVersion = manifest?.agentDesktop?.version;
   const signerKey = signerKeyOf(manifest);
   const cliVerify = cliVerifyCommands(primary);
-  const agentVerify = agentVerifyCommands(signerKey);
+  const agentVerify = agentCliVerifyCommands(signerKey);
 
   const cssVariables = {
     '--ops-void': theme.color.bg.void,
@@ -142,21 +145,15 @@ export function DownloadPage() {
           </Text>
           <div className="ops-download-primary">
             <ActionLink
-              href={cliDownloadPath(primary)}
+              href={DESKTOP_MACOS_ARM64_PATH}
               size="lg"
-              aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} for ${PLATFORM_LABELS[primary]}`}
+              aria-label={`Download MoltNet Agent${versionSuffix(agentDesktopVersion)} for macOS Apple Silicon`}
             >
-              Download CLI for {PLATFORM_LABELS[primary]}
+              Download MoltNet Agent for Mac
             </ActionLink>
-            {primary === 'darwin-arm64' ? (
-              <a
-                className="ops-download-alt"
-                href={cliDownloadPath('darwin-x64')}
-                aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} for macOS (Intel)`}
-              >
-                Intel Mac instead?
-              </a>
-            ) : null}
+            <a className="ops-download-alt" href="#install">
+              Prefer the terminal or another platform?
+            </a>
           </div>
         </Container>
       </header>
@@ -172,6 +169,21 @@ export function DownloadPage() {
             All platforms
           </Text>
           <div className="ops-download-groups">
+            <div>
+              <Text variant="h3">
+                MoltNet Agent for Mac{versionSuffix(agentDesktopVersion)}
+              </Text>
+              <Text color="secondary">
+                Menu-bar setup, local HTTPS consent, lifecycle control, and
+                signed updates for Apple Silicon on macOS 13 or newer.
+              </Text>
+              <ul className="ops-download-list">
+                <li>
+                  <a href={DESKTOP_MACOS_ARM64_PATH}>macOS (Apple Silicon)</a>
+                  <span className="ops-download-format">.dmg</span>
+                </li>
+              </ul>
+            </div>
             <div>
               <Text variant="h3">MoltNet CLI{versionSuffix(cliVersion)}</Text>
               <Text color="secondary">
@@ -210,32 +222,32 @@ export function DownloadPage() {
             </div>
             <div>
               <Text variant="h3">
-                MoltNet Agent{versionSuffix(agentVersion)}
+                MoltNet Agent CLI{versionSuffix(agentCliVersion)}
               </Text>
               <Text color="secondary">
                 Self-contained daemon bundle: pinned Node runtime, sandbox
                 tooling, and a foreground loopback server for Console.
               </Text>
               <ul className="ops-download-list">
-                {AGENT_PLATFORMS.map((id) => (
+                {AGENT_CLI_PLATFORMS.map((id) => (
                   <li key={id}>
                     <a
-                      href={agentDownloadPath(id)}
-                      aria-label={`Download MoltNet Agent${versionSuffix(agentVersion)} bundle for ${PLATFORM_LABELS[id]} (tar.gz)`}
+                      href={agentCliDownloadPath(id)}
+                      aria-label={`Download MoltNet Agent CLI${versionSuffix(agentCliVersion)} bundle for ${PLATFORM_LABELS[id]} (tar.gz)`}
                     >
                       {PLATFORM_LABELS[id]}
                     </a>
                     <span className="ops-download-format">
                       <a
-                        href={`${agentDownloadPath(id)}.sha256`}
-                        aria-label={`Download MoltNet Agent${versionSuffix(agentVersion)} checksum for ${PLATFORM_LABELS[id]}`}
+                        href={`${agentCliDownloadPath(id)}.sha256`}
+                        aria-label={`Download MoltNet Agent CLI${versionSuffix(agentCliVersion)} checksum for ${PLATFORM_LABELS[id]}`}
                       >
                         .sha256
                       </a>
                       {' / '}
                       <a
-                        href={`${agentDownloadPath(id)}.sha256.sig`}
-                        aria-label={`Download MoltNet Agent${versionSuffix(agentVersion)} checksum signature for ${PLATFORM_LABELS[id]}`}
+                        href={`${agentCliDownloadPath(id)}.sha256.sig`}
+                        aria-label={`Download MoltNet Agent CLI${versionSuffix(agentCliVersion)} checksum signature for ${PLATFORM_LABELS[id]}`}
                       >
                         .sig
                       </a>
@@ -260,7 +272,7 @@ export function DownloadPage() {
       >
         <Container maxWidth="lg">
           <Text id="download-install-title" variant="h2">
-            Install the CLI and the agent daemon
+            Terminal installation
           </Text>
           <Stack gap={5}>
             {ALTERNATIVE_INSTALLS.map((method) => (
