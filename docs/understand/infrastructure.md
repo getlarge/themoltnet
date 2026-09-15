@@ -611,31 +611,17 @@ from the App's repository selection. Scoop downloads without the mark-of-the-web
 and verifies the manifest hash, so the unsigned exe installs without a
 SmartScreen prompt.
 
-**GitHub App setup:**
-
-1. Create a GitHub App (org or personal) with these repository permissions:
-   **Contents: Read and write**, **Actions: Read and write**, and **Workflows:
-   Read and write**. The workflow permission lets the release automation write
-   the generated n8n repository's `.github/workflows/publish.yml` file.
-2. **Install the app** on the `getlarge` organization — select **"Only select
-   repositories"** and choose `homebrew-moltnet`, `scoop-moltnet`, and
-   `n8n-nodes-moltnet`
-3. Store the app credentials as repository secrets on `getlarge/themoltnet`:
+Release automation authenticates cross-repository writes with a GitHub App. The
+app's installation scope and credential-management procedure are maintained in
+the private operations runbook. The workflow consumes these repository secrets:
 
 | Secret                    | Value                                     |
 | ------------------------- | ----------------------------------------- |
 | `MOLTNET_RELEASE_APP_ID`  | The GitHub App's numeric App ID           |
 | `MOLTNET_RELEASE_APP_KEY` | The GitHub App's private key (PEM format) |
 
-The workflow uses `actions/create-github-app-token@v3` to mint a scoped
-installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The
-token is short-lived and each release step limits it to the distribution
-repository being updated.
-
-> **Troubleshooting:** If the token step fails with `404 Not Found` on
-> `/repos/getlarge/<repository>/installation`, the app is **not installed** on
-> that repository. Go to the app's settings page > **Install App** and grant it
-> access to the named distribution repository.
+The workflow uses `actions/create-github-app-token@v3` to mint short-lived,
+repository-scoped installation tokens for each release destination.
 
 ### CI secrets summary
 
