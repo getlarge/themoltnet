@@ -33,7 +33,7 @@ current_pin() {
 
 # Keep this stable X.Y.Z rule aligned with propose-download-pin.sh and the
 # desktop lifecycle's valid_version helper.
-valid_version() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
+valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
 
 # name -> the requested version, after tag-prefix stripping and manifest fallback.
 resolve_target() {

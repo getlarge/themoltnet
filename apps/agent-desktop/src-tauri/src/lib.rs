@@ -2,6 +2,7 @@ mod lifecycle;
 
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager};
 use std::{
+    path::PathBuf,
     sync::{Mutex, TryLockError},
     thread,
     time::Duration,
@@ -18,15 +19,18 @@ const STATUS_EVENT: &str = "agent-desktop://status";
 struct AppState {
     lifecycle: Mutex<LifecycleManager>,
     latest_status: Mutex<DesktopStatus>,
+    logs_directory: PathBuf,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         let lifecycle = LifecycleManager::default();
         let latest_status = lifecycle.snapshot();
+        let logs_directory = lifecycle.logs_directory();
         Self {
             lifecycle: Mutex::new(lifecycle),
             latest_status: Mutex::new(latest_status),
+            logs_directory,
         }
     }
 }
@@ -70,6 +74,7 @@ fn poisoned_status(app: &AppHandle) -> String {
     message.into()
 }
 
+#[cfg(test)]
 fn lifecycle_lock_error<T>(error: TryLockError<T>) -> String {
     match error {
         TryLockError::WouldBlock => {
@@ -86,7 +91,7 @@ fn operate(
     operation: impl FnOnce(&mut LifecycleManager) -> Result<DesktopStatus, String>,
 ) -> Result<DesktopStatus, String> {
     let state = app.state::<AppState>();
-    let (result, snapshot) = {
+    let result = {
         let mut lifecycle = match state.lifecycle.try_lock() {
             Ok(lifecycle) => lifecycle,
             Err(TryLockError::WouldBlock) => {
@@ -95,10 +100,26 @@ fn operate(
             Err(TryLockError::Poisoned(_)) => return Err(poisoned_status(app)),
         };
         let result = operation(&mut lifecycle);
-        (result, lifecycle.snapshot())
+        let snapshot = lifecycle.snapshot();
+        publish(app, &snapshot);
+        result.map(|_| snapshot)
     };
-    publish(app, &snapshot);
-    result.map(|_| snapshot)
+    result
+}
+
+fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    let result = match state.lifecycle.lock() {
+        Ok(mut lifecycle) => {
+            let result = lifecycle.stop_server();
+            let snapshot = lifecycle.snapshot();
+            publish(app, &snapshot);
+            result.map(|_| ())
+        }
+        Err(_) => Err(poisoned_status(app)),
+    };
+    app.exit(if result.is_ok() { 0 } else { 1 });
+    result
 }
 
 #[tauri::command]
@@ -136,21 +157,13 @@ fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
-fn open_console(state: State<'_, AppState>) -> Result<(), String> {
-    state
-        .lifecycle
-        .try_lock()
-        .map_err(lifecycle_lock_error)?
-        .open_console()
+fn open_console() -> Result<(), String> {
+    lifecycle::open_console()
 }
 
 #[tauri::command]
 fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
-    state
-        .lifecycle
-        .try_lock()
-        .map_err(lifecycle_lock_error)?
-        .open_logs()
+    lifecycle::open_logs(&state.logs_directory)
 }
 
 #[tauri::command]
@@ -165,9 +178,7 @@ fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
 
 #[tauri::command]
 fn quit_and_stop(app: AppHandle) -> Result<(), String> {
-    let result = operate(&app, LifecycleManager::stop_server).map(|_| ());
-    app.exit(if result.is_ok() { 0 } else { 1 });
-    result
+    stop_and_exit(&app)
 }
 
 #[tauri::command]
@@ -221,20 +232,15 @@ fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => show_status(app),
             "console" => {
-                let state = app.state::<AppState>();
-                if let Ok(lifecycle) = state.lifecycle.try_lock() {
-                    if let Err(error) = lifecycle.open_console() {
-                        eprintln!("could not open MoltNet Console: {error}");
-                    }
-                };
+                if let Err(error) = lifecycle::open_console() {
+                    eprintln!("could not open MoltNet Console: {error}");
+                }
             }
             "logs" => {
                 let state = app.state::<AppState>();
-                if let Ok(lifecycle) = state.lifecycle.try_lock() {
-                    if let Err(error) = lifecycle.open_logs() {
-                        eprintln!("could not open Agent Server logs: {error}");
-                    }
-                };
+                if let Err(error) = lifecycle::open_logs(&state.logs_directory) {
+                    eprintln!("could not open Agent Server logs: {error}");
+                }
             }
             "update" => {
                 show_status(app);
@@ -252,8 +258,7 @@ fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
             "quit" => {
                 let handle = app.clone();
                 tauri::async_runtime::spawn_blocking(move || {
-                    let result = operate(&handle, LifecycleManager::stop_server);
-                    handle.exit(if result.is_ok() { 0 } else { 1 });
+                    let _ = stop_and_exit(&handle);
                 });
             }
             _ => {}
@@ -274,11 +279,12 @@ fn start_lifecycle(app: AppHandle) {
     thread::spawn(move || loop {
         thread::sleep(Duration::from_secs(2));
         let state = app.state::<AppState>();
-        let (action, snapshot) = match state.lifecycle.try_lock() {
+        let action = match state.lifecycle.try_lock() {
             Ok(mut lifecycle) => {
                 let action = lifecycle.inspect_exit();
                 let snapshot = lifecycle.snapshot();
-                (action, snapshot)
+                publish(&app, &snapshot);
+                action
             }
             Err(TryLockError::WouldBlock) => continue,
             Err(TryLockError::Poisoned(_)) => {
@@ -286,16 +292,16 @@ fn start_lifecycle(app: AppHandle) {
                 break;
             }
         };
-        publish(&app, &snapshot);
         if action == ExitAction::Retry {
             let retry = app.clone();
             tauri::async_runtime::spawn_blocking(move || {
                 let state = retry.state::<AppState>();
-                let (result, snapshot) = match state.lifecycle.lock() {
+                let result = match state.lifecycle.lock() {
                     Ok(mut lifecycle) => {
                         let result = lifecycle.retry_after_exit();
                         let snapshot = lifecycle.snapshot();
-                        (result, snapshot)
+                        publish(&retry, &snapshot);
+                        result
                     }
                     Err(_) => {
                         let error = poisoned_status(&retry);
@@ -303,7 +309,6 @@ fn start_lifecycle(app: AppHandle) {
                         return;
                     }
                 };
-                publish(&retry, &snapshot);
                 if let Err(error) = result {
                     eprintln!("automatic Agent Server recovery failed: {error}");
                 }
@@ -356,8 +361,7 @@ pub fn run() {
             api.prevent_exit();
             let app = handle.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                let result = operate(&app, LifecycleManager::stop_server);
-                app.exit(if result.is_ok() { 0 } else { 1 });
+                let _ = stop_and_exit(&app);
             });
         }
         _ => {}

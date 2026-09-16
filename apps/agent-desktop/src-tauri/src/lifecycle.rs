@@ -17,6 +17,7 @@ use std::{
 const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
 const HEALTH_URL: &str = "https://127.0.0.1:17374/health";
 const MAX_LOG_LINES: usize = 400;
+const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
 const HEALTH_CHECK_TIMEOUT_SECS: &str = "1";
@@ -109,6 +110,7 @@ impl LogBuffer {
     }
 
     fn push(&mut self, line: String) -> Result<(), String> {
+        let line = truncate_log_line(&line, MAX_LOG_LINE_BYTES);
         self.lines.push_back(line.clone());
         while self.lines.len() > MAX_LOG_LINES {
             self.lines.pop_front();
@@ -345,7 +347,7 @@ impl LifecycleManager {
                 self.set_state(
                     LifecycleState::UpdateAvailable,
                     &format!(
-                        "Agent CLI {version} did not become ready. Version {previous_version} was restored."
+                        "Agent CLI {version} could not be activated. Version {previous_version} was restored."
                     ),
                 );
                 self.push_log(&format!(
@@ -433,10 +435,16 @@ impl LifecycleManager {
     }
 
     pub fn inspect_exit(&mut self) -> ExitAction {
-        let status = self
-            .child
-            .as_mut()
-            .and_then(|child| child.try_wait().ok().flatten());
+        let status = match self.child.as_mut().map(Child::try_wait) {
+            Some(Ok(status)) => status,
+            Some(Err(error)) => {
+                let message = format!("could not observe Agent Server exit: {error}");
+                self.push_log(&message);
+                self.set_state(LifecycleState::Failed, &message);
+                return ExitAction::Failed;
+            }
+            None => None,
+        };
         let Some(status) = status else {
             return ExitAction::None;
         };
@@ -466,16 +474,6 @@ impl LifecycleManager {
             return Ok(self.snapshot());
         }
         self.start_server_for(StartOrigin::CrashRecovery)
-    }
-
-    pub fn open_console(&self) -> Result<(), String> {
-        fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
-    }
-
-    pub fn open_logs(&self) -> Result<(), String> {
-        prepare_private_directory(&self.logs_directory())?;
-        let path = self.logs_directory().to_string_lossy().into_owned();
-        fixed_command("/usr/bin/open", &[&path]).map(|_| ())
     }
 
     fn start_server(&mut self) -> Result<DesktopStatus, String> {
@@ -588,8 +586,13 @@ impl LifecycleManager {
             .write_all(EMBEDDED_INSTALLER.as_bytes())
             .map_err(|error| error.to_string())?;
         script.flush().map_err(|error| error.to_string())?;
-        let mut command =
-            installer_command(script.path(), &self.install_root(), version, uninstall);
+        let mut command = installer_command(
+            script.path(),
+            &self.home,
+            &self.install_root(),
+            version,
+            uninstall,
+        );
         let output = command.output().map_err(|error| error.to_string())?;
         if output.status.success() {
             Ok(())
@@ -640,9 +643,19 @@ impl LifecycleManager {
         self.install_root().join("current/bin/moltnet-agent")
     }
 
-    fn logs_directory(&self) -> PathBuf {
+    pub fn logs_directory(&self) -> PathBuf {
         self.home.join(".config/moltnet/agent-server/logs")
     }
+}
+
+pub fn open_console() -> Result<(), String> {
+    fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
+}
+
+pub fn open_logs(directory: &Path) -> Result<(), String> {
+    prepare_private_directory(directory)?;
+    let path = directory.to_string_lossy().into_owned();
+    fixed_command("/usr/bin/open", &[&path]).map(|_| ())
 }
 
 fn capture_lines(
@@ -652,12 +665,14 @@ fn capture_lines(
     stream: &'static str,
 ) {
     thread::spawn(move || {
-        for line in BufReader::new(reader).lines() {
-            let (line, read_failed) = match line {
-                Ok(line) => (
+        let mut reader = BufReader::new(reader);
+        loop {
+            let (line, read_failed) = match read_bounded_line(&mut reader, MAX_LOG_LINE_BYTES) {
+                Ok(Some(line)) => (
                     format!("Agent Server {stream} [attempt {attempt}]: {line}"),
                     false,
                 ),
+                Ok(None) => break,
                 Err(error) => (
                     format!("Could not read Agent Server {stream} [attempt {attempt}]: {error}"),
                     true,
@@ -673,6 +688,55 @@ fn capture_lines(
             }
         }
     });
+}
+
+fn read_bounded_line(
+    reader: &mut impl BufRead,
+    max_bytes: usize,
+) -> std::io::Result<Option<String>> {
+    let mut bytes = Vec::with_capacity(max_bytes.min(1024));
+    let mut truncated = false;
+    loop {
+        let buffer = reader.fill_buf()?;
+        if buffer.is_empty() {
+            if bytes.is_empty() && !truncated {
+                return Ok(None);
+            }
+            break;
+        }
+        let newline = buffer.iter().position(|byte| *byte == b'\n');
+        let content_len = newline.unwrap_or(buffer.len());
+        let remaining = max_bytes.saturating_sub(bytes.len());
+        let copied = content_len.min(remaining);
+        bytes.extend_from_slice(&buffer[..copied]);
+        truncated |= copied < content_len;
+        reader.consume(content_len + usize::from(newline.is_some()));
+        if newline.is_some() {
+            break;
+        }
+    }
+    if bytes.last() == Some(&b'\r') {
+        bytes.pop();
+    }
+    let line = String::from_utf8_lossy(&bytes);
+    Ok(Some(if truncated {
+        format!("{} … [truncated]", line.trim_end())
+    } else {
+        line.into_owned()
+    }))
+}
+
+fn truncate_log_line(line: &str, max_bytes: usize) -> String {
+    const MARKER: &str = " … [truncated]";
+    if line.len() <= max_bytes {
+        return line.to_string();
+    }
+    let limit = max_bytes.saturating_sub(MARKER.len());
+    let mut boundary = limit;
+    while boundary > 0 && !line.is_char_boundary(boundary) {
+        boundary -= 1;
+    }
+    format!("{}{MARKER}", line[..boundary].trim_end())
 }
 
 fn prepare_private_directory(directory: &Path) -> Result<(), String> {
@@ -704,6 +768,7 @@ fn retry_budget_after_start(origin: StartOrigin, attempt: usize) -> bool {
 
 fn installer_command(
     script: &Path,
+    home: &Path,
     install_root: &Path,
     version: Option<&str>,
     uninstall: bool,
@@ -711,9 +776,10 @@ fn installer_command(
     let mut command = Command::new("/bin/sh");
     command
         .arg(script)
-        .env("MOLTNET_AGENT_HOME", install_root)
-        .env_remove("MOLTNET_AGENT_ALLOW_UNVERIFIED")
-        .env_remove("MOLTNET_AGENT_ALLOW_UNSIGNED");
+        .env_clear()
+        .env("HOME", home)
+        .env("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
+        .env("MOLTNET_AGENT_HOME", install_root);
     if let Some(version) = version {
         command.env("MOLTNET_AGENT_VERSION", version);
     }
@@ -786,10 +852,12 @@ fn execute_update(
     previous_version: &str,
     mut perform: impl FnMut(UpdateStep<'_>) -> Result<(), String>,
 ) -> Result<UpdateOutcome, String> {
-    perform(UpdateStep::Install(version))
-        .map_err(|error| format!("verified Agent CLI update failed: {error}"))?;
-    let Err(update_error) = perform(UpdateStep::Start) else {
-        return Ok(UpdateOutcome::Updated);
+    let update_error = match perform(UpdateStep::Install(version)) {
+        Ok(()) => match perform(UpdateStep::Start) {
+            Ok(()) => return Ok(UpdateOutcome::Updated),
+            Err(error) => error,
+        },
+        Err(error) => format!("verified Agent CLI update failed: {error}"),
     };
     perform(UpdateStep::Install(previous_version)).map_err(|rollback_error| {
         format!("Agent CLI update failed ({update_error}); rollback failed: {rollback_error}")
@@ -893,9 +961,22 @@ mod tests {
 
     #[test]
     fn update_failure_paths_preserve_actionable_diagnostics() {
-        let initial =
-            execute_update("2.0.0", "1.0.0", |_| Err("download failed".into())).unwrap_err();
-        assert_eq!(initial, "verified Agent CLI update failed: download failed");
+        let mut step = 0;
+        let initial = execute_update("2.0.0", "1.0.0", |_| {
+            step += 1;
+            match step {
+                1 => Err("download failed".into()),
+                2 | 3 => Ok(()),
+                _ => unreachable!(),
+            }
+        })
+        .unwrap();
+        assert_eq!(
+            initial,
+            UpdateOutcome::RolledBack {
+                update_error: "verified Agent CLI update failed: download failed".into()
+            }
+        );
 
         let mut step = 0;
         let rollback = execute_update("2.0.0", "1.0.0", |_| {
@@ -1019,22 +1100,34 @@ mod tests {
     }
 
     #[test]
-    fn installer_command_removes_development_trust_bypasses() {
+    fn installer_command_uses_only_the_desktop_environment() {
         let command = installer_command(
             Path::new("/tmp/installer.sh"),
+            Path::new("/Users/test"),
             Path::new("/tmp/agent"),
             Some("1.2.3"),
             false,
         );
 
-        for variable in [
-            "MOLTNET_AGENT_ALLOW_UNVERIFIED",
-            "MOLTNET_AGENT_ALLOW_UNSIGNED",
-        ] {
-            assert!(command
-                .get_envs()
-                .any(|(key, value)| key == OsStr::new(variable) && value.is_none()));
-        }
+        let environment = command
+            .get_envs()
+            .map(|(key, value)| (key, value.unwrap()))
+            .collect::<std::collections::HashMap<_, _>>();
+        assert_eq!(environment.len(), 4);
+        assert_eq!(
+            environment.get(OsStr::new("HOME")).copied(),
+            Some(OsStr::new("/Users/test"))
+        );
+        assert_eq!(
+            environment.get(OsStr::new("PATH")).copied(),
+            Some(OsStr::new("/usr/bin:/bin:/usr/sbin:/sbin"))
+        );
+        assert_eq!(
+            environment
+                .get(OsStr::new("MOLTNET_AGENT_VERSION"))
+                .copied(),
+            Some(OsStr::new("1.2.3"))
+        );
     }
 
     #[test]
@@ -1120,6 +1213,55 @@ mod tests {
             assert_eq!(directory_mode, 0o700);
             assert_eq!(file_mode, 0o600);
         }
+    }
+
+    #[test]
+    fn oversized_log_lines_are_bounded_before_persistence() {
+        let home = tempfile::tempdir().unwrap();
+        let manager = LifecycleManager::new(home.path().to_path_buf());
+
+        manager.push_log(&"x".repeat(MAX_PERSISTED_LOG_BYTES as usize + 1));
+
+        let status = manager.snapshot();
+        assert_eq!(status.logs.len(), 1);
+        assert!(status.logs[0].len() <= MAX_LOG_LINE_BYTES);
+        assert!(status.logs[0].ends_with(" … [truncated]"));
+        let persisted = fs::metadata(
+            home.path()
+                .join(".config/moltnet/agent-server/logs/desktop-supervisor.log"),
+        )
+        .unwrap()
+        .len();
+        assert!(persisted <= MAX_PERSISTED_LOG_BYTES);
+    }
+
+    #[test]
+    fn bounded_reader_drains_the_rest_of_an_oversized_line() {
+        let input = format!("{}\nnext\n", "x".repeat(64));
+        let mut reader = BufReader::new(input.as_bytes());
+
+        let first = read_bounded_line(&mut reader, 16).unwrap().unwrap();
+        let second = read_bounded_line(&mut reader, 16).unwrap().unwrap();
+
+        assert!(first.ends_with(" … [truncated]"));
+        assert_eq!(second, "next");
+        assert_eq!(read_bounded_line(&mut reader, 16).unwrap(), None);
+    }
+
+    #[test]
+    fn persistent_log_rotates_before_crossing_its_limit() {
+        let home = tempfile::tempdir().unwrap();
+        let path = home
+            .path()
+            .join(".config/moltnet/agent-server/logs/desktop-supervisor.log");
+        prepare_private_directory(path.parent().unwrap()).unwrap();
+        fs::write(&path, vec![b'x'; MAX_PERSISTED_LOG_BYTES as usize]).unwrap();
+        let mut logs = LogBuffer::new(path.clone());
+
+        logs.push("second".into()).unwrap();
+
+        assert!(path.with_extension("log.1").is_file());
+        assert!(fs::read_to_string(path).unwrap().ends_with("] second\n"));
     }
 
     #[cfg(unix)]

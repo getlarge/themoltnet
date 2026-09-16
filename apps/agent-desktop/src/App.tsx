@@ -63,6 +63,11 @@ type OperationFeedback = {
   message: string;
 };
 
+function errorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'string' && error.trim()) return error;
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export function App() {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
@@ -105,7 +110,7 @@ export function App() {
       operation: () => Promise<DesktopStatus>,
       successMessage?: string,
     ) => {
-      if (operationInFlight.current) return;
+      if (operationInFlight.current) return false;
       operationInFlight.current = true;
       setBusy(true);
       setFeedback(null);
@@ -125,13 +130,13 @@ export function App() {
         setFeedback({
           tone: 'error',
           title: 'Action could not be completed',
-          message:
-            error instanceof Error ? error.message : 'Please review the logs.',
+          message: errorMessage(error, 'Please review the logs.'),
         });
       } finally {
         operationInFlight.current = false;
         setBusy(false);
       }
+      return true;
     },
     [],
   );
@@ -176,10 +181,9 @@ export function App() {
   }, [run, status.state]);
 
   const confirm = async () => {
-    if (confirmationInFlight.current) return;
+    if (confirmationInFlight.current || operationInFlight.current) return;
     confirmationInFlight.current = true;
     const action = confirmation;
-    setConfirmation(null);
     try {
       switch (action) {
         case 'trust':
@@ -199,8 +203,7 @@ export function App() {
             setFeedback({
               tone: 'error',
               title: 'Desktop update could not be installed',
-              message:
-                error instanceof Error ? error.message : 'Please try again.',
+              message: errorMessage(error, 'Please try again.'),
             });
           } finally {
             setBusy(false);
@@ -216,6 +219,7 @@ export function App() {
           break;
       }
     } finally {
+      setConfirmation(null);
       confirmationInFlight.current = false;
     }
   };
@@ -239,7 +243,7 @@ export function App() {
       setFeedback({
         tone: 'error',
         title: 'Desktop update check failed',
-        message: error instanceof Error ? error.message : 'Please try again.',
+        message: errorMessage(error, 'Please try again.'),
       });
     } finally {
       setBusy(false);
@@ -418,7 +422,7 @@ export function App() {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!status.trustFingerprint}
+                disabled={busy || !status.trustFingerprint}
                 onClick={() => setConfirmation('remove-ca')}
               >
                 Remove local CA…
@@ -426,6 +430,7 @@ export function App() {
               <Button
                 variant="danger"
                 size="sm"
+                disabled={busy}
                 onClick={() => setConfirmation('remove')}
               >
                 Remove agent bundle

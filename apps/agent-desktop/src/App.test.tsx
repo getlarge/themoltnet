@@ -162,7 +162,7 @@ describe('MoltNet Agent desktop renderer', () => {
   });
 
   it('surfaces operation failures and lets a failed lifecycle retry', async () => {
-    const error = new Error('Agent Server could not bind its port');
+    const error = 'Agent Server could not bind its port';
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
@@ -219,6 +219,8 @@ describe('MoltNet Agent desktop renderer', () => {
     fireEvent.click(confirm);
 
     expect(desktopBridge.trust).toHaveBeenCalledOnce();
+    expect(screen.getByRole('dialog')).toBeVisible();
     act(() => finishTrust?.(status()));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 });
