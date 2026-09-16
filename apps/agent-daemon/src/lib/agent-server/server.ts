@@ -29,6 +29,7 @@ import Fastify, {
   type FastifyRequest,
 } from 'fastify';
 
+import { REGISTERED_TASK_TYPES } from '../help.js';
 import {
   DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
   type LocalOperationalSettings,
@@ -407,6 +408,7 @@ export function buildAgentServer(
     registerSubscriptionRoutes(app, options, requirePairedOrigin);
     registerRunRoutes(app, options, requirePairedOrigin);
     registerCatalogueRoute(app, options, requirePairedOrigin);
+    registerCapabilitiesRoute(app, options, requirePairedOrigin);
   });
   app.addHook('onClose', () => {
     options.subscriptions.close();
@@ -503,6 +505,30 @@ function registerPairingRoutes(
       const origin = requireOriginHeader(request.headers);
       const { pairingId } = request.params as { pairingId: string };
       return pairing.claim(pairingId, origin);
+    },
+  );
+}
+
+/**
+ * What this build and this machine can do, so the desktop can compose a run
+ * without hard-coding the server's task types or guessing which runtime kinds
+ * are available here.
+ */
+function registerCapabilitiesRoute(
+  app: FastifyInstance,
+  options: BuildAgentServerOptions,
+  requirePairedOrigin: PairedOriginGuard,
+): void {
+  app.get(
+    '/v1/capabilities',
+    { schema: AgentServerRouteSchemas.capabilities },
+    async (request) => {
+      requirePairedOrigin(request);
+      return {
+        taskTypes: [...REGISTERED_TASK_TYPES],
+        modes: ['poll', 'drain'],
+        runtimeKinds: [...machineCapabilities(options).runtimeKinds].sort(),
+      };
     },
   );
 }

@@ -56,6 +56,34 @@
         ],
         "type": "object"
       },
+      "AgentServerCapabilities": {
+        "properties": {
+          "modes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "runtimeKinds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "taskTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "taskTypes",
+          "modes",
+          "runtimeKinds"
+        ],
+        "type": "object"
+      },
       "AgentServerCatalogue": {
         "properties": {
           "defaultTeamId": {
@@ -967,6 +995,41 @@
         ],
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/v1/capabilities": {
+      "get": {
+        "operationId": "getAgentServerCapabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerCapabilities"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "system"
         ]
       }
     },

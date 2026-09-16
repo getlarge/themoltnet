@@ -17,6 +17,12 @@ export type AgentServerAgent = {
   teamId?: string;
 };
 
+export type AgentServerCapabilities = {
+  modes: Array<string>;
+  runtimeKinds: Array<string>;
+  taskTypes: Array<string>;
+};
+
 export type AgentServerCatalogue = {
   defaultTeamId: string | null;
   profiles: Array<AgentServerCatalogueProfile>;
@@ -276,6 +282,33 @@ export type ReconcileAgentServerAgentResponses = {
 
 export type ReconcileAgentServerAgentResponse =
   ReconcileAgentServerAgentResponses[keyof ReconcileAgentServerAgentResponses];
+
+export type GetAgentServerCapabilitiesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/capabilities';
+};
+
+export type GetAgentServerCapabilitiesErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type GetAgentServerCapabilitiesError =
+  GetAgentServerCapabilitiesErrors[keyof GetAgentServerCapabilitiesErrors];
+
+export type GetAgentServerCapabilitiesResponses = {
+  /**
+   * Default Response
+   */
+  200: AgentServerCapabilities;
+};
+
+export type GetAgentServerCapabilitiesResponse =
+  GetAgentServerCapabilitiesResponses[keyof GetAgentServerCapabilitiesResponses];
 
 export type GetAgentServerCatalogueData = {
   body?: never;

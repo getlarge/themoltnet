@@ -6,6 +6,7 @@ export {
   createAgentServerAgent,
   deleteAgentServerProvider,
   discoverAgentServerProviderModels,
+  getAgentServerCapabilities,
   getAgentServerCatalogue,
   getAgentServerHealth,
   getAgentServerStatus,
@@ -25,6 +26,7 @@ export {
 } from './sdk.gen';
 export type {
   AgentServerAgent,
+  AgentServerCapabilities,
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
@@ -66,6 +68,11 @@ export type {
   DiscoverAgentServerProviderModelsResponse,
   DiscoverAgentServerProviderModelsResponses,
   DiscoveredModels,
+  GetAgentServerCapabilitiesData,
+  GetAgentServerCapabilitiesError,
+  GetAgentServerCapabilitiesErrors,
+  GetAgentServerCapabilitiesResponse,
+  GetAgentServerCapabilitiesResponses,
   GetAgentServerCatalogueData,
   GetAgentServerCatalogueError,
   GetAgentServerCatalogueErrors,

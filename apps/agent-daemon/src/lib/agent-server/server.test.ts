@@ -33,6 +33,7 @@ import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
+import { RuntimeRegistry } from './runtime-registry.js';
 import type { BuildAgentServerOptions } from './server.js';
 import {
   AGENT_SERVER_TOKEN_HEADER,
@@ -227,6 +228,7 @@ async function fixture(
         ? { fetchImpl: serverOptions.discoverFetch }
         : {}),
     }),
+    runtimeRegistry: new RuntimeRegistry(store.root),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
@@ -1895,5 +1897,85 @@ describe('run catalogue', () => {
 
     // Assert
     expect(response.statusCode).toBe(400);
+  });
+});
+
+describe('capabilities', () => {
+  it('reports the task types, modes and runtime kinds this build supports', async () => {
+    // Arrange
+    const { app } = await fixture();
+    const token = await pair(app);
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/capabilities',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{
+      taskTypes: string[];
+      modes: string[];
+      runtimeKinds: string[];
+    }>();
+    expect(body.taskTypes).toContain('freeform');
+    expect(body.modes).toEqual(['poll', 'drain']);
+    // The bundled runtime always works; no registration needed.
+    expect(body.runtimeKinds).toEqual(['gondolin_pi']);
+  });
+
+  it('lists locally registered runtime kinds alongside the built-in one', async () => {
+    // Arrange
+    const { app, store } = await fixture();
+    const registry = new RuntimeRegistry(store.root);
+    writeFileSync(
+      join(store.root, 'runtime-registry.json'),
+      JSON.stringify([
+        {
+          kind: 'acme_runtime',
+          moduleUrl: 'file:///tmp/adapter.js',
+          entryHash: 'abc',
+          registeredAt: 't',
+        },
+      ]),
+    );
+    const token = await pair(app);
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/capabilities',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    // Assert
+    expect(registry.list()).toHaveLength(1);
+    expect(response.json<{ runtimeKinds: string[] }>().runtimeKinds).toEqual([
+      'acme_runtime',
+      'gondolin_pi',
+    ]);
+  });
+
+  it('requires a paired client', async () => {
+    // Arrange
+    const { app } = await fixture();
+
+    // Act / Assert
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/capabilities',
+      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+    });
+    expect(response.statusCode).toBe(401);
   });
 });

@@ -80,6 +80,18 @@ export const AgentServerProviderSchema = Type.Object(
   { $id: 'AgentServerProvider' },
 );
 
+export const AgentServerCapabilitiesSchema = Type.Object(
+  {
+    /** Task types this build can execute. */
+    taskTypes: StringList,
+    /** Run modes the server accepts; the desktop uses `poll` only. */
+    modes: StringList,
+    /** Runtime kinds this machine can run: built-in plus registered. */
+    runtimeKinds: StringList,
+  },
+  { $id: 'AgentServerCapabilities' },
+);
+
 export const AgentServerCatalogueTeamSchema = Type.Object(
   {
     teamId: Type.String(),
@@ -284,6 +296,7 @@ export const AGENT_SERVER_SCHEMAS = [
   AgentServerIdentitySchema,
   AgentServerTaskTypeSchema,
   AgentServerProviderSchema,
+  AgentServerCapabilitiesSchema,
   AgentServerCatalogueTeamSchema,
   AgentServerCatalogueProfileSchema,
   AgentServerCatalogueSchema,
@@ -423,6 +436,15 @@ export const AgentServerRouteSchemas = {
     params: ProviderParamsSchema,
     response: {
       200: schemaRef(CancelledSubscriptionSchema),
+      ...problemResponse,
+    },
+  },
+  capabilities: {
+    operationId: 'getAgentServerCapabilities',
+    tags: ['system'],
+    security: pairedSecurity,
+    response: {
+      200: schemaRef(AgentServerCapabilitiesSchema),
       ...problemResponse,
     },
   },

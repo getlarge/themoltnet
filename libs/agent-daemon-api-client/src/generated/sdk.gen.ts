@@ -18,6 +18,9 @@ import type {
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
+  GetAgentServerCapabilitiesData,
+  GetAgentServerCapabilitiesErrors,
+  GetAgentServerCapabilitiesResponses,
   GetAgentServerCatalogueData,
   GetAgentServerCatalogueErrors,
   GetAgentServerCatalogueResponses,
@@ -135,6 +138,21 @@ export const reconcileAgentServerAgent = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+export const getAgentServerCapabilities = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetAgentServerCapabilitiesData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAgentServerCapabilitiesResponses,
+    GetAgentServerCapabilitiesErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/capabilities',
+    ...options,
   });
 
 export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
