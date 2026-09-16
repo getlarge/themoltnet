@@ -30,12 +30,12 @@ import {
   resolveIdentitySeed,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { connect } from '@themoltnet/sdk/node';
 
 import {
   DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
   type LocalOperationalSettings,
 } from '../options.js';
+import { connectActivatedAgent } from './agent-connection.js';
 import {
   type ActivatedAgent,
   externalAgentLocation,
@@ -520,7 +520,7 @@ export class RunManager {
     activated: ActivatedAgent,
     cwd: string,
   ): Promise<string | undefined> {
-    const agent = await this.connectActivatedAgent(activated);
+    const agent = await this.connectAgent(activated);
     const profiles = await resolveRuntimeProfiles({
       agent,
       profiles: spec.profiles,
@@ -556,34 +556,13 @@ export class RunManager {
     );
   }
 
-  private async connectActivatedAgent(activated: ActivatedAgent) {
-    const { activation, config } = activated;
-    if (activation.source === 'managed') {
-      const agentKey = await resolveAgentKey(
-        config,
-        this.options.secretProviders,
-      );
-      if (!agentKey) {
-        throw new AgentServerRunError(
-          'invalid_spec',
-          `managed agent "${activation.alias}" has no agent key`,
-        );
-      }
-      return connect({ agentKey, apiUrl: activation.apiUrl });
-    }
-    const agentKey = await resolveAgentKey(
-      config,
-      this.options.externalSecretProviders,
-    );
-    if (!agentKey) {
-      throw new AgentServerRunError(
-        'invalid_spec',
-        `external agent "${activation.alias}" has no agent key`,
-      );
-    }
-    return connect({
-      agentKey,
-      apiUrl: activation.apiUrl ?? activation.configApiUrl,
+  private connectAgent(activated: ActivatedAgent) {
+    return connectActivatedAgent({
+      activated,
+      secretProviders: this.options.secretProviders,
+      externalSecretProviders: this.options.externalSecretProviders,
+      onMissingKey: (message) =>
+        new AgentServerRunError('invalid_spec', message),
     });
   }
 
