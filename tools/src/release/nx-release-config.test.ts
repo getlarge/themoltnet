@@ -31,6 +31,12 @@ const releasePleaseConfig = JSON.parse(
     'utf8',
   ),
 );
+const agentDesktopPackage = JSON.parse(
+  readFileSync(
+    new URL('../../../apps/agent-desktop/package.json', import.meta.url),
+    'utf8',
+  ),
+);
 const dockerProjects = [
   { name: '@moltnet/console', root: 'apps/console' },
   { name: '@moltnet/database', root: 'libs/database' },
@@ -202,9 +208,18 @@ describe('Nx release configuration', () => {
     );
   });
 
+  it('passes the updater public-key override to the Tauri bundle command', () => {
+    expect(workflow).toContain(
+      'pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=release',
+    );
+    expect(
+      agentDesktopPackage.nx.targets['tauri:bundle'].configurations.release,
+    ).toEqual({ args: '--config "$TAURI_CONFIG"' });
+  });
+
   it('can republish failed Docker releases from their existing drafts', () => {
     expect(workflow).toContain(
-      'agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector',
+      'agent-daemon, agent-desktop, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector',
     );
     expect(workflow).toContain(
       'resolve_docker "otel-custom-collector" "$RP_OTEL_COLLECTOR_CREATED" "$RP_OTEL_COLLECTOR_TAG" "$RP_OTEL_COLLECTOR_VERSION" "otel-collector"',

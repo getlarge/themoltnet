@@ -2643,7 +2643,7 @@ jobs:
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=release
           rm -f "$APPLE_API_KEY_PATH"
 
       - name: Verify and materialize release assets
