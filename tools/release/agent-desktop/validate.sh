@@ -10,6 +10,8 @@ tauri_config="$root/apps/agent-desktop/src-tauri/tauri.conf.json"
 build_rs="$root/apps/agent-desktop/src-tauri/build.rs"
 landing_fly="$root/apps/landing/fly.toml"
 
+valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
+
 package_version=$(node -p "require('./$package_json').version")
 tauri_version=$(node -p "require('./$tauri_config').version")
 cargo_version=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$cargo_toml" | head -1)
@@ -23,12 +25,16 @@ agent_cli_version=$(sed -nE 's/^const DEFAULT_AGENT_CLI_VERSION: &str = "([0-9]+
   echo "embedded Agent CLI release pin is empty or invalid" >&2
   exit 1
 }
+valid_version "$agent_cli_version" || {
+  echo "embedded Agent CLI release pin is not canonical" >&2
+  exit 1
+}
 if [ -n "${AGENT_CLI_RELEASE_TAG:-}" ]; then
   case "$AGENT_CLI_RELEASE_TAG" in
     agent-daemon-v*) agent_cli_version=${AGENT_CLI_RELEASE_TAG#agent-daemon-v} ;;
     *) echo "invalid Agent CLI release tag: $AGENT_CLI_RELEASE_TAG" >&2; exit 1 ;;
   esac
-  [[ $agent_cli_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+  valid_version "$agent_cli_version" || {
     echo "invalid Agent CLI release version: $agent_cli_version" >&2
     exit 1
   }

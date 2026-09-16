@@ -45,5 +45,9 @@ fn main() {
 fn valid_version(value: &str) -> bool {
     let mut pieces = value.split('.');
     pieces.clone().count() == 3
-        && pieces.all(|piece| !piece.is_empty() && piece.chars().all(|char| char.is_ascii_digit()))
+        && pieces.all(|piece| {
+            !piece.is_empty()
+                && (piece.len() == 1 || !piece.starts_with('0'))
+                && piece.chars().all(|char| char.is_ascii_digit())
+        })
 }
