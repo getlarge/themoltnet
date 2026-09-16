@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.73.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.72.0...moltnet-api-client-v1.73.0) (2026-09-16)
+
+
+### Codegen
+
+* **ci:** refresh desktop stack validation ([64ad966](https://github.com/getlarge/themoltnet/commit/64ad9666f0ecd34daf09e512ae92941ba05efbd1))
+
 ## [1.72.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.71.0...moltnet-api-client-v1.72.0) (2026-09-15)
 
 

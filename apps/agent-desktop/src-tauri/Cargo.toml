@@ -1,6 +1,6 @@
 [package]
 name = "moltnet-agent-desktop"
-version = "0.1.0"
+version = "0.2.0"
 description = "MoltNet Agent macOS menu-bar application"
 authors = ["MoltNet contributors"]
 default-run = "moltnet-agent-desktop"

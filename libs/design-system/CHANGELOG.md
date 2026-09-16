@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.1.1...design-system-v1.2.0) (2026-09-16)
+
+
+### Features
+
+* **agent-desktop:** add macOS menu bar application ([19ba66f](https://github.com/getlarge/themoltnet/commit/19ba66fd8dc4ee97b49f5f1601849b6889424f78))
+* **agent-desktop:** add macOS menu bar application ([fcd8a0d](https://github.com/getlarge/themoltnet/commit/fcd8a0dce47d48cc6a3564b0ad75703afcb95cb8))
+
+
+### Bug Fixes
+
+* **agent-desktop:** harden lifecycle recovery ([79fdd87](https://github.com/getlarge/themoltnet/commit/79fdd875ceef21486a61c081677ad42af9b3dd29))
+* **agent-desktop:** harden lifecycle recovery ([cffa252](https://github.com/getlarge/themoltnet/commit/cffa252e161109cb6fb8526c42f551ab6698cff0))
+
 ## [1.1.1](https://github.com/getlarge/themoltnet/compare/design-system-v1.1.0...design-system-v1.1.1) (2026-09-03)
 
 
