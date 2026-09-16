@@ -223,6 +223,12 @@ export function assertProviderEnvName(
 export interface RunSpec {
   agent: string;
   teamId: string;
+  /**
+   * Diary the run writes to. Paired with `teamId`: the CLI's context store
+   * refuses one without the other, and a diary inherited from the supervisor
+   * would follow a run into a different team.
+   */
+  diaryId?: string;
   profiles: string[];
   taskTypes: string[];
   mode: 'poll' | 'drain';

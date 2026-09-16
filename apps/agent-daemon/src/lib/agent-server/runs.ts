@@ -81,7 +81,6 @@ const INHERITED_MOLTNET_ENV_NAMES = new Set([
   'MOLTNET_CLI_LINUX_BINARY',
   'MOLTNET_CREDENTIAL_BINDINGS',
   'MOLTNET_CREDENTIAL_ENFORCEMENT',
-  'MOLTNET_DIARY_ID',
   'MOLTNET_GIT_AUTHOR',
   'MOLTNET_OTEL_ENDPOINT',
   'MOLTNET_PI_VM_INTEGRATION',
@@ -238,6 +237,9 @@ export class RunManager {
       XDG_CONFIG_HOME: join(homeDir, '.config'),
       XDG_DATA_HOME: join(homeDir, '.local', 'share'),
       MOLTNET_TEAM_ID: spec.teamId,
+      // Absent beats wrong: with no diary on the spec the agent resolves its
+      // own downstream, rather than inheriting one bound to another team.
+      ...(spec.diaryId ? { MOLTNET_DIARY_ID: spec.diaryId } : {}),
     };
     const target =
       activation.source === 'managed'

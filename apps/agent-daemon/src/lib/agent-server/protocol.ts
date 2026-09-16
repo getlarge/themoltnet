@@ -85,6 +85,7 @@ export const AgentServerRunRecordSchema = Type.Object(
     id: Type.String(),
     agent: Type.String(),
     teamId: Type.String(),
+    diaryId: Type.Optional(Type.String()),
     profiles: StringList,
     taskTypes: StringList,
     mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
@@ -211,6 +212,8 @@ export const DiscoverModelsSchema = Type.Object(
 export const StartRunSchema = Type.Object({
   agent: Type.String(),
   teamId: Type.String(),
+  /** Paired with `teamId`; never inherited from the supervisor. */
+  diaryId: Type.Optional(Type.String()),
   profiles: StringList,
   taskTypes: Type.Array(AgentServerTaskTypeSchema),
   mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
