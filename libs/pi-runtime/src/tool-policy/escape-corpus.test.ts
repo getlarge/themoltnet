@@ -29,6 +29,9 @@ function decide(testCase: ToolPolicyEscapeCase): GateDecision {
 const label = (testCase: ToolPolicyEscapeCase) =>
   `[${testCase.policyShape}/${testCase.technique}] ${testCase.name}`;
 
+/** Token separators, applied to both the command and the decision's values. */
+const SPLIT = /[\s|;&()<>,:='"]+/;
+
 /** Every string leaf in a decision, ignoring field names. */
 function stringValuesOf(value: unknown): string[] {
   if (typeof value === 'string') return [value];
@@ -87,10 +90,11 @@ describe('tool-policy escape corpus', () => {
     'decision carries no command literals: %s',
     (_name, testCase) => {
       const decision = decide(testCase);
-      // Scan the decision's string *values* only. Field names (`missing`,
-      // `reason`, …) are ours, not the caller's, and a command token that
-      // happens to equal one is not a leak.
-      const serialized = stringValuesOf(decision).join('\n');
+      // Compare whole tokens, not substrings, and only against the decision's
+      // string *values*. Field names (`missing`, `reason`, …) are ours, and a
+      // substring match would flag `dir` inside the word "redirection".
+      const values = stringValuesOf(decision);
+      const emitted = new Set(values.flatMap((value) => value.split(SPLIT)));
 
       // Executable names legitimately appear in a decision; nothing else may.
       const executables = new Set<string>([
@@ -104,11 +108,11 @@ describe('tool-policy escape corpus', () => {
       ]);
 
       const leaked = testCase.command
-        .split(/[\s|;&()<>]+/)
+        .split(SPLIT)
         .filter((token) => token.length >= 3 && !executables.has(token))
-        .filter((token) => serialized.includes(token));
+        .filter((token) => emitted.has(token));
 
-      expect(leaked, `leaked literals in ${serialized}`).toEqual([]);
+      expect(leaked, `leaked literals in ${values.join(' | ')}`).toEqual([]);
     },
   );
 });
