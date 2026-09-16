@@ -2557,7 +2557,7 @@ jobs:
           node-version-file: .tool-versions
           cache: pnpm
 
-      - uses: jdx/mise-action@v3
+      - uses: dtolnay/rust-toolchain@1.88.0
 
       - run: pnpm install --frozen-lockfile
 
@@ -2637,7 +2637,7 @@ jobs:
             echo "refusing incomplete Agent desktop artifacts" >&2
             exit 1
           }
-          mise exec -- cargo run \
+          cargo run \
             --manifest-path apps/agent-desktop/src-tauri/Cargo.toml \
             --locked \
             --target-dir apps/agent-desktop/out-rust/bundle \
