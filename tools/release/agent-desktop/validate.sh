@@ -51,6 +51,12 @@ if [ "${2:-}" = "--release" ]; then
     echo "TAURI_UPDATER_PUBLIC_KEY is required for release packaging" >&2
     exit 1
   }
+  case "$TAURI_UPDATER_PUBLIC_KEY" in
+    *__MOLTNET_TAURI_UPDATER_PUBLIC_KEY__*)
+      echo "TAURI_UPDATER_PUBLIC_KEY still contains the updater placeholder" >&2
+      exit 1
+      ;;
+  esac
   [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ] || {
     echo "TAURI_SIGNING_PRIVATE_KEY is required for updater artifacts" >&2
     exit 1
