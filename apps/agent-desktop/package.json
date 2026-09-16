@@ -80,11 +80,11 @@
               "forwardAllArgs": true
             },
             {
-              "command": "mise exec -- cargo fmt --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --check",
+              "command": "cargo fmt --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --check",
               "forwardAllArgs": false
             },
             {
-              "command": "mise exec -- cargo clippy --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --all-targets --target-dir apps/agent-desktop/out-rust/lint -- -D warnings",
+              "command": "cargo clippy --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --all-targets --target-dir apps/agent-desktop/out-rust/lint -- -D warnings",
               "forwardAllArgs": false
             }
           ]
@@ -110,7 +110,7 @@
               "forwardAllArgs": false
             },
             {
-              "command": "mise exec -- cargo check --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/check",
+              "command": "cargo check --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/check",
               "forwardAllArgs": false
             }
           ]
@@ -133,7 +133,7 @@
               "forwardAllArgs": false
             },
             {
-              "command": "mise exec -- cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test",
+              "command": "cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test",
               "forwardAllArgs": false
             }
           ]
@@ -161,7 +161,7 @@
               "forwardAllArgs": false
             },
             {
-              "command": "CARGO_TARGET_DIR=../out-rust/build mise exec -- pnpm --dir apps/agent-desktop exec tauri build --no-bundle",
+              "command": "CARGO_TARGET_DIR=../out-rust/build pnpm --dir apps/agent-desktop exec tauri build --no-bundle",
               "forwardAllArgs": false
             }
           ]
@@ -178,7 +178,7 @@
           "sharedGlobals"
         ],
         "options": {
-          "command": "mise exec -- pnpm --dir apps/agent-desktop exec tauri dev"
+          "command": "pnpm --dir apps/agent-desktop exec tauri dev"
         }
       },
       "tauri:bundle": {
@@ -195,7 +195,7 @@
           "sharedGlobals"
         ],
         "options": {
-          "command": "CARGO_TARGET_DIR=../out-rust/bundle mise exec -- pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin"
+          "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin"
         }
       },
       "release:validate": {

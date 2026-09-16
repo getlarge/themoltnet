@@ -536,10 +536,10 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25'
-      - uses: jdx/mise-action@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
         if: needs.affected.outputs.agent-desktop == 'true'
         with:
-          install_args: rust
+          components: rustfmt, clippy
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then
