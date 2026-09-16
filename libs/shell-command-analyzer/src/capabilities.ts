@@ -365,10 +365,22 @@ export interface EscapeFlagSpec {
    */
   scoped?: readonly {
     readonly subcommands: readonly string[];
+    /** `-x CMD`, and the attached short form `-xCMD`. */
     readonly separate?: readonly string[];
+    /** `--extcmd=CMD`. */
     readonly inline?: readonly string[];
   }[];
 }
+
+const FILTER_BRANCH_FILTERS = [
+  '--tree-filter',
+  '--index-filter',
+  '--commit-filter',
+  '--msg-filter',
+  '--tag-name-filter',
+  '--parent-filter',
+  '--env-filter',
+] as const;
 
 export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
   [
@@ -426,15 +438,9 @@ export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
         },
         {
           subcommands: ['filter-branch'],
-          separate: [
-            '--tree-filter',
-            '--index-filter',
-            '--commit-filter',
-            '--msg-filter',
-            '--tag-name-filter',
-            '--parent-filter',
-            '--env-filter',
-          ],
+          // Every filter accepts both `--flag CMD` and `--flag=CMD`.
+          separate: FILTER_BRANCH_FILTERS,
+          inline: FILTER_BRANCH_FILTERS,
         },
       ],
     },

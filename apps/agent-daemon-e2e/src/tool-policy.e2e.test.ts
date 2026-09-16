@@ -230,12 +230,13 @@ describe('Tool-policy enforcement (daemon)', () => {
    * REST API actually stored and resolved, so a fixture and a live policy of
    * the same shape cannot drift apart.
    */
-  it('enforce: replays the escape-corpus subset against live policies', async () => {
-    const shapes = [
-      ...new Set(TOOL_POLICY_ESCAPE_E2E_CASES.map((c) => c.policyShape)),
-    ];
+  const e2eShapes = [
+    ...new Set(TOOL_POLICY_ESCAPE_E2E_CASES.map((c) => c.policyShape)),
+  ];
 
-    for (const shape of shapes) {
+  it.each(e2eShapes)(
+    'enforce: replays the escape-corpus subset for the %s policy',
+    async (shape) => {
       const fixture = ESCAPE_POLICY_FIXTURES[shape];
       const stamp = `${shape}-${Date.now()}`;
       const profile = await createProfile(`corpus-${stamp}`, 'enforce');
@@ -291,8 +292,9 @@ describe('Tool-policy enforcement (daemon)', () => {
           ...(testCase.missing ? { missing: testCase.missing } : {}),
         });
       }
-    }
-  }, 120_000);
+    },
+    120_000,
+  );
 
   it('watch: audits a disallowed tool but allows it', async () => {
     const profile = await createProfile(`watch-${Date.now()}`, 'watch');

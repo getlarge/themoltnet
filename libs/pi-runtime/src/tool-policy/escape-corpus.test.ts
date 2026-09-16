@@ -29,8 +29,14 @@ function decide(testCase: ToolPolicyEscapeCase): GateDecision {
 const label = (testCase: ToolPolicyEscapeCase) =>
   `[${testCase.policyShape}/${testCase.technique}] ${testCase.name}`;
 
-/** Token separators, applied to both the command and the decision's values. */
-const SPLIT = /[\s|;&()<>,:='"]+/;
+/**
+ * Shell operators only. Quotes and `=` are deliberately NOT separators: a
+ * literal is what would leak, so `diff""tool` and `PATH=/tmp` stay whole
+ * rather than shedding fragments that collide with ordinary reason text.
+ */
+const COMMAND_SPLIT = /[\s|;&()<>]+/;
+/** Prose and list separators used inside reason strings. */
+const VALUE_SPLIT = /[\s,:]+/;
 
 /** Every string leaf in a decision, ignoring field names. */
 function stringValuesOf(value: unknown): string[] {
@@ -81,20 +87,28 @@ describe('tool-policy escape corpus', () => {
   });
 
   /**
-   * The decision must identify an invocation without carrying its literals.
-   * That property is what lets #2275 §4 put decisions in the task record
-   * without a redaction rule, and it is currently held only by convention in
-   * `gate.ts` — this pins it for every case in the corpus at once.
+   * The decision must identify an invocation without carrying its argument
+   * literals. That property is what lets #2275 §4 put decisions in the task
+   * record without a redaction rule, and it is held only by convention in
+   * `gate.ts` — this pins it across the corpus at once.
+   *
+   * Scope, stated precisely so the assertion is not read as more than it is:
+   * it checks argument-position tokens of three characters or more, excluding
+   * the executable names a decision is entitled to report. Executables and
+   * one- or two-character tokens are out of scope — a secret is never `-x`,
+   * and the executable is the thing being refused.
    */
   it.each(TOOL_POLICY_ESCAPE_CASES.map((c) => [label(c), c] as const))(
-    'decision carries no command literals: %s',
+    'decision carries no argument literals: %s',
     (_name, testCase) => {
       const decision = decide(testCase);
       // Compare whole tokens, not substrings, and only against the decision's
       // string *values*. Field names (`missing`, `reason`, …) are ours, and a
       // substring match would flag `dir` inside the word "redirection".
       const values = stringValuesOf(decision);
-      const emitted = new Set(values.flatMap((value) => value.split(SPLIT)));
+      const emitted = new Set(
+        values.flatMap((value) => value.split(VALUE_SPLIT)),
+      );
 
       // Executable names legitimately appear in a decision; nothing else may.
       const executables = new Set<string>([
@@ -108,7 +122,7 @@ describe('tool-policy escape corpus', () => {
       ]);
 
       const leaked = testCase.command
-        .split(SPLIT)
+        .split(COMMAND_SPLIT)
         .filter((token) => token.length >= 3 && !executables.has(token))
         .filter((token) => emitted.has(token));
 

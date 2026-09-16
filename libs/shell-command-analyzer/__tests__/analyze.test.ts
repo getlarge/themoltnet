@@ -400,6 +400,37 @@ describe('analyzeCommand — materialized escape flags', () => {
     }
   });
 
+  it('sees through quoting around a scoped subcommand or flag', async () => {
+    // Bash resolves all of these to `git difftool -x sh`; matching raw source
+    // would let the quotes hide the nested interpreter.
+    for (const command of [
+      'git "difftool" -x sh',
+      "git 'difftool' -x sh",
+      'git difftool "-x" sh',
+      "git difftool '-x' sh",
+      'git difftool -x "sh"',
+    ]) {
+      expect(await toolNames(command), command).toEqual(['git', 'sh']);
+    }
+  });
+
+  it('fails closed when a scoped subcommand cannot be resolved', async () => {
+    // A concatenation the analyzer cannot fold: the group activates anyway
+    // rather than assume the subcommand was something harmless.
+    expect(await toolNames('git diff""tool -x sh')).toEqual(['git', 'sh']);
+  });
+
+  it('extracts attached and inline spellings of scoped flags', async () => {
+    for (const command of [
+      'git difftool -xsh',
+      'git rebase -xsh main',
+      'git difftool --extcmd=sh',
+      'git filter-branch --tree-filter=sh HEAD',
+    ]) {
+      expect(await toolNames(command), command).toEqual(['git', 'sh']);
+    }
+  });
+
   it('leaves a scoped flag alone outside its subcommand', async () => {
     // `git clean -x` takes no value at all; treating it as command-valued
     // everywhere would refuse benign commands.
@@ -408,8 +439,31 @@ describe('analyzeCommand — materialized escape flags', () => {
       'git clean -xdf',
       'git clean -x rebase',
       'git checkout difftool',
+      // Everything after `--` is a pathspec, never a subcommand.
+      'git log -- rebase',
+      'git checkout -- difftool',
     ]) {
       expect(await toolNames(command), command).toEqual(['git']);
+    }
+  });
+
+  it('reports environment assignment names without their values', async () => {
+    const analyzer = await ShellCommandAnalyzer.create();
+    const result = analyzer.analyze('PATH=/tmp LS_COLORS=x ls -la');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.envAssignments).toEqual(['PATH', 'LS_COLORS']);
+      // The prefix is not argv, so it must not appear as an executable.
+      expect(result.tools.map((tool) => tool.name)).toEqual(['ls']);
+    }
+  });
+
+  it('reports no environment assignments when there are none', async () => {
+    const analyzer = await ShellCommandAnalyzer.create();
+    const result = analyzer.analyze('ls -la');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.envAssignments).toEqual([]);
     }
   });
 
