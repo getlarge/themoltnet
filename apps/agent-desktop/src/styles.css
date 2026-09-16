@@ -14,31 +14,89 @@ a {
   -webkit-app-region: no-drag;
 }
 
-.lifecycle-ledger {
+.setup-path {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.lifecycle-ledger li {
+.setup-path li {
   display: flex;
   min-width: 0;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-top: 1px solid;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--molt-text-muted);
 }
 
-.lifecycle-ledger li > span:first-child {
+.setup-path li > span:first-child {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--molt-border);
+  border-radius: 50%;
   font-family: var(--molt-font-mono);
   font-size: 0.75rem;
 }
 
+.setup-path li[data-complete='true'] {
+  color: var(--molt-success);
+}
+
+.setup-path li[data-complete='true'] > span:first-child {
+  border-color: var(--molt-success);
+}
+
+.detail-section > summary {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  -webkit-app-region: no-drag;
+}
+
+.detail-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-section > summary::after {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  content: '';
+  transform: rotate(45deg);
+  transition: transform 140ms ease-out;
+}
+
+.detail-section[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+.detail-section > summary > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+  border-top: 1px solid var(--molt-border);
+  padding-top: 1.25rem;
+}
+
 .log-preview {
-  max-height: 11rem;
+  max-height: 15rem;
   overflow: auto;
   margin: 0;
   padding: 1rem;
@@ -53,8 +111,13 @@ a {
 }
 
 @media (max-width: 680px) {
-  .lifecycle-ledger {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .app-header > div {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+  }
+
+  .setup-path {
+    grid-template-columns: 1fr;
   }
 }
 

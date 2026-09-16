@@ -1,14 +1,16 @@
 /**
- * THESIS: Make foreground ownership visible; never disguise the agent as a service.
- * OWN-WORLD: Matte control surfaces, teal lifecycle flow, amber trust proof.
- * STORY: Inspect state, consent at protected transitions, continue in Console.
- * FIRST VIEWPORT: Identity header, live state rail, next action, bounded logs.
- * FORM: Lifecycle ledger; sixth grounded Operate structure, seed 2688504d.
+ * THESIS: One foreground server, one obvious control, details on demand.
+ * OWN-WORLD: Matte control surfaces, teal runtime state, amber trust proof.
+ * STORY: Make the server ready, operate it, inspect it, maintain it.
+ * FIRST VIEWPORT: Server state and the single next action.
+ * FORM: Compact native operations console; seed 2688504d.
  */
 import {
+  Badge,
   Button,
   ConfirmDialog,
   ControlSurface,
+  Divider,
   InlineNotice,
   Logo,
   SignatureStatus,
@@ -17,7 +19,7 @@ import {
   useReducedMotion,
   useTheme,
 } from '@themoltnet/design-system';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   desktopBridge,
@@ -27,27 +29,18 @@ import {
 } from './bridge.js';
 
 const STATE_LABELS: Record<LifecycleState, string> = {
-  checking: 'Checking',
+  checking: 'Checking local runtime',
   needs_install: 'Agent bundle required',
-  installing: 'Installing verified bundle',
+  installing: 'Installing agent bundle',
   needs_trust: 'Local HTTPS trust required',
   starting: 'Starting Agent Server',
   running: 'Agent Server running',
-  update_available: 'Update available',
+  update_available: 'Agent update available',
   stopping: 'Stopping Agent Server',
   stopped: 'Agent Server stopped',
   removed: 'Agent bundle removed',
-  failed: 'Action required',
+  failed: 'Agent Server needs attention',
 };
-
-const FLOW: readonly LifecycleState[] = [
-  'checking',
-  'needs_install',
-  'installing',
-  'needs_trust',
-  'starting',
-  'running',
-] as const;
 
 type Confirmation =
   | 'trust'
@@ -63,6 +56,12 @@ type OperationFeedback = {
   message: string;
 };
 
+type MainAction = {
+  label: string;
+  loadingLabel?: string;
+  action: () => void;
+};
+
 function errorMessage(error: unknown, fallback: string): string {
   if (typeof error === 'string' && error.trim()) return error;
   if (error instanceof Error && error.message.trim()) return error.message;
@@ -76,11 +75,11 @@ export function App() {
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<OperationFeedback | null>(null);
-  const operationInFlight = useRef(false);
-  const confirmationInFlight = useRef(false);
   const [desktopUpdateVersion, setDesktopUpdateVersion] = useState<
     string | null
   >(null);
+  const operationInFlight = useRef(false);
+  const confirmationInFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -125,13 +124,13 @@ export function App() {
           });
         }
       } catch (error) {
-        // The native error remains useful in the WebView's diagnostic console.
+        // Keep the original native payload in the WebView diagnostics.
         // eslint-disable-next-line no-console
         console.error(error);
         setFeedback({
           tone: 'error',
           title: 'Action could not be completed',
-          message: errorMessage(error, 'Please review the logs.'),
+          message: errorMessage(error, 'Open diagnostics for more detail.'),
         });
       } finally {
         operationInFlight.current = false;
@@ -141,49 +140,39 @@ export function App() {
     [],
   );
 
-  const currentIndex = FLOW.indexOf(status.state);
-  const setupComplete = ['running', 'update_available', 'stopping'].includes(
-    status.state,
-  );
-  const statusTone =
-    status.state === 'needs_trust'
-      ? 'identity'
-      : status.state === 'failed'
-        ? 'neutral'
-        : 'network';
-  const primary = useMemo(() => {
-    if (status.state === 'needs_install' || status.state === 'removed')
-      return {
-        label: 'Install verified agent',
-        action: () => void run(desktopBridge.install),
-      };
-    if (status.state === 'needs_trust')
-      return {
-        label: 'Review local HTTPS trust',
-        action: () => setConfirmation('trust'),
-      };
-    if (status.state === 'running')
-      return {
-        label: 'Open Console',
-        action: () => void desktopBridge.openConsole(),
-      };
-    if (status.state === 'update_available')
-      return {
-        label: 'Review Agent CLI update',
-        action: () => setConfirmation('update'),
-      };
-    if (status.state === 'failed' || status.state === 'stopped')
-      return {
-        label: status.state === 'stopped' ? 'Start Agent Server' : 'Retry',
-        action: () =>
-          void run(
-            status.state === 'stopped'
-              ? desktopBridge.start
-              : desktopBridge.retry,
-          ),
-      };
-    return null;
-  }, [run, status.state]);
+  const serverRunning = ['running', 'update_available'].includes(status.state);
+  const setupRequired = [
+    'checking',
+    'needs_install',
+    'installing',
+    'needs_trust',
+    'removed',
+  ].includes(status.state);
+
+  let mainAction: MainAction | null = null;
+  if (status.state === 'needs_install' || status.state === 'removed') {
+    mainAction = {
+      label: 'Install agent bundle',
+      loadingLabel: 'Installing agent bundle',
+      action: () => void run(desktopBridge.install),
+    };
+  } else if (status.state === 'needs_trust') {
+    mainAction = {
+      label: 'Enable local HTTPS',
+      action: () => setConfirmation('trust'),
+    };
+  } else if (serverRunning) {
+    mainAction = {
+      label: 'Open Console',
+      action: () => void desktopBridge.openConsole(),
+    };
+  } else if (status.state === 'failed' || status.state === 'stopped') {
+    mainAction = {
+      label: 'Start Agent Server',
+      loadingLabel: 'Starting Agent Server',
+      action: () => void run(desktopBridge.start),
+    };
+  }
 
   const confirm = async () => {
     if (confirmationInFlight.current) return;
@@ -209,7 +198,7 @@ export function App() {
             setFeedback({
               tone: 'error',
               title: 'Desktop update could not be installed',
-              message: errorMessage(error, 'Please try again.'),
+              message: errorMessage(error, 'Try again from Maintenance.'),
             });
           } finally {
             setBusy(false);
@@ -248,12 +237,21 @@ export function App() {
       setFeedback({
         tone: 'error',
         title: 'Desktop update check failed',
-        message: errorMessage(error, 'Please try again.'),
+        message: errorMessage(error, 'Try again from Maintenance.'),
       });
     } finally {
       setBusy(false);
     }
   };
+
+  const stateVariant =
+    status.state === 'failed'
+      ? 'error'
+      : serverRunning
+        ? 'success'
+        : status.state === 'needs_trust'
+          ? 'warning'
+          : 'default';
 
   return (
     <main
@@ -266,13 +264,13 @@ export function App() {
       }}
     >
       <Stack gap={6} style={{ maxWidth: '760px', margin: '0 auto' }}>
-        <header>
+        <header className="app-header">
           <Stack direction="row" gap={4} align="center">
-            <Logo size={52} glow={!reducedMotion} />
+            <Logo size={48} glow={!reducedMotion && serverRunning} />
             <Stack gap={1} style={{ flex: 1 }}>
-              <Text variant="h2">MoltNet Agent</Text>
+              <Text variant="h3">MoltNet Agent</Text>
               <Text color="secondary">
-                Secure local runtime for MoltNet agents.
+                Run and inspect the local Agent Server.
               </Text>
             </Stack>
             <SignatureStatus
@@ -282,66 +280,62 @@ export function App() {
           </Stack>
         </header>
 
-        <ControlSurface as="section" tone={statusTone} active padding="lg">
+        <ControlSurface
+          as="section"
+          tone={status.state === 'needs_trust' ? 'identity' : 'network'}
+          active
+          padding="lg"
+          aria-labelledby="server-title"
+        >
           <Stack gap={5}>
-            <Stack gap={2}>
-              <Text as="p" variant="overline" color="primary">
-                Current state
-              </Text>
-              <Text as="h1" variant="h3">
-                {STATE_LABELS[status.state]}
-              </Text>
+            <Stack gap={3}>
+              <Stack
+                direction="row"
+                justify="space-between"
+                align="center"
+                wrap
+              >
+                <Text as="h1" id="server-title" variant="h3">
+                  {STATE_LABELS[status.state]}
+                </Text>
+                <Badge variant={stateVariant}>
+                  {status.state.replaceAll('_', ' ')}
+                </Badge>
+              </Stack>
               <Text color="secondary" aria-live="polite" aria-atomic="true">
                 {status.message}
               </Text>
             </Stack>
 
-            <ol
-              className="lifecycle-ledger"
-              aria-label="Agent setup progress"
-              aria-describedby={
-                currentIndex < 0 ? 'lifecycle-branch' : undefined
-              }
-            >
-              {FLOW.map((state, index) => {
-                const complete = setupComplete || index < currentIndex;
-                const current = state === status.state;
-                return (
-                  <li
-                    key={state}
-                    aria-current={current ? 'step' : undefined}
-                    data-complete={complete || undefined}
-                    data-current={current || undefined}
-                    style={{
-                      color: current
-                        ? theme.color.primary.DEFAULT
-                        : complete
-                          ? theme.color.success.DEFAULT
-                          : theme.color.text.muted,
-                      borderColor: current
-                        ? theme.color.primary.DEFAULT
-                        : theme.color.border.DEFAULT,
-                    }}
-                  >
-                    <span aria-hidden="true">{complete ? '✓' : index + 1}</span>
-                    <Text as="span" variant="caption" color="secondary">
-                      {STATE_LABELS[state]}
-                    </Text>
-                  </li>
-                );
-              })}
-            </ol>
-
-            {currentIndex < 0 ? (
-              <Text id="lifecycle-branch" variant="caption" color="secondary">
-                Current lifecycle branch: {STATE_LABELS[status.state]}.
-              </Text>
+            {setupRequired ? (
+              <ol className="setup-path" aria-label="Agent setup progress">
+                <li
+                  data-complete={Boolean(status.installedVersion) || undefined}
+                >
+                  <span aria-hidden="true">1</span>
+                  <Text as="span" variant="caption">
+                    Agent bundle
+                  </Text>
+                </li>
+                <li data-complete={status.trusted || undefined}>
+                  <span aria-hidden="true">2</span>
+                  <Text as="span" variant="caption">
+                    Local trust
+                  </Text>
+                </li>
+                <li data-complete={serverRunning || undefined}>
+                  <span aria-hidden="true">3</span>
+                  <Text as="span" variant="caption">
+                    Server ready
+                  </Text>
+                </li>
+              </ol>
             ) : null}
 
             {status.state === 'failed' ? (
               <InlineNotice tone="error" title="The server did not stay ready">
-                Review the bounded logs below, then retry. MoltNet will not
-                adopt or stop a server owned by another process.
+                The latest failure is preserved in Diagnostics. Fix the cause,
+                then start the server again.
               </InlineNotice>
             ) : null}
 
@@ -352,13 +346,16 @@ export function App() {
             ) : null}
 
             <Stack direction="row" gap={3} wrap>
-              {primary ? (
-                <Button onClick={primary.action} loading={busy}>
-                  {primary.label}
+              {mainAction ? (
+                <Button
+                  onClick={mainAction.action}
+                  loading={busy}
+                  loadingLabel={mainAction.loadingLabel}
+                >
+                  {mainAction.label}
                 </Button>
               ) : null}
-              {status.state === 'running' ||
-              status.state === 'update_available' ? (
+              {serverRunning ? (
                 <Button
                   variant="secondary"
                   disabled={busy}
@@ -367,96 +364,163 @@ export function App() {
                   Stop Agent Server
                 </Button>
               ) : null}
+            </Stack>
+          </Stack>
+        </ControlSurface>
+
+        <ControlSurface as="section" padding="none">
+          <details
+            className="detail-section"
+            open={status.state === 'failed' ? true : undefined}
+          >
+            <summary>
+              <span>
+                <Text as="span" variant="h4">
+                  Diagnostics
+                </Text>
+                <Text as="span" variant="caption" color="muted">
+                  {status.logs.length
+                    ? `${status.logs.length} recent log lines`
+                    : 'No server output yet'}
+                </Text>
+              </span>
+            </summary>
+            <div className="detail-content">
+              <pre
+                className="log-preview"
+                aria-label="Recent Agent Server logs"
+              >
+                {status.logs.length
+                  ? status.logs.slice(-16).join('\n')
+                  : 'No Agent Server output yet.'}
+              </pre>
               <Button
                 variant="secondary"
-                disabled={busy}
-                onClick={() =>
-                  void run(
-                    desktopBridge.checkForUpdates,
-                    'Agent CLI update check finished.',
-                  )
-                }
-              >
-                Check Agent CLI update
-              </Button>
-            </Stack>
-            <Stack direction="row" gap={3} wrap>
-              <Button
-                variant="ghost"
+                size="sm"
                 onClick={() => void desktopBridge.openLogs()}
               >
                 Open full logs
               </Button>
-              <Button
-                variant="ghost"
-                disabled={busy}
-                onClick={() => void checkDesktopUpdate()}
-              >
-                Check app update
-              </Button>
-            </Stack>
-          </Stack>
+            </div>
+          </details>
         </ControlSurface>
 
-        <ControlSurface
-          as="section"
-          padding="md"
-          aria-labelledby="details-title"
-        >
-          <Stack gap={4}>
-            <Stack direction="row" justify="space-between" align="center">
-              <Text id="details-title" as="h2" variant="h4">
-                Runtime details
-              </Text>
-              <Text mono variant="caption" color="muted">
-                {status.installedVersion
-                  ? `agent ${status.installedVersion}`
-                  : 'not installed'}
-              </Text>
+        <ControlSurface as="section" padding="none">
+          <details className="detail-section">
+            <summary>
+              <span>
+                <Text as="span" variant="h4">
+                  Maintenance
+                </Text>
+                <Text as="span" variant="caption" color="muted">
+                  Updates, trust, and removal
+                </Text>
+              </span>
+            </summary>
+            <Stack className="detail-content" gap={5}>
+              <Stack
+                direction="row"
+                justify="space-between"
+                align="center"
+                wrap
+              >
+                <Stack gap={1}>
+                  <Text weight="semibold">Agent bundle</Text>
+                  <Text mono variant="caption" color="muted">
+                    {status.installedVersion
+                      ? `Version ${status.installedVersion}`
+                      : 'Not installed'}
+                  </Text>
+                </Stack>
+                {status.state === 'update_available' ? (
+                  <Button onClick={() => setConfirmation('update')}>
+                    Install {status.availableVersion}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy || !status.installedVersion}
+                    onClick={() =>
+                      void run(
+                        desktopBridge.checkForUpdates,
+                        'Agent bundle update check finished.',
+                      )
+                    }
+                  >
+                    Check bundle update
+                  </Button>
+                )}
+              </Stack>
+
+              <Divider style={{ margin: 0 }} />
+
+              <Stack
+                direction="row"
+                justify="space-between"
+                align="center"
+                wrap
+              >
+                <Stack gap={1}>
+                  <Text weight="semibold">Desktop app</Text>
+                  <Text variant="caption" color="muted">
+                    Signed builds use the production update channel.
+                  </Text>
+                </Stack>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void checkDesktopUpdate()}
+                >
+                  Check app update
+                </Button>
+              </Stack>
+
+              <Divider style={{ margin: 0 }} />
+
+              <Stack gap={3}>
+                {status.trustFingerprint ? (
+                  <Text mono variant="caption" color="accent">
+                    Local CA {status.trustFingerprint}
+                  </Text>
+                ) : null}
+                <Stack direction="row" gap={3} wrap>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!status.trusted || serverRunning}
+                    onClick={() => setConfirmation('remove-ca')}
+                  >
+                    Remove local CA…
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => setConfirmation('remove')}
+                  >
+                    Remove agent bundle…
+                  </Button>
+                </Stack>
+                {serverRunning ? (
+                  <Text variant="caption" color="muted">
+                    Stop the Agent Server before removing local trust.
+                  </Text>
+                ) : null}
+              </Stack>
             </Stack>
-            {status.trustFingerprint ? (
-              <Text
-                mono
-                variant="caption"
-                color="accent"
-                style={{ overflowWrap: 'anywhere' }}
-              >
-                Local CA {status.trustFingerprint}
-              </Text>
-            ) : null}
-            <pre className="log-preview" aria-label="Recent Agent Server logs">
-              {status.logs.length
-                ? status.logs.slice(-12).join('\n')
-                : 'No Agent Server output yet.'}
-            </pre>
-            <Stack direction="row" justify="space-between" align="center" wrap>
-              <Text variant="caption" color="muted">
-                Quitting this app stops the Agent Server. Configuration stays in
-                ~/.config/moltnet.
-              </Text>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!status.trustFingerprint}
-                onClick={() => setConfirmation('remove-ca')}
-              >
-                Remove local CA…
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => setConfirmation('remove')}
-              >
-                Remove agent bundle
-              </Button>
-            </Stack>
-          </Stack>
+          </details>
         </ControlSurface>
+
+        <Text variant="caption" color="muted" align="center">
+          Quitting MoltNet Agent stops the server. Configuration remains in
+          ~/.config/moltnet.
+        </Text>
       </Stack>
 
       <ConfirmDialog
         open={confirmation === 'trust'}
-        title="Trust MoltNet local HTTPS?"
+        title="Enable MoltNet local HTTPS?"
         message={`macOS will add this per-user CA to your login Keychain so Console can reach the local Agent Server securely. Fingerprint: ${status.trustFingerprint ?? 'preparing…'}`}
         confirmLabel="Trust local CA"
         onCancel={() => setConfirmation(null)}
@@ -464,8 +528,8 @@ export function App() {
       />
       <ConfirmDialog
         open={confirmation === 'update'}
-        title="Install agent update?"
-        message={`Install the verified agent bundle ${status.availableVersion ?? ''}, restart the foreground server, and roll back automatically if readiness fails.`}
+        title="Install agent bundle update?"
+        message={`Install verified bundle ${status.availableVersion ?? ''}, restart the server, and roll back automatically if readiness fails.`}
         confirmLabel="Install and restart"
         onCancel={() => setConfirmation(null)}
         onConfirm={() => void confirm()}
@@ -473,7 +537,7 @@ export function App() {
       <ConfirmDialog
         open={confirmation === 'desktop-update'}
         title="Install MoltNet Agent app update?"
-        message={`Install the independently signed desktop update ${desktopUpdateVersion ?? ''} and restart the app. The agent bundle update channel is unchanged.`}
+        message={`Install signed desktop update ${desktopUpdateVersion ?? ''} and restart the app. The agent bundle update channel is unchanged.`}
         confirmLabel="Install app update"
         onCancel={() => setConfirmation(null)}
         onConfirm={() => void confirm()}
@@ -489,8 +553,8 @@ export function App() {
       />
       <ConfirmDialog
         open={confirmation === 'remove-ca'}
-        title="Also remove local HTTPS trust?"
-        message="Remove only the per-user MoltNet local CA from the login Keychain. The agent bundle and ~/.config/moltnet configuration remain installed."
+        title="Remove local HTTPS trust?"
+        message="Remove the per-user MoltNet local CA from the login Keychain. The agent bundle and ~/.config/moltnet configuration remain installed."
         confirmLabel="Remove local CA"
         cancelLabel="Keep local CA"
         destructive

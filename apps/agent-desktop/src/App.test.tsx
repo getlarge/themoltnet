@@ -83,7 +83,7 @@ beforeEach(() => {
 });
 
 describe('MoltNet Agent desktop renderer', () => {
-  it('shows non-color lifecycle and verified trust status', async () => {
+  it('puts the live server controls in the primary surface', async () => {
     renderApp();
 
     expect(
@@ -92,10 +92,11 @@ describe('MoltNet Agent desktop renderer', () => {
     expect(
       screen.getByLabelText('Signature status: Local HTTPS trusted'),
     ).toBeVisible();
-    expect(
-      screen.getByRole('list', { name: 'Agent setup progress' }),
-    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Open Console' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Stop Agent Server' }),
+    ).toBeEnabled();
+
     fireEvent.click(screen.getByRole('button', { name: 'Stop Agent Server' }));
     await waitFor(() => expect(desktopBridge.stop).toHaveBeenCalledOnce());
   });
@@ -108,10 +109,10 @@ describe('MoltNet Agent desktop renderer', () => {
     renderApp();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Review local HTTPS trust' }),
+      await screen.findByRole('button', { name: 'Enable local HTTPS' }),
     );
     expect(screen.getByRole('dialog')).toHaveAccessibleName(
-      'Trust MoltNet local HTTPS?',
+      'Enable MoltNet local HTTPS?',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Trust local CA' }));
 
@@ -124,26 +125,31 @@ describe('MoltNet Agent desktop renderer', () => {
     );
     renderApp();
 
+    fireEvent.click(await screen.findByText('Maintenance'));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Remove agent bundle' }),
+      await screen.findByRole('button', { name: 'Remove agent bundle…' }),
     );
     expect(screen.getByText(/\.config\/moltnet are preserved/)).toBeVisible();
     expect(
       screen.getByRole('button', { name: 'Remove local CA…' }),
-    ).toBeEnabled();
+    ).toBeDisabled();
+    expect(
+      screen.getByText('Stop the Agent Server before removing local trust.'),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Remove bundle' }));
     await waitFor(() =>
       expect(desktopBridge.remove).toHaveBeenCalledWith(false),
     );
   });
 
-  it('reports when the desktop app is already up to date', async () => {
+  it('explains that development builds do not use the release channel', async () => {
     vi.mocked(desktopBridge.checkDesktopUpdate).mockResolvedValue({
       availableVersion: null,
       message: 'App updates are checked only by signed MoltNet Agent builds.',
     });
     renderApp();
 
+    fireEvent.click(await screen.findByText('Maintenance'));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Check app update' }),
     );
@@ -162,28 +168,28 @@ describe('MoltNet Agent desktop renderer', () => {
     );
     renderApp();
 
+    fireEvent.click(await screen.findByText('Maintenance'));
     expect(
       await screen.findByRole('button', {
-        name: 'Review Agent CLI update',
+        name: 'Install 0.57.0',
       }),
     ).toBeEnabled();
-    expect(
-      screen.getByText('Current lifecycle branch: Update available.'),
-    ).toBeVisible();
   });
 
   it('surfaces operation failures and lets a failed lifecycle retry', async () => {
-    const error = new Error('Agent Server could not bind its port');
+    const error = 'Agent Server could not bind its port';
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
     vi.mocked(desktopBridge.status).mockResolvedValue(
       status({ state: 'failed', message: 'The Agent Server exited.' }),
     );
-    vi.mocked(desktopBridge.retry).mockRejectedValue(error);
+    vi.mocked(desktopBridge.start).mockRejectedValue(error);
     renderApp();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Start Agent Server' }),
+    );
 
     expect(
       await screen.findByText('Agent Server could not bind its port'),
@@ -222,7 +228,7 @@ describe('MoltNet Agent desktop renderer', () => {
     );
     renderApp();
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Review local HTTPS trust' }),
+      await screen.findByRole('button', { name: 'Enable local HTTPS' }),
     );
     const confirm = screen.getByRole('button', { name: 'Trust local CA' });
 
