@@ -264,10 +264,12 @@ describe('Tool-policy enforcement (daemon)', () => {
       expect([...policy.allowedTools].sort(), shape).toEqual(
         [...fixture.tools].sort(),
       );
-      expect(policy.allowedShellCommands, shape).toEqual(
-        fixture.shellCommands.map(({ argvPrefix }) => ({
-          argvPrefix: [...argvPrefix],
-        })),
+      // The API returns shell rules in its own (sorted) order, so compare the
+      // sets rather than the declaration order of the fixture.
+      const byArgv = (rule: { argvPrefix: readonly string[] }) =>
+        rule.argvPrefix.join(' ');
+      expect(policy.allowedShellCommands.map(byArgv).sort(), shape).toEqual(
+        fixture.shellCommands.map(byArgv).sort(),
       );
 
       for (const testCase of TOOL_POLICY_ESCAPE_E2E_CASES.filter(
