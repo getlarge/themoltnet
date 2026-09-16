@@ -26,6 +26,7 @@ import {
 } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
+import type { PiModelModality } from '@themoltnet/pi-runtime/pi-config';
 import {
   assertIdentityAlias,
   getConfigDir,
@@ -154,19 +155,51 @@ export interface ExternalAgentActivation extends ActivationIdentity {
 
 export type AgentActivation = ManagedAgentActivation | ExternalAgentActivation;
 
+/**
+ * Input modalities a model accepts. Aliased from the Pi contract rather than
+ * restated, so the daemon cannot accept a modality Pi does not understand.
+ */
+export type ProviderModelModality = PiModelModality;
+
+/**
+ * A model offered by a provider. `input` is carried verbatim into the
+ * generated `models.json`; omitting it leaves Pi's text-only default, which
+ * silently drops image content parts before they reach the provider.
+ */
+export interface ProviderModelEntry {
+  id: string;
+  input?: ProviderModelModality[];
+}
+
 export interface ProviderEntry {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
   baseUrl: string;
   /** Canonical env var name referenced by generated models.json. */
   envName: string;
-  /** Model ids offered by this provider (fed by discovery later, #2064). */
-  models: string[];
+  /** Models offered by this provider (fed by discovery later, #2064). */
+  models: ProviderModelEntry[];
   /** `file:<key>` reference to the API key value; absent for keyless providers. */
   apiKeyRef?: string;
 }
 
 export type ProvidersState = Record<string, ProviderEntry>;
+
+/**
+ * Copy a model entry, dropping an empty `input` so it never reaches the wire.
+ * Not a compatibility shim: `providers.json` has exactly one model shape, and
+ * `validateProviders` rejects anything else on read.
+ */
+export function copyProviderModel(
+  entry: ProviderModelEntry,
+): ProviderModelEntry {
+  return {
+    id: entry.id,
+    ...(entry.input && entry.input.length > 0
+      ? { input: [...entry.input] }
+      : {}),
+  };
+}
 
 export function providerEnvName(providerId: string): string {
   const id = assertProviderId(providerId);
@@ -527,6 +560,16 @@ export class AgentServerStore {
     for (const [id, provider] of Object.entries(state)) {
       assertProviderId(id);
       assertProviderEnvName(id, provider.envName);
+      for (const model of provider.models ?? []) {
+        // A pre-capability store held bare strings. Refuse it loudly: read
+        // normalization would silently hand Pi `{ id: undefined }` instead.
+        if (typeof model !== 'object' || model === null || !model.id) {
+          throw new AgentServerStoreError(
+            'invalid_state',
+            `provider "${id}" has a model entry that is not { id, input? }; rewrite providers.json entries as objects`,
+          );
+        }
+      }
     }
   }
 

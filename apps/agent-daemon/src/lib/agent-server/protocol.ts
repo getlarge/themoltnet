@@ -1,9 +1,24 @@
+import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
 
 const DateTime = Type.String({ format: 'date-time' });
 const StringList = Type.Array(Type.String());
+
+/** A model the provider offers, with the input modalities it accepts. */
+const ProviderModelSchema = Type.Object({
+  id: Type.String(),
+  input: Type.Optional(
+    Type.Array(
+      Type.Union(PI_MODEL_MODALITIES.map((modality) => Type.Literal(modality))),
+      { minItems: 1 },
+    ),
+  ),
+});
+
+/** One shape on the wire, for both requests and responses. */
+const ProviderModelList = Type.Array(ProviderModelSchema);
 
 function schemaRef(schema: TSchema) {
   const id = (schema as { $id?: unknown }).$id;
@@ -59,7 +74,7 @@ export const AgentServerProviderSchema = Type.Object(
     api: Type.String(),
     baseUrl: Type.String({ format: 'uri' }),
     envName: Type.String(),
-    models: StringList,
+    models: ProviderModelList,
     hasApiKey: Type.Boolean(),
   },
   { $id: 'AgentServerProvider' },
@@ -182,7 +197,7 @@ export const PutProviderSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String({ format: 'uri' }),
   envName: Type.String(),
-  models: StringList,
+  models: ProviderModelList,
   apiKey: Type.Optional(Type.String()),
 });
 

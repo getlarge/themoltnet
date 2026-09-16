@@ -21,7 +21,7 @@ const STORE_OLLAMA: ProvidersState = {
     api: 'openai-completions',
     baseUrl: 'https://ollama.com/v1',
     envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
-    models: ['glm-5.2'],
+    models: [{ id: 'glm-5.2' }],
     apiKeyRef: 'file:providers/ollama-cloud/api-key',
   },
 };

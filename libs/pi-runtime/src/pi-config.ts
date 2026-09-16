@@ -2,13 +2,34 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * Every input modality Pi understands. Canonical for the repo: daemon
+ * validation, CLI parsing and wire schemas derive their allowed values from
+ * this list so they cannot drift from what Pi actually accepts.
+ */
+export const PI_MODEL_MODALITIES = ['text', 'image'] as const;
+
+/** Input modalities Pi understands for a model entry. */
+export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
+
+/**
+ * A model entry in Pi's `models.json`. `input` declares the modalities the
+ * model accepts. Pi treats an entry with no `input` as text-only, so a vision
+ * model must declare `['text', 'image']` or image content parts never reach
+ * the provider.
+ */
+export interface PiModelSpec {
+  id: string;
+  input?: readonly PiModelModality[];
+}
+
 export interface WritePiProviderInput {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
   /** Provider base URL. */
   baseUrl: string;
-  /** Model ids exposed by this provider. */
-  models: readonly string[];
+  /** Models exposed by this provider. */
+  models: readonly PiModelSpec[];
   /** Optional Pi environment placeholder, e.g. `$OLLAMA_API_KEY`. */
   apiKeyEnvRef?: string;
 }
@@ -25,6 +46,8 @@ export interface WriteSingleProviderPiConfigInput extends WritePiConfigBase {
   provider: string;
   /** Pi model id, e.g. `qwen3-coder:480b-cloud`. */
   model: string;
+  /** Input modalities for `model`. Omitted leaves Pi's text-only default. */
+  input?: readonly PiModelModality[];
   /**
    * OpenAI-completions base URL for the provider. Defaults to Ollama Cloud.
    */
@@ -42,6 +65,7 @@ export interface WriteMultiProviderPiConfigInput extends WritePiConfigBase {
   providers: Readonly<Record<string, WritePiProviderInput>>;
   provider?: never;
   model?: never;
+  input?: never;
   baseUrl?: never;
   apiKeyEnvRef?: never;
 }
@@ -49,6 +73,19 @@ export interface WriteMultiProviderPiConfigInput extends WritePiConfigBase {
 export type WritePiConfigInput =
   | WriteSingleProviderPiConfigInput
   | WriteMultiProviderPiConfigInput;
+
+/**
+ * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
+ * declared, so a text-only model serializes as a bare `{ id }`.
+ */
+function toPiModel(entry: PiModelSpec): { id: string; input?: string[] } {
+  return {
+    id: entry.id,
+    ...(entry.input && entry.input.length > 0
+      ? { input: [...entry.input] }
+      : {}),
+  };
+}
 
 /**
  * Write Pi `models.json` + `settings.json`. Eval callers use the single-provider
@@ -64,7 +101,7 @@ export function writePiConfig(input: WritePiConfigInput): void {
             api: provider.api,
             ...(provider.apiKeyEnvRef ? { apiKey: provider.apiKeyEnvRef } : {}),
             baseUrl: provider.baseUrl,
-            models: provider.models.map((id) => ({ id })),
+            models: provider.models.map(toPiModel),
           },
         ]),
       )
@@ -73,7 +110,7 @@ export function writePiConfig(input: WritePiConfigInput): void {
           api: 'openai-completions',
           apiKey: input.apiKeyEnvRef ?? '$OLLAMA_API_KEY',
           baseUrl: input.baseUrl ?? 'https://ollama.com/v1',
-          models: [{ id: input.model }],
+          models: [toPiModel({ id: input.model, input: input.input })],
         },
       };
   writeFileSync(
