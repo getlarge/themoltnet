@@ -814,9 +814,11 @@ fn valid_version(value: &str) -> bool {
     // and tools/release/propose-download-pin.sh.
     let pieces = value.split('.').collect::<Vec<_>>();
     pieces.len() == 3
-        && pieces
-            .iter()
-            .all(|piece| !piece.is_empty() && piece.chars().all(|char| char.is_ascii_digit()))
+        && pieces.iter().all(|piece| {
+            !piece.is_empty()
+                && (piece.len() == 1 || !piece.starts_with('0'))
+                && piece.chars().all(|char| char.is_ascii_digit())
+        })
 }
 
 #[cfg(test)]
@@ -850,6 +852,7 @@ mod tests {
         assert!(valid_version("1.2.3"));
         assert!(!valid_version(""));
         assert!(!valid_version("1.2"));
+        assert!(!valid_version("01.02.03"));
         assert!(!valid_version("../1.2.3"));
         assert!(!valid_version("1.2.3-beta"));
     }
