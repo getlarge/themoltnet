@@ -211,7 +211,7 @@
         },
         "configurations": {
           "release": {
-            "args": "--config \"$TAURI_CONFIG\""
+            "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin --config \"$TAURI_CONFIG\""
           }
         }
       },
