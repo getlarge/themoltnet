@@ -60,7 +60,8 @@ check() {
 }
 
 check "MoltNet CLI" cli_version cli
-check "MoltNet agent bundle" agent_version agent-daemon
+check "MoltNet agent bundle" agent_cli_version agent-daemon
+check "MoltNet Agent desktop" agent_desktop_version agent-desktop
 
 [ -n "$stale_lines" ] || exit 0
 [ -n "$PR_NUMBER" ] || {
