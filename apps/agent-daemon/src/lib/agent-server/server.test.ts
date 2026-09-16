@@ -31,7 +31,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
 import { type ActivatedAgent, verifyAgentActivation } from './identity.js';
-import { PairingService } from './pairing.js';
+import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
 import { RuntimeRegistry } from './runtime-registry.js';
@@ -90,6 +90,7 @@ async function fixture(
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
+    pairing?: PairingService;
     externalSecrets?: Record<string, string>;
     realCredentialPreflight?: boolean;
     resolveRuntimeModule?: (
@@ -215,7 +216,7 @@ async function fixture(
     secrets,
     secretProviders,
     externalSecretProviders,
-    pairing: new PairingService(),
+    pairing: options.pairing ?? new PairingService(),
     runs,
     subscriptions: new ProviderLoginService({
       authPath: store.piAuthJsonPath,
@@ -1863,5 +1864,104 @@ describe('team and diary travel together', () => {
     expect(response.statusCode).toBe(201);
     expect(env['MOLTNET_TEAM_ID']).toBe('team-3');
     expect(env['MOLTNET_DIARY_ID']).toBeUndefined();
+  });
+});
+
+describe('native desktop client', () => {
+  it('authorizes the native origin with the supervisor token', async () => {
+    // Arrange
+    const pairing = new PairingService();
+    pairing.grantNative('supervisor-token');
+    const { app } = await fixture({ pairing });
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: NATIVE_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(200);
+  });
+
+  it('rejects the native origin with a wrong token', async () => {
+    // Arrange
+    const pairing = new PairingService();
+    pairing.grantNative('supervisor-token');
+    const { app } = await fixture({ pairing });
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: NATIVE_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'guessed',
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('does not let a browser origin reuse the native token', async () => {
+    // Arrange
+    const pairing = new PairingService();
+    pairing.grantNative('supervisor-token');
+    const { app } = await fixture({ pairing });
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('refuses to open a browser pairing for the native origin', async () => {
+    // A page that could pair as the native client would inherit desktop
+    // authority, so the ceremony must refuse that origin outright.
+    const { app } = await fixture();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/pairings',
+      headers: { host: HOST, origin: NATIVE_CLIENT_ORIGIN },
+    });
+
+    // `pairing_invalid` is forbidden, not malformed — the existing mapping.
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('leaves the native origin unauthorized when no token was supplied', async () => {
+    // Arrange: a server started without a supervisor grants nothing natively.
+    const { app } = await fixture();
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: NATIVE_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(401);
   });
 });
