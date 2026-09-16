@@ -2608,6 +2608,13 @@ jobs:
           printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
           chmod 600 "$APPLE_API_KEY_PATH"
           export TAURI_CONFIG="{\"plugins\":{\"updater\":{\"pubkey\":$(printf '%s' "$TAURI_UPDATER_PUBLIC_KEY" | jq -Rs .)}}}"
+          node -e '
+            const config = JSON.parse(process.env.TAURI_CONFIG);
+            const key = config.plugins?.updater?.pubkey;
+            if (!key || key.includes("__MOLTNET_TAURI_UPDATER_PUBLIC_KEY__")) {
+              throw new Error("effective Tauri updater key was not substituted");
+            }
+          '
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
