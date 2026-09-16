@@ -50,7 +50,61 @@ export type ToolPolicyDecisionReason =
   | 'shell_command_unresolvable'
   | 'arbitrary_code_interpreter'
   | 'shell_output_redirection_not_permitted'
+  | 'unsafe_environment_assignment'
   | 'tool_not_permitted';
+
+/**
+ * Environment variables that decide *which* binary an argv names, or inject
+ * code into whichever one runs. A `VAR=value` prefix is not argv, so no
+ * argv-prefix rule can describe it: `PATH=/tmp ls -la` matches a rule granting
+ * `ls -la` while running an entirely different `ls`.
+ *
+ * Deliberately a short list of the loader, shell and interpreter entry points,
+ * not a model of every program's configuration. Program-specific variables are
+ * the same long tail as the analyzer's escape-flag table, and the ones git
+ * honours are included because that table already models their `-c` twins.
+ * What a process can reach once running is the sandbox's job (#2025).
+ */
+const UNSAFE_ENV_PREFIXES = ['LD_', 'DYLD_'];
+const UNSAFE_ENV_NAMES = new Set([
+  // Resolution and field splitting.
+  'PATH',
+  'CDPATH',
+  'IFS',
+  // Shell startup.
+  'ENV',
+  'BASH_ENV',
+  'SHELLOPTS',
+  'BASHOPTS',
+  'PS4',
+  // Interpreter startup.
+  'PYTHONPATH',
+  'PYTHONSTARTUP',
+  'PYTHONHOME',
+  'PERL5OPT',
+  'PERL5LIB',
+  'RUBYOPT',
+  'RUBYLIB',
+  'NODE_OPTIONS',
+  'CLASSPATH',
+  'JAVA_TOOL_OPTIONS',
+  // git's program hooks, mirroring the `-c` keys in ESCAPE_FLAG_SPECS.
+  'GIT_SSH',
+  'GIT_SSH_COMMAND',
+  'GIT_EXTERNAL_DIFF',
+  'GIT_PAGER',
+  'GIT_EDITOR',
+  'GIT_SEQUENCE_EDITOR',
+  'GIT_EXEC_PATH',
+]);
+
+function isUnsafeEnvName(name: string): boolean {
+  const upper = name.toUpperCase();
+  return (
+    UNSAFE_ENV_NAMES.has(upper) ||
+    UNSAFE_ENV_PREFIXES.some((prefix) => upper.startsWith(prefix))
+  );
+}
 
 export type GateDecision =
   | {
@@ -111,6 +165,11 @@ export interface MissingShellCommand {
  * 4. **Output redirection** — a `bash` command that redirects output (`>`,
  *    `2>`, `>>`, `&>`, …). No shell-command rule authorizes it; file writes go
  *    through structured tools.
+ * 5. **Execution-redirecting environment prefixes** — a `VAR=value` prefix that
+ *    changes which binary argv names or injects code into it (`PATH`, `LD_*`,
+ *    `BASH_ENV`, …; see {@link UNSAFE_ENV_NAMES}). Such a prefix is not argv, so
+ *    the matched rule would describe a different program than the one that runs.
+ *    Benign assignments are unaffected.
  *
  * KNOWN LIMITATION (follow-up): the `escapable` risk tier (GTFOBins binaries
  * like `find`, `tar`, `awk` that document shell-spawn / file-write techniques)
@@ -141,6 +200,20 @@ export function decideToolCall(input: GateInput): GateDecision {
       'shell_command_unresolvable',
       'shell command could not be statically authorized',
       'unresolvable shell command (watch)',
+    );
+  }
+
+  // An environment prefix that can redirect execution invalidates the argv
+  // rule it would otherwise satisfy, so it is refused before anything is
+  // matched. Benign assignments (`LS_COLORS=x ls -la`) are untouched.
+  const unsafeEnv = (resolved.envAssignments ?? []).filter(isUnsafeEnvName);
+  if (unsafeEnv.length > 0) {
+    return fenced(
+      input.enforcement,
+      'unsafe_environment_assignment',
+      `environment assignment not permitted by tool policy: ${unsafeEnv.join(', ')}`,
+      `would block — environment assignment (watch): ${unsafeEnv.join(', ')}`,
+      unsafeEnv,
     );
   }
 
@@ -332,6 +405,7 @@ function resolveNames(input: GateInput):
       kind: 'names';
       tools: ResolvedTool[];
       hasOutputRedirection?: boolean;
+      envAssignments?: readonly string[];
     }
   | { kind: 'unresolvable'; reason: string } {
   if (input.toolName !== 'bash') {
@@ -356,6 +430,7 @@ function resolveNames(input: GateInput):
           risk: tool.risk,
         })),
         hasOutputRedirection: analysis.hasOutputRedirection === true,
+        envAssignments: analysis.envAssignments,
       }
     : { kind: 'unresolvable', reason: analysis.reason };
 }

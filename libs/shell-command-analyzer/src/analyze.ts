@@ -69,6 +69,14 @@ export type CommandAnalysis =
        * rules from silently overlooking shell-level file writes.
        */
       hasOutputRedirection?: boolean;
+      /**
+       * Names of `VAR=value` prefixes the command sets for the process it
+       * runs. They are not argv, so no argv rule can describe them, and some
+       * of them decide *which* binary argv names (`PATH`) or inject code into
+       * it (`LD_PRELOAD`). Extraction only: which names are unsafe is the
+       * caller's policy.
+       */
+      envAssignments?: readonly string[];
     }
   | { ok: false; command: string; reason: string; ast: string | null };
 
@@ -169,7 +177,12 @@ function classifyToken(node: Node): Word {
       return { raw, name: raw.length >= 2 ? raw.slice(1, -1) : raw };
     case 'string': {
       // Double quotes: literal only with no interpolation children or escapes.
-      const dynamic = node.namedChildren.some((c) => c) || raw.includes('\\');
+      // `string_content` is the literal text itself, not an interpolation —
+      // counting it made every double-quoted word dynamic, so `"-x"` resolved
+      // to nothing and a quoted flag could hide a nested command.
+      const dynamic =
+        node.namedChildren.some((c) => c && c.type !== 'string_content') ||
+        raw.includes('\\');
       return {
         raw,
         name: dynamic ? null : raw.replace(/^"/, '').replace(/"$/, ''),
@@ -423,6 +436,61 @@ function unquote(value: string): string {
  * (`--flag=CMD`), and attached (`-eCMD`, `-oKEY=CMD`) forms. Returns `[]` for
  * binaries with no escape-flag spec.
  */
+/**
+ * A word's value with quoting removed, or `null` when it is dynamic and so
+ * cannot be known statically. Inner quotes are stripped too: bash resolves
+ * `diff""tool` to `difftool`, and a matcher that compares raw source would not.
+ */
+function normalize(word: Word): string | null {
+  return word.name === null ? null : word.name.replace(/["']/g, '');
+}
+
+/** `-e CMD` / `--rsh CMD`, plus the attached short form `-eCMD`. */
+function pushSeparate(
+  words: Word[],
+  index: number,
+  flags: readonly string[],
+  push: (value: string) => void,
+): void {
+  const value = normalize(words[index]);
+  if (value === null) {
+    return;
+  }
+  for (const flag of flags) {
+    if (value === flag) {
+      const next = words[index + 1];
+      const nextValue = next ? normalize(next) : undefined;
+      if (nextValue) {
+        push(nextValue);
+      }
+    } else if (
+      !flag.startsWith('--') &&
+      value.length > flag.length &&
+      value.startsWith(flag)
+    ) {
+      push(value.slice(flag.length)); // attached: `-eCMD`
+    }
+  }
+}
+
+/** `--flag=CMD`. */
+function pushInline(
+  word: Word | undefined,
+  flags: readonly string[],
+  push: (value: string) => void,
+): void {
+  const value = word ? normalize(word) : null;
+  if (value === null) {
+    return;
+  }
+  for (const flag of flags) {
+    const prefix = `${flag}=`;
+    if (value.startsWith(prefix)) {
+      push(value.slice(prefix.length));
+    }
+  }
+}
+
 function escapeFlagCommands(exe: string, words: Word[]): string[] {
   const spec = ESCAPE_FLAG_SPECS.get(exe);
   if (!spec) {
@@ -430,7 +498,9 @@ function escapeFlagCommands(exe: string, words: Word[]): string[] {
   }
   const commands: string[] = [];
   const push = (value: string) => {
-    if (value) {
+    // Overlapping scoped groups can name the same flag (`difftool -x`,
+    // `rebase -x`), so the same value may be reached twice.
+    if (value && !commands.includes(value)) {
       commands.push(value);
     }
   };
@@ -486,6 +556,30 @@ function escapeFlagCommands(exe: string, words: Word[]): string[] {
       if (eq > 0 && keys.includes(unq.slice(0, eq).toLowerCase())) {
         push(unquote(unq.slice(eq + 1)));
       }
+    }
+
+    for (const group of spec.scoped ?? []) {
+      // Command-valued only once the subcommand has been named, so `git clean
+      // -x` keeps its own meaning while `git difftool -x CMD` does not.
+      // Scanning the earlier words avoids parsing git's option grammar.
+      //
+      // Matching uses quote-normalized text, not raw source, so `"difftool"`
+      // and `diff""tool` cannot hide the subcommand. A dynamic earlier word
+      // could be anything, so it activates the group: erring toward extracting
+      // a command we then have to authorize is the fail-closed direction.
+      // Everything after `--` is a pathspec, never a subcommand.
+      const preceding = words.slice(1, i);
+      const end = preceding.findIndex((word) => normalize(word) === '--');
+      const candidates = end === -1 ? preceding : preceding.slice(0, end);
+      const named = candidates.some((word) => {
+        const value = normalize(word);
+        return value === null || group.subcommands.includes(value);
+      });
+      if (!named) {
+        continue;
+      }
+      pushSeparate(words, i, group.separate ?? [], push);
+      pushInline(words[i], group.inline ?? [], push);
     }
   }
   return commands;
@@ -616,6 +710,18 @@ export class ShellCommandAnalyzer {
           const text = redirect?.text.trimStart() ?? '';
           return /^(?:\d+)?(?:>|>>|>\||&>|&>>|<>)/u.test(text);
         });
+      const envAssignments = [
+        ...new Set(
+          root
+            .descendantsOfType('variable_assignment')
+            .map((assignment) => {
+              const text = assignment?.text ?? '';
+              const eq = text.indexOf('=');
+              return eq > 0 ? text.slice(0, eq) : '';
+            })
+            .filter((name) => name !== ''),
+        ),
+      ];
 
       if (root.hasError) {
         return {
@@ -701,7 +807,14 @@ export class ShellCommandAnalyzer {
         };
       }
 
-      return { ok: true, command, tools, ast, hasOutputRedirection };
+      return {
+        ok: true,
+        command,
+        tools,
+        ast,
+        hasOutputRedirection,
+        envAssignments,
+      };
     } finally {
       tree.delete();
     }

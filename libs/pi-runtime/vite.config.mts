@@ -55,6 +55,7 @@ export default defineConfig({
       input: {
         index: 'src/index.ts',
         'pi-config': 'src/pi-config.ts',
+        testing: 'src/tool-policy/escape-corpus.ts',
       },
     },
     rolldownOptions: {
@@ -65,6 +66,7 @@ export default defineConfig({
       input: {
         index: 'src/index.ts',
         'pi-config': 'src/pi-config.ts',
+        testing: 'src/tool-policy/escape-corpus.ts',
       },
     },
   },

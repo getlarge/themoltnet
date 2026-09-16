@@ -20,6 +20,10 @@
     "./pi-config": {
       "import": "./src/pi-config.ts",
       "types": "./src/pi-config.ts"
+    },
+    "./testing": {
+      "import": "./src/tool-policy/escape-corpus.ts",
+      "types": "./src/tool-policy/escape-corpus.ts"
     }
   },
   "publishConfig": {
@@ -31,6 +35,10 @@
       "./pi-config": {
         "types": "./dist/pi-config.d.ts",
         "import": "./dist/pi-config.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "import": "./dist/testing.js"
       }
     }
   },

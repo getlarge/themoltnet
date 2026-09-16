@@ -15,12 +15,15 @@ import {
   decideToolCall,
   resolveSessionToolPolicy,
 } from '@themoltnet/pi-runtime';
+import {
+  ESCAPE_POLICY_FIXTURES,
+  TOOL_POLICY_ESCAPE_E2E_CASES,
+} from '@themoltnet/pi-runtime/testing';
 import { connect } from '@themoltnet/sdk';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
-import { TOOL_POLICY_ESCAPE_CASES } from './tool-policy-escape-corpus.js';
 
 const noopLogger = {
   debug: () => {},
@@ -219,27 +222,79 @@ describe('Tool-policy enforcement (daemon)', () => {
         analyze,
       }),
     ).toMatchObject({ allow: false });
-
-    for (const testCase of TOOL_POLICY_ESCAPE_CASES) {
-      const decision = decideToolCall({
-        toolName: 'bash',
-        command: testCase.command,
-        enforcement: policy.enforcement,
-        allowedTools: policy.allowedTools,
-        allowedShellCommands: policy.allowedShellCommands,
-        analyze,
-      });
-
-      expect(
-        decision,
-        `${testCase.name} [${testCase.policyShape}/${testCase.technique}/${testCase.source}]`,
-      ).toMatchObject({
-        allow: testCase.expectedAllow,
-        reasonCode: testCase.reasonCode,
-        ...(testCase.missing ? { missing: testCase.missing } : {}),
-      });
-    }
   });
+
+  /**
+   * The escape corpus (#2275 §5) runs in full as a fast unit test against
+   * fixture policies. Here a smaller subset is replayed against policies the
+   * REST API actually stored and resolved, so a fixture and a live policy of
+   * the same shape cannot drift apart.
+   */
+  const e2eShapes = [
+    ...new Set(TOOL_POLICY_ESCAPE_E2E_CASES.map((c) => c.policyShape)),
+  ];
+
+  it.each(e2eShapes)(
+    'enforce: replays the escape-corpus subset for the %s policy',
+    async (shape) => {
+      const fixture = ESCAPE_POLICY_FIXTURES[shape];
+      const stamp = `${shape}-${Date.now()}`;
+      const profile = await createProfile(`corpus-${stamp}`, 'enforce');
+      const stored = await createPolicy(
+        `corpus-p-${stamp}`,
+        fixture.tools,
+        fixture.shellCommands.map(({ argvPrefix }) => ({
+          argvPrefix: [...argvPrefix],
+        })),
+      );
+      await agent.runtimeProfiles.setPolicies(profile.id, [stored.id], {
+        teamId,
+      });
+
+      const policy = await resolveSessionToolPolicy({
+        agent: knowledgeKeyAgent,
+        profileId: profile.id,
+        teamId,
+        runtimeKind: profile.runtimeKind,
+        enforcement: 'enforce',
+        logger: noopLogger,
+      });
+
+      // The resolved policy must be the fixture, or the replay below proves
+      // nothing about the fixture's expectations.
+      expect([...policy.allowedTools].sort(), shape).toEqual(
+        [...fixture.tools].sort(),
+      );
+      // The API returns shell rules in its own (sorted) order, so compare the
+      // sets rather than the declaration order of the fixture.
+      const byArgv = (rule: { argvPrefix: readonly string[] }) =>
+        rule.argvPrefix.join(' ');
+      expect(policy.allowedShellCommands.map(byArgv).sort(), shape).toEqual(
+        fixture.shellCommands.map(byArgv).sort(),
+      );
+
+      for (const testCase of TOOL_POLICY_ESCAPE_E2E_CASES.filter(
+        (c) => c.policyShape === shape,
+      )) {
+        expect(
+          decideToolCall({
+            toolName: 'bash',
+            command: testCase.command,
+            enforcement: policy.enforcement,
+            allowedTools: policy.allowedTools,
+            allowedShellCommands: policy.allowedShellCommands,
+            analyze,
+          }),
+          `${testCase.name} [${shape}/${testCase.technique}/${testCase.source}]`,
+        ).toMatchObject({
+          allow: testCase.expectedAllow,
+          reasonCode: testCase.reasonCode,
+          ...(testCase.missing ? { missing: testCase.missing } : {}),
+        });
+      }
+    },
+    120_000,
+  );
 
   it('watch: audits a disallowed tool but allows it', async () => {
     const profile = await createProfile(`watch-${Date.now()}`, 'watch');
