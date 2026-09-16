@@ -42,6 +42,37 @@ describe('provider model discovery protocol', () => {
     );
   });
 
+  it('lets a later probe overwrite a modality an earlier response recorded', () => {
+    const collector = new ModelDiscoveryCollector();
+    collector.addOllamaResponse({
+      models: [{ name: 'x', capabilities: ['completion'] }],
+    });
+
+    expect(collector.result('ollama', []).models).toEqual([{ id: 'x' }]);
+
+    // A probe answering later must win: "first write wins" would strip the
+    // capability and silently leave a vision model text-only.
+    collector.setModalities('x', ['text', 'image']);
+
+    expect(collector.result('ollama', []).models).toEqual([
+      { id: 'x', input: ['text', 'image'] },
+    ]);
+  });
+
+  it('keeps an id-only sighting from erasing modalities already recorded', () => {
+    const collector = new ModelDiscoveryCollector();
+    collector.addOllamaResponse({
+      models: [{ name: 'shared', capabilities: ['vision'] }],
+    });
+    // /v1/models lists the same id without capabilities; the overlap must not
+    // downgrade what /api/tags already answered.
+    collector.addOpenAiResponse({ data: [{ id: 'shared' }] });
+
+    const result = collector.result('ollama', []);
+    expect(result.models).toEqual([{ id: 'shared', input: ['text', 'image'] }]);
+    expect(result.unresolved).toEqual([]);
+  });
+
   it('classifies authorization, network, invalid-response, and empty failures', () => {
     const result = () => new ModelDiscoveryCollector();
 

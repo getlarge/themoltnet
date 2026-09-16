@@ -45,6 +45,36 @@ function fixture(
   };
 }
 
+/**
+ * Route a discovery fetch by endpoint. Every discovery test needs the same
+ * three-way split, so adding an endpoint is a change here rather than in each
+ * fixture. An omitted handler answers with an empty body of the right shape.
+ */
+function discoveryFetch(routes: {
+  models?: unknown;
+  tags?: unknown;
+  show?: unknown | ((model: string) => unknown);
+}): ReturnType<typeof vi.fn<typeof fetch>> {
+  return vi.fn<typeof fetch>(async (input, init) => {
+    const url = String(input);
+    if (url.endsWith('/api/show')) {
+      const model = String(
+        (JSON.parse(String(init?.body ?? '{}')) as { model?: string }).model ??
+          '',
+      );
+      const show =
+        typeof routes.show === 'function'
+          ? (routes.show as (model: string) => unknown)(model)
+          : routes.show;
+      return new Response(JSON.stringify(show ?? {}));
+    }
+    if (url.endsWith('/api/tags')) {
+      return new Response(JSON.stringify(routes.tags ?? { models: [] }));
+    }
+    return new Response(JSON.stringify(routes.models ?? { data: [] }));
+  });
+}
+
 describe('ProviderConfigurationService', () => {
   it('preserves omitted fields and can remove only the stored API key', async () => {
     const { service, store } = fixture();
@@ -222,15 +252,10 @@ describe('ProviderConfigurationService', () => {
   });
 
   it('marks a model image-capable when Ollama reports vision', async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async (input) =>
-      String(input).endsWith('/api/show')
-        ? new Response(
-            JSON.stringify({ capabilities: ['completion', 'tools', 'vision'] }),
-          )
-        : String(input).endsWith('/api/tags')
-          ? new Response(JSON.stringify({ models: [] }))
-          : new Response(JSON.stringify({ data: [{ id: 'qwen3.5:397b' }] })),
-    );
+    const fetchImpl = discoveryFetch({
+      models: { data: [{ id: 'qwen3.5:397b' }] },
+      show: { capabilities: ['completion', 'tools', 'vision'] },
+    });
     const { service } = fixture({ fetchImpl });
     await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
 
@@ -242,13 +267,10 @@ describe('ProviderConfigurationService', () => {
   });
 
   it('leaves a model text-only when Ollama reports no vision', async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async (input) =>
-      String(input).endsWith('/api/show')
-        ? new Response(JSON.stringify({ capabilities: ['completion'] }))
-        : String(input).endsWith('/api/tags')
-          ? new Response(JSON.stringify({ models: [] }))
-          : new Response(JSON.stringify({ data: [{ id: 'glm-5.2' }] })),
-    );
+    const fetchImpl = discoveryFetch({
+      models: { data: [{ id: 'glm-5.2' }] },
+      show: { capabilities: ['completion'] },
+    });
     const { service } = fixture({ fetchImpl });
     await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
 
@@ -282,13 +304,10 @@ describe('ProviderConfigurationService', () => {
   });
 
   it('lets an explicit text-only declaration outrank a detected capability', async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async (input) =>
-      String(input).endsWith('/api/show')
-        ? new Response(JSON.stringify({ capabilities: ['vision'] }))
-        : String(input).endsWith('/api/tags')
-          ? new Response(JSON.stringify({ models: [] }))
-          : new Response(JSON.stringify({ data: [{ id: 'qwen3.5:397b' }] })),
-    );
+    const fetchImpl = discoveryFetch({
+      models: { data: [{ id: 'qwen3.5:397b' }] },
+      show: { capabilities: ['vision'] },
+    });
     const { service } = fixture({ fetchImpl });
     await service.set('ollama-cloud', {
       baseUrl: 'https://ollama.com/v1',
@@ -302,6 +321,47 @@ describe('ProviderConfigurationService', () => {
     expect(service.list()['ollama-cloud']?.models).toEqual([
       { id: 'qwen3.5:397b', input: ['text'] },
     ]);
+  });
+
+  it('probes every unresolved model without exceeding the concurrency cap', async () => {
+    const ids = Array.from({ length: 12 }, (_value, index) => `m-${index}`);
+    let inFlight = 0;
+    let peakInFlight = 0;
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/api/tags')) {
+        return new Response(JSON.stringify({ models: [] }));
+      }
+      if (!url.endsWith('/api/show')) {
+        return new Response(
+          JSON.stringify({ data: ids.map((id) => ({ id })) }),
+        );
+      }
+      inFlight += 1;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      // Yield on a microtask, not a timer: Promise.all invokes a whole batch
+      // synchronously before any of them resume, so the observed peak is
+      // deterministic rather than a race against the event loop.
+      await Promise.resolve();
+      inFlight -= 1;
+      return new Response(JSON.stringify({ capabilities: ['vision'] }));
+    });
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    const result = await service.discover('ollama-cloud', { save: true });
+
+    const probes = fetchImpl.mock.calls.filter(([url]) =>
+      String(url).endsWith('/api/show'),
+    );
+    // Every unknown id is asked about exactly once...
+    expect(probes).toHaveLength(ids.length);
+    // ...and the cap bounds parallelism exactly: a regression to serial would
+    // read 1, and an unbounded fan-out would read 12.
+    expect(peakInFlight).toBe(5);
+    expect(result.models.every((model) => model.input?.includes('image'))).toBe(
+      true,
+    );
   });
 
   it('merges OpenAI and Ollama discovery and saves only the model patch', async () => {

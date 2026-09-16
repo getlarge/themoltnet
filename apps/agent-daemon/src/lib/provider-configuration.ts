@@ -419,6 +419,17 @@ export class ProviderConfigurationService {
       index < input.ids.length;
       index += MODALITY_PROBE_CONCURRENCY
     ) {
+      // Without this, a cancelled discovery waits for every remaining batch:
+      // the composed signal only lands inside an in-flight fetch, so the
+      // caller could block for batches x request-timeout before hearing back.
+      if (input.signal?.aborted) {
+        throw new ProviderConfigurationError(
+          'operation_aborted',
+          `provider "${input.providerId}" discovery was cancelled`,
+          408,
+          { cause: input.signal.reason },
+        );
+      }
       const batch = input.ids.slice(index, index + MODALITY_PROBE_CONCURRENCY);
       await Promise.all(
         batch.map(async (id) => {
@@ -428,6 +439,11 @@ export class ProviderConfigurationService {
             // A throwaway array: probe failures stay out of the discovery
             // failure record by construction, not by convention.
             failures: [],
+            // Same host and same credential as /v1/models and /api/tags, which
+            // this provider is already authenticated against. /api/show needs
+            // no auth for public models, but a private one on the operator's
+            // own account does, so the header is sent deliberately rather than
+            // stripped.
             headers: input.headers,
             method: 'POST',
             providerId: input.providerId,
@@ -468,17 +484,29 @@ export class ProviderConfigurationService {
     }
   }
 
-  private async requestDiscoveryEndpoint(input: {
-    /** JSON body, for the POST-only `/api/show` probe. */
-    body?: Record<string, unknown>;
-    endpoint: 'openai_models' | 'ollama_tags' | 'ollama_show';
-    failures: DiscoveryFailure[];
-    headers: Record<string, string>;
-    method?: 'GET' | 'POST';
-    providerId: string;
-    signal?: AbortSignal;
-    url: string;
-  }): Promise<unknown> {
+  private async requestDiscoveryEndpoint(
+    input: {
+      failures: DiscoveryFailure[];
+      headers: Record<string, string>;
+      providerId: string;
+      signal?: AbortSignal;
+      url: string;
+    } & (
+      | {
+          // Only the probe is a POST, and only it carries a body. Keyed on the
+          // endpoint so a body cannot be passed with a GET listing and silently
+          // turn it into a 405.
+          endpoint: 'ollama_show';
+          method: 'POST';
+          body: Record<string, unknown>;
+        }
+      | {
+          endpoint: 'openai_models' | 'ollama_tags';
+          method?: never;
+          body?: never;
+        }
+    ),
+  ): Promise<unknown> {
     const startedAt = Date.now();
     const timeout = AbortSignal.timeout(
       this.options.requestTimeoutMs ?? 10_000,
@@ -487,10 +515,8 @@ export class ProviderConfigurationService {
     try {
       response = await this.fetchImpl(input.url, {
         ...(input.body
-          ? { body: JSON.stringify(input.body), method: input.method ?? 'POST' }
-          : input.method
-            ? { method: input.method }
-            : {}),
+          ? { body: JSON.stringify(input.body), method: input.method }
+          : {}),
         headers: input.body
           ? { ...input.headers, 'content-type': 'application/json' }
           : input.headers,

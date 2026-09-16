@@ -210,6 +210,9 @@ export function ApiKeyProviderForm({
       </Stack>
       {discovered.length > 0 ? (
         <ModelSelection
+          acceptsImages={(model) =>
+            entriesRef.current.get(model)?.input?.includes('image') === true
+          }
           discovered={discovered}
           filter={filter}
           onFilterChange={(value) => {
@@ -301,6 +304,7 @@ function ProviderFields({
 }
 
 function ModelSelection({
+  acceptsImages,
   discovered,
   filter,
   onFilterChange,
@@ -309,6 +313,7 @@ function ModelSelection({
   selected,
   visibleLimit,
 }: {
+  acceptsImages: (model: string) => boolean;
   discovered: string[];
   filter: string;
   onFilterChange: (value: string) => void;
@@ -359,6 +364,15 @@ function ModelSelection({
               <Text variant="caption" mono style={{ overflowWrap: 'anywhere' }}>
                 {model}
               </Text>
+              {acceptsImages(model) ? (
+                // Selecting this model is what lets image bytes reach the
+                // provider, so the capability is visible while choosing.
+                <span title="Accepts image input">
+                  <Text variant="caption" color="muted">
+                    image
+                  </Text>
+                </span>
+              ) : null}
             </label>
           ))}
         </Stack>
