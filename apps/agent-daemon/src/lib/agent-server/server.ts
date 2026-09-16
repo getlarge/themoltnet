@@ -773,10 +773,12 @@ function registerRunRoutes(
     async (request, reply) => {
       requirePairedOrigin(request);
       const body = requireBody<Record<string, unknown>>(request);
+      const diaryId = optionalString(body, 'diaryId');
       const record = await runs.start(
         {
           agent: requireString(body, 'agent'),
           teamId: requireString(body, 'teamId'),
+          ...(diaryId ? { diaryId } : {}),
           profiles: stringArray(body, 'profiles'),
           taskTypes: stringArray(body, 'taskTypes'),
           mode: requireString(body, 'mode') as 'poll' | 'drain',

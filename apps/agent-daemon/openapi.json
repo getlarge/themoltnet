@@ -190,6 +190,9 @@
           "agent": {
             "type": "string"
           },
+          "diaryId": {
+            "type": "string"
+          },
           "endedAt": {
             "format": "date-time",
             "type": "string"
@@ -1175,6 +1178,9 @@
               "schema": {
                 "properties": {
                   "agent": {
+                    "type": "string"
+                  },
+                  "diaryId": {
                     "type": "string"
                   },
                   "mode": {

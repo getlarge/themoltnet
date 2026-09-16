@@ -1603,3 +1603,72 @@ describe('agent server providers and runs', () => {
     expect(readdirSync(store.runsDir)).toEqual([]);
   });
 });
+
+describe('team and diary travel together', () => {
+  /** Start a run and return the env the child was spawned with. */
+  async function startRun(
+    payload: Record<string, unknown>,
+    baseEnv: NodeJS.ProcessEnv,
+  ) {
+    const { app, store, spawned } = await fixture({ baseEnv });
+    const token = await pair(app);
+    activateManaged(store);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        ...payload,
+      },
+    });
+    return { response, env: spawned[0]?.options.env ?? {} };
+  }
+
+  it('sets the diary the run was started for', async () => {
+    // Arrange / Act
+    const { response, env } = await startRun(
+      { teamId: 'team-1', diaryId: 'diary-1' },
+      { PATH: '/usr/bin' },
+    );
+
+    // Assert
+    expect(response.statusCode).toBe(201);
+    expect(env['MOLTNET_TEAM_ID']).toBe('team-1');
+    expect(env['MOLTNET_DIARY_ID']).toBe('diary-1');
+  });
+
+  it('refuses to inherit a diary from the supervisor', async () => {
+    // The CLI binds team and diary as a pair. A supervisor-level diary would
+    // silently follow a run into a different team, which is exactly what the
+    // desktop's team switching would surface.
+    const { response, env } = await startRun(
+      { teamId: 'team-2', diaryId: 'diary-2' },
+      { PATH: '/usr/bin', MOLTNET_DIARY_ID: 'ambient-diary-of-another-team' },
+    );
+
+    expect(response.statusCode).toBe(201);
+    expect(env['MOLTNET_DIARY_ID']).toBe('diary-2');
+  });
+
+  it('leaves the diary unset rather than inheriting one', async () => {
+    // Arrange / Act
+    const { response, env } = await startRun(
+      { teamId: 'team-3' },
+      { PATH: '/usr/bin', MOLTNET_DIARY_ID: 'ambient-diary-of-another-team' },
+    );
+
+    // Assert: absent beats wrong. The agent resolves its own diary downstream.
+    expect(response.statusCode).toBe(201);
+    expect(env['MOLTNET_TEAM_ID']).toBe('team-3');
+    expect(env['MOLTNET_DIARY_ID']).toBeUndefined();
+  });
+});
