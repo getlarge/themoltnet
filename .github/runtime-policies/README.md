@@ -4,6 +4,17 @@ Runtime policies are named allow-lists of tools and shell-command prefixes. A
 runtime profile binds a set of them and chooses an enforcement mode; the union
 of the bound policies is what a session actually enforces.
 
+`tools` names runtime and MCP tools such as `read`, `grep`, or
+`moltnet_get_task`. It never grants shell access. Shell programs go in
+`shellCommands`: `{ "argvPrefix": ["cat"] }` allows `cat` with any arguments,
+`{ "argvPrefix": ["git", "diff"] }` allows only `git diff`. No shell rule allows
+output redirection.
+
+| Definition                                                                   | Profile                |
+| ---------------------------------------------------------------------------- | ---------------------- |
+| [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json) | `legreffier-review-v1` |
+| [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json) | `multi-lens-review-v1` |
+
 The definitions here are the reviewable source of truth. They are **not**
 applied automatically — the server holds the live state, and these files are
 what a change to it should be reviewed against. Keeping them in the repo is the
