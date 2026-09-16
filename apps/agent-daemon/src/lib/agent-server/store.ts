@@ -186,14 +186,13 @@ export interface ProviderEntry {
 export type ProvidersState = Record<string, ProviderEntry>;
 
 /**
- * Accept a bare id or a full entry. Providers persisted before model
- * capabilities existed stored plain strings; they read back as text-only
- * entries rather than failing the whole providers document.
+ * Copy a model entry, dropping an empty `input` so it never reaches the wire.
+ * Not a compatibility shim: `providers.json` has exactly one model shape, and
+ * `validateProviders` rejects anything else on read.
  */
-export function normalizeProviderModel(
-  entry: ProviderModelEntry | string,
+export function copyProviderModel(
+  entry: ProviderModelEntry,
 ): ProviderModelEntry {
-  if (typeof entry === 'string') return { id: entry };
   return {
     id: entry.id,
     ...(entry.input && entry.input.length > 0
@@ -549,9 +548,6 @@ export class AgentServerStore {
   readProviders(): ProvidersState {
     const state = readJson<ProvidersState>(this.providersPath) ?? {};
     this.validateProviders(state);
-    for (const provider of Object.values(state)) {
-      provider.models = (provider.models ?? []).map(normalizeProviderModel);
-    }
     return state;
   }
 
@@ -564,6 +560,16 @@ export class AgentServerStore {
     for (const [id, provider] of Object.entries(state)) {
       assertProviderId(id);
       assertProviderEnvName(id, provider.envName);
+      for (const model of provider.models ?? []) {
+        // A pre-capability store held bare strings. Refuse it loudly: read
+        // normalization would silently hand Pi `{ id: undefined }` instead.
+        if (typeof model !== 'object' || model === null || !model.id) {
+          throw new AgentServerStoreError(
+            'invalid_state',
+            `provider "${id}" has a model entry that is not { id, input? }; rewrite providers.json entries as objects`,
+          );
+        }
+      }
     }
   }
 

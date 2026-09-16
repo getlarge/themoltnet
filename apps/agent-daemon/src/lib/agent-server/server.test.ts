@@ -687,7 +687,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: ['qwen3-coder:480b-cloud'],
+        models: [{ id: 'qwen3-coder:480b-cloud' }],
         apiKey: 'super-secret-value',
       },
     });
@@ -720,7 +720,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: ['qwen3-coder:480b-cloud', 'gpt-oss:120b'],
+        models: [{ id: 'qwen3-coder:480b-cloud' }, { id: 'gpt-oss:120b' }],
       },
     });
     expect(update.json()).toMatchObject({ hasApiKey: true });
@@ -733,7 +733,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://attacker.example/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: ['qwen3-coder:480b-cloud'],
+        models: [{ id: 'qwen3-coder:480b-cloud' }],
       },
     });
     expect(redirect.json()).toMatchObject({ hasApiKey: true });
@@ -760,7 +760,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: ['qwen3-coder:480b-cloud'],
+        models: [{ id: 'qwen3-coder:480b-cloud' }],
         apiKey: 'remove-me',
       },
     });
@@ -919,7 +919,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: ['qwen3-coder:480b-cloud'],
+        models: [{ id: 'qwen3-coder:480b-cloud' }],
         apiKey: 'resolved-at-spawn',
       },
     });

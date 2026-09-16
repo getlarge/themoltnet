@@ -23,16 +23,13 @@ export interface PiModelSpec {
   input?: readonly PiModelModality[];
 }
 
-/** Bare model id, or an entry declaring capabilities. */
-export type PiModelEntry = string | PiModelSpec;
-
 export interface WritePiProviderInput {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
   /** Provider base URL. */
   baseUrl: string;
-  /** Models exposed by this provider, as bare ids or capability entries. */
-  models: readonly PiModelEntry[];
+  /** Models exposed by this provider. */
+  models: readonly PiModelSpec[];
   /** Optional Pi environment placeholder, e.g. `$OLLAMA_API_KEY`. */
   apiKeyEnvRef?: string;
 }
@@ -79,10 +76,9 @@ export type WritePiConfigInput =
 
 /**
  * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
- * declared, so text-only entries keep their existing serialization.
+ * declared, so a text-only model serializes as a bare `{ id }`.
  */
-function toPiModel(entry: PiModelEntry): { id: string; input?: string[] } {
-  if (typeof entry === 'string') return { id: entry };
+function toPiModel(entry: PiModelSpec): { id: string; input?: string[] } {
   return {
     id: entry.id,
     ...(entry.input && entry.input.length > 0

@@ -245,11 +245,7 @@ function stringArray(
 
 const MODEL_MODALITIES = new Set<string>(PI_MODEL_MODALITIES);
 
-/**
- * Parse the provider `models` field. Accepts a bare id or an object declaring
- * input modalities, so a console that has not been updated keeps working while
- * a newer one can mark a model as accepting images.
- */
+/** Parse the provider `models` field: `{ id, input? }` entries only. */
 function modelArray(
   body: Record<string, unknown>,
   field: string,
@@ -259,19 +255,11 @@ function modelArray(
     throw new AgentServerHttpError(400, 'invalid_body', detail);
   };
   if (!Array.isArray(value)) {
-    return invalid(
-      `"${field}" must be an array of model ids or { id, input } entries`,
-    );
+    return invalid(`"${field}" must be an array of { id, input? } entries`);
   }
   return value.map((item) => {
-    if (typeof item === 'string') {
-      if (item.length === 0) return invalid(`"${field}" has an empty model id`);
-      return { id: item };
-    }
-    if (typeof item !== 'object' || item === null) {
-      return invalid(
-        `"${field}" entries must be a model id or an { id, input } object`,
-      );
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+      return invalid(`"${field}" entries must be an { id, input? } object`);
     }
     const entry = item as Record<string, unknown>;
     const id = entry.id;

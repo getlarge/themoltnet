@@ -407,6 +407,25 @@ describe('AgentServerStore', () => {
     expect(() => store.readProviders()).toThrow(AgentServerStoreError);
   });
 
+  it('rejects a pre-capability providers.json holding bare model ids', () => {
+    const store = freshStore();
+    writeFileSync(
+      join(store.root, 'providers.json'),
+      JSON.stringify({
+        legacy: {
+          api: 'openai-completions',
+          baseUrl: 'https://ollama.com/v1',
+          envName: 'MOLTNET_PROVIDER_LEGACY_API_KEY',
+          models: ['bare-string-id'],
+        },
+      }),
+    );
+
+    // Refusing loudly is the point: without this the store would hand Pi a
+    // model entry with no id and drop the catalog without a word.
+    expect(() => store.readProviders()).toThrow(/not \{ id, input\? \}/u);
+  });
+
   it('round-trips runs through their run directories', () => {
     const store = freshStore();
     store.createRunDir('run-1');

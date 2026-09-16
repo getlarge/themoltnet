@@ -17,13 +17,7 @@ const ProviderModelSchema = Type.Object({
   ),
 });
 
-/**
- * Request bodies accept a bare id or a full entry so an older console keeps
- * working; responses always carry the normalised entry form.
- */
-const ProviderModelRequestList = Type.Array(
-  Type.Union([Type.String(), ProviderModelSchema]),
-);
+/** One shape on the wire, for both requests and responses. */
 const ProviderModelList = Type.Array(ProviderModelSchema);
 
 function schemaRef(schema: TSchema) {
@@ -203,7 +197,7 @@ export const PutProviderSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String({ format: 'uri' }),
   envName: Type.String(),
-  models: ProviderModelRequestList,
+  models: ProviderModelList,
   apiKey: Type.Optional(Type.String()),
 });
 

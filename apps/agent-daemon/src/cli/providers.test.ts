@@ -272,7 +272,7 @@ describe('moltnet-agent providers', () => {
     const test = await fixture({ fetchImpl });
     await test.configuration.set('ollama-cloud', {
       baseUrl: 'https://ollama.com/v1',
-      models: ['existing'],
+      models: [{ id: 'existing' }],
     });
 
     expect(

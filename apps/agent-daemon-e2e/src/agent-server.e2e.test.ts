@@ -663,7 +663,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
         envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
-        models: [MODEL_ID],
+        models: [{ id: MODEL_ID }],
         apiKey: RAW_API_KEY,
       },
     });
@@ -684,7 +684,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
         envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
-        models: [MODEL_ID, 'e2e-other'],
+        models: [{ id: MODEL_ID }, { id: 'e2e-other' }],
       },
     });
     expect(updated.response.status).toBe(200);
@@ -772,7 +772,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         api: 'openai-completions',
         baseUrl: `${tagsStub.url}/v1`,
         envName: 'MOLTNET_PROVIDER_OLLAMA_E2E_CLI_API_KEY',
-        models: ['http-updated'],
+        models: [{ id: 'http-updated' }],
       },
     });
     expect(updatedOverHttp.response.status).toBe(200);

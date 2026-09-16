@@ -19,7 +19,7 @@ import {
   type AgentServerStore,
   assertProviderEnvName,
   assertProviderId,
-  normalizeProviderModel,
+  copyProviderModel,
   type ProviderEntry,
   providerEnvName,
   type ProviderModelEntry,
@@ -41,7 +41,7 @@ export interface ProviderSetInput {
   api?: string;
   baseUrl?: string;
   envName?: string;
-  models?: (ProviderModelEntry | string)[];
+  models?: ProviderModelEntry[];
   apiKey?: string;
   clearApiKey?: boolean;
 }
@@ -142,7 +142,7 @@ export class ProviderConfigurationService {
             input.envName ?? previous?.envName ?? providerEnvName(providerId),
           ),
           models: (input.models ?? previous?.models ?? []).map(
-            normalizeProviderModel,
+            copyProviderModel,
           ),
           ...(!input.clearApiKey && previous?.apiKeyRef
             ? { apiKeyRef: previous.apiKeyRef }
@@ -493,7 +493,7 @@ export function providerView(provider: ProviderEntry): ProviderView {
     api: provider.api,
     baseUrl: provider.baseUrl,
     envName: provider.envName,
-    models: provider.models.map(normalizeProviderModel),
+    models: provider.models.map(copyProviderModel),
     hasApiKey: Boolean(provider.apiKeyRef),
   };
 }

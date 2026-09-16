@@ -51,11 +51,11 @@ describe('ProviderConfigurationService', () => {
     await service.set('ollama-cloud', {
       baseUrl: 'https://ollama.com/v1',
       apiKey: 'secret-value',
-      models: ['old-model'],
+      models: [{ id: 'old-model' }],
     });
 
     await expect(
-      service.set('ollama-cloud', { models: ['new-model'] }),
+      service.set('ollama-cloud', { models: [{ id: 'new-model' }] }),
     ).resolves.toMatchObject({
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
@@ -123,7 +123,7 @@ describe('ProviderConfigurationService', () => {
     await service.set('remote', {
       baseUrl: 'https://provider.example/v1',
       apiKey: 'old-secret',
-      models: ['old-model'],
+      models: [{ id: 'old-model' }],
     });
     vi.spyOn(store, 'writeProviders').mockImplementationOnce(() => {
       throw new Error('persistence failed');
@@ -132,7 +132,7 @@ describe('ProviderConfigurationService', () => {
     await expect(
       service.set('remote', {
         apiKey: 'replacement-secret',
-        models: ['new-model'],
+        models: [{ id: 'new-model' }],
       }),
     ).rejects.toThrow('persistence failed');
 
@@ -239,7 +239,7 @@ describe('ProviderConfigurationService', () => {
       api: 'openai-responses',
       baseUrl: 'https://ollama.com/v1',
       apiKey: 'kept',
-      models: ['stale'],
+      models: [{ id: 'stale' }],
     });
 
     await expect(

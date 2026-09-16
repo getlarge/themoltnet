@@ -359,13 +359,10 @@ export type PutAgentServerProviderData = {
     apiKey?: string;
     baseUrl: string;
     envName: string;
-    models: Array<
-      | string
-      | {
-          id: string;
-          input?: Array<'text' | 'image'>;
-        }
-    >;
+    models: Array<{
+      id: string;
+      input?: Array<'text' | 'image'>;
+    }>;
   };
   path: {
     providerId: string;

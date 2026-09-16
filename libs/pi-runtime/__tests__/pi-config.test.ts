@@ -66,7 +66,7 @@ describe('writePiConfig', () => {
           models: [
             { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
             { id: 'glm-5.2:cloud' },
-            'gpt-oss:120b-cloud',
+            { id: 'gpt-oss:120b-cloud' },
           ],
         },
       },
@@ -106,12 +106,12 @@ describe('writePiConfig', () => {
           api: 'openai-completions',
           apiKeyEnvRef: '$OLLAMA_API_KEY',
           baseUrl: 'https://ollama.com/v1',
-          models: ['qwen', 'gpt-oss'],
+          models: [{ id: 'qwen' }, { id: 'gpt-oss' }],
         },
         local: {
           api: 'openai-completions',
           baseUrl: 'http://127.0.0.1:11434/v1',
-          models: ['local-model'],
+          models: [{ id: 'local-model' }],
         },
       },
       settings: { defaultProvider: 'local', transport: 'sse' },
