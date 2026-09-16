@@ -29,18 +29,25 @@
     "category": "DeveloperTool",
     "copyright": "Copyright © MoltNet contributors",
     "createUpdaterArtifacts": true,
-    "icon": ["../../landing/public/apple-touch-icon.png"],
+    "icon": [
+      "../../landing/public/apple-touch-icon.png"
+    ],
     "macOS": {
       "hardenedRuntime": true,
       "minimumSystemVersion": "13.0"
     },
-    "targets": ["app", "dmg"]
+    "targets": [
+      "app",
+      "dmg"
+    ]
   },
   "identifier": "net.themolt.agent",
   "plugins": {
     "updater": {
       "active": true,
-      "endpoints": ["https://themolt.net/download/desktop/update.json"],
+      "endpoints": [
+        "https://themolt.net/download/desktop/update.json"
+      ],
       "pubkey": "__MOLTNET_TAURI_UPDATER_PUBLIC_KEY__"
     }
   },

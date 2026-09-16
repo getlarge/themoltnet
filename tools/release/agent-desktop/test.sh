@@ -105,6 +105,15 @@ if (expected.size) {
   throw new Error(`missing desktop release version updaters: ${[...expected.keys()]}`);
 }
 
+const tauriConfigPath = 'apps/agent-desktop/src-tauri/tauri.conf.json';
+const tauriConfig = fs.readFileSync(tauriConfigPath, 'utf8');
+const releasePleaseLayout = `${JSON.stringify(JSON.parse(tauriConfig), null, 2)}\n`;
+if (tauriConfig !== releasePleaseLayout) {
+  throw new Error(
+    `${tauriConfigPath} must match Release Please's JSON serializer`,
+  );
+}
+
 const manifestTemplate = fs.readFileSync(
   'apps/landing/nginx/default.conf.template',
   'utf8',
