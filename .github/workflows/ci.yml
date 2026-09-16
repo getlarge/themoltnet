@@ -515,14 +515,14 @@ jobs:
       - uses: actions/setup-go@v6
         if: steps.matrix.outputs.has-agents == 'true'
         with:
-          go-version: '1.25'
+          go-version: '1.26'
       - name: Cache golangci-lint
         if: steps.matrix.outputs.has-agents == 'true'
         id: golangci-lint-cache
         uses: actions/cache@v6
         with:
           path: .cache/golangci-lint/v2.5.0/bin
-          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.25-v2.5.0
+          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.26-v2.5.0
       - name: Install golangci-lint
         if: steps.matrix.outputs.has-agents == 'true' && steps.golangci-lint-cache.outputs.cache-hit != 'true'
         run: |
@@ -571,7 +571,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.26'
       - uses: dtolnay/rust-toolchain@1.88.0
         if: needs.affected.outputs.agent-desktop == 'true'
         with:
@@ -599,7 +599,7 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: .cache/golangci-lint/v2.5.0/bin
-          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.25-v2.5.0
+          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.26-v2.5.0
       - name: Install golangci-lint
         if: steps.golangci-lint-cache.outputs.cache-hit != 'true'
         run: |

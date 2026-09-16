@@ -25,6 +25,8 @@
         "executor": "nx:run-commands",
         "inputs": [
           "{projectRoot}/builder.yaml",
+          "{projectRoot}/go.mod",
+          "{projectRoot}/go.sum",
           "{projectRoot}/moltnetauthextension/**/*",
           "{projectRoot}/moltnetattributionprocessor/**/*",
           "{workspaceRoot}/libs/moltnet-authn/**/*",

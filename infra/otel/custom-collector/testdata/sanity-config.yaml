@@ -15,7 +15,6 @@ receivers:
         endpoint: '0.0.0.0:4319'
         auth:
           authenticator: moltnetauth
-
 processors:
   moltnetattribution:
 

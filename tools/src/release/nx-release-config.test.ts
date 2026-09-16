@@ -191,12 +191,12 @@ describe('Nx release configuration', () => {
     );
   });
 
-  it('builds the collector release with the latest Go 1.25 patch', () => {
+  it('builds the collector release with the latest Go 1.26 patch', () => {
     expect(workflow).toContain(
       `      - uses: actions/setup-go@v6
         if: \${{ matrix.project == 'otel-custom-collector' }}
         with:
-          go-version: '1.25'
+          go-version: '1.26'
           check-latest: true
           cache: true`,
     );
@@ -204,7 +204,7 @@ describe('Nx release configuration', () => {
 
   it('can republish failed Docker releases from their existing drafts', () => {
     expect(workflow).toContain(
-      'agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector',
+      'agent-daemon, agent-desktop, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector',
     );
     expect(workflow).toContain(
       'resolve_docker "otel-custom-collector" "$RP_OTEL_COLLECTOR_CREATED" "$RP_OTEL_COLLECTOR_TAG" "$RP_OTEL_COLLECTOR_VERSION" "otel-collector"',

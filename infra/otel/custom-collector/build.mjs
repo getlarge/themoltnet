@@ -9,12 +9,7 @@ const generatedRoot = resolve(projectRoot, '_build');
 
 execFileSync(
   'go',
-  [
-    'run',
-    'go.opentelemetry.io/collector/cmd/builder@v0.150.0',
-    '--config=builder.yaml',
-    '--skip-compilation',
-  ],
+  ['tool', 'builder', '--config=builder.yaml', '--skip-compilation'],
   {
     cwd: projectRoot,
     stdio: 'inherit',
