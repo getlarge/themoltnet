@@ -224,10 +224,15 @@ Options:
                               Default: https://api.themolt.net.
   --heartbeat-interval-ms <n> Child reporter heartbeat cadence. Default: 60000.
   --warm-retention-sec <n>    Child session/workspace retention. Default: 1800.
+  --supervised                Also stop gracefully when stdin reaches EOF.
 
 On macOS, the first interactive run asks to trust a per-user local CA in the
-login keychain and serves HTTPS. Run \`agent-daemon server trust --remove\` to
-remove that exact CA. Linux continues to use the Chromium PNA HTTP path.
+login keychain and serves HTTPS. Native supervisors use:
+  server trust --status --json
+  server trust --yes --json
+  server trust --remove --yes --json
+Run \`agent-daemon server trust --remove\` interactively to remove that exact
+CA. Linux continues to use the Chromium PNA HTTP path.
 `;
 
 export const PROVIDERS_HELP = `\
