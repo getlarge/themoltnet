@@ -78,7 +78,10 @@ describe('deriveProfileReadiness', () => {
       runtimeKind: 'acme_runtime',
       requiredEnv: ['ANTHROPIC_API_KEY', 'ACME_TOKEN'],
     };
-    const bare = { providerEnv: new Map<string, boolean>(), runtimeKinds: new Set<string>() };
+    const bare = {
+      providerEnv: new Map<string, boolean>(),
+      runtimeKinds: new Set<string>(),
+    };
 
     const result = deriveProfileReadiness(custom, bare);
 

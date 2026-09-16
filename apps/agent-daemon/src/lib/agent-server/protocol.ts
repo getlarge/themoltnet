@@ -432,7 +432,10 @@ export const AgentServerRouteSchemas = {
     tags: ['catalogue'],
     security: pairedSecurity,
     querystring: CatalogueQuerySchema,
-    response: { 200: schemaRef(AgentServerCatalogueSchema), ...problemResponse },
+    response: {
+      200: schemaRef(AgentServerCatalogueSchema),
+      ...problemResponse,
+    },
   },
   listRuns: {
     operationId: 'listAgentServerRuns',

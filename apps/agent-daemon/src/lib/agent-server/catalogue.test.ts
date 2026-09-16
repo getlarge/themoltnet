@@ -161,7 +161,10 @@ describe('buildCatalogue', () => {
     // Arrange
     const catalogue = await buildCatalogue({
       agent: port(),
-      machine: { providerEnv: new Map(), runtimeKinds: new Set(['gondolin_pi']) },
+      machine: {
+        providerEnv: new Map(),
+        runtimeKinds: new Set(['gondolin_pi']),
+      },
       identityDefault: {},
     });
 

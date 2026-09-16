@@ -11,10 +11,7 @@
  * this module free of either taxonomy — and free of a cycle back into
  * `runs.ts`.
  */
-import {
-  resolveAgentKey,
-  type SecretProviderRegistry,
-} from '@themoltnet/sdk';
+import { resolveAgentKey, type SecretProviderRegistry } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 
 import type { ActivatedAgent } from './identity.js';
