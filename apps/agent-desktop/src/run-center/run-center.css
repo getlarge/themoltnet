@@ -1,0 +1,325 @@
+/* Run Center shell: title strip, rail, pane. Extends src/styles.css. */
+
+.run-center {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  background: var(--molt-bg-void);
+}
+
+.run-center__titlebar {
+  display: flex;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem 0 5rem; /* leaves room for the macOS traffic lights */
+  border-bottom: 1px solid var(--molt-border);
+  -webkit-app-region: drag;
+}
+
+.run-center__server-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  gap: 0.5rem;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.run-center__server-chip:hover {
+  border-color: var(--molt-border);
+  background: var(--molt-bg-surface);
+}
+
+.run-center__server-chip:focus-visible {
+  border-color: var(--molt-border-focus);
+  outline: 2px solid var(--molt-border-focus);
+  outline-offset: 2px;
+}
+
+.run-center__body {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 13rem minmax(0, 1fr);
+}
+
+.run-center__rail {
+  min-height: 0;
+  padding: 1rem 0.625rem;
+  overflow-y: auto;
+}
+
+/* Nav rows are 2.75rem in the design system's web context; a desktop window
+   wants them tighter without dropping below the 44px pointer target on the
+   rail's full width. */
+.run-center__rail nav a {
+  min-height: 2.25rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.run-center__pane {
+  min-width: 0;
+  min-height: 0;
+  padding: 1.25rem 1.5rem 2.5rem;
+  overflow-y: auto;
+}
+
+.run-center__pane:focus-visible {
+  outline: 2px solid var(--molt-border-focus);
+  outline-offset: -2px;
+}
+
+/* State dots: one shape, four meanings, never color alone — each is paired
+   with a written status in the same row. */
+.run-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--molt-text-muted);
+}
+
+.run-dot--live,
+.run-dot--success {
+  background: var(--molt-success);
+}
+
+.run-dot--live {
+  animation: run-pulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.run-dot--warning {
+  background: var(--molt-accent);
+}
+
+.run-dot--error {
+  background: var(--molt-error);
+}
+
+@keyframes run-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--molt-success) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 0.45rem color-mix(in srgb, var(--molt-success) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--molt-success) 0%, transparent);
+  }
+}
+
+.field-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.chip-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chip-group > legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.chip-group__items {
+  display: flex;
+  margin-bottom: 0.625rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--molt-border);
+  border-radius: 6px;
+  color: var(--molt-text-secondary);
+  cursor: pointer;
+  font-family: var(--molt-font-mono);
+  font-size: 0.75rem;
+  gap: 0.45rem;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.chip:hover {
+  border-color: var(--molt-border-hover);
+  color: var(--molt-text);
+}
+
+.chip[data-checked] {
+  border-color: var(--molt-primary);
+  background: var(--molt-primary-subtle);
+  color: var(--molt-text);
+}
+
+.chip:focus-within {
+  outline: 2px solid var(--molt-border-focus);
+  outline-offset: 2px;
+}
+
+.chip input,
+.checkbox-row input {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  accent-color: var(--molt-primary);
+  margin: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  gap: 0.625rem;
+}
+
+.checkbox-row--inline {
+  align-items: center;
+}
+
+.checkbox-row:focus-within {
+  outline: 2px solid var(--molt-border-focus);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.fallback-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.fallback-list li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--molt-border);
+  border-radius: 6px;
+  gap: 0.75rem;
+}
+
+.log-preview--tall {
+  max-height: 22rem;
+}
+
+.log-preview__body {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-dot--live {
+    animation: none;
+  }
+}
+
+/* Narrow window: the rail collapses to a horizontal strip above the pane. */
+@media (max-width: 860px) {
+  .run-center__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .run-center__rail {
+    border-right: none !important;
+    border-bottom: 1px solid var(--molt-border);
+    padding: 0.75rem 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .run-center__rail nav > div {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
+  }
+
+  .run-center__rail nav section > div {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+  }
+
+  .run-center__pane {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+}
+
+/* Disclosure rows. The Server panel dropped this pattern in #2306, so the Run
+   Center carries its own copy rather than depending on that file's leftovers. */
+.detail-section > summary {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  list-style: none;
+  -webkit-app-region: no-drag;
+}
+
+.detail-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-section > summary:focus-visible {
+  outline: 2px solid var(--molt-border-focus);
+  outline-offset: -2px;
+}
+
+.detail-section > summary::after {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  content: '';
+  transform: rotate(45deg);
+  transition: transform 140ms ease-out;
+}
+
+.detail-section[open] > summary::after {
+  transform: rotate(225deg);
+}
+
+.detail-section > summary > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-top: 1px solid var(--molt-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-section > summary::after {
+    transition: none;
+  }
+}
