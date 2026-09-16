@@ -35819,7 +35819,8 @@ var TaskMessageKind = Union([
 	Literal("tool_call_end"),
 	Literal("turn_end"),
 	Literal("error"),
-	Literal("info")
+	Literal("info"),
+	Literal("tool_policy_decision")
 ], { $id: "TaskMessageKind" });
 var Uuid = String$1({ format: "uuid" });
 var Cid = String$1({ minLength: 1 });
