@@ -26,6 +26,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: sync-cli-go-mod
+  cancel-in-progress: false
+
 jobs:
   propose:
     runs-on: ubuntu-latest
@@ -64,17 +68,46 @@ jobs:
             echo changed=true >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Open go.mod sync PR
+      - name: Open or refresh go.mod sync PR
         if: steps.pins.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          branch="automation/cli-go-mod-sync-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          title="chore(cli): sync go.mod to released Go modules"
+          branch=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --state open \
+            --limit 100 \
+            --json headRefName,isCrossRepository,title \
+            --jq "[.[] | select(.title == \"$title\") | select(.isCrossRepository | not) | .headRefName | select(startswith(\"automation/cli-go-mod-sync\"))][0] // empty")
+          branch="${branch:-automation/cli-go-mod-sync}"
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git add apps/moltnet-cli/go.mod apps/moltnet-cli/go.sum
-          git commit -m "chore(cli): sync go.mod to released Go modules"
+          git commit -m "$title"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push origin "HEAD:$branch"
-          gh pr create --base main --head "$branch" --title "chore(cli): sync go.mod to released Go modules" --body "The CLI release resolves its internal Go deps with \`GOWORK=off\`, so these pins must match the released module tags before \`moltnet-cli\` is built."
+          remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')
+          if [ -n "$remote_branch_sha" ]; then
+            git push \
+              --force-with-lease="refs/heads/${branch}:${remote_branch_sha}" \
+              origin "HEAD:${branch}"
+          else
+            git push --set-upstream origin "HEAD:${branch}"
+          fi
+          pr_url=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$branch" \
+            --state open \
+            --json url \
+            --jq '.[0].url // empty')
+          if [ -z "$pr_url" ]; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$branch" \
+              --title "$title" \
+              --body "The CLI release resolves its internal Go deps with \`GOWORK=off\`, so these pins must match the released module tags before \`moltnet-cli\` is built."
+          fi
