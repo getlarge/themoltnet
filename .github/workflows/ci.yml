@@ -542,7 +542,7 @@ jobs:
           install_args: rust
       - name: Install Agent desktop Rust components
         if: needs.affected.outputs.agent-desktop == 'true'
-        run: rustup component add --toolchain 1.88.0 rustfmt clippy
+        run: rustup component add rustfmt clippy
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then

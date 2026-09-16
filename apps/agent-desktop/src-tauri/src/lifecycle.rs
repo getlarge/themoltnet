@@ -1,20 +1,23 @@
 use serde::{Deserialize, Serialize};
 #[cfg(unix)]
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+#[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 use std::{
     collections::VecDeque,
-    fs::{self, OpenOptions},
+    fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, ExitStatus, Output, Stdio},
     sync::{Arc, Mutex},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
 const HEALTH_URL: &str = "https://127.0.0.1:17374/health";
 const MAX_LOG_LINES: usize = 400;
+const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
 const HEALTH_CHECK_TIMEOUT_SECS: &str = "1";
 const START_TIMEOUT: Duration = Duration::from_secs(12);
@@ -38,7 +41,7 @@ pub enum LifecycleState {
     Failed,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopStatus {
     pub state: LifecycleState,
@@ -82,10 +85,103 @@ enum UpdateStep<'a> {
     Start,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StartOrigin {
+    Explicit,
+    CrashRecovery,
+}
+
+struct LogBuffer {
+    lines: VecDeque<String>,
+    path: PathBuf,
+    file: Option<File>,
+    persisted_bytes: u64,
+}
+
+impl LogBuffer {
+    fn new(path: PathBuf) -> Self {
+        Self {
+            lines: VecDeque::new(),
+            path,
+            file: None,
+            persisted_bytes: 0,
+        }
+    }
+
+    fn push(&mut self, line: String) -> Result<(), String> {
+        self.lines.push_back(line.clone());
+        while self.lines.len() > MAX_LOG_LINES {
+            self.lines.pop_front();
+        }
+
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let persisted = format!("[{timestamp}] {line}\n");
+        self.prepare_file(persisted.len() as u64)?;
+        let file = self
+            .file
+            .as_mut()
+            .ok_or_else(|| "persistent log file was not opened".to_string())?;
+        file.write_all(persisted.as_bytes())
+            .and_then(|_| file.flush())
+            .map_err(|error| error.to_string())?;
+        self.persisted_bytes += persisted.len() as u64;
+        Ok(())
+    }
+
+    fn prepare_file(&mut self, additional_bytes: u64) -> Result<(), String> {
+        if self.file.is_some()
+            && self.persisted_bytes.saturating_add(additional_bytes) <= MAX_PERSISTED_LOG_BYTES
+        {
+            return Ok(());
+        }
+
+        self.file = None;
+        let directory = self
+            .path
+            .parent()
+            .ok_or_else(|| "persistent log path has no parent".to_string())?;
+        prepare_private_directory(directory)?;
+        reject_symlink(&self.path)?;
+
+        let existing_bytes = fs::metadata(&self.path)
+            .map(|metadata| metadata.len())
+            .unwrap_or_default();
+        if existing_bytes.saturating_add(additional_bytes) > MAX_PERSISTED_LOG_BYTES {
+            let rotated = self.path.with_extension("log.1");
+            reject_symlink(&rotated)?;
+            if rotated.exists() {
+                fs::remove_file(&rotated).map_err(|error| error.to_string())?;
+            }
+            if self.path.exists() {
+                fs::rename(&self.path, rotated).map_err(|error| error.to_string())?;
+            }
+            self.persisted_bytes = 0;
+        } else {
+            self.persisted_bytes = existing_bytes;
+        }
+
+        let mut options = OpenOptions::new();
+        options.create(true).append(true);
+        #[cfg(unix)]
+        options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
+        let file = options
+            .open(&self.path)
+            .map_err(|error| error.to_string())?;
+        #[cfg(unix)]
+        fs::set_permissions(&self.path, fs::Permissions::from_mode(0o600))
+            .map_err(|error| error.to_string())?;
+        self.file = Some(file);
+        Ok(())
+    }
+}
+
 pub struct LifecycleManager {
     status: DesktopStatus,
     child: Option<Child>,
-    logs: Arc<Mutex<VecDeque<String>>>,
+    logs: Arc<Mutex<LogBuffer>>,
     retry_used: bool,
     home: PathBuf,
 }
@@ -98,6 +194,7 @@ impl Default for LifecycleManager {
 
 impl LifecycleManager {
     pub fn new(home: PathBuf) -> Self {
+        let log_path = home.join(".config/moltnet/agent-server/logs/desktop-supervisor.log");
         Self {
             status: DesktopStatus {
                 state: LifecycleState::Checking,
@@ -105,7 +202,7 @@ impl LifecycleManager {
                 ..DesktopStatus::default()
             },
             child: None,
-            logs: Arc::new(Mutex::new(VecDeque::new())),
+            logs: Arc::new(Mutex::new(LogBuffer::new(log_path))),
             retry_used: false,
             home,
         }
@@ -116,7 +213,7 @@ impl LifecycleManager {
         status.logs = self
             .logs
             .lock()
-            .map(|logs| logs.iter().cloned().collect())
+            .map(|logs| logs.lines.iter().cloned().collect())
             .unwrap_or_default();
         status
     }
@@ -196,6 +293,23 @@ impl LifecycleManager {
     }
 
     pub fn install_update(&mut self) -> Result<DesktopStatus, String> {
+        self.install_update_with(|manager, step| match step {
+            UpdateStep::Install(target) => {
+                manager.run_installer(Some(target), false)?;
+                manager.refresh_installed_version();
+                Ok(())
+            }
+            UpdateStep::Start => {
+                manager.retry_used = false;
+                manager.start_server().map(|_| ())
+            }
+        })
+    }
+
+    fn install_update_with(
+        &mut self,
+        mut perform: impl FnMut(&mut Self, UpdateStep<'_>) -> Result<(), String>,
+    ) -> Result<DesktopStatus, String> {
         let version = self
             .status
             .available_version
@@ -217,20 +331,10 @@ impl LifecycleManager {
             LifecycleState::Installing,
             &format!("Installing verified agent {version}…"),
         );
-        let outcome = execute_update(&version, &previous_version, |step| match step {
-            UpdateStep::Install(target) => {
-                self.run_installer(Some(target), false)?;
-                self.refresh_installed_version();
-                Ok(())
-            }
-            UpdateStep::Start => {
-                self.retry_used = false;
-                self.start_server().map(|_| ())
-            }
-        })
-        .inspect_err(|error| {
-            let _ = self.fail::<()>(error);
-        })?;
+        let outcome = execute_update(&version, &previous_version, |step| perform(self, step))
+            .inspect_err(|error| {
+                let _ = self.fail::<()>(error);
+            })?;
         match outcome {
             UpdateOutcome::Updated => {
                 self.status.available_version = None;
@@ -357,7 +461,11 @@ impl LifecycleManager {
     }
 
     pub fn retry_after_exit(&mut self) -> Result<DesktopStatus, String> {
-        self.start_server()
+        if self.status.state != LifecycleState::Starting || self.child.is_some() || !self.retry_used
+        {
+            return Ok(self.snapshot());
+        }
+        self.start_server_for(StartOrigin::CrashRecovery)
     }
 
     pub fn open_console(&self) -> Result<(), String> {
@@ -365,12 +473,16 @@ impl LifecycleManager {
     }
 
     pub fn open_logs(&self) -> Result<(), String> {
-        fs::create_dir_all(self.logs_directory()).map_err(|error| error.to_string())?;
+        prepare_private_directory(&self.logs_directory())?;
         let path = self.logs_directory().to_string_lossy().into_owned();
         fixed_command("/usr/bin/open", &[&path]).map(|_| ())
     }
 
     fn start_server(&mut self) -> Result<DesktopStatus, String> {
+        self.start_server_for(StartOrigin::Explicit)
+    }
+
+    fn start_server_for(&mut self, origin: StartOrigin) -> Result<DesktopStatus, String> {
         self.require_installed()?;
         if self.child.is_none() && health_ready().is_ok() {
             return self.fail(
@@ -395,17 +507,17 @@ impl LifecycleManager {
                 Err(error) => return self.fail(&format!("could not start Agent Server: {error}")),
             };
             if let Some(stdout) = child.stdout.take() {
-                capture_lines(stdout, Arc::clone(&self.logs));
+                capture_lines(stdout, Arc::clone(&self.logs), attempt + 1, "stdout");
             }
             if let Some(stderr) = child.stderr.take() {
-                capture_lines(stderr, Arc::clone(&self.logs));
+                capture_lines(stderr, Arc::clone(&self.logs), attempt + 1, "stderr");
             }
             let deadline = Instant::now() + START_TIMEOUT;
             loop {
                 let health_error = match health_ready() {
                     Ok(()) => {
                         self.child = Some(child);
-                        self.retry_used = attempt > 0;
+                        self.retry_used = retry_budget_after_start(origin, attempt);
                         self.set_state(
                             LifecycleState::Running,
                             "Ready. Open Console to pair this server process.",
@@ -476,18 +588,8 @@ impl LifecycleManager {
             .write_all(EMBEDDED_INSTALLER.as_bytes())
             .map_err(|error| error.to_string())?;
         script.flush().map_err(|error| error.to_string())?;
-        let mut command = Command::new("/bin/sh");
-        command
-            .arg(script.path())
-            .env("MOLTNET_AGENT_HOME", self.install_root())
-            .env_remove("MOLTNET_AGENT_ALLOW_UNVERIFIED")
-            .env_remove("MOLTNET_AGENT_ALLOW_UNSIGNED");
-        if let Some(version) = version {
-            command.env("MOLTNET_AGENT_VERSION", version);
-        }
-        if uninstall {
-            command.arg("--uninstall");
-        }
+        let mut command =
+            installer_command(script.path(), &self.install_root(), version, uninstall);
         let output = command.output().map_err(|error| error.to_string())?;
         if output.status.success() {
             Ok(())
@@ -523,9 +625,10 @@ impl LifecycleManager {
     }
 
     fn push_log(&self, line: &str) {
-        push_bounded(&self.logs, line.to_string());
-        if let Err(error) = self.persist_log(line) {
-            eprintln!("could not persist Agent desktop supervisor log: {error}");
+        if let Ok(mut logs) = self.logs.lock() {
+            if let Err(error) = logs.push(line.to_string()) {
+                eprintln!("could not persist Agent desktop supervisor log: {error}");
+            }
         }
     }
 
@@ -540,34 +643,84 @@ impl LifecycleManager {
     fn logs_directory(&self) -> PathBuf {
         self.home.join(".config/moltnet/agent-server/logs")
     }
-
-    fn persist_log(&self, line: &str) -> Result<(), String> {
-        let directory = self.logs_directory();
-        fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(directory.join("desktop-supervisor.log"))
-            .map_err(|error| error.to_string())?;
-        writeln!(file, "{line}").map_err(|error| error.to_string())
-    }
 }
 
-fn capture_lines(reader: impl std::io::Read + Send + 'static, logs: Arc<Mutex<VecDeque<String>>>) {
+fn capture_lines(
+    reader: impl std::io::Read + Send + 'static,
+    logs: Arc<Mutex<LogBuffer>>,
+    attempt: usize,
+    stream: &'static str,
+) {
     thread::spawn(move || {
-        for line in BufReader::new(reader).lines().map_while(Result::ok) {
-            push_bounded(&logs, line);
+        for line in BufReader::new(reader).lines() {
+            let (line, read_failed) = match line {
+                Ok(line) => (
+                    format!("Agent Server {stream} [attempt {attempt}]: {line}"),
+                    false,
+                ),
+                Err(error) => (
+                    format!("Could not read Agent Server {stream} [attempt {attempt}]: {error}"),
+                    true,
+                ),
+            };
+            if let Ok(mut logs) = logs.lock() {
+                if let Err(error) = logs.push(line) {
+                    eprintln!("could not persist Agent desktop child log: {error}");
+                }
+            }
+            if read_failed {
+                break;
+            }
         }
     });
 }
 
-fn push_bounded(logs: &Arc<Mutex<VecDeque<String>>>, line: String) {
-    if let Ok(mut logs) = logs.lock() {
-        logs.push_back(line);
-        while logs.len() > MAX_LOG_LINES {
-            logs.pop_front();
-        }
+fn prepare_private_directory(directory: &Path) -> Result<(), String> {
+    fs::create_dir_all(directory).map_err(|error| error.to_string())?;
+    let metadata = fs::symlink_metadata(directory).map_err(|error| error.to_string())?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err("persistent log directory must be a real directory".into());
     }
+    #[cfg(unix)]
+    fs::set_permissions(directory, fs::Permissions::from_mode(0o700))
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+fn reject_symlink(path: &Path) -> Result<(), String> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            Err("persistent log path must not be a symbolic link".into())
+        }
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+fn retry_budget_after_start(origin: StartOrigin, attempt: usize) -> bool {
+    origin == StartOrigin::CrashRecovery || attempt > 0
+}
+
+fn installer_command(
+    script: &Path,
+    install_root: &Path,
+    version: Option<&str>,
+    uninstall: bool,
+) -> Command {
+    let mut command = Command::new("/bin/sh");
+    command
+        .arg(script)
+        .env("MOLTNET_AGENT_HOME", install_root)
+        .env_remove("MOLTNET_AGENT_ALLOW_UNVERIFIED")
+        .env_remove("MOLTNET_AGENT_ALLOW_UNSIGNED");
+    if let Some(version) = version {
+        command.env("MOLTNET_AGENT_VERSION", version);
+    }
+    if uninstall {
+        command.arg("--uninstall");
+    }
+    command
 }
 
 fn health_ready() -> Result<(), String> {
@@ -669,6 +822,7 @@ fn valid_version(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::OsStr;
 
     #[test]
     fn embedded_installer_has_a_pin_and_matching_trust_anchor() {
@@ -735,6 +889,203 @@ mod tests {
     }
 
     #[test]
+    fn update_failure_paths_preserve_actionable_diagnostics() {
+        let initial =
+            execute_update("2.0.0", "1.0.0", |_| Err("download failed".into())).unwrap_err();
+        assert_eq!(initial, "verified Agent CLI update failed: download failed");
+
+        let mut step = 0;
+        let rollback = execute_update("2.0.0", "1.0.0", |_| {
+            step += 1;
+            match step {
+                1 => Ok(()),
+                2 => Err("readiness failed".into()),
+                3 => Err("restore failed".into()),
+                _ => unreachable!(),
+            }
+        })
+        .unwrap_err();
+        assert_eq!(
+            rollback,
+            "Agent CLI update failed (readiness failed); rollback failed: restore failed"
+        );
+
+        let mut step = 0;
+        let restart = execute_update("2.0.0", "1.0.0", |_| {
+            step += 1;
+            match step {
+                1 | 3 => Ok(()),
+                2 => Err("readiness failed".into()),
+                4 => Err("restart failed".into()),
+                _ => unreachable!(),
+            }
+        })
+        .unwrap_err();
+        assert_eq!(
+            restart,
+            "Agent CLI update failed (readiness failed); restored 1.0.0 but restart failed: restart failed"
+        );
+    }
+
+    fn manager_with_update() -> (tempfile::TempDir, LifecycleManager) {
+        let home = tempfile::tempdir().unwrap();
+        let mut manager = LifecycleManager::new(home.path().to_path_buf());
+        manager.status.installed_version = Some("1.0.0".into());
+        manager.status.available_version = Some("2.0.0".into());
+        manager.status.state = LifecycleState::UpdateAvailable;
+        (home, manager)
+    }
+
+    #[test]
+    fn install_update_applies_successful_state_and_version_transitions() {
+        let (_home, mut manager) = manager_with_update();
+
+        let status = manager
+            .install_update_with(|manager, step| match step {
+                UpdateStep::Install(version) => {
+                    manager.status.installed_version = Some(version.into());
+                    Ok(())
+                }
+                UpdateStep::Start => {
+                    manager.set_state(LifecycleState::Running, "ready");
+                    Ok(())
+                }
+            })
+            .unwrap();
+
+        assert_eq!(status.state, LifecycleState::Running);
+        assert_eq!(status.installed_version.as_deref(), Some("2.0.0"));
+        assert_eq!(status.available_version, None);
+    }
+
+    #[test]
+    fn install_update_restores_state_and_versions_after_readiness_failure() {
+        let (_home, mut manager) = manager_with_update();
+        let mut starts = 0;
+
+        let error = manager
+            .install_update_with(|manager, step| match step {
+                UpdateStep::Install(version) => {
+                    manager.status.installed_version = Some(version.into());
+                    Ok(())
+                }
+                UpdateStep::Start => {
+                    starts += 1;
+                    if starts == 1 {
+                        Err("readiness failed".into())
+                    } else {
+                        manager.set_state(LifecycleState::Running, "ready");
+                        Ok(())
+                    }
+                }
+            })
+            .unwrap_err();
+
+        let status = manager.snapshot();
+        assert!(error.contains("restored 1.0.0"));
+        assert_eq!(status.state, LifecycleState::UpdateAvailable);
+        assert_eq!(status.installed_version.as_deref(), Some("1.0.0"));
+        assert_eq!(status.available_version.as_deref(), Some("2.0.0"));
+    }
+
+    #[test]
+    fn install_update_enters_failed_state_when_rollback_cannot_finish() {
+        let (_home, mut manager) = manager_with_update();
+        let mut starts = 0;
+
+        let error = manager
+            .install_update_with(|manager, step| match step {
+                UpdateStep::Install("1.0.0") => Err("restore failed".into()),
+                UpdateStep::Install(version) => {
+                    manager.status.installed_version = Some(version.into());
+                    Ok(())
+                }
+                UpdateStep::Start => {
+                    starts += 1;
+                    Err(if starts == 1 {
+                        "readiness failed".into()
+                    } else {
+                        "restart failed".into()
+                    })
+                }
+            })
+            .unwrap_err();
+
+        assert!(error.contains("rollback failed: restore failed"));
+        assert_eq!(manager.status.state, LifecycleState::Failed);
+    }
+
+    #[test]
+    fn installer_command_removes_development_trust_bypasses() {
+        let command = installer_command(
+            Path::new("/tmp/installer.sh"),
+            Path::new("/tmp/agent"),
+            Some("1.2.3"),
+            false,
+        );
+
+        for variable in [
+            "MOLTNET_AGENT_ALLOW_UNVERIFIED",
+            "MOLTNET_AGENT_ALLOW_UNSIGNED",
+        ] {
+            assert!(command
+                .get_envs()
+                .any(|(key, value)| key == OsStr::new(variable) && value.is_none()));
+        }
+    }
+
+    #[test]
+    fn crash_recovery_consumes_exactly_one_retry_budget() {
+        let home = tempfile::tempdir().unwrap();
+        let mut manager = LifecycleManager::new(home.path().to_path_buf());
+        manager.child = Some(
+            Command::new("/bin/sh")
+                .args(["-c", "exit 7"])
+                .spawn()
+                .unwrap(),
+        );
+
+        assert_eq!(wait_for_exit_action(&mut manager), ExitAction::Retry);
+        assert!(manager.retry_used);
+        assert_eq!(manager.status.state, LifecycleState::Starting);
+        assert!(retry_budget_after_start(StartOrigin::CrashRecovery, 0));
+
+        manager.child = Some(
+            Command::new("/bin/sh")
+                .args(["-c", "exit 8"])
+                .spawn()
+                .unwrap(),
+        );
+
+        assert_eq!(wait_for_exit_action(&mut manager), ExitAction::Failed);
+        assert_eq!(manager.status.state, LifecycleState::Failed);
+    }
+
+    #[test]
+    fn queued_crash_recovery_is_superseded_by_a_newer_lifecycle_state() {
+        let home = tempfile::tempdir().unwrap();
+        let mut manager = LifecycleManager::new(home.path().to_path_buf());
+        manager.retry_used = true;
+        manager.status.state = LifecycleState::Removed;
+
+        let status = manager.retry_after_exit().unwrap();
+
+        assert_eq!(status.state, LifecycleState::Removed);
+        assert!(manager.child.is_none());
+    }
+
+    fn wait_for_exit_action(manager: &mut LifecycleManager) -> ExitAction {
+        for _ in 0..20 {
+            let action = manager.inspect_exit();
+            if action != ExitAction::None {
+                return action;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        panic!("child did not exit in time");
+    }
+
+    #[test]
     fn supervisor_messages_are_persisted_for_post_mortem_debugging() {
         let home = tempfile::tempdir().unwrap();
         let manager = LifecycleManager::new(home.path().to_path_buf());
@@ -746,7 +1097,45 @@ mod tests {
                 .join(".config/moltnet/agent-server/logs/desktop-supervisor.log"),
         )
         .unwrap();
-        assert_eq!(log, "Agent Server retry scheduled\n");
+        assert!(log.ends_with("] Agent Server retry scheduled\n"));
+        #[cfg(unix)]
+        {
+            let directory_mode =
+                fs::metadata(home.path().join(".config/moltnet/agent-server/logs"))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777;
+            let file_mode = fs::metadata(
+                home.path()
+                    .join(".config/moltnet/agent-server/logs/desktop-supervisor.log"),
+            )
+            .unwrap()
+            .permissions()
+            .mode()
+                & 0o777;
+            assert_eq!(directory_mode, 0o700);
+            assert_eq!(file_mode, 0o600);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn persistent_log_refuses_symbolic_link_targets() {
+        use std::os::unix::fs::symlink;
+
+        let home = tempfile::tempdir().unwrap();
+        let directory = home.path().join(".config/moltnet/agent-server/logs");
+        fs::create_dir_all(&directory).unwrap();
+        let target = home.path().join("unrelated.txt");
+        fs::write(&target, "unchanged").unwrap();
+        symlink(&target, directory.join("desktop-supervisor.log")).unwrap();
+        let manager = LifecycleManager::new(home.path().to_path_buf());
+
+        manager.push_log("must not follow the link");
+
+        assert_eq!(fs::read_to_string(target).unwrap(), "unchanged");
+        assert_eq!(manager.snapshot().logs, ["must not follow the link"]);
     }
 
     #[test]
