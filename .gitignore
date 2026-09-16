@@ -224,12 +224,11 @@ packages/cli/npm/*/bin/
 # TypeScript build output
 out-tsc/
 
-# MoltNet Agent desktop native build output. Cargo targets are separated by Nx
-# target so cached checks never overlap signed or unsigned application builds.
-/apps/agent-desktop/out-rust/
-/apps/agent-desktop/src-tauri/gen/
-/apps/agent-desktop/src-tauri/target/
-/apps/agent-desktop/src-tauri/apps/agent-desktop/out-rust/
+# Native Rust and Tauri build output. Cargo targets may be nested when a tool
+# resolves a workspace-relative output from the crate directory.
+**/out-rust/
+**/src-tauri/gen/
+**/src-tauri/target/
 
 # Context evals outputs
 evals/runs
