@@ -39,7 +39,10 @@ export type AgentServerProvider = {
   baseUrl: string;
   envName: string;
   hasApiKey: boolean;
-  models: Array<string>;
+  models: Array<{
+    id: string;
+    input?: Array<'text' | 'image'>;
+  }>;
 };
 
 export type AgentServerRun = AgentServerRunRecord & {
@@ -356,7 +359,13 @@ export type PutAgentServerProviderData = {
     apiKey?: string;
     baseUrl: string;
     envName: string;
-    models: Array<string>;
+    models: Array<
+      | string
+      | {
+          id: string;
+          input?: Array<'text' | 'image'>;
+        }
+    >;
   };
   path: {
     providerId: string;

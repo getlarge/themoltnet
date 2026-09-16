@@ -408,7 +408,7 @@ describe('useLocalRuntime', () => {
               api: 'openai-completions',
               baseUrl: 'https://provider.example/v1',
               envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
-              models: ['model'],
+              models: [{ id: 'model' }],
               hasApiKey: true,
             }),
           );
@@ -454,7 +454,7 @@ describe('useLocalRuntime', () => {
       result.current.putProvider('test', {
         api: 'openai-completions',
         baseUrl: 'https://provider.example/v1',
-        models: ['model'],
+        models: [{ id: 'model' }],
         apiKey: 'secret',
       }),
     );
@@ -512,7 +512,7 @@ describe('useLocalRuntime', () => {
             ? result.current.putProvider('test', {
                 api: 'openai-completions',
                 baseUrl: 'https://provider.example/v1',
-                models: ['model'],
+                models: [{ id: 'model' }],
               })
             : action === 'startRun'
               ? result.current.startRun({

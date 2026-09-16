@@ -11,6 +11,13 @@ import type { LocalRuntimeController } from './useLocalRuntime.js';
 
 const MODEL_PAGE_SIZE = 50;
 
+/**
+ * A model offered by a provider. The form selects models by id; `input` is
+ * carried through untouched so saving here never strips an image capability
+ * declared elsewhere (`moltnet-agent providers set --model-input`).
+ */
+type ProviderModel = { id: string; input?: ('text' | 'image')[] };
+
 const PROVIDER_PRESETS = [
   {
     id: 'ollama-local',
@@ -45,7 +52,7 @@ export function ApiKeyProviderForm({
     id: string;
     api: string;
     baseUrl: string;
-    models: string[];
+    models: ProviderModel[];
   } | null;
   onDone?: () => void;
 }) {
@@ -69,8 +76,9 @@ export function ApiKeyProviderForm({
     setPreset('custom');
     setId(provider.id);
     setBaseUrl(provider.baseUrl);
-    setDiscovered(provider.models);
-    selectedRef.current = new Set(provider.models);
+    const ids = provider.models.map((model) => model.id);
+    setDiscovered(ids);
+    selectedRef.current = new Set(ids);
     setSelectionVersion((current) => current + 1);
     setDiscoverError(null);
   }, [provider]);
@@ -117,6 +125,26 @@ export function ApiKeyProviderForm({
     }
   };
 
+  /**
+   * Re-attach the modalities already stored for each selected id, so a save
+   * from this form cannot demote a declared vision model back to text-only.
+   */
+  const withDeclaredInput = (
+    providerId: string,
+    ids: string[],
+  ): ProviderModel[] => {
+    const declared = new Map(
+      (runtime.data?.providers[providerId]?.models ?? []).map((model) => [
+        model.id,
+        model.input,
+      ]),
+    );
+    return ids.map((id) => {
+      const input = declared.get(id);
+      return input && input.length > 0 ? { id, input } : { id };
+    });
+  };
+
   const toggleModel = (model: string) => {
     const selected = selectedRef.current;
     if (selected.has(model)) selected.delete(model);
@@ -131,7 +159,7 @@ export function ApiKeyProviderForm({
       await runtime.putProvider(providerId, {
         api: 'openai-completions',
         baseUrl: baseUrl.trim(),
-        models: [...selectedRef.current],
+        models: withDeclaredInput(providerId, [...selectedRef.current]),
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
       resetModels();

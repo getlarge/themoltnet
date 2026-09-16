@@ -30,11 +30,19 @@ export const AgentServerIdentityViewSchema = Type.Object({
   hasAgentKey: Type.Boolean(),
 });
 
+/** A provider model plus the input modalities it accepts. */
+export const AgentServerProviderModelSchema = Type.Object({
+  id: Type.String(),
+  input: Type.Optional(
+    Type.Array(Type.Union([Type.Literal('text'), Type.Literal('image')])),
+  ),
+});
+
 export const AgentServerProviderViewSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String(),
   envName: Type.String(),
-  models: StringArraySchema,
+  models: Type.Array(AgentServerProviderModelSchema),
   hasApiKey: Type.Boolean(),
 });
 

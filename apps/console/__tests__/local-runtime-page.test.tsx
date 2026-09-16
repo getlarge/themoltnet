@@ -82,7 +82,7 @@ const agentServerState = {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: ['qwen3'],
+        models: [{ id: 'qwen3' }],
         hasApiKey: true,
       },
     },
@@ -433,7 +433,7 @@ describe('LocalRuntimePage', () => {
       expect(put?.body).toMatchObject({
         baseUrl: 'http://localhost:11434/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
-        models: ['qwen3-coder:480b-cloud'],
+        models: [{ id: 'qwen3-coder:480b-cloud' }],
       });
     });
     const discovery = requests.find((entry) =>

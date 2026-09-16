@@ -193,7 +193,7 @@ describe('agent server client', () => {
           api: 'openai-completions',
           baseUrl: 'https://provider.example',
           envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
-          models: ['model'],
+          models: [{ id: 'model' }],
           hasApiKey: true,
         }),
       )
@@ -228,7 +228,7 @@ describe('agent server client', () => {
     await client.putProvider('test', {
       api: 'openai-completions',
       baseUrl: 'https://provider.example',
-      models: ['model'],
+      models: [{ id: 'model' }],
       apiKey: 'write-only',
     });
     await client.startRun({
@@ -263,7 +263,7 @@ describe('agent server client', () => {
           api: 'openai-completions',
           baseUrl: 'https://provider.example',
           envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
-          models: ['model'],
+          models: [{ id: 'model' }],
           apiKey: 'write-only',
         },
       },
@@ -299,7 +299,7 @@ describe('agent server client', () => {
     });
     const body = {
       api: 'openai-completions',
-      models: ['model'],
+      models: [{ id: 'model' }],
     };
 
     for (const baseUrl of [
