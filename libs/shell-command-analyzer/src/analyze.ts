@@ -487,6 +487,32 @@ function escapeFlagCommands(exe: string, words: Word[]): string[] {
         push(unquote(unq.slice(eq + 1)));
       }
     }
+
+    for (const group of spec.scoped ?? []) {
+      // Command-valued only once the subcommand has been named, so `git clean
+      // -x` keeps its own meaning while `git difftool -x CMD` does not.
+      // Scanning the earlier words avoids parsing git's option grammar.
+      const named = words
+        .slice(1, i)
+        .some((word) => group.subcommands.includes(word.raw));
+      if (!named) {
+        continue;
+      }
+      for (const flag of group.separate ?? []) {
+        if (raw === flag) {
+          const next = words[i + 1]?.raw;
+          if (next !== undefined) {
+            push(unquote(next));
+          }
+        }
+      }
+      for (const flag of group.inline ?? []) {
+        const prefix = `${flag}=`;
+        if (raw.startsWith(prefix)) {
+          push(unquote(raw.slice(prefix.length)));
+        }
+      }
+    }
   }
   return commands;
 }

@@ -369,6 +369,50 @@ describe('analyzeCommand — materialized escape flags', () => {
     expect(await toolNames('git -c user.name=me commit -m x')).toEqual(['git']);
   });
 
+  it('extracts further command-executing git -c config keys', async () => {
+    for (const key of [
+      'sequence.editor',
+      'diff.external',
+      'credential.helper',
+      'core.askpass',
+      'gpg.program',
+    ]) {
+      expect(await toolNames(`git -c ${key}=sh status`), key).toEqual([
+        'git',
+        'sh',
+      ]);
+    }
+  });
+
+  it('extracts a command from subcommand-scoped git flags', async () => {
+    for (const command of [
+      'git difftool -x sh',
+      'git difftool --extcmd sh',
+      'git difftool --extcmd=sh',
+      'git mergetool -x sh',
+      'git rebase -x sh main',
+      'git rebase --exec sh main',
+      'git rebase --exec=sh main',
+      'git filter-branch --tree-filter sh HEAD',
+      'git filter-branch --env-filter sh HEAD',
+    ]) {
+      expect(await toolNames(command), command).toEqual(['git', 'sh']);
+    }
+  });
+
+  it('leaves a scoped flag alone outside its subcommand', async () => {
+    // `git clean -x` takes no value at all; treating it as command-valued
+    // everywhere would refuse benign commands.
+    for (const command of [
+      'git clean -x -d',
+      'git clean -xdf',
+      'git clean -x rebase',
+      'git checkout difftool',
+    ]) {
+      expect(await toolNames(command), command).toEqual(['git']);
+    }
+  });
+
   it('ignores benign ssh -o options', async () => {
     expect(await toolNames('ssh -o StrictHostKeyChecking=no host')).toEqual([
       'ssh',

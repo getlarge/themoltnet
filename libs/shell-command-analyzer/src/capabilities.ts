@@ -354,6 +354,20 @@ export interface EscapeFlagSpec {
     readonly flag: string;
     readonly keys: readonly string[];
   }[];
+  /**
+   * Flags whose value is a command only under particular subcommands.
+   *
+   * `git difftool -x CMD` runs CMD, but the same short flag means something
+   * unrelated elsewhere — `git clean -x` takes no value at all — so treating it
+   * as command-valued everywhere would refuse benign commands. A group applies
+   * only when one of its `subcommands` appears *earlier* in the argv than the
+   * flag itself, which avoids parsing git's option grammar.
+   */
+  scoped?: readonly {
+    readonly subcommands: readonly string[];
+    readonly separate?: readonly string[];
+    readonly inline?: readonly string[];
+  }[];
 }
 
 export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
@@ -376,6 +390,10 @@ export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
   ['rsync', { separate: ['-e', '--rsh'], inline: [{ flag: '--rsh' }] }],
   ['scp', { separate: ['-S'] }],
   ['ssh', { keyed: [{ flag: '-o', keys: ['proxycommand', 'localcommand'] }] }],
+  // git executes commands supplied both as config values and as subcommand
+  // flags. This models the documented flag-based forms; it is not a complete
+  // model of git, and a broad `git` grant stays broad by design — containment
+  // for that belongs to the sandbox ceiling (#2025), not to this table.
   [
     'git',
     {
@@ -387,6 +405,35 @@ export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
             'core.pager',
             'core.editor',
             'core.fsmonitor',
+            'sequence.editor',
+            'diff.external',
+            'credential.helper',
+            'core.askpass',
+            'gpg.program',
+          ],
+        },
+      ],
+      scoped: [
+        {
+          subcommands: ['difftool', 'mergetool'],
+          separate: ['-x', '--extcmd'],
+          inline: ['--extcmd'],
+        },
+        {
+          subcommands: ['rebase'],
+          separate: ['-x', '--exec'],
+          inline: ['--exec'],
+        },
+        {
+          subcommands: ['filter-branch'],
+          separate: [
+            '--tree-filter',
+            '--index-filter',
+            '--commit-filter',
+            '--msg-filter',
+            '--tag-name-filter',
+            '--parent-filter',
+            '--env-filter',
           ],
         },
       ],
