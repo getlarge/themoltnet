@@ -154,6 +154,45 @@ before(() => {
     '-out',
     'missing-root.p12',
   ]);
+
+  // A second self-signed root carrying the same CN as the real one. A bundle
+  // built on it passes the count, CN and self-signed checks and fails only the
+  // cryptographic verify — the one branch whose reason the script used to
+  // discard, and the branch the macOS runner currently trips.
+  openssl([
+    'req',
+    '-x509',
+    '-newkey',
+    'rsa:2048',
+    '-nodes',
+    '-days',
+    '2',
+    '-subj',
+    '/CN=Apple Root CA/O=Apple Inc./C=US',
+    '-addext',
+    'basicConstraints=critical,CA:TRUE',
+    '-keyout',
+    'foreign-root.key',
+    '-out',
+    'foreign-root.pem',
+  ]);
+  writeFileSync(
+    join(fixture, 'foreign-chain.pem'),
+    readFileSync(join(fixture, 'intermediate.pem'), 'utf8') +
+      readFileSync(join(fixture, 'foreign-root.pem'), 'utf8'),
+  );
+  exportPkcs12([
+    '-inkey',
+    'leaf.key',
+    '-in',
+    'leaf.pem',
+    '-certfile',
+    'foreign-chain.pem',
+    '-passout',
+    `pass:${password}`,
+    '-out',
+    'foreign-root.p12',
+  ]);
 });
 
 after(() => {
@@ -181,5 +220,21 @@ describe('Apple signing P12 validation', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /could not be decoded/);
     assert.doesNotMatch(result.stderr, /wrong-password/);
+    // The captured OpenSSL output must not smuggle the password back out.
+    assert.match(result.stderr, /openssl: /);
+  });
+
+  it('reports the OpenSSL build and reason when the chain does not verify', () => {
+    const result = verify('foreign-root.p12');
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /does not contain a valid Developer ID/);
+    // Without these the failure is unactionable: which OpenSSL ran, and what
+    // it actually objected to.
+    assert.match(result.stderr, /openssl: \S/);
+    assert.match(
+      result.stderr,
+      /unable to get local issuer|certificate signature failure|self[- ]signed/iu,
+    );
   });
 });
