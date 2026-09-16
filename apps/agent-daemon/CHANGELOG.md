@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.58.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.57.1...agent-daemon-v0.58.0) (2026-09-16)
+
+
+### Features
+
+* **agent-daemon:** add supervised server contracts ([788fbd4](https://github.com/getlarge/themoltnet/commit/788fbd4a6799eda048b7f8dde18573451a4af2b4))
+* **agent-daemon:** add supervised server contracts ([1080542](https://github.com/getlarge/themoltnet/commit/108054225b1450bb58e805895c3798ce0f021fbf))
+* **agent-daemon:** declare model input modalities in the provider store ([433b187](https://github.com/getlarge/themoltnet/commit/433b187b4cd4fae247bfa15b6703eafbb809c341))
+* **agent-daemon:** detect model input modalities during discovery ([1005786](https://github.com/getlarge/themoltnet/commit/10057865744bff15a0617f00ccab98545ba19868))
+* **agent-daemon:** detect model input modalities during discovery ([fce4288](https://github.com/getlarge/themoltnet/commit/fce42888808e10bb6f5a5f8c0834a0c2bb80ef33)), closes [#2312](https://github.com/getlarge/themoltnet/issues/2312)
+* **pi-runtime:** declare model input modalities so vision models receive images ([d9a44f3](https://github.com/getlarge/themoltnet/commit/d9a44f3a3b92d199293a98ba750457cc77e10fab))
+* **release:** publish Agent desktop downloads ([0a9c948](https://github.com/getlarge/themoltnet/commit/0a9c9485e7d3dcbea78bff1218437f1625a7dcde))
+* **release:** publish MoltNet Agent desktop downloads ([7668228](https://github.com/getlarge/themoltnet/commit/7668228c4507ab72c8149879c707135fb326bfaa))
+
+
+### Bug Fixes
+
+* **agent-daemon:** address discovery modality review findings ([cf77a92](https://github.com/getlarge/themoltnet/commit/cf77a92e6d845f98f06d9f25c63b3059099fb9e7))
+* **agent-daemon:** harden supervised server contracts ([579f89b](https://github.com/getlarge/themoltnet/commit/579f89b630bc01de6eaf3f7c6550512169b76f70))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.17.0
+
 ## [0.57.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.57.0...agent-daemon-v0.57.1) (2026-09-15)
 
 

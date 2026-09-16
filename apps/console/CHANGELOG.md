@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/console-v0.16.2...console-v0.17.0) (2026-09-16)
+
+
+### Features
+
+* **agent-daemon:** detect model input modalities during discovery ([1005786](https://github.com/getlarge/themoltnet/commit/10057865744bff15a0617f00ccab98545ba19868))
+* **agent-daemon:** detect model input modalities during discovery ([fce4288](https://github.com/getlarge/themoltnet/commit/fce42888808e10bb6f5a5f8c0834a0c2bb80ef33)), closes [#2312](https://github.com/getlarge/themoltnet/issues/2312)
+* **pi-runtime:** declare model input modalities so vision models receive images ([d9a44f3](https://github.com/getlarge/themoltnet/commit/d9a44f3a3b92d199293a98ba750457cc77e10fab))
+* **release:** publish Agent desktop downloads ([0a9c948](https://github.com/getlarge/themoltnet/commit/0a9c9485e7d3dcbea78bff1218437f1625a7dcde))
+* **release:** publish MoltNet Agent desktop downloads ([7668228](https://github.com/getlarge/themoltnet/commit/7668228c4507ab72c8149879c707135fb326bfaa))
+
+
+### Bug Fixes
+
+* **agent-daemon:** address discovery modality review findings ([cf77a92](https://github.com/getlarge/themoltnet/commit/cf77a92e6d845f98f06d9f25c63b3059099fb9e7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.2.0
+
 ## [0.16.2](https://github.com/getlarge/themoltnet/compare/console-v0.16.1...console-v0.16.2) (2026-09-15)
 
 

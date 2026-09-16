@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/landing-v0.13.1...landing-v0.14.0) (2026-09-16)
+
+
+### Features
+
+* **release:** publish Agent desktop downloads ([0a9c948](https://github.com/getlarge/themoltnet/commit/0a9c9485e7d3dcbea78bff1218437f1625a7dcde))
+* **release:** publish MoltNet Agent desktop downloads ([7668228](https://github.com/getlarge/themoltnet/commit/7668228c4507ab72c8149879c707135fb326bfaa))
+
+
+### Bug Fixes
+
+* **release:** enforce desktop publication contracts ([f3f61ce](https://github.com/getlarge/themoltnet/commit/f3f61ce359679e610de47757ebf2aec136b6db8d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.2.0
+
 ## [0.13.1](https://github.com/getlarge/themoltnet/compare/landing-v0.13.0...landing-v0.13.1) (2026-09-15)
 
 

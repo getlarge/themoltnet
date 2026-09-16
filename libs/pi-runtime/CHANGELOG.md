@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.16.0...pi-runtime-v0.17.0) (2026-09-16)
+
+
+### Features
+
+* **pi-runtime:** declare model input modalities in generated Pi config ([fc2de20](https://github.com/getlarge/themoltnet/commit/fc2de207ae6daf41f422c45b0580353fa89d78e9))
+* **pi-runtime:** declare model input modalities so vision models receive images ([d9a44f3](https://github.com/getlarge/themoltnet/commit/d9a44f3a3b92d199293a98ba750457cc77e10fab))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.15.3...pi-runtime-v0.16.0) (2026-09-15)
 
 
