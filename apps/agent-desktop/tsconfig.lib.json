@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["vite/client"]
+  },
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "extends": "./tsconfig.json",
+  "include": ["src"],
+  "references": [{ "path": "../../libs/design-system/tsconfig.lib.json" }]
+}

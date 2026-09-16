@@ -259,6 +259,7 @@ jobs:
       e2e-orchestration: ${{ steps.compute.outputs.e2e-orchestration }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
+      agent-desktop: ${{ steps.compute.outputs.agent-desktop }}
       agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       landing: ${{ steps.compute.outputs.landing }}
@@ -430,6 +431,12 @@ jobs:
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if contains "@moltnet/agent-desktop"; then
+            echo "agent-desktop=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "agent-desktop=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle tools/release/cli tools/package.json apps/agent-daemon/package.json apps/moltnet-cli/.goreleaser.yml .tool-versions .github/workflows/ci.yml .github/workflows/release.yml; then
             echo "agent-bundle=true" >> "$GITHUB_OUTPUT"
           else
@@ -529,12 +536,28 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+      - uses: dtolnay/rust-toolchain@1.88.0
+        if: needs.affected.outputs.agent-desktop == 'true'
+        with:
+          components: rustfmt, clippy
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then
             sudo apt-get update
             sudo apt-get install -y cmake ninja-build
           fi
+      - name: Install Agent desktop native dependencies
+        if: needs.affected.outputs.agent-desktop == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev
       - name: Restore golangci-lint
         id: golangci-lint-cache
         uses: actions/cache/restore@v6

@@ -12,6 +12,13 @@ infra/ory
 # source/theme files under docs/.vitepress remain part of the project graph.
 **/.vitepress/cache
 
+# Cargo/Tauri outputs are declared as task outputs; they must never become
+# project-graph inputs or create false affected results. Keep these recursive
+# because workspace-relative outputs can be resolved below a crate directory.
+**/out-rust
+**/src-tauri/gen
+**/src-tauri/target
+
 # Nx format passes changed files to Prettier as explicit paths. Prettier rejects
 # symbolic links before applying .prettierignore, so exclude this navigation
 # alias while its AGENTS.md target remains the formatted source of truth.

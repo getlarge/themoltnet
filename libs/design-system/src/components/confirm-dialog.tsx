@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 import { Button } from './button.js';
 import { Dialog } from './dialog.js';
 import { Stack } from './stack.js';
@@ -24,10 +26,19 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   destructive = false,
 }: ConfirmDialogProps) {
+  const messageId = useId();
   return (
-    <Dialog open={open} onClose={onCancel} title={title} width="400px">
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      title={title}
+      width="400px"
+      ariaDescribedBy={messageId}
+    >
       <Stack gap={4}>
-        <Text color="muted">{message}</Text>
+        <Text id={messageId} color="muted" style={{ overflowWrap: 'anywhere' }}>
+          {message}
+        </Text>
         <Stack direction="row" gap={3} justify="flex-end">
           <Button variant="ghost" size="sm" onClick={onCancel}>
             {cancelLabel}

@@ -1,3 +1,4 @@
 nodejs 24.14.1
 golang 1.26.0
+rust 1.88.0
 uv latest
