@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -39,6 +40,8 @@ type stubPolicyHandler struct {
 	setPoliciesBody    moltnetapi.OptSetProfilePoliciesBody
 	setPoliciesParams  moltnetapi.SetRuntimeProfilePoliciesParams
 	allowedToolsParams moltnetapi.GetRuntimeProfileAllowedToolsParams
+	// getPolicy overrides the policy a get returns. Nil uses the default.
+	getPolicy func(name string) *moltnetapi.RuntimePolicyWithTools
 }
 
 func newTestRuntimePolicy(name string) *moltnetapi.RuntimePolicyWithTools {
@@ -77,7 +80,11 @@ func (h *stubPolicyHandler) ListRuntimePolicies(_ context.Context, params moltne
 
 func (h *stubPolicyHandler) GetRuntimePolicy(_ context.Context, params moltnetapi.GetRuntimePolicyParams) (moltnetapi.GetRuntimePolicyRes, error) {
 	h.getParams = params
-	p := newTestRuntimePolicy(testPolicyName)
+	build := h.getPolicy
+	if build == nil {
+		build = newTestRuntimePolicy
+	}
+	p := build(testPolicyName)
 	p.ID = params.PolicyId
 	return p, nil
 }
@@ -234,6 +241,38 @@ func TestPolicyGetUnknownNameFails(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), `no runtime policy named "does-not-exist"`) {
 		t.Fatalf("expected a name-resolution error, got: %v", err)
+	}
+}
+
+// A policy whose shell rules name a program with no arguments, such as
+// `{"argvPrefix":["git"]}`, must decode. Rules used to require two tokens, so a
+// released CLI rejected the server's response for any policy holding one.
+func TestPolicyGetDecodesOneTokenShellCommand(t *testing.T) {
+	// Arrange
+	handler := &stubPolicyHandler{
+		getPolicy: func(name string) *moltnetapi.RuntimePolicyWithTools {
+			p := newTestRuntimePolicy(name)
+			p.ShellCommands = []moltnetapi.ShellCommandRule{
+				{ArgvPrefix: []string{"git"}},
+				{ArgvPrefix: []string{"cat"}},
+			}
+			return p
+		},
+	}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+	out := &bytes.Buffer{}
+
+	// Act
+	err := runPolicyGetCmd(out, apiSrv.URL, credPath, testPolicyName, testPolicyTeam.String())
+
+	// Assert
+	if err != nil {
+		t.Fatalf("runPolicyGetCmd() error: %v", err)
+	}
+	for _, want := range []string{`"git"`, `"cat"`} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("expected %s in output, got: %s", want, out.String())
+		}
 	}
 }
 
