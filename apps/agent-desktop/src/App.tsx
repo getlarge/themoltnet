@@ -17,7 +17,7 @@ import {
   useReducedMotion,
   useTheme,
 } from '@themoltnet/design-system';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   desktopBridge,
@@ -35,6 +35,7 @@ const STATE_LABELS: Record<LifecycleState, string> = {
   running: 'Agent Server running',
   update_available: 'Update available',
   stopping: 'Stopping Agent Server',
+  stopped: 'Agent Server stopped',
   removed: 'Agent bundle removed',
   failed: 'Action required',
 };
@@ -62,6 +63,11 @@ type OperationFeedback = {
   message: string;
 };
 
+function errorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'string' && error.trim()) return error;
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export function App() {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
@@ -69,6 +75,8 @@ export function App() {
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<OperationFeedback | null>(null);
+  const operationInFlight = useRef(false);
+  const confirmationInFlight = useRef(false);
   const [desktopUpdateVersion, setDesktopUpdateVersion] = useState<
     string | null
   >(null);
@@ -102,6 +110,8 @@ export function App() {
       operation: () => Promise<DesktopStatus>,
       successMessage?: string,
     ) => {
+      if (operationInFlight.current) return false;
+      operationInFlight.current = true;
       setBusy(true);
       setFeedback(null);
       try {
@@ -114,15 +124,19 @@ export function App() {
           });
         }
       } catch (error) {
+        // The native error remains useful in the WebView's diagnostic console.
+        // eslint-disable-next-line no-console
+        console.error(error);
         setFeedback({
           tone: 'error',
           title: 'Action could not be completed',
-          message:
-            error instanceof Error ? error.message : 'Please review the logs.',
+          message: errorMessage(error, 'Please review the logs.'),
         });
       } finally {
+        operationInFlight.current = false;
         setBusy(false);
       }
+      return true;
     },
     [],
   );
@@ -158,36 +172,56 @@ export function App() {
         label: 'Review Agent CLI update',
         action: () => setConfirmation('update'),
       };
-    if (status.state === 'failed')
+    if (status.state === 'failed' || status.state === 'stopped')
       return {
-        label: 'Retry',
+        label: status.state === 'stopped' ? 'Start Agent Server' : 'Retry',
         action: () => void run(desktopBridge.retry),
       };
     return null;
   }, [run, status.state]);
 
   const confirm = async () => {
+    if (confirmationInFlight.current || operationInFlight.current) return;
+    confirmationInFlight.current = true;
     const action = confirmation;
-    setConfirmation(null);
-    if (action === 'trust') await run(desktopBridge.trust);
-    if (action === 'update') await run(desktopBridge.installUpdate);
-    if (action === 'desktop-update') {
-      setBusy(true);
-      setFeedback(null);
-      try {
-        await desktopBridge.installDesktopUpdate();
-      } catch (error) {
-        setFeedback({
-          tone: 'error',
-          title: 'Desktop update could not be installed',
-          message: error instanceof Error ? error.message : 'Please try again.',
-        });
-      } finally {
-        setBusy(false);
+    try {
+      switch (action) {
+        case 'trust':
+          await run(desktopBridge.trust);
+          break;
+        case 'update':
+          await run(desktopBridge.installUpdate);
+          break;
+        case 'desktop-update':
+          setBusy(true);
+          setFeedback(null);
+          try {
+            await desktopBridge.installDesktopUpdate();
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(error);
+            setFeedback({
+              tone: 'error',
+              title: 'Desktop update could not be installed',
+              message: errorMessage(error, 'Please try again.'),
+            });
+          } finally {
+            setBusy(false);
+          }
+          break;
+        case 'remove':
+          await run(() => desktopBridge.remove(false));
+          break;
+        case 'remove-ca':
+          await run(desktopBridge.removeTrust);
+          break;
+        case null:
+          break;
       }
+    } finally {
+      setConfirmation(null);
+      confirmationInFlight.current = false;
     }
-    if (action === 'remove') await run(() => desktopBridge.remove(false));
-    if (action === 'remove-ca') await run(desktopBridge.removeTrust);
   };
 
   const checkDesktopUpdate = async () => {
@@ -204,10 +238,12 @@ export function App() {
           message: 'No desktop update is available.',
         });
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
       setFeedback({
         tone: 'error',
         title: 'Desktop update check failed',
-        message: error instanceof Error ? error.message : 'Please try again.',
+        message: errorMessage(error, 'Please try again.'),
       });
     } finally {
       setBusy(false);
@@ -386,7 +422,7 @@ export function App() {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!status.trustFingerprint}
+                disabled={busy || !status.trustFingerprint}
                 onClick={() => setConfirmation('remove-ca')}
               >
                 Remove local CA…
@@ -394,6 +430,7 @@ export function App() {
               <Button
                 variant="danger"
                 size="sm"
+                disabled={busy}
                 onClick={() => setConfirmation('remove')}
               >
                 Remove agent bundle

@@ -7,7 +7,9 @@ template=${TEMPLATE:-apps/landing/nginx/default.conf.template}
 cli_version=${CLI_VERSION:-}
 agent_version=${AGENT_VERSION:-}
 
-valid_version() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
+# Keep this stable X.Y.Z rule aligned with sync-cli-go-mod.sh and the desktop
+# lifecycle's valid_version helper.
+valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
 advance_pin() {
   local variable=$1 candidate=$2 current
   [ -n "$candidate" ] || return

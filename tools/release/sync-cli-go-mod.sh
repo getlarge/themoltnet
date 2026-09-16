@@ -31,7 +31,9 @@ current_pin() {
     '$1 == module { print substr($2, 2); exit }' "$CLI_DIR/go.mod"
 }
 
-valid_version() { [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; }
+# Keep this stable X.Y.Z rule aligned with propose-download-pin.sh and the
+# desktop lifecycle's valid_version helper.
+valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
 
 # name -> the requested version, after tag-prefix stripping and manifest fallback.
 resolve_target() {

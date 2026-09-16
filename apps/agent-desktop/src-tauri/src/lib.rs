@@ -1,7 +1,12 @@
 mod lifecycle;
 
-use lifecycle::{DesktopStatus, LifecycleManager};
-use std::{sync::Mutex, thread, time::Duration};
+use lifecycle::{DesktopStatus, ExitAction, LifecycleManager};
+use std::{
+    path::PathBuf,
+    sync::{Mutex, TryLockError},
+    thread,
+    time::Duration,
+};
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
     tray::TrayIconBuilder,
@@ -11,13 +16,74 @@ use tauri_plugin_updater::UpdaterExt;
 
 const STATUS_EVENT: &str = "agent-desktop://status";
 
-#[derive(Default)]
 struct AppState {
     lifecycle: Mutex<LifecycleManager>,
+    latest_status: Mutex<DesktopStatus>,
+    logs_directory: PathBuf,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        let lifecycle = LifecycleManager::default();
+        let latest_status = lifecycle.snapshot();
+        let logs_directory = lifecycle.logs_directory();
+        Self {
+            lifecycle: Mutex::new(lifecycle),
+            latest_status: Mutex::new(latest_status),
+            logs_directory,
+        }
+    }
 }
 
 fn publish(app: &AppHandle, status: &DesktopStatus) {
-    let _ = app.emit(STATUS_EVENT, status);
+    let changed = app
+        .state::<AppState>()
+        .latest_status
+        .lock()
+        .map(|mut latest| update_latest_status(&mut latest, status))
+        .unwrap_or(true);
+    if changed {
+        if let Err(error) = app.emit(STATUS_EVENT, status) {
+            eprintln!("could not publish Agent desktop status: {error}");
+        }
+    }
+}
+
+fn update_latest_status(latest: &mut DesktopStatus, status: &DesktopStatus) -> bool {
+    if *latest == *status {
+        false
+    } else {
+        *latest = status.clone();
+        true
+    }
+}
+
+fn poisoned_status(app: &AppHandle) -> String {
+    let message =
+        "desktop lifecycle state is unavailable after an internal failure; restart MoltNet Agent";
+    let mut status = app
+        .state::<AppState>()
+        .latest_status
+        .lock()
+        .map(|status| status.clone())
+        .unwrap_or_default();
+    status.state = lifecycle::LifecycleState::Failed;
+    status.message = message.into();
+    publish(app, &status);
+    eprintln!("{message}");
+    message.into()
+}
+
+#[cfg(test)]
+fn lifecycle_lock_error<T>(error: TryLockError<T>) -> String {
+    match error {
+        TryLockError::WouldBlock => {
+            "another desktop lifecycle operation is already in progress".into()
+        }
+        TryLockError::Poisoned(_) => {
+            "desktop lifecycle state is unavailable after an internal failure".into()
+        }
+    }
 }
 
 fn operate(
@@ -25,23 +91,44 @@ fn operate(
     operation: impl FnOnce(&mut LifecycleManager) -> Result<DesktopStatus, String>,
 ) -> Result<DesktopStatus, String> {
     let state = app.state::<AppState>();
-    let mut lifecycle = state
-        .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?;
-    let result = operation(&mut lifecycle);
-    let snapshot = lifecycle.snapshot();
-    publish(app, &snapshot);
-    result.map(|_| snapshot)
+    let result = {
+        let mut lifecycle = match state.lifecycle.try_lock() {
+            Ok(lifecycle) => lifecycle,
+            Err(TryLockError::WouldBlock) => {
+                return Err("another desktop lifecycle operation is already in progress".into())
+            }
+            Err(TryLockError::Poisoned(_)) => return Err(poisoned_status(app)),
+        };
+        let result = operation(&mut lifecycle);
+        let snapshot = lifecycle.snapshot();
+        publish(app, &snapshot);
+        result.map(|_| snapshot)
+    };
+    result
+}
+
+fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    let result = match state.lifecycle.lock() {
+        Ok(mut lifecycle) => {
+            let result = lifecycle.stop_server();
+            let snapshot = lifecycle.snapshot();
+            publish(app, &snapshot);
+            result.map(|_| ())
+        }
+        Err(_) => Err(poisoned_status(app)),
+    };
+    app.exit(if result.is_ok() { 0 } else { 1 });
+    result
 }
 
 #[tauri::command]
 fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
     state
-        .lifecycle
+        .latest_status
         .lock()
-        .map(|lifecycle| lifecycle.snapshot())
-        .map_err(|_| "desktop lifecycle lock was poisoned".into())
+        .map(|status| status.clone())
+        .map_err(|_| "desktop status lock was poisoned".into())
 }
 
 #[tauri::command]
@@ -70,21 +157,13 @@ fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
-fn open_console(state: State<'_, AppState>) -> Result<(), String> {
-    state
-        .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?
-        .open_console()
+fn open_console() -> Result<(), String> {
+    lifecycle::open_console()
 }
 
 #[tauri::command]
 fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
-    state
-        .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?
-        .open_logs()
+    lifecycle::open_logs(&state.logs_directory)
 }
 
 #[tauri::command]
@@ -99,9 +178,7 @@ fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
 
 #[tauri::command]
 fn quit_and_stop(app: AppHandle) -> Result<(), String> {
-    let result = operate(&app, LifecycleManager::stop_server).map(|_| ());
-    app.exit(if result.is_ok() { 0 } else { 1 });
-    result
+    stop_and_exit(&app)
 }
 
 #[tauri::command]
@@ -155,16 +232,15 @@ fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => show_status(app),
             "console" => {
-                let state = app.state::<AppState>();
-                if let Ok(lifecycle) = state.lifecycle.lock() {
-                    let _ = lifecycle.open_console();
-                };
+                if let Err(error) = lifecycle::open_console() {
+                    eprintln!("could not open MoltNet Console: {error}");
+                }
             }
             "logs" => {
                 let state = app.state::<AppState>();
-                if let Ok(lifecycle) = state.lifecycle.lock() {
-                    let _ = lifecycle.open_logs();
-                };
+                if let Err(error) = lifecycle::open_logs(&state.logs_directory) {
+                    eprintln!("could not open Agent Server logs: {error}");
+                }
             }
             "update" => {
                 show_status(app);
@@ -175,13 +251,14 @@ fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
             }
             "remove" => {
                 show_status(app);
-                let _ = app.emit("agent-desktop://request-remove", ());
+                if let Err(error) = app.emit("agent-desktop://request-remove", ()) {
+                    eprintln!("could not publish Agent bundle removal request: {error}");
+                }
             }
             "quit" => {
                 let handle = app.clone();
                 tauri::async_runtime::spawn_blocking(move || {
-                    let result = operate(&handle, LifecycleManager::stop_server);
-                    handle.exit(if result.is_ok() { 0 } else { 1 });
+                    let _ = stop_and_exit(&handle);
                 });
             }
             _ => {}
@@ -202,20 +279,40 @@ fn start_lifecycle(app: AppHandle) {
     thread::spawn(move || loop {
         thread::sleep(Duration::from_secs(2));
         let state = app.state::<AppState>();
-        let exited = state
-            .lifecycle
-            .lock()
-            .map(|mut lifecycle| {
-                let exited = lifecycle.inspect_exit();
-                if exited {
-                    publish(&app, &lifecycle.snapshot());
+        let action = match state.lifecycle.try_lock() {
+            Ok(mut lifecycle) => {
+                let action = lifecycle.inspect_exit();
+                let snapshot = lifecycle.snapshot();
+                publish(&app, &snapshot);
+                action
+            }
+            Err(TryLockError::WouldBlock) => continue,
+            Err(TryLockError::Poisoned(_)) => {
+                let _ = poisoned_status(&app);
+                break;
+            }
+        };
+        if action == ExitAction::Retry {
+            let retry = app.clone();
+            tauri::async_runtime::spawn_blocking(move || {
+                let state = retry.state::<AppState>();
+                let result = match state.lifecycle.lock() {
+                    Ok(mut lifecycle) => {
+                        let result = lifecycle.retry_after_exit();
+                        let snapshot = lifecycle.snapshot();
+                        publish(&retry, &snapshot);
+                        result
+                    }
+                    Err(_) => {
+                        let error = poisoned_status(&retry);
+                        eprintln!("automatic Agent Server recovery failed: {error}");
+                        return;
+                    }
+                };
+                if let Err(error) = result {
+                    eprintln!("automatic Agent Server recovery failed: {error}");
                 }
-                exited
-            })
-            .unwrap_or(false);
-        if exited {
-            // The startup path already performs one automatic early-exit retry.
-            // Later crashes remain visible and require the explicit Retry action.
+            });
         }
     });
 }
@@ -264,10 +361,50 @@ pub fn run() {
             api.prevent_exit();
             let app = handle.clone();
             tauri::async_runtime::spawn_blocking(move || {
-                let result = operate(&app, LifecycleManager::stop_server);
-                app.exit(if result.is_ok() { 0 } else { 1 });
+                let _ = stop_and_exit(&app);
             });
         }
         _ => {}
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+
+    #[test]
+    fn status_updates_are_emitted_only_when_observable_state_changes() {
+        let mut latest = DesktopStatus::default();
+        let same = latest.clone();
+        assert!(!update_latest_status(&mut latest, &same));
+
+        let mut changed = same;
+        changed.message = "new child output".into();
+        changed.logs.push("line".into());
+        assert!(update_latest_status(&mut latest, &changed));
+        assert_eq!(latest, changed);
+    }
+
+    #[test]
+    fn lifecycle_lock_errors_distinguish_contention_from_poisoning() {
+        let busy = Mutex::new(());
+        let _guard = busy.lock().unwrap();
+        assert_eq!(
+            lifecycle_lock_error(busy.try_lock().unwrap_err()),
+            "another desktop lifecycle operation is already in progress"
+        );
+
+        let poisoned = Arc::new(Mutex::new(()));
+        let worker = Arc::clone(&poisoned);
+        let _ = thread::spawn(move || {
+            let _guard = worker.lock().unwrap();
+            panic!("poison lifecycle lock for the test");
+        })
+        .join();
+        assert_eq!(
+            lifecycle_lock_error(poisoned.try_lock().unwrap_err()),
+            "desktop lifecycle state is unavailable after an internal failure"
+        );
+    }
 }
