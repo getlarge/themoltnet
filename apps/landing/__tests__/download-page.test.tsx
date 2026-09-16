@@ -51,7 +51,11 @@ describe('DownloadPage', () => {
         json: () =>
           Promise.resolve({
             cli: { version: '1.87.1', tag: 'cli-v1.87.1' },
-            agent: { version: '0.47.0', tag: 'agent-daemon-v0.47.0' },
+            agentCli: { version: '0.47.0', tag: 'agent-daemon-v0.47.0' },
+            agentDesktop: {
+              version: '0.1.0',
+              tag: 'agent-desktop-v0.1.0',
+            },
             signer: {
               principal: 'legreffier@themolt.net',
               namespace: 'moltnet-release',
@@ -69,14 +73,45 @@ describe('DownloadPage', () => {
       ).toBeTruthy();
     });
     expect(
-      screen.getByRole('heading', { name: /MoltNet Agent v0\.47\.0/ }),
+      screen.getByRole('heading', { name: /MoltNet Agent CLI v0\.47\.0/ }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: /MoltNet Agent for Mac v0\.1\.0/ }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', {
+          name: 'Download MoltNet Agent v0.1.0 for macOS Apple Silicon',
+        })
+        .getAttribute('href'),
+    ).toBe('/download/desktop/macos-arm64');
     // The publisher key is runtime-served through the manifest, never baked
     // into the bundle.
     expect(
       screen.getAllByText(/ssh-ed25519 AAAAC3TESTKEY/).length,
     ).toBeGreaterThanOrEqual(1);
     expect(vi.mocked(fetch)).toHaveBeenCalledWith('/download/manifest.json');
+  });
+
+  it('accepts the deprecated agent manifest alias during migration', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            agent: { version: '0.46.0', tag: 'agent-daemon-v0.46.0' },
+          }),
+      }),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', {
+        name: /MoltNet Agent CLI v0\.46\.0/,
+      }),
+    ).toBeTruthy();
   });
 
   it('renders every platform link with an accessible product+platform name', async () => {
@@ -98,9 +133,9 @@ describe('DownloadPage', () => {
       'Download MoltNet CLI for Windows (x64) (zip)',
       'Download MoltNet CLI for Windows (arm64) (zip)',
       'Download MoltNet CLI checksums file',
-      'Download MoltNet Agent bundle for macOS (Apple Silicon) (tar.gz)',
-      'Download MoltNet Agent bundle for Linux (x64) (tar.gz)',
-      'Download MoltNet Agent checksum signature for Linux (x64)',
+      'Download MoltNet Agent CLI bundle for macOS (Apple Silicon) (tar.gz)',
+      'Download MoltNet Agent CLI bundle for Linux (x64) (tar.gz)',
+      'Download MoltNet Agent CLI checksum signature for Linux (x64)',
     ]) {
       expect(screen.getByRole('link', { name })).toBeTruthy();
     }
@@ -113,7 +148,7 @@ describe('DownloadPage', () => {
     ).toBe('/download/cli/windows-x64');
   });
 
-  it('offers the Intel alternative next to the Apple Silicon primary', async () => {
+  it('makes Agent desktop primary and links to terminal alternatives', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     vi.stubGlobal('navigator', {
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
@@ -122,13 +157,15 @@ describe('DownloadPage', () => {
     renderPage();
 
     expect(
-      screen.getByRole('link', {
-        name: 'Download MoltNet CLI for macOS (Apple Silicon)',
-      }),
-    ).toBeTruthy();
+      screen
+        .getByRole('link', {
+          name: 'Download MoltNet Agent for macOS Apple Silicon',
+        })
+        .getAttribute('href'),
+    ).toBe('/download/desktop/macos-arm64');
     expect(
       screen.getByRole('link', {
-        name: 'Download MoltNet CLI for macOS (Intel)',
+        name: 'Prefer the terminal or another platform?',
       }),
     ).toBeTruthy();
   });
@@ -145,7 +182,7 @@ describe('DownloadPage', () => {
       'APT (Debian / Ubuntu)',
       'Scoop (Windows)',
       'npm (all platforms)',
-      'Agent daemon (macOS / Linux / WSL2)',
+      'Agent CLI (macOS / Linux / WSL2)',
     ]) {
       const chip = screen.getByRole('button', { name: `Copy: ${title}` });
       expect(chip.textContent).toContain('Copy');

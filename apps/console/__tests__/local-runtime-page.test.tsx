@@ -163,9 +163,16 @@ describe('LocalRuntimePage', () => {
     };
     renderPage();
     expect(await screen.findByText('Not running')).toBeInTheDocument();
-    expect(screen.getByText('moltnet-agent server')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Download MoltNet Agent' }),
+      screen.getByRole('link', {
+        name: 'Download MoltNet Agent for Mac',
+      }),
+    ).toHaveAttribute(
+      'href',
+      'https://themolt.net/download/desktop/macos-arm64',
+    );
+    expect(
+      screen.getByRole('link', { name: 'View terminal installation' }),
     ).toHaveAttribute('href', 'https://themolt.net/download#install');
   });
 

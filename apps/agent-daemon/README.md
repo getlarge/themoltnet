@@ -8,6 +8,27 @@ and finalization in both cases.
 
 ## Install
 
+### MoltNet Agent for Mac
+
+On an Apple Silicon Mac running macOS 13 or newer, download the desktop app
+from [themolt.net/download](https://themolt.net/download). Opening the app:
+
+1. installs or updates the publisher-verified Agent CLI bundle under
+   `~/.local/share/moltnet/agent`;
+2. asks before adding the per-user local HTTPS CA to the login Keychain;
+3. starts a foreground, supervised Agent Server; and
+4. opens Console for process-scoped pairing and runtime management.
+
+Closing the status window hides it. **Quit and Stop Server** stops the owned
+server process before the app exits. Starting the app again requires Console
+pairing again; identities and provider configuration persist.
+
+Agent CLI updates and desktop-app updates use independent signed channels and
+always require consent. Removing the Agent CLI bundle preserves
+`~/.config/moltnet`. Removing the local CA is a separate opt-in action.
+
+### Agent CLI
+
 Install the signed bundle, then use `moltnet-agent` for normal operation:
 
 ```bash
