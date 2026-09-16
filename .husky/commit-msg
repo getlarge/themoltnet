@@ -1,0 +1,39 @@
+#!/bin/sh
+set -eu
+
+# Commit-message linting lives here, not in pre-commit: pre-commit runs before
+# the message exists, so it cannot see a breaking-change marker.
+#
+# Mirrors .husky/pre-commit's resolver so the hook works from a linked
+# worktree, which has no node_modules of its own.
+
+top_level="$(git rev-parse --show-toplevel)"
+common_dir="$(git rev-parse --git-common-dir)"
+main_checkout="$(cd "$common_dir/.." && pwd -P)"
+
+resolve_bin() {
+  tool_name="$1"
+
+  if [ -x "$top_level/node_modules/.bin/$tool_name" ]; then
+    printf '%s\n' "$top_level/node_modules/.bin/$tool_name"
+    return 0
+  fi
+
+  if [ -x "$main_checkout/node_modules/.bin/$tool_name" ]; then
+    printf '%s\n' "$main_checkout/node_modules/.bin/$tool_name"
+    return 0
+  fi
+
+  if command -v "$tool_name" >/dev/null 2>&1; then
+    command -v "$tool_name"
+    return 0
+  fi
+
+  printf 'commit-msg: could not find required tool "%s"\n' "$tool_name" >&2
+  return 1
+}
+
+commitlint_bin="$(resolve_bin commitlint)"
+
+cd "$top_level"
+"$commitlint_bin" --edit "$1"
