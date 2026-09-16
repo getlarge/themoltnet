@@ -404,6 +404,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     );
     tagsStub = await startJsonStub({
       '/api/tags': { models: [{ name: 'tags-only-model' }] },
+      // Ollama Cloud omits capabilities from /api/tags, so the daemon falls
+      // back to a per-model /api/show probe. Serving it here exercises
+      // modality detection through the real HTTP surface.
+      '/api/show': { capabilities: ['completion', 'vision'] },
     });
 
     agentServerRoot = await mkdtemp(
@@ -531,7 +535,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       path: { providerId: openaiProvider },
     });
     expect(openai.response.status).toBe(200);
-    expect(openai.data).toEqual({ models: [MODEL_ID, 'e2e-other'] });
+    expect(openai.data).toEqual({
+      models: [{ id: MODEL_ID }, { id: 'e2e-other' }],
+    });
 
     const ollamaProvider = 'ollama-e2e-discovery';
     const savedOllama = await putAgentServerProvider({
@@ -550,7 +556,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       path: { providerId: ollamaProvider },
     });
     expect(ollama.response.status).toBe(200);
-    expect(ollama.data).toEqual({ models: ['tags-only-model'] });
+    expect(ollama.data).toEqual({
+      models: [{ id: 'tags-only-model', input: ['text', 'image'] }],
+    });
 
     const deadProvider = 'e2e-discovery-dead';
     const savedDead = await putAgentServerProvider({
@@ -755,14 +763,16 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     ]);
     expect(discovered.code, discovered.stderr).toBe(0);
     expect(JSON.parse(discovered.stdout)).toEqual({
-      models: ['tags-only-model'],
+      models: [{ id: 'tags-only-model', input: ['text', 'image'] }],
     });
 
     const listedAfterDiscovery = await listAgentServerProviders({
       client: agentServerClient(),
     });
+    // `discover --save` persists the detected capability, so the operator
+    // never has to declare it by hand.
     expect(listedAfterDiscovery.data?.[CLI_PROVIDER_ID]?.models).toEqual([
-      { id: 'tags-only-model' },
+      { id: 'tags-only-model', input: ['text', 'image'] },
     ]);
 
     const updatedOverHttp = await putAgentServerProvider({
