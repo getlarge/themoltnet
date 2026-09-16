@@ -80,6 +80,54 @@ export const AgentServerProviderSchema = Type.Object(
   { $id: 'AgentServerProvider' },
 );
 
+export const AgentServerCatalogueTeamSchema = Type.Object(
+  {
+    teamId: Type.String(),
+    teamName: Type.String(),
+    diaries: Type.Array(
+      Type.Object({ id: Type.String(), name: Type.String() }),
+    ),
+    /** Null when the operator must choose: several diaries, no binding. */
+    defaultDiaryId: Type.Union([Type.String(), Type.Null()]),
+  },
+  { $id: 'AgentServerCatalogueTeam' },
+);
+
+export const AgentServerCatalogueProfileSchema = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.String(),
+    teamId: Type.String(),
+    runtimeKind: Type.String(),
+    requiredEnv: StringList,
+    requiredExecutables: StringList,
+    /** Whether this machine can execute the profile right now. */
+    ready: Type.Boolean(),
+    blockers: Type.Array(
+      Type.Object({
+        code: Type.String(),
+        message: Type.String(),
+        remedy: Type.String(),
+      }),
+    ),
+  },
+  { $id: 'AgentServerCatalogueProfile' },
+);
+
+export const AgentServerCatalogueSchema = Type.Object(
+  {
+    teams: Type.Array(schemaRef(AgentServerCatalogueTeamSchema)),
+    defaultTeamId: Type.Union([Type.String(), Type.Null()]),
+    profiles: Type.Array(schemaRef(AgentServerCatalogueProfileSchema)),
+  },
+  { $id: 'AgentServerCatalogue' },
+);
+
+export const CatalogueQuerySchema = Type.Object({
+  /** Local alias of the identity whose teams and profiles are listed. */
+  identity: Type.String({ minLength: 1 }),
+});
+
 export const AgentServerRunRecordSchema = Type.Object(
   {
     id: Type.String(),
@@ -237,6 +285,9 @@ export const AGENT_SERVER_SCHEMAS = [
   AgentServerIdentitySchema,
   AgentServerTaskTypeSchema,
   AgentServerProviderSchema,
+  AgentServerCatalogueTeamSchema,
+  AgentServerCatalogueProfileSchema,
+  AgentServerCatalogueSchema,
   AgentServerRunRecordSchema,
   AgentServerRunSchema,
   AgentServerSubscriptionSchema,
@@ -375,6 +426,13 @@ export const AgentServerRouteSchemas = {
       200: schemaRef(CancelledSubscriptionSchema),
       ...problemResponse,
     },
+  },
+  catalogue: {
+    operationId: 'getAgentServerCatalogue',
+    tags: ['catalogue'],
+    security: pairedSecurity,
+    querystring: CatalogueQuerySchema,
+    response: { 200: schemaRef(AgentServerCatalogueSchema), ...problemResponse },
   },
   listRuns: {
     operationId: 'listAgentServerRuns',

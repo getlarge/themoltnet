@@ -41,13 +41,18 @@ import {
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
+import { connectActivatedAgent } from './agent-connection.js';
+import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
   createManagedAgent,
   publicAgentView,
   reconcileManagedRegistration,
+  requireActivation,
+  verifyAgentActivation,
 } from './identity.js';
+import { readIdentityDefaultBinding } from './identity-binding.js';
 import { AgentServerModelDiscoveryError } from './model-discovery.js';
 import {
   AgentServerPairingError,
@@ -61,7 +66,13 @@ import {
   AgentServerSubscriptionError,
   type ProviderLoginService,
 } from './provider-login.js';
-import { AgentServerRunError, type RunManager } from './runs.js';
+import type { MachineCapabilities } from './readiness.js';
+import {
+  AgentServerRunError,
+  BUILT_IN_RUNTIME_KIND,
+  type RunManager,
+} from './runs.js';
+import type { RuntimeRegistry } from './runtime-registry.js';
 import {
   type AgentServerStore,
   AgentServerStoreError,
@@ -167,6 +178,13 @@ export interface BuildAgentServerOptions {
   runtimeSettings?: LocalOperationalSettings;
   /** Environment-selected identity, ahead of the persisted default. */
   activeIdentity?: string;
+  /**
+   * Builds the catalogue's view of the MoltNet API for a local identity.
+   * Overridable so the surface can be tested without a credential.
+   */
+  catalogueAgentFor?: (alias: string) => Promise<CatalogueAgentPort>;
+  /** Locally registered custom runtime kinds, for profile readiness. */
+  runtimeRegistry?: RuntimeRegistry;
   version: string;
   logger?: FastifyBaseLogger;
   /** Abort in-flight identity operations during supervisor shutdown. */
@@ -391,6 +409,7 @@ export function buildAgentServer(
     registerProviderRoutes(app, options, requirePairedOrigin);
     registerSubscriptionRoutes(app, options, requirePairedOrigin);
     registerRunRoutes(app, options, requirePairedOrigin);
+    registerCatalogueRoute(app, options, requirePairedOrigin);
   });
   app.addHook('onClose', () => {
     options.subscriptions.close();
@@ -489,6 +508,83 @@ function registerPairingRoutes(
       return pairing.claim(pairingId, origin);
     },
   );
+}
+
+/**
+ * The catalogue the desktop composes runs from, scoped to one local identity.
+ *
+ * Requires a paired client like every other /v1 route: it reaches the MoltNet
+ * API with that identity's credentials, so an unpaired caller must not read it.
+ */
+function registerCatalogueRoute(
+  app: FastifyInstance,
+  options: BuildAgentServerOptions,
+  requirePairedOrigin: PairedOriginGuard,
+): void {
+  app.get(
+    '/v1/catalogue',
+    { schema: AgentServerRouteSchemas.catalogue, attachValidation: true },
+    async (request) => {
+      requirePairedOrigin(request);
+      const { identity } = (request.query ?? {}) as { identity?: string };
+      if (!identity || identity.trim().length === 0) {
+        throw new AgentServerHttpError(
+          400,
+          'invalid_query',
+          '"identity" is required',
+        );
+      }
+      const alias = identity.trim();
+      // Throws a typed not-found when the alias is not activated here.
+      requireActivation(options.store, alias);
+      const agent = await (options.catalogueAgentFor
+        ? options.catalogueAgentFor(alias)
+        : defaultCatalogueAgent(options, alias));
+      return buildCatalogue({
+        agent,
+        machine: machineCapabilities(options),
+        identityDefault: readIdentityDefaultBinding(
+          options.store.identityDir(alias),
+        ),
+      });
+    },
+  );
+}
+
+/** The real catalogue client: the same credentials a run would use. */
+async function defaultCatalogueAgent(
+  options: BuildAgentServerOptions,
+  alias: string,
+): Promise<CatalogueAgentPort> {
+  const activated = await verifyAgentActivation(options.store, alias);
+  const agent = await connectActivatedAgent({
+    activated,
+    secretProviders: options.secretProviders,
+    externalSecretProviders: options.externalSecretProviders,
+    onMissingKey: (message) =>
+      new AgentServerHttpError(409, 'agent_key_missing', message),
+  });
+  return {
+    listTeams: async () => (await agent.teams.list()).items,
+    listDiaries: async () => (await agent.diaries.list()).items,
+    listProfiles: async (teamId) =>
+      (await agent.runtimeProfiles.list({ teamId })).items,
+  };
+}
+
+/** What this machine can execute right now: provider keys and runtime kinds. */
+function machineCapabilities(
+  options: BuildAgentServerOptions,
+): MachineCapabilities {
+  const providerEnv = new Map<string, boolean>();
+  for (const provider of Object.values(options.providers.list())) {
+    providerEnv.set(provider.envName, provider.hasApiKey);
+  }
+  const runtimeKinds = new Set<string>([BUILT_IN_RUNTIME_KIND]);
+  for (const entry of options.runtimeRegistry?.list() ?? []) {
+    runtimeKinds.add(entry.kind);
+  }
+  return { providerEnv, runtimeKinds };
 }
 
 function registerStatusRoute(
