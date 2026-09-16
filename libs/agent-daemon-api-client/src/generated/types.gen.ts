@@ -51,6 +51,7 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
+  diaryId?: string;
   endedAt?: string;
   exitCode?: number | null;
   id: string;
@@ -453,6 +454,7 @@ export type ListAgentServerRunsResponse =
 export type StartAgentServerRunData = {
   body: {
     agent: string;
+    diaryId?: string;
     mode: 'poll' | 'drain';
     profiles: Array<string>;
     taskTypes: Array<
