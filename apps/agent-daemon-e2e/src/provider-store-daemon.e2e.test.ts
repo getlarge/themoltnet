@@ -51,6 +51,7 @@ const PROVIDER_ID = 'e2e-store';
 const PROVIDER_ENV = 'MOLTNET_PROVIDER_E2E_STORE_API_KEY';
 const STORE_MODEL = 'store-model';
 const REPO_MODEL = 'repo-only-model';
+const VISION_MODEL = 'vision-model';
 const RAW_API_KEY = 'e2e-store-key-never-in-pi-config';
 
 interface PiView {
@@ -58,6 +59,8 @@ interface PiView {
   apiKey: string | undefined;
   modelsJson: string;
   resolvable: string[];
+  /** Input modalities Pi itself resolved, per model id. */
+  modalities: Record<string, readonly string[]>;
 }
 
 const { createPiTaskExecutorMock } = vi.hoisted(() => ({
@@ -160,6 +163,8 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
         'http://127.0.0.1:9/v1',
         '--model',
         STORE_MODEL,
+        '--model-input',
+        `${VISION_MODEL}=text,image`,
         '--api-key-stdin',
       ],
       `${RAW_API_KEY}\n`,
@@ -213,15 +218,24 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
           }
           const piAgentDir = process.env.PI_CODING_AGENT_DIR;
           const resolvable: string[] = [];
-          for (const model of [STORE_MODEL, REPO_MODEL]) {
-            await resolveRuntimeProfileModel(piAgentDir!, PROVIDER_ID, model);
+          const modalities: Record<string, readonly string[]> = {};
+          for (const model of [STORE_MODEL, REPO_MODEL, VISION_MODEL]) {
+            const { modelHandle } = await resolveRuntimeProfileModel(
+              piAgentDir!,
+              PROVIDER_ID,
+              model,
+            );
             resolvable.push(model);
+            // Pi's own resolved handle, not our JSON: this is what decides
+            // whether image content parts may be sent to the provider.
+            modalities[model] = modelHandle.input;
           }
           view = {
             piAgentDir,
             apiKey: process.env[PROVIDER_ENV],
             modelsJson: readFileSync(join(piAgentDir!, 'models.json'), 'utf8'),
             resolvable,
+            modalities,
           };
 
           const payload = {
@@ -297,8 +311,12 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
     expect(view!.piAgentDir).toBeTruthy();
     expect(view!.piAgentDir).not.toBe(join(agentRoot, '.pi'));
     expect(view!.apiKey).toBe(RAW_API_KEY);
-    expect(view!.resolvable).toEqual([STORE_MODEL, REPO_MODEL]);
+    expect(view!.resolvable).toEqual([STORE_MODEL, REPO_MODEL, VISION_MODEL]);
     expect(view!.modelsJson).toContain(`$${PROVIDER_ENV}`);
     expect(view!.modelsJson).not.toContain(RAW_API_KEY);
+    // A model declared with --model-input reaches Pi as image-capable; one
+    // declared with --model alone must not.
+    expect(view!.modalities[VISION_MODEL]).toEqual(['text', 'image']);
+    expect(view!.modalities[STORE_MODEL]).not.toContain('image');
   }, 120_000);
 });
