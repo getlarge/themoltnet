@@ -5,6 +5,7 @@ mod lifecycle;
 mod build_support;
 
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager};
+use serde::Serialize;
 use std::{
     path::PathBuf,
     sync::{Mutex, TryLockError},
@@ -151,6 +152,16 @@ fn retry_server(app: AppHandle) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
+fn start_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate(&app, LifecycleManager::start_server)
+}
+
+#[tauri::command]
+fn stop_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate(&app, LifecycleManager::stop_server)
+}
+
+#[tauri::command]
 fn check_for_agent_updates(app: AppHandle) -> Result<DesktopStatus, String> {
     operate(&app, LifecycleManager::check_for_updates)
 }
@@ -171,8 +182,8 @@ fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn remove_agent_bundle(app: AppHandle, remove_local_ca: bool) -> Result<DesktopStatus, String> {
-    operate(&app, |lifecycle| lifecycle.remove_bundle(remove_local_ca))
+fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate(&app, LifecycleManager::remove_bundle)
 }
 
 #[tauri::command]
@@ -180,20 +191,35 @@ fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
     operate(&app, LifecycleManager::remove_trust)
 }
 
-#[tauri::command]
-fn quit_and_stop(app: AppHandle) -> Result<(), String> {
-    stop_and_exit(&app)
+#[derive(Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopUpdateCheck {
+    available_version: Option<String>,
+    message: String,
+}
+
+fn development_update_check(is_debug: bool) -> Option<DesktopUpdateCheck> {
+    is_debug.then(|| DesktopUpdateCheck {
+        available_version: None,
+        message: "App updates are checked only by signed MoltNet Agent builds.".into(),
+    })
 }
 
 #[tauri::command]
-async fn check_for_desktop_update(app: AppHandle) -> Result<Option<String>, String> {
+async fn check_for_desktop_update(app: AppHandle) -> Result<DesktopUpdateCheck, String> {
+    if let Some(check) = development_update_check(cfg!(debug_assertions)) {
+        return Ok(check);
+    }
     let update = app
         .updater()
         .map_err(|error| error.to_string())?
         .check()
         .await
         .map_err(|error| error.to_string())?;
-    Ok(update.map(|update| update.version))
+    Ok(DesktopUpdateCheck {
+        available_version: update.map(|update| update.version),
+        message: "This signed MoltNet Agent build is up to date.".into(),
+    })
 }
 
 #[tauri::command]
@@ -330,13 +356,14 @@ pub fn run() {
             install_agent,
             approve_local_trust,
             retry_server,
+            start_agent_server,
+            stop_agent_server,
             check_for_agent_updates,
             install_agent_update,
             open_console,
             open_logs,
             remove_agent_bundle,
             remove_local_trust,
-            quit_and_stop,
             check_for_desktop_update,
             install_desktop_update
         ])
@@ -410,5 +437,17 @@ mod tests {
             lifecycle_lock_error(poisoned.try_lock().unwrap_err()),
             "desktop lifecycle state is unavailable after an internal failure"
         );
+    }
+
+    #[test]
+    fn development_builds_do_not_contact_the_signed_update_channel() {
+        assert_eq!(
+            development_update_check(true),
+            Some(DesktopUpdateCheck {
+                available_version: None,
+                message: "App updates are checked only by signed MoltNet Agent builds.".into(),
+            })
+        );
+        assert_eq!(development_update_check(false), None);
     }
 }

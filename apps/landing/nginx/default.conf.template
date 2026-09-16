@@ -20,7 +20,7 @@ server {
     # (API_BASE_URL, DOCS_URL), so these nginx runtime variables survive
     # templating untouched. One literal per product — everything below derives.
     set $cli_version 2.4.0;
-    set $agent_cli_version 0.57.0;
+    set $agent_cli_version 0.58.0;
     set $agent_desktop_version 0.1.0;
 
     # The served installer's default install version is pinned with it at

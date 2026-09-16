@@ -23,6 +23,7 @@ const MAX_START_ATTEMPTS: usize = 2;
 const HEALTH_CHECK_TIMEOUT_SECS: &str = "1";
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
+const EMBEDDED_AGENT_VERSION: &str = env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION");
 const EMBEDDED_INSTALLER: &str = include_str!(concat!(env!("OUT_DIR"), "/install-agent.sh"));
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize)]
@@ -228,10 +229,10 @@ impl LifecycleManager {
             );
             return self.install_agent();
         }
-        self.refresh_installed_version();
+        self.ensure_supported_agent()?;
         let trust = self.trust_status()?;
         self.apply_trust(&trust);
-        if !trust.supported || !trust.trusted {
+        if !trust.trusted {
             self.set_state(
                 LifecycleState::NeedsTrust,
                 "Approve the per-user local CA before the Agent Server starts.",
@@ -250,6 +251,7 @@ impl LifecycleManager {
             return self.fail(&format!("verified Agent CLI installation failed: {error}"));
         }
         self.refresh_installed_version();
+        self.require_supported_version()?;
         let trust = self.trust_status()?;
         self.apply_trust(&trust);
         if trust.trusted {
@@ -264,10 +266,10 @@ impl LifecycleManager {
     }
 
     pub fn approve_trust(&mut self) -> Result<DesktopStatus, String> {
+        self.ensure_supported_agent()?;
         let output = self.run_agent(&["server", "trust", "--yes", "--json"])?;
-        let trust: TrustResult = serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid trust response: {error}"))?;
-        if !trust.supported || !trust.trusted {
+        let trust = parse_trust_result(&output.stdout, "trust response")?;
+        if !trust.trusted {
             return self.fail("macOS did not report the local CA as trusted");
         }
         self.apply_trust(&trust);
@@ -360,12 +362,8 @@ impl LifecycleManager {
         }
     }
 
-    pub fn remove_bundle(&mut self, remove_local_ca: bool) -> Result<DesktopStatus, String> {
+    pub fn remove_bundle(&mut self) -> Result<DesktopStatus, String> {
         self.stop_server()?;
-        if remove_local_ca && self.executable().is_file() {
-            self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
-            self.status.trusted = false;
-        }
         self.run_installer(None, true)?;
         self.status.installed_version = None;
         self.status.available_version = None;
@@ -377,10 +375,8 @@ impl LifecycleManager {
     }
 
     pub fn remove_trust(&mut self) -> Result<DesktopStatus, String> {
-        self.require_installed()?;
-        let output = self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
-        let trust: TrustResult = serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid trust removal response: {error}"))?;
+        self.ensure_supported_agent()?;
+        let trust = self.remove_local_trust()?;
         self.apply_trust(&trust);
         self.set_state(
             LifecycleState::NeedsTrust,
@@ -476,26 +472,23 @@ impl LifecycleManager {
         self.start_server_for(StartOrigin::CrashRecovery)
     }
 
-    fn start_server(&mut self) -> Result<DesktopStatus, String> {
+    pub fn start_server(&mut self) -> Result<DesktopStatus, String> {
         self.start_server_for(StartOrigin::Explicit)
     }
 
     fn start_server_for(&mut self, origin: StartOrigin) -> Result<DesktopStatus, String> {
-        self.require_installed()?;
+        self.ensure_supported_agent()?;
         if self.child.is_none() && health_ready().is_ok() {
             return self.fail(
                 "Another process already owns the local Agent Server. It was left untouched.",
             );
         }
-        self.set_state(
-            LifecycleState::Starting,
-            "Starting the supervised Agent Server…",
-        );
+        self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
 
         let mut last_failure = "Agent Server failed to start".to_string();
         for attempt in 0..MAX_START_ATTEMPTS {
-            let mut child = match Command::new(self.executable())
-                .args(["server", "--supervised"])
+            let mut command = agent_server_command(&self.executable());
+            let mut child = match command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -555,8 +548,12 @@ impl LifecycleManager {
 
     fn trust_status(&self) -> Result<TrustResult, String> {
         let output = self.run_agent(&["server", "trust", "--status", "--json"])?;
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid trust status response: {error}"))
+        parse_trust_result(&output.stdout, "trust status response")
+    }
+
+    fn remove_local_trust(&self) -> Result<TrustResult, String> {
+        let output = self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
+        parse_trust_result(&output.stdout, "trust removal response")
     }
 
     fn apply_trust(&mut self, trust: &TrustResult) {
@@ -607,6 +604,45 @@ impl LifecycleManager {
             .ok()
             .and_then(|value| serde_json::from_str::<serde_json::Value>(&value).ok())
             .and_then(|value| value.get("version")?.as_str().map(str::to_owned));
+    }
+
+    fn ensure_supported_agent(&mut self) -> Result<(), String> {
+        self.refresh_installed_version();
+        if self
+            .status
+            .installed_version
+            .as_deref()
+            .is_some_and(|version| version_at_least(version, EMBEDDED_AGENT_VERSION))
+        {
+            return Ok(());
+        }
+
+        self.set_state(
+            LifecycleState::Installing,
+            &format!("Installing Agent CLI {EMBEDDED_AGENT_VERSION}…"),
+        );
+        self.push_log(&format!(
+            "Installed Agent CLI predates the embedded {EMBEDDED_AGENT_VERSION} desktop contract; running the verified installer."
+        ));
+        if let Err(error) = self.run_installer(None, false) {
+            return self.fail(&format!("verified Agent CLI upgrade failed: {error}"));
+        }
+        self.refresh_installed_version();
+        self.require_supported_version()
+    }
+
+    fn require_supported_version(&mut self) -> Result<(), String> {
+        let installed_version = self.status.installed_version.as_deref().ok_or_else(|| {
+            "the installed Agent CLI version is unavailable; reinstall before continuing"
+                .to_string()
+        })?;
+        if version_at_least(installed_version, EMBEDDED_AGENT_VERSION) {
+            Ok(())
+        } else {
+            self.fail(&format!(
+                "Agent CLI {installed_version} is incompatible; the verified {EMBEDDED_AGENT_VERSION} bundle is required"
+            ))
+        }
     }
 
     fn require_installed(&self) -> Result<(), String> {
@@ -880,13 +916,48 @@ fn home_directory() -> Result<PathBuf, String> {
 fn valid_version(value: &str) -> bool {
     // Keep this stable X.Y.Z rule aligned with tools/release/sync-cli-go-mod.sh
     // and tools/release/propose-download-pin.sh.
+    parse_version(value).is_some()
+}
+
+fn parse_version(value: &str) -> Option<(u64, u64, u64)> {
     let pieces = value.split('.').collect::<Vec<_>>();
-    pieces.len() == 3
-        && pieces.iter().all(|piece| {
-            !piece.is_empty()
-                && (piece.len() == 1 || !piece.starts_with('0'))
-                && piece.chars().all(|char| char.is_ascii_digit())
+    if pieces.len() != 3
+        || pieces.iter().any(|piece| {
+            piece.is_empty()
+                || (piece.len() > 1 && piece.starts_with('0'))
+                || !piece.chars().all(|char| char.is_ascii_digit())
         })
+    {
+        return None;
+    }
+    Some((
+        pieces[0].parse().ok()?,
+        pieces[1].parse().ok()?,
+        pieces[2].parse().ok()?,
+    ))
+}
+
+fn version_at_least(installed: &str, required: &str) -> bool {
+    match (parse_version(installed), parse_version(required)) {
+        (Some(installed), Some(required)) => installed >= required,
+        _ => false,
+    }
+}
+
+fn parse_trust_result(stdout: &[u8], context: &str) -> Result<TrustResult, String> {
+    let result: TrustResult =
+        serde_json::from_slice(stdout).map_err(|error| format!("invalid {context}: {error}"))?;
+    if result.supported {
+        Ok(result)
+    } else {
+        Err("the installed Agent CLI does not support local HTTPS trust on this platform".into())
+    }
+}
+
+fn agent_server_command(executable: &Path) -> Command {
+    let mut command = Command::new(executable);
+    command.args(["server", "--supervised"]);
+    command
 }
 
 #[cfg(test)]
@@ -927,6 +998,45 @@ mod tests {
         assert!(!valid_version("01.02.03"));
         assert!(!valid_version("../1.2.3"));
         assert!(!valid_version("1.2.3-beta"));
+    }
+
+    #[test]
+    fn installed_agent_version_must_satisfy_the_embedded_contract() {
+        assert!(version_at_least("0.58.0", "0.58.0"));
+        assert!(version_at_least("0.59.0", "0.58.0"));
+        assert!(version_at_least("1.0.0", "0.58.0"));
+        assert!(!version_at_least("0.57.9", "0.58.0"));
+        assert!(!version_at_least("invalid", "0.58.0"));
+        assert!(!version_at_least("0.58.0", "invalid"));
+    }
+
+    #[test]
+    fn trust_response_must_report_platform_support() {
+        let supported = br#"{"supported":true,"trusted":false,"fingerprint":"sha256:test"}"#;
+        assert_eq!(
+            parse_trust_result(supported, "trust status response")
+                .unwrap()
+                .fingerprint
+                .as_deref(),
+            Some("sha256:test")
+        );
+
+        let unsupported = br#"{"supported":false,"trusted":false,"fingerprint":null}"#;
+        assert_eq!(
+            parse_trust_result(unsupported, "trust status response").unwrap_err(),
+            "the installed Agent CLI does not support local HTTPS trust on this platform"
+        );
+    }
+
+    #[test]
+    fn server_launch_always_uses_supervised_contract() {
+        let executable = Path::new("/canonical/moltnet-agent");
+        let command = agent_server_command(executable);
+        assert_eq!(command.get_program(), executable.as_os_str());
+        assert_eq!(
+            command.get_args().collect::<Vec<_>>(),
+            [OsStr::new("server"), OsStr::new("--supervised")]
+        );
     }
 
     #[test]
