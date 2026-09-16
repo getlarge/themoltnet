@@ -56,6 +56,147 @@
         ],
         "type": "object"
       },
+      "AgentServerCatalogue": {
+        "properties": {
+          "defaultTeamId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerCatalogueProfile"
+            },
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerCatalogueTeam"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "teams",
+          "defaultTeamId",
+          "profiles"
+        ],
+        "type": "object"
+      },
+      "AgentServerCatalogueProfile": {
+        "properties": {
+          "blockers": {
+            "items": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "remedy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "remedy"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "requiredEnv": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "requiredExecutables": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "runtimeKind": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "teamId",
+          "runtimeKind",
+          "requiredEnv",
+          "requiredExecutables",
+          "ready",
+          "blockers"
+        ],
+        "type": "object"
+      },
+      "AgentServerCatalogueTeam": {
+        "properties": {
+          "defaultDiaryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diaries": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "teamName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "teamName",
+          "diaries",
+          "defaultDiaryId"
+        ],
+        "type": "object"
+      },
       "AgentServerHealth": {
         "properties": {
           "status": {
@@ -830,6 +971,52 @@
         ],
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/v1/catalogue": {
+      "get": {
+        "operationId": "getAgentServerCatalogue",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerCatalogue"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "catalogue"
         ]
       }
     },

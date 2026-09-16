@@ -556,7 +556,14 @@ async function defaultCatalogueAgent(
   options: BuildAgentServerOptions,
   alias: string,
 ): Promise<CatalogueAgentPort> {
-  const activated = await verifyAgentActivation(options.store, alias);
+  const activated = await verifyAgentActivation(
+    options.store,
+    alias,
+    options.secretProviders,
+    options.externalSecretProviders,
+    undefined,
+    options.shutdownSignal,
+  );
   const agent = await connectActivatedAgent({
     activated,
     secretProviders: options.secretProviders,

@@ -17,6 +17,37 @@ export type AgentServerAgent = {
   teamId?: string;
 };
 
+export type AgentServerCatalogue = {
+  defaultTeamId: string | null;
+  profiles: Array<AgentServerCatalogueProfile>;
+  teams: Array<AgentServerCatalogueTeam>;
+};
+
+export type AgentServerCatalogueProfile = {
+  blockers: Array<{
+    code: string;
+    message: string;
+    remedy: string;
+  }>;
+  id: string;
+  name: string;
+  ready: boolean;
+  requiredEnv: Array<string>;
+  requiredExecutables: Array<string>;
+  runtimeKind: string;
+  teamId: string;
+};
+
+export type AgentServerCatalogueTeam = {
+  defaultDiaryId: string | null;
+  diaries: Array<{
+    id: string;
+    name: string;
+  }>;
+  teamId: string;
+  teamName: string;
+};
+
 export type AgentServerHealth = {
   status: 'ok';
 };
@@ -246,6 +277,35 @@ export type ReconcileAgentServerAgentResponses = {
 
 export type ReconcileAgentServerAgentResponse =
   ReconcileAgentServerAgentResponses[keyof ReconcileAgentServerAgentResponses];
+
+export type GetAgentServerCatalogueData = {
+  body?: never;
+  path?: never;
+  query: {
+    identity: string;
+  };
+  url: '/v1/catalogue';
+};
+
+export type GetAgentServerCatalogueErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type GetAgentServerCatalogueError =
+  GetAgentServerCatalogueErrors[keyof GetAgentServerCatalogueErrors];
+
+export type GetAgentServerCatalogueResponses = {
+  /**
+   * Default Response
+   */
+  200: AgentServerCatalogue;
+};
+
+export type GetAgentServerCatalogueResponse =
+  GetAgentServerCatalogueResponses[keyof GetAgentServerCatalogueResponses];
 
 export type StartAgentServerPairingData = {
   body?: never;
