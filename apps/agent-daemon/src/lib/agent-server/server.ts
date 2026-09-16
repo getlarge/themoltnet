@@ -15,6 +15,7 @@ import rateLimit from '@fastify/rate-limit';
 import {
   assertNavigationRequest,
   isLoopbackViolation,
+  OriginAllowlist,
   registerLoopbackSecurity,
   rejectExplicitCrossSite,
   requireOriginHeader,
@@ -47,6 +48,7 @@ import {
 import { AgentServerModelDiscoveryError } from './model-discovery.js';
 import {
   AgentServerPairingError,
+  NATIVE_CLIENT_ORIGIN,
   type PairingService,
   renderPairingApprovalPage,
   renderPairingResultPage,
@@ -314,8 +316,15 @@ export function buildAgentServer(
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
 
+  // The native client is not a browser: CORS does not constrain it, its
+  // process-scoped token does. The reserved origin uses a scheme no browser
+  // can present, and `OriginAllowlist` only accepts https/loopback-http, so it
+  // is admitted through the predicate rather than the allowlist. Admitting it
+  // only lets the request reach the token check in `requirePairedOrigin`.
+  const browserOrigins = new OriginAllowlist(options.allowedOrigins);
   registerLoopbackSecurity(app, {
-    allowedOrigins: options.allowedOrigins,
+    isOriginAllowed: (origin) =>
+      origin === NATIVE_CLIENT_ORIGIN || browserOrigins.has(origin),
     ...(options.selfOrigin ? { selfOrigins: [options.selfOrigin] } : {}),
     allowedHeaders: [AGENT_SERVER_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -932,7 +941,9 @@ function isConfiguredOrigin(
 ): origin is string {
   return (
     typeof origin === 'string' &&
-    (options.allowedOrigins.includes(origin) || origin === options.selfOrigin)
+    (origin === NATIVE_CLIENT_ORIGIN ||
+      options.allowedOrigins.includes(origin) ||
+      origin === options.selfOrigin)
   );
 }
 
