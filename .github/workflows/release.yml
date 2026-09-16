@@ -2548,7 +2548,27 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Check out exact desktop release revision
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+        run: |
+          revision=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .target_commitish)
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "desktop draft $RELEASE_TAG does not identify an immutable release revision" >&2
+            exit 1
+          }
+          git fetch --no-tags origin "$revision"
+          git checkout --detach "$revision"
+          version=${RELEASE_TAG#agent-desktop-v}
+          package_version=$(node -p "require('./apps/agent-desktop/package.json').version")
+          [ "$package_version" = "$version" ] || {
+            echo "desktop release tag $RELEASE_TAG does not match package version $package_version" >&2
+            exit 1
+          }
 
       - uses: pnpm/action-setup@v6
 
@@ -2557,7 +2577,7 @@ jobs:
           node-version-file: .tool-versions
           cache: pnpm
 
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884 # 1.88.0
 
       - run: pnpm install --frozen-lockfile
 
@@ -2622,7 +2642,6 @@ jobs:
           rm -f "$APPLE_API_KEY_PATH"
 
       - name: Verify and materialize release assets
-        id: artifacts
         env:
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
@@ -2640,6 +2659,8 @@ jobs:
           cargo run \
             --manifest-path apps/agent-desktop/src-tauri/Cargo.toml \
             --locked \
+            --release \
+            --target aarch64-apple-darwin \
             --target-dir apps/agent-desktop/out-rust/bundle \
             --bin verify-updater-signature \
             -- "$TAURI_UPDATER_PUBLIC_KEY" "$signature" "$updater"

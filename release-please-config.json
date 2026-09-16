@@ -15,6 +15,23 @@
     "apps/agent-desktop": {
       "bump-minor-pre-major": true,
       "component": "agent-desktop",
+      "extra-files": [
+        {
+          "jsonpath": "$.version",
+          "path": "src-tauri/tauri.conf.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.package.version",
+          "path": "src-tauri/Cargo.toml",
+          "type": "toml"
+        },
+        {
+          "jsonpath": "$.package[?(@.name.value=='moltnet-agent-desktop')].version",
+          "path": "src-tauri/Cargo.lock",
+          "type": "toml"
+        }
+      ],
       "release-type": "node"
     },
     "apps/console": {

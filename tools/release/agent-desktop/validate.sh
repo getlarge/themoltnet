@@ -8,25 +8,32 @@ package_json="$root/apps/agent-desktop/package.json"
 cargo_toml="$root/apps/agent-desktop/src-tauri/Cargo.toml"
 tauri_config="$root/apps/agent-desktop/src-tauri/tauri.conf.json"
 build_rs="$root/apps/agent-desktop/src-tauri/build.rs"
+agent_cli_pin="$root/apps/agent-desktop/agent-cli.version"
+landing_template="$root/apps/landing/nginx/default.conf.template"
 landing_fly="$root/apps/landing/fly.toml"
 
 valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
 
-package_version=$(node -p "require('./$package_json').version")
-tauri_version=$(node -p "require('./$tauri_config').version")
+package_version=$(node -p "require(process.argv[1]).version" "$package_json")
+tauri_version=$(node -p "require(process.argv[1]).version" "$tauri_config")
 cargo_version=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$cargo_toml" | head -1)
 [ "$package_version" = "$tauri_version" ] && [ "$package_version" = "$cargo_version" ] || {
   echo "desktop package, Tauri, and Cargo versions must match" >&2
   exit 1
 }
 
-agent_cli_version=$(sed -nE 's/^const DEFAULT_AGENT_CLI_VERSION: &str = "([0-9]+\.[0-9]+\.[0-9]+)";/\1/p' "$build_rs")
+agent_cli_version=$(tr -d '\n' < "$agent_cli_pin")
 [ -n "$agent_cli_version" ] || {
   echo "embedded Agent CLI release pin is empty or invalid" >&2
   exit 1
 }
 valid_version "$agent_cli_version" || {
   echo "embedded Agent CLI release pin is not canonical" >&2
+  exit 1
+}
+public_agent_cli_version=$(sed -nE 's/^    set \$agent_cli_version ([0-9]+\.[0-9]+\.[0-9]+);/\1/p' "$landing_template")
+[ -n "$public_agent_cli_version" ] && [ "$agent_cli_version" = "$public_agent_cli_version" ] || {
+  echo "embedded Agent CLI release pin must match the public Agent CLI pin" >&2
   exit 1
 }
 if [ -n "${AGENT_CLI_RELEASE_TAG:-}" ]; then

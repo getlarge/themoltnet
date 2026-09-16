@@ -1,5 +1,9 @@
 mod lifecycle;
 
+#[cfg(test)]
+#[path = "../build_support.rs"]
+mod build_support;
+
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager};
 use std::{
     path::PathBuf,

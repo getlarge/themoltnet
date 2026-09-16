@@ -40,6 +40,8 @@ const SECTION_IDS = ['all', 'install', 'verify', 'trust'] as const;
  */
 type DownloadManifest = {
   cli?: { version?: string; tag?: string };
+  /** @deprecated Use agentCli. Kept for existing manifest consumers. */
+  agent?: { version?: string; tag?: string };
   agentCli?: { version?: string; tag?: string };
   agentDesktop?: { version?: string; tag?: string };
   signer?: { principal?: string; namespace?: string; publicKey?: string };
@@ -107,7 +109,7 @@ export function DownloadPage() {
     typeof navigator === 'undefined' ? '' : navigator.userAgent,
   );
   const cliVersion = manifest?.cli?.version;
-  const agentCliVersion = manifest?.agentCli?.version;
+  const agentCliVersion = (manifest?.agentCli ?? manifest?.agent)?.version;
   const agentDesktopVersion = manifest?.agentDesktop?.version;
   const signerKey = signerKeyOf(manifest);
   const cliVerify = cliVerifyCommands(primary);

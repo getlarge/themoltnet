@@ -4,6 +4,7 @@
 set -euo pipefail
 
 template=${TEMPLATE:-apps/landing/nginx/default.conf.template}
+agent_cli_pin_file=${AGENT_CLI_PIN_FILE:-apps/agent-desktop/agent-cli.version}
 cli_version=${CLI_VERSION:-}
 agent_cli_version=${AGENT_CLI_VERSION:-}
 agent_desktop_version=${AGENT_DESKTOP_VERSION:-}
@@ -26,3 +27,8 @@ advance_pin() {
 advance_pin cli_version "$cli_version"
 advance_pin agent_cli_version "$agent_cli_version"
 advance_pin agent_desktop_version "$agent_desktop_version"
+
+if [ -n "$agent_cli_version" ]; then
+  pinned_agent_cli_version=$(sed -nE 's/^    set \$agent_cli_version ([0-9]+\.[0-9]+\.[0-9]+);/\1/p' "$template")
+  printf '%s\n' "$pinned_agent_cli_version" > "$agent_cli_pin_file"
+fi

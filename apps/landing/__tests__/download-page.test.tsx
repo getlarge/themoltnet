@@ -75,12 +75,43 @@ describe('DownloadPage', () => {
     expect(
       screen.getByRole('heading', { name: /MoltNet Agent CLI v0\.47\.0/ }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: /MoltNet Agent for Mac v0\.1\.0/ }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', {
+          name: 'Download MoltNet Agent v0.1.0 for macOS Apple Silicon',
+        })
+        .getAttribute('href'),
+    ).toBe('/download/desktop/macos-arm64');
     // The publisher key is runtime-served through the manifest, never baked
     // into the bundle.
     expect(
       screen.getAllByText(/ssh-ed25519 AAAAC3TESTKEY/).length,
     ).toBeGreaterThanOrEqual(1);
     expect(vi.mocked(fetch)).toHaveBeenCalledWith('/download/manifest.json');
+  });
+
+  it('accepts the deprecated agent manifest alias during migration', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            agent: { version: '0.46.0', tag: 'agent-daemon-v0.46.0' },
+          }),
+      }),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', {
+        name: /MoltNet Agent CLI v0\.46\.0/,
+      }),
+    ).toBeTruthy();
   });
 
   it('renders every platform link with an accessible product+platform name', async () => {
@@ -126,10 +157,12 @@ describe('DownloadPage', () => {
     renderPage();
 
     expect(
-      screen.getByRole('link', {
-        name: 'Download MoltNet Agent for macOS Apple Silicon',
-      }),
-    ).toBeTruthy();
+      screen
+        .getByRole('link', {
+          name: 'Download MoltNet Agent for macOS Apple Silicon',
+        })
+        .getAttribute('href'),
+    ).toBe('/download/desktop/macos-arm64');
     expect(
       screen.getByRole('link', {
         name: 'Prefer the terminal or another platform?',

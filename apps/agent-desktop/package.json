@@ -31,6 +31,8 @@
       "agentDesktopNative": [
         "{projectRoot}/src-tauri/src/**/*.rs",
         "{projectRoot}/src-tauri/build.rs",
+        "{projectRoot}/src-tauri/build_support.rs",
+        "{projectRoot}/agent-cli.version",
         "{projectRoot}/src-tauri/Cargo.toml",
         "{projectRoot}/src-tauri/Cargo.lock",
         "{projectRoot}/src-tauri/tauri.conf.json",
@@ -125,6 +127,9 @@
           "agentDesktopRenderer",
           "agentDesktopNative",
           "agentDesktopInstaller",
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/release-please-config.json",
+          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "^production",
           "sharedGlobals"
         ],
@@ -137,6 +142,10 @@
             },
             {
               "command": "cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test",
+              "forwardAllArgs": false
+            },
+            {
+              "command": "bash tools/release/agent-desktop/test.sh",
               "forwardAllArgs": false
             }
           ]

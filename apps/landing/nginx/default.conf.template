@@ -55,7 +55,8 @@ server {
     location = /download/manifest.json {
         default_type application/json;
         add_header Cache-Control "no-cache, must-revalidate";
-        return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agentCli":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"},"agentDesktop":{"version":"$agent_desktop_version","tag":"agent-desktop-v$agent_desktop_version"},"signer":{"principal":"legreffier@themolt.net","namespace":"moltnet-release","publicKey":"${RELEASE_SIGNER_PUBKEY}"}}';
+        # `agentCli` is canonical; keep `agent` as a deprecated compatibility alias.
+        return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agent":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"},"agentCli":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"},"agentDesktop":{"version":"$agent_desktop_version","tag":"agent-desktop-v$agent_desktop_version"},"signer":{"principal":"legreffier@themolt.net","namespace":"moltnet-release","publicKey":"${RELEASE_SIGNER_PUBKEY}"}}';
     }
 
     # MoltNet Agent desktop — independently versioned, Apple Silicon only.
