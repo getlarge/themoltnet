@@ -33,6 +33,7 @@ import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
+import type { BuildAgentServerOptions } from './server.js';
 import {
   AGENT_SERVER_TOKEN_HEADER,
   buildAgentServer,
@@ -88,6 +89,7 @@ async function fixture(
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
     pairing?: PairingService;
+    catalogueAgentFor?: BuildAgentServerOptions['catalogueAgentFor'];
     externalSecrets?: Record<string, string>;
     resolveRuntimeModule?: (
       spec: RunSpec,
@@ -207,6 +209,9 @@ async function fixture(
     secretProviders,
     externalSecretProviders,
     pairing: options.pairing ?? new PairingService(),
+    ...(options.catalogueAgentFor
+      ? { catalogueAgentFor: options.catalogueAgentFor }
+      : {}),
     runs,
     subscriptions: new ProviderLoginService({
       authPath: store.piAuthJsonPath,
@@ -1770,5 +1775,125 @@ describe('native desktop client', () => {
 
     // Assert
     expect(response.statusCode).toBe(401);
+  });
+});
+
+describe('run catalogue', () => {
+  const TEAM = '4f2a91c8-1d3e-4b77-9a02-6c1b8e7d5a40';
+
+  /** A fake authenticated agent standing in for the SDK client. */
+  const catalogueAgent = {
+    listTeams: () =>
+      Promise.resolve([{ id: TEAM, name: 'MoltNet Core', personal: false }]),
+    listDiaries: () =>
+      Promise.resolve([{ id: 'diary-1', name: 'themoltnet', teamId: TEAM }]),
+    listProfiles: () =>
+      Promise.resolve([
+        {
+          id: 'profile-1',
+          name: 'opus-review',
+          teamId: TEAM,
+          runtimeKind: 'gondolin_pi',
+          requiredEnv: [],
+          requiredExecutables: [],
+        },
+      ]),
+  };
+
+  it('returns the teams, diaries and profiles the identity can serve', async () => {
+    // Arrange
+    const { app, store } = await fixture({
+      catalogueAgentFor: () => Promise.resolve(catalogueAgent),
+    });
+    const token = await pair(app);
+    activateManaged(store);
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue?identity=course-bot',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(200);
+    const body = response.json<{
+      teams: { teamId: string; defaultDiaryId: string | null }[];
+      defaultTeamId: string | null;
+      profiles: { name: string; ready: boolean }[];
+    }>();
+    expect(body.teams).toEqual([
+      expect.objectContaining({ teamId: TEAM, defaultDiaryId: 'diary-1' }),
+    ]);
+    expect(body.defaultTeamId).toBe(TEAM);
+    expect(body.profiles[0]).toEqual(
+      expect.objectContaining({ name: 'opus-review', ready: true }),
+    );
+  });
+
+  it('requires a paired client', async () => {
+    // The catalogue reaches the MoltNet API with agent credentials, so it must
+    // not be readable by an unpaired caller.
+    const { app, store } = await fixture({
+      catalogueAgentFor: () => Promise.resolve(catalogueAgent),
+    });
+    activateManaged(store);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue?identity=course-bot',
+      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+    });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('answers 404 for an identity that is not activated here', async () => {
+    // Arrange
+    const { app } = await fixture({
+      catalogueAgentFor: () => Promise.resolve(catalogueAgent),
+    });
+    const token = await pair(app);
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue?identity=missing-bot',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('rejects a request with no identity', async () => {
+    // Arrange
+    const { app, store } = await fixture({
+      catalogueAgentFor: () => Promise.resolve(catalogueAgent),
+    });
+    const token = await pair(app);
+    activateManaged(store);
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(400);
   });
 });

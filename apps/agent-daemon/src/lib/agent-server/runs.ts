@@ -89,6 +89,9 @@ const INHERITED_MOLTNET_ENV_NAMES = new Set([
   'MOLTNET_TRACE_IDLE_POLLING',
 ]);
 
+/** The runtime kind bundled with the agent; needs no registration. */
+export const BUILT_IN_RUNTIME_KIND = 'gondolin_pi';
+
 export class AgentServerRunError extends Error {
   override name = 'AgentServerRunError';
   constructor(
@@ -549,7 +552,7 @@ export class RunManager {
       );
     }
     if (registration) return registration.moduleUrl;
-    if (kind === 'gondolin_pi') return undefined;
+    if (kind === BUILT_IN_RUNTIME_KIND) return undefined;
     throw new AgentServerRunError(
       'invalid_spec',
       `No local runtime is registered for profile kind "${kind}".`,
