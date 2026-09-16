@@ -212,9 +212,12 @@ describe('Nx release configuration', () => {
     expect(workflow).toContain(
       'pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=release',
     );
-    expect(
-      agentDesktopPackage.nx.targets['tauri:bundle'].configurations.release,
-    ).toEqual({ args: '--config "$TAURI_CONFIG"' });
+    const bundleTarget = agentDesktopPackage.nx.targets['tauri:bundle'];
+    const releaseCommand = bundleTarget.configurations.release.command;
+
+    expect(releaseCommand).toBe(
+      `${bundleTarget.options.command} --config "$TAURI_CONFIG"`,
+    );
   });
 
   it('can republish failed Docker releases from their existing drafts', () => {
