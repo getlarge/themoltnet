@@ -2556,12 +2556,27 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
-          revision=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)
+          release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)
+          [ "$(jq -r .isDraft <<< "$release")" = "true" ] || {
+            echo "desktop release $RELEASE_TAG is already published" >&2
+            exit 1
+          }
+          revision=$(jq -r .targetCommitish <<< "$release")
           [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || {
             echo "desktop draft $RELEASE_TAG does not identify an immutable release revision" >&2
             exit 1
           }
+          git fetch --no-tags origin main
           git fetch --no-tags origin "$revision"
+          git merge-base --is-ancestor "$revision" origin/main || {
+            echo "desktop draft $RELEASE_TAG does not target a commit on main" >&2
+            exit 1
+          }
+          tag_revision=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)
+          [ "$tag_revision" = "$revision" ] || {
+            echo "desktop tag $RELEASE_TAG does not match its draft revision" >&2
+            exit 1
+          }
           git checkout --detach "$revision"
           version=${RELEASE_TAG#agent-desktop-v}
           package_version=$(node -p "require('./apps/agent-desktop/package.json').version")
@@ -2604,8 +2619,10 @@ jobs:
           APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
         run: |
+          umask 077
           keychain="$RUNNER_TEMP/agent-desktop.keychain-db"
           password=$(openssl rand -hex 16)
+          trap 'rm -f "$RUNNER_TEMP/cert.p12"' EXIT
           printf '%s' "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security create-keychain -p "$password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
@@ -2614,7 +2631,6 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
           identity=$(security find-identity -v -p codesigning "$keychain" | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
-          rm -f "$RUNNER_TEMP/cert.p12"
           [ -n "$identity" ] || { echo "Developer ID Application identity is missing" >&2; exit 1; }
           echo "identity=$identity" >> "$GITHUB_OUTPUT"
 
@@ -2630,6 +2646,8 @@ jobs:
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
           AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
         run: |
+          umask 077
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
           printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
           chmod 600 "$APPLE_API_KEY_PATH"
           export TAURI_CONFIG="{\"plugins\":{\"updater\":{\"pubkey\":$(printf '%s' "$TAURI_UPDATER_PUBLIC_KEY" | jq -Rs .)}}}"
@@ -2644,7 +2662,33 @@ jobs:
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
           pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=release
-          rm -f "$APPLE_API_KEY_PATH"
+
+      - name: Remove signing identity
+        if: ${{ always() }}
+        run: |
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security delete-keychain "$RUNNER_TEMP/agent-desktop.keychain-db" 2>/dev/null || true
+
+      - name: Notarize and staple DMG
+        env:
+          APPLE_API_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
+          APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/notary.p8
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+        run: |
+          umask 077
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
+          printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
+          chmod 600 "$APPLE_API_KEY_PATH"
+          dmg=$(find apps/agent-desktop/out-rust/bundle/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)
+          [ -f "$dmg" ] || { echo "Agent desktop DMG is missing" >&2; exit 1; }
+          xcrun notarytool submit "$dmg" \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait \
+            --timeout 45m
+          xcrun stapler staple "$dmg"
 
       - name: Verify and materialize release assets
         env:
@@ -2692,6 +2736,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
+          revision=$(git rev-parse HEAD)
+          verify_release_revision() {
+            local release
+            release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)
+            [ "$(jq -r .isDraft <<< "$release")" = "true" ] &&
+              [ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ] &&
+              [ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ] || {
+                echo "desktop release $RELEASE_TAG changed during packaging" >&2
+                exit 1
+              }
+          }
+
+          verify_release_revision
           gh release upload "$RELEASE_TAG" dist/agent-desktop/* --clobber
           mkdir -p "$RUNNER_TEMP/agent-desktop-uploaded"
           for artifact in dist/agent-desktop/*; do
@@ -2705,6 +2762,7 @@ jobs:
               exit 1
             }
           done
+          verify_release_revision
           gh release edit "$RELEASE_TAG" --draft=false
 
   # release-please's "go" release type tags the lib but never edits go.mod in
