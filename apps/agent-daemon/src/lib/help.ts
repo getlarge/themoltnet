@@ -237,6 +237,7 @@ Usage:
   moltnet-agent providers list [--json] [--root <path>]
   moltnet-agent providers set <id> [--base-url <url>] [--api <pi-api-kind>]
     [--model <id> ... | --clear-models]
+    [--model-input <id>=text,image ...]
     [--api-key-stdin | --clear-api-key] [--root <path>]
   moltnet-agent providers discover <id> [--save] [--json] [--root <path>]
   moltnet-agent providers remove <id> [--yes] [--root <path>]
@@ -247,4 +248,9 @@ Usage:
 The default root is ~/.config/moltnet. MOLTNET_AGENT_SERVER_ROOT remains the
 environment override. API keys are accepted only from redirected stdin; they
 are stored separately and providers.json contains only a secret reference.
+
+--model declares a text-only model. --model-input declares a model together
+with the input modalities it accepts, and is what makes a vision model usable:
+a model with no declared modalities is text-only to Pi, which drops image
+content parts before the request leaves the runtime.
 `;

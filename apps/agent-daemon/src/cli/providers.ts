@@ -10,6 +10,8 @@ import {
 import { loadAgentServerEnvConfig } from '../config.js';
 import {
   AgentServerStore,
+  type ProviderModelEntry,
+  type ProviderModelModality,
   resolveAgentServerRoot,
 } from '../lib/agent-server/store.js';
 import { isHelpFlag, PROVIDERS_HELP } from '../lib/help.js';
@@ -24,6 +26,54 @@ import {
 import { ProviderLockError } from '../lib/provider-lock.js';
 
 type SpawnProcess = typeof spawn;
+
+const MODEL_MODALITIES: readonly ProviderModelModality[] = ['text', 'image'];
+
+/**
+ * Build the model list from `--model <id>` (text-only) and
+ * `--model-input <id>=text,image` (declares modalities). Model ids contain
+ * colons, so `=` separates the id from its modality list. A `--model-input`
+ * entry also declares the model, and overrides a bare `--model` for that id.
+ */
+function parseModelArgs(
+  models: string[] | undefined,
+  modelInputs: string[] | undefined,
+): ProviderModelEntry[] | undefined {
+  if (!models && !modelInputs) return undefined;
+  const entries = new Map<string, ProviderModelEntry>();
+  for (const id of models ?? []) entries.set(id, { id });
+  for (const raw of modelInputs ?? []) {
+    const separator = raw.indexOf('=');
+    if (separator <= 0) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-input expects <model-id>=<modality>[,<modality>], received "${raw}"`,
+      );
+    }
+    const id = raw.slice(0, separator);
+    const input = raw
+      .slice(separator + 1)
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    if (input.length === 0) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-input for "${id}" declared no modality`,
+      );
+    }
+    for (const modality of input) {
+      if (!MODEL_MODALITIES.includes(modality as ProviderModelModality)) {
+        throw new ProviderCliError(
+          'invalid_arguments',
+          `--model-input for "${id}" has unknown modality "${modality}"; expected ${MODEL_MODALITIES.join(' or ')}`,
+        );
+      }
+    }
+    entries.set(id, { id, input: input as ProviderModelModality[] });
+  }
+  return [...entries.values()];
+}
 
 interface ProviderCliDependencies {
   configuration?: ProviderConfigurationService;
@@ -152,6 +202,7 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           'base-url': { type: 'string' },
           api: { type: 'string' },
           model: { type: 'string', multiple: true },
+          'model-input': { type: 'string', multiple: true },
           'clear-models': { type: 'boolean' },
           'api-key-stdin': { type: 'boolean' },
           'clear-api-key': { type: 'boolean' },
@@ -166,6 +217,12 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           '--model and --clear-models cannot be used together',
         );
       }
+      if (values['model-input'] && values['clear-models']) {
+        throw new ProviderCliError(
+          'invalid_arguments',
+          '--model-input and --clear-models cannot be used together',
+        );
+      }
       if (values['api-key-stdin'] && values['clear-api-key']) {
         throw new ProviderCliError(
           'invalid_arguments',
@@ -178,7 +235,9 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         providerId: positionals[0],
         baseUrl: values['base-url'],
         api: values.api,
-        models: values['clear-models'] ? [] : values.model,
+        models: values['clear-models']
+          ? []
+          : parseModelArgs(values.model, values['model-input']),
         apiKeyStdin: values['api-key-stdin'] ?? false,
         clearApiKey: values['clear-api-key'] ?? false,
       };
@@ -349,7 +408,7 @@ async function setProvider(
     clearApiKey: boolean;
     baseUrl?: string;
     api?: string;
-    models?: string[];
+    models?: ProviderModelEntry[];
   },
 ): Promise<number> {
   let apiKey: string | undefined;

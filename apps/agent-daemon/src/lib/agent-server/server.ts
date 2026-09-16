@@ -56,7 +56,12 @@ import {
   type ProviderLoginService,
 } from './provider-login.js';
 import { AgentServerRunError, type RunManager } from './runs.js';
-import { type AgentServerStore, AgentServerStoreError } from './store.js';
+import {
+  type AgentServerStore,
+  AgentServerStoreError,
+  type ProviderModelEntry,
+  type ProviderModelModality,
+} from './store.js';
 
 export const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const BODY_LIMIT = 64 * 1024;
@@ -235,6 +240,58 @@ function stringArray(
     );
   }
   return value as string[];
+}
+
+const MODEL_MODALITIES = new Set(['text', 'image']);
+
+/**
+ * Parse the provider `models` field. Accepts a bare id or an object declaring
+ * input modalities, so a console that has not been updated keeps working while
+ * a newer one can mark a model as accepting images.
+ */
+function modelArray(
+  body: Record<string, unknown>,
+  field: string,
+): ProviderModelEntry[] {
+  const value = body[field];
+  const invalid = (detail: string): never => {
+    throw new AgentServerHttpError(400, 'invalid_body', detail);
+  };
+  if (!Array.isArray(value)) {
+    return invalid(
+      `"${field}" must be an array of model ids or { id, input } entries`,
+    );
+  }
+  return value.map((item) => {
+    if (typeof item === 'string') {
+      if (item.length === 0) return invalid(`"${field}" has an empty model id`);
+      return { id: item };
+    }
+    if (typeof item !== 'object' || item === null) {
+      return invalid(
+        `"${field}" entries must be a model id or an { id, input } object`,
+      );
+    }
+    const entry = item as Record<string, unknown>;
+    const id = entry.id;
+    if (typeof id !== 'string' || id.length === 0) {
+      return invalid(`"${field}" entries must carry a non-empty "id"`);
+    }
+    if (entry.input === undefined) return { id };
+    if (
+      !Array.isArray(entry.input) ||
+      entry.input.length === 0 ||
+      entry.input.some(
+        (modality) =>
+          typeof modality !== 'string' || !MODEL_MODALITIES.has(modality),
+      )
+    ) {
+      return invalid(
+        `"${field}" entry "${id}" must declare "input" as a non-empty array of "text" or "image"`,
+      );
+    }
+    return { id, input: entry.input as ProviderModelModality[] };
+  });
 }
 
 function requestOperationSignal(
@@ -619,7 +676,7 @@ function registerProviderRoutes(
         api: requireString(body, 'api'),
         baseUrl: requireString(body, 'baseUrl'),
         envName: requireString(body, 'envName'),
-        models: stringArray(body, 'models', { allowEmpty: true }),
+        models: modelArray(body, 'models'),
         ...(optionalString(body, 'apiKey')
           ? { apiKey: optionalString(body, 'apiKey') }
           : {}),

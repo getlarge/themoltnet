@@ -660,7 +660,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://example.test/v1',
         envName,
-        models: ['model'],
+        models: [{ id: 'model' }],
         apiKey: 'not-written',
       },
     });
@@ -696,7 +696,7 @@ describe('agent server providers and runs', () => {
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
       envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-      models: ['qwen3-coder:480b-cloud'],
+      models: [{ id: 'qwen3-coder:480b-cloud' }],
       hasApiKey: true,
     });
 
@@ -831,7 +831,7 @@ describe('agent server providers and runs', () => {
       api: 'openai-completions',
       baseUrl: `https://${id}.example/v1`,
       envName: `MOLTNET_PROVIDER_${id.toUpperCase()}_API_KEY`,
-      models: ['model'],
+      models: [{ id: 'model' }],
       apiKey: `${id}-secret`,
     });
 
@@ -1538,7 +1538,7 @@ describe('agent server providers and runs', () => {
         api: 'openai-completions',
         baseUrl: 'https://api.example/v1',
         envName: 'MOLTNET_PROVIDER_MISSING_API_KEY',
-        models: ['model'],
+        models: [{ id: 'model' }],
         apiKeyRef: 'memory:missing',
       },
     });

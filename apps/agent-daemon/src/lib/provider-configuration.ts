@@ -19,8 +19,10 @@ import {
   type AgentServerStore,
   assertProviderEnvName,
   assertProviderId,
+  normalizeProviderModel,
   type ProviderEntry,
   providerEnvName,
+  type ProviderModelEntry,
 } from './agent-server/store.js';
 import { withProviderMutationLock } from './provider-lock.js';
 import { safeErrorContext } from './safe-error-context.js';
@@ -31,7 +33,7 @@ export interface ProviderView {
   api: string;
   baseUrl: string;
   envName: string;
-  models: string[];
+  models: ProviderModelEntry[];
   hasApiKey: boolean;
 }
 
@@ -39,7 +41,7 @@ export interface ProviderSetInput {
   api?: string;
   baseUrl?: string;
   envName?: string;
-  models?: string[];
+  models?: (ProviderModelEntry | string)[];
   apiKey?: string;
   clearApiKey?: boolean;
 }
@@ -139,7 +141,9 @@ export class ProviderConfigurationService {
             providerId,
             input.envName ?? previous?.envName ?? providerEnvName(providerId),
           ),
-          models: [...(input.models ?? previous?.models ?? [])],
+          models: (input.models ?? previous?.models ?? []).map(
+            normalizeProviderModel,
+          ),
           ...(!input.clearApiKey && previous?.apiKeyRef
             ? { apiKeyRef: previous.apiKeyRef }
             : {}),
@@ -327,7 +331,22 @@ export class ProviderConfigurationService {
       );
     }
     if (options.save) {
-      await this.set(providerId, { models: result.models }, options);
+      // Discovery endpoints report ids only. Re-declaring modalities is a
+      // manual decision, so carry the existing ones across a refresh instead
+      // of silently demoting a vision model back to text-only.
+      const declared = new Map(
+        provider.models.map((model) => [model.id, model.input]),
+      );
+      await this.set(
+        providerId,
+        {
+          models: result.models.map((id) => {
+            const input = declared.get(id);
+            return input && input.length > 0 ? { id, input } : { id };
+          }),
+        },
+        options,
+      );
     }
     this.logger.info(
       {
@@ -474,7 +493,7 @@ export function providerView(provider: ProviderEntry): ProviderView {
     api: provider.api,
     baseUrl: provider.baseUrl,
     envName: provider.envName,
-    models: [...provider.models],
+    models: provider.models.map(normalizeProviderModel),
     hasApiKey: Boolean(provider.apiKeyRef),
   };
 }

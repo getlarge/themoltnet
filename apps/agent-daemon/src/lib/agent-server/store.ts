@@ -154,19 +154,49 @@ export interface ExternalAgentActivation extends ActivationIdentity {
 
 export type AgentActivation = ManagedAgentActivation | ExternalAgentActivation;
 
+/** Input modalities a model accepts, mirroring Pi's `models.json` vocabulary. */
+export type ProviderModelModality = 'text' | 'image';
+
+/**
+ * A model offered by a provider. `input` is carried verbatim into the
+ * generated `models.json`; omitting it leaves Pi's text-only default, which
+ * silently drops image content parts before they reach the provider.
+ */
+export interface ProviderModelEntry {
+  id: string;
+  input?: ProviderModelModality[];
+}
+
 export interface ProviderEntry {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
   baseUrl: string;
   /** Canonical env var name referenced by generated models.json. */
   envName: string;
-  /** Model ids offered by this provider (fed by discovery later, #2064). */
-  models: string[];
+  /** Models offered by this provider (fed by discovery later, #2064). */
+  models: ProviderModelEntry[];
   /** `file:<key>` reference to the API key value; absent for keyless providers. */
   apiKeyRef?: string;
 }
 
 export type ProvidersState = Record<string, ProviderEntry>;
+
+/**
+ * Accept a bare id or a full entry. Providers persisted before model
+ * capabilities existed stored plain strings; they read back as text-only
+ * entries rather than failing the whole providers document.
+ */
+export function normalizeProviderModel(
+  entry: ProviderModelEntry | string,
+): ProviderModelEntry {
+  if (typeof entry === 'string') return { id: entry };
+  return {
+    id: entry.id,
+    ...(entry.input && entry.input.length > 0
+      ? { input: [...entry.input] }
+      : {}),
+  };
+}
 
 export function providerEnvName(providerId: string): string {
   const id = assertProviderId(providerId);
@@ -515,6 +545,9 @@ export class AgentServerStore {
   readProviders(): ProvidersState {
     const state = readJson<ProvidersState>(this.providersPath) ?? {};
     this.validateProviders(state);
+    for (const provider of Object.values(state)) {
+      provider.models = (provider.models ?? []).map(normalizeProviderModel);
+    }
     return state;
   }
 

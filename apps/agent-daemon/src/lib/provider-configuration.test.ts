@@ -59,7 +59,7 @@ describe('ProviderConfigurationService', () => {
     ).resolves.toMatchObject({
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
-      models: ['new-model'],
+      models: [{ id: 'new-model' }],
       hasApiKey: true,
     });
     await expect(
@@ -136,7 +136,9 @@ describe('ProviderConfigurationService', () => {
       }),
     ).rejects.toThrow('persistence failed');
 
-    expect(store.readProviders()['remote']?.models).toEqual(['old-model']);
+    expect(store.readProviders()['remote']?.models).toEqual([
+      { id: 'old-model' },
+    ]);
     await expect(
       secretProviders.resolve({
         provider: 'file',
@@ -189,6 +191,36 @@ describe('ProviderConfigurationService', () => {
     ).resolves.toBe('restored-secret');
   });
 
+  it('keeps declared input modalities across a discovery refresh', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      async (input) =>
+        new Response(
+          String(input).endsWith('/api/tags')
+            ? JSON.stringify({ models: [] })
+            : JSON.stringify({
+                data: [{ id: 'qwen3.5:397b-cloud' }, { id: 'glm-5.2:cloud' }],
+              }),
+        ),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', {
+      baseUrl: 'https://ollama.com/v1',
+      models: [
+        { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+        { id: 'glm-5.2:cloud' },
+      ],
+    });
+
+    await service.discover('ollama-cloud', { save: true });
+
+    // Discovery reports ids only; a refresh must not demote a declared
+    // vision model back to text-only.
+    expect(service.list()['ollama-cloud']?.models).toEqual([
+      { id: 'glm-5.2:cloud' },
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+    ]);
+  });
+
   it('merges OpenAI and Ollama discovery and saves only the model patch', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -220,7 +252,7 @@ describe('ProviderConfigurationService', () => {
       api: 'openai-responses',
       baseUrl: 'https://ollama.com/v1',
       hasApiKey: true,
-      models: ['gemma4:31b-cloud', 'local', 'shared'],
+      models: [{ id: 'gemma4:31b-cloud' }, { id: 'local' }, { id: 'shared' }],
     });
   });
 

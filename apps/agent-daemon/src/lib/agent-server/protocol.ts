@@ -5,6 +5,25 @@ import { REGISTERED_TASK_TYPES } from '../help.js';
 const DateTime = Type.String({ format: 'date-time' });
 const StringList = Type.Array(Type.String());
 
+/** A model the provider offers, with the input modalities it accepts. */
+const ProviderModelSchema = Type.Object({
+  id: Type.String(),
+  input: Type.Optional(
+    Type.Array(Type.Union([Type.Literal('text'), Type.Literal('image')]), {
+      minItems: 1,
+    }),
+  ),
+});
+
+/**
+ * Request bodies accept a bare id or a full entry so an older console keeps
+ * working; responses always carry the normalised entry form.
+ */
+const ProviderModelRequestList = Type.Array(
+  Type.Union([Type.String(), ProviderModelSchema]),
+);
+const ProviderModelList = Type.Array(ProviderModelSchema);
+
 function schemaRef(schema: TSchema) {
   const id = (schema as { $id?: unknown }).$id;
   if (typeof id !== 'string' || id.length === 0) {
@@ -59,7 +78,7 @@ export const AgentServerProviderSchema = Type.Object(
     api: Type.String(),
     baseUrl: Type.String({ format: 'uri' }),
     envName: Type.String(),
-    models: StringList,
+    models: ProviderModelList,
     hasApiKey: Type.Boolean(),
   },
   { $id: 'AgentServerProvider' },
@@ -182,7 +201,7 @@ export const PutProviderSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String({ format: 'uri' }),
   envName: Type.String(),
-  models: StringList,
+  models: ProviderModelRequestList,
   apiKey: Type.Optional(Type.String()),
 });
 

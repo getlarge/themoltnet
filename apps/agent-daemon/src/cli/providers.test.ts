@@ -132,12 +132,58 @@ describe('moltnet-agent providers', () => {
     expect(test.configuration.list()['ollama-cloud']).toMatchObject({
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
-      models: ['second'],
+      models: [{ id: 'second' }],
       hasApiKey: true,
     });
     expect(JSON.stringify(test.configuration.list())).not.toContain(
       'secret-from-stdin',
     );
+  });
+
+  it('declares model input modalities and rejects malformed ones', async () => {
+    const test = await fixture();
+
+    expect(
+      await runProviders(
+        [
+          'set',
+          'ollama-cloud',
+          '--base-url',
+          'https://ollama.com/v1',
+          '--model',
+          'glm-5.2:cloud',
+          '--model-input',
+          'qwen3.5:397b-cloud=text,image',
+        ],
+        { ...test.dependencies, interactive: false },
+      ),
+    ).toBe(0);
+    expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
+      { id: 'glm-5.2:cloud' },
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+    ]);
+
+    expect(
+      await runProviders(
+        ['set', 'ollama-cloud', '--model-input', 'qwen3.5:397b-cloud=video'],
+        { ...test.dependencies, interactive: false },
+      ),
+    ).toBe(1);
+    expect(test.stderr.join('\n')).toContain('unknown modality "video"');
+
+    expect(
+      await runProviders(['set', 'ollama-cloud', '--model-input', 'nosep'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(1);
+    expect(test.stderr.join('\n')).toContain('--model-input expects');
+
+    // A rejected patch must not have disturbed the stored declaration.
+    expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
+      { id: 'glm-5.2:cloud' },
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+    ]);
   });
 
   it('prints stable JSON keys for configured and OAuth providers', async () => {
@@ -239,7 +285,7 @@ describe('moltnet-agent providers', () => {
       models: ['gemma4:31b-cloud', 'local-model'],
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      'existing',
+      { id: 'existing' },
     ]);
 
     expect(
@@ -249,8 +295,8 @@ describe('moltnet-agent providers', () => {
       }),
     ).toBe(0);
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      'gemma4:31b-cloud',
-      'local-model',
+      { id: 'gemma4:31b-cloud' },
+      { id: 'local-model' },
     ]);
   });
 

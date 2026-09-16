@@ -314,7 +314,12 @@ describe('AgentServerStore', () => {
     );
     expect(() =>
       store.writeProviders({
-        'bad id': { api: 'a', baseUrl: 'b', envName: 'C', models: ['m'] },
+        'bad id': {
+          api: 'a',
+          baseUrl: 'b',
+          envName: 'C',
+          models: [{ id: 'm' }],
+        },
       }),
     ).toThrow(AgentServerStoreError);
     expect(() =>
@@ -323,7 +328,7 @@ describe('AgentServerStore', () => {
           api: 'a',
           baseUrl: 'b',
           envName: 'MOLTNET_PROVIDER_FOO_API_KEY',
-          models: ['m'],
+          models: [{ id: 'm' }],
         },
       }),
     ).toThrow(AgentServerStoreError);
@@ -333,7 +338,7 @@ describe('AgentServerStore', () => {
           api: 'a',
           baseUrl: 'b',
           envName: 'MOLTNET_PROVIDER_FOO_BAR_API_KEY',
-          models: ['m'],
+          models: [{ id: 'm' }],
         },
       }),
     ).toThrow(AgentServerStoreError);
@@ -343,7 +348,7 @@ describe('AgentServerStore', () => {
           api: 'a',
           baseUrl: 'b',
           envName: 'NODE_OPTIONS',
-          models: ['m'],
+          models: [{ id: 'm' }],
         },
       }),
     ).toThrow(AgentServerStoreError);
@@ -394,7 +399,7 @@ describe('AgentServerStore', () => {
           api: 'a',
           baseUrl: 'b',
           envName: 'NODE_OPTIONS',
-          models: ['m'],
+          models: [{ id: 'm' }],
         },
       }),
     );
