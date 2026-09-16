@@ -36,7 +36,10 @@
         "{projectRoot}/src-tauri/tauri.conf.json",
         "{projectRoot}/src-tauri/capabilities/**/*.json",
         "{workspaceRoot}/.tool-versions",
-        "{workspaceRoot}/apps/landing/public/apple-touch-icon.png"
+        "{workspaceRoot}/apps/landing/public/apple-touch-icon.png",
+        {
+          "runtime": "node -p \"process.platform + '-' + process.arch\""
+        }
       ],
       "agentDesktopRenderer": [
         "{projectRoot}/src/**/*",
@@ -64,9 +67,6 @@
     "targets": {
       "lint": {
         "executor": "nx:run-commands",
-        "outputs": [
-          "{projectRoot}/out-rust/lint"
-        ],
         "inputs": [
           "agentDesktopRenderer",
           "agentDesktopNative",
@@ -93,8 +93,7 @@
       "typecheck": {
         "executor": "nx:run-commands",
         "outputs": [
-          "{projectRoot}/out-tsc",
-          "{projectRoot}/out-rust/check"
+          "{projectRoot}/out-tsc"
         ],
         "inputs": [
           "agentDesktopRendererProduction",
@@ -119,9 +118,6 @@
       },
       "test": {
         "executor": "nx:run-commands",
-        "outputs": [
-          "{projectRoot}/out-rust/test"
-        ],
         "inputs": [
           "agentDesktopRenderer",
           "agentDesktopNative",
@@ -147,7 +143,8 @@
         "executor": "nx:run-commands",
         "outputs": [
           "{projectRoot}/dist",
-          "{projectRoot}/out-rust/build"
+          "{projectRoot}/out-rust/build/release/moltnet-agent-desktop",
+          "{projectRoot}/out-rust/build/release/moltnet-agent-desktop.exe"
         ],
         "inputs": [
           "agentDesktopRendererProduction",
