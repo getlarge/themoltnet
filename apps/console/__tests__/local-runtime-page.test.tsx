@@ -398,7 +398,12 @@ describe('LocalRuntimePage', () => {
 
   it('discovers models from a preset and saves only the selected ones', async () => {
     handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
-      jsonResponse({ models: ['llama3.3:70b', 'qwen3-coder:480b-cloud'] });
+      jsonResponse({
+        models: [
+          { id: 'llama3.3:70b' },
+          { id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] },
+        ],
+      });
     handlers['PUT /v1/providers/ollama-local'] = (init) =>
       jsonResponse({
         api: 'openai-completions',
@@ -434,7 +439,9 @@ describe('LocalRuntimePage', () => {
       expect(put?.body).toMatchObject({
         baseUrl: 'http://localhost:11434/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
-        models: [{ id: 'qwen3-coder:480b-cloud' }],
+        // The daemon detected the modality; the console saves it back
+        // untouched rather than re-deriving it.
+        models: [{ id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] }],
       });
     });
     const discovery = requests.find((entry) =>
@@ -519,10 +526,9 @@ describe('LocalRuntimePage', () => {
   });
 
   it('renders large discovery results in bounded, filterable pages', async () => {
-    const models = Array.from(
-      { length: 120 },
-      (_value, index) => `model-${String(index).padStart(3, '0')}`,
-    );
+    const models = Array.from({ length: 120 }, (_value, index) => ({
+      id: `model-${String(index).padStart(3, '0')}`,
+    }));
     handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
       jsonResponse({ models });
     handlers['PUT /v1/providers/ollama-local'] = () =>

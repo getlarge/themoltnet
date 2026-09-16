@@ -62,6 +62,10 @@ export function ApiKeyProviderForm({
   const [baseUrl, setBaseUrl] = useState('http://localhost:11434/v1');
   const [apiKey, setApiKey] = useState('');
   const [discovered, setDiscovered] = useState<string[]>([]);
+  // The entry the daemon gave us for each id, kept verbatim. Selection and
+  // filtering work on ids; this is what gets saved back, so the daemon's
+  // resolved modalities survive without the console re-deriving them.
+  const entriesRef = useRef(new Map<string, ProviderModel>());
   const selectedRef = useRef(new Set<string>());
   const [, setSelectionVersion] = useState(0);
   const [filter, setFilter] = useState('');
@@ -78,15 +82,20 @@ export function ApiKeyProviderForm({
     setId(provider.id);
     setBaseUrl(provider.baseUrl);
     const ids = provider.models.map((model) => model.id);
+    entriesRef.current = new Map(
+      provider.models.map((model) => [model.id, model]),
+    );
     setDiscovered(ids);
     selectedRef.current = new Set(ids);
     setSelectionVersion((current) => current + 1);
     setDiscoverError(null);
   }, [provider]);
 
-  const resetModels = (models: string[] = []) => {
-    setDiscovered(models);
-    selectedRef.current = new Set(models.length === 1 ? models : []);
+  const resetModels = (models: ProviderModel[] = []) => {
+    const ids = models.map((model) => model.id);
+    entriesRef.current = new Map(models.map((model) => [model.id, model]));
+    setDiscovered(ids);
+    selectedRef.current = new Set(ids.length === 1 ? ids : []);
     setSelectionVersion((current) => current + 1);
     setFilter('');
     setVisibleLimit(MODEL_PAGE_SIZE);
@@ -126,25 +135,11 @@ export function ApiKeyProviderForm({
     }
   };
 
-  /**
-   * Re-attach the modalities already stored for each selected id, so a save
-   * from this form cannot demote a declared vision model back to text-only.
-   */
-  const withDeclaredInput = (
-    providerId: string,
-    ids: string[],
-  ): ProviderModel[] => {
-    const declared = new Map(
-      (runtime.data?.providers[providerId]?.models ?? []).map((model) => [
-        model.id,
-        model.input,
-      ]),
+  /** Selected ids as the entries the daemon supplied, unmodified. */
+  const selectedModels = (): ProviderModel[] =>
+    [...selectedRef.current].map(
+      (modelId) => entriesRef.current.get(modelId) ?? { id: modelId },
     );
-    return ids.map((id) => {
-      const input = declared.get(id);
-      return input && input.length > 0 ? { id, input } : { id };
-    });
-  };
 
   const toggleModel = (model: string) => {
     const selected = selectedRef.current;
@@ -160,7 +155,7 @@ export function ApiKeyProviderForm({
       await runtime.putProvider(providerId, {
         api: 'openai-completions',
         baseUrl: baseUrl.trim(),
-        models: withDeclaredInput(providerId, [...selectedRef.current]),
+        models: selectedModels(),
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
       resetModels();

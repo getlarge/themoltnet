@@ -22,6 +22,7 @@ import type {
 import { loopbackFetch, loopbackUrl } from '../loopback-url.js';
 import {
   AgentServerAgentViewSchema,
+  type AgentServerProviderModel,
   AgentServerProviderViewSchema,
   AgentServerRunViewSchema,
   AgentServerSubscriptionLoginSchema,
@@ -33,6 +34,7 @@ import {
   ProblemSchema,
 } from './agent-server-response-validation.js';
 
+export type { AgentServerProviderModel } from './agent-server-response-validation.js';
 export type {
   AgentServerAgent as AgentServerAgentView,
   AgentServerProvider as AgentServerProviderView,
@@ -91,7 +93,7 @@ export interface AgentServerClient {
     signal?: AbortSignal,
   ): Promise<AgentServerSubscriptionLogin>;
   cancelSubscriptionLogin(providerId: string): Promise<void>;
-  discoverModels(providerId: string): Promise<string[]>;
+  discoverModels(providerId: string): Promise<AgentServerProviderModel[]>;
   streamLogs(
     runId: string,
     onLine: (line: string) => void,
@@ -287,7 +289,9 @@ export function createAgentServerClient(options: {
         { timeoutMs: MUTATION_TIMEOUT_MS },
       );
     },
-    async discoverModels(providerId: string): Promise<string[]> {
+    async discoverModels(
+      providerId: string,
+    ): Promise<AgentServerProviderModel[]> {
       const id = assertProviderId(providerId);
       const result = await request(
         'POST',

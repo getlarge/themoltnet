@@ -116,7 +116,9 @@ export const PairingStartedSchema = Type.Object({
 export const PairingClaimedSchema = Type.Object({ token: Type.String() });
 
 export const DiscoverModelsSchema = Type.Object({
-  models: StringArraySchema,
+  // The daemon resolves input modalities during discovery; the console saves
+  // what it was handed rather than re-deriving them here.
+  models: Type.Array(AgentServerProviderModelSchema),
 });
 
 export const ProblemSchema = Type.Object({

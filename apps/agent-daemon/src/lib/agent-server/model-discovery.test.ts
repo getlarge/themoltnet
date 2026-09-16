@@ -36,8 +36,10 @@ describe('provider model discovery protocol', () => {
 
     expect(result.discoveredCount).toBe(MAX_DISCOVERED_MODELS + 26);
     expect(result.models).toHaveLength(MAX_DISCOVERED_MODELS);
-    expect(result.models[0]).toBe('another-model');
-    expect(new Set(result.models).size).toBe(result.models.length);
+    expect(result.models[0]).toEqual({ id: 'another-model' });
+    expect(new Set(result.models.map((model) => model.id)).size).toBe(
+      result.models.length,
+    );
   });
 
   it('classifies authorization, network, invalid-response, and empty failures', () => {

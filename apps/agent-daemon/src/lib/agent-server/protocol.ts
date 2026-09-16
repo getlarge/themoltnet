@@ -202,7 +202,9 @@ export const PutProviderSchema = Type.Object({
 });
 
 export const DiscoverModelsSchema = Type.Object(
-  { models: StringList },
+  // Entries, not ids: discovery resolves input modalities, and the console
+  // saves what it was given rather than re-deriving them client-side.
+  { models: ProviderModelList },
   { $id: 'DiscoveredModels' },
 );
 

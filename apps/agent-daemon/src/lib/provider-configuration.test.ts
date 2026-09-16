@@ -221,18 +221,112 @@ describe('ProviderConfigurationService', () => {
     ]);
   });
 
+  it('marks a model image-capable when Ollama reports vision', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+      String(input).endsWith('/api/show')
+        ? new Response(
+            JSON.stringify({ capabilities: ['completion', 'tools', 'vision'] }),
+          )
+        : String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [] }))
+          : new Response(JSON.stringify({ data: [{ id: 'qwen3.5:397b' }] })),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    await service.discover('ollama-cloud', { save: true });
+
+    expect(service.list()['ollama-cloud']?.models).toEqual([
+      { id: 'qwen3.5:397b', input: ['text', 'image'] },
+    ]);
+  });
+
+  it('leaves a model text-only when Ollama reports no vision', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+      String(input).endsWith('/api/show')
+        ? new Response(JSON.stringify({ capabilities: ['completion'] }))
+        : String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [] }))
+          : new Response(JSON.stringify({ data: [{ id: 'glm-5.2' }] })),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    await service.discover('ollama-cloud', { save: true });
+
+    expect(service.list()['ollama-cloud']?.models).toEqual([{ id: 'glm-5.2' }]);
+  });
+
+  it('still succeeds when a capability probe fails, leaving the model text-only', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/api/show')) {
+        return new Response('nope', { status: 500 });
+      }
+      if (url.endsWith('/api/tags')) {
+        return new Response(JSON.stringify({ models: [] }));
+      }
+      return new Response(JSON.stringify({ data: [{ id: 'qwen3.5:397b' }] }));
+    });
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    // A probe failure is not a discovery failure: the ids were found, so the
+    // call resolves and the unprobed model simply stays text-only.
+    await expect(
+      service.discover('ollama-cloud', { save: true }),
+    ).resolves.toEqual({ models: [{ id: 'qwen3.5:397b' }] });
+    expect(service.list()['ollama-cloud']?.models).toEqual([
+      { id: 'qwen3.5:397b' },
+    ]);
+  });
+
+  it('lets an explicit text-only declaration outrank a detected capability', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+      String(input).endsWith('/api/show')
+        ? new Response(JSON.stringify({ capabilities: ['vision'] }))
+        : String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [] }))
+          : new Response(JSON.stringify({ data: [{ id: 'qwen3.5:397b' }] })),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', {
+      baseUrl: 'https://ollama.com/v1',
+      // Pinned to text on purpose; auto-detection must not quietly re-enable
+      // image egress on the next refresh.
+      models: [{ id: 'qwen3.5:397b', input: ['text'] }],
+    });
+
+    await service.discover('ollama-cloud', { save: true });
+
+    expect(service.list()['ollama-cloud']?.models).toEqual([
+      { id: 'qwen3.5:397b', input: ['text'] },
+    ]);
+  });
+
   it('merges OpenAI and Ollama discovery and saves only the model patch', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
-      return url.endsWith('/api/tags')
-        ? new Response(
-            JSON.stringify({
-              models: [{ name: 'gemma4:31b-cloud' }, { name: 'shared' }],
-            }),
-          )
-        : new Response(
-            JSON.stringify({ data: [{ id: 'shared' }, { id: 'local' }] }),
-          );
+      if (url.endsWith('/api/tags')) {
+        // Shape a local Ollama returns: capabilities inline, no probe needed.
+        return new Response(
+          JSON.stringify({
+            models: [
+              {
+                name: 'gemma4:31b-cloud',
+                capabilities: ['completion', 'vision'],
+              },
+              { name: 'shared', capabilities: ['completion'] },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith('/api/show')) {
+        return new Response(JSON.stringify({ capabilities: ['completion'] }));
+      }
+      return new Response(
+        JSON.stringify({ data: [{ id: 'shared' }, { id: 'local' }] }),
+      );
     });
     const { service } = fixture({ fetchImpl });
     await service.set('ollama-cloud', {
@@ -245,14 +339,24 @@ describe('ProviderConfigurationService', () => {
     await expect(
       service.discover('ollama-cloud', { save: true }),
     ).resolves.toEqual({
-      models: ['gemma4:31b-cloud', 'local', 'shared'],
+      models: [
+        { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
+        { id: 'local' },
+        { id: 'shared' },
+      ],
     });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    // /v1/models + /api/tags + one /api/show for `local`, the only id the tags
+    // response did not describe. The two it did describe are not re-fetched.
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
     expect(service.list()['ollama-cloud']).toMatchObject({
       api: 'openai-responses',
       baseUrl: 'https://ollama.com/v1',
       hasApiKey: true,
-      models: [{ id: 'gemma4:31b-cloud' }, { id: 'local' }, { id: 'shared' }],
+      models: [
+        { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
+        { id: 'local' },
+        { id: 'shared' },
+      ],
     });
   });
 
@@ -268,8 +372,9 @@ describe('ProviderConfigurationService', () => {
     });
 
     await expect(service.discover('remote')).resolves.toEqual({
-      models: ['remote-model'],
+      models: [{ id: 'remote-model' }],
     });
+    // A non-Ollama provider must not be probed: one call, no /api/show.
     expect(fetchImpl).toHaveBeenCalledOnce();
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://provider.example/v1/models',
