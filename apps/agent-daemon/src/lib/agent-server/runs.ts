@@ -31,12 +31,12 @@ import {
   type SecretProviderRegistry,
   selectAgentKeyReference,
 } from '@themoltnet/sdk';
-import { connect } from '@themoltnet/sdk/node';
 
 import {
   DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
   type LocalOperationalSettings,
 } from '../options.js';
+import { connectActivatedAgent } from './agent-connection.js';
 import {
   type ActivatedAgent,
   AgentServerIdentityError,
@@ -535,7 +535,7 @@ export class RunManager {
     activated: ActivatedAgent,
     cwd: string,
   ): Promise<string | undefined> {
-    const agent = await this.connectActivatedAgent(activated, spec.teamId);
+    const agent = await this.connectAgent(activated, spec.teamId);
     const profiles = await resolveRuntimeProfiles({
       agent,
       profiles: spec.profiles,
@@ -571,30 +571,14 @@ export class RunManager {
     );
   }
 
-  private async connectActivatedAgent(
-    activated: ActivatedAgent,
-    teamId: string,
-  ) {
-    const { activation, config } = activated;
-    const agentKey = await resolveAgentKey(
-      config,
-      activation.source === 'managed'
-        ? this.options.secretProviders
-        : this.options.externalSecretProviders,
+  private connectAgent(activated: ActivatedAgent, teamId: string) {
+    return connectActivatedAgent({
+      activated,
       teamId,
-    );
-    if (!agentKey) {
-      throw new AgentServerRunError(
-        'invalid_spec',
-        `agent "${activation.alias}" has no agent key`,
-      );
-    }
-    return connect({
-      agentKey,
-      apiUrl:
-        activation.source === 'managed'
-          ? activation.apiUrl
-          : (activation.apiUrl ?? activation.configApiUrl),
+      secretProviders: this.options.secretProviders,
+      externalSecretProviders: this.options.externalSecretProviders,
+      onMissingKey: (message) =>
+        new AgentServerRunError('invalid_spec', message),
     });
   }
 
