@@ -14,6 +14,7 @@ import {
   MAX_DISCOVERED_MODELS,
   ModelDiscoveryCollector,
   parseProviderBaseUrl,
+  readOllamaModalities,
 } from './agent-server/model-discovery.js';
 import {
   type AgentServerStore,
@@ -28,6 +29,13 @@ import { withProviderMutationLock } from './provider-lock.js';
 import { safeErrorContext } from './safe-error-context.js';
 
 const DEFAULT_PROVIDER_API = 'openai-completions';
+
+/**
+ * Concurrent `/api/show` probes. Small on purpose: this runs against a
+ * third-party endpoint on an operator's behalf, and discovery is interactive,
+ * so the cap favours being a polite client over shaving a second.
+ */
+const MODALITY_PROBE_CONCURRENCY = 5;
 
 export interface ProviderView {
   api: string;
@@ -276,7 +284,7 @@ export class ProviderConfigurationService {
   async discover(
     providerIdInput: string,
     options: { save?: boolean; signal?: AbortSignal } = {},
-  ): Promise<{ models: string[] }> {
+  ): Promise<{ models: ProviderModelEntry[] }> {
     const providerId = assertProviderId(providerIdInput);
     const provider = this.options.store.readProviders()[providerId];
     if (!provider) {
@@ -330,33 +338,123 @@ export class ProviderConfigurationService {
         'Provider model discovery result was truncated',
       );
     }
-    if (options.save) {
-      // Discovery endpoints report ids only. Re-declaring modalities is a
-      // manual decision, so carry the existing ones across a refresh instead
-      // of silently demoting a vision model back to text-only.
-      const declared = new Map(
-        provider.models.map((model) => [model.id, model.input]),
-      );
-      await this.set(
+    // Probe only what is still unknown, and only after truncation, so a
+    // provider listing thousands of models cannot turn discovery into
+    // thousands of requests.
+    if (isOllamaProvider(providerId, parsed) && result.unresolved.length > 0) {
+      await this.resolveOllamaModalities({
+        collector,
+        headers,
+        ids: result.unresolved,
+        origin: parsed.origin,
         providerId,
+        signal: options.signal,
+      });
+    }
+    // Re-read after the probes so newly learned modalities are included.
+    const resolved = collector.result(providerId, failures);
+    // An operator's explicit declaration outranks anything detected: marking a
+    // model text-only on purpose (`--model-input <id>=text`) must survive a
+    // refresh that would otherwise re-detect it as image-capable.
+    const declared = new Map(
+      provider.models.map((model) => [model.id, model.input]),
+    );
+    const models = resolved.models.map((model) => {
+      const override = declared.get(model.id);
+      return override && override.length > 0
+        ? { id: model.id, input: [...override] }
+        : model;
+    });
+    const detected = models.filter(
+      (model) =>
+        model.input?.includes('image') &&
+        !declared.get(model.id)?.includes('image'),
+    );
+    if (detected.length > 0) {
+      // Declaring a model image-capable is what allows image bytes to leave the
+      // runtime for the provider, so it is named rather than done silently.
+      this.logger.info(
         {
-          models: result.models.map((id) => {
-            const input = declared.get(id);
-            return input && input.length > 0 ? { id, input } : { id };
-          }),
+          code: 'agent_server_provider_discovery_modalities_detected',
+          models: detected.map((model) => model.id),
+          providerId,
         },
-        options,
+        'Provider models reported image input support',
       );
+    }
+    if (options.save) {
+      await this.set(providerId, { models }, options);
     }
     this.logger.info(
       {
         code: 'agent_server_provider_discovery_completed',
-        modelCount: result.models.length,
+        modelCount: models.length,
         providerId,
       },
       'Provider model discovery completed',
     );
-    return { models: result.models };
+    return { models };
+  }
+
+  /**
+   * Fill in modalities Ollama Cloud's `/api/tags` omits, one `/api/show` per
+   * still-unknown model.
+   *
+   * Failures here are deliberately not pushed into the discovery `failures`
+   * array: that array decides the error code of a *failed* discovery, so a
+   * probe rejection must not relabel an otherwise-successful one. A model whose
+   * probe fails simply stays text-only.
+   */
+  private async resolveOllamaModalities(input: {
+    collector: ModelDiscoveryCollector;
+    headers: Record<string, string>;
+    ids: readonly string[];
+    origin: string;
+    providerId: string;
+    signal?: AbortSignal;
+  }): Promise<void> {
+    const url = `${input.origin}/api/show`;
+    for (
+      let index = 0;
+      index < input.ids.length;
+      index += MODALITY_PROBE_CONCURRENCY
+    ) {
+      // Without this, a cancelled discovery waits for every remaining batch:
+      // the composed signal only lands inside an in-flight fetch, so the
+      // caller could block for batches x request-timeout before hearing back.
+      if (input.signal?.aborted) {
+        throw new ProviderConfigurationError(
+          'operation_aborted',
+          `provider "${input.providerId}" discovery was cancelled`,
+          408,
+          { cause: input.signal.reason },
+        );
+      }
+      const batch = input.ids.slice(index, index + MODALITY_PROBE_CONCURRENCY);
+      await Promise.all(
+        batch.map(async (id) => {
+          const body = await this.requestDiscoveryEndpoint({
+            body: { model: id },
+            endpoint: 'ollama_show',
+            // A throwaway array: probe failures stay out of the discovery
+            // failure record by construction, not by convention.
+            failures: [],
+            // Same host and same credential as /v1/models and /api/tags, which
+            // this provider is already authenticated against. /api/show needs
+            // no auth for public models, but a private one on the operator's
+            // own account does, so the header is sent deliberately rather than
+            // stripped.
+            headers: input.headers,
+            method: 'POST',
+            providerId: input.providerId,
+            signal: input.signal,
+            url,
+          });
+          const modalities = readOllamaModalities(body);
+          if (modalities) input.collector.setModalities(id, modalities);
+        }),
+      );
+    }
   }
 
   private async resolveApiKey(
@@ -386,14 +484,29 @@ export class ProviderConfigurationService {
     }
   }
 
-  private async requestDiscoveryEndpoint(input: {
-    endpoint: 'openai_models' | 'ollama_tags';
-    failures: DiscoveryFailure[];
-    headers: Record<string, string>;
-    providerId: string;
-    signal?: AbortSignal;
-    url: string;
-  }): Promise<unknown> {
+  private async requestDiscoveryEndpoint(
+    input: {
+      failures: DiscoveryFailure[];
+      headers: Record<string, string>;
+      providerId: string;
+      signal?: AbortSignal;
+      url: string;
+    } & (
+      | {
+          // Only the probe is a POST, and only it carries a body. Keyed on the
+          // endpoint so a body cannot be passed with a GET listing and silently
+          // turn it into a 405.
+          endpoint: 'ollama_show';
+          method: 'POST';
+          body: Record<string, unknown>;
+        }
+      | {
+          endpoint: 'openai_models' | 'ollama_tags';
+          method?: never;
+          body?: never;
+        }
+    ),
+  ): Promise<unknown> {
     const startedAt = Date.now();
     const timeout = AbortSignal.timeout(
       this.options.requestTimeoutMs ?? 10_000,
@@ -401,7 +514,12 @@ export class ProviderConfigurationService {
     let response: Response;
     try {
       response = await this.fetchImpl(input.url, {
-        headers: input.headers,
+        ...(input.body
+          ? { body: JSON.stringify(input.body), method: input.method }
+          : {}),
+        headers: input.body
+          ? { ...input.headers, 'content-type': 'application/json' }
+          : input.headers,
         redirect: 'error',
         signal: input.signal
           ? AbortSignal.any([input.signal, timeout])

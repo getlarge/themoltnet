@@ -1,5 +1,7 @@
 import { isIP } from 'node:net';
 
+import type { ProviderModelEntry, ProviderModelModality } from './store.js';
+
 export const MAX_DISCOVERED_MODELS = 500;
 
 export class AgentServerModelDiscoveryError extends Error {
@@ -25,15 +27,55 @@ export type DiscoveryFailure =
   | { kind: 'network'; errorType: string }
   | { kind: 'invalid_response' };
 
+/**
+ * The Ollama capability that means a model accepts image input. Ollama also
+ * reports `completion`, `tools`, `thinking` and `embedding`; none of those map
+ * onto a Pi input modality, so only this one is read.
+ */
+const OLLAMA_VISION_CAPABILITY = 'vision';
+
+/**
+ * Read Ollama's `capabilities` array, when the endpoint supplies one.
+ *
+ * Returns `undefined` when the field is absent — which is meaningfully
+ * different from "present and without vision". A local Ollama returns
+ * capabilities from `/api/tags`; Ollama Cloud does not, and needs a per-model
+ * `/api/show` probe. Only an explicit absence should trigger that probe.
+ */
+export function readOllamaModalities(
+  value: unknown,
+): ProviderModelModality[] | undefined {
+  if (!isRecord(value) || !Array.isArray(value['capabilities']))
+    return undefined;
+  return value['capabilities'].includes(OLLAMA_VISION_CAPABILITY)
+    ? ['text', 'image']
+    : [];
+}
+
 export class ModelDiscoveryCollector {
-  private readonly models = new Set<string>();
+  /**
+   * Model id → declared input modalities. `undefined` means the id is known but
+   * its capabilities are not, so it is still a probe candidate; `[]` means the
+   * source answered and the model is text-only.
+   */
+  private readonly models = new Map<
+    string,
+    ProviderModelModality[] | undefined
+  >();
+
+  private record(id: string, input: ProviderModelModality[] | undefined): void {
+    // Never let a later id-only sighting erase modalities an earlier response
+    // supplied: /v1/models and /api/tags overlap, and only one carries them.
+    if (input === undefined && this.models.has(id)) return;
+    this.models.set(id, input);
+  }
 
   addOpenAiResponse(value: unknown): void {
     if (!isRecord(value) || !Array.isArray(value['data'])) return;
     for (const candidate of value['data']) {
       if (!isRecord(candidate)) continue;
       const id = candidate['id'];
-      if (typeof id === 'string' && id.length > 0) this.models.add(id);
+      if (typeof id === 'string' && id.length > 0) this.record(id, undefined);
     }
   }
 
@@ -42,8 +84,15 @@ export class ModelDiscoveryCollector {
     for (const candidate of value['models']) {
       if (!isRecord(candidate)) continue;
       const name = candidate['name'];
-      if (typeof name === 'string' && name.length > 0) this.models.add(name);
+      if (typeof name === 'string' && name.length > 0) {
+        this.record(name, readOllamaModalities(candidate));
+      }
     }
+  }
+
+  /** Attach modalities learned after collection, e.g. from an `/api/show` probe. */
+  setModalities(id: string, input: ProviderModelModality[]): void {
+    if (this.models.has(id)) this.models.set(id, input);
   }
 
   get size(): number {
@@ -54,12 +103,19 @@ export class ModelDiscoveryCollector {
     providerId: string,
     failures: readonly DiscoveryFailure[],
   ): {
-    models: string[];
+    models: ProviderModelEntry[];
+    /** Ids still lacking capability information, in returned order. */
+    unresolved: string[];
     discoveredCount: number;
   } {
     if (this.models.size === 0) throw discoveryFailure(providerId, failures);
+    const ids = [...this.models.keys()].sort().slice(0, MAX_DISCOVERED_MODELS);
     return {
-      models: [...this.models].sort().slice(0, MAX_DISCOVERED_MODELS),
+      models: ids.map((id) => {
+        const input = this.models.get(id);
+        return input && input.length > 0 ? { id, input: [...input] } : { id };
+      }),
+      unresolved: ids.filter((id) => this.models.get(id) === undefined),
       discoveredCount: this.models.size,
     };
   }

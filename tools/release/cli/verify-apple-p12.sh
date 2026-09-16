@@ -43,9 +43,25 @@ openssl_pkcs12_decode() {
   fi
 }
 
-if ! openssl_pkcs12_decode -in "$p12" -passin env:APPLE_CERT_PASSWORD \
-  -nokeys -out "$work/bundle.pem" 2>/dev/null; then
+# Print the OpenSSL build and the captured error under a failure headline.
+# Which OpenSSL is on PATH decides whether the legacy provider, `-ignore_critical`
+# and `-purpose any` behave as expected, and it differs between the release
+# runner and a developer machine — without it a failure here is unactionable.
+# Bounded so a pathological error cannot bury the headline.
+openssl_diagnostics() {
+  echo "  openssl: $(openssl version 2>&1)" >&2
+  if [ -n "${1:-}" ]; then
+    printf '%s\n' "$1" | head -10 | sed 's/^/  /' >&2
+  fi
+}
+
+# Capture rather than discard: a wrong password, an OpenSSL build without the
+# legacy provider, and a truncated base64 secret are indistinguishable from the
+# headline alone. `-passin env:` keeps the password out of OpenSSL's output.
+if ! decode_error=$(openssl_pkcs12_decode -in "$p12" \
+  -passin env:APPLE_CERT_PASSWORD -nokeys -out "$work/bundle.pem" 2>&1); then
   echo "APPLE_CERT_P12 could not be decoded; check the P12 and password" >&2
+  openssl_diagnostics "$decode_error"
   exit 1
 fi
 
@@ -87,8 +103,10 @@ fi
 # Developer ID certificates contain Apple-specific critical extensions that
 # generic OpenSSL does not interpret. Quill ignores those known extensions;
 # -ignore_critical lets OpenSSL validate the cryptographic chain itself.
-if ! openssl verify -ignore_critical -purpose any -CAfile "$root" -untrusted "$intermediate" "$leaf" >/dev/null 2>&1; then
+if ! verify_error=$(openssl verify -ignore_critical -purpose any \
+  -CAfile "$root" -untrusted "$intermediate" "$leaf" 2>&1); then
   echo "APPLE_CERT_P12 does not contain a valid Developer ID leaf-to-root chain" >&2
+  openssl_diagnostics "$verify_error"
   exit 1
 fi
 

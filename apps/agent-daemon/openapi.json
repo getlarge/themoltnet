@@ -507,7 +507,35 @@
         "properties": {
           "models": {
             "items": {
-              "type": "string"
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "input": {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "text"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "image"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "type": "object"
             },
             "type": "array"
           }

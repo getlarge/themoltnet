@@ -405,7 +405,12 @@ describe('LocalRuntimePage', () => {
 
   it('discovers models from a preset and saves only the selected ones', async () => {
     handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
-      jsonResponse({ models: ['llama3.3:70b', 'qwen3-coder:480b-cloud'] });
+      jsonResponse({
+        models: [
+          { id: 'llama3.3:70b' },
+          { id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] },
+        ],
+      });
     handlers['PUT /v1/providers/ollama-local'] = (init) =>
       jsonResponse({
         api: 'openai-completions',
@@ -425,7 +430,9 @@ describe('LocalRuntimePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
     const modelCheckbox = await screen.findByRole('checkbox', {
-      name: 'qwen3-coder:480b-cloud',
+      // The image chip is inside the label, so it joins the accessible name;
+      // that is deliberate, so a screen reader announces the capability.
+      name: /^qwen3-coder:480b-cloud/u,
     });
     fireEvent.click(modelCheckbox);
     fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
@@ -441,7 +448,9 @@ describe('LocalRuntimePage', () => {
       expect(put?.body).toMatchObject({
         baseUrl: 'http://localhost:11434/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
-        models: [{ id: 'qwen3-coder:480b-cloud' }],
+        // The daemon detected the modality; the console saves it back
+        // untouched rather than re-deriving it.
+        models: [{ id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] }],
       });
     });
     const discovery = requests.find((entry) =>
@@ -525,11 +534,51 @@ describe('LocalRuntimePage', () => {
     });
   });
 
+  it('saves an operator text-only override even when discovery detects vision', async () => {
+    agentServerState.status.providers.ollama.models = [
+      { id: 'qwen3.5:397b', input: ['text'] },
+    ] as AgentServerProviderModel[];
+    // The daemon resolves the override server-side, so what discovery returns
+    // is already the answer the console must save back untouched.
+    handlers['POST /v1/providers/ollama/discover-models'] = () =>
+      jsonResponse({ models: [{ id: 'qwen3.5:397b', input: ['text'] }] });
+    handlers['PUT /v1/providers/ollama'] = (init) =>
+      jsonResponse({
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
+        models: JSON.parse(String(init?.body)).models,
+        hasApiKey: true,
+      });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    await screen.findByRole('checkbox', { name: /qwen3\.5:397b/u });
+    fireEvent.click(screen.getByRole('checkbox', { name: /qwen3\.5:397b/u }));
+    fireEvent.click(screen.getByRole('button', { name: 'Update provider' }));
+
+    await waitFor(() => {
+      const put = requests
+        .filter(
+          (entry) =>
+            entry.method === 'PUT' &&
+            entry.url.endsWith('/v1/providers/ollama'),
+        )
+        .at(-1);
+      // Re-deriving from stored state instead of round-tripping the entry
+      // would be the regression this pins.
+      expect(put?.body).toMatchObject({
+        models: [{ id: 'qwen3.5:397b', input: ['text'] }],
+      });
+    });
+  });
+
   it('renders large discovery results in bounded, filterable pages', async () => {
-    const models = Array.from(
-      { length: 120 },
-      (_value, index) => `model-${String(index).padStart(3, '0')}`,
-    );
+    const models = Array.from({ length: 120 }, (_value, index) => ({
+      id: `model-${String(index).padStart(3, '0')}`,
+    }));
     handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
       jsonResponse({ models });
     handlers['PUT /v1/providers/ollama-local'] = () =>

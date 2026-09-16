@@ -113,7 +113,10 @@ export type CancelledSubscription = {
 };
 
 export type DiscoveredModels = {
-  models: Array<string>;
+  models: Array<{
+    id: string;
+    input?: Array<'text' | 'image'>;
+  }>;
 };
 
 export type PairingClaimed = {

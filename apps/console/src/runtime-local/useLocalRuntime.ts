@@ -12,6 +12,7 @@ import {
   type AgentServerAgentView,
   type AgentServerClient,
   AgentServerClientError,
+  type AgentServerProviderModel,
   type AgentServerStatus,
   type AgentServerSubscriptionLogin,
   type CreateAgentBody,
@@ -75,7 +76,7 @@ export interface LocalRuntimeController {
   subscriptionLogin: AgentServerSubscriptionLogin | null;
   connectSubscription(providerId: string): Promise<void>;
   cancelSubscription(providerId: string): Promise<void>;
-  discoverModels(providerId: string): Promise<string[]>;
+  discoverModels(providerId: string): Promise<AgentServerProviderModel[]>;
 }
 
 export function useLocalRuntime(): LocalRuntimeController {

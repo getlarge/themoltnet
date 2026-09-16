@@ -456,7 +456,17 @@ async function discoverProvider(
     signal: context.signal,
   });
   if (parsed.json) context.stdout(JSON.stringify(result));
-  else for (const model of result.models) context.stdout(model);
+  else {
+    // Annotate rather than dump the object: the id stays the first field so
+    // the output is still pipeable, with the modality visible when detected.
+    for (const model of result.models) {
+      context.stdout(
+        model.input && model.input.length > 0
+          ? `${model.id}\t${model.input.join(',')}`
+          : model.id,
+      );
+    }
+  }
   return 0;
 }
 

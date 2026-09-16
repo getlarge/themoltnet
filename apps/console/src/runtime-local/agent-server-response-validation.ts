@@ -1,6 +1,20 @@
+import type { AgentServerProvider } from '@moltnet/agent-daemon-api-client';
 import type { Static, TSchema } from 'typebox';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
+
+/**
+ * The modality union as it appears on the wire, taken from the generated
+ * client rather than restated. The daemon derives its schema from
+ * `PI_MODEL_MODALITIES`; that module is a Node-only writer and cannot be
+ * imported into a browser bundle, so the generated type is the shared
+ * artefact both sides already agree on.
+ */
+type WireModality = NonNullable<
+  AgentServerProvider['models'][number]['input']
+>[number];
+
+type AssertExhaustive<T extends never> = T;
 
 const DateTimeSchema = Type.String();
 const StringArraySchema = Type.Array(Type.String());
@@ -33,14 +47,30 @@ export const AgentServerIdentityViewSchema = Type.Object({
 /** A provider model plus the input modalities it accepts. */
 export const AgentServerProviderModelSchema = Type.Object({
   id: Type.String(),
+  // Mirrors the daemon's ProviderModelSchema, minItems included: an empty
+  // `input` is never emitted, so accepting one here would let the console
+  // validate a shape the daemon rejects.
+  // Literals are spelled out so `Static<>` keeps the union; a mapped array
+  // widens to never[]. `_AllModalitiesValidated` below is what guards drift.
   input: Type.Optional(
-    Type.Array(Type.Union([Type.Literal('text'), Type.Literal('image')])),
+    Type.Array(Type.Union([Type.Literal('text'), Type.Literal('image')]), {
+      minItems: 1,
+    }),
   ),
 });
 
 /** One provider model as the console models it internally. */
 export type AgentServerProviderModel = Static<
   typeof AgentServerProviderModelSchema
+>;
+
+/**
+ * Fails to compile if the wire gains a modality the schema above does not
+ * validate. Derived from the schema itself, so it tracks whatever that schema
+ * accepts rather than a second list that could drift from it.
+ */
+export type _AllModalitiesValidated = AssertExhaustive<
+  Exclude<WireModality, NonNullable<AgentServerProviderModel['input']>[number]>
 >;
 
 export const AgentServerProviderViewSchema = Type.Object({
@@ -116,7 +146,9 @@ export const PairingStartedSchema = Type.Object({
 export const PairingClaimedSchema = Type.Object({ token: Type.String() });
 
 export const DiscoverModelsSchema = Type.Object({
-  models: StringArraySchema,
+  // The daemon resolves input modalities during discovery; the console saves
+  // what it was handed rather than re-deriving them here.
+  models: Type.Array(AgentServerProviderModelSchema),
 });
 
 export const ProblemSchema = Type.Object({

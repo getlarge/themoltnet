@@ -265,8 +265,17 @@ describe('moltnet-agent providers', () => {
       const href =
         typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
       const body = href.endsWith('/api/tags')
-        ? { models: [{ name: 'gemma4:31b-cloud' }] }
-        : { data: [{ id: 'local-model' }] };
+        ? {
+            models: [
+              {
+                name: 'gemma4:31b-cloud',
+                capabilities: ['completion', 'vision'],
+              },
+            ],
+          }
+        : href.endsWith('/api/show')
+          ? { capabilities: ['completion'] }
+          : { data: [{ id: 'local-model' }] };
       return Promise.resolve(new Response(JSON.stringify(body)));
     });
     const test = await fixture({ fetchImpl });
@@ -282,7 +291,10 @@ describe('moltnet-agent providers', () => {
       }),
     ).toBe(0);
     expect(JSON.parse(test.stdout.at(-1) ?? '{}')).toEqual({
-      models: ['gemma4:31b-cloud', 'local-model'],
+      models: [
+        { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
+        { id: 'local-model' },
+      ],
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
       { id: 'existing' },
@@ -295,7 +307,7 @@ describe('moltnet-agent providers', () => {
       }),
     ).toBe(0);
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'gemma4:31b-cloud' },
+      { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
       { id: 'local-model' },
     ]);
   });

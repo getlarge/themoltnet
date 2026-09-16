@@ -728,7 +728,9 @@ describe('provider model discovery', () => {
       headers: authedHeaders(token),
     });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ models: ['gpt-oss:120b', 'qwen3'] });
+    expect(response.json()).toEqual({
+      models: [{ id: 'gpt-oss:120b' }, { id: 'qwen3' }],
+    });
     expect(calls[0]).toEqual({
       url: 'https://ollama.com/v1/models',
       auth: 'Bearer sk-test',
@@ -764,7 +766,7 @@ describe('provider model discovery', () => {
       url: '/v1/providers/ollama-local/discover-models',
       headers: authedHeaders(token),
     });
-    expect(ok.json()).toEqual({ models: ['llama3.3:70b'] });
+    expect(ok.json()).toEqual({ models: [{ id: 'llama3.3:70b' }] });
 
     const dead = (async () =>
       new Response('nope', { status: 404 })) as unknown as typeof fetch;
