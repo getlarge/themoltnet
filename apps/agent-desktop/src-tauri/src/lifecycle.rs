@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 #[cfg(unix)]
+use crate::control::{NativeToken, NATIVE_TOKEN_ENV};
+use serde::{Deserialize, Serialize};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
@@ -187,6 +188,17 @@ pub struct LifecycleManager {
     logs: Arc<Mutex<LogBuffer>>,
     retry_used: bool,
     home: PathBuf,
+    /// Grant for the server process currently running, if any. Regenerated on
+    /// every spawn and dropped when the child stops, so it is scoped to one
+    /// process exactly as the server's own grant map is.
+    control_token: Option<NativeToken>,
+}
+
+impl LifecycleManager {
+    /// The grant for the running server, if one is running.
+    pub fn control_token(&self) -> Option<&NativeToken> {
+        self.child.as_ref().and(self.control_token.as_ref())
+    }
 }
 
 impl Default for LifecycleManager {
@@ -208,6 +220,7 @@ impl LifecycleManager {
             logs: Arc::new(Mutex::new(LogBuffer::new(log_path))),
             retry_used: false,
             home,
+            control_token: None,
         }
     }
 
@@ -487,7 +500,14 @@ impl LifecycleManager {
 
         let mut last_failure = "Agent Server failed to start".to_string();
         for attempt in 0..MAX_START_ATTEMPTS {
+            let token = match NativeToken::generate() {
+                Ok(token) => token,
+                Err(error) => return self.fail(&error),
+            };
             let mut command = agent_server_command(&self.executable());
+            // The child consumes and unsets this, so its own run children
+            // cannot inherit the desktop's control grant.
+            command.env(NATIVE_TOKEN_ENV, token.expose());
             let mut child = match command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
@@ -507,6 +527,7 @@ impl LifecycleManager {
             loop {
                 let health_error = match health_ready() {
                     Ok(()) => {
+                        self.control_token = Some(token.clone());
                         self.child = Some(child);
                         self.retry_used = retry_budget_after_start(origin, attempt);
                         self.set_state(
