@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.0](https://github.com/getlarge/themoltnet/compare/cli-v3.0.0...cli-v3.1.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **cli:** decode policies with one-token shell command rules ([1a5a7f2](https://github.com/getlarge/themoltnet/commit/1a5a7f2b3d453a2d055758637c866bc1c50eb7c5))
+* **cli:** decode policies with one-token shell command rules ([ebc34ad](https://github.com/getlarge/themoltnet/commit/ebc34ad9ffe329927528bcd6631f99f24a6271d8))
+
 ## [3.0.0](https://github.com/getlarge/themoltnet/compare/cli-v2.4.0...cli-v3.0.0) (2026-09-15)
 
 
