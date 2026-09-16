@@ -53,6 +53,49 @@ describe('writePiConfig', () => {
     });
   });
 
+  it('emits declared input modalities and omits them when undeclared', () => {
+    const dir = piDir();
+
+    writePiConfig({
+      piDir: dir,
+      providers: {
+        'ollama-cloud': {
+          api: 'openai-completions',
+          apiKeyEnvRef: '$OLLAMA_API_KEY',
+          baseUrl: 'https://ollama.com/v1',
+          models: [
+            { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+            { id: 'glm-5.2:cloud' },
+            'gpt-oss:120b-cloud',
+          ],
+        },
+      },
+    });
+
+    const models = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf8'));
+    expect(models.providers['ollama-cloud'].models).toEqual([
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+      { id: 'glm-5.2:cloud' },
+      { id: 'gpt-oss:120b-cloud' },
+    ]);
+  });
+
+  it('declares input modalities for the single-provider eval form', () => {
+    const dir = piDir();
+
+    writePiConfig({
+      piDir: dir,
+      provider: 'ollama-cloud',
+      model: 'qwen3.5:397b-cloud',
+      input: ['text', 'image'],
+    });
+
+    const models = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf8'));
+    expect(models.providers['ollama-cloud'].models).toEqual([
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+    ]);
+  });
+
   it('writes multiple providers, environment placeholders, and custom settings', () => {
     const dir = piDir();
 
