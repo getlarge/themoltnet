@@ -14,6 +14,10 @@ const workflow = readFileSync(
   new URL('../../../.github/workflows/release.yml', import.meta.url),
   'utf8',
 );
+const desktopReleaseJob = workflow.slice(
+  workflow.indexOf('  release-agent-desktop:'),
+  workflow.indexOf('  propose-cli-go-mod-sync:'),
+);
 const ciWorkflow = readFileSync(
   new URL('../../../.github/workflows/ci.yml', import.meta.url),
   'utf8',
@@ -218,6 +222,37 @@ describe('Nx release configuration', () => {
     expect(releaseCommand).toBe(
       `${bundleTarget.options.command} --config "$TAURI_CONFIG"`,
     );
+  });
+
+  it('notarizes and staples the outer desktop DMG before validation', () => {
+    const submit = desktopReleaseJob.indexOf('xcrun notarytool submit "$dmg"');
+    const staple = desktopReleaseJob.indexOf('xcrun stapler staple "$dmg"');
+    const validate = desktopReleaseJob.indexOf('xcrun stapler validate "$dmg"');
+
+    expect(submit).toBeGreaterThan(-1);
+    expect(desktopReleaseJob).toContain('--key "$APPLE_API_KEY_PATH"');
+    expect(desktopReleaseJob).toContain('--key-id "$APPLE_API_KEY"');
+    expect(desktopReleaseJob).toContain('--issuer "$APPLE_API_ISSUER"');
+    expect(desktopReleaseJob).toContain('--timeout 45m');
+    expect(staple).toBeGreaterThan(submit);
+    expect(validate).toBeGreaterThan(staple);
+  });
+
+  it('binds a desktop release to one reviewed main revision', () => {
+    expect(desktopReleaseJob).toContain(
+      'git merge-base --is-ancestor "$revision" origin/main',
+    );
+    expect(desktopReleaseJob).toContain(
+      'tag_revision=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)',
+    );
+    expect(desktopReleaseJob).toContain('[ "$tag_revision" = "$revision" ]');
+    expect(desktopReleaseJob).toContain(
+      '[ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ]',
+    );
+    expect(desktopReleaseJob).toContain(
+      '[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ]',
+    );
+    expect(desktopReleaseJob.match(/verify_release_revision/g)).toHaveLength(3);
   });
 
   it('can republish failed Docker releases from their existing drafts', () => {
