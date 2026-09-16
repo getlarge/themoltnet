@@ -38,6 +38,11 @@ export const AgentServerProviderModelSchema = Type.Object({
   ),
 });
 
+/** One provider model as the console models it internally. */
+export type AgentServerProviderModel = Static<
+  typeof AgentServerProviderModelSchema
+>;
+
 export const AgentServerProviderViewSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String(),

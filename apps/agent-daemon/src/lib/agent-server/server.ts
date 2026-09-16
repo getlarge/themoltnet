@@ -19,6 +19,7 @@ import {
   rejectExplicitCrossSite,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
+import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type SecretProviderRegistry } from '@themoltnet/sdk';
 import { type FileSecretProvider } from '@themoltnet/sdk/node';
 import Fastify, {
@@ -242,7 +243,7 @@ function stringArray(
   return value as string[];
 }
 
-const MODEL_MODALITIES = new Set(['text', 'image']);
+const MODEL_MODALITIES = new Set<string>(PI_MODEL_MODALITIES);
 
 /**
  * Parse the provider `models` field. Accepts a bare id or an object declaring

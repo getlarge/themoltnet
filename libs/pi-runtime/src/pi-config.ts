@@ -2,8 +2,15 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/**
+ * Every input modality Pi understands. Canonical for the repo: daemon
+ * validation, CLI parsing and wire schemas derive their allowed values from
+ * this list so they cannot drift from what Pi actually accepts.
+ */
+export const PI_MODEL_MODALITIES = ['text', 'image'] as const;
+
 /** Input modalities Pi understands for a model entry. */
-export type PiModelModality = 'text' | 'image';
+export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
 
 /**
  * A model entry in Pi's `models.json`. `input` declares the modalities the

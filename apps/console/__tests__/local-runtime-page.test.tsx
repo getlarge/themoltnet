@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocalRuntimePage } from '../src/pages/LocalRuntimePage.js';
+import type { AgentServerProviderModel } from '../src/runtime-local/agent-server-response-validation.js';
 import { createTestWrapper } from './test-query-client.js';
 
 const AGENT_SERVER = 'http://127.0.0.1:17374';
@@ -82,7 +83,7 @@ const agentServerState = {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
         envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-        models: [{ id: 'qwen3' }],
+        models: [{ id: 'qwen3' }] as AgentServerProviderModel[],
         hasApiKey: true,
       },
     },
@@ -477,6 +478,44 @@ describe('LocalRuntimePage', () => {
         ),
       ).toBe(true),
     );
+  });
+
+  it('keeps declared input modalities when an existing provider is saved', async () => {
+    // A vision model declared elsewhere (moltnet-agent providers set
+    // --model-input). Saving from the console must not silently strip it.
+    agentServerState.status.providers.ollama.models = [
+      { id: 'qwen3' },
+      { id: 'qwen3.5:397b', input: ['text', 'image'] },
+    ];
+    handlers['PUT /v1/providers/ollama'] = (init) =>
+      jsonResponse({
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
+        models: JSON.parse(String(init?.body)).models,
+        hasApiKey: true,
+      });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Update provider' }));
+
+    await waitFor(() => {
+      const put = requests
+        .filter(
+          (entry) =>
+            entry.method === 'PUT' &&
+            entry.url.endsWith('/v1/providers/ollama'),
+        )
+        .at(-1);
+      expect(put?.body).toMatchObject({
+        models: expect.arrayContaining([
+          { id: 'qwen3.5:397b', input: ['text', 'image'] },
+        ]),
+      });
+    });
   });
 
   it('renders large discovery results in bounded, filterable pages', async () => {

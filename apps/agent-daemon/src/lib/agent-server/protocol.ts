@@ -1,3 +1,4 @@
+import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
@@ -9,9 +10,10 @@ const StringList = Type.Array(Type.String());
 const ProviderModelSchema = Type.Object({
   id: Type.String(),
   input: Type.Optional(
-    Type.Array(Type.Union([Type.Literal('text'), Type.Literal('image')]), {
-      minItems: 1,
-    }),
+    Type.Array(
+      Type.Union(PI_MODEL_MODALITIES.map((modality) => Type.Literal(modality))),
+      { minItems: 1 },
+    ),
   ),
 });
 

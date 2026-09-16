@@ -26,6 +26,7 @@ import {
 } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
+import type { PiModelModality } from '@themoltnet/pi-runtime/pi-config';
 import {
   assertIdentityAlias,
   getConfigDir,
@@ -154,8 +155,11 @@ export interface ExternalAgentActivation extends ActivationIdentity {
 
 export type AgentActivation = ManagedAgentActivation | ExternalAgentActivation;
 
-/** Input modalities a model accepts, mirroring Pi's `models.json` vocabulary. */
-export type ProviderModelModality = 'text' | 'image';
+/**
+ * Input modalities a model accepts. Aliased from the Pi contract rather than
+ * restated, so the daemon cannot accept a modality Pi does not understand.
+ */
+export type ProviderModelModality = PiModelModality;
 
 /**
  * A model offered by a provider. `input` is carried verbatim into the

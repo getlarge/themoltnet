@@ -7,16 +7,17 @@ import {
 } from '@themoltnet/design-system';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import type { AgentServerProviderModel } from './agent-server-response-validation.js';
 import type { LocalRuntimeController } from './useLocalRuntime.js';
 
 const MODEL_PAGE_SIZE = 50;
 
 /**
- * A model offered by a provider. The form selects models by id; `input` is
- * carried through untouched so saving here never strips an image capability
- * declared elsewhere (`moltnet-agent providers set --model-input`).
+ * The form selects models by id; `input` is carried through untouched so
+ * saving here never strips an image capability declared elsewhere
+ * (`moltnet-agent providers set --model-input`).
  */
-type ProviderModel = { id: string; input?: ('text' | 'image')[] };
+type ProviderModel = AgentServerProviderModel;
 
 const PROVIDER_PRESETS = [
   {

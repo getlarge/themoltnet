@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
+import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
@@ -27,7 +28,7 @@ import { ProviderLockError } from '../lib/provider-lock.js';
 
 type SpawnProcess = typeof spawn;
 
-const MODEL_MODALITIES: readonly ProviderModelModality[] = ['text', 'image'];
+const MODEL_MODALITIES: readonly ProviderModelModality[] = PI_MODEL_MODALITIES;
 
 /**
  * Build the model list from `--model <id>` (text-only) and
