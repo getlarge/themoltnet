@@ -2556,7 +2556,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
-          revision=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .target_commitish)
+          revision=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)
           [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || {
             echo "desktop draft $RELEASE_TAG does not identify an immutable release revision" >&2
             exit 1
