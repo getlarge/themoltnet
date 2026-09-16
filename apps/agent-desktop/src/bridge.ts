@@ -24,6 +24,11 @@ export interface DesktopStatus {
   logs: string[];
 }
 
+export interface DesktopUpdateCheck {
+  availableVersion: string | null;
+  message: string;
+}
+
 export const INITIAL_STATUS: DesktopStatus = {
   state: 'checking',
   installedVersion: null,
@@ -39,6 +44,8 @@ export const desktopBridge = {
   install: () => invoke<DesktopStatus>('install_agent'),
   trust: () => invoke<DesktopStatus>('approve_local_trust'),
   retry: () => invoke<DesktopStatus>('retry_server'),
+  start: () => invoke<DesktopStatus>('start_agent_server'),
+  stop: () => invoke<DesktopStatus>('stop_agent_server'),
   checkForUpdates: () => invoke<DesktopStatus>('check_for_agent_updates'),
   installUpdate: () => invoke<DesktopStatus>('install_agent_update'),
   openConsole: () => invoke<void>('open_console'),
@@ -47,7 +54,8 @@ export const desktopBridge = {
   remove: (removeLocalCa: boolean) =>
     invoke<DesktopStatus>('remove_agent_bundle', { removeLocalCa }),
   quit: () => invoke<void>('quit_and_stop'),
-  checkDesktopUpdate: () => invoke<string | null>('check_for_desktop_update'),
+  checkDesktopUpdate: () =>
+    invoke<DesktopUpdateCheck>('check_for_desktop_update'),
   installDesktopUpdate: () => invoke<void>('install_desktop_update'),
   subscribe: (handler: (status: DesktopStatus) => void) =>
     listen<DesktopStatus>('agent-desktop://status', (event) =>

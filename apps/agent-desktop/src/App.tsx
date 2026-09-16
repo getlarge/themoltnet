@@ -63,6 +63,12 @@ type OperationFeedback = {
   message: string;
 };
 
+function errorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'string' && error.trim()) return error;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+}
+
 export function App() {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
@@ -125,8 +131,7 @@ export function App() {
         setFeedback({
           tone: 'error',
           title: 'Action could not be completed',
-          message:
-            error instanceof Error ? error.message : 'Please review the logs.',
+          message: errorMessage(error, 'Please review the logs.'),
         });
       } finally {
         operationInFlight.current = false;
@@ -170,7 +175,12 @@ export function App() {
     if (status.state === 'failed' || status.state === 'stopped')
       return {
         label: status.state === 'stopped' ? 'Start Agent Server' : 'Retry',
-        action: () => void run(desktopBridge.retry),
+        action: () =>
+          void run(
+            status.state === 'stopped'
+              ? desktopBridge.start
+              : desktopBridge.retry,
+          ),
       };
     return null;
   }, [run, status.state]);
@@ -199,8 +209,7 @@ export function App() {
             setFeedback({
               tone: 'error',
               title: 'Desktop update could not be installed',
-              message:
-                error instanceof Error ? error.message : 'Please try again.',
+              message: errorMessage(error, 'Please try again.'),
             });
           } finally {
             setBusy(false);
@@ -224,14 +233,14 @@ export function App() {
     setBusy(true);
     setFeedback(null);
     try {
-      const version = await desktopBridge.checkDesktopUpdate();
-      setDesktopUpdateVersion(version);
-      if (version) setConfirmation('desktop-update');
+      const result = await desktopBridge.checkDesktopUpdate();
+      setDesktopUpdateVersion(result.availableVersion);
+      if (result.availableVersion) setConfirmation('desktop-update');
       else
         setFeedback({
           tone: 'success',
-          title: 'MoltNet Agent is up to date',
-          message: 'No desktop update is available.',
+          title: 'App update status',
+          message: result.message,
         });
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -239,7 +248,7 @@ export function App() {
       setFeedback({
         tone: 'error',
         title: 'Desktop update check failed',
-        message: error instanceof Error ? error.message : 'Please try again.',
+        message: errorMessage(error, 'Please try again.'),
       });
     } finally {
       setBusy(false);
@@ -346,6 +355,16 @@ export function App() {
               {primary ? (
                 <Button onClick={primary.action} loading={busy}>
                   {primary.label}
+                </Button>
+              ) : null}
+              {status.state === 'running' ||
+              status.state === 'update_available' ? (
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => void run(desktopBridge.stop)}
+                >
+                  Stop Agent Server
                 </Button>
               ) : null}
               <Button

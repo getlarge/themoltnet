@@ -62,9 +62,14 @@ struct UpdateResult {
 
 #[derive(Debug, Deserialize)]
 struct TrustResult {
-    supported: bool,
     trusted: bool,
     fingerprint: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct AgentCapabilities {
+    supervised: bool,
+    machine_trust: bool,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -227,16 +232,17 @@ impl LifecycleManager {
             return self.install_agent();
         }
         self.refresh_installed_version();
-        let trust = self.trust_status()?;
+        let capabilities = self.agent_capabilities()?;
+        let trust = self.trust_status(capabilities)?;
         self.apply_trust(&trust);
-        if !trust.supported || !trust.trusted {
+        if !trust.trusted {
             self.set_state(
                 LifecycleState::NeedsTrust,
                 "Approve the per-user local CA before the Agent Server starts.",
             );
             return Ok(self.snapshot());
         }
-        self.start_server()
+        self.start_server_with(capabilities)
     }
 
     pub fn install_agent(&mut self) -> Result<DesktopStatus, String> {
@@ -248,10 +254,11 @@ impl LifecycleManager {
             return self.fail(&format!("verified Agent CLI installation failed: {error}"));
         }
         self.refresh_installed_version();
-        let trust = self.trust_status()?;
+        let capabilities = self.agent_capabilities()?;
+        let trust = self.trust_status(capabilities)?;
         self.apply_trust(&trust);
         if trust.trusted {
-            self.start_server()
+            self.start_server_with(capabilities)
         } else {
             self.set_state(
                 LifecycleState::NeedsTrust,
@@ -262,14 +269,20 @@ impl LifecycleManager {
     }
 
     pub fn approve_trust(&mut self) -> Result<DesktopStatus, String> {
-        let output = self.run_agent(&["server", "trust", "--yes", "--json"])?;
-        let trust: TrustResult = serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid trust response: {error}"))?;
-        if !trust.supported || !trust.trusted {
+        let capabilities = self.agent_capabilities()?;
+        let trust = if capabilities.machine_trust {
+            let output = self.run_agent(&["server", "trust", "--yes", "--json"])?;
+            serde_json::from_slice(&output.stdout)
+                .map_err(|error| format!("invalid trust response: {error}"))?
+        } else {
+            self.approve_legacy_trust()?;
+            self.legacy_trust_status()?
+        };
+        if !trust.trusted {
             return self.fail("macOS did not report the local CA as trusted");
         }
         self.apply_trust(&trust);
-        self.start_server()
+        self.start_server_with(capabilities)
     }
 
     pub fn check_for_updates(&mut self) -> Result<DesktopStatus, String> {
@@ -361,7 +374,7 @@ impl LifecycleManager {
     pub fn remove_bundle(&mut self, remove_local_ca: bool) -> Result<DesktopStatus, String> {
         self.stop_server()?;
         if remove_local_ca && self.executable().is_file() {
-            self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
+            self.remove_local_trust()?;
             self.status.trusted = false;
         }
         self.run_installer(None, true)?;
@@ -376,9 +389,7 @@ impl LifecycleManager {
 
     pub fn remove_trust(&mut self) -> Result<DesktopStatus, String> {
         self.require_installed()?;
-        let output = self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
-        let trust: TrustResult = serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid trust removal response: {error}"))?;
+        let trust = self.remove_local_trust()?;
         self.apply_trust(&trust);
         self.set_state(
             LifecycleState::NeedsTrust,
@@ -478,26 +489,45 @@ impl LifecycleManager {
         fixed_command("/usr/bin/open", &[&path]).map(|_| ())
     }
 
-    fn start_server(&mut self) -> Result<DesktopStatus, String> {
+    pub fn start_server(&mut self) -> Result<DesktopStatus, String> {
         self.start_server_for(StartOrigin::Explicit)
     }
 
     fn start_server_for(&mut self, origin: StartOrigin) -> Result<DesktopStatus, String> {
+        self.require_installed()?;
+        let capabilities = self.agent_capabilities()?;
+        self.start_server_with_origin(capabilities, origin)
+    }
+
+    fn start_server_with(
+        &mut self,
+        capabilities: AgentCapabilities,
+    ) -> Result<DesktopStatus, String> {
+        self.start_server_with_origin(capabilities, StartOrigin::Explicit)
+    }
+
+    fn start_server_with_origin(
+        &mut self,
+        capabilities: AgentCapabilities,
+        origin: StartOrigin,
+    ) -> Result<DesktopStatus, String> {
         self.require_installed()?;
         if self.child.is_none() && health_ready().is_ok() {
             return self.fail(
                 "Another process already owns the local Agent Server. It was left untouched.",
             );
         }
-        self.set_state(
-            LifecycleState::Starting,
-            "Starting the supervised Agent Server…",
-        );
+        if !capabilities.supervised {
+            self.push_log(
+                "Installed Agent CLI does not support supervised stdin shutdown; using signal-owned compatibility mode.",
+            );
+        }
+        self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
 
         let mut last_failure = "Agent Server failed to start".to_string();
         for attempt in 0..MAX_START_ATTEMPTS {
-            let mut child = match Command::new(self.executable())
-                .args(["server", "--supervised"])
+            let mut command = agent_server_command(&self.executable(), capabilities);
+            let mut child = match command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -555,10 +585,70 @@ impl LifecycleManager {
         self.fail(&last_failure)
     }
 
-    fn trust_status(&self) -> Result<TrustResult, String> {
-        let output = self.run_agent(&["server", "trust", "--status", "--json"])?;
-        serde_json::from_slice(&output.stdout)
-            .map_err(|error| format!("invalid trust status response: {error}"))
+    fn trust_status(&self, capabilities: AgentCapabilities) -> Result<TrustResult, String> {
+        if capabilities.machine_trust {
+            let output = self.run_agent(&["server", "trust", "--status", "--json"])?;
+            serde_json::from_slice(&output.stdout)
+                .map_err(|error| format!("invalid trust status response: {error}"))
+        } else {
+            self.legacy_trust_status()
+        }
+    }
+
+    fn agent_capabilities(&self) -> Result<AgentCapabilities, String> {
+        let output = self.run_agent(&["server", "--help"])?;
+        Ok(parse_agent_capabilities(&output.stdout))
+    }
+
+    fn legacy_trust_status(&self) -> Result<TrustResult, String> {
+        let Ok(ca) = fs::read_to_string(self.local_ca_path()) else {
+            return Ok(TrustResult {
+                trusted: false,
+                fingerprint: None,
+            });
+        };
+        let output = legacy_trust_inspection_command(&self.login_keychain_path())
+            .output()
+            .map_err(|error| format!("could not inspect the macOS login keychain: {error}"))?;
+        Ok(TrustResult {
+            trusted: legacy_trust_matches(ca.trim(), output.status.success(), &output.stdout),
+            fingerprint: None,
+        })
+    }
+
+    fn approve_legacy_trust(&self) -> Result<(), String> {
+        if !self.local_ca_path().is_file() {
+            let output = Command::new(self.executable())
+                .arg("server")
+                .output()
+                .map_err(|error| format!("could not prepare local HTTPS material: {error}"))?;
+            if !self.local_ca_path().is_file() {
+                return Err(command_failure("local HTTPS preparation", &output));
+            }
+        }
+        let output =
+            legacy_trust_approval_command(&self.login_keychain_path(), &self.local_ca_path())
+                .output()
+                .map_err(|error| format!("could not update the macOS login keychain: {error}"))?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(command_failure("macOS local HTTPS trust", &output))
+        }
+    }
+
+    fn remove_local_trust(&self) -> Result<TrustResult, String> {
+        if self.agent_capabilities()?.machine_trust {
+            let output = self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
+            serde_json::from_slice(&output.stdout)
+                .map_err(|error| format!("invalid trust removal response: {error}"))
+        } else {
+            self.run_agent(&["server", "trust", "--remove"])?;
+            Ok(TrustResult {
+                trusted: false,
+                fingerprint: None,
+            })
+        }
     }
 
     fn apply_trust(&mut self, trust: &TrustResult) {
@@ -642,6 +732,14 @@ impl LifecycleManager {
 
     fn logs_directory(&self) -> PathBuf {
         self.home.join(".config/moltnet/agent-server/logs")
+    }
+
+    fn local_ca_path(&self) -> PathBuf {
+        self.home.join(".config/moltnet/tls/local-ca.pem")
+    }
+
+    fn login_keychain_path(&self) -> PathBuf {
+        self.home.join("Library/Keychains/login.keychain-db")
     }
 }
 
@@ -821,6 +919,52 @@ fn valid_version(value: &str) -> bool {
         })
 }
 
+fn parse_agent_capabilities(stdout: &[u8]) -> AgentCapabilities {
+    let help = String::from_utf8_lossy(stdout);
+    AgentCapabilities {
+        supervised: help
+            .lines()
+            .any(|line| line.split_whitespace().any(|word| word == "--supervised")),
+        machine_trust: help.contains("server trust --status --json"),
+    }
+}
+
+fn agent_server_command(executable: &Path, capabilities: AgentCapabilities) -> Command {
+    let mut command = Command::new(executable);
+    command.arg("server");
+    if capabilities.supervised {
+        command.arg("--supervised");
+    }
+    command
+}
+
+fn legacy_trust_inspection_command(login_keychain: &Path) -> Command {
+    let mut command = Command::new("/usr/bin/security");
+    command
+        .args([
+            "find-certificate",
+            "-a",
+            "-p",
+            "-c",
+            "MoltNet Local Agent CA",
+        ])
+        .arg(login_keychain);
+    command
+}
+
+fn legacy_trust_approval_command(login_keychain: &Path, local_ca: &Path) -> Command {
+    let mut command = Command::new("/usr/bin/security");
+    command
+        .args(["add-trusted-cert", "-d", "-r", "trustRoot", "-k"])
+        .arg(login_keychain)
+        .arg(local_ca);
+    command
+}
+
+fn legacy_trust_matches(local_ca: &str, command_succeeded: bool, certificates: &[u8]) -> bool {
+    command_succeeded && String::from_utf8_lossy(certificates).contains(local_ca)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -859,6 +1003,108 @@ mod tests {
         assert!(!valid_version("01.02.03"));
         assert!(!valid_version("../1.2.3"));
         assert!(!valid_version("1.2.3-beta"));
+    }
+
+    #[test]
+    fn installed_agent_capabilities_are_negotiated_from_help() {
+        assert_eq!(
+            parse_agent_capabilities(
+                b"Options:\n  --port <n>\n  --supervised\nNative supervisors use:\n  server trust --status --json\n"
+            ),
+            AgentCapabilities {
+                supervised: true,
+                machine_trust: true,
+            }
+        );
+        assert_eq!(
+            parse_agent_capabilities(
+                b"Options:\n  --port <n>\nRun moltnet-agent server trust interactively.\n"
+            ),
+            AgentCapabilities {
+                supervised: false,
+                machine_trust: false,
+            }
+        );
+        assert!(!parse_agent_capabilities(b"Use supervised operation when embedded.\n").supervised);
+    }
+
+    #[test]
+    fn server_launch_arguments_follow_negotiated_supervision() {
+        let executable = Path::new("/canonical/moltnet-agent");
+        let legacy = agent_server_command(
+            executable,
+            AgentCapabilities {
+                supervised: false,
+                machine_trust: false,
+            },
+        );
+        assert_eq!(legacy.get_program(), executable.as_os_str());
+        assert_eq!(
+            legacy.get_args().collect::<Vec<_>>(),
+            [OsStr::new("server")]
+        );
+
+        let supervised = agent_server_command(
+            executable,
+            AgentCapabilities {
+                supervised: true,
+                machine_trust: true,
+            },
+        );
+        assert_eq!(
+            supervised.get_args().collect::<Vec<_>>(),
+            [OsStr::new("server"), OsStr::new("--supervised")]
+        );
+    }
+
+    #[test]
+    fn legacy_trust_commands_are_bounded_to_the_login_keychain_and_local_ca() {
+        let keychain = Path::new("/Users/test/Library/Keychains/login.keychain-db");
+        let local_ca = Path::new("/Users/test/.config/moltnet/tls/local-ca.pem");
+        let inspect = legacy_trust_inspection_command(keychain);
+        assert_eq!(inspect.get_program(), OsStr::new("/usr/bin/security"));
+        assert_eq!(
+            inspect.get_args().collect::<Vec<_>>(),
+            [
+                OsStr::new("find-certificate"),
+                OsStr::new("-a"),
+                OsStr::new("-p"),
+                OsStr::new("-c"),
+                OsStr::new("MoltNet Local Agent CA"),
+                keychain.as_os_str(),
+            ]
+        );
+
+        let approve = legacy_trust_approval_command(keychain, local_ca);
+        assert_eq!(approve.get_program(), OsStr::new("/usr/bin/security"));
+        assert_eq!(
+            approve.get_args().collect::<Vec<_>>(),
+            [
+                OsStr::new("add-trusted-cert"),
+                OsStr::new("-d"),
+                OsStr::new("-r"),
+                OsStr::new("trustRoot"),
+                OsStr::new("-k"),
+                keychain.as_os_str(),
+                local_ca.as_os_str(),
+            ]
+        );
+    }
+
+    #[test]
+    fn legacy_trust_requires_success_and_the_exact_local_ca() {
+        let local_ca = "-----BEGIN CERTIFICATE-----\nlocal\n-----END CERTIFICATE-----";
+        assert!(legacy_trust_matches(
+            local_ca,
+            true,
+            format!("other\n{local_ca}\n").as_bytes()
+        ));
+        assert!(!legacy_trust_matches(local_ca, false, local_ca.as_bytes()));
+        assert!(!legacy_trust_matches(
+            local_ca,
+            true,
+            b"different certificate"
+        ));
     }
 
     #[test]

@@ -26,6 +26,8 @@ vi.mock('./bridge.js', () => ({
     install: vi.fn(),
     trust: vi.fn(),
     retry: vi.fn(),
+    start: vi.fn(),
+    stop: vi.fn(),
     checkForUpdates: vi.fn(),
     installUpdate: vi.fn(),
     openConsole: vi.fn(),
@@ -66,6 +68,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(desktopBridge.status).mockResolvedValue(status());
   vi.mocked(desktopBridge.retry).mockResolvedValue(status());
+  vi.mocked(desktopBridge.start).mockResolvedValue(status());
+  vi.mocked(desktopBridge.stop).mockResolvedValue(status({ state: 'stopped' }));
   vi.mocked(desktopBridge.subscribe).mockImplementation((handler) => {
     publishStatus = handler;
     return Promise.resolve(() => undefined);
@@ -92,6 +96,8 @@ describe('MoltNet Agent desktop renderer', () => {
       screen.getByRole('list', { name: 'Agent setup progress' }),
     ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Open Console' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Agent Server' }));
+    await waitFor(() => expect(desktopBridge.stop).toHaveBeenCalledOnce());
   });
 
   it('requires confirmation before changing macOS trust', async () => {
@@ -132,17 +138,22 @@ describe('MoltNet Agent desktop renderer', () => {
   });
 
   it('reports when the desktop app is already up to date', async () => {
-    vi.mocked(desktopBridge.checkDesktopUpdate).mockResolvedValue(null);
+    vi.mocked(desktopBridge.checkDesktopUpdate).mockResolvedValue({
+      availableVersion: null,
+      message: 'App updates are checked only by signed MoltNet Agent builds.',
+    });
     renderApp();
 
     fireEvent.click(
       await screen.findByRole('button', { name: 'Check app update' }),
     );
 
+    expect(await screen.findByText('App update status')).toBeVisible();
     expect(
-      await screen.findByText('MoltNet Agent is up to date'),
+      screen.getByText(
+        'App updates are checked only by signed MoltNet Agent builds.',
+      ),
     ).toBeVisible();
-    expect(screen.getByText('No desktop update is available.')).toBeVisible();
   });
 
   it('describes update states as a lifecycle branch', async () => {
