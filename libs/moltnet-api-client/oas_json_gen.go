@@ -111571,6 +111571,8 @@ func (s *TaskMessageKind) Decode(d *jx.Decoder) error {
 		*s = TaskMessageKindError
 	case TaskMessageKindInfo:
 		*s = TaskMessageKindInfo
+	case TaskMessageKindToolPolicyDecision:
+		*s = TaskMessageKindToolPolicyDecision
 	default:
 		*s = TaskMessageKind(v)
 	}

@@ -174,6 +174,7 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
   'turn_end',
   'error',
   'info',
+  'tool_policy_decision',
 ]);
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);

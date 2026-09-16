@@ -354,6 +354,105 @@ describe('createToolPolicyExtension', () => {
     'eval "$X"': { reason: 'eval' },
   });
 
+  it('reports a refusal to the task record without argv literals', () => {
+    const onDecision = vi.fn();
+    const on = registerHandler({
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(['read']),
+        allowedShellCommands: [],
+        degraded: false,
+        executionPolicySnapshotHash: 'sha256:feedface',
+        executionRuntimeProfileRevision: 9,
+      },
+      analyzer,
+      logger,
+      onDecision,
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+    handler(toolCall('bash', { command: 'deploy production' }));
+
+    expect(onDecision).toHaveBeenCalledTimes(1);
+    const record = onDecision.mock.calls[0][0] as Record<string, unknown>;
+    expect(record).toMatchObject({
+      decision: 'blocked',
+      tool_name: 'bash',
+      reason_code: 'tool_not_permitted',
+      enforcement: 'enforce',
+      unauthorized_executables: ['deploy'],
+      degraded: false,
+      policy_snapshot_hash: 'sha256:feedface',
+      runtime_profile_revision: 9,
+    });
+    // The record identifies the invocation without reproducing its arguments.
+    expect(JSON.stringify(record)).not.toContain('production');
+  });
+
+  it('reports a watch-mode refusal as would_block', () => {
+    const onDecision = vi.fn();
+    const on = registerHandler({
+      policy: {
+        enforcement: 'watch',
+        allowedTools: new Set(['read']),
+        allowedShellCommands: [],
+        degraded: false,
+      },
+      analyzer,
+      logger,
+      onDecision,
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+    // Watch allows the call through, but the decision still reaches the record.
+    expect(handler(toolCall('bash', { command: 'deploy production' }))).toBe(
+      undefined,
+    );
+    expect(onDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'would_block',
+        enforcement: 'watch',
+      }),
+    );
+  });
+
+  it('does not report allowed calls to the task record', () => {
+    const onDecision = vi.fn();
+    const on = registerHandler({
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(['read']),
+        allowedShellCommands: [],
+        degraded: false,
+      },
+      analyzer,
+      logger,
+      onDecision,
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+    handler(toolCall('read', { path: 'README.md' }));
+    expect(onDecision).not.toHaveBeenCalled();
+  });
+
+  it('a failing reporter cannot change the verdict', () => {
+    const onDecision = vi.fn(() => {
+      throw new Error('reporter down');
+    });
+    const on = registerHandler({
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(['read']),
+        allowedShellCommands: [],
+        degraded: false,
+      },
+      analyzer,
+      logger,
+      onDecision,
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+    expect(handler(toolCall('bash', { command: 'deploy production' }))).toEqual(
+      expect.objectContaining({ block: true }),
+    );
+  });
+
   it('registers no handler in off mode', () => {
     const on = registerHandler({
       policy: {
@@ -443,7 +542,7 @@ describe('createToolPolicyExtension', () => {
       expect.objectContaining({
         decision: 'blocked',
         reason: 'tool_not_permitted',
-        missingExecutables: ['deploy'],
+        unauthorizedExecutables: ['deploy'],
       }),
       'tool_policy.blocked',
     );

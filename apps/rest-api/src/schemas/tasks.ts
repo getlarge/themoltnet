@@ -315,6 +315,15 @@ export const ListMessagesQuerySchema = Type.Object(
     limit: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 200, default: 200 }),
     ),
+    kind: Type.Optional(
+      Type.Array(
+        Type.Unsafe<TaskMessageKindType>(Type.Ref(TaskMessageKind.$id)),
+        {
+          description:
+            'Return only messages of these kinds. Filtering happens in the database, so a rare kind such as tool_policy_decision does not require paging the whole attempt.',
+        },
+      ),
+    ),
   },
   { $id: 'ListMessagesQuery' },
 );

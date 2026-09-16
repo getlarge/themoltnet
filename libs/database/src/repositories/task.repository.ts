@@ -18,6 +18,7 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
+import type { taskMessageKindEnum } from '../schema.js';
 import {
   correlationSeals,
   type ExecutorManifest,
@@ -1165,7 +1166,11 @@ export function createTaskRepository(db: Database) {
     async listMessages(
       taskId: string,
       attemptN: number,
-      opts: { afterSeq?: number; limit?: number } = {},
+      opts: {
+        afterSeq?: number;
+        limit?: number;
+        kinds?: readonly (typeof taskMessageKindEnum.enumValues)[number][];
+      } = {},
     ): Promise<{ items: TaskMessage[]; hasMore: boolean }> {
       const limit = Math.min(opts.limit ?? PAGE_SIZE, PAGE_SIZE);
       const filters = [
@@ -1174,6 +1179,11 @@ export function createTaskRepository(db: Database) {
       ];
       if (opts.afterSeq !== undefined) {
         filters.push(gt(taskMessages.seq, opts.afterSeq));
+      }
+      // Filtering in the database, not the client: a rare kind such as a
+      // policy refusal would otherwise require paging the whole attempt.
+      if (opts.kinds?.length) {
+        filters.push(inArray(taskMessages.kind, [...opts.kinds]));
       }
       const rows = await getExecutor(db)
         .select()

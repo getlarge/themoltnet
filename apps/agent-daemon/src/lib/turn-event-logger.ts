@@ -16,7 +16,11 @@ export function makeTurnEventHandler(
   return (event, summary) => {
     if (event === 'text_delta') return;
     const level =
-      event === 'error' ? 'warn' : event === 'turn_end' ? 'info' : 'debug';
+      event === 'error' || event === 'tool_policy_decision'
+        ? 'warn'
+        : event === 'turn_end'
+          ? 'info'
+          : 'debug';
     log[level]({ event, ...summary }, `turn.${event}`);
   };
 }

@@ -13112,6 +13112,12 @@
                   "info"
                 ],
                 "type": "string"
+              },
+              {
+                "enum": [
+                  "tool_policy_decision"
+                ],
+                "type": "string"
               }
             ]
           },
@@ -13178,6 +13184,12 @@
           {
             "enum": [
               "info"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "tool_policy_decision"
             ],
             "type": "string"
           }

@@ -605,7 +605,7 @@ func taskIsTerminal(ctx context.Context, client *moltnetapi.Client, taskID uuid.
 // When the flag is empty, every kind passes (text_delta gated separately
 // by --show-deltas).
 func parseKindFilter(kindStr string, showDeltas bool) (map[string]bool, error) {
-	allKinds := []string{"text_delta", "tool_call_start", "tool_call_end", "turn_end", "error", "info"}
+	allKinds := []string{"text_delta", "tool_call_start", "tool_call_end", "turn_end", "error", "info", "tool_policy_decision"}
 	allow := map[string]bool{}
 	if kindStr == "" {
 		for _, k := range allKinds {

@@ -110,6 +110,7 @@ import {
   type ToolPolicyDecisionContext,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
+import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
 
 export const GONDOLIN_TOOL_NAMES = [
@@ -1487,6 +1488,17 @@ export async function executePiTask(
               analyzer,
               logger: toolPolicyLogger,
               context: toolPolicyDecisionContext,
+              // Pi's tool_call handler is synchronous, so the refusal is
+              // recorded fire-and-forget: a slow or failing write must never
+              // delay, or change, the gate's verdict. `emitTaskEvent` catches
+              // its own reporter failures, so this cannot reject.
+              onDecision: (record) => {
+                recordToolPolicyDecisionSpan(record, piSessionContext, {
+                  'moltnet.task.id': task.id,
+                  'moltnet.task.attempt': attemptN,
+                });
+                void emit('tool_policy_decision', { ...record });
+              },
             }),
           );
         }

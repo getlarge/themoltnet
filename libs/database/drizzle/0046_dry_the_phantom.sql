@@ -1,0 +1,1 @@
+ALTER TYPE "public"."task_message_kind" ADD VALUE 'tool_policy_decision';

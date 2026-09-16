@@ -2928,7 +2928,8 @@ export type TaskMessage = {
     | 'tool_call_end'
     | 'turn_end'
     | 'error'
-    | 'info';
+    | 'info'
+    | 'tool_policy_decision';
   payload: {
     [key: string]: unknown;
   };
@@ -2946,7 +2947,8 @@ export type TaskMessageKind =
   | 'tool_call_end'
   | 'turn_end'
   | 'error'
-  | 'info';
+  | 'info'
+  | 'tool_policy_decision';
 
 export type TaskParams = {
   id: string;

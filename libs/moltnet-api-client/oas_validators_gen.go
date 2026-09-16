@@ -33606,6 +33606,8 @@ func (s TaskMessageKind) Validate() error {
 		return nil
 	case "info":
 		return nil
+	case "tool_policy_decision":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}

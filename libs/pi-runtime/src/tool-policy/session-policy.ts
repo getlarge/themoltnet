@@ -8,9 +8,12 @@ import type { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import {
   decideToolCall,
   type GateDecision,
+  type MissingShellCommand,
   type ShellCommandRule,
   type ToolEnforcement,
+  type ToolPolicyDecisionReason,
 } from './gate.js';
+import { recordToolPolicyDecision } from './telemetry.js';
 
 /** The resolved allow-set + enforcement mode for a runtime session. */
 export interface SessionToolPolicy {
@@ -239,6 +242,34 @@ export interface ToolPolicyExtensionDeps {
   analyzer: ShellCommandAnalyzer;
   logger: ToolPolicyLogger;
   context?: ToolPolicyDecisionContext;
+  /**
+   * Called for every refusal so it reaches the task record, not only the
+   * daemon log. Pi's `tool_call` handler is synchronous, so this must not
+   * block: implementations fire and forget.
+   */
+  onDecision?: (decision: ToolPolicyDecisionRecord) => void;
+}
+
+/**
+ * A refusal, shaped for the task record. Carries no argv literals: the
+ * executables and the fingerprint identify an invocation without reproducing
+ * its arguments, which is what lets this reach a persisted, readable record
+ * with no redaction rule.
+ */
+export interface ToolPolicyDecisionRecord {
+  /** `blocked` in enforce, `would_block` in watch. */
+  decision: 'blocked' | 'would_block';
+  tool_name: string;
+  tool_call_id?: string;
+  reason_code: ToolPolicyDecisionReason;
+  enforcement: ToolEnforcement;
+  /** Executables the policy did not authorize. */
+  unauthorized_executables?: string[];
+  /** Literal-free identification of each refused shell invocation. */
+  shell_fingerprints?: MissingShellCommand[];
+  degraded: boolean;
+  policy_snapshot_hash?: string;
+  runtime_profile_revision?: number;
 }
 
 /** Correlation and claim evidence repeated on every tool-policy decision. */
@@ -301,6 +332,12 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
           },
           'tool_policy.allowed',
         );
+        recordToolPolicyDecision({
+          decision: 'allowed',
+          reason: decision.reasonCode,
+          enforcement: deps.policy.enforcement,
+          degraded: deps.policy.degraded === true,
+        });
         return;
       }
 
@@ -313,7 +350,7 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
             decision: 'audit',
             reason: decision.reasonCode,
             ...(decision.missing?.length
-              ? { missingExecutables: decision.missing }
+              ? { unauthorizedExecutables: decision.missing }
               : {}),
             ...(decision.missingShellCommands?.length
               ? { shellFingerprints: decision.missingShellCommands }
@@ -321,6 +358,9 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
           },
           'tool_policy.audit',
         );
+        // The log says `audit`; the record says `would_block`, which states
+        // the consequence rather than the mode that produced it.
+        reportDecision(deps, 'would_block', event, decision);
         return;
       }
 
@@ -332,7 +372,7 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
           decision: 'blocked',
           reason: decision.reasonCode,
           ...(decision.missing?.length
-            ? { missingExecutables: decision.missing }
+            ? { unauthorizedExecutables: decision.missing }
             : {}),
           ...(decision.missingShellCommands?.length
             ? { shellFingerprints: decision.missingShellCommands }
@@ -340,9 +380,62 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
         },
         'tool_policy.blocked',
       );
+      reportDecision(deps, 'blocked', event, decision);
       return { block: true, reason: decision.reason };
     });
   };
+}
+
+/**
+ * Hand a refusal to {@link ToolPolicyExtensionDeps.onDecision}, never letting a
+ * reporting failure change the gate's verdict.
+ */
+function reportDecision(
+  deps: ToolPolicyExtensionDeps,
+  decision: 'blocked' | 'would_block',
+  event: { toolName: string; toolCallId?: string },
+  gateDecision: GateDecision,
+): void {
+  recordToolPolicyDecision({
+    decision,
+    reason: gateDecision.reasonCode,
+    enforcement: deps.policy.enforcement,
+    degraded: deps.policy.degraded === true,
+  });
+  if (!deps.onDecision) {
+    return;
+  }
+  const missing = 'missing' in gateDecision ? gateDecision.missing : undefined;
+  const shell =
+    'missingShellCommands' in gateDecision
+      ? gateDecision.missingShellCommands
+      : undefined;
+  try {
+    deps.onDecision({
+      decision,
+      tool_name: event.toolName,
+      ...(event.toolCallId ? { tool_call_id: event.toolCallId } : {}),
+      reason_code: gateDecision.reasonCode,
+      enforcement: deps.policy.enforcement,
+      ...(missing?.length ? { unauthorized_executables: missing } : {}),
+      ...(shell?.length ? { shell_fingerprints: shell } : {}),
+      degraded: deps.policy.degraded === true,
+      ...(deps.policy.executionPolicySnapshotHash
+        ? { policy_snapshot_hash: deps.policy.executionPolicySnapshotHash }
+        : {}),
+      ...(deps.policy.executionRuntimeProfileRevision !== undefined
+        ? {
+            runtime_profile_revision:
+              deps.policy.executionRuntimeProfileRevision,
+          }
+        : {}),
+    });
+  } catch (error) {
+    deps.logger.warn(
+      { err: error instanceof Error ? error.message : String(error) },
+      'tool_policy.decision_report_failed',
+    );
+  }
 }
 
 function decisionContext(
