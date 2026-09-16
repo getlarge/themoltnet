@@ -671,7 +671,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(saved.data).toMatchObject({
       api: 'openai-completions',
       envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
-      models: [MODEL_ID],
+      models: [{ id: MODEL_ID }],
       hasApiKey: true,
     });
     expect(JSON.stringify(saved.data)).not.toContain(RAW_API_KEY);
@@ -730,7 +730,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(JSON.parse(set.stdout)).toMatchObject({
       id: CLI_PROVIDER_ID,
       hasApiKey: true,
-      models: ['cli-initial'],
+      models: [{ id: 'cli-initial' }],
     });
     expect(`${set.stdout}${set.stderr}`).not.toContain(CLI_RAW_API_KEY);
 
@@ -741,7 +741,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(listedAfterCliSet.data?.[CLI_PROVIDER_ID]).toMatchObject({
       baseUrl: `${tagsStub.url}/v1`,
       hasApiKey: true,
-      models: ['cli-initial'],
+      models: [{ id: 'cli-initial' }],
     });
 
     const discovered = await runAgentCommand([
@@ -762,7 +762,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       client: agentServerClient(),
     });
     expect(listedAfterDiscovery.data?.[CLI_PROVIDER_ID]?.models).toEqual([
-      'tags-only-model',
+      { id: 'tags-only-model' },
     ]);
 
     const updatedOverHttp = await putAgentServerProvider({
@@ -789,12 +789,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const cliListPayload = JSON.parse(cliList.stdout) as {
       configuredProviders: Record<
         string,
-        { hasApiKey: boolean; models: string[] }
+        { hasApiKey: boolean; models: { id: string }[] }
       >;
     };
     expect(cliListPayload.configuredProviders[CLI_PROVIDER_ID]).toMatchObject({
       hasApiKey: true,
-      models: ['http-updated'],
+      models: [{ id: 'http-updated' }],
     });
     expect(`${cliList.stdout}${cliList.stderr}`).not.toContain(CLI_RAW_API_KEY);
 
