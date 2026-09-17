@@ -34,7 +34,6 @@ export function CreateInviteDialog({
 }: CreateInviteDialogProps) {
   const theme = useTheme();
   const [role, setRole] = useState<InviteRole>(defaultRole);
-  const [maxUses, setMaxUses] = useState('1');
   const [expiresInHours, setExpiresInHours] = useState('168');
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +42,6 @@ export function CreateInviteDialog({
   const handleCreate = async () => {
     setIsSubmitting(true);
     setError(null);
-    const parsedMaxUses = Math.max(1, parseInt(maxUses, 10) || 1);
     const parsedExpiresInHours = Math.min(
       720,
       Math.max(1, parseInt(expiresInHours, 10) || 168),
@@ -54,7 +52,6 @@ export function CreateInviteDialog({
         path: { id: teamId },
         body: {
           role,
-          maxUses: parsedMaxUses,
           expiresInHours: parsedExpiresInHours,
         },
       });
@@ -72,7 +69,6 @@ export function CreateInviteDialog({
   const handleClose = () => {
     setCreatedCode(null);
     setRole(defaultRole);
-    setMaxUses('1');
     setExpiresInHours('168');
     setError(null);
     onClose();
@@ -132,13 +128,6 @@ export function CreateInviteDialog({
                 <option value="manager">Manager</option>
               </Select>
             </div>
-            <Input
-              label="Max uses"
-              type="number"
-              value={maxUses}
-              onChange={(e) => setMaxUses(e.target.value)}
-              size="sm"
-            />
             <Input
               label="Expires in (hours)"
               type="number"

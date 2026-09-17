@@ -926,7 +926,6 @@ export function teamRoutes(fastify: FastifyInstance) {
       const invite = await fastify.teamRepository.createInvite({
         teamId: id,
         role: request.body.role ?? 'member',
-        maxUses: request.body.maxUses ?? 1,
         expiresAt: new Date(Date.now() + expiresInHours * 3600_000),
         creator: inviteCreator,
       });
@@ -935,8 +934,7 @@ export function teamRoutes(fastify: FastifyInstance) {
         id: invite.id,
         code: invite.code,
         role: invite.role ?? 'member',
-        maxUses: invite.maxUses,
-        useCount: invite.useCount ?? 0,
+        usedAt: invite.usedAt?.toISOString() ?? null,
         expiresAt: invite.expiresAt,
         createdAt: invite.createdAt,
       });
@@ -983,8 +981,7 @@ export function teamRoutes(fastify: FastifyInstance) {
           id: inv.id,
           code: inv.code,
           role: inv.role,
-          maxUses: inv.maxUses,
-          useCount: inv.useCount,
+          usedAt: inv.usedAt?.toISOString() ?? null,
           expiresAt: inv.expiresAt,
           createdAt: inv.createdAt,
         })),
@@ -1108,8 +1105,7 @@ export function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('conflict', 'Already a member of this team');
       }
 
-      // Atomic claim: INCREMENT use_count WHERE use_count < max_uses
-      // Returns null if exhausted — no race condition.
+      // Atomically consume the invite once; concurrent redeemers cannot share it.
       const claimed = await fastify.teamRepository.claimInvite(invite.id);
       if (!claimed) {
         throw createProblem('invite-exhausted');

@@ -13,8 +13,7 @@ interface InviteCardProps {
   id: string;
   code: string;
   role: string;
-  maxUses: number;
-  useCount: number;
+  usedAt: string | null;
   expiresAt: string;
   onDelete: (id: string) => void;
 }
@@ -32,14 +31,13 @@ export function InviteCard({
   id,
   code,
   role,
-  maxUses,
-  useCount,
+  usedAt,
   expiresAt,
   onDelete,
 }: InviteCardProps) {
   const theme = useTheme();
   const isExpired = new Date(expiresAt).getTime() < Date.now();
-  const isExhausted = useCount >= maxUses;
+  const isUsed = usedAt !== null;
 
   return (
     <Card variant="outlined" padding="sm">
@@ -55,11 +53,11 @@ export function InviteCard({
         </Stack>
         <Stack direction="row" gap={4}>
           <Text variant="caption" color="muted">
-            Uses: {useCount}/{maxUses}
+            {isUsed ? 'Used' : 'Single use'}
           </Text>
           <Text
             variant="caption"
-            color={isExpired || isExhausted ? 'muted' : undefined}
+            color={isExpired || isUsed ? 'muted' : undefined}
             style={isExpired ? { color: theme.color.error.DEFAULT } : undefined}
           >
             {formatRelativeExpiry(expiresAt)}

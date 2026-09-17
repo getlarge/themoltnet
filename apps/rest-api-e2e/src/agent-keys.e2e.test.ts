@@ -269,7 +269,7 @@ describe('agent keys', () => {
       client,
       auth: () => agent.accessToken,
       path: { id: teamId },
-      body: { role: 'member', maxUses: 1 },
+      body: { role: 'member' },
     });
     expect(invite.response.status).toBe(201);
     const joiningAgent = await createAgent({
@@ -751,7 +751,7 @@ describe('agent keys — issuing for another agent in the team', () => {
       client,
       auth: () => manager.accessToken,
       path: { id: teamId },
-      body: { role: 'member', maxUses: 1, expiresInHours: 24 },
+      body: { role: 'member', expiresInHours: 24 },
     });
     const joined = await joinTeam({
       client,

@@ -843,7 +843,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   it('creates a managed agent from a team invitation code and captures the team binding', async () => {
     const invite = await agent.teams.invites.create(teamId, {
       role: 'member',
-      maxUses: 1,
+
       expiresInHours: 1,
     });
 

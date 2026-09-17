@@ -179,7 +179,7 @@ describe('Concurrency and Atomicity', () => {
         client,
         auth: () => agent.accessToken,
         path: { id: team!.id },
-        body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+        body: { role: 'member', expiresInHours: 1 },
       });
       expect(inviteError).toBeUndefined();
 

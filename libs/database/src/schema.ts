@@ -1018,8 +1018,14 @@ export const teamInvites = pgTable(
     // Can't invite as owner — ownership transfer is a separate operation
     role: teamInviteRoleEnum('role').default('member').notNull(),
 
-    maxUses: integer('max_uses').default(1).notNull(),
-    useCount: integer('use_count').default(0).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    // Enrollment claims live on the single-use invite, never in a second ledger.
+    enrollmentAgentId: uuid('enrollment_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
+    idempotencyHash: varchar('idempotency_hash', { length: 64 }),
+    requestHash: varchar('request_hash', { length: 64 }),
 
     // Principal that created this invite. Exactly one of creator_agent_id /
     // creator_human_id is set per row (XOR check).
@@ -1037,6 +1043,14 @@ export const teamInvites = pgTable(
   },
   (table) => [
     uniqueIndex('team_invites_code_idx').on(table.code),
+    uniqueIndex('team_invites_agent_request_idx').on(
+      table.enrollmentAgentId,
+      table.idempotencyHash,
+    ),
+    check(
+      'team_invites_enrollment_claim',
+      sql`(${table.enrollmentAgentId} IS NULL AND ${table.idempotencyHash} IS NULL AND ${table.requestHash} IS NULL) OR (${table.enrollmentAgentId} IS NOT NULL AND ${table.idempotencyHash} IS NOT NULL AND ${table.requestHash} IS NOT NULL AND ${table.usedAt} IS NOT NULL)`,
+    ),
     index('team_invites_team_idx').on(table.teamId),
     index('team_invites_creator_agent_idx')
       .on(table.creatorAgentId)
@@ -1051,55 +1065,16 @@ export const teamInvites = pgTable(
   ],
 );
 
-/** Durable authorization receipt. Never store invitation codes or key secrets. */
-export const teamEnrollments = pgTable(
-  'team_enrollments',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    // Keep the identifier after invite deletion so redemption cannot be replayed.
-    inviteId: uuid('invite_id').notNull(),
-    agentId: uuid('agent_id')
-      .notNull()
-      .references(() => agents.id, { onDelete: 'cascade' }),
-    teamId: uuid('team_id')
-      .notNull()
-      .references(() => teams.id, { onDelete: 'cascade' }),
-    idempotencyHash: varchar('idempotency_hash', { length: 64 }).notNull(),
-    requestHash: varchar('request_hash', { length: 64 }).notNull(),
-    inviteRole: teamInviteRoleEnum('invite_role').notNull(),
-    role: text('role').$type<'owner' | 'manager' | 'executor' | 'member'>(),
-    membershipGrantedAt: timestamp('membership_granted_at', {
-      withTimezone: true,
-    }),
-    issuedKeyId: text('issued_key_id'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex('team_enrollments_agent_request_idx').on(
-      table.agentId,
-      table.idempotencyHash,
-    ),
-    uniqueIndex('team_enrollments_invite_agent_idx').on(
-      table.inviteId,
-      table.agentId,
-    ),
-    check(
-      'team_enrollments_membership_pair',
-      sql`(${table.role} IS NULL) = (${table.membershipGrantedAt} IS NULL)`,
-    ),
-    check(
-      'team_enrollments_issuance_order',
-      sql`${table.issuedKeyId} IS NULL OR ${table.membershipGrantedAt} IS NOT NULL`,
-    ),
-    check(
-      'team_enrollments_role',
-      sql`${table.role} IS NULL OR ${table.role} IN ('owner', 'manager', 'executor', 'member')`,
-    ),
-  ],
-);
-export type TeamEnrollment = typeof teamEnrollments.$inferSelect;
+/** Secret-free claim projected from a single-use invite into DBOS checkpoints. */
+export interface TeamEnrollment {
+  id: string;
+  agentId: string;
+  teamId: string;
+  idempotencyHash: string;
+  requestHash: string;
+  inviteRole: 'manager' | 'executor' | 'member';
+  role?: 'owner' | 'manager' | 'executor' | 'member';
+}
 
 /**
  * Founding Acceptances Table

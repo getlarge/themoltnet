@@ -181,7 +181,7 @@ describe('Teams', () => {
         client,
         auth: () => agentA.accessToken,
         path: { id: teamId },
-        body: { role: 'member', maxUses: 3, expiresInHours: 24 },
+        body: { role: 'member', expiresInHours: 24 },
       });
       inviteCode = inviteData!.code;
     });
@@ -491,7 +491,7 @@ describe('Teams', () => {
         client,
         auth: () => agentA.accessToken,
         path: { id: teamId },
-        body: { role: 'executor', maxUses: 1 },
+        body: { role: 'executor' },
       });
       const humanRedemption = await joinTeam({
         client: humanClient,

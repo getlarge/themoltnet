@@ -12,7 +12,6 @@ import {
   type ClaimTeamEnrollment,
   createDatabase,
   runMigrations,
-  teamEnrollments,
   teamInvites,
   teams,
 } from '@moltnet/database';
@@ -136,7 +135,7 @@ async function fixture() {
       creatorAgentId: agent.id,
       role: 'member',
       code: randomUUID(),
-      maxUses: 1,
+
       expiresAt: new Date(Date.now() + 120_000),
     })
     .returning();
@@ -161,19 +160,13 @@ describe('team enrollment process recovery', () => {
     expect(failed.child.exitCode).not.toBe(0);
     expect(failed.output()).not.toContain('GRANTED');
     expect(
-      await database.db
-        .select()
-        .from(teamEnrollments)
-        .where(eq(teamEnrollments.inviteId, invite.id)),
-    ).toEqual([]);
-    expect(
       (
         await database.db
           .select()
           .from(teamInvites)
           .where(eq(teamInvites.id, invite.id))
-      )[0].useCount,
-    ).toBe(0);
+      )[0].usedAt,
+    ).toBeNull();
   });
 
   it.each(['claim', 'membership'])(
@@ -188,12 +181,7 @@ describe('team enrollment process recovery', () => {
         .select()
         .from(teamInvites)
         .where(eq(teamInvites.id, invite.id));
-      expect(claimed.useCount).toBe(1);
-      const [pending] = await database.db
-        .select()
-        .from(teamEnrollments)
-        .where(eq(teamEnrollments.inviteId, invite.id));
-      expect(pending.membershipGrantedAt).toBeNull();
+      expect(claimed.usedAt).not.toBeNull();
 
       const second = start(input);
       await second.waitFor('RESULT:');
@@ -202,7 +190,7 @@ describe('team enrollment process recovery', () => {
         second.output().split('RESULT:')[1].split('\n')[0],
       ) as { ids: string[]; role: string; mismatch: boolean };
       expect(result).toEqual({
-        ids: [pending.id, pending.id],
+        ids: [invite.id, invite.id],
         role: 'member',
         mismatch: true,
       });
@@ -211,18 +199,10 @@ describe('team enrollment process recovery', () => {
       );
       const [ready] = await database.db
         .select()
-        .from(teamEnrollments)
-        .where(eq(teamEnrollments.id, pending.id));
-      expect(ready.membershipGrantedAt).not.toBeNull();
-      expect(ready.issuedKeyId).toBeNull();
-      expect(
-        (
-          await database.db
-            .select()
-            .from(teamInvites)
-            .where(eq(teamInvites.id, invite.id))
-        )[0].useCount,
-      ).toBe(1);
+        .from(teamInvites)
+        .where(eq(teamInvites.id, invite.id));
+      expect(ready.usedAt).toEqual(claimed.usedAt);
+      expect(ready.enrollmentAgentId).toBe(agent.id);
       const members = await createRelationshipReader(
         harness.oryClients.relationshipRead,
       ).listTeamMembers(team.id);
@@ -249,10 +229,12 @@ describe('team enrollment process recovery', () => {
     await process.waitFor('RESULT:');
     await process.closed;
     expect(process.output()).not.toContain('GRANTED');
-    const [receipt] = await database.db
-      .select()
-      .from(teamEnrollments)
-      .where(eq(teamEnrollments.agentId, agent.id));
-    expect(receipt.role).toBe('owner');
+    expect(
+      (
+        JSON.parse(process.output().split('RESULT:')[1].split('\n')[0]) as {
+          role: string;
+        }
+      ).role,
+    ).toBe('owner');
   });
 });

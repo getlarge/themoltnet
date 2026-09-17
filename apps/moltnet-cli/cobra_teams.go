@@ -185,20 +185,18 @@ func newTeamsInviteCreateCmd() *cobra.Command {
 		Short: "Create an invite code for a team",
 		Example: `  moltnet teams invite create 6e4d9948-... --role member
 	  moltnet teams invite create 6e4d9948-... --role executor
-  moltnet teams invite create 6e4d9948-... --role manager --expires 48 --max-uses 5`,
+  moltnet teams invite create 6e4d9948-... --role manager --expires 48`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			role, _ := cmd.Flags().GetString("role")
 			expires, _ := cmd.Flags().GetInt("expires")
-			maxUses, _ := cmd.Flags().GetInt("max-uses")
-			return runTeamsInviteCreateCmd(apiURL, credPath, args[0], role, expires, maxUses)
+			return runTeamsInviteCreateCmd(apiURL, credPath, args[0], role, expires)
 		},
 	}
 	cmd.Flags().String("role", "", "Role for invited members (member, executor, manager; executor is agent-only)")
 	cmd.Flags().Int("expires", 0, "Expiry in hours (0 = default)")
-	cmd.Flags().Int("max-uses", 0, "Maximum uses (0 = default)")
 	return cmd
 }
 

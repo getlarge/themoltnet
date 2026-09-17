@@ -39,7 +39,7 @@ export function initTeamEnrollmentWorkflow(): void {
     async (receipt: TeamEnrollment) => {
       const { relationshipReader, relationshipWriter } = getDeps();
       const members = await relationshipReader.listTeamMembers(receipt.teamId);
-      let existing: TeamEnrollment['role'] = null;
+      let existing: TeamEnrollment['role'];
       for (const member of members) {
         if (
           member.subjectNs !== 'Agent' ||
@@ -95,14 +95,8 @@ export function initTeamEnrollmentWorkflow(): void {
           name: 'team.enrollment.claim',
         },
       );
-      if (receipt.membershipGrantedAt) return receipt;
       const role = await grantMembership(receipt);
-      return transactionRunner.runInTransaction(
-        () => repository.markMembership(receipt.id, role),
-        {
-          name: 'team.enrollment.membershipReady',
-        },
-      );
+      return { ...receipt, role };
     },
     { name: 'team.enrollment' },
   );
@@ -120,7 +114,7 @@ export const teamEnrollmentWorkflow = {
     // the workflow ID with different inputs. Reject that before issuance.
     if (
       receipt.requestHash !== input.requestHash ||
-      receipt.inviteId !== input.inviteId
+      receipt.id !== input.inviteId
     ) {
       throw new TeamEnrollmentError('conflict');
     }

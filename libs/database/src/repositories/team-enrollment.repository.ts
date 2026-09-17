@@ -2,12 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 
 import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
-import {
-  type TeamEnrollment,
-  teamEnrollments,
-  teamInvites,
-  teams,
-} from '../schema.js';
+import { type TeamEnrollment, teamInvites, teams } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
 export interface ClaimTeamEnrollment {
@@ -31,87 +26,83 @@ export class TeamEnrollmentError extends Error {
   }
 }
 
+/** Only identifiers enter checkpoints; invitation codes and secrets never do. */
+const claimFields = {
+  id: teamInvites.id,
+  agentId: teamInvites.enrollmentAgentId,
+  teamId: teamInvites.teamId,
+  idempotencyHash: teamInvites.idempotencyHash,
+  requestHash: teamInvites.requestHash,
+  inviteRole: teamInvites.role,
+};
+
 export function createTeamEnrollmentRepository(db: Database) {
   return {
     async findByRequest(
       agentId: string,
       idempotencyHash: string,
     ): Promise<TeamEnrollment | null> {
-      const [receipt] = await getExecutor(db)
-        .select()
-        .from(teamEnrollments)
+      const [claim] = await getExecutor(db)
+        .select(claimFields)
+        .from(teamInvites)
         .where(
           and(
-            eq(teamEnrollments.agentId, agentId),
-            eq(teamEnrollments.idempotencyHash, idempotencyHash),
+            eq(teamInvites.enrollmentAgentId, agentId),
+            eq(teamInvites.idempotencyHash, idempotencyHash),
           ),
         );
-      return receipt ?? null;
+      return (claim as TeamEnrollment | undefined) ?? null;
     },
 
-    /** Caller must use TransactionRunner: receipt and invite use commit together. */
+    /** Caller uses TransactionRunner: the claim and DBOS checkpoint commit together. */
     async claim(input: ClaimTeamEnrollment): Promise<TeamEnrollment> {
-      // Serialize all requests from one subject, including different inputs with
-      // the same idempotency key. Invite-row locking handles competing subjects.
       await acquireTransactionAdvisoryLock(
         db,
         'team-enrollment',
         input.agentId,
         'claim enrollment',
       );
-      const tx = getExecutor(db);
-      const [prior] = await tx
-        .select()
-        .from(teamEnrollments)
-        .where(
-          and(
-            eq(teamEnrollments.agentId, input.agentId),
-            eq(teamEnrollments.idempotencyHash, input.idempotencyHash),
-          ),
-        );
+      const prior = await this.findByRequest(
+        input.agentId,
+        input.idempotencyHash,
+      );
       if (prior) {
         if (
           prior.requestHash !== input.requestHash ||
-          prior.inviteId !== input.inviteId
-        ) {
+          prior.id !== input.inviteId
+        )
           throw new TeamEnrollmentError('conflict');
-        }
         return prior;
       }
-      const [redeemed] = await tx
-        .select({ id: teamEnrollments.id })
-        .from(teamEnrollments)
-        .where(
-          and(
-            eq(teamEnrollments.agentId, input.agentId),
-            eq(teamEnrollments.inviteId, input.inviteId),
-          ),
-        );
-      if (redeemed) throw new TeamEnrollmentError('conflict');
-
+      const tx = getExecutor(db);
       const [row] = await tx
         .select({ invite: teamInvites, team: teams })
         .from(teamInvites)
         .innerJoin(teams, eq(teams.id, teamInvites.teamId))
         .where(eq(teamInvites.id, input.inviteId))
         .for('update');
-      if (!row || row.team.personal)
+      if (!row || row.invite.revokedAt || row.team.personal)
         throw new TeamEnrollmentError('invalid-invite');
       if (row.team.status !== 'active')
         throw new TeamEnrollmentError('inactive-team');
-      // Use the database clock inside the transaction, including after waiting
-      // for a contended row lock. An expired invite must never be claimed.
+      if (row.invite.enrollmentAgentId === input.agentId)
+        throw new TeamEnrollmentError('conflict');
       const [claimed] = await tx
         .update(teamInvites)
-        .set({ useCount: sql`${teamInvites.useCount} + 1` })
+        .set({
+          usedAt: sql`clock_timestamp()`,
+          enrollmentAgentId: input.agentId,
+          idempotencyHash: input.idempotencyHash,
+          requestHash: input.requestHash,
+        })
         .where(
           and(
             eq(teamInvites.id, input.inviteId),
+            sql`${teamInvites.usedAt} IS NULL`,
             sql`${teamInvites.expiresAt} > clock_timestamp()`,
-            sql`${teamInvites.useCount} < ${teamInvites.maxUses}`,
           ),
         )
-        .returning();
+        .returning(claimFields);
       if (!claimed) {
         const result = await tx.execute<{ expired: boolean }>(
           sql`SELECT ${row.invite.expiresAt.toISOString()}::timestamptz <= clock_timestamp() AS expired`,
@@ -120,51 +111,7 @@ export function createTeamEnrollmentRepository(db: Database) {
           result.rows[0].expired ? 'expired' : 'exhausted',
         );
       }
-      const [receipt] = await tx
-        .insert(teamEnrollments)
-        .values({
-          ...input,
-          teamId: claimed.teamId,
-          inviteRole: claimed.role,
-        })
-        .returning();
-      return receipt;
-    },
-
-    async markMembership(
-      id: string,
-      role: NonNullable<TeamEnrollment['role']>,
-    ): Promise<TeamEnrollment> {
-      const [receipt] = await getExecutor(db)
-        .update(teamEnrollments)
-        .set({
-          role,
-          membershipGrantedAt: sql`COALESCE(${teamEnrollments.membershipGrantedAt}, clock_timestamp())`,
-        })
-        .where(
-          and(
-            eq(teamEnrollments.id, id),
-            sql`${teamEnrollments.issuedKeyId} IS NULL`,
-          ),
-        )
-        .returning();
-      if (!receipt) throw new TeamEnrollmentError('conflict');
-      return receipt;
-    },
-
-    async markIssued(id: string, keyId: string): Promise<void> {
-      const [receipt] = await getExecutor(db)
-        .update(teamEnrollments)
-        .set({ issuedKeyId: keyId })
-        .where(
-          and(
-            eq(teamEnrollments.id, id),
-            sql`${teamEnrollments.membershipGrantedAt} IS NOT NULL`,
-            sql`(${teamEnrollments.issuedKeyId} IS NULL OR ${teamEnrollments.issuedKeyId} = ${keyId})`,
-          ),
-        )
-        .returning({ id: teamEnrollments.id });
-      if (!receipt) throw new TeamEnrollmentError('conflict');
+      return claimed as TeamEnrollment;
     },
   };
 }
