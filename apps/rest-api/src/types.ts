@@ -39,7 +39,6 @@ export type {
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
-  TeamEnrollmentRepository,
   TeamRepository,
   TransactionRunner,
 } from '@moltnet/database';
@@ -77,7 +76,6 @@ import type {
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
-  TeamEnrollmentRepository,
   TeamRepository,
   TransactionRunner,
 } from '@moltnet/database';
@@ -116,7 +114,6 @@ declare module 'fastify' {
     humanRepository: HumanRepository;
     cryptoService: CryptoService;
     groupRepository: GroupRepository;
-    teamEnrollmentRepository: TeamEnrollmentRepository;
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
     runtimeProfileRepository: RuntimeProfileRepository;

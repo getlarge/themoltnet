@@ -321,9 +321,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
   const teamRepository = createTeamRepository(dbConnection.db);
-  const teamEnrollmentRepository = createTeamEnrollmentRepository(
-    dbConnection.db,
-  );
   const diaryTransferRepository = createDiaryTransferRepository(
     dbConnection.db,
   );
@@ -779,7 +776,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     humanRepository,
     cryptoService,
     groupRepository,
-    teamEnrollmentRepository,
     teamRepository,
     diaryTransferRepository,
     runtimeProfileRepository,

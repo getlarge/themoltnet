@@ -44,7 +44,6 @@ import type {
   TaskArtifactRepository,
   TaskRepository,
   TaskService,
-  TeamEnrollmentRepository,
   TeamRepository,
   TransactionRunner,
 } from '../src/types.js';
@@ -267,9 +266,6 @@ export interface MockServices {
     delete: ReturnType<typeof vi.fn>;
   };
   groupRepository: { [K in keyof GroupRepository]: ReturnType<typeof vi.fn> };
-  teamEnrollmentRepository: {
-    [K in keyof TeamEnrollmentRepository]: ReturnType<typeof vi.fn>;
-  };
   teamRepository: { [K in keyof TeamRepository]: ReturnType<typeof vi.fn> };
   diaryTransferRepository: {
     create: ReturnType<typeof vi.fn>;
@@ -622,12 +618,6 @@ export function createMockServices(): MockServices {
     transactionRunner: {
       runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     },
-    teamEnrollmentRepository: {
-      findByRequest: vi.fn(),
-      claim: vi.fn(),
-      markMembership: vi.fn(),
-      markIssued: vi.fn(),
-    },
     teamRepository: {
       create: vi.fn(),
       findById: vi.fn(),
@@ -970,7 +960,6 @@ export async function createTestApp(
     teamResolver: {
       findPersonalTeamId: async () => null,
     },
-    teamEnrollmentRepository: mocks.teamEnrollmentRepository as never,
     teamRepository: mocks.teamRepository as never,
     taskRepository: mocks.taskRepository as unknown as TaskRepository,
     taskAnalyticsService:

@@ -3,7 +3,6 @@ import {
   AGENT_OAUTH_SCOPES,
   KetoNamespace,
 } from '@moltnet/auth';
-import type { TeamEnrollment } from '@moltnet/database';
 import {
   type IssuedApiKey,
   KeyStatus,
@@ -93,26 +92,18 @@ describe('agent key service', () => {
     relationshipReader.isTeamMember.mockResolvedValue(true);
   });
 
-  const enrollment: TeamEnrollment = {
-    id: '55555555-5555-4555-8555-555555555555',
+  const enrollment = {
+    inviteId: '66666666-6666-4666-8666-666666666666',
     agentId: AGENT_ID,
     teamId: TEAM_ID,
-    inviteId: '66666666-6666-4666-8666-666666666666',
-    idempotencyHash: 'a'.repeat(64),
-    requestHash: 'b'.repeat(64),
-    inviteRole: 'member',
-    role: 'member',
-    membershipGrantedAt: new Date(),
-    issuedKeyId: null,
-    createdAt: new Date(),
   };
 
-  it('uses the enrollment receipt as the only issuance identity and never rotates replay', async () => {
+  it('uses the completed invite grant as the only issuance identity and never rotates replay', async () => {
     talosApi.adminIssueApiKey.mockResolvedValue({
       issued_api_key: issuedKey(),
     });
     const result = await service.issueEnrollment({
-      receipt: enrollment,
+      grant: enrollment,
       logger,
     });
     expect(result.key.id).toBe(KEY_ID);
@@ -120,7 +111,7 @@ describe('agent key service', () => {
     expect(
       talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest,
     ).toMatchObject({
-      request_id: enrollment.id,
+      request_id: enrollment.inviteId,
       actor_id: AGENT_ID,
       scopes: [...AGENT_CREDENTIAL_SCOPES],
       metadata: {
@@ -139,7 +130,7 @@ describe('agent key service', () => {
       issued_api_key: issuedKey({ scopes: ['agent:profile'] }),
     });
     const result = await service.issueEnrollment({
-      receipt: enrollment,
+      grant: enrollment,
       logger,
     });
     expect(result.key.id).toBe(KEY_ID);
@@ -148,23 +139,10 @@ describe('agent key service', () => {
     expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { ...enrollment, membershipGrantedAt: null, role: null },
-    { ...enrollment, issuedKeyId: KEY_ID },
-  ])(
-    'rejects an enrollment receipt outside its issuance state',
-    async (receipt) => {
-      await expect(
-        service.issueEnrollment({ receipt, logger }),
-      ).rejects.toMatchObject({ statusCode: 409 });
-      expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
-    },
-  );
-
   it('does not issue an enrollment key after membership is removed', async () => {
     relationshipReader.isTeamMember.mockResolvedValue(false);
     await expect(
-      service.issueEnrollment({ receipt: enrollment, logger }),
+      service.issueEnrollment({ grant: enrollment, logger }),
     ).rejects.toMatchObject({ statusCode: 400 });
     expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
@@ -175,7 +153,7 @@ describe('agent key service', () => {
       secret: 'must-not-escape',
     });
     await expect(
-      service.issueEnrollment({ receipt: enrollment, logger }),
+      service.issueEnrollment({ grant: enrollment, logger }),
     ).rejects.toMatchObject({ statusCode: 502 });
     expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalled();
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(

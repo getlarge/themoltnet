@@ -804,6 +804,7 @@ describe('POST /teams/join role promotion', () => {
   beforeEach(() => {
     resetMockServices(mocks);
     vi.mocked(teamInviteWorkflow.run).mockResolvedValue({
+      inviteId: 'invite-1',
       teamId: TEAM_ID,
       role: 'manager',
     });
@@ -858,6 +859,7 @@ describe('POST /teams/join role promotion', () => {
         expiresAt: new Date(0),
       });
       vi.mocked(teamInviteWorkflow.findPending).mockResolvedValueOnce({
+        inviteId: 'invite-1',
         teamId: TEAM_ID,
         role,
       });
@@ -940,6 +942,7 @@ describe('POST /teams/join role promotion', () => {
 
   it('downgrades an existing manager when a member invite is redeemed', async () => {
     vi.mocked(teamInviteWorkflow.run).mockResolvedValue({
+      inviteId: 'invite-1',
       teamId: TEAM_ID,
       role: 'member',
     });

@@ -10,7 +10,7 @@ import {
   readAgentKeyMetadataBinding,
   type RelationshipReader,
 } from '@moltnet/auth';
-import type { AgentRepository, TeamEnrollment } from '@moltnet/database';
+import type { AgentRepository } from '@moltnet/database';
 import {
   type ApiKeysApi,
   type IssuedApiKey,
@@ -955,32 +955,25 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       };
     },
 
-    /** Internal enrollment grant: only a persisted, membership-ready receipt authorizes this path. */
+    /** Internal enrollment grant: the completed invite workflow authorizes this path. */
     async issueEnrollment(input: {
-      receipt: TeamEnrollment;
+      grant: { inviteId: string; agentId: string; teamId: string };
       logger: Logger;
       signal?: AbortSignal;
     }): Promise<{ key: AgentKey; secret?: string }> {
-      const { receipt, logger, signal } = input;
-      if (
-        !receipt.membershipGrantedAt ||
-        !receipt.role ||
-        receipt.issuedKeyId
-      ) {
-        throw createProblem('conflict', 'Enrollment is not ready for issuance');
-      }
-      await assertCurrentAgentMember(deps, receipt.teamId, receipt.agentId);
+      const { grant, logger, signal } = input;
+      await assertCurrentAgentMember(deps, grant.teamId, grant.agentId);
       const api = getTalosApi(deps);
-      const binding = { bindingScope: 'team', teamId: receipt.teamId } as const;
+      const binding = { bindingScope: 'team', teamId: grant.teamId } as const;
       const scopes = [...AGENT_CREDENTIAL_SCOPES];
       let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
       try {
         result = await api.adminIssueApiKey(
           {
             issueApiKeyRequest: {
-              actor_id: receipt.agentId,
+              actor_id: grant.agentId,
               name: 'Team enrollment',
-              request_id: receipt.id,
+              request_id: grant.inviteId,
               ttl: `${DEFAULT_TTL_DAYS * SECONDS_PER_DAY}s`,
               visibility: KeyVisibility.KeyVisibilitySecret,
               scopes,
@@ -992,7 +985,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       } catch (error) {
         logger.warn(
           {
-            enrollmentId: receipt.id,
+            inviteId: grant.inviteId,
             failureKind: talosFailureKind(error, signal),
           },
           'agent_key.enrollment_upstream_error',
@@ -1012,7 +1005,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       try {
         key = toAgentKey(result.issued_api_key);
         if (
-          key.agentId !== receipt.agentId ||
+          key.agentId !== grant.agentId ||
           !bindingsEqual(key, binding) ||
           (Boolean(result.secret) &&
             !credentialScopeSetsEqual(key.scopes, scopes))
@@ -1023,7 +1016,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         await revokeInvalidIssuedKey(
           api,
           result.issued_api_key,
-          { agentId: receipt.agentId, ...binding },
+          { agentId: grant.agentId, ...binding },
           logger,
           'issue',
         );
@@ -1032,7 +1025,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           'Talos returned an invalid enrollment key',
         );
       }
-      // Talos omits the secret on replay. Return its identifier for the receipt,
+      // Talos omits the secret on replay. Return its identifier,
       // but never rotate to recover a secret or checkpoint this response in DBOS.
       return { key, ...(result.secret ? { secret: result.secret } : {}) };
     },

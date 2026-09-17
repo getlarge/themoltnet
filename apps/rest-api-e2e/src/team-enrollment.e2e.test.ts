@@ -1,4 +1,7 @@
+import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { resolve } from 'node:path';
+import { promisify } from 'node:util';
 
 import { createAgentKeyService } from '@moltnet/agent-key-service';
 import {
@@ -16,14 +19,7 @@ import {
   createPermissionChecker,
   createRelationshipReader,
 } from '@moltnet/auth';
-import {
-  createAgentRepository,
-  createDrizzleTransactionRunner,
-  createTeamEnrollmentRepository,
-  teamEnrollments,
-  teamInvites,
-  teams,
-} from '@moltnet/database';
+import { createAgentRepository, teamInvites, teams } from '@moltnet/database';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -33,7 +29,7 @@ import {
   type TestAgent,
   type TestHuman,
 } from './helpers.js';
-import { createTestHarness, type TestHarness } from './setup.js';
+import { createTestHarness, DATABASE_URL, type TestHarness } from './setup.js';
 
 let harness: TestHarness;
 let client: Client;
@@ -71,7 +67,7 @@ afterAll(async () => {
   await harness?.teardown();
 });
 
-async function invitation(maxUses = 1) {
+async function invitation() {
   const team = await createTeam({
     client,
     auth: () => owner.accessToken,
@@ -82,7 +78,7 @@ async function invitation(maxUses = 1) {
     client,
     auth: () => owner.accessToken,
     path: { id: team.data!.id },
-    body: { role: 'member', maxUses },
+    body: { role: 'member' },
   });
   expect(invite.response.status).toBe(201);
   return { teamId: team.data!.id, ...invite.data! };
@@ -102,11 +98,13 @@ function enroll(
 }
 async function usage(inviteId: string) {
   return (
-    await harness.db
-      .select()
-      .from(teamInvites)
-      .where(eq(teamInvites.id, inviteId))
-  )[0]?.useCount;
+    (
+      await harness.db
+        .select()
+        .from(teamInvites)
+        .where(eq(teamInvites.id, inviteId))
+    )[0]?.usedAt != null
+  );
 }
 async function talosKeys(agentId: string, teamId: string) {
   const response = await harness.oryClients.apiKeys!.adminListIssuedApiKeys({
@@ -116,6 +114,43 @@ async function talosKeys(agentId: string, teamId: string) {
   return (response.issued_api_keys ?? []).filter(
     (key) =>
       (key.metadata as { team_id?: string } | undefined)?.team_id === teamId,
+  );
+}
+
+// Run the real membership workflow without issuing a key, as if the HTTP
+// process stopped between its durable membership result and the Talos request.
+async function prepareMembership(
+  invite: { id: string; code: string },
+  idempotencyKey: string,
+) {
+  const root = resolve(import.meta.dirname, '../../..');
+  await promisify(execFile)(
+    process.execPath,
+    [
+      '--import',
+      'tsx',
+      resolve(
+        root,
+        'apps/rest-api-e2e/src/fixtures/team-invite-recovery.worker.ts',
+      ),
+    ],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        INVITE_TEST_DATABASE_URL: DATABASE_URL,
+        INVITE_TEST_INPUT: JSON.stringify({
+          inviteId: invite.id,
+          subjectId: owner.agentId,
+          subjectNs: 'Agent',
+          enrollment: {
+            idempotencyKey,
+            codeHash: createHash('sha256').update(invite.code).digest('hex'),
+          },
+        }),
+      },
+      timeout: 60_000,
+    },
   );
 }
 
@@ -152,18 +187,11 @@ describe('team enrollment', () => {
         })
       ).response.status,
     ).toBe(403);
-    expect(await usage(invite.id)).toBe(1);
-    const receipts = await harness.db
-      .select()
-      .from(teamEnrollments)
-      .where(eq(teamEnrollments.inviteId, invite.id));
-    expect(receipts).toHaveLength(1);
-    expect(receipts[0].issuedKeyId).toBe(key.key.id);
+    expect(await usage(invite.id)).toBe(true);
     const checkpoints = await harness.db.execute(
       sql`SELECT to_jsonb(s) AS row FROM dbos.workflow_status s WHERE workflow_uuid LIKE ${`team-enrollment:${agent.agentId}:%`}`,
     );
     expect(JSON.stringify(checkpoints.rows)).not.toContain(key.secret);
-    expect(JSON.stringify(receipts)).not.toContain(key.secret);
     expect(JSON.stringify(checkpoints.rows)).not.toContain(invite.code);
     const outputs = await harness.db.execute(
       sql`SELECT to_jsonb(o) AS row FROM dbos.operation_outputs o WHERE workflow_uuid LIKE ${`team-enrollment:${agent.agentId}:%`}`,
@@ -174,7 +202,7 @@ describe('team enrollment', () => {
   });
 
   it('deduplicates concurrent calls and rejects replay and conflicting input', async () => {
-    const invite = await invitation(10);
+    const invite = await invitation();
     const idempotencyKey = randomUUID();
     const results = await Promise.all(
       Array.from({ length: 4 }, () => enroll(invite.code, idempotencyKey)),
@@ -182,14 +210,14 @@ describe('team enrollment', () => {
     expect(results.map((r) => r.response.status).sort()).toEqual([
       200, 409, 409, 409,
     ]);
-    expect(await usage(invite.id)).toBe(1);
+    expect(await usage(invite.id)).toBe(true);
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(1);
-    expect((await enroll(invite.code, randomUUID())).response.status).toBe(409);
+    expect((await enroll(invite.code, randomUUID())).response.status).toBe(410);
     const another = await invitation();
     expect((await enroll(another.code, idempotencyKey)).response.status).toBe(
       409,
     );
-    expect(await usage(another.id)).toBe(0);
+    expect(await usage(another.id)).toBe(false);
     await deleteTeamInvite({
       client,
       auth: () => owner.accessToken,
@@ -201,36 +229,22 @@ describe('team enrollment', () => {
   });
 
   it('consumes one use when the same agent races different request keys', async () => {
-    const invite = await invitation(10);
+    const invite = await invitation();
     const results = await Promise.all([
       enroll(invite.code),
       enroll(invite.code),
     ]);
     expect(results.map((result) => result.response.status).sort()).toEqual([
-      200, 409,
+      200, 410,
     ]);
-    expect(await usage(invite.id)).toBe(1);
+    expect(await usage(invite.id)).toBe(true);
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(1);
   });
 
   it('resumes an accepted claim after its invitation has been deleted', async () => {
     const invite = await invitation();
     const idempotencyKey = randomUUID();
-    const hash = (value: string) =>
-      createHash('sha256').update(value).digest('hex');
-    const repository = createTeamEnrollmentRepository(harness.db);
-    const pending = await createDrizzleTransactionRunner(
-      harness.db,
-    ).runInTransaction(() =>
-      repository.claim({
-        agentId: owner.agentId,
-        inviteId: invite.id,
-        idempotencyHash: hash(idempotencyKey),
-        requestHash: hash(
-          JSON.stringify(['moltnet:team-enrollment:v1', invite.code, true]),
-        ),
-      }),
-    );
+    await prepareMembership(invite, idempotencyKey);
     await deleteTeamInvite({
       client,
       auth: () => owner.accessToken,
@@ -238,12 +252,6 @@ describe('team enrollment', () => {
     });
     const result = await enroll(invite.code, idempotencyKey, owner.accessToken);
     expect(result.response.status).toBe(200);
-    const receipt = await repository.findByRequest(
-      owner.agentId,
-      hash(idempotencyKey),
-    );
-    expect(receipt!.id).toBe(pending.id);
-    expect(receipt!.issuedKeyId).toBe(result.data!.agentKey!.key.id);
     expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(1);
   });
 
@@ -252,7 +260,7 @@ describe('team enrollment', () => {
     const result = await enroll(invite.code, randomUUID(), owner.accessToken);
     expect(result.response.status).toBe(200);
     expect(result.data!.role).toBe('owner');
-    expect(await usage(invite.id)).toBe(1);
+    expect(await usage(invite.id)).toBe(true);
   });
 
   it('requires idempotency and rejects human issuance without consuming the invitation', async () => {
@@ -274,7 +282,7 @@ describe('team enrollment', () => {
       body: { code: invite.code, issueAgentKey: true },
     });
     expect(denied.response.status).toBe(403);
-    expect(await usage(invite.id)).toBe(0);
+    expect(await usage(invite.id)).toBe(false);
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(0);
     const joined = await joinTeam({
       client: humanClient,
@@ -296,7 +304,7 @@ describe('team enrollment', () => {
       if (kind === 'exhausted')
         await harness.db
           .update(teamInvites)
-          .set({ useCount: 1 })
+          .set({ usedAt: new Date() })
           .where(eq(teamInvites.id, invite.id));
       if (kind === 'deleted')
         await deleteTeamInvite({
@@ -322,34 +330,19 @@ describe('team enrollment', () => {
         }[kind],
       );
       expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(0);
-      expect(
-        await harness.db
-          .select()
-          .from(teamEnrollments)
-          .where(eq(teamEnrollments.inviteId, invite.id)),
-      ).toHaveLength(0);
+      if (kind !== 'exhausted') expect(await usage(invite.id)).toBe(false);
     },
   );
 
   it('returns 409 after a lost Talos issuance response without rotating or consuming again', async () => {
     const invite = await invitation();
     const idempotencyKey = randomUUID();
-    const hash = (value: string) =>
-      createHash('sha256').update(value).digest('hex');
-    const repository = createTeamEnrollmentRepository(harness.db);
-    const pending = await createDrizzleTransactionRunner(
-      harness.db,
-    ).runInTransaction(() =>
-      repository.claim({
-        agentId: owner.agentId,
-        inviteId: invite.id,
-        idempotencyHash: hash(idempotencyKey),
-        requestHash: hash(
-          JSON.stringify(['moltnet:team-enrollment:v1', invite.code, true]),
-        ),
-      }),
-    );
-    const receipt = await repository.markMembership(pending.id, 'owner');
+    await prepareMembership(invite, idempotencyKey);
+    const grant = {
+      inviteId: invite.id,
+      agentId: owner.agentId,
+      teamId: invite.teamId,
+    };
     const api = harness.oryClients.apiKeys!;
     // The only injected fault: Talos commits its real issuance, but its response
     // is lost before the caller can save the key identifier or return the secret.
@@ -372,7 +365,7 @@ describe('team enrollment', () => {
     });
     const logger = { debug() {}, info() {}, warn() {} };
     await expect(
-      service.issueEnrollment({ receipt, logger }),
+      service.issueEnrollment({ grant, logger }),
     ).rejects.toMatchObject({ statusCode: 502 });
     const original = await talosKeys(owner.agentId, invite.teamId);
     expect(original).toHaveLength(1);
@@ -381,10 +374,6 @@ describe('team enrollment', () => {
     const after = await talosKeys(owner.agentId, invite.teamId);
     expect(after.map((k) => k.key_id)).toEqual(original.map((k) => k.key_id));
     expect(after[0].update_time).toEqual(original[0].update_time);
-    expect(await usage(invite.id)).toBe(1);
-    expect(
-      (await repository.findByRequest(owner.agentId, hash(idempotencyKey)))!
-        .issuedKeyId,
-    ).toBe(original[0].key_id);
+    expect(await usage(invite.id)).toBe(true);
   });
 });

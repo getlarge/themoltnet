@@ -185,7 +185,6 @@ function createApp(
     } as unknown as RelationshipWriter,
     tokenValidator: mockTokenValidator,
     teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
-    teamEnrollmentRepository: {} as never,
     teamRepository: new Proxy(
       {},
       { get: () => vi.fn().mockResolvedValue(null) },
