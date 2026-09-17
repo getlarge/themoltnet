@@ -26950,9 +26950,15 @@ type JoinTeamNotFound ProblemDetails
 func (*JoinTeamNotFound) joinTeamRes() {}
 
 type JoinTeamOK struct {
-	Role JoinTeamOKRole `json:"role"`
+	AgentKey OptAgentKeyWithSecret `json:"agentKey"`
+	Role     JoinTeamOKRole        `json:"role"`
 	// UUID v4 identifier.
 	TeamId uuid.UUID `json:"teamId"`
+}
+
+// GetAgentKey returns the value of AgentKey.
+func (s *JoinTeamOK) GetAgentKey() OptAgentKeyWithSecret {
+	return s.AgentKey
 }
 
 // GetRole returns the value of Role.
@@ -26963,6 +26969,11 @@ func (s *JoinTeamOK) GetRole() JoinTeamOKRole {
 // GetTeamId returns the value of TeamId.
 func (s *JoinTeamOK) GetTeamId() uuid.UUID {
 	return s.TeamId
+}
+
+// SetAgentKey sets the value of AgentKey.
+func (s *JoinTeamOK) SetAgentKey(val OptAgentKeyWithSecret) {
+	s.AgentKey = val
 }
 
 // SetRole sets the value of Role.
@@ -26980,6 +26991,7 @@ func (*JoinTeamOK) joinTeamRes() {}
 type JoinTeamOKRole string
 
 const (
+	JoinTeamOKRoleOwner    JoinTeamOKRole = "owner"
 	JoinTeamOKRoleManager  JoinTeamOKRole = "manager"
 	JoinTeamOKRoleExecutor JoinTeamOKRole = "executor"
 	JoinTeamOKRoleMember   JoinTeamOKRole = "member"
@@ -26988,6 +27000,7 @@ const (
 // AllValues returns all JoinTeamOKRole values.
 func (JoinTeamOKRole) AllValues() []JoinTeamOKRole {
 	return []JoinTeamOKRole{
+		JoinTeamOKRoleOwner,
 		JoinTeamOKRoleManager,
 		JoinTeamOKRoleExecutor,
 		JoinTeamOKRoleMember,
@@ -26997,6 +27010,8 @@ func (JoinTeamOKRole) AllValues() []JoinTeamOKRole {
 // MarshalText implements encoding.TextMarshaler.
 func (s JoinTeamOKRole) MarshalText() ([]byte, error) {
 	switch s {
+	case JoinTeamOKRoleOwner:
+		return []byte(s), nil
 	case JoinTeamOKRoleManager:
 		return []byte(s), nil
 	case JoinTeamOKRoleExecutor:
@@ -27011,6 +27026,9 @@ func (s JoinTeamOKRole) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *JoinTeamOKRole) UnmarshalText(data []byte) error {
 	switch JoinTeamOKRole(data) {
+	case JoinTeamOKRoleOwner:
+		*s = JoinTeamOKRoleOwner
+		return nil
 	case JoinTeamOKRoleManager:
 		*s = JoinTeamOKRoleManager
 		return nil
@@ -27026,7 +27044,8 @@ func (s *JoinTeamOKRole) UnmarshalText(data []byte) error {
 }
 
 type JoinTeamReq struct {
-	Code string `json:"code"`
+	Code          string                      `json:"code"`
+	IssueAgentKey OptJoinTeamReqIssueAgentKey `json:"issueAgentKey"`
 }
 
 // GetCode returns the value of Code.
@@ -27034,9 +27053,32 @@ func (s *JoinTeamReq) GetCode() string {
 	return s.Code
 }
 
+// GetIssueAgentKey returns the value of IssueAgentKey.
+func (s *JoinTeamReq) GetIssueAgentKey() OptJoinTeamReqIssueAgentKey {
+	return s.IssueAgentKey
+}
+
 // SetCode sets the value of Code.
 func (s *JoinTeamReq) SetCode(val string) {
 	s.Code = val
+}
+
+// SetIssueAgentKey sets the value of IssueAgentKey.
+func (s *JoinTeamReq) SetIssueAgentKey(val OptJoinTeamReqIssueAgentKey) {
+	s.IssueAgentKey = val
+}
+
+type JoinTeamReqIssueAgentKey bool
+
+const (
+	JoinTeamReqIssueAgentKeyTrue JoinTeamReqIssueAgentKey = true
+)
+
+// AllValues returns all JoinTeamReqIssueAgentKey values.
+func (JoinTeamReqIssueAgentKey) AllValues() []JoinTeamReqIssueAgentKey {
+	return []JoinTeamReqIssueAgentKey{
+		JoinTeamReqIssueAgentKeyTrue,
+	}
 }
 
 type JoinTeamServiceUnavailable ProblemDetails
@@ -34726,6 +34768,52 @@ func (o OptAgentKeyBindingScope) Or(d AgentKeyBindingScope) AgentKeyBindingScope
 	return d
 }
 
+// NewOptAgentKeyWithSecret returns new OptAgentKeyWithSecret with value set to v.
+func NewOptAgentKeyWithSecret(v AgentKeyWithSecret) OptAgentKeyWithSecret {
+	return OptAgentKeyWithSecret{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptAgentKeyWithSecret is optional AgentKeyWithSecret.
+type OptAgentKeyWithSecret struct {
+	Value AgentKeyWithSecret
+	Set   bool
+}
+
+// IsSet returns true if OptAgentKeyWithSecret was set.
+func (o OptAgentKeyWithSecret) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptAgentKeyWithSecret) Reset() {
+	var v AgentKeyWithSecret
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptAgentKeyWithSecret) SetTo(v AgentKeyWithSecret) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptAgentKeyWithSecret) Get() (v AgentKeyWithSecret, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptAgentKeyWithSecret) Or(d AgentKeyWithSecret) AgentKeyWithSecret {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptApproveSigningCredentialReq returns new OptApproveSigningCredentialReq with value set to v.
 func NewOptApproveSigningCredentialReq(v ApproveSigningCredentialReq) OptApproveSigningCredentialReq {
 	return OptApproveSigningCredentialReq{
@@ -36468,6 +36556,52 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptJoinTeamReqIssueAgentKey returns new OptJoinTeamReqIssueAgentKey with value set to v.
+func NewOptJoinTeamReqIssueAgentKey(v JoinTeamReqIssueAgentKey) OptJoinTeamReqIssueAgentKey {
+	return OptJoinTeamReqIssueAgentKey{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptJoinTeamReqIssueAgentKey is optional JoinTeamReqIssueAgentKey.
+type OptJoinTeamReqIssueAgentKey struct {
+	Value JoinTeamReqIssueAgentKey
+	Set   bool
+}
+
+// IsSet returns true if OptJoinTeamReqIssueAgentKey was set.
+func (o OptJoinTeamReqIssueAgentKey) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptJoinTeamReqIssueAgentKey) Reset() {
+	var v JoinTeamReqIssueAgentKey
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptJoinTeamReqIssueAgentKey) SetTo(v JoinTeamReqIssueAgentKey) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptJoinTeamReqIssueAgentKey) Get() (v JoinTeamReqIssueAgentKey, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptJoinTeamReqIssueAgentKey) Or(d JoinTeamReqIssueAgentKey) JoinTeamReqIssueAgentKey {
 	if v, ok := o.Get(); ok {
 		return v
 	}

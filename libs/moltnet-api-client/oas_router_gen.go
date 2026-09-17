@@ -321,7 +321,7 @@ var (
 		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
 	}
 	rn135AllowedHeaders = map[string]string{
-		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token",
+		"POST": "Authorization,Content-Type,Idempotency-Key,X-Moltnet-Session-Token",
 	}
 	rn8AllowedHeaders = map[string]string{
 		"DELETE": "Authorization,X-Moltnet-Session-Token",

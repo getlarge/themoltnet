@@ -531,10 +531,12 @@ type Invoker interface {
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam invokes joinTeam operation.
 	//
-	// Join a team using an invite code. Requires team:join; send no team header.
+	// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
+	// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+	// replays return 409.
 	//
 	// POST /teams/join
-	JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error)
+	JoinTeam(ctx context.Context, request *JoinTeamReq, params JoinTeamParams) (JoinTeamRes, error)
 	// ListAgentKeys invokes listAgentKeys operation.
 	//
 	// List agent API keys for the selected binding. Team scope is the default; identity scope is agent
@@ -13910,15 +13912,17 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 
 // JoinTeam invokes joinTeam operation.
 //
-// Join a team using an invite code. Requires team:join; send no team header.
+// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
+// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+// replays return 409.
 //
 // POST /teams/join
-func (c *Client) JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error) {
-	res, err := c.sendJoinTeam(ctx, request)
+func (c *Client) JoinTeam(ctx context.Context, request *JoinTeamReq, params JoinTeamParams) (JoinTeamRes, error) {
+	res, err := c.sendJoinTeam(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq) (res JoinTeamRes, err error) {
+func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params JoinTeamParams) (res JoinTeamRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("joinTeam"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -13966,6 +13970,23 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq) (res Jo
 	}
 	if err := encodeJoinTeamRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.IdempotencyKey.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

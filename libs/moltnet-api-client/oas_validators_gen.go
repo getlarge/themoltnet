@@ -17793,6 +17793,24 @@ func (s *JoinTeamOK) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if value, ok := s.AgentKey.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "agentKey",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Role.Validate(); err != nil {
 			return err
 		}
@@ -17811,6 +17829,8 @@ func (s *JoinTeamOK) Validate() error {
 
 func (s JoinTeamOKRole) Validate() error {
 	switch s {
+	case "owner":
+		return nil
 	case "manager":
 		return nil
 	case "executor":
@@ -17851,10 +17871,37 @@ func (s *JoinTeamReq) Validate() error {
 			Error: err,
 		})
 	}
+	if err := func() error {
+		if value, ok := s.IssueAgentKey.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "issueAgentKey",
+			Error: err,
+		})
+	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s JoinTeamReqIssueAgentKey) Validate() error {
+	switch s {
+	case true:
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *JoinTeamServiceUnavailable) Validate() error {
