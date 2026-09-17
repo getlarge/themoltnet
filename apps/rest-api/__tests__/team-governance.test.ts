@@ -61,6 +61,7 @@ vi.mock('../src/workflows/team-invite-workflow.js', () => ({
 // Need to import DBOS after mock to get the mocked version
 import { DBOS } from '@moltnet/database';
 
+import { createProblem } from '../src/problems/index.js';
 import { teamInviteWorkflow } from '../src/workflows/team-invite-workflow.js';
 
 // DBOS is a module-level mock, not part of `mocks`, so `resetMockServices`
@@ -816,6 +817,29 @@ describe('POST /teams/join role promotion', () => {
       expiresAt: new Date(Date.now() + 60_000),
     });
   });
+
+  it.each([
+    ['not-found', 404],
+    ['forbidden', 403],
+    ['invite-expired', 410],
+    ['invite-exhausted', 410],
+    ['team-not-active', 400],
+  ])(
+    'preserves workflow %s responses at the HTTP boundary',
+    async (problem, status) => {
+      vi.mocked(teamInviteWorkflow.run).mockRejectedValue(
+        createProblem(problem),
+      );
+      mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
+      const response = await app.inject({
+        method: 'POST',
+        url: '/teams/join',
+        headers: authHeaders,
+        payload: { code: 'mlt_inv_test' },
+      });
+      expect(response.statusCode).toBe(status);
+    },
+  );
 
   it('promotes an existing member when a manager invite is redeemed', async () => {
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([

@@ -12,6 +12,8 @@ import {
   type TransactionRunner,
 } from '@moltnet/database';
 
+import { createProblem } from '../problems/index.js';
+
 export interface RedeemTeamInvite {
   inviteId: string;
   subjectId: string;
@@ -25,6 +27,21 @@ interface InviteResult {
   teamId: string;
   role: TeamRole;
 }
+type InviteRejection = {
+  problem:
+    | 'not-found'
+    | 'forbidden'
+    | 'invite-expired'
+    | 'invite-exhausted'
+    | 'team-not-active';
+};
+type InviteOutcome = InviteResult | InviteRejection;
+
+function unwrapInviteOutcome(outcome: InviteOutcome): InviteResult {
+  if ('problem' in outcome) throw createProblem(outcome.problem);
+  return outcome;
+}
+
 interface TeamInviteDeps {
   teamRepository: TeamRepository;
   transactionRunner: TransactionRunner;
@@ -32,7 +49,7 @@ interface TeamInviteDeps {
   relationshipWriter: RelationshipWriter;
 }
 let deps: TeamInviteDeps;
-let workflow: ((input: RedeemTeamInvite) => Promise<InviteResult>) | undefined;
+let workflow: ((input: RedeemTeamInvite) => Promise<InviteOutcome>) | undefined;
 
 export function setTeamInviteDeps(value: TeamInviteDeps): void {
   deps = value;
@@ -108,19 +125,27 @@ export function initTeamInviteWorkflow(): void {
           const invite = await deps.teamRepository.findInviteById(
             input.inviteId,
           );
+          if (!invite) return { problem: 'not-found' } as const;
           if (
-            !invite ||
-            (invite.role === 'executor' &&
-              input.subjectNs === KetoNamespace.Human)
+            invite.role === 'executor' &&
+            input.subjectNs === KetoNamespace.Human
           )
-            throw new Error('Team invite unavailable');
+            return { problem: 'forbidden' } as const;
+          if (invite.expiresAt <= new Date())
+            return { problem: 'invite-expired' } as const;
+          const team = await deps.teamRepository.findById(invite.teamId);
+          if (!team || team.personal) return { problem: 'not-found' } as const;
+          if (team.status !== 'active')
+            return { problem: 'team-not-active' } as const;
           const claimed = await deps.teamRepository.claimInvite(input.inviteId);
-          if (!claimed) throw new Error('Team invite unavailable');
+          if (!claimed) return { problem: 'invite-exhausted' } as const;
           // The invite consumption and this secret-free output share one DBOS transaction.
           return { teamId: claimed.teamId, role: claimed.role };
         },
         { name: 'team.invite.claim' },
       );
+      // Expected rejections are durable data, not serialized Error subclasses.
+      if ('problem' in grant) return grant;
       const role = await grantMembership(input, grant);
       return { teamId: grant.teamId, role };
     },
@@ -130,10 +155,14 @@ export function initTeamInviteWorkflow(): void {
 
 export const teamInviteWorkflow = {
   async run(input: RedeemTeamInvite): Promise<InviteResult> {
-    if (!workflow) throw new Error('Team invite workflow not initialized');
+    if (!workflow)
+      throw createProblem(
+        'service-unavailable',
+        'Team invite workflow is not ready',
+      );
     const handle = await DBOS.startWorkflow(workflow, {
       workflowID: `team-invite:${input.inviteId}:${input.subjectNs}:${input.subjectId}`,
     })(input);
-    return handle.getResult();
+    return unwrapInviteOutcome(await handle.getResult());
   },
 };

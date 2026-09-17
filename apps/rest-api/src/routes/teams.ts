@@ -1108,27 +1108,17 @@ export function teamRoutes(fastify: FastifyInstance) {
 
       if (invite.usedAt) throw createProblem('invite-exhausted');
 
-      try {
-        const result = await teamInviteWorkflow.run({
-          inviteId: invite.id,
-          subjectId,
-          subjectNs: ns,
-        });
-        if (result.role === TEAM_ROLE.Owner) {
-          throw createProblem('conflict', 'Already a member of this team');
-        }
-        return await reply
-          .status(200)
-          .send({ teamId: result.teamId, role: result.role });
-      } catch (error) {
-        // DBOS restores persisted errors without their original prototypes.
-        if (
-          error instanceof Error &&
-          error.message === 'Team invite unavailable'
-        )
-          throw createProblem('invite-exhausted');
-        throw error;
+      const result = await teamInviteWorkflow.run({
+        inviteId: invite.id,
+        subjectId,
+        subjectNs: ns,
+      });
+      if (result.role === TEAM_ROLE.Owner) {
+        throw createProblem('conflict', 'Already a member of this team');
       }
+      return await reply
+        .status(200)
+        .send({ teamId: result.teamId, role: result.role });
     },
   );
 

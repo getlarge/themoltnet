@@ -83,7 +83,9 @@ async function main(): Promise<void> {
       .then(
         () => false,
         (error: unknown) =>
-          error instanceof Error && error.message.includes('unavailable'),
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'INVITE_EXHAUSTED',
       );
     console.log(
       `RESULT:${JSON.stringify({ teams: results.map((r) => r.teamId), role: results[0].role, mismatch })}`,
