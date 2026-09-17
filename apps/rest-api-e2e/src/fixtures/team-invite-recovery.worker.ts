@@ -16,6 +16,8 @@ import {
   shutdownDBOS,
 } from '@moltnet/database';
 
+import { startInviteHttpServer } from '../../../rest-api/__tests__/fixtures/invite-http-server.js';
+
 import {
   initTeamInviteWorkflow,
   type RedeemTeamInvite,
@@ -73,6 +75,16 @@ async function main(): Promise<void> {
     },
   });
   await launchDBOS();
+  if (process.env.INVITE_TEST_HTTP === '1') {
+    const url = await startInviteHttpServer(
+      input,
+      createTeamRepository(connection.db),
+      createRelationshipReader(clients.relationshipRead),
+      writer,
+    );
+    console.log(`HTTP:${url}`);
+    await new Promise<void>(() => {});
+  }
   try {
     const results = await Promise.all([
       teamInviteWorkflow.run(input),

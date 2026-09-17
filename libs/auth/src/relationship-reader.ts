@@ -53,7 +53,10 @@ export interface RelationshipReader {
   /** Returns all team IDs with the subject's role in each team. */
   listTeamIdsAndRolesBySubject(subjectId: string): Promise<TeamIdWithRole[]>;
   /** Returns all members of a team with their roles. */
-  listTeamMembers(teamId: string): Promise<TeamMemberTuple[]>;
+  listTeamMembers(
+    teamId: string,
+    subject?: { subjectId: string; subjectNs: KetoNamespace },
+  ): Promise<TeamMemberTuple[]>;
   /** Returns whether the exact subject namespace currently belongs to a team. */
   isTeamMember(
     teamId: string,
@@ -223,7 +226,10 @@ export function createRelationshipReader(
       return [...bestByTeamId.values()];
     },
 
-    async listTeamMembers(teamId: string): Promise<TeamMemberTuple[]> {
+    async listTeamMembers(
+      teamId: string,
+      subject?: { subjectId: string; subjectNs: KetoNamespace },
+    ): Promise<TeamMemberTuple[]> {
       const members = new Map<string, TeamMemberTuple>();
       let pageToken: string | undefined;
 
@@ -231,6 +237,12 @@ export function createRelationshipReader(
         const result = await relationshipApi.getRelationships({
           namespace: KetoNamespace.Team,
           object: teamId,
+          ...(subject
+            ? {
+                subjectSetObject: subject.subjectId,
+                subjectSetNamespace: subject.subjectNs,
+              }
+            : {}),
           pageToken,
         });
         for (const tuple of result.relation_tuples ?? []) {
@@ -265,7 +277,10 @@ export function createRelationshipReader(
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<boolean> {
-      const members = await this.listTeamMembers(teamId);
+      const members = await this.listTeamMembers(teamId, {
+        subjectId,
+        subjectNs,
+      });
       return members.some(
         (member) =>
           member.subjectId === subjectId &&

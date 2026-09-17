@@ -2,6 +2,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 
+import { createClient, joinTeam } from '@moltnet/api-client';
 import {
   createRelationshipReader,
   createRelationshipWriter,
@@ -33,7 +34,7 @@ let databaseUrl: string;
 const databaseName = `invite_${randomUUID().replaceAll('-', '')}`;
 const children = new Set<ChildProcess>();
 
-function start(input: RedeemTeamInvite, pause?: string) {
+function start(input: RedeemTeamInvite, pause?: string, http = false) {
   const child = spawn(process.execPath, ['--import', 'tsx', worker], {
     cwd: root,
     env: {
@@ -41,6 +42,7 @@ function start(input: RedeemTeamInvite, pause?: string) {
       INVITE_TEST_DATABASE_URL: databaseUrl,
       INVITE_TEST_INPUT: JSON.stringify(input),
       INVITE_TEST_PAUSE: pause ?? '',
+      INVITE_TEST_HTTP: http ? '1' : '0',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -159,6 +161,81 @@ async function fixture(subjectNs = KetoNamespace.Agent) {
 }
 
 describe('team invitation process recovery', () => {
+  it('reconnects HTTP retries after claim-process replacement without claiming twice', async () => {
+    const { input, invite, team } = await fixture();
+    const first = start(input, 'claim', true);
+    await first.waitFor('HTTP:');
+    const url = (worker: ReturnType<typeof start>) =>
+      worker.output().split('HTTP:')[1].split('\n')[0].trim();
+    const original = joinTeam({
+      client: createClient({ baseUrl: url(first) }),
+      body: { code: invite.code },
+    }).catch(() => undefined);
+    await first.waitFor('PAUSED:claim');
+    first.child.kill('SIGKILL');
+    await first.closed;
+    await original;
+    const second = start(input, 'claim', true);
+    await second.waitFor('HTTP:');
+    await second.waitFor('PAUSED:claim');
+    const pending = await joinTeam({
+      client: createClient({ baseUrl: url(second) }),
+      body: { code: invite.code },
+    });
+    expect(pending.response.status).toBe(503);
+    second.child.kill('SIGKILL');
+    await second.closed;
+    const third = start(input, undefined, true);
+    await third.waitFor('HTTP:');
+    await third.waitFor('GRANTED');
+    const recovered = await joinTeam({
+      client: createClient({ baseUrl: url(third) }),
+      body: { code: invite.code },
+    });
+    // The first retry can finish the pending workflow before its SUCCESS status
+    // is visible. Once it returns, a further request is a completed replay.
+    expect([200, 409]).toContain(recovered.response.status);
+    const completed = await joinTeam({
+      client: createClient({ baseUrl: url(third) }),
+      body: { code: invite.code },
+    });
+    expect(completed.response.status).toBe(409);
+    expect(
+      (first.output() + second.output() + third.output()).match(/GRANTED/g),
+    ).toHaveLength(1);
+    expect(
+      await createRelationshipReader(
+        harness.oryClients.relationshipRead,
+      ).isTeamMember(team.id, input.subjectId, input.subjectNs),
+    ).toBe(true);
+    third.child.kill('SIGKILL');
+    await third.closed;
+  }, 120_000);
+
+  it('retries a cached rejection after registration releases its claim', async () => {
+    const { input, invite } = await fixture();
+    await database.db
+      .update(teamInvites)
+      .set({ usedAt: new Date() })
+      .where(eq(teamInvites.id, invite.id));
+    const rejected = start(input);
+    await rejected.closed;
+    expect(rejected.child.exitCode).not.toBe(0);
+    expect(rejected.errors()).toContain('INVITE_EXHAUSTED');
+    expect(rejected.output()).not.toContain('GRANTED');
+    // Registration compensation releases the claim, while the rejected DBOS
+    // attempt remains checkpointed for the same invite and subject.
+    await database.db
+      .update(teamInvites)
+      .set({ usedAt: null })
+      .where(eq(teamInvites.id, invite.id));
+    const retried = start(input);
+    await retried.waitFor('RESULT:');
+    await retried.closed;
+    expect(retried.child.exitCode).toBe(0);
+    expect(retried.output().match(/GRANTED/g)).toHaveLength(1);
+  });
+
   it('rolls back the claim and its DBOS checkpoint when the DBOS claim transaction fails', async () => {
     const { input, invite } = await fixture();
     const failed = start(input, 'rollback');

@@ -261,16 +261,44 @@ describe('Teams', () => {
       expect(response.status).toBe(409);
     });
     it('cannot reuse a consumed invite after membership is removed', async () => {
+      const created = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'isolated-consumed-invite' },
+      });
+      const isolatedTeam = created.data!.id;
+      const invitation = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: isolatedTeam },
+        body: { role: 'member', expiresInHours: 24 },
+      });
+      expect(invitation.data!.usedAt).toBeNull();
+      const joined = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: invitation.data!.code },
+      });
+      expect(joined.response.status).toBe(200);
+      const listed = await listTeamInvites({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: isolatedTeam },
+      });
+      expect(
+        listed.data!.items.find((item) => item.id === invitation.data!.id)
+          ?.usedAt,
+      ).toEqual(expect.any(String));
       const removed = await removeTeamMember({
         client,
         auth: () => agentA.accessToken,
-        path: { id: teamId, subjectId: agentB.agentId },
+        path: { id: isolatedTeam, subjectId: agentB.agentId },
       });
       expect(removed.response.status).toBe(200);
       const replay = await joinTeam({
         client,
         auth: () => agentB.accessToken,
-        body: { code: inviteCode },
+        body: { code: invitation.data!.code },
       });
       expect(replay.response.status).toBe(410);
     });

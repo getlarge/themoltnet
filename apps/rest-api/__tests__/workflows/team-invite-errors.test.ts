@@ -11,6 +11,10 @@ const dbos = vi.hoisted(() => ({
   registerStep: vi.fn((fn: unknown) => fn),
   registerWorkflow: vi.fn((fn: unknown) => fn),
   startWorkflow: vi.fn(),
+  getWorkflowStatus: vi.fn(),
+  getResult: vi.fn(),
+  sleepSeconds: vi.fn().mockResolvedValue(undefined),
+  logger: { warn: vi.fn() },
 }));
 vi.mock('@moltnet/database', () => ({ DBOS: dbos }));
 const repository = {
@@ -19,6 +23,7 @@ const repository = {
   claimInvite: vi.fn(),
 };
 const readMembers = vi.fn();
+const grantMembers = vi.fn();
 const input = {
   inviteId: 'invite',
   subjectId: 'subject',
@@ -28,6 +33,7 @@ const input = {
 beforeAll(() => initTeamInviteWorkflow());
 beforeEach(() => {
   vi.clearAllMocks();
+  dbos.getWorkflowStatus.mockResolvedValue(null);
   repository.findInviteById.mockResolvedValue({
     teamId: 'team',
     role: 'member',
@@ -35,18 +41,24 @@ beforeEach(() => {
   });
   repository.findById.mockResolvedValue({ personal: false, status: 'active' });
   repository.claimInvite.mockResolvedValue(null);
+  readMembers.mockResolvedValue([]);
+  grantMembers.mockResolvedValue(undefined);
   setTeamInviteDeps({
     teamRepository: repository,
     transactionRunner: { runInTransaction: (fn: () => unknown) => fn() },
     relationshipReader: { listTeamMembers: readMembers },
-    relationshipWriter: {},
+    relationshipWriter: { grantTeamMembers: grantMembers },
   } as never);
   // JSON round-trip models a saved DBOS result, without Error prototypes.
   dbos.startWorkflow.mockImplementation(
-    (fn: (value: typeof input) => Promise<unknown>) => (value: typeof input) =>
-      Promise.resolve({
-        getResult: async () => JSON.parse(JSON.stringify(await fn(value))),
-      }),
+    (fn: (value: typeof input) => Promise<unknown>) =>
+      (value: typeof input) => {
+        const result = fn(value);
+        dbos.getResult.mockImplementation(async () =>
+          JSON.parse(JSON.stringify(await result)),
+        );
+        return Promise.resolve({ workflowID: 'test' });
+      },
   );
 });
 
@@ -83,6 +95,53 @@ describe('durable invite rejections', () => {
         expect(repository.claimInvite).not.toHaveBeenCalled();
     },
   );
+
+  it('durably retries an exhausted membership step without claiming again', async () => {
+    repository.claimInvite.mockResolvedValue({
+      teamId: 'team',
+      role: 'member',
+    });
+    grantMembers.mockRejectedValueOnce(new Error('step retries exhausted'));
+    await expect(teamInviteWorkflow.run(input)).resolves.toMatchObject({
+      teamId: 'team',
+      role: 'member',
+    });
+    expect(repository.claimInvite).toHaveBeenCalledTimes(1);
+    expect(grantMembers).toHaveBeenCalledTimes(2);
+    expect(dbos.sleepSeconds).toHaveBeenCalledWith(30);
+  });
+
+  it('starts a new attempt after a rejected claim is compensated', async () => {
+    dbos.getWorkflowStatus
+      .mockResolvedValueOnce({ status: 'SUCCESS' })
+      .mockResolvedValueOnce(null);
+    dbos.getResult.mockResolvedValueOnce({ problem: 'invite-exhausted' });
+    await expect(teamInviteWorkflow.run(input)).rejects.toMatchObject({
+      code: 'INVITE_EXHAUSTED',
+    });
+    expect(dbos.startWorkflow).toHaveBeenCalledWith(expect.any(Function), {
+      workflowID: 'team-invite:invite:Human:subject:1',
+    });
+  });
+
+  it('reconnects a pending claim rather than attempting another claim', async () => {
+    dbos.getWorkflowStatus.mockResolvedValue({ status: 'PENDING' });
+    dbos.getResult.mockResolvedValue({ teamId: 'team', role: 'member' });
+    expect(await teamInviteWorkflow.findPending(input)).toEqual({
+      teamId: 'team',
+      role: 'member',
+    });
+    expect(dbos.startWorkflow).not.toHaveBeenCalled();
+    expect(repository.claimInvite).not.toHaveBeenCalled();
+  });
+
+  it('returns retryable 503 without cancelling an unfinished workflow', async () => {
+    dbos.getWorkflowStatus.mockResolvedValue({ status: 'PENDING' });
+    dbos.getResult.mockResolvedValue(null);
+    await expect(teamInviteWorkflow.findPending(input)).rejects.toMatchObject({
+      statusCode: 503,
+    });
+  });
 
   it('does not disguise an unexpected database failure as a spent invite', async () => {
     const failure = new Error('database unavailable');

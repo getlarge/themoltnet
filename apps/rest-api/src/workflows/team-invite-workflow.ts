@@ -4,6 +4,7 @@ import {
   type RelationshipWriter,
   type TeamInviteRole,
   TeamRelation,
+  teamRoleToRelation,
   type TeamRole,
 } from '@moltnet/auth';
 import {
@@ -60,7 +61,10 @@ export function initTeamInviteWorkflow(): void {
   const grantMembership = DBOS.registerStep(
     async (input: RedeemTeamInvite, grant: InviteGrant) => {
       const { relationshipReader, relationshipWriter } = deps;
-      const members = await relationshipReader.listTeamMembers(grant.teamId);
+      const members = await relationshipReader.listTeamMembers(
+        grant.teamId,
+        input,
+      );
       if (
         members.some(
           (member) =>
@@ -70,11 +74,7 @@ export function initTeamInviteWorkflow(): void {
         )
       )
         return 'owner' as const;
-      const relation = {
-        manager: TeamRelation.Managers,
-        executor: TeamRelation.Executors,
-        member: TeamRelation.Members,
-      }[grant.role];
+      const relation = teamRoleToRelation(grant.role);
       // Reconcile a Keto write that succeeded before its checkpoint was saved.
       if (
         members.some(
@@ -138,7 +138,22 @@ export function initTeamInviteWorkflow(): void {
           if (team.status !== 'active')
             return { problem: 'team-not-active' } as const;
           const claimed = await deps.teamRepository.claimInvite(input.inviteId);
-          if (!claimed) return { problem: 'invite-exhausted' } as const;
+          if (!claimed) {
+            const current = await deps.teamRepository.findInviteById(
+              input.inviteId,
+            );
+            if (!current) return { problem: 'not-found' } as const;
+            if (current.expiresAt <= new Date())
+              return { problem: 'invite-expired' } as const;
+            const currentTeam = await deps.teamRepository.findById(
+              current.teamId,
+            );
+            if (!currentTeam || currentTeam.personal)
+              return { problem: 'not-found' } as const;
+            if (currentTeam.status !== 'active')
+              return { problem: 'team-not-active' } as const;
+            return { problem: 'invite-exhausted' } as const;
+          }
           // The invite consumption and this secret-free output share one DBOS transaction.
           return { teamId: claimed.teamId, role: claimed.role };
         },
@@ -146,23 +161,79 @@ export function initTeamInviteWorkflow(): void {
       );
       // Expected rejections are durable data, not serialized Error subclasses.
       if ('problem' in grant) return grant;
-      const role = await grantMembership(input, grant);
-      return { teamId: grant.teamId, role };
+      // Retry batches durably: a long Keto outage must not strand a claim in ERROR.
+      for (;;) {
+        try {
+          const role = await grantMembership(input, grant);
+          return { teamId: grant.teamId, role };
+        } catch {
+          DBOS.logger.warn({
+            event: 'team_invite.membership_retry',
+            workflowId: DBOS.workflowID,
+            inviteId: input.inviteId,
+            subjectId: input.subjectId,
+            teamId: grant.teamId,
+          });
+          // Cancellation must propagate from this DBOS operation.
+          await DBOS.sleepSeconds(30);
+        }
+      }
     },
     { name: 'team.invite.redeem' },
   );
 }
 
+function inviteWorkflowId(input: RedeemTeamInvite, attempt: number): string {
+  const base = `team-invite:${input.inviteId}:${input.subjectNs}:${input.subjectId}`;
+  return attempt ? `${base}:${attempt}` : base;
+}
+
+async function awaitInviteResult(id: string): Promise<InviteOutcome> {
+  const outcome = await DBOS.getResult<InviteOutcome>(id, {
+    timeoutSeconds: 10,
+  });
+  if (!outcome)
+    throw createProblem(
+      'service-unavailable',
+      'Membership is still being reconciled; retry the same invitation',
+    );
+  return outcome;
+}
+
 export const teamInviteWorkflow = {
+  // Only reconnect unfinished work. Completed joins still use the route's
+  // current-membership checks, so replay cannot resurrect removed membership.
+  async findPending(input: RedeemTeamInvite): Promise<InviteResult | null> {
+    for (let attempt = 0; ; attempt++) {
+      const id = inviteWorkflowId(input, attempt);
+      const status = await DBOS.getWorkflowStatus(id);
+      if (!status) return null;
+      if (status.status === 'SUCCESS') {
+        const outcome = await awaitInviteResult(id);
+        if ('problem' in outcome) continue;
+        return null;
+      }
+      return unwrapInviteOutcome(await awaitInviteResult(id));
+    }
+  },
   async run(input: RedeemTeamInvite): Promise<InviteResult> {
     if (!workflow)
       throw createProblem(
         'service-unavailable',
         'Team invite workflow is not ready',
       );
-    const handle = await DBOS.startWorkflow(workflow, {
-      workflowID: `team-invite:${input.inviteId}:${input.subjectNs}:${input.subjectId}`,
-    })(input);
-    return unwrapInviteOutcome(await handle.getResult());
+    for (let attempt = 0; ; attempt++) {
+      const id = inviteWorkflowId(input, attempt);
+      const status = await DBOS.getWorkflowStatus(id);
+      if (status?.status === 'SUCCESS') {
+        const outcome = await awaitInviteResult(id);
+        // Rejected attempts had no side effects. A fresh validated request may
+        // retry after registration compensation releases the invite.
+        if ('problem' in outcome) continue;
+        return outcome;
+      }
+      await DBOS.startWorkflow(workflow, { workflowID: id })(input);
+      return unwrapInviteOutcome(await awaitInviteResult(id));
+    }
   },
 };

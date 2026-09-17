@@ -1062,6 +1062,7 @@ export function teamRoutes(fastify: FastifyInstance) {
           404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ConflictProblemDetailsSchema.$id),
           410: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -1073,6 +1074,16 @@ export function teamRoutes(fastify: FastifyInstance) {
       if (!invite) {
         throw createProblem('not-found', 'Invalid invite code');
       }
+
+      const pending = await teamInviteWorkflow.findPending({
+        inviteId: invite.id,
+        subjectId,
+        subjectNs: ns,
+      });
+      if (pending)
+        return reply
+          .status(200)
+          .send({ teamId: pending.teamId, role: pending.role });
 
       if (invite.expiresAt < new Date()) {
         throw createProblem('invite-expired');
@@ -1097,6 +1108,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       // Check if already a member
       const existingMembers = await fastify.relationshipReader.listTeamMembers(
         invite.teamId,
+        { subjectId, subjectNs: ns },
       );
       const existingMember = resolveManagedMember(existingMembers, subjectId);
       if (

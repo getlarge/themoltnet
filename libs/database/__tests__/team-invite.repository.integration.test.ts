@@ -35,9 +35,12 @@ beforeAll(async () => {
     });
     const journalPath = join(legacy, 'meta/_journal.json');
     const journal = JSON.parse(await readFile(journalPath, 'utf8'));
-    journal.entries = journal.entries.filter(
-      (entry: { idx: number }) => entry.idx < 46,
+    const boundary = journal.entries.findIndex(
+      (entry: { tag: string }) => entry.tag === '0046_overjoyed_firestar',
     );
+    if (boundary < 0)
+      throw new Error('Single-use migration missing from journal');
+    journal.entries = journal.entries.slice(0, boundary);
     await writeFile(journalPath, JSON.stringify(journal));
     await migrate(db, { migrationsFolder: legacy });
     const owner = randomUUID(),
@@ -118,6 +121,32 @@ describe('single-use team invites', () => {
     }
     const { invite } = await fixture();
     expect(invite.usedAt).toBeNull();
+    expect(await claim(invite.id)).not.toBeNull();
+  });
+
+  it('serializes old and new binary claims under the single-use compatibility trigger', async () => {
+    const { invite } = await fixture();
+    const [oldClaim, newClaim] = await Promise.all([
+      pool.query(
+        'UPDATE team_invites SET use_count = use_count + 1 WHERE id = $1 AND use_count < max_uses RETURNING id',
+        [invite.id],
+      ),
+      claim(invite.id),
+    ]);
+    expect(oldClaim.rowCount! + Number(newClaim !== null)).toBe(1);
+    const state = (
+      await pool.query(
+        'SELECT max_uses, use_count, used_at FROM team_invites WHERE id = $1',
+        [invite.id],
+      )
+    ).rows[0];
+    expect(state).toMatchObject({ max_uses: 1, use_count: 1 });
+    expect(state.used_at).toBeInstanceOf(Date);
+    await pool.query(
+      'UPDATE team_invites SET use_count = use_count - 1 WHERE id = $1',
+      [invite.id],
+    );
+    expect((await repository.findInviteById(invite.id))?.usedAt).toBeNull();
     expect(await claim(invite.id)).not.toBeNull();
   });
 

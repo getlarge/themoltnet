@@ -56,7 +56,10 @@ vi.mock('../src/workflows/diary-transfer-workflow.js', () => ({
 }));
 
 vi.mock('../src/workflows/team-invite-workflow.js', () => ({
-  teamInviteWorkflow: { run: vi.fn() },
+  teamInviteWorkflow: {
+    run: vi.fn(),
+    findPending: vi.fn().mockResolvedValue(null),
+  },
 }));
 // Need to import DBOS after mock to get the mocked version
 import { DBOS } from '@moltnet/database';
@@ -70,6 +73,7 @@ import { teamInviteWorkflow } from '../src/workflows/team-invite-workflow.js';
 // that leaked in from a previously-run test sharing the same app instance.
 beforeEach(() => {
   vi.mocked(teamInviteWorkflow.run).mockReset();
+  vi.mocked(teamInviteWorkflow.findPending).mockReset().mockResolvedValue(null);
   vi.mocked(DBOS.startWorkflow).mockClear();
   vi.mocked(DBOS.send).mockClear();
   vi.mocked(DBOS.retrieveWorkflow).mockClear();
@@ -840,6 +844,27 @@ describe('POST /teams/join role promotion', () => {
       expect(response.statusCode).toBe(status);
     },
   );
+
+  it('reconnects a consumed invite to its pending membership workflow', async () => {
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      usedAt: new Date(),
+      expiresAt: new Date(0),
+    });
+    vi.mocked(teamInviteWorkflow.findPending).mockResolvedValueOnce({
+      teamId: TEAM_ID,
+      role: 'member',
+    });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
+  });
 
   it('promotes an existing member when a manager invite is redeemed', async () => {
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([
