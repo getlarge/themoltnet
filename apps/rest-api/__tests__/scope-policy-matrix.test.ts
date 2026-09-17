@@ -35,6 +35,12 @@ interface ScopeProbe {
 
 const PROBES: readonly ScopeProbe[] = [
   {
+    family: 'team invitation redemption',
+    request: { method: 'POST', url: '/teams/join' },
+    scope: 'team:join',
+    body: { code: 'scope-probe-invite-code' },
+  },
+  {
     family: 'agent profile',
     request: { method: 'GET', url: '/agents/whoami' },
     scope: 'agent:profile',
@@ -192,6 +198,19 @@ describe('credential scope policy matrix', () => {
       );
     },
   );
+
+  it('does not accept team:manage as an alias for team:join', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: { authorization: 'Bearer team:manage' },
+      body: { code: 'scope-probe-invite-code' },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(scopeDenialDetail(response)).toBe(
+      'Missing required scope: team:join',
+    );
+  });
 
   it('keeps agent-key revocation reachable without any credential scope', async () => {
     // POST /agent-keys/:keyId/revoke is the only production route declaring

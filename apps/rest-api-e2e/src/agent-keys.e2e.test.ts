@@ -11,10 +11,13 @@ import {
   createTask,
   createTeam,
   createTeamInvite,
+  type CredentialScope,
   getWhoami,
   joinTeam,
   listAgentKeys,
   listDiaries,
+  listRuntimeProfiles,
+  listTeams,
   revokeAgentKey,
   rotateAgentKey,
   taskHeartbeat,
@@ -36,6 +39,7 @@ describe('agent keys', () => {
   let diaryReadSecret: string;
   let identityKeyId: string | null = null;
   const paginationKeyIds: string[] = [];
+  const scopeTestKeyIds: string[] = [];
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -177,7 +181,7 @@ describe('agent keys', () => {
         },
       });
     }
-    for (const paginationKeyId of paginationKeyIds) {
+    for (const paginationKeyId of [...paginationKeyIds, ...scopeTestKeyIds]) {
       await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
         keyId: paginationKeyId,
         adminRevokeIssuedApiKeyBody: {
@@ -252,6 +256,84 @@ describe('agent keys', () => {
     });
   });
 
+  it('redeems invitations with team:join alone and keeps invite administration separate', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const created = await createTeam({
+      client,
+      auth: () => agent.accessToken,
+      body: { name: 'join-scope-destination' },
+    });
+    expect(created.response.status).toBe(201);
+    const teamId = created.data!.id;
+    const invite = await createTeamInvite({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: teamId },
+      body: { role: 'member', maxUses: 1 },
+    });
+    expect(invite.response.status).toBe(201);
+    const joiningAgent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    async function issue(scopes: CredentialScope[], suffix: string) {
+      const issued = await createAgentKey({
+        client,
+        auth: () => joiningAgent.accessToken,
+        headers: {
+          'idempotency-key': `join-scope-${suffix}`,
+          'x-moltnet-team-id': joiningAgent.personalTeamId,
+        },
+        body: {
+          agentId: joiningAgent.agentId,
+          name: suffix,
+          scopes,
+          ttlDays: 1,
+        },
+      });
+      expect(issued.response.status).toBe(201);
+      scopeTestKeyIds.push(issued.data!.key.id);
+      return issued.data!.secret;
+    }
+    const managementSecret = await issue(['team:manage'], 'manage-only');
+    const joinSecret = await issue(['team:join'], 'join-only');
+
+    // Management is deliberately not a compatibility alias for joining.
+    const denied = await joinTeam({
+      client,
+      auth: () => managementSecret,
+      body: { code: invite.data!.code },
+    });
+    expect(denied.response.status).toBe(403);
+    expect(denied.error).toMatchObject({
+      detail: 'Missing required scope: team:join',
+    });
+
+    // No destination header: a personal-team key authenticates the same agent.
+    // Successful redemption also proves the denied request consumed no use.
+    const joined = await joinTeam({
+      client,
+      auth: () => joinSecret,
+      body: { code: invite.data!.code },
+    });
+    expect(joined.response.status).toBe(200);
+    expect(joined.data).toEqual({ teamId, role: 'member' });
+
+    const administration = await createTeamInvite({
+      client,
+      auth: () => joinSecret,
+      path: { id: joiningAgent.personalTeamId },
+      headers: { 'x-moltnet-team-id': joiningAgent.personalTeamId },
+      body: { role: 'member' },
+    });
+    expect(administration.response.status).toBe(403);
+    expect(administration.error).toMatchObject({
+      detail: 'Missing required scope: team:manage',
+    });
+  });
+
   it('enforces the explicit team ceiling and management scope', async () => {
     const client = createClient({ baseUrl: harness.baseUrl });
 
@@ -302,12 +384,6 @@ describe('agent keys', () => {
     // Named for the constant rather than its current size, so widening the
     // canonical grant does not leave this contract describing something else.
     //
-    // Deliberately NOT "the daemon hot path": host-capability diary signing
-    // also runs on the daemon's own credential (libs/agent-runtime/src/
-    // host-capabilities/local-seed-signer.ts calls crypto.signingRequests
-    // get/submit, which require `crypto:sign`), and that scope is not in this
-    // grant. Naming the wider guarantee here would assert something this test
-    // does not check.
     const client = createClient({ baseUrl: harness.baseUrl });
 
     const { data: daemonKey, error: daemonKeyError } = await createAgentKey({
@@ -331,6 +407,25 @@ describe('agent keys', () => {
     }
     const daemonSecret = daemonKey.secret;
     const teamHeaders = { 'x-moltnet-team-id': agent.personalTeamId };
+
+    scopeTestKeyIds.push(daemonKey.key.id);
+    const catalogueTeams = await listTeams({
+      client,
+      auth: () => daemonSecret,
+    });
+    expect(catalogueTeams.response.status).toBe(200);
+    const catalogueDiaries = await listDiaries({
+      client,
+      auth: () => daemonSecret,
+      headers: teamHeaders,
+    });
+    expect(catalogueDiaries.response.status).toBe(200);
+    const catalogueProfiles = await listRuntimeProfiles({
+      client,
+      auth: () => daemonSecret,
+      headers: teamHeaders,
+    });
+    expect(catalogueProfiles.response.status).toBe(200);
 
     // Bind the assertion to the constant: if the canonical grant changes, the
     // issued key must change with it rather than this test quietly drifting.

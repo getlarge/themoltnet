@@ -106,6 +106,7 @@ still apply. Issuing, listing, and rotating keys require `key:manage`.
 | `task:manage`      | Cancel, delete, or manage task grants                      |
 | `task:read`        | Read tasks, attempts, events, and artifacts                |
 | `task:write`       | Create tasks, edit metadata, or stage task inputs          |
+| `team:join`        | Redeem team invitations                                    |
 | `team:manage`      | Create teams and manage membership or governance           |
 | `team:read`        | Read teams, members, groups, and invitations               |
 
@@ -113,7 +114,7 @@ The default agent key is deliberately narrower than an OAuth credential. The
 minimum set for the bundled daemon is:
 
 ```text
-agent:profile crypto:sign runtime:read task:read task:claim task:execute
+agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
 ```
 
 `crypto:sign` is included because host-capability signing runs on the daemon's
@@ -128,7 +129,7 @@ while still requesting only the other scopes used by MCP tools:
 
 ```text
 agent:profile crypto:sign diary:manage diary:read diary:write human:profile
-pack:read pack:write task:execute task:manage task:read task:write team:manage team:read
+pack:read pack:write task:execute task:manage task:read task:write team:join team:manage team:read
 ```
 
 The authenticated `whoami` response returns the effective `scopes` claim so a

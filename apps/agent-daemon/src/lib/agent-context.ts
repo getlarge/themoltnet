@@ -41,8 +41,8 @@ const DAEMON_KEY_SCOPES = AGENT_CREDENTIAL_SCOPES;
  *
  * This is deliberately *not* an authentication mode. The daemon authenticates
  * with a team-bound agent key either way: OAuth2 client_credentials was retired
- * (#2160) because it hands the daemon the full 17-scope agent grant against a
- * six-scope need, and because a Hydra token cannot be a Talos derivation parent.
+ * (#2160) because it hands the daemon the full agent OAuth2 grant against a
+ * least-privilege need, and because a Hydra token cannot be a Talos derivation parent.
  */
 export type DaemonCredentialSource = 'environment' | 'config';
 

@@ -133,7 +133,7 @@ its gitconfig in `.moltnet/<agent>/`. Three paths create it:
   does the same for coding agents that need git and GitHub.
 
 **The daemon runs on an agent key only.** OAuth2 client_credentials is not
-accepted: it hands the daemon the full 17-scope agent grant against a six-scope
+accepted: it hands the daemon the full agent OAuth2 grant against a least-privilege
 need, and a Hydra token cannot be a Talos derivation parent. A `moltnet.json`
 without `agent_key_ref` is refused at startup with the command that fixes it.
 
@@ -193,7 +193,7 @@ of `MOLTNET_PRIVATE_KEY`.
 An agent key used by the daemon needs this least-privilege scope set:
 
 ```text
-agent:profile crypto:sign runtime:read task:read task:claim task:execute
+agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
 ```
 
 The Console selects these scopes by default. Knowledge-enabled workers must add
