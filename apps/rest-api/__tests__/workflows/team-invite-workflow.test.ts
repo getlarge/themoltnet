@@ -15,22 +15,9 @@ import {
 const dbos = vi.hoisted(() => ({
   registerStep: vi.fn((fn: unknown) => fn),
   registerWorkflow: vi.fn((fn: unknown) => fn),
-  startWorkflow: vi.fn(
-    () => () =>
-      Promise.resolve({
-        getResult: () =>
-          Promise.resolve({
-            inviteId: 'invite',
-            teamId: 'team',
-            role: 'member',
-          }),
-      }),
-  ),
+  startWorkflow: vi.fn(() => () => Promise.resolve({ workflowID: 'test' })),
   getWorkflowStatus: vi.fn(),
-  retrieveWorkflow: vi.fn(() => ({
-    getResult: () =>
-      Promise.resolve({ inviteId: 'invite', teamId: 'team', role: 'manager' }),
-  })),
+  getResult: vi.fn(),
 }));
 vi.mock('@moltnet/database', () => ({ DBOS: dbos }));
 
@@ -50,7 +37,10 @@ const reader = { listTeamMembers: vi.fn() };
 beforeAll(() => initTeamInviteWorkflow());
 beforeEach(() => {
   dbos.startWorkflow.mockClear();
-  dbos.retrieveWorkflow.mockClear();
+  dbos.getWorkflowStatus.mockReset().mockResolvedValue(null);
+  dbos.getResult
+    .mockReset()
+    .mockResolvedValue({ inviteId: 'invite', teamId: 'team', role: 'manager' });
   for (const write of Object.values(writer)) write.mockClear();
   reader.listTeamMembers.mockResolvedValue([]);
   setTeamInviteDeps({
@@ -139,10 +129,9 @@ describe('invite workflow enrollment mode', () => {
 
   it('restores a saved invite rejection as a problem during enrollment replay', async () => {
     dbos.getWorkflowStatus.mockResolvedValue({ status: 'SUCCESS' });
-    dbos.retrieveWorkflow.mockReturnValueOnce({
-      getResult: () =>
-        Promise.resolve(JSON.parse('{"problem":"invite-exhausted"}')),
-    });
+    dbos.getResult.mockResolvedValueOnce(
+      JSON.parse('{"problem":"invite-exhausted"}'),
+    );
     await expect(
       teamInviteWorkflow.findEnrollment('agent', 'request'),
     ).rejects.toMatchObject({
@@ -152,13 +141,23 @@ describe('invite workflow enrollment mode', () => {
     expect(dbos.startWorkflow).not.toHaveBeenCalled();
   });
 
+  it('returns 503 while enrollment reconciliation is still pending', async () => {
+    dbos.getWorkflowStatus.mockResolvedValue({ status: 'PENDING' });
+    dbos.getResult.mockResolvedValue(null);
+    await expect(
+      teamInviteWorkflow.findEnrollment('agent', 'request'),
+    ).rejects.toMatchObject({ statusCode: 503 });
+    expect(dbos.startWorkflow).not.toHaveBeenCalled();
+  });
+
   it('loads a durable enrollment result through DBOS', async () => {
     dbos.getWorkflowStatus.mockResolvedValue({ status: 'SUCCESS' });
     expect(
       await teamInviteWorkflow.findEnrollment('agent', 'request'),
     ).toMatchObject({ role: 'manager' });
-    expect(dbos.retrieveWorkflow).toHaveBeenCalledWith(
+    expect(dbos.getResult).toHaveBeenCalledWith(
       'team-enrollment:agent:request',
+      { timeoutSeconds: 10 },
     );
   });
 });
