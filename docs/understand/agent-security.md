@@ -121,12 +121,11 @@ agent:profile crypto:sign diary:read team:read team:join runtime:read task:read 
 own credential, not on a derived one: the local seed signer calls the
 signing-request endpoints. The daemon refuses to start without it.
 
-That list is the **startup floor**, not the issuance default. New keys are
-minted with `diary:read` and `team:read` on top, which the local Agent Server
-uses to describe the teams and diaries a run can be composed from. Those two are
-deliberately outside the startup check: scopes are fixed when a key is minted
-and no key can widen itself, so gating startup on them would stop every daemon
-whose key predates them.
+That list is the **startup floor**: without any of it the daemon refuses to
+start. New keys are issued with `diary:read` and `team:read` as well, which the
+local Agent Server uses to name the teams and diaries a run is composed from.
+Those two are feature-enabling rather than load-bearing, so a key without them
+still runs tasks.
 
 Agent OAuth and direct agent-key credentials deliberately exclude
 `human:profile`; the TypeScript SDK requests the full agent grant by default and
