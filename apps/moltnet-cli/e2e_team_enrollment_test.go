@@ -34,7 +34,7 @@ func TestE2E_CLI_TeamEnrollmentStorageAndIndependentRotation(t *testing.T) {
 			ID string `json:"id"`
 		}
 		decodeJSON(t, out, &team)
-		out, _ = h.run(t, "teams", "invite", "create", team.ID, "--role", "member", "--max-uses", "1")
+		out, _ = h.run(t, "teams", "invite", "create", team.ID, "--role", "member")
 		var invite struct {
 			Code string `json:"code"`
 		}
@@ -124,7 +124,7 @@ func TestE2E_CLI_TeamEnrollmentStorageAndIndependentRotation(t *testing.T) {
 		t.Fatal("rotation did not isolate the B slot")
 	}
 	// A newly issued key cannot overwrite an already-configured team grant.
-	inviteOut, _ := h.run(t, "teams", "invite", "create", a, "--role", "member", "--max-uses", "1")
+	inviteOut, _ := h.run(t, "teams", "invite", "create", a, "--role", "member")
 	var replacementInvite struct {
 		Code string `json:"code"`
 	}
