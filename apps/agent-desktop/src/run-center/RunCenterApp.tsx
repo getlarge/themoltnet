@@ -28,10 +28,12 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 
 import { ServerPanel } from '../App.js';
+import { ProvidersView } from './ProvidersView.js';
+import { providerActions } from './run-center-bridge.js';
 import { RunsView } from './RunsView.js';
 import type { RunCenterActions, RunCenterData } from './types.js';
 
-export type RunCenterScreen = 'runs' | 'server';
+export type RunCenterScreen = 'runs' | 'providers' | 'server';
 
 /** Where the Runs pane is: the list, the composer, or one run's detail. */
 export type RunsRoute =
@@ -46,6 +48,8 @@ export interface RunCenterAppProps {
   now?: number;
   initialScreen?: RunCenterScreen;
   initialRunsRoute?: RunsRoute;
+  /** Refetch after a provider change, so readiness reflects the new key. */
+  onProvidersChanged: () => void;
 }
 
 const SERVER_TONE: Record<
@@ -71,6 +75,7 @@ export function RunCenterApp({
   now = Date.now(),
   initialScreen = 'runs',
   initialRunsRoute = { kind: 'list' },
+  onProvidersChanged,
 }: RunCenterAppProps) {
   const theme = useTheme();
   const [screen, setScreen] = useState<RunCenterScreen>(initialScreen);
@@ -86,6 +91,10 @@ export function RunCenterApp({
     setRunsRoute({ kind: 'compose', presetId });
   }, []);
 
+  // A provider with no key is the most common reason a profile cannot run.
+  const missingKeys = Object.values(data.providers).filter(
+    (provider) => !provider.hasApiKey,
+  ).length;
   const serverTone = SERVER_TONE[data.server.state] ?? SERVER_TONE.checking;
   const serverNeedsUser = ['needs_trust', 'needs_install', 'failed'].includes(
     data.server.state,
@@ -99,6 +108,15 @@ export function RunCenterApp({
       current: screen === 'runs',
       badge: activeRuns.length ? (
         <Badge variant="success">{activeRuns.length}</Badge>
+      ) : undefined,
+    },
+    {
+      id: 'providers',
+      label: 'Providers',
+      href: '#providers',
+      current: screen === 'providers',
+      badge: missingKeys ? (
+        <Badge variant="warning">{missingKeys}</Badge>
       ) : undefined,
     },
     {
@@ -200,6 +218,13 @@ export function RunCenterApp({
               now={now}
               route={runsRoute}
               onRoute={setRunsRoute}
+            />
+          ) : null}
+          {screen === 'providers' ? (
+            <ProvidersView
+              providers={data.providers}
+              actions={providerActions}
+              onChanged={onProvidersChanged}
             />
           ) : null}
           {screen === 'server' ? <ServerPanel /> : null}

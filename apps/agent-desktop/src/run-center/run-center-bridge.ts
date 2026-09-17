@@ -13,7 +13,9 @@ import { invoke } from '@tauri-apps/api/core';
 
 import type {
   AgentServerCatalogue,
+  AgentServerProvider,
   AgentServerRun,
+  ProviderActions,
   RunCenterActions,
   RunPreset,
   SavePresetInput,
@@ -45,6 +47,22 @@ function writePresets(presets: RunPreset[]): void {
 
 export function listPresets(): RunPreset[] {
   return readPresets();
+}
+
+/** Provider credentials. The key crosses to native code and no further. */
+export const providerActions: ProviderActions = {
+  putProvider: (providerId, config) =>
+    invoke<AgentServerProvider>('desktop_put_provider', {
+      providerId,
+      config,
+    }),
+  deleteProvider: async (providerId) => {
+    await invoke('desktop_delete_provider', { providerId });
+  },
+};
+
+export function listProviders(): Promise<Record<string, AgentServerProvider>> {
+  return invoke<Record<string, AgentServerProvider>>('desktop_providers');
 }
 
 export const runCenterActions: RunCenterActions = {
