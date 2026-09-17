@@ -954,3 +954,79 @@ func TestEvaluateGitHubGuard_VerdictIndependentOfRepositoryFlag(t *testing.T) {
 		}
 	}
 }
+
+// writeGuardFile drops content in a temp dir and returns its absolute path.
+func writeGuardFile(t *testing.T, name, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write %s: %v", name, err)
+	}
+	return path
+}
+
+// A GraphQL document the guard cannot see inline is still a document it can
+// read. Refusing to look made `gh api graphql --input` -- the only practical
+// way to send a query carrying a multi-line variable -- unusable, and pushed
+// callers toward cramming payloads into the command line instead.
+func TestClassifyGhCommand_GraphQLQueryFromFileIsReadOnly(t *testing.T) {
+	t.Parallel()
+	input := writeGuardFile(t, "q.json",
+		`{"query":"query Viewer { viewer { login } }","variables":{}}`)
+	doc := writeGuardFile(t, "q.graphql", "query Viewer { viewer { login } }")
+
+	for _, command := range []string{
+		"gh api graphql --input " + input,
+		"gh api graphql --input=" + input,
+		"gh api graphql -F query=@" + doc,
+	} {
+		if reason := evaluateGitHubGuard(command, staticGuardContext("agent"),
+			guardPermissions(map[string]string{})); reason != "" {
+			t.Fatalf("expected read-only GraphQL to be allowed: %s -> %s", command, reason)
+		}
+	}
+}
+
+func TestClassifyGhCommand_GraphQLMutationFromFileNeedsScopedToken(t *testing.T) {
+	t.Parallel()
+	input := writeGuardFile(t, "m.json",
+		`{"query":"mutation Add { addComment(input: {}) { clientMutationId } }"}`)
+
+	bare := "gh api graphql --input " + input
+	if reason := evaluateGitHubGuard(bare, staticGuardContext("agent"),
+		guardPermissions(map[string]string{})); reason == "" {
+		t.Fatal("expected a bare GraphQL mutation from a file to be denied")
+	}
+
+	scoped := "GH_TOKEN=$(moltnet github token) gh api graphql --input " + input
+	if reason := evaluateGitHubGuard(scoped, staticGuardContext("agent"),
+		guardPermissions(map[string]string{})); reason != "" {
+		t.Fatalf("expected a scoped GraphQL mutation from a file to be allowed: %s", reason)
+	}
+}
+
+// Reading the document is what makes the classification sound, so anything the
+// guard cannot read must stay unknown rather than defaulting to either answer.
+func TestClassifyGhCommand_UnreadableGraphQLDocumentStaysUnknown(t *testing.T) {
+	t.Parallel()
+	missing := filepath.Join(t.TempDir(), "absent.json")
+	notJSON := writeGuardFile(t, "bad.json", "this is not json")
+	noQuery := writeGuardFile(t, "empty.json", `{"variables":{}}`)
+	notGraphQL := writeGuardFile(t, "bad.graphql", "}}} nonsense {{{")
+
+	for _, command := range []string{
+		"gh api graphql --input -",
+		"gh api graphql --input " + missing,
+		"gh api graphql --input " + notJSON,
+		"gh api graphql --input " + noQuery,
+		"gh api graphql -F query=@" + notGraphQL,
+	} {
+		// Denied even WITH a scoped token: an unclassifiable document is not a
+		// write the token may authorize, it is a command the guard cannot judge.
+		scoped := "GH_TOKEN=$(moltnet github token) " + command
+		if reason := evaluateGitHubGuard(scoped, staticGuardContext("agent"),
+			guardPermissions(map[string]string{})); reason == "" {
+			t.Fatalf("expected unreadable GraphQL to stay unknown: %s", command)
+		}
+	}
+}
