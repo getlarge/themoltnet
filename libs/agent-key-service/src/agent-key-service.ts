@@ -10,7 +10,7 @@ import {
   readAgentKeyMetadataBinding,
   type RelationshipReader,
 } from '@moltnet/auth';
-import type { AgentRepository } from '@moltnet/database';
+import type { AgentRepository, TeamEnrollment } from '@moltnet/database';
 import {
   type ApiKeysApi,
   type IssuedApiKey,
@@ -955,6 +955,87 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       };
     },
 
+    /** Internal enrollment grant: only a persisted, membership-ready receipt authorizes this path. */
+    async issueEnrollment(input: {
+      receipt: TeamEnrollment;
+      logger: Logger;
+      signal?: AbortSignal;
+    }): Promise<{ key: AgentKey; secret?: string }> {
+      const { receipt, logger, signal } = input;
+      if (
+        !receipt.membershipGrantedAt ||
+        !receipt.role ||
+        receipt.issuedKeyId
+      ) {
+        throw createProblem('conflict', 'Enrollment is not ready for issuance');
+      }
+      await assertCurrentAgentMember(deps, receipt.teamId, receipt.agentId);
+      const api = getTalosApi(deps);
+      const binding = { bindingScope: 'team', teamId: receipt.teamId } as const;
+      const scopes = [...AGENT_CREDENTIAL_SCOPES];
+      let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
+      try {
+        result = await api.adminIssueApiKey(
+          {
+            issueApiKeyRequest: {
+              actor_id: receipt.agentId,
+              name: 'Team enrollment',
+              request_id: receipt.id,
+              ttl: `${DEFAULT_TTL_DAYS * SECONDS_PER_DAY}s`,
+              visibility: KeyVisibility.KeyVisibilitySecret,
+              scopes,
+              metadata: agentKeyMetadata(binding),
+            },
+          },
+          talosInit(signal),
+        );
+      } catch (error) {
+        logger.warn(
+          {
+            enrollmentId: receipt.id,
+            failureKind: talosFailureKind(error, signal),
+          },
+          'agent_key.enrollment_upstream_error',
+        );
+        throw createProblem(
+          'upstream-error',
+          'Enrollment issuance was interrupted; retry with the same Idempotency-Key',
+        );
+      }
+      if (!result.issued_api_key) {
+        throw createProblem(
+          'upstream-error',
+          'Talos did not return the enrollment key identifier',
+        );
+      }
+      let key: AgentKey;
+      try {
+        key = toAgentKey(result.issued_api_key);
+        if (
+          key.agentId !== receipt.agentId ||
+          !bindingsEqual(key, binding) ||
+          !credentialScopeSetsEqual(key.scopes, scopes)
+        ) {
+          throw new Error('Enrollment key binding or scopes changed');
+        }
+      } catch {
+        await revokeInvalidIssuedKey(
+          api,
+          result.issued_api_key,
+          { agentId: receipt.agentId, ...binding },
+          logger,
+          'issue',
+        );
+        throw createProblem(
+          'upstream-error',
+          'Talos returned an invalid enrollment key',
+        );
+      }
+      // Talos omits the secret on replay. Return its identifier for the receipt,
+      // but never rotate to recover a secret or checkpoint this response in DBOS.
+      return { key, ...(result.secret ? { secret: result.secret } : {}) };
+    },
+
     async list(input: ListAgentKeysInput): Promise<{
       items: AgentKey[];
       nextCursor: string | null;
@@ -1152,3 +1233,5 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
     },
   };
 }
+
+export type AgentKeyService = ReturnType<typeof createAgentKeyService>;
