@@ -209,6 +209,49 @@ describe('retry triage classification', () => {
     ).toBe('non_retryable');
   });
 
+  it('does not retry deterministic unsupported request-shape errors', () => {
+    for (const message of [
+      'Unsupported parameter: reasoning_effort',
+      'Unsupported argument: top_p',
+      'Unsupported field: response_format',
+      'unrecognized parameter top_p',
+      'unrecognized argument top_p',
+      'unrecognized field response_format',
+      'unknown parameter top_p',
+      'unknown argument top_p',
+      'unknown request field response_format',
+      'invalid parameter temperature',
+      'invalid argument temperature',
+      'invalid field temperature',
+      'parameter verbosity is not supported',
+    ]) {
+      expect(
+        classifyDeterministically({ code: 'llm_api_error', message }),
+      ).toBe('non_retryable');
+    }
+  });
+
+  it('keeps generic validation and transient provider failures retryable or ambiguous', () => {
+    expect(
+      classifyDeterministically({
+        code: 'llm_api_error',
+        message: 'invalid request body',
+      }),
+    ).toBe('retryable');
+    expect(
+      classifyDeterministically({
+        code: 'llm_api_error',
+        message: 'provider returned 408 timeout',
+      }),
+    ).toBe('retryable');
+    expect(
+      classifyDeterministically({
+        code: 'llm_api_error',
+        message: 'provider returned 429',
+      }),
+    ).toBe('retryable');
+  });
+
   it('uses medium/high retry triage for ambiguous errors', async () => {
     const result = await classifyAttemptFailure({
       ...BASE_INPUT,

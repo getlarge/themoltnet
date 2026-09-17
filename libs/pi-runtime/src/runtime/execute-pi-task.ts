@@ -111,6 +111,7 @@ import {
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
 import { resumeVm } from '../vm.js';
+import { isPermanentProviderRequestError } from './provider-error-classification.js';
 
 export const GONDOLIN_TOOL_NAMES = [
   'read',
@@ -2813,6 +2814,7 @@ export function shouldRetryProviderErrorMessage(
   message: string | null | undefined,
 ): boolean {
   if (!message || !message.trim()) return true;
+  if (isPermanentProviderRequestError(message)) return false;
   if (
     PROVIDER_ERROR_NON_RETRYABLE_PATTERNS.some((pattern) =>
       pattern.test(message),

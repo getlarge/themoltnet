@@ -869,6 +869,34 @@ describe('provider error same-session retry helpers', () => {
     expect(shouldRetryProviderErrorMessage('insufficient_quota')).toBe(false);
   });
 
+  it('does not retry deterministic unsupported request-shape errors', () => {
+    for (const message of [
+      'Unsupported parameter: reasoning_effort',
+      'Unsupported argument: top_p',
+      'Unsupported field: response_format',
+      'unrecognized parameter top_p',
+      'unrecognized argument top_p',
+      'unrecognized field response_format',
+      'unknown parameter top_p',
+      'unknown argument top_p',
+      'unknown request field response_format',
+      'invalid parameter temperature',
+      'invalid argument temperature',
+      'invalid field temperature',
+      'parameter verbosity is not supported',
+    ]) {
+      expect(shouldRetryProviderErrorMessage(message)).toBe(false);
+    }
+  });
+
+  it('does not overmatch generic validation while preserving transient retries', () => {
+    expect(shouldRetryProviderErrorMessage('invalid request body')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 408')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 429')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 500')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider overloaded')).toBe(true);
+  });
+
   it('computes capped exponential retry delays', () => {
     expect(computeProviderErrorRetryDelay(1, 2_000, 30_000)).toBe(2_000);
     expect(computeProviderErrorRetryDelay(2, 2_000, 30_000)).toBe(4_000);
