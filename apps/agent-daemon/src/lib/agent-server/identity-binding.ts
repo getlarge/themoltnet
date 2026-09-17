@@ -32,12 +32,19 @@ export function readIdentityDefaultBinding(
     // An absent or unreadable default is not a reason to fail the catalogue.
     return {};
   }
-  // The Go CLI reads this same file with `godotenv.Read`. Node's parser agrees
-  // with it on everything this file can hold -- quoting, `export`, comments,
-  // CRLF -- with one known divergence: an unquoted `#` mid-value starts a
-  // comment here and does not in Go. Both values read below are UUIDs, so that
-  // case cannot arise; a hand-rolled parser was the real risk, and this is not
-  // one.
+  // The Go CLI calls this a "shell-sourceable env file" and reads it with
+  // `godotenv.Read`; Go has no parser for this in its standard library, so it
+  // cannot converge on a native one the way this side just did.
+  //
+  // Node's parser agrees with godotenv on everything this file can hold --
+  // quoting, `export`, comments, CRLF, blank lines, empty values -- with one
+  // divergence: an unquoted `#` mid-value starts a comment here, while both
+  // godotenv *and* an actual shell keep it. So JS is the outlier against the
+  // file's own format, and was before this used Node's parser too.
+  //
+  // Left alone deliberately: the only two keys read below are UUIDs, which
+  // cannot contain `#`, and matching godotenv exactly would mean hand-rolling
+  // the parser this deliberately stopped hand-rolling.
   const env = parseEnv(contents);
   const teamId = env['MOLTNET_TEAM_ID']?.trim();
   const diaryId = env['MOLTNET_DIARY_ID']?.trim();
