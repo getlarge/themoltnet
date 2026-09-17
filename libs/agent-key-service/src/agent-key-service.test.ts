@@ -134,6 +134,20 @@ describe('agent key service', () => {
     expect(permissionChecker.canManageTeamCredentials).not.toHaveBeenCalled();
   });
 
+  it('does not revoke a replayed key if the current grant preset has changed', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: ['agent:profile'] }),
+    });
+    const result = await service.issueEnrollment({
+      receipt: enrollment,
+      logger,
+    });
+    expect(result.key.id).toBe(KEY_ID);
+    expect(result.secret).toBeUndefined();
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+    expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+  });
+
   it.each([
     { ...enrollment, membershipGrantedAt: null, role: null },
     { ...enrollment, issuedKeyId: KEY_ID },

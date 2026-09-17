@@ -1014,7 +1014,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         if (
           key.agentId !== receipt.agentId ||
           !bindingsEqual(key, binding) ||
-          !credentialScopeSetsEqual(key.scopes, scopes)
+          (Boolean(result.secret) &&
+            !credentialScopeSetsEqual(key.scopes, scopes))
         ) {
           throw new Error('Enrollment key binding or scopes changed');
         }

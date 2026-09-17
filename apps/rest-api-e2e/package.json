@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@moltnet/agent-key-service": "workspace:*",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/auth": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
