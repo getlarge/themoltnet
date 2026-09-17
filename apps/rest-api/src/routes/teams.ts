@@ -1046,19 +1046,21 @@ export function teamRoutes(fastify: FastifyInstance) {
       config: {
         auth: {
           credentialBindingScope: 'identity',
-          requiredScopes: ['team:manage'],
+          requiredScopes: ['team:join'],
         },
       },
       schema: {
         operationId: 'joinTeam',
         tags: ['teams'],
-        description: 'Join a team using an invite code.',
+        description:
+          'Join a team using an invite code. Requires team:join; send no team header.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: JoinTeamSchema,
         response: {
           200: JoinTeamResponseSchema,
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ConflictProblemDetailsSchema.$id),
           410: Type.Ref(ProblemDetailsSchema.$id),
