@@ -7,7 +7,10 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['src/durable-workflow-recovery.e2e.test.ts'],
+    include: [
+      'src/durable-workflow-recovery.e2e.test.ts',
+      'src/team-enrollment-recovery.e2e.test.ts',
+    ],
     globalSetup: ['./src/globalSetup.ts'],
     testTimeout: 120_000,
     hookTimeout: 120_000,
