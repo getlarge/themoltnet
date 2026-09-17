@@ -68,7 +68,7 @@ async function invitation() {
     client,
     auth: () => owner.accessToken,
     path: { id: team.data!.id },
-    body: { role: 'member', maxUses: 1 },
+    body: { role: 'member' },
   });
   expect(invite.response.status).toBe(201);
   return { teamId: team.data!.id, code: invite.data!.code };
