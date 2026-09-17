@@ -785,3 +785,10 @@ another agent is reported and left unchanged. See
 Commit signing always uses the agent's SSH key regardless of authorship mode. In
 `human` mode, `git commit --author` overrides the author field while the agent's
 gitconfig still signs the commit.
+
+The file provider keeps logical team references as
+`agent-key/<subjectId>/<teamId>`, but stores their values at
+`<secret-root>/agent-key-teams/<subjectId>/<teamId>`. The sibling directory lets
+team slots coexist with an existing fallback file at
+`<secret-root>/agent-key/<subjectId>`. Go and Node use this same layout;
+projected team credentials must follow it. Existing fallback paths stay valid.

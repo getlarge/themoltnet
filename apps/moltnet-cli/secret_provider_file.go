@@ -148,6 +148,16 @@ func rootedError(key string, err error, detail string) error {
 	return fileErr(fileSecretUnsafeTarget, key, detail)
 }
 
+// Team slots use a sibling namespace: a legacy fallback is a file at
+// agent-key/<subject>, which cannot also be a parent directory.
+func fileSecretStorageKey(key string) string {
+	parts := strings.Split(key, "/")
+	if len(parts) == 3 && parts[0] == "agent-key" {
+		return "agent-key-teams/" + parts[1] + "/" + parts[2]
+	}
+	return key
+}
+
 func (p FileSecretProvider) Get(key string) (string, error) {
 	if err := validateFileSecretKey(key); err != nil {
 		return "", err
@@ -157,7 +167,7 @@ func (p FileSecretProvider) Get(key string) (string, error) {
 		return "", err
 	}
 	defer root.Close()
-	rel := filepath.FromSlash(key)
+	rel := filepath.FromSlash(fileSecretStorageKey(key))
 	file, err := root.Open(rel)
 	if errors.Is(err, fs.ErrNotExist) {
 		return "", fmt.Errorf("file secret %q is absent: %w", key, ErrSecretNotFound)
@@ -202,13 +212,13 @@ func (p FileSecretProvider) Set(key, value string) error {
 		return err
 	}
 	defer root.Close()
-	rel := filepath.FromSlash(key)
+	rel := filepath.FromSlash(fileSecretStorageKey(key))
 	if info, err := root.Lstat(rel); err == nil && info.Mode()&os.ModeSymlink != 0 {
 		return fileErr(fileSecretUnsafeTarget, key, "refusing to write through a symlink")
 	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return rootedError(key, err, "cannot inspect target")
 	}
-	dir := path.Dir(key)
+	dir := path.Dir(fileSecretStorageKey(key))
 	if dir != "." {
 		if err := root.MkdirAll(filepath.FromSlash(dir), 0o700); err != nil {
 			return rootedError(key, err, "cannot create parent directory")
@@ -257,7 +267,7 @@ func (p FileSecretProvider) Delete(key string) error {
 		return err
 	}
 	defer root.Close()
-	rel := filepath.FromSlash(key)
+	rel := filepath.FromSlash(fileSecretStorageKey(key))
 	info, err := root.Lstat(rel)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil

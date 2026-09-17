@@ -449,3 +449,20 @@ describe('FileSecretProvider writes', () => {
     expect(await readdir(root)).toEqual(['k']);
   });
 });
+
+it('stores team slots beside an existing fallback without changing logical references', async () => {
+  const root = await tempRoot();
+  const provider = new FileSecretProvider({ root, writable: true });
+  const keys = [
+    'agent-key/subject',
+    'agent-key/subject/a',
+    'agent-key/subject/b',
+  ];
+  for (const key of keys) await provider.write(key, `${key}-value`);
+  for (const key of keys) expect(await provider.read(key)).toBe(`${key}-value`);
+  expect(await readFile(join(root, 'agent-key-teams/subject/a'), 'utf8')).toBe(
+    'agent-key/subject/a-value',
+  );
+  await provider.delete(keys[1]);
+  expect(await provider.read(keys[0])).toBe(`${keys[0]}-value`);
+});

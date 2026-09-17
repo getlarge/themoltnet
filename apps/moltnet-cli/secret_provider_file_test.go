@@ -346,3 +346,25 @@ func TestFileSecretProviderSetCleansTempFileWhenRenameFails(t *testing.T) {
 		t.Fatalf("temp file leaked: %v", entries)
 	}
 }
+
+func TestFileSecretProviderTeamSlotsCoexistWithFallback(t *testing.T) {
+	provider := FileSecretProvider{Root: t.TempDir(), Writable: true}
+	keys := []string{AgentKeyKey("subject"), TeamAgentKeyKey("subject", "a"), TeamAgentKeyKey("subject", "b")}
+	for _, key := range keys {
+		if err := provider.Set(key, key+"-value"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, key := range keys {
+		value, err := provider.Get(key)
+		if err != nil || value != key+"-value" {
+			t.Fatalf("key %s did not round trip: %v", key, err)
+		}
+	}
+	if err := provider.Delete(keys[1]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := provider.Get(keys[0]); err != nil {
+		t.Fatal("team deletion removed fallback")
+	}
+}
