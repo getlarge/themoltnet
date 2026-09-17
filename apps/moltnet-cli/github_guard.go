@@ -1312,6 +1312,7 @@ func classifyGitHubAPI(args []string) ghOperation {
 	queryFromFile := false
 	hasFields := false
 	hasInput := false
+	inputPath := ""
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -1377,8 +1378,10 @@ func classifyGitHubAPI(args []string) ghOperation {
 			}
 			i++
 			hasInput = true
+			inputPath = args[i]
 		case strings.HasPrefix(arg, "--input="):
 			hasInput = true
+			inputPath = strings.TrimPrefix(arg, "--input=")
 		case apiFlagNeedsValue(arg):
 			if strings.Contains(arg, "=") || apiAttachedShortFlag(arg) {
 				continue
@@ -1400,7 +1403,23 @@ func classifyGitHubAPI(args []string) ghOperation {
 		return ghOperation{Kind: ghUnknown}
 	}
 	if endpoint == "graphql" {
-		if hasInput || query == "" || queryFromFile {
+		// A document the guard cannot see inline is still one it can read. What
+		// the classification requires is knowing whether the operation mutates,
+		// not that the caller inlined it -- so read the file and parse it. Any
+		// document that cannot be read and parsed stays unknown, which denies
+		// even with a scoped token: an unclassifiable command is not a write
+		// the token may authorize.
+		switch {
+		case queryFromFile:
+			query = readGraphQLDocumentFile(strings.TrimPrefix(query, "@"))
+		case hasInput && query == "":
+			query = graphQLQueryFromInputFile(inputPath)
+		case hasInput:
+			// Both an inline query and a body file: which one gh sends is not
+			// worth guessing.
+			return ghOperation{Kind: ghUnknown}
+		}
+		if query == "" {
 			return ghOperation{Kind: ghUnknown}
 		}
 		document, err := parser.ParseQuery(&ast.Source{Name: "hook", Input: query})
@@ -1431,6 +1450,51 @@ func classifyGitHubAPI(args []string) ghOperation {
 		return ghOperation{Kind: ghWrite, Description: "GitHub API write"}
 	}
 	return ghOperation{Kind: ghWrite, Permission: permission, Description: "GitHub API write"}
+}
+
+// maxGraphQLDocumentBytes bounds what the guard will read to classify a
+// command. A GraphQL document is text; anything larger is not one, and the
+// guard must not be turned into a way to make a hook read arbitrary bulk.
+const maxGraphQLDocumentBytes = 256 * 1024
+
+// readGuardFile returns the contents of a regular file the guard is willing to
+// inspect, or "" when it is not one. `-` means stdin, which the guard cannot
+// read without consuming what gh is about to send.
+func readGuardFile(path string) string {
+	if path == "" || path == "-" {
+		return ""
+	}
+	info, err := os.Stat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Size() > maxGraphQLDocumentBytes {
+		return ""
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return string(contents)
+}
+
+// readGraphQLDocumentFile reads a raw document, as passed by `-F query=@file`.
+func readGraphQLDocumentFile(path string) string {
+	return readGuardFile(path)
+}
+
+// graphQLQueryFromInputFile extracts the query from the JSON request body that
+// `gh api graphql --input file` sends. A body without a string `query` is not
+// something the guard can classify.
+func graphQLQueryFromInputFile(path string) string {
+	contents := readGuardFile(path)
+	if contents == "" {
+		return ""
+	}
+	var body struct {
+		Query string `json:"query"`
+	}
+	if err := json.Unmarshal([]byte(contents), &body); err != nil {
+		return ""
+	}
+	return body.Query
 }
 
 func apiFlagNeedsValue(arg string) bool {
