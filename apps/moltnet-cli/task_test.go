@@ -942,10 +942,59 @@ func TestRunTaskRuntimeSessionUploadRejectsInvalidSessionKind(t *testing.T) {
 	}
 }
 
+func TestParseKindFilter_PropagatesExplicitKindsToServer(t *testing.T) {
+	_, requested, err := parseKindFilter("tool_policy_decision,error", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	got := make([]string, 0, len(requested))
+	for _, k := range requested {
+		got = append(got, string(k))
+	}
+	want := []string{"tool_policy_decision", "error"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("expected %v, got %v", want, got)
+		}
+	}
+}
+
+func TestParseKindFilter_NoExplicitKindLeavesServerFilterOff(t *testing.T) {
+	// Without --kind the tail must keep fetching every message, so the
+	// cursor can advance past kinds the client suppresses locally.
+	_, requested, err := parseKindFilter("", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if requested != nil {
+		t.Errorf("expected no server-side kind filter, got %v", requested)
+	}
+}
+
+func TestKnownMessageKinds_TracksGeneratedEnum(t *testing.T) {
+	// The CLI must not keep its own copy of the contract.
+	names := knownMessageKinds()
+	if len(names) != len(moltnetapi.TaskMessageKind("").AllValues()) {
+		t.Fatalf("expected the generated enum, got %v", names)
+	}
+	found := false
+	for _, n := range names {
+		if n == "tool_policy_decision" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected tool_policy_decision among %v", names)
+	}
+}
+
 // ── parseKindFilter ───────────────────────────────────────────────────────────
 
 func TestParseKindFilter_DefaultDropsTextDelta(t *testing.T) {
-	allow, err := parseKindFilter("", false)
+	allow, _, err := parseKindFilter("", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -960,7 +1009,7 @@ func TestParseKindFilter_DefaultDropsTextDelta(t *testing.T) {
 }
 
 func TestParseKindFilter_ShowDeltasIncludesTextDelta(t *testing.T) {
-	allow, err := parseKindFilter("", true)
+	allow, _, err := parseKindFilter("", true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -970,7 +1019,7 @@ func TestParseKindFilter_ShowDeltasIncludesTextDelta(t *testing.T) {
 }
 
 func TestParseKindFilter_ExplicitKindNarrowsButTextDeltaStillRequiresShowDeltas(t *testing.T) {
-	allow, err := parseKindFilter("turn_end,error", false)
+	allow, _, err := parseKindFilter("turn_end,error", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -985,7 +1034,7 @@ func TestParseKindFilter_ExplicitKindNarrowsButTextDeltaStillRequiresShowDeltas(
 func TestParseKindFilter_ExplicitTextDeltaWithoutShowDeltasHonored(t *testing.T) {
 	// --kind text_delta is explicit intent; honor it even without
 	// --show-deltas (the operator typed it).
-	allow, err := parseKindFilter("text_delta", false)
+	allow, _, err := parseKindFilter("text_delta", false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -995,7 +1044,7 @@ func TestParseKindFilter_ExplicitTextDeltaWithoutShowDeltasHonored(t *testing.T)
 }
 
 func TestParseKindFilter_UnknownKindRejected(t *testing.T) {
-	_, err := parseKindFilter("does_not_exist", false)
+	_, _, err := parseKindFilter("does_not_exist", false)
 	if err == nil {
 		t.Fatal("expected error for unknown kind")
 	}

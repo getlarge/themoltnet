@@ -11,15 +11,19 @@ import type { ToolEnforcement, ToolPolicyDecisionReason } from './gate.js';
 const METER_NAME = '@themoltnet/pi-extension/tool-policy';
 
 /**
- * Counts every tool-policy decision, so refusals are visible in telemetry and
- * not only in a task record.
+ * Counts every tool-policy decision.
  *
- * This is the only export path a policy decision has. The daemon ships traces
- * and metrics over OTLP but registers no log exporter, so the
- * `tool_policy.blocked` pino line reaches the operator's stderr and nowhere
- * else. A blocked call is also absent from traces entirely: the gate refuses at
- * pi's `tool_call` event, which is earlier than the `tool_execution_start` the
- * OTel extension hooks, so no `execute_tool` span is ever created for it.
+ * A decision reaches four sinks, each answering a different question:
+ *
+ * - **task record** (`tool_policy_decision` message) — the durable, per-attempt
+ *   evidence an operator reads to see what was refused and under which policy.
+ * - **this counter** — aggregate rates and alerting. Bounded attributes only;
+ *   correlation ids deliberately live in the other three.
+ * - **span** ({@link recordToolPolicyDecisionSpan}) — trace-level evidence. The
+ *   gate refuses at pi's `tool_call` event, earlier than the
+ *   `tool_execution_start` that creates `execute_tool`, so without it a blocked
+ *   call appears in no trace at all.
+ * - **daemon log** — local diagnostics. Not exported today; see #2326.
  *
  * Allowed decisions are counted too — without the denominator a refusal count
  * cannot be read as a rate.
@@ -42,7 +46,7 @@ export function __resetToolPolicyMetricsForTests(): void {
   decisionCounter = null;
 }
 
-export interface ToolPolicyDecisionMetric {
+export interface ToolPolicyDecisionMetricInput {
   decision: 'allowed' | 'blocked' | 'would_block';
   reason: ToolPolicyDecisionReason;
   enforcement: ToolEnforcement;
@@ -56,8 +60,8 @@ export interface ToolPolicyDecisionMetric {
  * the collector strips task ids from public metric datapoints anyway. The
  * per-decision detail lives in the task record instead.
  */
-export function recordToolPolicyDecision(
-  metric: ToolPolicyDecisionMetric,
+export function recordToolPolicyDecisionMetric(
+  metric: ToolPolicyDecisionMetricInput,
 ): void {
   try {
     getDecisionCounter().add(1, {

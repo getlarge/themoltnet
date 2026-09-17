@@ -1,0 +1,1 @@
+CREATE INDEX "task_messages_task_attempt_kind_seq_idx" ON "task_messages" USING btree ("task_id","attempt_n","kind","seq");

@@ -13,7 +13,7 @@ import {
   type ToolEnforcement,
   type ToolPolicyDecisionReason,
 } from './gate.js';
-import { recordToolPolicyDecision } from './telemetry.js';
+import { recordToolPolicyDecisionMetric } from './telemetry.js';
 
 /** The resolved allow-set + enforcement mode for a runtime session. */
 export interface SessionToolPolicy {
@@ -332,7 +332,7 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
           },
           'tool_policy.allowed',
         );
-        recordToolPolicyDecision({
+        recordToolPolicyDecisionMetric({
           decision: 'allowed',
           reason: decision.reasonCode,
           enforcement: deps.policy.enforcement,
@@ -396,7 +396,7 @@ function reportDecision(
   event: { toolName: string; toolCallId?: string },
   gateDecision: GateDecision,
 ): void {
-  recordToolPolicyDecision({
+  recordToolPolicyDecisionMetric({
     decision,
     reason: gateDecision.reasonCode,
     enforcement: deps.policy.enforcement,

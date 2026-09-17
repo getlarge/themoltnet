@@ -15,10 +15,14 @@ export function makeTurnEventHandler(
   const log = base.child({ name: 'agent-daemon.turn', ...context });
   return (event, summary) => {
     if (event === 'text_delta') return;
+    // A policy decision's severity follows its outcome, not its kind:
+    // `would_block` is expected watch-mode traffic during a rollout and must
+    // not drown out, or alert like, an enforced block.
     const level =
-      event === 'error' || event === 'tool_policy_decision'
+      event === 'error' ||
+      (event === 'tool_policy_decision' && summary.decision === 'blocked')
         ? 'warn'
-        : event === 'turn_end'
+        : event === 'turn_end' || event === 'tool_policy_decision'
           ? 'info'
           : 'debug';
     log[level]({ event, ...summary }, `turn.${event}`);

@@ -1086,6 +1086,10 @@ export type ListMessagesQuery = {
    * Exclusive cursor: return only messages whose seq is strictly greater than this value. Omit to fetch all messages from the beginning. Pass the seq of the last message you received to poll for new ones.
    */
   afterSeq?: number;
+  /**
+   * Return only messages of these kinds. Filtering happens in the database, so a rare kind such as tool_policy_decision does not require paging the whole attempt.
+   */
+  kind?: Array<TaskMessageKind>;
   limit?: number;
 };
 
@@ -2928,7 +2932,8 @@ export type TaskMessage = {
     | 'tool_call_end'
     | 'turn_end'
     | 'error'
-    | 'info';
+    | 'info'
+    | 'tool_policy_decision';
   payload: {
     [key: string]: unknown;
   };
@@ -2946,7 +2951,8 @@ export type TaskMessageKind =
   | 'tool_call_end'
   | 'turn_end'
   | 'error'
-  | 'info';
+  | 'info'
+  | 'tool_policy_decision';
 
 export type TaskParams = {
   id: string;
@@ -13500,6 +13506,10 @@ export type ListTaskMessagesData = {
      */
     afterSeq?: number;
     limit?: number;
+    /**
+     * Return only messages of these kinds. Filtering happens in the database, so a rare kind such as tool_policy_decision does not require paging the whole attempt.
+     */
+    kind?: Array<TaskMessageKind>;
   };
   url: '/tasks/{id}/attempts/{n}/messages';
 };

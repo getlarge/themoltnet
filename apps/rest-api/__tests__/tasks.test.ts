@@ -1351,6 +1351,68 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
       TEAM_ID,
     );
   });
+
+  it('forwards a single kind to the service', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages?kind=tool_policy_decision`,
+      headers: TEAM_AUTH_HEADERS,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.listMessages).toHaveBeenCalledWith(
+      TASK_ID,
+      ATTEMPT_N,
+      OWNER_ID,
+      expect.any(String),
+      expect.objectContaining({ kinds: ['tool_policy_decision'] }),
+      TEAM_ID,
+    );
+  });
+
+  it('forwards repeated kinds to the service', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages?kind=error&kind=tool_policy_decision`,
+      headers: TEAM_AUTH_HEADERS,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.listMessages).toHaveBeenCalledWith(
+      TASK_ID,
+      ATTEMPT_N,
+      OWNER_ID,
+      expect.any(String),
+      expect.objectContaining({ kinds: ['error', 'tool_policy_decision'] }),
+      TEAM_ID,
+    );
+  });
+
+  it('rejects an unknown kind rather than ignoring the filter', async () => {
+    // Silently dropping it would return everything while the caller believes
+    // the result is filtered.
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages?kind=not_a_kind`,
+      headers: TEAM_AUTH_HEADERS,
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.taskService.listMessages).not.toHaveBeenCalled();
+  });
+
+  it('omits the filter entirely when no kind is given', async () => {
+    await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages`,
+      headers: TEAM_AUTH_HEADERS,
+    });
+
+    const opts = mocks.taskService.listMessages.mock.calls[0]?.[4] as {
+      kinds?: unknown;
+    };
+    expect(opts.kinds).toBeUndefined();
+  });
 });
 
 describe('POST /tasks/:id/attempts/:n/messages', () => {
