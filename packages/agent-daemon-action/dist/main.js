@@ -39387,8 +39387,8 @@ function oauth2SecretKey(subjectId, clientId) {
 function identitySeedKey(fingerprint) {
 	return `identity/${fingerprint}/seed`;
 }
-function agentKeyKey(subjectId) {
-	return `agent-key/${subjectId}`;
+function agentKeyKey(subjectId, teamId) {
+	return `agent-key/${subjectId}${teamId ? `/${teamId}` : ""}`;
 }
 function getConfigDir() {
 	return join(homedir(), ".config", "moltnet");
