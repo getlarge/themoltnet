@@ -1,4 +1,5 @@
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
+import { RuntimeProfile } from '@moltnet/runtime-profiles';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
@@ -93,32 +94,41 @@ export const AgentServerCatalogueTeamSchema = Type.Object(
   { $id: 'AgentServerCatalogueTeam' },
 );
 
-export const AgentServerCatalogueProfileSchema = Type.Object(
-  {
-    id: Type.String(),
-    name: Type.String(),
-    teamId: Type.String(),
-    description: Type.Union([Type.String(), Type.Null()]),
-    provider: Type.String(),
-    model: Type.String(),
-    runtimeKind: Type.String(),
-    toolEnforcement: Type.String(),
-    defaultWorkspaceMode: Type.Union([Type.String(), Type.Null()]),
-    maxTurns: Type.Integer(),
-    revision: Type.Integer(),
-    definitionCid: Type.String(),
-    requiredEnv: StringList,
-    requiredExecutables: StringList,
-    /** Whether this machine can execute the profile right now. */
-    ready: Type.Boolean(),
-    blockers: Type.Array(
-      Type.Object({
-        code: Type.String(),
-        message: Type.String(),
-        remedy: Type.String(),
-      }),
-    ),
-  },
+/**
+ * Composed from the canonical `RuntimeProfile` schema rather than restated, so
+ * the wire contract cannot drift from the profile the API serves — and so the
+ * constrained fields keep their real unions instead of degrading to `string`.
+ */
+export const AgentServerCatalogueProfileSchema = Type.Intersect(
+  [
+    Type.Pick(RuntimeProfile, [
+      'id',
+      'name',
+      'teamId',
+      'description',
+      'provider',
+      'model',
+      'runtimeKind',
+      'toolEnforcement',
+      'defaultWorkspaceMode',
+      'maxTurns',
+      'revision',
+      'definitionCid',
+      'requiredEnv',
+      'requiredExecutables',
+    ]),
+    Type.Object({
+      /** Whether this machine can execute the profile right now. */
+      ready: Type.Boolean(),
+      blockers: Type.Array(
+        Type.Object({
+          code: Type.String(),
+          message: Type.String(),
+          remedy: Type.String(),
+        }),
+      ),
+    }),
+  ],
   { $id: 'AgentServerCatalogueProfile' },
 );
 

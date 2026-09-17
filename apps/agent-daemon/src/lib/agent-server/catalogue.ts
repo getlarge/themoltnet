@@ -12,51 +12,57 @@
  * them: the CLI's context store refuses one without the other, and a diary
  * that drifts from its team means entries land in the wrong place.
  */
+import type { Agent } from '@themoltnet/sdk';
+
 import {
   deriveProfileReadiness,
   type MachineCapabilities,
   type ProfileBlocker,
 } from './readiness.js';
 
-export interface CatalogueTeamRecord {
-  id: string;
-  name: string;
-  personal: boolean;
-}
+/**
+ * Record shapes are *derived* from the SDK namespaces rather than re-declared,
+ * so the catalogue cannot drift from what the API actually returns. An earlier
+ * version hand-wrote these and quietly narrowed away the policy fields the
+ * composer renders.
+ */
+type ListItems<T> =
+  Awaited<T> extends { items: readonly (infer Item)[] } ? Item : never;
 
-export interface CatalogueDiaryRecord {
-  id: string;
-  name: string;
-  teamId: string;
-}
+type SdkTeam = ListItems<ReturnType<Agent['teams']['list']>>;
+type SdkDiary = ListItems<ReturnType<Agent['diaries']['list']>>;
+type SdkProfile = ListItems<ReturnType<Agent['runtimeProfiles']['list']>>;
 
-export interface CatalogueProfileRecord {
-  id: string;
-  name: string;
-  teamId: string;
-  description: string | null;
-  /**
-   * The policy the composer shows before a run starts. These come free with
-   * `runtimeProfiles.list()`; narrowing them away would leave the desktop
-   * unable to show what a run will actually execute under.
-   */
-  provider: string;
-  model: string;
-  runtimeKind: string;
-  toolEnforcement: string;
-  defaultWorkspaceMode: string | null;
-  maxTurns: number;
-  /** Identifies exactly which revision of the profile a run would pin. */
-  revision: number;
-  definitionCid: string;
-  requiredEnv: readonly string[];
-  requiredExecutables: readonly string[];
-}
+export type CatalogueTeamRecord = Pick<SdkTeam, 'id' | 'name'>;
+export type CatalogueDiaryRecord = Pick<SdkDiary, 'id' | 'name' | 'teamId'>;
 
 /**
- * The narrow slice of an authenticated agent the catalogue needs. Keeping it a
- * port rather than the whole SDK client keeps this unit testable without a
- * network or a credential.
+ * Exactly the fields the composer renders, each typed by the canonical
+ * profile — so `toolEnforcement` keeps its union rather than degrading to
+ * `string`, and a field that changes upstream fails here.
+ */
+export type CatalogueProfileRecord = Pick<
+  SdkProfile,
+  | 'id'
+  | 'name'
+  | 'teamId'
+  | 'description'
+  | 'provider'
+  | 'model'
+  | 'runtimeKind'
+  | 'toolEnforcement'
+  | 'defaultWorkspaceMode'
+  | 'maxTurns'
+  | 'revision'
+  | 'definitionCid'
+  | 'requiredEnv'
+  | 'requiredExecutables'
+>;
+
+/**
+ * The slice of an authenticated agent the catalogue reads. Kept as a narrow
+ * port so the unit runs without a credential, but every shape in it comes from
+ * the SDK.
  */
 export interface CatalogueAgentPort {
   listTeams(): Promise<CatalogueTeamRecord[]>;

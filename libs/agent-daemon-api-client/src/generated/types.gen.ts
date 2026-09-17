@@ -24,12 +24,7 @@ export type AgentServerCatalogue = {
 };
 
 export type AgentServerCatalogueProfile = {
-  blockers: Array<{
-    code: string;
-    message: string;
-    remedy: string;
-  }>;
-  defaultWorkspaceMode: string | null;
+  defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   definitionCid: string;
   description: string | null;
   id: string;
@@ -37,13 +32,22 @@ export type AgentServerCatalogueProfile = {
   model: string;
   name: string;
   provider: string;
-  ready: boolean;
   requiredEnv: Array<string>;
   requiredExecutables: Array<string>;
   revision: number;
   runtimeKind: string;
   teamId: string;
-  toolEnforcement: string;
+  /**
+   * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+   */
+  toolEnforcement: 'off' | 'watch' | 'enforce';
+} & {
+  blockers: Array<{
+    code: string;
+    message: string;
+    remedy: string;
+  }>;
+  ready: boolean;
 };
 
 export type AgentServerCatalogueTeam = {

@@ -30,6 +30,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
+import type { CatalogueAgentPort } from './catalogue.js';
 import { type ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
@@ -1975,7 +1976,7 @@ describe('run catalogue', () => {
   const TEAM = '4f2a91c8-1d3e-4b77-9a02-6c1b8e7d5a40';
 
   /** A fake authenticated agent standing in for the SDK client. */
-  const catalogueAgent = {
+  const catalogueAgent: CatalogueAgentPort = {
     listTeams: () =>
       Promise.resolve([{ id: TEAM, name: 'MoltNet Core', personal: false }]),
     listDiaries: () =>

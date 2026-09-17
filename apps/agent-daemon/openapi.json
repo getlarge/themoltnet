@@ -89,114 +89,190 @@
         "type": "object"
       },
       "AgentServerCatalogueProfile": {
-        "properties": {
-          "blockers": {
-            "items": {
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                },
-                "remedy": {
-                  "type": "string"
-                }
+        "allOf": [
+          {
+            "properties": {
+              "defaultWorkspaceMode": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "shared_mount"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "dedicated_worktree"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
-              "required": [
-                "code",
-                "message",
-                "remedy"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "defaultWorkspaceMode": {
-            "anyOf": [
-              {
+              "definitionCid": {
+                "maxLength": 100,
+                "minLength": 1,
                 "type": "string"
               },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "definitionCid": {
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
+              "description": {
+                "anyOf": [
+                  {
+                    "maxLength": 4096,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "format": "uuid",
                 "type": "string"
               },
-              {
-                "type": "null"
+              "maxTurns": {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "model": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "name": {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
+                "type": "string"
+              },
+              "provider": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requiredEnv": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[A-Z_][A-Z0-9_]*$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              "requiredExecutables": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9._/-]+$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "runtimeKind": {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9._-]{0,99}$",
+                "type": "string"
+              },
+              "teamId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "toolEnforcement": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "off"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "watch"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "enforce"
+                    ],
+                    "type": "string"
+                  }
+                ],
+                "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
               }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "maxTurns": {
-            "type": "integer"
-          },
-          "model": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "ready": {
-            "type": "boolean"
-          },
-          "requiredEnv": {
-            "items": {
-              "type": "string"
             },
-            "type": "array"
+            "required": [
+              "id",
+              "teamId",
+              "name",
+              "description",
+              "provider",
+              "model",
+              "runtimeKind",
+              "defaultWorkspaceMode",
+              "maxTurns",
+              "toolEnforcement",
+              "requiredEnv",
+              "requiredExecutables",
+              "revision",
+              "definitionCid"
+            ],
+            "type": "object"
           },
-          "requiredExecutables": {
-            "items": {
-              "type": "string"
+          {
+            "properties": {
+              "blockers": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "remedy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "remedy"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "ready": {
+                "type": "boolean"
+              }
             },
-            "type": "array"
-          },
-          "revision": {
-            "type": "integer"
-          },
-          "runtimeKind": {
-            "type": "string"
-          },
-          "teamId": {
-            "type": "string"
-          },
-          "toolEnforcement": {
-            "type": "string"
+            "required": [
+              "ready",
+              "blockers"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "name",
-          "teamId",
-          "description",
-          "provider",
-          "model",
-          "runtimeKind",
-          "toolEnforcement",
-          "defaultWorkspaceMode",
-          "maxTurns",
-          "revision",
-          "definitionCid",
-          "requiredEnv",
-          "requiredExecutables",
-          "ready",
-          "blockers"
-        ],
-        "type": "object"
+        ]
       },
       "AgentServerCatalogueTeam": {
         "properties": {
