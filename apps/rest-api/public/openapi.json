@@ -48929,9 +48929,6 @@
                             "format": "uuid",
                             "type": "string"
                           },
-                          "maxUses": {
-                            "type": "integer"
-                          },
                           "role": {
                             "anyOf": [
                               {
@@ -48954,16 +48951,23 @@
                               }
                             ]
                           },
-                          "useCount": {
-                            "type": "integer"
+                          "usedAt": {
+                            "anyOf": [
+                              {
+                                "format": "date-time",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
                           "id",
                           "code",
                           "role",
-                          "maxUses",
-                          "useCount",
+                          "usedAt",
                           "expiresAt",
                           "createdAt"
                         ],
@@ -49073,11 +49077,6 @@
                     "minimum": 1,
                     "type": "integer"
                   },
-                  "maxUses": {
-                    "default": 1,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
                   "role": {
                     "anyOf": [
                       {
@@ -49128,9 +49127,6 @@
                       "format": "uuid",
                       "type": "string"
                     },
-                    "maxUses": {
-                      "type": "integer"
-                    },
                     "role": {
                       "anyOf": [
                         {
@@ -49153,16 +49149,23 @@
                         }
                       ]
                     },
-                    "useCount": {
-                      "type": "integer"
+                    "usedAt": {
+                      "anyOf": [
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "id",
                     "code",
                     "role",
-                    "maxUses",
-                    "useCount",
+                    "usedAt",
                     "expiresAt",
                     "createdAt"
                   ],

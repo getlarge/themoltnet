@@ -30592,10 +30592,6 @@ _Object_({
 		Literal("executor"),
 		Literal("member")
 	])),
-	maxUses: Optional(Integer({
-		minimum: 1,
-		default: 1
-	})),
 	expiresInHours: Optional(Integer({
 		minimum: 1,
 		maximum: 720,
@@ -30627,8 +30623,7 @@ _Object_({
 		Literal("executor"),
 		Literal("member")
 	]),
-	maxUses: Integer(),
-	useCount: Integer(),
+	usedAt: Union([String$1({ format: "date-time" }), Null()]),
 	expiresAt: DateTimeUnsafe,
 	createdAt: DateTimeUnsafe
 });

@@ -40,8 +40,4 @@ func (s *CreateTeamInviteReq) setDefaults() {
 		val := int(168)
 		s.ExpiresInHours.SetTo(val)
 	}
-	{
-		val := int(1)
-		s.MaxUses.SetTo(val)
-	}
 }

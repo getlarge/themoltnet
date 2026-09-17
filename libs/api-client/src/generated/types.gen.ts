@@ -16137,9 +16137,8 @@ export type ListTeamInvitesResponses = {
        * UUID v4 identifier
        */
       id: string;
-      maxUses: number;
       role: 'manager' | 'executor' | 'member';
-      useCount: number;
+      usedAt: string | null;
     }>;
   };
 };
@@ -16150,7 +16149,6 @@ export type ListTeamInvitesResponse =
 export type CreateTeamInviteData = {
   body?: {
     expiresInHours?: number;
-    maxUses?: number;
     role?: 'manager' | 'executor' | 'member';
   };
   path: {
@@ -16205,9 +16203,8 @@ export type CreateTeamInviteResponses = {
      * UUID v4 identifier
      */
     id: string;
-    maxUses: number;
     role: 'manager' | 'executor' | 'member';
-    useCount: number;
+    usedAt: string | null;
   };
 };
 

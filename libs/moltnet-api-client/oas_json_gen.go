@@ -20823,27 +20823,22 @@ func (s *CreateTeamInviteCreated) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.ID)
 	}
 	{
-		e.FieldStart("maxUses")
-		e.Int(s.MaxUses)
-	}
-	{
 		e.FieldStart("role")
 		s.Role.Encode(e)
 	}
 	{
-		e.FieldStart("useCount")
-		e.Int(s.UseCount)
+		e.FieldStart("usedAt")
+		s.UsedAt.Encode(e, json.EncodeDateTime)
 	}
 }
 
-var jsonFieldsNameOfCreateTeamInviteCreated = [7]string{
+var jsonFieldsNameOfCreateTeamInviteCreated = [6]string{
 	0: "code",
 	1: "createdAt",
 	2: "expiresAt",
 	3: "id",
-	4: "maxUses",
-	5: "role",
-	6: "useCount",
+	4: "role",
+	5: "usedAt",
 }
 
 // Decode decodes CreateTeamInviteCreated from json.
@@ -20903,20 +20898,8 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "maxUses":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Int()
-				s.MaxUses = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxUses\"")
-			}
 		case "role":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Role.Decode(d); err != nil {
 					return err
@@ -20925,17 +20908,15 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
-		case "useCount":
-			requiredBitSet[0] |= 1 << 6
+		case "usedAt":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Int()
-				s.UseCount = int(v)
-				if err != nil {
+				if err := s.UsedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"useCount\"")
+				return errors.Wrap(err, "decode field \"usedAt\"")
 			}
 		default:
 			return d.Skip()
@@ -20947,7 +20928,7 @@ func (s *CreateTeamInviteCreated) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -21127,12 +21108,6 @@ func (s *CreateTeamInviteReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.MaxUses.Set {
-			e.FieldStart("maxUses")
-			s.MaxUses.Encode(e)
-		}
-	}
-	{
 		if s.Role.Set {
 			e.FieldStart("role")
 			s.Role.Encode(e)
@@ -21140,10 +21115,9 @@ func (s *CreateTeamInviteReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateTeamInviteReq = [3]string{
+var jsonFieldsNameOfCreateTeamInviteReq = [2]string{
 	0: "expiresInHours",
-	1: "maxUses",
-	2: "role",
+	1: "role",
 }
 
 // Decode decodes CreateTeamInviteReq from json.
@@ -21164,16 +21138,6 @@ func (s *CreateTeamInviteReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"expiresInHours\"")
-			}
-		case "maxUses":
-			if err := func() error {
-				s.MaxUses.Reset()
-				if err := s.MaxUses.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxUses\"")
 			}
 		case "role":
 			if err := func() error {
@@ -67706,27 +67670,22 @@ func (s *ListTeamInvitesOKItemsItem) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.ID)
 	}
 	{
-		e.FieldStart("maxUses")
-		e.Int(s.MaxUses)
-	}
-	{
 		e.FieldStart("role")
 		s.Role.Encode(e)
 	}
 	{
-		e.FieldStart("useCount")
-		e.Int(s.UseCount)
+		e.FieldStart("usedAt")
+		s.UsedAt.Encode(e, json.EncodeDateTime)
 	}
 }
 
-var jsonFieldsNameOfListTeamInvitesOKItemsItem = [7]string{
+var jsonFieldsNameOfListTeamInvitesOKItemsItem = [6]string{
 	0: "code",
 	1: "createdAt",
 	2: "expiresAt",
 	3: "id",
-	4: "maxUses",
-	5: "role",
-	6: "useCount",
+	4: "role",
+	5: "usedAt",
 }
 
 // Decode decodes ListTeamInvitesOKItemsItem from json.
@@ -67786,20 +67745,8 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
-		case "maxUses":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Int()
-				s.MaxUses = int(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxUses\"")
-			}
 		case "role":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Role.Decode(d); err != nil {
 					return err
@@ -67808,17 +67755,15 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
-		case "useCount":
-			requiredBitSet[0] |= 1 << 6
+		case "usedAt":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Int()
-				s.UseCount = int(v)
-				if err != nil {
+				if err := s.UsedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"useCount\"")
+				return errors.Wrap(err, "decode field \"usedAt\"")
 			}
 		default:
 			return d.Skip()
@@ -67830,7 +67775,7 @@ func (s *ListTeamInvitesOKItemsItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
