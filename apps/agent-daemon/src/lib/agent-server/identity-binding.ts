@@ -15,8 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-import { parse as parseEnv } from 'dotenv';
+import { parseEnv } from 'node:util';
 
 export interface IdentityDefaultBinding {
   teamId?: string;
@@ -33,9 +32,12 @@ export function readIdentityDefaultBinding(
     // An absent or unreadable default is not a reason to fail the catalogue.
     return {};
   }
-  // The Go CLI reads this same file with `godotenv.Read`. Using the dotenv
-  // parser rather than a hand-rolled one keeps the daemon from resolving a
-  // different identity default than the CLI does from identical bytes.
+  // The Go CLI reads this same file with `godotenv.Read`. Node's parser agrees
+  // with it on everything this file can hold -- quoting, `export`, comments,
+  // CRLF -- with one known divergence: an unquoted `#` mid-value starts a
+  // comment here and does not in Go. Both values read below are UUIDs, so that
+  // case cannot arise; a hand-rolled parser was the real risk, and this is not
+  // one.
   const env = parseEnv(contents);
   const teamId = env['MOLTNET_TEAM_ID']?.trim();
   const diaryId = env['MOLTNET_DIARY_ID']?.trim();

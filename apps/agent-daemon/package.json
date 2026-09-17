@@ -149,7 +149,6 @@
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "dotenv": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",
     "multiformats": "catalog:",

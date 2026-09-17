@@ -87,6 +87,20 @@ describe('readIdentityDefaultBinding', () => {
     });
   });
 
+  it('reads the godotenv idioms the CLI may write', () => {
+    // `export` prefixes and CRLF are both accepted by the Go CLI's
+    // `godotenv.Read`, so the daemon must not resolve a different default from
+    // the same bytes. Pinned because the parser behind this is Node's, not Go's.
+    const dir = identityDir(
+      'export MOLTNET_TEAM_ID=team-uuid\r\nexport MOLTNET_DIARY_ID=diary-uuid\r\n',
+    );
+
+    expect(readIdentityDefaultBinding(dir)).toEqual({
+      teamId: 'team-uuid',
+      diaryId: 'diary-uuid',
+    });
+  });
+
   it('returns nothing when the env file is unreadable rather than throwing', () => {
     // A missing or malformed default is not a reason to fail the catalogue.
     expect(readIdentityDefaultBinding('/nonexistent/identity/dir')).toEqual({});
