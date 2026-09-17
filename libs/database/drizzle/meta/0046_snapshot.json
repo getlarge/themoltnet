@@ -1,5 +1,5 @@
 {
-  "id": "e4d094e8-ae6b-454e-a37b-c8ac6feb288d",
+  "id": "0c4d6eeb-458d-4f36-9e56-ab9abd7cd74b",
   "prevId": "30121c78-7fde-405a-a911-8ea13e76f4ae",
   "version": "7",
   "dialect": "postgresql",
@@ -6333,30 +6333,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enrollment_agent_id": {
-          "name": "enrollment_agent_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "idempotency_hash": {
-          "name": "idempotency_hash",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "request_hash": {
-          "name": "request_hash",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "creator_agent_id": {
           "name": "creator_agent_id",
           "type": "uuid",
@@ -6389,27 +6365,6 @@
           "columns": [
             {
               "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "team_invites_agent_request_idx": {
-          "name": "team_invites_agent_request_idx",
-          "columns": [
-            {
-              "expression": "enrollment_agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "idempotency_hash",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -6482,19 +6437,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "team_invites_enrollment_agent_id_agents_id_fk": {
-          "name": "team_invites_enrollment_agent_id_agents_id_fk",
-          "tableFrom": "team_invites",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "enrollment_agent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "team_invites_creator_agent_id_agents_id_fk": {
           "name": "team_invites_creator_agent_id_agents_id_fk",
           "tableFrom": "team_invites",
@@ -6526,10 +6468,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "team_invites_enrollment_claim": {
-          "name": "team_invites_enrollment_claim",
-          "value": "(\"team_invites\".\"enrollment_agent_id\" IS NULL AND \"team_invites\".\"idempotency_hash\" IS NULL AND \"team_invites\".\"request_hash\" IS NULL) OR (\"team_invites\".\"enrollment_agent_id\" IS NOT NULL AND \"team_invites\".\"idempotency_hash\" IS NOT NULL AND \"team_invites\".\"request_hash\" IS NOT NULL AND \"team_invites\".\"used_at\" IS NOT NULL)"
-        },
         "team_invites_creator_xor": {
           "name": "team_invites_creator_xor",
           "value": "(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)"
