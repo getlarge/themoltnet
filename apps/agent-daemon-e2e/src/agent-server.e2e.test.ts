@@ -1108,6 +1108,24 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
           mode: 'poll',
         },
       });
+    const assertStarted = async (id: string, expectedTeam: string) => {
+      // Each supervised HOME builds its own cold snapshot (1–3 minutes).
+      // Concurrent builds need the full setup allowance, not one polling tick.
+      const log = await readRunLogs(
+        id,
+        (text) =>
+          text.includes('agent-daemon.starting') || text.includes('[fatal]'),
+        180_000,
+      );
+      const status = (
+        await listAgentServerRuns({ client: agentServerClient() })
+      ).data?.find((run) => run.id === id);
+      expect(log, JSON.stringify(status)).toContain('agent-daemon.starting');
+      expect(log).toContain(`"boundTeamId":"${expectedTeam}"`);
+      expect(log).not.toContain(secretA!);
+      expect(log).not.toContain(secretB!);
+      expect(log).not.toContain('[fatal]');
+    };
     const starts = await Promise.all([
       start(teamId, profileName),
       start(teamB.id, profileB.id),
@@ -1115,23 +1133,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     for (const started of starts)
       expect(started.response.status, JSON.stringify(started.error)).toBe(201);
     const ids = starts.map((started) => started.data!.id);
-    const logs = await Promise.all(
-      ids.map((id) =>
-        readRunLogs(
-          id,
-          (text) =>
-            text.includes('agent-daemon.starting') || text.includes('[fatal]'),
-          60_000,
-        ),
-      ),
-    );
-    for (const [i, log] of logs.entries()) {
-      expect(log).toContain('agent-daemon.starting');
-      expect(log).toContain(`"boundTeamId":"${i === 0 ? teamId : teamB.id}"`);
-      expect(log).not.toContain(secretA!);
-      expect(log).not.toContain(secretB!);
-      expect(log).not.toContain('[fatal]');
-    }
+    await Promise.all([
+      assertStarted(ids[0], teamId),
+      assertStarted(ids[1], teamB.id),
+    ]);
     const tasks = await Promise.all(
       [
         [teamId, privateDiaryId],
@@ -1168,18 +1173,16 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     base = supervisor.baseUrl;
     // The paired client and persisted activation survive a real process replacement.
-    const restarted = await start(teamB.id, profileB.id);
-    expect(restarted.response.status, JSON.stringify(restarted.error)).toBe(
-      201,
-    );
-    expect(
-      await readRunLogs(
-        restarted.data!.id,
-        (text) =>
-          text.includes('agent-daemon.starting') || text.includes('[fatal]'),
-        60_000,
-      ),
-    ).toContain(`"boundTeamId":"${teamB.id}"`);
+    const restarted = await Promise.all([
+      start(teamId, profileName),
+      start(teamB.id, profileB.id),
+    ]);
+    for (const run of restarted)
+      expect(run.response.status, JSON.stringify(run.error)).toBe(201);
+    await Promise.all([
+      assertStarted(restarted[0].data!.id, teamId),
+      assertStarted(restarted[1].data!.id, teamB.id),
+    ]);
     const aKeys = await agent.agentKeys.list(
       { agentId: managedSubjectId, status: 'active' },
       { teamId },
@@ -1196,6 +1199,15 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     const rejected = await start(teamId, profileName);
     expect(rejected.response.status).toBe(400);
+    const deniedTask = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        title: 'revoked team cannot claim',
+        diaryId: privateDiaryId,
+        input: { brief: 'This must remain queued after revocation.' },
+      },
+      { teamId },
+    );
     const afterRevoke = await agent.tasks.create(
       {
         taskType: 'freeform',
@@ -1209,13 +1221,18 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       async () => (await agent.tasks.get(afterRevoke.id)).status !== 'queued',
       { timeoutMs: 60_000 },
     );
+    expect((await agent.tasks.get(deniedTask.id)).status).toBe('queued');
     expect(await configFilesContaining(agentServerRoot, secretA!)).toEqual([]);
     expect(await configFilesContaining(agentServerRoot, secretB!)).toEqual([]);
-    await stopAgentServerRun({
-      client: agentServerClient(),
-      path: { runId: restarted.data!.id },
-    });
-  }, 180_000);
+    await Promise.all(
+      restarted.map((run) =>
+        stopAgentServerRun({
+          client: agentServerClient(),
+          path: { runId: run.data!.id },
+        }),
+      ),
+    );
+  }, 600_000);
 
   it('shuts down cleanly on SIGTERM', async () => {
     await supervisor.stop();
