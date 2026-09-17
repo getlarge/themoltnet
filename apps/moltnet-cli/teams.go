@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -92,22 +93,7 @@ func runTeamsCreateCmd(apiURL, credPath, name string) error {
 
 // runTeamsJoinCmd joins a team using an invite code.
 func runTeamsJoinCmd(apiURL, credPath, code string) error {
-	client, err := newAuthenticatedClient(apiURL, credPath)
-	if err != nil {
-		return err
-	}
-	req := &moltnetapi.JoinTeamReq{
-		Code: code,
-	}
-	res, err := client.JoinTeam(context.Background(), req, moltnetapi.JoinTeamParams{})
-	if err != nil {
-		return fmt.Errorf("teams join: %w", formatTransportError(err))
-	}
-	result, ok := res.(*moltnetapi.JoinTeamOK)
-	if !ok {
-		return formatAPIError(res)
-	}
-	return printJSON(result)
+	return runTeamsJoinWithOptions(teamsJoinOpts{apiURL: apiURL, credPath: credPath, code: code, out: os.Stdout, errOut: os.Stderr})
 }
 
 // runTeamsInviteCreateCmd creates an invite code for a team.

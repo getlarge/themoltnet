@@ -1041,6 +1041,9 @@ func isMoltnetRevealArgs(args []string, allowGitHubToken bool) bool {
 	if len(args) > 0 && args[0] == "register" {
 		return true
 	}
+	if len(args) >= 2 && args[0] == "teams" && args[1] == "join" {
+		return argsContainFlag(args[2:], "--issue-agent-key") && !argsContainFlag(args[2:], "--store")
+	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "keys" && (args[2] == "create" || args[2] == "rotate") {
 		// --store keeps the secret inside a provider and prints only the
 		// reference; without it the one-time secret lands on stdout.
@@ -1156,6 +1159,9 @@ func isSecretMovingMoltnetArgs(args []string) bool {
 	if matchesMoltnetOperation(args, []string{"agents", "credentials", "recover"}) {
 		return true
 	}
+	if len(args) >= 2 && args[0] == "teams" && args[1] == "join" {
+		return argsContainFlag(args[2:], "--issue-agent-key") && argsContainFlag(args[2:], "--store")
+	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "keys" && (args[2] == "create" || args[2] == "rotate") {
 		return argsContainFlag(args[3:], "--store")
 	}
@@ -1228,10 +1234,19 @@ func callSelectsUntrustedSecretDestination(executable string, args []string, cal
 // argsContainFlag reports whether a bare boolean flag (or its =true form) is
 // present in args.
 func argsContainFlag(args []string, flag string) bool {
+	enabled := false
 	for _, arg := range args {
-		if arg == flag || arg == flag+"=true" {
-			return true
+		if arg == "--" {
+			break
+		}
+		if arg == flag {
+			enabled = true
+		} else if strings.HasPrefix(arg, flag+"=") {
+			// Unknown values are rejected by Cobra; only known true forms can make
+			// a secret-output command safe. The last occurrence wins, as in Cobra.
+			value := strings.TrimPrefix(arg, flag+"=")
+			enabled = value == "true" || value == "1" || value == "t" || value == "T" || value == "TRUE" || value == "True"
 		}
 	}
-	return false
+	return enabled
 }

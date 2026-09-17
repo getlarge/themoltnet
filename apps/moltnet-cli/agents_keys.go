@@ -313,7 +313,7 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 				err,
 			)
 		}
-		opts.agentID = whoami.IdentityId.String()
+		opts.agentID = whoami.SubjectId.String()
 	}
 	req, params, idempotencyKey, err := buildCreateAgentKey(opts)
 	if err != nil {
@@ -329,6 +329,13 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 		if err := store.requireAgentID(opts.agentID); err != nil {
 			return err
 		}
+	}
+	if store != nil {
+		store.expectedTeam = opts.teamID
+		if err := store.reserve(); err != nil {
+			return err
+		}
+		defer store.close()
 	}
 	// When the CLI generated the idempotency key, a failed create must surface
 	// it so a bare re-run can reuse it instead of minting a duplicate credential
@@ -482,6 +489,13 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	store, err := prepareAgentKeyStore(opts.store, opts.credPath)
 	if err != nil {
 		return err
+	}
+	if store != nil {
+		store.expectedTeam = opts.teamID
+		if err := store.reserve(); err != nil {
+			return err
+		}
+		defer store.close()
 	}
 	res, err := client.RotateAgentKey(ctx, params)
 	if err != nil {

@@ -920,3 +920,23 @@ func TestSecretsGuardProtectsIdentitySelectorAndStoreRoot(t *testing.T) {
 		}
 	}
 }
+
+func TestSecretsGuardTeamEnrollmentUsesEffectiveStoreFlag(t *testing.T) {
+	for _, test := range []struct {
+		command string
+		denied  bool
+	}{
+		{`moltnet teams join --code code`, false},
+		{`moltnet teams join --code code --issue-agent-key --idempotency-key request`, true},
+		{`moltnet teams join --code code --issue-agent-key --store --idempotency-key request`, false},
+		{`moltnet teams join --code code --issue-agent-key --store --store=false`, true},
+		{`moltnet teams join --code code --issue-agent-key --store=false --store`, false},
+		{`moltnet teams join --code code --issue-agent-key --store --destination file`, true},
+		{`MOLTNET_SECRET_ROOT=/tmp/other moltnet teams join --code code --issue-agent-key --store`, true},
+		{`moltnet agents keys create --store --store=false`, true},
+	} {
+		if denied := evaluateSecretsShellWithContext(test.command, testSecretGuardPathContext(t)) != ""; denied != test.denied {
+			t.Errorf("wrong guard classification: %s", test.command)
+		}
+	}
+}
