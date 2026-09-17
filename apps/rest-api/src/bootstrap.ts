@@ -50,7 +50,6 @@ import {
   createSigningRequestRepository,
   createTaskArtifactRepository,
   createTaskRepository,
-  createTeamEnrollmentRepository,
   createTeamRepository,
   type DatabaseConnection,
   enqueueWorkflowInCurrentTransaction as enqueueDbosWorkflowInCurrentTransaction,
@@ -118,8 +117,8 @@ import {
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
-  initTeamEnrollmentWorkflow,
   initTeamFoundingWorkflow,
+  initTeamInviteWorkflow,
   registerHumanOnboardingQueue,
   registerMaintenanceQueues,
   registerRegistrationQueue,
@@ -128,8 +127,8 @@ import {
   setLegreffierOnboardingDeps,
   setMaintenanceDeps,
   setRegistrationDeps,
-  setTeamEnrollmentDeps,
   setTeamFoundingDeps,
+  setTeamInviteDeps,
 } from './workflows/index.js';
 
 export interface BootstrapResult {
@@ -512,7 +511,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           config.dbosWorkflowRetention,
         ),
       () => initTeamFoundingWorkflow(),
-      () => initTeamEnrollmentWorkflow(),
+      () => initTeamInviteWorkflow(),
       () => initDiaryTransferWorkflow(),
     ],
     wireDependencies: [
@@ -612,8 +611,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       (workflowTransactionRunner) => {
-        setTeamEnrollmentDeps({
-          repository: createTeamEnrollmentRepository(dbConnection.db),
+        setTeamInviteDeps({
+          teamRepository,
           transactionRunner: workflowTransactionRunner,
           relationshipReader,
           relationshipWriter,

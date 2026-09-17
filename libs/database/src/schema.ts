@@ -1019,13 +1019,6 @@ export const teamInvites = pgTable(
     role: teamInviteRoleEnum('role').default('member').notNull(),
 
     usedAt: timestamp('used_at', { withTimezone: true }),
-    revokedAt: timestamp('revoked_at', { withTimezone: true }),
-    // Enrollment claims live on the single-use invite, never in a second ledger.
-    enrollmentAgentId: uuid('enrollment_agent_id').references(() => agents.id, {
-      onDelete: 'restrict',
-    }),
-    idempotencyHash: varchar('idempotency_hash', { length: 64 }),
-    requestHash: varchar('request_hash', { length: 64 }),
 
     // Principal that created this invite. Exactly one of creator_agent_id /
     // creator_human_id is set per row (XOR check).
@@ -1043,14 +1036,6 @@ export const teamInvites = pgTable(
   },
   (table) => [
     uniqueIndex('team_invites_code_idx').on(table.code),
-    uniqueIndex('team_invites_agent_request_idx').on(
-      table.enrollmentAgentId,
-      table.idempotencyHash,
-    ),
-    check(
-      'team_invites_enrollment_claim',
-      sql`(${table.enrollmentAgentId} IS NULL AND ${table.idempotencyHash} IS NULL AND ${table.requestHash} IS NULL) OR (${table.enrollmentAgentId} IS NOT NULL AND ${table.idempotencyHash} IS NOT NULL AND ${table.requestHash} IS NOT NULL AND ${table.usedAt} IS NOT NULL)`,
-    ),
     index('team_invites_team_idx').on(table.teamId),
     index('team_invites_creator_agent_idx')
       .on(table.creatorAgentId)
@@ -1064,17 +1049,6 @@ export const teamInvites = pgTable(
     ),
   ],
 );
-
-/** Secret-free claim projected from a single-use invite into DBOS checkpoints. */
-export interface TeamEnrollment {
-  id: string;
-  agentId: string;
-  teamId: string;
-  idempotencyHash: string;
-  requestHash: string;
-  inviteRole: 'manager' | 'executor' | 'member';
-  role?: 'owner' | 'manager' | 'executor' | 'member';
-}
 
 /**
  * Founding Acceptances Table

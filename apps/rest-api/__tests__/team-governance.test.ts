@@ -55,14 +55,20 @@ vi.mock('../src/workflows/diary-transfer-workflow.js', () => ({
   TRANSFER_DECISION_EVENT: 'diary.transfer.decision',
 }));
 
+vi.mock('../src/workflows/team-invite-workflow.js', () => ({
+  teamInviteWorkflow: { run: vi.fn() },
+}));
 // Need to import DBOS after mock to get the mocked version
 import { DBOS } from '@moltnet/database';
+
+import { teamInviteWorkflow } from '../src/workflows/team-invite-workflow.js';
 
 // DBOS is a module-level mock, not part of `mocks`, so `resetMockServices`
 // does not touch it. Clear its spies' call history before each test so
 // `toHaveBeenCalled` / `not.toHaveBeenCalled` assertions don't see calls
 // that leaked in from a previously-run test sharing the same app instance.
 beforeEach(() => {
+  vi.mocked(teamInviteWorkflow.run).mockReset();
   vi.mocked(DBOS.startWorkflow).mockClear();
   vi.mocked(DBOS.send).mockClear();
   vi.mocked(DBOS.retrieveWorkflow).mockClear();
@@ -792,6 +798,10 @@ describe('POST /teams/join role promotion', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    vi.mocked(teamInviteWorkflow.run).mockResolvedValue({
+      teamId: TEAM_ID,
+      role: 'manager',
+    });
     mocks.teamRepository.findInviteByCode.mockResolvedValue({
       id: 'invite-1',
       teamId: TEAM_ID,
@@ -824,11 +834,30 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(mocks.relationshipWriter.grantTeamManagers).toHaveBeenCalledWith(
-      TEAM_ID,
-      OWNER_ID,
-      'Agent',
-    );
+    expect(teamInviteWorkflow.run).toHaveBeenCalledWith({
+      inviteId: 'invite-1',
+      subjectId: OWNER_ID,
+      subjectNs: 'Agent',
+    });
+  });
+
+  it('rejects a used invite before replaying a completed workflow', async () => {
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'manager',
+      usedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+    expect(res.statusCode).toBe(410);
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 
   it('keeps same-role joins as conflict', async () => {
@@ -848,10 +877,14 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 
   it('downgrades an existing manager when a member invite is redeemed', async () => {
+    vi.mocked(teamInviteWorkflow.run).mockResolvedValue({
+      teamId: TEAM_ID,
+      role: 'member',
+    });
     mocks.teamRepository.findInviteByCode.mockResolvedValue({
       id: 'invite-1',
       teamId: TEAM_ID,
@@ -880,11 +913,11 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(mocks.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
-      TEAM_ID,
-      OWNER_ID,
-      'Agent',
-    );
+    expect(teamInviteWorkflow.run).toHaveBeenCalledWith({
+      inviteId: 'invite-1',
+      subjectId: OWNER_ID,
+      subjectNs: 'Agent',
+    });
   });
 
   it('rejects owner role changes when a lower invite role is redeemed', async () => {
@@ -910,7 +943,7 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 
   it('rejects a human redeeming an executor invite without claiming it', async () => {
@@ -933,7 +966,7 @@ describe('POST /teams/join role promotion', () => {
       });
 
       expect(res.statusCode).toBe(403);
-      expect(humanMocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+      expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
       expect(
         humanMocks.relationshipWriter.grantTeamExecutors,
       ).not.toHaveBeenCalled();

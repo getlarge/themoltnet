@@ -66,11 +66,6 @@ export {
   type RunWorkflowOptions,
 } from './run-workflow.js';
 export {
-  initTeamEnrollmentWorkflow,
-  setTeamEnrollmentDeps,
-  teamEnrollmentWorkflow,
-} from './team-enrollment-workflow.js';
-export {
   FOUNDING_ACCEPT_EVENT,
   type FoundingMember,
   initTeamFoundingWorkflow,
@@ -80,6 +75,11 @@ export {
   TeamFoundingTimeoutError,
   teamFoundingWorkflow,
 } from './team-founding-workflow.js';
+export {
+  initTeamInviteWorkflow,
+  setTeamInviteDeps,
+  teamInviteWorkflow,
+} from './team-invite-workflow.js';
 export {
   startTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,

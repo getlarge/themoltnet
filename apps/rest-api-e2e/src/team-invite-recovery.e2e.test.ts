@@ -9,8 +9,8 @@ import {
 } from '@moltnet/auth';
 import {
   agents,
-  type ClaimTeamEnrollment,
   createDatabase,
+  humans,
   runMigrations,
   teamInvites,
   teams,
@@ -18,27 +18,29 @@ import {
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+// eslint-disable-next-line @nx/enforce-module-boundaries -- Input type for the server process fixture.
+import type { RedeemTeamInvite } from '../../rest-api/src/workflows/team-invite-workflow.js';
 import { createTestHarness, DATABASE_URL, type TestHarness } from './setup.js';
 
 const root = resolve(import.meta.dirname, '../../..');
 const worker = resolve(
   root,
-  'apps/rest-api/scripts/team-enrollment-recovery-worker.ts',
+  'apps/rest-api-e2e/src/fixtures/team-invite-recovery.worker.ts',
 );
 let harness: TestHarness;
 let database: ReturnType<typeof createDatabase>;
 let databaseUrl: string;
-const databaseName = `enrollment_${randomUUID().replaceAll('-', '')}`;
+const databaseName = `invite_${randomUUID().replaceAll('-', '')}`;
 const children = new Set<ChildProcess>();
 
-function start(input: ClaimTeamEnrollment, pause?: string) {
+function start(input: RedeemTeamInvite, pause?: string) {
   const child = spawn(process.execPath, ['--import', 'tsx', worker], {
     cwd: root,
     env: {
       ...process.env,
-      ENROLLMENT_TEST_DATABASE_URL: databaseUrl,
-      ENROLLMENT_TEST_INPUT: JSON.stringify(input),
-      ENROLLMENT_TEST_PAUSE: pause ?? '',
+      INVITE_TEST_DATABASE_URL: databaseUrl,
+      INVITE_TEST_INPUT: JSON.stringify(input),
+      INVITE_TEST_PAUSE: pause ?? '',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -63,16 +65,17 @@ function start(input: ClaimTeamEnrollment, pause?: string) {
     child,
     closed,
     output: () => output,
+    errors: () => errors,
     async waitFor(marker: string) {
       const deadline = Date.now() + 60_000;
       while (!output.includes(marker)) {
         if (exited)
           throw new Error(
-            `Enrollment worker exited before ${marker}: ${errors}\n${output}`,
+            `Invite worker exited before ${marker}: ${errors}\n${output}`,
           );
         if (Date.now() > deadline)
           throw new Error(
-            `Enrollment worker timed out at ${marker}: ${errors}\n${output}`,
+            `Invite worker timed out at ${marker}: ${errors}\n${output}`,
           );
         await new Promise((resolveWait) => {
           setTimeout(resolveWait, 100);
@@ -111,7 +114,7 @@ afterAll(async () => {
   }
 });
 
-async function fixture() {
+async function fixture(subjectNs = KetoNamespace.Agent) {
   const [agent] = await database.db
     .insert(agents)
     .values({
@@ -119,6 +122,10 @@ async function fixture() {
       fingerprint: randomUUID().slice(0, 19),
     })
     .returning();
+  const subjectId =
+    subjectNs === KetoNamespace.Human
+      ? (await database.db.insert(humans).values({}).returning())[0].id
+      : agent.id;
   const [team] = await database.db
     .insert(teams)
     .values({
@@ -144,20 +151,20 @@ async function fixture() {
     team,
     invite,
     input: {
-      agentId: agent.id,
+      subjectId,
+      subjectNs,
       inviteId: invite.id,
-      idempotencyHash: 'a'.repeat(64),
-      requestHash: 'b'.repeat(64),
     },
   };
 }
 
-describe('team enrollment process recovery', () => {
-  it('rolls back receipt and invite use when the DBOS claim transaction fails', async () => {
+describe('team invitation process recovery', () => {
+  it('rolls back the claim and its DBOS checkpoint when the DBOS claim transaction fails', async () => {
     const { input, invite } = await fixture();
     const failed = start(input, 'rollback');
     await failed.closed;
     expect(failed.child.exitCode).not.toBe(0);
+    expect(failed.errors()).toContain('injected invite transaction rollback');
     expect(failed.output()).not.toContain('GRANTED');
     expect(
       (
@@ -169,10 +176,15 @@ describe('team enrollment process recovery', () => {
     ).toBeNull();
   });
 
-  it.each(['claim', 'membership'])(
-    'resumes after process death at %s without consuming twice',
-    async (point) => {
-      const { input, team, invite, agent } = await fixture();
+  it.each([
+    [KetoNamespace.Agent, 'claim'],
+    [KetoNamespace.Agent, 'membership'],
+    [KetoNamespace.Human, 'claim'],
+    [KetoNamespace.Human, 'membership'],
+  ] as const)(
+    'resumes %s membership after process death at %s without consuming twice',
+    async (subjectNs, point) => {
+      const { input, team, invite } = await fixture(subjectNs);
       const first = start(input, point);
       await first.waitFor(`PAUSED:${point}`);
       first.child.kill('SIGKILL');
@@ -188,9 +200,9 @@ describe('team enrollment process recovery', () => {
       await second.closed;
       const result = JSON.parse(
         second.output().split('RESULT:')[1].split('\n')[0],
-      ) as { ids: string[]; role: string; mismatch: boolean };
+      ) as { teams: string[]; role: string; mismatch: boolean };
       expect(result).toEqual({
-        ids: [invite.id, invite.id],
+        teams: [team.id, team.id],
         role: 'member',
         mismatch: true,
       });
@@ -202,13 +214,12 @@ describe('team enrollment process recovery', () => {
         .from(teamInvites)
         .where(eq(teamInvites.id, invite.id));
       expect(ready.usedAt).toEqual(claimed.usedAt);
-      expect(ready.enrollmentAgentId).toBe(agent.id);
       const members = await createRelationshipReader(
         harness.oryClients.relationshipRead,
       ).listTeamMembers(team.id);
       expect(members).toContainEqual({
-        subjectId: agent.id,
-        subjectNs: 'Agent',
+        subjectId: input.subjectId,
+        subjectNs,
         relation: 'members',
       });
       // Neither workflow input nor any checkpoint needs the raw invite code.
@@ -219,7 +230,7 @@ describe('team enrollment process recovery', () => {
     },
   );
 
-  it('preserves an existing owner role while enrolling with a member invite', async () => {
+  it('does not overwrite a role changed to owner before reconciliation', async () => {
     const { input, team, agent } = await fixture();
     await createRelationshipWriter(
       harness.oryClients.relationship,

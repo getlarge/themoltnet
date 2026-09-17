@@ -65,7 +65,7 @@ export interface TeamRepository {
   findInviteById(id: string): Promise<TeamInvite | null>;
   /** Atomically consume a single-use invite. Returns null if unavailable. */
   claimInvite(id: string): Promise<TeamInvite | null>;
-  /** Release a membership-only claim when its Keto grant fails. */
+  /** Release a claim when agent registration is compensated. */
   revertInviteClaim(id: string): Promise<TeamInvite | null>;
   listInvites(teamId: string): Promise<TeamInvite[]>;
   deleteInvite(id: string): Promise<boolean>;
@@ -176,12 +176,7 @@ export function createTeamRepository(db: Database): TeamRepository {
       const [invite] = await getExecutor(db)
         .select()
         .from(teamInvites)
-        .where(
-          and(
-            eq(teamInvites.code, code),
-            sql`${teamInvites.revokedAt} IS NULL`,
-          ),
-        )
+        .where(eq(teamInvites.code, code))
         .limit(1);
       return invite ?? null;
     },
@@ -190,9 +185,7 @@ export function createTeamRepository(db: Database): TeamRepository {
       const [invite] = await getExecutor(db)
         .select()
         .from(teamInvites)
-        .where(
-          and(eq(teamInvites.id, id), sql`${teamInvites.revokedAt} IS NULL`),
-        )
+        .where(eq(teamInvites.id, id))
         .limit(1);
       return invite ?? null;
     },
@@ -205,8 +198,8 @@ export function createTeamRepository(db: Database): TeamRepository {
           and(
             eq(teamInvites.id, id),
             sql`${teamInvites.usedAt} IS NULL`,
-            sql`${teamInvites.revokedAt} IS NULL`,
             sql`${teamInvites.expiresAt} > clock_timestamp()`,
+            sql`EXISTS (SELECT 1 FROM ${teams} WHERE ${teams.id} = ${teamInvites.teamId} AND ${teams.status} = 'active' AND NOT ${teams.personal} FOR SHARE)`,
           ),
         )
         .returning();
@@ -219,12 +212,7 @@ export function createTeamRepository(db: Database): TeamRepository {
         .set({
           usedAt: null,
         })
-        .where(
-          and(
-            eq(teamInvites.id, id),
-            sql`${teamInvites.enrollmentAgentId} IS NULL`,
-          ),
-        )
+        .where(eq(teamInvites.id, id))
         .returning();
       return invite ?? null;
     },
@@ -233,35 +221,22 @@ export function createTeamRepository(db: Database): TeamRepository {
       return getExecutor(db)
         .select()
         .from(teamInvites)
-        .where(
-          and(
-            eq(teamInvites.teamId, teamId),
-            sql`${teamInvites.revokedAt} IS NULL`,
-          ),
-        );
+        .where(eq(teamInvites.teamId, teamId));
     },
 
     async deleteInvite(id) {
       const result = await getExecutor(db)
-        .update(teamInvites)
-        .set({ revokedAt: sql`clock_timestamp()` })
-        .where(
-          and(eq(teamInvites.id, id), sql`${teamInvites.revokedAt} IS NULL`),
-        )
+        .delete(teamInvites)
+        .where(eq(teamInvites.id, id))
         .returning({ id: teamInvites.id });
       return result.length > 0;
     },
 
     async deleteInviteByTeam(inviteId, teamId) {
       const result = await getExecutor(db)
-        .update(teamInvites)
-        .set({ revokedAt: sql`clock_timestamp()` })
+        .delete(teamInvites)
         .where(
-          and(
-            eq(teamInvites.id, inviteId),
-            eq(teamInvites.teamId, teamId),
-            sql`${teamInvites.revokedAt} IS NULL`,
-          ),
+          and(eq(teamInvites.id, inviteId), eq(teamInvites.teamId, teamId)),
         )
         .returning({ id: teamInvites.id });
       return result.length > 0;

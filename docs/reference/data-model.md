@@ -55,10 +55,6 @@ erDiagram
         varchar code UK "mlt_inv_<random>"
         invite_role role "manager | executor | member"
         timestamp used_at
-        timestamp revoked_at
-        uuid enrollment_agent_id
-        varchar idempotency_hash
-        varchar request_hash
         uuid created_by FK
         timestamp expires_at
         timestamp created_at

@@ -260,6 +260,20 @@ describe('Teams', () => {
 
       expect(response.status).toBe(409);
     });
+    it('cannot reuse a consumed invite after membership is removed', async () => {
+      const removed = await removeTeamMember({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: agentB.agentId },
+      });
+      expect(removed.response.status).toBe(200);
+      const replay = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: inviteCode },
+      });
+      expect(replay.response.status).toBe(410);
+    });
   });
 
   describe('role promotion', () => {

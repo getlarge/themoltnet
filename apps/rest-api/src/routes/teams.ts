@@ -53,6 +53,7 @@ import {
   FOUNDING_ACCEPT_EVENT,
   teamFoundingWorkflow,
 } from '../workflows/team-founding-workflow.js';
+import { teamInviteWorkflow } from '../workflows/team-invite-workflow.js';
 
 // ── Member enrichment ───────────────────────────────────────────
 
@@ -1105,50 +1106,29 @@ export function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('conflict', 'Already a member of this team');
       }
 
-      // Atomically consume the invite once; concurrent redeemers cannot share it.
-      const claimed = await fastify.teamRepository.claimInvite(invite.id);
-      if (!claimed) {
-        throw createProblem('invite-exhausted');
-      }
+      if (invite.usedAt) throw createProblem('invite-exhausted');
 
       try {
-        if (existingMember) {
-          await grantTeamRole(
-            fastify,
-            invite.teamId,
-            subjectId,
-            existingMember.subjectNs,
-            invite.role,
-          );
-        } else {
-          await grantTeamRole(
-            fastify,
-            invite.teamId,
-            subjectId,
-            ns,
-            invite.role,
-          );
+        const result = await teamInviteWorkflow.run({
+          inviteId: invite.id,
+          subjectId,
+          subjectNs: ns,
+        });
+        if (result.role === TEAM_ROLE.Owner) {
+          throw createProblem('conflict', 'Already a member of this team');
         }
-      } catch (err) {
-        request.log.error(
-          { teamId: invite.teamId, subjectId, inviteId: invite.id, err },
-          'team.join_keto_grant_failed — invite claimed but Keto write failed',
-        );
-        try {
-          await fastify.teamRepository.revertInviteClaim(invite.id);
-        } catch (revertErr) {
-          request.log.error(
-            { inviteId: invite.id, revertErr },
-            'team.join_invite_revert_failed',
-          );
-        }
-        throw err;
+        return await reply
+          .status(200)
+          .send({ teamId: result.teamId, role: result.role });
+      } catch (error) {
+        // DBOS restores persisted errors without their original prototypes.
+        if (
+          error instanceof Error &&
+          error.message === 'Team invite unavailable'
+        )
+          throw createProblem('invite-exhausted');
+        throw error;
       }
-
-      return reply.status(200).send({
-        teamId: invite.teamId,
-        role: invite.role,
-      });
     },
   );
 

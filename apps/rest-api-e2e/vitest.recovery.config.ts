@@ -9,7 +9,7 @@ export default defineConfig({
     root: resolve(import.meta.dirname),
     include: [
       'src/durable-workflow-recovery.e2e.test.ts',
-      'src/team-enrollment-recovery.e2e.test.ts',
+      'src/team-invite-recovery.e2e.test.ts',
     ],
     globalSetup: ['./src/globalSetup.ts'],
     testTimeout: 120_000,

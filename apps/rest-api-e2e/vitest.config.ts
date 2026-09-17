@@ -10,7 +10,7 @@ export default defineConfig({
     include: ['src/**/*.e2e.test.ts'],
     exclude: [
       'src/durable-workflow-recovery.e2e.test.ts',
-      'src/team-enrollment-recovery.e2e.test.ts',
+      'src/team-invite-recovery.e2e.test.ts',
     ],
     globalSetup: ['./src/globalSetup.ts'],
     testTimeout: 30_000,
