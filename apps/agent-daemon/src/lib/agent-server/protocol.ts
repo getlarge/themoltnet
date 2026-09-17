@@ -179,6 +179,7 @@ export const CreateAgentSchema = Type.Union([
   Type.Object({
     kind: Type.Literal('external'),
     identityAlias: Type.String(),
+    teamId: Type.Optional(Type.String({ format: 'uuid' })),
   }),
 ]);
 

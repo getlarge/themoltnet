@@ -70,10 +70,15 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
     // MOLTNET_AGENT_KEY run demands a moltnet.json it was never meant to have.
     credentialSource: cfg.credentialSource,
     envApiUrl: cfg.apiUrl,
+    teamId: values.team,
     agentRootDir: explicitAgentRootDir,
   });
   // Fail fast on a rejected or wrong-team credential before touching sessions.
-  await validateStartupBinding({ agent: ctx.agent, teamId: values.team });
+  await validateStartupBinding({
+    agent: ctx.agent,
+    teamId: values.team,
+    credentialTeamId: ctx.credentialTeamId,
+  });
   const stateDirs = ensureDaemonStateDirs(agentRootDir);
   const result = await syncRuntimeSessions(
     {

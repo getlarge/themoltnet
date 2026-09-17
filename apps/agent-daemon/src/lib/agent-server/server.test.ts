@@ -1477,6 +1477,51 @@ describe('agent server providers and runs', () => {
     );
   });
 
+  it('projects independent team references into concurrent managed children', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const config = store.readAgentConfig('course-bot')!;
+    config.agent_key_refs = {
+      a: { provider: 'file', key: 'agent-key/agent-1/a' },
+      b: { provider: 'file', key: 'agent-key/agent-1/b' },
+    };
+    store.writeAgentConfig('course-bot', config);
+    const token = await pair(app);
+    const responses = await Promise.all(
+      ['a', 'b'].map((teamId) =>
+        app.inject({
+          method: 'POST',
+          url: '/v1/runs',
+          headers: {
+            host: HOST,
+            origin: CONSOLE_ORIGIN,
+            [AGENT_SERVER_TOKEN_HEADER]: token,
+            'content-type': 'application/json',
+          },
+          payload: {
+            agent: 'course-bot',
+            teamId,
+            profiles: ['profile'],
+            taskTypes: ['freeform'],
+            mode: 'poll',
+          },
+        }),
+      ),
+    );
+    for (const response of responses)
+      expect(response.statusCode, response.body).toBe(201);
+    expect(
+      spawned.map(({ options }) => options.env.MOLTNET_AGENT_KEY_REF).sort(),
+    ).toEqual(['file:agent-key/agent-1/a', 'file:agent-key/agent-1/b']);
+    for (const { options } of spawned) {
+      expect(options.env.MOLTNET_CLIENT_SECRET).toBeUndefined();
+      expect(options.env.MOLTNET_AGENT_KEY).toBeUndefined();
+    }
+    expect(store.readAgentConfig('course-bot')?.agent_key_ref).toEqual(
+      config.agent_key_ref,
+    );
+  });
+
   it('rejects runs for unknown agents and invalid specs', async () => {
     const { app } = await fixture();
     const token = await pair(app);

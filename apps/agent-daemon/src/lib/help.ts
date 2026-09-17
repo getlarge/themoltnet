@@ -65,10 +65,11 @@ Run \`agent-daemon <command> --help\` for command-specific flags.
 Prerequisites:
   - configless: MOLTNET_AGENT_KEY (or MOLTNET_AGENT_KEY_REF) and
     MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF); no agent files
-  - config-based and sync-sessions: <agent-root>/.moltnet/<agent>/moltnet.json
-    carrying agent_key_ref (OAuth2 client credentials are not accepted)
+  - config-based: ~/.config/moltnet/identities/<agent>/moltnet.json
+    carrying agent_key_refs or agent_key_ref (OAuth2 is not accepted)
+    --agent-root explicitly selects a legacy .moltnet/<agent> bundle
 
-No key yet? Mint one with the CLI (--store writes agent_key_ref into
+No key yet? Mint one with the CLI (--store writes the team slot into
 moltnet.json and keeps the secret in a provider):
 
   moltnet teams list             # find the team id

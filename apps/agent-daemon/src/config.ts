@@ -29,7 +29,7 @@ export interface DaemonConfig {
   agentServerRoot: string;
   /**
    * Where the agent key comes from: `environment` when `MOLTNET_AGENT_KEY`
-   * (or `_REF`) is set, otherwise `config` — an `agent_key_ref` in
+   * (or `_REF`) is set, otherwise `config` — a selected key reference in
    * `moltnet.json`. The daemon accepts no other credential. The secret itself
    * is never surfaced here.
    */

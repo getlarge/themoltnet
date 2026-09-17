@@ -12,6 +12,7 @@
  * non-secret config files.
  */
 import { type ChildProcess, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import {
   createServer,
@@ -39,7 +40,14 @@ import {
   startAgentServerRun,
   stopAgentServerRun,
 } from '@moltnet/agent-daemon-api-client';
-import { type Agent, connect } from '@themoltnet/sdk';
+import {
+  type Agent,
+  connect,
+  readConfig,
+  resolveAgentKey,
+  SecretProviderRegistry,
+} from '@themoltnet/sdk';
+import { enrollTeam, FileSecretProvider } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
@@ -283,7 +291,7 @@ class AgentServerSupervisor {
   }
 }
 
-/** Files under `root` (excluding the secrets directory) that contain `needle`. */
+/** Text config/log files under root; VM disk images are binary artifacts. */
 async function configFilesContaining(
   root: string,
   needle: string,
@@ -295,7 +303,10 @@ async function configFilesContaining(
       if (entry.isDirectory()) {
         if (entry.name === 'secrets') continue;
         await walk(path);
-      } else if (entry.isFile()) {
+      } else if (
+        entry.isFile() &&
+        /\.(json|jsonl|log|toml)$/.test(entry.name)
+      ) {
         const content = await readFile(path, 'utf8').catch((error: unknown) => {
           throw new Error(`could not inspect non-secret config file ${path}`, {
             cause: error,
@@ -920,8 +931,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
     });
     expect(result.response.status).toBe(400);
-    expect(result.error?.code).toBe('invalid_spec');
-    expect(result.error?.message).toContain('bound to team');
+    expect(result.error?.code).toBe('verification_failed');
+    expect(result.error?.message).toContain('could not resolve');
   });
 
   it('starts a daemon run that polls the API, streams its logs, and stops on request', async () => {
@@ -1026,6 +1037,185 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(unknown.response.status).toBe(404);
   }, 120_000);
+
+  it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {
+    const configDir = join(agentServerRoot, 'identities', agentName);
+    const provider = new FileSecretProvider({
+      root: join(agentServerRoot, 'secrets'),
+      writable: true,
+    });
+    const registry = new SecretProviderRegistry().register(provider);
+    const initial = await readConfig(configDir);
+    expect(initial).not.toBeNull();
+    const secretA = await resolveAgentKey(initial!, registry, teamId);
+    expect(secretA).toBeTruthy();
+    const agentA = await connect({
+      agentKey: secretA!,
+      apiUrl: harness.restApiUrl,
+    });
+    const teamB = await agent.teams.create({
+      name: `concurrent-${randomUUID()}`,
+    });
+    const invitation = await agent.teams.invites.create(teamB.id, {
+      role: 'executor',
+      maxUses: 1,
+      expiresInHours: 1,
+    });
+    const enrolled = await enrollTeam({
+      agent: agentA,
+      configDir,
+      secretProvider: provider,
+      code: invitation.code,
+      idempotencyKey: randomUUID(),
+    });
+    expect(enrolled.teamId).toBe(teamB.id);
+    const current = await readConfig(configDir);
+    const secretB = await resolveAgentKey(current!, registry, teamB.id);
+    expect(secretB).toBeTruthy();
+    expect(secretB).not.toBe(secretA);
+    const agentB = await connect({
+      agentKey: secretB!,
+      apiUrl: harness.restApiUrl,
+    });
+    await expect(
+      agentB.diaries.get(privateDiaryId, { teamId }),
+    ).rejects.toThrow();
+    const diaryB = await agent.diaries.create(
+      { name: `concurrent-${randomUUID()}` },
+      { teamId: teamB.id },
+    );
+    await expect(
+      agentA.diaries.get(diaryB.id, { teamId: teamB.id }),
+    ).rejects.toThrow();
+    const profileB = await agent.runtimeProfiles.create(
+      {
+        name: `concurrent-${randomUUID()}`,
+        runtimeKind: 'gondolin_pi',
+        provider: PROVIDER_ID,
+        model: MODEL_ID,
+        sandbox: {},
+      },
+      { teamId: teamB.id },
+    );
+    const start = (id: string, profile: string) =>
+      startAgentServerRun({
+        client: agentServerClient(),
+        body: {
+          agent: agentName,
+          teamId: id,
+          profiles: [profile],
+          taskTypes: ['freeform'],
+          mode: 'poll',
+        },
+      });
+    const starts = await Promise.all([
+      start(teamId, profileName),
+      start(teamB.id, profileB.id),
+    ]);
+    for (const started of starts)
+      expect(started.response.status, JSON.stringify(started.error)).toBe(201);
+    const ids = starts.map((started) => started.data!.id);
+    const logs = await Promise.all(
+      ids.map((id) =>
+        readRunLogs(
+          id,
+          (text) =>
+            text.includes('agent-daemon.starting') || text.includes('[fatal]'),
+          60_000,
+        ),
+      ),
+    );
+    for (const [i, log] of logs.entries()) {
+      expect(log).toContain('agent-daemon.starting');
+      expect(log).toContain(`"boundTeamId":"${i === 0 ? teamId : teamB.id}"`);
+      expect(log).not.toContain(secretA!);
+      expect(log).not.toContain(secretB!);
+      expect(log).not.toContain('[fatal]');
+    }
+    const tasks = await Promise.all(
+      [
+        [teamId, privateDiaryId],
+        [teamB.id, diaryB.id],
+      ].map(([id, diaryId]) =>
+        agent.tasks.create(
+          {
+            taskType: 'freeform',
+            title: 'concurrent team polling',
+            diaryId,
+            input: { brief: 'Verify independently authenticated task claim.' },
+          },
+          { teamId: id },
+        ),
+      ),
+    );
+    await waitFor(
+      async () =>
+        (
+          await Promise.all(tasks.map((task) => agent.tasks.get(task.id)))
+        ).every((task) => task.status !== 'queued'),
+      { timeoutMs: 60_000 },
+    );
+    const running = await listAgentServerRuns({ client: agentServerClient() });
+    for (const id of ids)
+      expect(running.data).toContainEqual(
+        expect.objectContaining({ id, active: true }),
+      );
+    await supervisor.stop();
+    supervisor = await AgentServerSupervisor.start({
+      root: agentServerRoot,
+      apiUrl: harness.restApiUrl,
+      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
+    });
+    base = supervisor.baseUrl;
+    // The paired client and persisted activation survive a real process replacement.
+    const restarted = await start(teamB.id, profileB.id);
+    expect(restarted.response.status, JSON.stringify(restarted.error)).toBe(
+      201,
+    );
+    expect(
+      await readRunLogs(
+        restarted.data!.id,
+        (text) =>
+          text.includes('agent-daemon.starting') || text.includes('[fatal]'),
+        60_000,
+      ),
+    ).toContain(`"boundTeamId":"${teamB.id}"`);
+    const aKeys = await agent.agentKeys.list(
+      { agentId: managedSubjectId, status: 'active' },
+      { teamId },
+    );
+    expect(aKeys.items).toHaveLength(1);
+    await agent.agentKeys.revoke(
+      aKeys.items[0].id,
+      { reason: 'superseded' },
+      { teamId },
+    );
+    await expect(agentA.agents.whoami()).rejects.toThrow();
+    await expect(agentB.agents.whoami()).resolves.toMatchObject({
+      subjectId: managedSubjectId,
+    });
+    const rejected = await start(teamId, profileName);
+    expect(rejected.response.status).toBe(400);
+    const afterRevoke = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        title: 'other team remains active',
+        diaryId: diaryB.id,
+        input: { brief: 'Verify B continues after A revocation.' },
+      },
+      { teamId: teamB.id },
+    );
+    await waitFor(
+      async () => (await agent.tasks.get(afterRevoke.id)).status !== 'queued',
+      { timeoutMs: 60_000 },
+    );
+    expect(await configFilesContaining(agentServerRoot, secretA!)).toEqual([]);
+    expect(await configFilesContaining(agentServerRoot, secretB!)).toEqual([]);
+    await stopAgentServerRun({
+      client: agentServerClient(),
+      path: { runId: restarted.data!.id },
+    });
+  }, 180_000);
 
   it('shuts down cleanly on SIGTERM', async () => {
     await supervisor.stop();

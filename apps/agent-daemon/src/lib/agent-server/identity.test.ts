@@ -986,3 +986,137 @@ describe('external agent server agents', () => {
     expect((thrown as Error).message).not.toContain('do-not-leak');
   });
 });
+
+describe.each(['managed', 'external'] as const)(
+  '%s per-run team credentials',
+  (source) => {
+    it('verifies concurrent selections independently, refreshes keys and fails a selected slot without OAuth fallback', async () => {
+      const store = freshStore();
+      const config = externalConfig({
+        agent_key_refs: {
+          a: { provider: 'file', key: 'agent-key/agent-1/a' },
+          b: { provider: 'file', key: 'agent-key/agent-1/b' },
+        },
+      });
+      const values: Record<string, string> = {
+        'agent-key/agent-1': 'fallback',
+        'agent-key/agent-1/a': 'a',
+        'agent-key/agent-1/b': 'b',
+      };
+      const providers = registry(values);
+      connectMock.mockImplementation((options: SdkNode.ConnectOptions) =>
+        Promise.resolve({
+          agents: {
+            whoami: () =>
+              Promise.resolve({
+                ...whoami,
+                credentialBinding: {
+                  bindingScope: 'team',
+                  boundTeamId: options.agentKey?.replace('-rotated', ''),
+                },
+              }),
+          },
+        }),
+      );
+      if (source === 'managed') {
+        store.writeAgentConfig('multi', config);
+        store.writeActivation({
+          alias: 'multi',
+          source,
+          subjectId: 'agent-1',
+          publicKey: whoami.publicKey!,
+          fingerprint: whoami.fingerprint!,
+          createdAt: 't',
+          apiUrl: config.endpoints.api,
+          boundTeamId: 'a',
+        });
+      } else {
+        await attachExternalAgent(store, providers, {
+          name: 'multi',
+          configDir: writeExternalConfig(config),
+          teamId: 'a',
+        });
+      }
+      const verify = (team: string) =>
+        verifyAgentActivation(
+          store,
+          'multi',
+          providers,
+          providers,
+          undefined,
+          undefined,
+          team,
+        );
+      const [a, b] = await Promise.all([verify('a'), verify('b')]);
+      expect([a.boundTeamId, b.boundTeamId]).toEqual(['a', 'b']);
+      expect(store.readActivation('multi')?.boundTeamId).toBe('a');
+      values['agent-key/agent-1/b'] = 'b-rotated';
+      await expect(verify('b')).resolves.toMatchObject({ boundTeamId: 'b' });
+      expect(connectMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ agentKey: 'b-rotated' }),
+      );
+      delete values['agent-key/agent-1/a'];
+      connectMock.mockClear();
+      await expect(verify('a')).rejects.toThrow('could not resolve');
+      expect(connectMock).not.toHaveBeenCalled();
+      await expect(verify('b')).resolves.toMatchObject({ boundTeamId: 'b' });
+    });
+
+    it.each(['wrong-team', undefined])(
+      'rejects a map slot resolving to binding %s',
+      async (boundTeamId) => {
+        const store = freshStore();
+        const config = externalConfig({
+          agent_key_ref: undefined,
+          agent_key_refs: {
+            a: { provider: 'file', key: 'agent-key/agent-1/a' },
+          },
+        });
+        const providers = registry({ 'agent-key/agent-1/a': 'a' });
+        connectMock.mockResolvedValue({
+          agents: {
+            whoami: () =>
+              Promise.resolve({
+                ...whoami,
+                ...(boundTeamId
+                  ? { credentialBinding: { bindingScope: 'team', boundTeamId } }
+                  : {}),
+              }),
+          },
+        });
+        if (source === 'managed') {
+          store.writeAgentConfig('multi', config);
+          store.writeActivation({
+            alias: 'multi',
+            source,
+            subjectId: 'agent-1',
+            publicKey: whoami.publicKey!,
+            fingerprint: whoami.fingerprint!,
+            createdAt: 't',
+            apiUrl: config.endpoints.api,
+            boundTeamId: 'a',
+          });
+          await expect(
+            verifyAgentActivation(
+              store,
+              'multi',
+              providers,
+              providers,
+              undefined,
+              undefined,
+              'a',
+            ),
+          ).rejects.toThrow('team binding');
+        } else {
+          await expect(
+            attachExternalAgent(store, providers, {
+              name: 'multi',
+              configDir: writeExternalConfig(config),
+              teamId: 'a',
+            }),
+          ).rejects.toThrow('team binding');
+        }
+      },
+    );
+  },
+);

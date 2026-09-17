@@ -220,11 +220,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agentRootDir: explicitAgentRootDir,
         credentialSource: cfg.credentialSource,
         envApiUrl: cfg.apiUrl,
+        teamId: teamId,
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
       gate = 'authenticate_and_bind';
       const whoami = await validateStartupBinding({
         agent: resolvedContext.agent,
+        credentialTeamId: resolvedContext.credentialTeamId,
         teamId,
         expectedAgent: cfg.expectedAgent,
       });
