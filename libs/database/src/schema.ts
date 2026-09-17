@@ -1051,6 +1051,56 @@ export const teamInvites = pgTable(
   ],
 );
 
+/** Durable authorization receipt. Never store invitation codes or key secrets. */
+export const teamEnrollments = pgTable(
+  'team_enrollments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    // Keep the identifier after invite deletion so redemption cannot be replayed.
+    inviteId: uuid('invite_id').notNull(),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    idempotencyHash: varchar('idempotency_hash', { length: 64 }).notNull(),
+    requestHash: varchar('request_hash', { length: 64 }).notNull(),
+    inviteRole: teamInviteRoleEnum('invite_role').notNull(),
+    role: text('role').$type<'owner' | 'manager' | 'executor' | 'member'>(),
+    membershipGrantedAt: timestamp('membership_granted_at', {
+      withTimezone: true,
+    }),
+    issuedKeyId: text('issued_key_id'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('team_enrollments_agent_request_idx').on(
+      table.agentId,
+      table.idempotencyHash,
+    ),
+    uniqueIndex('team_enrollments_invite_agent_idx').on(
+      table.inviteId,
+      table.agentId,
+    ),
+    check(
+      'team_enrollments_membership_pair',
+      sql`(${table.role} IS NULL) = (${table.membershipGrantedAt} IS NULL)`,
+    ),
+    check(
+      'team_enrollments_issuance_order',
+      sql`${table.issuedKeyId} IS NULL OR ${table.membershipGrantedAt} IS NOT NULL`,
+    ),
+    check(
+      'team_enrollments_role',
+      sql`${table.role} IS NULL OR ${table.role} IN ('owner', 'manager', 'executor', 'member')`,
+    ),
+  ],
+);
+export type TeamEnrollment = typeof teamEnrollments.$inferSelect;
+
 /**
  * Founding Acceptances Table
  *

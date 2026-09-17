@@ -197,6 +197,12 @@ export {
   createTeamRepository,
   type TeamRepository,
 } from './repositories/team.repository.js';
+export {
+  type ClaimTeamEnrollment,
+  createTeamEnrollmentRepository,
+  TeamEnrollmentError,
+  type TeamEnrollmentRepository,
+} from './repositories/team-enrollment.repository.js';
 export * from './schema.js';
 export {
   createDBOSTransactionRunner,
