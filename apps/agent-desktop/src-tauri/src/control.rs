@@ -99,6 +99,17 @@ pub fn post(token: &NativeToken, path: &str, body: &str) -> Result<String, Strin
     finish(response)
 }
 
+/// Replace a resource through the control API.
+pub fn put(token: &NativeToken, path: &str, body: &str) -> Result<String, String> {
+    let response = client()
+        .put(format!("{BASE_URL}{path}"))
+        .header(TOKEN_HEADER, token.expose())
+        .header("origin", NATIVE_ORIGIN)
+        .header("content-type", "application/json")
+        .send(body);
+    finish(response)
+}
+
 /// Delete through the control API.
 pub fn delete(token: &NativeToken, path: &str) -> Result<String, String> {
     let response = client()

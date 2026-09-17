@@ -13,6 +13,7 @@ import type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
+  AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
   EnrollAgentServerTeamData,
@@ -26,6 +27,7 @@ export type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
+  AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
   DesktopStatus,
@@ -112,6 +114,26 @@ export interface RunCenterActions {
   ) => () => void;
 }
 
+/**
+ * Provider credential operations. Separate from `RunCenterActions` because
+ * this is machine setup rather than run composition, and because a surface
+ * that writes secrets deserves its own, small contract.
+ */
+export interface ProviderActions {
+  putProvider(
+    providerId: string,
+    config: {
+      api: string;
+      baseUrl: string;
+      envName: string;
+      models: AgentServerProvider['models'];
+      /** Write-only: the server never echoes it back. */
+      apiKey?: string;
+    },
+  ): Promise<AgentServerProvider>;
+  deleteProvider(providerId: string): Promise<void>;
+}
+
 /** Everything the shell renders. */
 export interface RunCenterData {
   server: DesktopStatus;
@@ -119,4 +141,5 @@ export interface RunCenterData {
   runs: DesktopRun[];
   presets: RunPreset[];
   catalogue: AgentServerCatalogue | null;
+  providers: Record<string, AgentServerProvider>;
 }

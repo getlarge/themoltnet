@@ -286,6 +286,50 @@ async fn desktop_stop_run(
         .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
 }
 
+/// Providers configured on this machine.
+///
+/// The response carries `hasApiKey` booleans, never a key: the server does not
+/// echo secrets back, so a configured credential cannot be read out of the
+/// WebView even by the surface that wrote it.
+#[tauri::command]
+fn desktop_providers(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, |token| control::get(token, "/v1/providers"))?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned unreadable providers: {error}"))
+}
+
+/// Configure a provider, optionally supplying an API key.
+///
+/// The key is written straight through to the server, which stores it in the
+/// local secret provider. Nothing here logs or retains it.
+#[tauri::command]
+fn desktop_put_provider(
+    state: State<'_, AppState>,
+    provider_id: String,
+    config: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let payload = serde_json::to_string(&config)
+        .map_err(|error| format!("the provider could not be encoded: {error}"))?;
+    let body = with_control_token(&state, |token| {
+        control::put(
+            token,
+            &format!("/v1/providers/{}", urlencode(&provider_id)),
+            &payload,
+        )
+    })?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable provider: {error}"))
+}
+
+/// Remove a provider and the API key held for it on this machine.
+#[tauri::command]
+fn desktop_delete_provider(state: State<'_, AppState>, provider_id: String) -> Result<(), String> {
+    with_control_token(&state, |token| {
+        control::delete(token, &format!("/v1/providers/{}", urlencode(&provider_id)))
+    })?;
+    Ok(())
+}
+
 #[tauri::command]
 fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
     state
@@ -525,6 +569,9 @@ pub fn run() {
             desktop_start_run,
             desktop_stop_run,
             desktop_run_logs,
+            desktop_providers,
+            desktop_put_provider,
+            desktop_delete_provider,
             install_agent,
             approve_local_trust,
             retry_server,
