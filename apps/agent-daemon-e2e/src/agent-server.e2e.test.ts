@@ -1058,7 +1058,6 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     const invitation = await agent.teams.invites.create(teamB.id, {
       role: 'executor',
-      maxUses: 1,
       expiresInHours: 1,
     });
     const enrolled = await enrollTeam({
