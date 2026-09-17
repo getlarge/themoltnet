@@ -351,8 +351,13 @@ export async function pair(app: FastifyInstance): Promise<string> {
   if (approval.statusCode !== 200) {
     throw new Error(`Approval page expected 200, got ${approval.statusCode}`);
   }
-  if (!approval.body.includes(CONSOLE_ORIGIN)) {
-    throw new Error(`Approval page did not name ${CONSOLE_ORIGIN}`);
+  // Match the element the operator actually reads, not a bare substring: the
+  // origin appearing anywhere in the page (a hidden field, a redirect URL)
+  // would not tell them what they are approving.
+  if (!approval.body.includes(`<code>${CONSOLE_ORIGIN}</code>`)) {
+    throw new Error(
+      `Approval page did not present ${CONSOLE_ORIGIN} to the operator`,
+    );
   }
   const confirmToken = approval.body.match(
     /name="confirmToken" value="([^"]+)"/u,
