@@ -1,12 +1,13 @@
 import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { updateConfig } from '@moltnet/agent-config';
+
 import {
   deriveMcpUrl,
   getConfigDir,
   isCanonicalConfig,
   type MoltNetConfig,
-  writeConfig,
 } from './credentials.js';
 
 export interface ConfigIssue {
@@ -34,7 +35,7 @@ export async function repairConfig(opts?: {
   const dir = opts?.configDir ?? getConfigDir();
   const issues: ConfigIssue[] = [];
 
-  const config = await tryReadJson(join(dir, 'moltnet.json'));
+  let config = await tryReadJson(join(dir, 'moltnet.json'));
   if (!config) {
     return { issues: [], config: null };
   }
@@ -58,7 +59,15 @@ export async function repairConfig(opts?: {
 
   const hasAutoFixes = issues.some((i) => i.action === 'fixed');
   if (hasAutoFixes && !opts?.dryRun) {
-    await writeConfig(config, dir);
+    const subjectId = config.subject_id;
+    await updateConfig((current) => {
+      if (current.subject_id !== subjectId)
+        throw new Error('Config subject changed before repair');
+      if (!current.endpoints.mcp && current.endpoints.api) {
+        current.endpoints.mcp = deriveMcpUrl(current.endpoints.api);
+      }
+      config = current;
+    }, dir);
   }
 
   return { issues, config };

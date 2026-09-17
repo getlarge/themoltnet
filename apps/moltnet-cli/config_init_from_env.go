@@ -418,7 +418,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 
 	// Write moltnet.json
-	if _, err := WriteConfigTo(config, configPath); err != nil {
+	if _, err := writeNewConfig(config, configPath); err != nil {
 		return fmt.Errorf("write config: %w", err)
 	}
 	fmt.Fprintf(errOut, "Config written to %s\n", configPath)

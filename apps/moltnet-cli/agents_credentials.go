@@ -550,11 +550,12 @@ func runAgentsCredentialsRotateWithClient(
 	if err != nil {
 		return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
 	}
-	writeCredentials := opts.writeCredentials
-	if writeCredentials == nil {
-		writeCredentials = writeCredentialsAtomic
+	if opts.writeCredentials != nil {
+		err = opts.writeCredentials(credentialsPath, updatedDocument)
+	} else {
+		err = persistRotatedInlineCredentials(credentialsPath, document, rotated.ClientId, rotated.ClientSecret)
 	}
-	if err := writeCredentials(credentialsPath, updatedDocument); err != nil {
+	if err != nil {
 		return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
 	}
 
@@ -723,13 +724,6 @@ func updateCredentialsDocument(
 	return append(data, '\n'), nil
 }
 
-func writeCredentialsAtomic(path string, data []byte) error {
-	if err := writeFileAtomic(path, data); err != nil {
-		return fmt.Errorf("replace credentials file: %w", err)
-	}
-	return nil
-}
-
 func writeCredentialsRecoveryFile(
 	output rotateCredentialsOutput,
 ) (string, error) {
@@ -808,4 +802,26 @@ func syncDirectoryBestEffort(path string) {
 	}
 	defer directory.Close()
 	_ = directory.Sync()
+}
+
+// Rotation may take a network round trip; reload before updating the inline
+// OAuth2 field so a concurrent enrollment cannot lose its team reference.
+func persistRotatedInlineCredentials(path string, original map[string]json.RawMessage, clientID, secret string) error {
+	raw, err := json.Marshal(original)
+	if err != nil {
+		return err
+	}
+	var expected CredentialsFile
+	if err := json.Unmarshal(raw, &expected); err != nil {
+		return err
+	}
+	return updateCredentials(path, &expected, func(current *CredentialsFile) error {
+		if current.OAuth2.ClientID != expected.OAuth2.ClientID || current.OAuth2.ClientSecret != expected.OAuth2.ClientSecret || !sameOAuth2Source(&expected, current) {
+			return fmt.Errorf("OAuth2 credentials changed during rotation")
+		}
+		current.OAuth2.ClientID = clientID
+		current.OAuth2.ClientSecret = secret
+		current.OAuth2.ClientSecretRef = nil
+		return nil
+	})
 }

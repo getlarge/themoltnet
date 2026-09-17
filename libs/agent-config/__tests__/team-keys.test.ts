@@ -183,6 +183,23 @@ describe('shared config updates', () => {
       dir,
     );
   });
+  it('seeds one default identity across concurrent identity writers', async () => {
+    const { dir } = await fixture();
+    const config = (await readConfig(dir)) as MoltNetConfig;
+    vi.stubEnv('HOME', dir);
+    const root = join(dir, '.config/moltnet');
+    await Promise.all(
+      ['first', 'second'].map((alias) =>
+        writeConfig(config, join(root, 'identities', alias)),
+      ),
+    );
+    const selectorPath = join(root, 'identity-selector.json');
+    const selected = JSON.parse(await readFile(selectorPath, 'utf8'));
+    expect(['first', 'second']).toContain(selected.default_identity);
+    await writeConfig(config, join(root, 'identities', 'third'));
+    expect(JSON.parse(await readFile(selectorPath, 'utf8'))).toEqual(selected);
+  });
+
   it('never steals an existing writer lock and releases after failure', async () => {
     const { path } = await fixture();
     await expect(

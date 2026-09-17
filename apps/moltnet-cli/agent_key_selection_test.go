@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -196,5 +197,243 @@ func TestInterruptedNodeWriterPreservesConfig(t *testing.T) {
 	}
 	if err := updateTeamAgentKeyReference(path, "subject", "a", SecretReference{Provider: "file", Key: TeamAgentKeyKey("subject", "a")}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Exercise the actual setup/repair writers alongside the other runtime's
+// team updater, not only two calls to the new team helper.
+func TestConfigCommandsPreserveConcurrentNodeTeamUpdates(t *testing.T) {
+	for _, operation := range []string{"git", "ssh", "repair", "sdk-repair"} {
+		t.Run(operation, func(t *testing.T) {
+			cliDir, err := os.Getwd()
+			if err != nil {
+				t.Fatal(err)
+			}
+			dir := t.TempDir()
+			t.Chdir(dir) // Repair must never inspect the developer checkout's Git config.
+			t.Setenv("HOME", dir)
+			t.Setenv(signerURLEnv, "http://signer.invalid") // SSH exports public material only.
+			path := filepath.Join(dir, "moltnet.json")
+			var document map[string]any
+			if err := json.Unmarshal([]byte(sharedConfigFixture), &document); err != nil {
+				t.Fatal(err)
+			}
+			document["keys"].(map[string]any)["public_key"] = loadSSHVectors(t)[0].PublicKeyMoltnet
+			document["endpoints"].(map[string]any)["mcp"] = ""
+			document["endpoints"].(map[string]any)["future"] = "preserved"
+			publicPath := filepath.Join(dir, "key.pub")
+			if err := os.WriteFile(publicPath, []byte(loadSSHVectors(t)[0].PublicKeySSH), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			document["ssh"] = map[string]any{"public_key_path": publicPath}
+			raw, err := json.Marshal(document)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, raw, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			writes := make(chan error, 5)
+			for _, team := range []string{"a", "b", "c", "d"} {
+				go func() {
+					if operation == "sdk-repair" {
+						writes <- updateTeamAgentKeyReference(path, "subject", team, SecretReference{Provider: "file", Key: TeamAgentKeyKey("subject", team)})
+						return
+					}
+					command := nodeConfigCommand("update", path, team)
+					command.Dir = cliDir
+					output, err := command.CombinedOutput()
+					if err != nil {
+						t.Log(string(output))
+					}
+					writes <- err
+				}()
+			}
+			go func() {
+				switch operation {
+				case "git":
+					writes <- runGitSetupCmd(io.Discard, path, "Test", "test@example.test")
+				case "ssh":
+					writes <- runSSHKeyExportCmd(io.Discard, path, "")
+				case "repair":
+					writes <- runConfigRepairCmd(path, false)
+				case "sdk-repair":
+					command := exec.Command("node", "--import", "tsx", "../../libs/sdk/__tests__/fixtures/config-repair.ts", dir)
+					command.Dir = cliDir
+					output, err := command.CombinedOutput()
+					if err != nil {
+						t.Log(string(output))
+					}
+					writes <- err
+				}
+			}()
+			for i := 0; i < 5; i++ {
+				if err := <-writes; err != nil {
+					t.Fatal(err)
+				}
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var result map[string]json.RawMessage
+			if err := json.Unmarshal(data, &result); err != nil {
+				t.Fatal(err)
+			}
+			creds, err := ReadConfigFrom(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(creds.AgentKeyRefs) != 5 {
+				t.Fatalf("lost team entries: %d", len(creds.AgentKeyRefs))
+			}
+			if string(result["future"]) == "" {
+				t.Fatal("lost unrelated section")
+			}
+			var endpoints map[string]any
+			if err := json.Unmarshal(result["endpoints"], &endpoints); err != nil {
+				t.Fatal(err)
+			}
+			if endpoints["future"] != "preserved" {
+				t.Fatal("lost nested unknown field")
+			}
+			if operation == "git" && creds.Git == nil {
+				t.Fatal("git update missing")
+			}
+			if operation == "ssh" && creds.SSH.PublicKeyPath == publicPath {
+				t.Fatal("ssh update missing")
+			}
+			if (operation == "repair" || operation == "sdk-repair") && creds.Endpoints.MCP == "" {
+				t.Fatal("repair missing")
+			}
+		})
+	}
+}
+
+func TestConfigMutationReloadsAndChecksIdentity(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+	if err := os.WriteFile(path, []byte(sharedConfigFixture), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stale, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output, err := nodeConfigCommand("update", path, "new").CombinedOutput(); err != nil {
+		t.Fatalf("%s: %v", output, err)
+	}
+	if err := updateCredentials(path, stale, func(current *CredentialsFile) error {
+		current.RegisteredAt = "updated"
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	current, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(current.AgentKeyRefs) != 2 || current.RegisteredAt != "updated" {
+		t.Fatal("stale mutation lost a concurrent update")
+	}
+	stale.SubjectID = "other"
+	if err := updateCredentials(path, stale, func(current *CredentialsFile) error { current.RegisteredAt = "wrong"; return nil }); err == nil {
+		t.Fatal("accepted changed identity")
+	}
+}
+
+func TestInlineRotationPreservesNodeUpdatesAndRejectsChangedSource(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+	var original map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(sharedConfigFixture), &original); err != nil {
+		t.Fatal(err)
+	}
+	original["oauth2"] = json.RawMessage(`{"client_id":"client","client_secret":"before","future":"kept"}`)
+	raw, err := json.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if output, err := nodeConfigCommand("update", path, "new").CombinedOutput(); err != nil {
+		t.Fatalf("%s: %v", output, err)
+	}
+	if err := persistRotatedInlineCredentials(path, original, "client", "after"); err != nil {
+		t.Fatal(err)
+	}
+	current, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(current.AgentKeyRefs) != 2 || current.OAuth2.ClientSecret != "after" {
+		t.Fatal("rotation lost concurrent config")
+	}
+	if err := persistRotatedInlineCredentials(path, original, "client", "stale"); err == nil {
+		t.Fatal("rotation replaced a changed OAuth2 source")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var updated map[string]json.RawMessage
+	if err := json.Unmarshal(data, &updated); err != nil {
+		t.Fatal(err)
+	}
+	var oauth map[string]any
+	if err := json.Unmarshal(updated["oauth2"], &oauth); err != nil {
+		t.Fatal(err)
+	}
+	if oauth["future"] != "kept" {
+		t.Fatal("rotation lost unknown OAuth2 field")
+	}
+}
+
+func TestGoNodeSelectorSeedingKeepsChosenIdentity(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	root, err := identityStoreDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(root, "identities", "node", "moltnet.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(sharedConfigFixture), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	finished := make(chan error, 1)
+	go func() {
+		output, err := nodeConfigCommand("roundtrip", path, "").CombinedOutput()
+		if err != nil {
+			t.Log(string(output))
+		}
+		finished <- err
+	}()
+	if err := seedIdentitySelectorIfUnset("go"); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-finished; err != nil {
+		t.Fatal(err)
+	}
+	selected, err := readIdentitySelector()
+	if err != nil || selected == nil {
+		t.Fatalf("missing selector: %v", err)
+	}
+	if selected.DefaultIdentity != "node" && selected.DefaultIdentity != "go" {
+		t.Fatal("invalid selector")
+	}
+	if err := seedIdentitySelectorIfUnset("later"); err != nil {
+		t.Fatal(err)
+	}
+	if output, err := nodeConfigCommand("roundtrip", path, "").CombinedOutput(); err != nil {
+		t.Fatalf("%s: %v", output, err)
+	}
+	after, err := readIdentitySelector()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.DefaultIdentity != selected.DefaultIdentity {
+		t.Fatal("replaced an existing selection")
 	}
 }

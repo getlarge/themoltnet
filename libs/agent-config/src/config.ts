@@ -275,20 +275,27 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
         // inferred from the path: fall back to the default store root.
         getConfigDir();
   const selectorPath = join(root, 'identity-selector.json');
-  try {
-    const existing = JSON.parse(
-      await readFile(selectorPath, 'utf-8'),
-    ) as IdentitySelector;
-    if (existing.default_identity?.trim()) return;
-  } catch {
-    // Absent or unreadable: write a fresh one below.
-  }
-  await mkdir(root, { recursive: true, mode: 0o700 });
-  await writeFile(
-    selectorPath,
-    JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
-    { mode: 0o600 },
-  );
+  await withConfigLock(selectorPath, async () => {
+    try {
+      const existing = JSON.parse(
+        await readFile(selectorPath, 'utf-8'),
+      ) as IdentitySelector;
+      if (existing.default_identity?.trim()) return;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+    const temp = `${selectorPath}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(
+        temp,
+        JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
+        { mode: 0o600 },
+      );
+      await rename(temp, selectorPath);
+    } finally {
+      await rm(temp, { force: true });
+    }
+  });
 }
 
 /**

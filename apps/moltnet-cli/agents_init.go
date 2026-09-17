@@ -197,11 +197,14 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		if org == "" && creds.GitHub != nil {
 			org = creds.GitHub.Org
 		}
-		creds.GitHub = &GitHubSection{
-			AppID: state.AppID, AppSlug: state.AppSlug,
-			PrivateKeyRef: &githubRef, Org: org,
-		}
-		if _, err := WriteConfigTo(creds, configPath); err != nil {
+		if err := updateCredentials(configPath, creds, func(current *CredentialsFile) error {
+			current.GitHub = &GitHubSection{
+				AppID: state.AppID, AppSlug: state.AppSlug,
+				PrivateKeyRef: &githubRef, Org: org,
+			}
+			*creds = *current
+			return nil
+		}); err != nil {
 			return err
 		}
 	}
@@ -262,12 +265,18 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	if err != nil {
 		return fmt.Errorf("store OAuth2 client secret: %w", err)
 	}
-	creds.SubjectID = state.SubjectID
-	creds.SubjectType = state.SubjectType
-	creds.OAuth2 = CredentialsOAuth2{ClientID: state.ClientID, ClientSecretRef: &oauthRef}
-	creds.RegisteredAt = time.Now().UTC().Format(time.RFC3339Nano)
-	creds.GitHub.InstallationID = state.InstallationID
-	if _, err := WriteConfigTo(creds, configPath); err != nil {
+	if err := updateCredentials(configPath, creds, func(current *CredentialsFile) error {
+		if current.GitHub == nil || current.GitHub.AppID != state.AppID {
+			return fmt.Errorf("GitHub App changed before registration completed")
+		}
+		current.SubjectID = state.SubjectID
+		current.SubjectType = state.SubjectType
+		current.OAuth2 = CredentialsOAuth2{ClientID: state.ClientID, ClientSecretRef: &oauthRef}
+		current.RegisteredAt = time.Now().UTC().Format(time.RFC3339Nano)
+		current.GitHub.InstallationID = state.InstallationID
+		*creds = *current
+		return nil
+	}); err != nil {
 		return err
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	"os"
 	"path/filepath"
 	"sort"
@@ -191,6 +192,18 @@ func writeCentralIdentityConfig(alias string, config *CredentialsFile) (string, 
 // is selected yet. An existing default is never replaced. Callers choose
 // whether a failure is fatal, depending on whether a rerun can retry it.
 func seedIdentitySelectorIfUnset(alias string) error {
+	path, err := identitySelectorPath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	lock, err := safefile.Acquire(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
 	selector, err := readIdentitySelector()
 	if err != nil {
 		return err
@@ -198,7 +211,14 @@ func seedIdentitySelectorIfUnset(alias string) error {
 	if selector != nil && selector.DefaultIdentity != "" {
 		return nil
 	}
-	return writeIdentitySelector(alias)
+	if err := validateAgentName(alias); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(IdentitySelector{Version: identitySelectorVersion, DefaultIdentity: alias}, "", "  ")
+	if err != nil {
+		return err
+	}
+	return lock.Write(append(data, '\n'))
 }
 
 func listIdentityAliases() ([]string, error) {
