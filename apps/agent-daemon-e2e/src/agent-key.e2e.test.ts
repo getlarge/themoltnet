@@ -561,7 +561,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
           teamId,
         ]),
       ).rejects.toThrow(
-        /missing required scopes.*crypto:sign runtime:read task:read task:claim task:execute/,
+        /missing required scopes.*crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute/,
       );
       const unchanged = await oauthAgent.tasks.get(task.id);
       expect(unchanged.status).toBe(task.status);
@@ -740,10 +740,10 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     },
   );
 
-  it('keeps core keys out of knowledge APIs and permits explicitly scoped replacements', async () => {
-    await expect(keyAgent.entries.list(diaryId)).rejects.toMatchObject({
-      statusCode: 403,
-    } satisfies Partial<MoltNetError>);
+  it('permits diary reads but requires explicit scopes for knowledge writes and packs', async () => {
+    await expect(keyAgent.entries.list(diaryId)).resolves.toHaveProperty(
+      'items',
+    );
     await expect(keyAgent.packs.list({ diaryId })).rejects.toMatchObject({
       statusCode: 403,
     } satisfies Partial<MoltNetError>);
@@ -754,7 +754,6 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         name: 'daemon-e2e-knowledge-key',
         scopes: [
           ...DAEMON_CREDENTIAL_SCOPES,
-          'diary:read',
           'diary:write',
           'pack:read',
           'pack:write',

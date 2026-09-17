@@ -56,7 +56,6 @@ describe('Tool-policy enforcement (daemon)', () => {
         // unable to start the daemon.
         scopes: [
           ...AGENT_CREDENTIAL_SCOPES,
-          'diary:read',
           'diary:write',
           'pack:read',
           'pack:write',
