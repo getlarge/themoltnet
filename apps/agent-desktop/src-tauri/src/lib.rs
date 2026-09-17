@@ -286,6 +286,70 @@ async fn desktop_stop_run(
         .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
 }
 
+/// Subscriptions this machine can sign in to, and whether it already has.
+#[tauri::command]
+fn desktop_subscriptions(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, |token| control::get(token, "/v1/subscriptions"))?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned unreadable subscriptions: {error}"))
+}
+
+/// Begin a provider device-authorization flow.
+#[tauri::command]
+fn desktop_start_subscription_login(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, |token| {
+        control::post(
+            token,
+            &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
+            "{}",
+        )
+    })?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable sign-in: {error}"))
+}
+
+/// Poll a device-authorization flow for completion.
+#[tauri::command]
+fn desktop_subscription_login_status(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, |token| {
+        control::get(
+            token,
+            &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
+        )
+    })?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable sign-in: {error}"))
+}
+
+/// Abandon a device-authorization flow the operator gave up on.
+#[tauri::command]
+fn desktop_cancel_subscription_login(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<(), String> {
+    with_control_token(&state, |token| {
+        control::delete(
+            token,
+            &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
+        )
+    })?;
+    Ok(())
+}
+
+/// Open a provider sign-in page. Native code can do this after an await;
+/// a browser cannot, because popup blockers eat a window opened outside the
+/// click gesture.
+#[tauri::command]
+fn desktop_open_sign_in(url: String) -> Result<(), String> {
+    lifecycle::open_verification_url(&url)
+}
+
 /// Providers configured on this machine.
 ///
 /// The response carries `hasApiKey` booleans, never a key: the server does not
@@ -572,6 +636,11 @@ pub fn run() {
             desktop_providers,
             desktop_put_provider,
             desktop_delete_provider,
+            desktop_subscriptions,
+            desktop_start_subscription_login,
+            desktop_subscription_login_status,
+            desktop_cancel_subscription_login,
+            desktop_open_sign_in,
             install_agent,
             approve_local_trust,
             retry_server,

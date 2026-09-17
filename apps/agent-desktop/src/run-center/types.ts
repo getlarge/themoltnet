@@ -18,6 +18,8 @@ import type {
   AgentServerStatus,
   EnrollAgentServerTeamData,
   EnrollAgentServerTeamResponses,
+  AgentServerSubscription,
+  AgentServerSubscriptionLogin,
 } from '@moltnet/agent-daemon-api-client';
 
 import type { DesktopStatus, LifecycleState } from '../bridge.js';
@@ -30,6 +32,8 @@ export type {
   AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
+  AgentServerSubscription,
+  AgentServerSubscriptionLogin,
   DesktopStatus,
   LifecycleState,
 };
@@ -134,6 +138,19 @@ export interface ProviderActions {
   deleteProvider(providerId: string): Promise<void>;
 }
 
+/**
+ * Signing in to an existing LLM subscription, as an alternative to pasting an
+ * API key. This is the wider door: a subscription the operator already has is
+ * far more reachable than obtaining and handling a key.
+ */
+export interface SubscriptionActions {
+  startLogin(providerId: string): Promise<AgentServerSubscriptionLogin>;
+  loginStatus(providerId: string): Promise<AgentServerSubscriptionLogin>;
+  cancelLogin(providerId: string): Promise<void>;
+  /** Opens the provider page natively; only https is accepted. */
+  openSignIn(url: string): Promise<void>;
+}
+
 /** Everything the shell renders. */
 export interface RunCenterData {
   server: DesktopStatus;
@@ -142,4 +159,5 @@ export interface RunCenterData {
   presets: RunPreset[];
   catalogue: AgentServerCatalogue | null;
   providers: Record<string, AgentServerProvider>;
+  subscriptions: AgentServerSubscription[];
 }
