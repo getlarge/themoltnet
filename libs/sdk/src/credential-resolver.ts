@@ -1,3 +1,7 @@
+import {
+  assertAgentKeyReferenceBinding,
+  selectAgentKeyReference,
+} from '@moltnet/agent-config';
 import { cryptoService } from '@moltnet/crypto-service';
 
 import type { MoltNetConfig } from './credentials.js';
@@ -86,7 +90,6 @@ export async function resolveThroughRegistry(
 export async function resolveOAuth2ClientSecret(
   config: Pick<MoltNetConfig, 'oauth2'> & {
     subject_id?: string;
-    identity_id?: string;
   },
   registry: SecretProviderRegistry,
 ): Promise<string> {
@@ -213,23 +216,30 @@ export async function resolveIdentitySeed(
 }
 
 /**
- * Resolve an agent key from `agent_key_ref`. Returns `null` when the config
+ * Resolve the selected team reference or compatibility fallback. Returns `null` when the config
  * has no reference; the caller decides whether another auth mode is valid.
  */
 export async function resolveAgentKey(
-  config: Pick<MoltNetConfig, 'agent_key_ref'> & {
+  config: Pick<MoltNetConfig, 'agent_key_ref' | 'agent_key_refs'> & {
     subject_id?: string;
-    identity_id?: string;
   },
   registry: SecretProviderRegistry,
+  teamId?: string,
 ): Promise<string | null> {
   const kind: CredentialKind = 'agent-key';
-  const reference = config.agent_key_ref;
-  if (!reference) return null;
+  let selected;
   try {
-    assertSecretReferenceBinding(kind, reference, {
-      subjectId: config.subject_id,
-    });
+    selected = selectAgentKeyReference(config, teamId);
+  } catch (cause) {
+    throw new CredentialResolutionError(
+      kind,
+      'ambiguous',
+      (cause as Error).message,
+    );
+  }
+  if (!selected) return null;
+  try {
+    assertAgentKeyReferenceBinding(selected, config.subject_id);
   } catch (cause) {
     throw new CredentialResolutionError(
       kind,
@@ -238,7 +248,7 @@ export async function resolveAgentKey(
     );
   }
   const value = (
-    await resolveThroughRegistry(kind, registry, reference)
+    await resolveThroughRegistry(kind, registry, selected.reference)
   ).trim();
   if (!value) {
     throw new CredentialResolutionError(

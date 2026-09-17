@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type * as Sdk from '@themoltnet/sdk';
 import type { Whoami } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,7 +36,8 @@ const {
   };
 });
 
-vi.mock('@themoltnet/sdk', () => ({
+vi.mock('@themoltnet/sdk', async (importOriginal) => ({
+  ...(await importOriginal<typeof Sdk>()),
   readConfig: readConfigMock,
   getIdentityDir: getIdentityDirMock,
   resolveAgentKey: resolveAgentKeyMock,

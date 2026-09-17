@@ -29,6 +29,7 @@ import {
   resolveAgentKey,
   resolveIdentitySeed,
   type SecretProviderRegistry,
+  selectAgentKeyReference,
 } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 
@@ -276,16 +277,15 @@ export class RunManager {
     ];
 
     if (activation.source === 'managed') {
-      if (!config.agent_key_ref || !config.keys.private_key_ref) {
+      const reference = selectAgentKeyReference(config)?.reference;
+      if (!reference || !config.keys.private_key_ref) {
         throw new AgentServerRunError(
           'invalid_spec',
           `managed config for "${activation.alias}" is missing canonical secret references`,
         );
       }
       env['MOLTNET_API_URL'] = activation.apiUrl;
-      env['MOLTNET_AGENT_KEY_REF'] = formatSecretReferenceString(
-        config.agent_key_ref,
-      );
+      env['MOLTNET_AGENT_KEY_REF'] = formatSecretReferenceString(reference);
       env['MOLTNET_PRIVATE_KEY_REF'] = formatSecretReferenceString(
         config.keys.private_key_ref,
       );

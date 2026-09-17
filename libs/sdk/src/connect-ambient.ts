@@ -1,3 +1,4 @@
+import { hasAgentKeyConfiguration } from '@moltnet/agent-config';
 import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
@@ -27,6 +28,8 @@ export interface AmbientConnectOptions {
   clientSecret?: string;
   apiUrl?: string;
   configDir?: string;
+  /** Select the team credential; does not set a destination header on enrollment. */
+  teamId?: string;
   /**
    * Opaque agent-key secret. When set, `connect()` authenticates with it as a
    * static bearer token instead of the OAuth2 client-credentials flow. Also
@@ -189,7 +192,7 @@ async function resolveConnection(
       apiUrl,
     };
   }
-  if (config?.agent_key_ref) {
+  if (config && hasAgentKeyConfiguration(config)) {
     const apiUrl = normalizeApiUrl(
       options.apiUrl,
       env.apiUrl,
@@ -204,6 +207,7 @@ async function resolveConnection(
       agentKey = await resolveAgentKey(
         config,
         options.secretProviders ?? createDefaultSecretProviderRegistry(),
+        options.teamId,
       );
     } catch (error) {
       if (
@@ -211,9 +215,11 @@ async function resolveConnection(
         error.code !== 'provider_failure'
       ) {
         throw new MoltNetError(
-          error.code === 'unbound'
-            ? 'Agent key reference is not bound to this MoltNet subject.'
-            : 'Invalid agent_key_ref: the reference resolved to an empty value.',
+          error.code === 'ambiguous'
+            ? error.message
+            : error.code === 'unbound'
+              ? 'Agent key reference is not bound to this MoltNet subject.'
+              : 'Invalid agent_key_ref: the reference resolved to an empty value.',
           { code: 'INVALID_CONFIG' },
         );
       }

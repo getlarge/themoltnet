@@ -32,6 +32,7 @@ export type {
   TaskReadOptions,
   TaskRequestOptions,
   TasksNamespace,
+  TeamJoinOptions,
   TeamsNamespace,
 } from './agent.js';
 export { createAgent } from './agent.js';
@@ -228,6 +229,11 @@ export {
   TaskResultReader,
 } from './tasks/index.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
+export {
+  hasAgentKeyConfiguration,
+  hasUsableCredentialConfiguration,
+  selectAgentKeyReference,
+} from '@moltnet/agent-config';
 export type {
   AgentKey,
   AgentKeyList,

@@ -176,7 +176,6 @@ describe('resolveOAuth2ClientSecret', () => {
     await expect(
       resolveOAuth2ClientSecret(
         {
-          identity_id: 'id',
           oauth2: { client_id: 'c', client_secret: '  spaced secret \n' },
         },
         registryWith({}),
@@ -233,7 +232,6 @@ describe('resolveOAuth2ClientSecret', () => {
     await expect(
       resolveOAuth2ClientSecret(
         {
-          identity_id: 'id',
           oauth2: { client_id: 'c', client_secret: 'plain' },
         },
         registry,
@@ -242,7 +240,6 @@ describe('resolveOAuth2ClientSecret', () => {
     await expect(
       resolveOAuth2ClientSecret(
         {
-          identity_id: 'id',
           oauth2: { client_id: 'c', client_secret: 'plain' },
         },
         registry,

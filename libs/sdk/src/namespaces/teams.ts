@@ -38,8 +38,23 @@ export function createTeamsNamespace(context: AgentContext): TeamsNamespace {
       return unwrapResult(await createTeam({ client, auth, body }));
     },
 
-    async join(code) {
-      return unwrapResult(await joinTeam({ client, auth, body: { code } }));
+    async join(code, options) {
+      if (options?.issueAgentKey && !options.idempotencyKey.trim()) {
+        throw new Error('Agent-key enrollment requires an idempotency key');
+      }
+      return unwrapResult(
+        await joinTeam({
+          client,
+          auth,
+          body: {
+            code,
+            ...(options?.issueAgentKey ? { issueAgentKey: true } : {}),
+          },
+          ...(options?.issueAgentKey
+            ? { headers: { 'idempotency-key': options.idempotencyKey } }
+            : {}),
+        }),
+      );
     },
 
     async delete(id) {

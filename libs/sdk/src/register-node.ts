@@ -11,6 +11,7 @@ import {
   requireSecureCredentialApiUrl,
 } from './api-url.js';
 import { connect, type ConnectOptions } from './connect.js';
+import { prepareCredentialPersistence } from './credential-persistence.js';
 import {
   deriveMcpUrl,
   getIdentityDir,
@@ -269,6 +270,17 @@ export async function register(
   // leave an identity nobody can recover.
   const seedKept = `the identity seed (fingerprint ${keyPair.fingerprint}) is kept at ${seedRef.provider}:${seedRef.key}`;
 
+  let credentialRecovery;
+  try {
+    credentialRecovery = await prepareCredentialPersistence(configDir);
+  } catch (cause) {
+    throw new RegisterIdentityError(
+      'provider_unavailable',
+      `credential recovery storage is unavailable; registration was not attempted; ${seedKept}`,
+      { cause, seedReference: seedRef, fingerprint: keyPair.fingerprint },
+    );
+  }
+
   let registration: RegistrationRequestResult;
   try {
     registration = await requestRegistration({
@@ -280,6 +292,7 @@ export async function register(
       attemptTimeoutMs: REGISTRATION_ATTEMPT_TIMEOUT_MS,
     });
   } catch (cause) {
+    await credentialRecovery.cancel();
     if (isDefinitiveRejection(cause)) {
       throw new RegisterIdentityError(
         'registration_failed',
@@ -305,6 +318,7 @@ export async function register(
   // Every failure below follows a server-side commit.
   const committed = { subjectId, fingerprint, seedReference: seedRef };
   if (credentials.type !== credentialType) {
+    await credentialRecovery.cancel();
     throw new RegisterIdentityError(
       'unsupported_credential',
       `registration returned credential type "${credentials.type}", expected "${credentialType}"; agent ${subjectId} is registered and ${seedKept}`,
@@ -312,13 +326,17 @@ export async function register(
     );
   }
 
+  const teamId =
+    credentials.type === 'agent_key' && credentials.key.bindingScope === 'team'
+      ? credentials.key.teamId
+      : undefined;
   const credentialRef: SecretReference =
     credentials.type === 'oauth2'
       ? {
           provider: provider.name,
           key: oauth2SecretKey(subjectId, credentials.clientId),
         }
-      : { provider: provider.name, key: agentKeyKey(subjectId) };
+      : { provider: provider.name, key: agentKeyKey(subjectId, teamId) };
   const base = {
     subject_id: subjectId,
     subject_type: 'agent' as const,
@@ -342,7 +360,9 @@ export async function register(
             client_secret_ref: credentialRef,
           },
         }
-      : { ...base, agent_key_ref: credentialRef };
+      : teamId
+        ? { ...base, agent_key_refs: { [teamId]: credentialRef } }
+        : { ...base, agent_key_ref: credentialRef };
 
   // The CLI command finds an identity only in its default store with secrets in
   // the OS keyring. Elsewhere (a custom configDir or provider, such as the
@@ -362,9 +382,41 @@ export async function register(
         cause,
         ...committed,
         configPath,
+        recoveryPath: credentialRecovery.recoveryPath,
         ...(recovery ? { recoveryCommand: recovery } : {}),
       },
     );
+
+  const credentialSecret =
+    credentials.type === 'oauth2'
+      ? credentials.clientSecret
+      : credentials.secret;
+  const recoveryMetadata = {
+    subjectId,
+    ...(teamId ? { teamId } : {}),
+    ...(credentials.type === 'agent_key' ? { keyId: credentials.key.id } : {}),
+  };
+  try {
+    await credentialRecovery.capture(
+      credentialRef,
+      credentialSecret,
+      recoveryMetadata,
+    );
+  } catch (cause) {
+    throw incomplete(
+      'the issued credential could not be saved to recovery storage',
+      cause,
+    );
+  }
+  if (
+    credentials.type === 'agent_key' &&
+    credentials.key.agentId !== subjectId
+  ) {
+    throw incomplete(
+      'registration returned a credential for a different subject',
+      undefined,
+    );
+  }
 
   // The config carries both references before the credential secret exists,
   // so from here on the recovery material is complete. It is created
@@ -388,16 +440,17 @@ export async function register(
       onDisk !== undefined
         ? `the agent ${subjectId} is registered, but identity "${alias}" was created by another process meanwhile, so its config was not written; ${seedKept}`
         : `the agent ${subjectId} is registered, but its config could not be written; ${seedKept}`,
-      { cause, ...committed },
+      { cause, ...committed, recoveryPath: credentialRecovery.recoveryPath },
     );
   }
 
   try {
-    await provider.write(
-      credentialRef.key,
-      credentials.type === 'oauth2'
-        ? credentials.clientSecret
-        : credentials.secret,
+    await credentialRecovery.persist(
+      provider,
+      credentialRef,
+      credentialSecret,
+      recoveryMetadata,
+      (store) => store(),
     );
   } catch (cause) {
     throw incomplete(
