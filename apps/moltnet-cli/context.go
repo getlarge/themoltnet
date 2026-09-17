@@ -266,7 +266,7 @@ func verifyContextBindingOnline(agentDir string, binding contextBinding) error {
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(resolveAPIURLFromCredentials("", false, creds), credentialsPath)
+	client, err := newAuthenticatedClient(resolveAPIURLFromCredentials("", false, creds), credentialsPath, binding.TeamID)
 	if err != nil {
 		return err
 	}

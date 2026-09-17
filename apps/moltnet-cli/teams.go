@@ -34,7 +34,7 @@ func runTeamsGetCmd(apiURL, credPath, teamID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func runTeamsMembersCmd(apiURL, credPath, teamID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func runTeamsInviteCreateCmd(apiURL, credPath, teamID, role string, expiresInHou
 	if err != nil {
 		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func runTeamsDeleteCmd(apiURL, credPath, teamID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func runTeamsMemberRemoveCmd(apiURL, credPath, teamID, subjectID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid subject ID %q: %w", subjectID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func runTeamsMemberUpdateRoleCmd(apiURL, credPath, teamID, subjectID, role strin
 	if err != nil {
 		return fmt.Errorf("invalid subject ID %q: %w", subjectID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -233,7 +233,7 @@ func runTeamsInviteDeleteCmd(apiURL, credPath, teamID, inviteID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid invite ID %q: %w", inviteID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func runTeamsInviteListCmd(apiURL, credPath, teamID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}

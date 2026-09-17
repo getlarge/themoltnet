@@ -36,7 +36,7 @@ func defaultConfigMigrations(destination string) []configMigration {
 }
 
 func subjectAwareConfigMigrations(destination string) []configMigration {
-	return append(defaultConfigMigrations(destination), newSubjectAnchorMigration(nil))
+	return append(defaultConfigMigrations(destination), newSubjectAnchorMigration(nil), newTeamKeyIndexMigration(destination))
 }
 
 // resolveSecretDestination returns the secret provider a command writes new

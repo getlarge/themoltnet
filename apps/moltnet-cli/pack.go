@@ -542,7 +542,7 @@ func runPackListCmd(stdout io.Writer, apiURL, credPath, diaryID, containsEntry, 
 		return fmt.Errorf("--diary-id and --contains-entry cannot be combined")
 	}
 
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}

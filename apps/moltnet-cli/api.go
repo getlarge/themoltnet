@@ -81,7 +81,7 @@ func newBearerClient(
 // Otherwise OAuth2 from the selected credentials document is preferred over a
 // configured agent_key_ref. Once a mode is selected, resolution or
 // authentication failures do not fall back to another credential.
-func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error) {
+func newAuthenticatedClient(apiURL, credPath string, team ...string) (*moltnetapi.Client, error) {
 	agentKey := strings.TrimSpace(os.Getenv(agentKeyEnv))
 	agentKeyRef := strings.TrimSpace(os.Getenv(agentKeyRefEnv))
 	if agentKey != "" && agentKeyRef != "" {
@@ -98,7 +98,14 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 		return newAgentKeyAuthenticatedClient(apiURL, agentKey)
 	}
 
-	client, err := newConfigAuthenticatedClient(apiURL, credPath, NewSecretProviderRegistry())
+	selectedTeam, err := resolveCredentialTeam(credPath, team...)
+	if err != nil {
+		if errors.Is(err, errCredentialsNotFound) {
+			return nil, fmt.Errorf("no credentials found: %w; set %s for key-only authentication", err, agentKeyEnv)
+		}
+		return nil, err
+	}
+	client, err := newConfigAuthenticatedClient(apiURL, credPath, NewSecretProviderRegistry(), selectedTeam)
 	if err == nil {
 		return client, nil
 	}
@@ -118,7 +125,7 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 // which subject the document itself belongs to, not which subject happens to
 // be active in the caller's environment. Within the document, any declared
 // OAuth2 material selects OAuth2 ahead of agent_key_ref and fails closed.
-func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProviderRegistry) (*moltnetapi.Client, error) {
+func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProviderRegistry, team ...string) (*moltnetapi.Client, error) {
 	creds, resolvedPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {
 		return nil, fmt.Errorf("load credentials for authentication: %w", err)
@@ -127,14 +134,14 @@ func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProvi
 		client, oauthErr := newOAuth2AuthenticatedClient(apiURL, creds, registry)
 		if oauthErr != nil {
 			skipped := ""
-			if creds.AgentKeyRef != nil {
+			if hasAgentKeyConfiguration(creds) {
 				skipped = "; OAuth2 was selected and agent_key_ref was not attempted"
 			}
 			return nil, fmt.Errorf("OAuth2 selected from %s%s: %w", resolvedPath, skipped, oauthErr)
 		}
 		return client, nil
 	}
-	if configKey, configured, err := resolveAgentKey(creds, registry); configured {
+	if configKey, configured, err := resolveAgentKey(creds, registry, team...); configured {
 		if err != nil {
 			return nil, fmt.Errorf("resolve agent_key_ref: %w", err)
 		}

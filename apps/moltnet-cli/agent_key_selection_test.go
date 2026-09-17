@@ -482,3 +482,29 @@ func TestRejectEmptyTeamAuthenticationAndPaddedTeamID(t *testing.T) {
 		t.Fatal("padded team accepted")
 	}
 }
+
+func TestSelectedTeamResolutionNeverFallsBack(t *testing.T) {
+	registry, provider := newMemorySecretProviderRegistry()
+	fallback := SecretReference{Provider: osKeyringProviderName, Key: AgentKeyKey("subject")}
+	selected := SecretReference{Provider: osKeyringProviderName, Key: TeamAgentKeyKey("subject", "team")}
+	provider.values[fallback.Key] = "fallback-secret"
+	config := &CredentialsFile{SubjectID: "subject", SubjectType: SubjectTypeAgent, AgentKeyRef: &fallback, AgentKeyRefs: map[string]SecretReference{"team": selected}}
+	if _, configured, err := resolveAgentKey(config, registry, "team"); !configured || err == nil {
+		t.Fatal("missing selected key fell back")
+	}
+	provider.values[selected.Key] = "selected-secret"
+	if value, _, err := resolveAgentKey(config, registry, "team"); err != nil || value != "selected-secret" {
+		t.Fatal("selected team not used")
+	}
+	if value, _, err := resolveAgentKey(config, registry, "absent"); err != nil || value != "fallback-secret" {
+		t.Fatal("absent team did not use fallback")
+	}
+	config.AgentKeyRefs["team"] = SecretReference{Provider: "unknown", Key: selected.Key}
+	if _, _, err := resolveAgentKey(config, registry, "team"); err == nil {
+		t.Fatal("unknown provider fell back")
+	}
+	config.AgentKeyRefs["team"] = SecretReference{Provider: osKeyringProviderName, Key: TeamAgentKeyKey("other", "team")}
+	if _, _, err := resolveAgentKey(config, registry, "team"); err == nil {
+		t.Fatal("subject mismatch fell back")
+	}
+}

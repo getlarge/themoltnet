@@ -163,21 +163,29 @@ func resolveIdentitySeed(creds *CredentialsFile, registry *SecretProviderRegistr
 	return seed, nil
 }
 
-// resolveAgentKey returns the team-bound agent key from agent_key_ref. The
-// boolean reports whether a reference was configured at all; callers fall
-// back to OAuth2 when it is false.
-func resolveAgentKey(creds *CredentialsFile, registry *SecretProviderRegistry) (string, bool, error) {
+// resolveAgentKey selects one configured grant; failures never select another.
+func resolveAgentKey(creds *CredentialsFile, registry *SecretProviderRegistry, team ...string) (string, bool, error) {
 	kind := credentialAgentKey
-	if creds == nil || creds.AgentKeyRef == nil {
+	selectedTeam := ""
+	if len(team) > 0 {
+		selectedTeam = team[0]
+	}
+	selection, err := selectAgentKeyReference(creds, selectedTeam)
+	if err != nil {
+		return "", true, &CredentialResolutionError{Kind: kind, Code: "selection", Detail: err.Error()}
+	}
+	if selection == nil {
 		return "", false, nil
 	}
-	if err := validateSecretReferenceBinding(kind, *creds.AgentKeyRef, credentialBindingIDs{
-		SubjectID:        creds.SubjectID,
-		LegacyIdentityID: creds.legacyIdentityID,
-	}); err != nil {
+	bindingErr := validateSelectedAgentKey(selection, creds.SubjectID)
+	// The legacy parser retains identity_id solely for migration compatibility.
+	if selection.TeamID == "" && creds.SubjectID == "" && creds.legacyIdentityID != "" {
+		bindingErr = validateSecretReferenceBinding(kind, selection.Reference, credentialBindingIDs{LegacyIdentityID: creds.legacyIdentityID})
+	}
+	if err := bindingErr; err != nil {
 		return "", true, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
 	}
-	value, err := resolveThroughRegistry(kind, registry, *creds.AgentKeyRef)
+	value, err := resolveThroughRegistry(kind, registry, selection.Reference)
 	if err != nil {
 		return "", true, err
 	}
