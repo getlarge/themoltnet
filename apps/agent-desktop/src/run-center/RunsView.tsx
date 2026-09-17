@@ -331,7 +331,7 @@ function RecentRunRow({
         </Text>
         {failed ? (
           <Text variant="caption" color="error">
-            Open the log to see why it stopped.
+            {run.lastError?.message ?? 'Open the log to see why it stopped.'}
           </Text>
         ) : null}
       </Stack>

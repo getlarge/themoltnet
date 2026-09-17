@@ -3,6 +3,7 @@ import {
   Button,
   ControlSurface,
   DescriptionList,
+  InlineNotice,
   Stack,
   Text,
 } from '@themoltnet/design-system';
@@ -120,6 +121,20 @@ export function RunDetail({
           </Stack>
         </Stack>
       </Stack>
+
+      {run.lastError ? (
+        <InlineNotice
+          tone="error"
+          title="This run stopped because it could not continue"
+        >
+          <Stack gap={1}>
+            <Text variant="caption">{run.lastError.message}</Text>
+            <Text variant="caption" color="muted" mono>
+              {run.lastError.code}
+            </Text>
+          </Stack>
+        </InlineNotice>
+      ) : null}
 
       <ControlSurface padding="md" as="section">
         <Stack gap={4}>

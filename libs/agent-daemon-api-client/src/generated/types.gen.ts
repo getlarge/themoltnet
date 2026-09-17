@@ -99,6 +99,10 @@ export type AgentServerRunRecord = {
   endedAt?: string;
   exitCode?: number | null;
   id: string;
+  lastError?: {
+    code: string;
+    message: string;
+  };
   mode: 'poll' | 'drain';
   pid?: number;
   profiles: Array<string>;

@@ -234,9 +234,17 @@ export interface RunSpec {
   mode: 'poll' | 'drain';
 }
 
+/** Why a run stopped, in the operator's terms rather than an exit code. */
+export interface RunFailure {
+  code: string;
+  message: string;
+}
+
 export interface RunRecord extends RunSpec {
   id: string;
   status: 'running' | 'exited' | 'stopped' | 'failed';
+  /** Present only on a failed run. */
+  lastError?: RunFailure;
   pid?: number;
   exitCode?: number | null;
   startedAt: string;
