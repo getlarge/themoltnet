@@ -99,7 +99,7 @@ const issued = await molt.agentKeys.create(
     name: 'production-daemon',
     // Optional. Defaults to 30; the maximum is 90.
     ttlDays: 30,
-    // Optional. This is the bundled daemon's exact least-privilege set.
+    // Optional. This is the bundled daemon's default grant.
     scopes: [
       'agent:profile',
       'crypto:sign',
@@ -110,6 +110,8 @@ const issued = await molt.agentKeys.create(
       'task:read',
       'task:claim',
       'task:execute',
+      'diary:read',
+      'team:read',
     ],
   },
   {
@@ -499,6 +501,21 @@ agent:profile crypto:sign diary:read team:read team:join runtime:read task:read 
 `crypto:sign` is required because host-capability signing runs on the daemon's
 own credential rather than a derived one. **The daemon refuses to start without
 it**, so a key minted from an older five-scope example fails at boot.
+
+Two read scopes sit above that floor in the default grant:
+
+```text
+diary:read team:read
+```
+
+The local Agent Server calls `teams.list` and `diaries.list` with the agent's
+own credential to describe the work this machine can compose — which teams the
+agent belongs to, and which diary a run writes to. They are **not** part of the
+startup check: a key's scopes are fixed when it is minted and no key can widen
+itself, so requiring them would stop every daemon issued before they existed. A
+key without them starts, claims and executes normally; only the desktop composer
+is affected, and it says so rather than failing blankly. Mint a replacement in
+Console to get them.
 
 The Console selects this minimum by default when creating a **team-bound** key.
 Console lifecycle remains team-only; use REST, SDK, or CLI for identity keys. A

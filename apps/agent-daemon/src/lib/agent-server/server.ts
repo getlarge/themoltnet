@@ -20,6 +20,10 @@ import {
   rejectExplicitCrossSite,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  DAEMON_MINIMUM_SCOPES,
+} from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
@@ -546,9 +550,11 @@ function registerCatalogueRoute(
       const alias = identity.trim();
       // Throws a typed not-found when the alias is not activated here.
       requireActivation(options.store, alias);
-      const agent = await (options.catalogueAgentFor
-        ? options.catalogueAgentFor(alias)
-        : defaultCatalogueAgent(options, alias));
+      const agent = explainScopeFailures(
+        await (options.catalogueAgentFor
+          ? options.catalogueAgentFor(alias)
+          : defaultCatalogueAgent(options, alias)),
+      );
       return buildCatalogue({
         agent,
         machine: machineCapabilities(options),
@@ -558,6 +564,45 @@ function registerCatalogueRoute(
       });
     },
   );
+}
+
+/** The read scopes the catalogue needs beyond what the daemon needs to run. */
+const CATALOGUE_SCOPES = AGENT_CREDENTIAL_SCOPES.filter(
+  (scope) => !(DAEMON_MINIMUM_SCOPES as readonly string[]).includes(scope),
+);
+
+/**
+ * Say why the composer is empty when the agent key cannot answer.
+ *
+ * A credential's scopes are fixed when it is minted, and `POST /agent-keys`
+ * caps a new key at the scopes of the credential requesting it — so a key
+ * issued before the catalogue scopes joined the default cannot widen itself,
+ * and no amount of retrying here will help. Only a human with a Console
+ * session can mint the replacement. Left alone the API's 403 surfaces as a
+ * generic 500, which sends the operator hunting for a server fault instead of
+ * reissuing a key.
+ *
+ * Scoped to 403 on purpose: a 401 means the key is invalid or revoked, which
+ * is a different repair.
+ */
+function explainScopeFailures(agent: CatalogueAgentPort): CatalogueAgentPort {
+  const guard = async <T>(call: () => Promise<T>): Promise<T> => {
+    try {
+      return await call();
+    } catch (cause) {
+      if ((cause as { statusCode?: number })?.statusCode !== 403) throw cause;
+      throw new AgentServerHttpError(
+        403,
+        'agent_key_scopes_insufficient',
+        `This agent key cannot read the teams and diaries a run is composed from. It needs ${CATALOGUE_SCOPES.join(' and ')}, which keys issued earlier do not carry. A key's scopes are fixed when it is issued, so mint a replacement in Console and attach it here. MoltNet said: ${(cause as Error).message}`,
+      );
+    }
+  };
+  return {
+    listTeams: () => guard(() => agent.listTeams()),
+    listDiaries: () => guard(() => agent.listDiaries()),
+    listProfiles: (teamId) => guard(() => agent.listProfiles(teamId)),
+  };
 }
 
 /** The real catalogue client: the same credentials a run would use. */

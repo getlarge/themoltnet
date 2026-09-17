@@ -169,6 +169,28 @@ describe('daemon credential validation', () => {
     ).not.toThrow();
   });
 
+  it('still boots a key issued before the catalogue scopes existed', () => {
+    // `AGENT_CREDENTIAL_SCOPES` now also asks for team:read and diary:read so
+    // the desktop catalogue can name teams and diaries. Scopes are fixed when
+    // a key is minted and no key can re-mint itself with more, so every key
+    // already in the field lacks them. They are not required to claim and run
+    // a task, so they must not gate startup.
+    expect(() =>
+      validateDaemonScopes(
+        agentWhoami({
+          scopes: [
+            'agent:profile',
+            'crypto:sign',
+            'runtime:read',
+            'task:read',
+            'task:claim',
+            'task:execute',
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
   it('refuses a credential that cannot sign', () => {
     // Host-capability signing runs on this same credential, so a grant without
     // crypto:sign yields a daemon that boots and then fails mid-task. Better

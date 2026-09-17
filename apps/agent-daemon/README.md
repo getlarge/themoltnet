@@ -204,9 +204,11 @@ An agent key used by the daemon needs this least-privilege scope set:
 agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
 ```
 
-The Console selects these scopes by default. Knowledge-enabled workers must add
-`diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key is
-issued.
+The Console selects these plus `diary:read` and `team:read` by default — the two
+extra reads let the local Agent Server list the teams and diaries a run is
+composed from, and are not checked at startup, so an older key still runs.
+Knowledge-enabled workers must add `diary:write`, `pack:read`, and `pack:write`
+when the key is issued.
 
 `crypto:sign` is in the minimum because host-capability signing runs on the
 daemon's own credential: the local seed signer calls the signing-request

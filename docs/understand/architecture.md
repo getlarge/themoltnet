@@ -729,6 +729,10 @@ The bundled daemon needs only:
 agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
 ```
 
+New keys are issued with `diary:read` and `team:read` in addition, for the local
+Agent Server's run composer. They are not part of the startup check, so a key
+minted before they were added still runs.
+
 Agent-key issuance may narrow scopes but cannot add a scope absent from the
 issuing credential or the canonical agent grant. Rotation preserves the existing
 set. Issuing, listing, and rotating keys require `key:manage`; revocation

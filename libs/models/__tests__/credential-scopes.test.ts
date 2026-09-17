@@ -6,6 +6,7 @@ import {
   ALL_CREDENTIAL_SCOPES,
   CREDENTIAL_SCOPES,
   credentialScopeSetsEqual,
+  DAEMON_MINIMUM_SCOPES,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
   MCP_M2M_SCOPES,
@@ -81,6 +82,35 @@ describe('credential scopes', () => {
       'task:read',
       'team:read',
     ]);
+  });
+
+  it('issues agent keys able to read the teams and diaries they are bound to', () => {
+    // The desktop catalogue calls `teams.list` and `diaries.list` with the
+    // agent's own credential. Without these the composer cannot name the team
+    // a run belongs to, or pair it with a diary.
+    expect(AGENT_CREDENTIAL_SCOPES).toContain('team:read');
+    expect(AGENT_CREDENTIAL_SCOPES).toContain('diary:read');
+  });
+
+  it('keeps the daemon boot floor below the issuance default', () => {
+    // Scopes are fixed when a key is minted, so every key issued before this
+    // widening lacks the two new ones. If the boot floor moved with the
+    // default, each of those keys would stop a running daemon dead. The floor
+    // is what the daemon cannot work without; the default is what a new key
+    // should carry.
+    expect(DAEMON_MINIMUM_SCOPES).toEqual([
+      'agent:profile',
+      'crypto:sign',
+      'runtime:read',
+      'task:read',
+      'task:claim',
+      'task:execute',
+    ]);
+    expect(DAEMON_MINIMUM_SCOPES).not.toContain('team:read');
+    expect(DAEMON_MINIMUM_SCOPES).not.toContain('diary:read');
+    for (const scope of DAEMON_MINIMUM_SCOPES) {
+      expect(AGENT_CREDENTIAL_SCOPES).toContain(scope);
+    }
   });
 
   it('compares scopes as exact duplicate-free sets', () => {

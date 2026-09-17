@@ -2077,6 +2077,43 @@ describe('run catalogue', () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it('explains a key that predates the catalogue scopes', async () => {
+    // A credential's scopes are fixed when it is minted and no key can widen
+    // itself, so every key issued before `team:read`/`diary:read` joined the
+    // default fails here and can only be replaced by a human in Console. A
+    // bare 500 would send the operator looking for a server fault instead.
+    const stale = Object.assign(new Error('insufficient scope: team:read'), {
+      statusCode: 403,
+    });
+    const { app, store } = await fixture({
+      catalogueAgentFor: () =>
+        Promise.resolve({
+          ...catalogueAgent,
+          listTeams: () => Promise.reject(stale),
+        }),
+    });
+    const token = await pair(app);
+    activateManaged(store);
+
+    // Act
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue?identity=course-bot',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    // Assert
+    expect(response.statusCode).toBe(403);
+    const body = response.json<{ code: string; message: string }>();
+    expect(body.code).toBe('agent_key_scopes_insufficient');
+    expect(body.message).toMatch(/team:read/u);
+    expect(body.message).toMatch(/Console/u);
+  });
+
   it('rejects a request with no identity', async () => {
     // Arrange
     const { app, store } = await fixture({

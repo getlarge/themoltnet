@@ -51,25 +51,51 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
 );
 
 /**
- * Minimum grant for the agent daemon. Task credentials attenuate this further
- * to `task:execute` alone.
+ * What the agent daemon cannot run without.
  *
  * `crypto:sign` is part of the minimum because host-capability signing runs on
  * the daemon's own credential: the local seed signer calls the signing-request
  * endpoints, which require it. A grant without it produces a daemon that boots
  * cleanly and then fails the first time guest code signs a diary entry or a
  * commit.
+ *
+ * This is the **boot floor**, checked against `GET /agents/whoami` at startup,
+ * and it is deliberately not the same list as `AGENT_CREDENTIAL_SCOPES`. A
+ * credential's scopes are fixed when it is minted and `POST /agent-keys`
+ * caps a new key at the scopes of the credential requesting it, so no key can
+ * ever re-mint itself with more. Every scope added to the floor therefore
+ * stops every daemon already in the field, and only a human with a Console
+ * session can unstick it. Add a scope here only when the daemon genuinely
+ * cannot do its job without it; anything a *caller* needs belongs in the
+ * issuance default below, where its absence degrades one feature instead.
  */
-export const AGENT_CREDENTIAL_SCOPES = [
+export const DAEMON_MINIMUM_SCOPES = [
   CREDENTIAL_SCOPES.AgentProfile,
   CREDENTIAL_SCOPES.CryptoSign,
-  CREDENTIAL_SCOPES.DiaryRead,
-  CREDENTIAL_SCOPES.TeamRead,
-  CREDENTIAL_SCOPES.TeamJoin,
   CREDENTIAL_SCOPES.RuntimeRead,
   CREDENTIAL_SCOPES.TaskRead,
   CREDENTIAL_SCOPES.TaskClaim,
   CREDENTIAL_SCOPES.TaskExecute,
+] as const satisfies readonly CredentialScope[];
+
+/**
+ * What a newly issued agent key should carry. Task credentials attenuate this
+ * further to `task:execute` alone.
+ *
+ * The boot floor plus the two read scopes the local Agent Server needs to
+ * describe the machine's own work. It answers "which teams is this agent in,
+ * and which diary does a run write to" by calling `teams.list` and
+ * `diaries.list` with the agent's credential — there is no separate identity
+ * to ask, and the desktop app has no human session. Both are read-only and
+ * team-scoped, and an agent that can already claim and execute a team's tasks
+ * learning that team's name is not an escalation. Narrower keys remain
+ * available for credentials that only ever execute.
+ */
+export const AGENT_CREDENTIAL_SCOPES = [
+  ...DAEMON_MINIMUM_SCOPES,
+  CREDENTIAL_SCOPES.DiaryRead,
+  CREDENTIAL_SCOPES.TeamRead,
+  CREDENTIAL_SCOPES.TeamJoin,
 ] as const satisfies readonly CredentialScope[];
 
 /**

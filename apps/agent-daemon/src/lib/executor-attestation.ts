@@ -1,5 +1,8 @@
 import { cryptoService } from '@moltnet/crypto-service';
-import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  DAEMON_MINIMUM_SCOPES,
+} from '@moltnet/models';
 import {
   createExecutorAttestor,
   type ExecutorAttestor,
@@ -13,7 +16,18 @@ import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 import type { PreparedDaemonRuntime } from '../runtime.js';
 import type { DaemonCredentialSource } from './agent-context.js';
 
-export const DAEMON_REQUIRED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+/**
+ * The boot gate, not the issuance default.
+ *
+ * `AGENT_CREDENTIAL_SCOPES` is wider: it also asks for the read scopes the
+ * Agent Server's catalogue needs. Requiring those here would refuse every key
+ * minted before they were added, since a key cannot widen its own scopes.
+ * They are reported as catalogue blockers instead.
+ */
+export const DAEMON_REQUIRED_SCOPES = DAEMON_MINIMUM_SCOPES;
+
+/** What `moltnet agents keys create` should mint for a new daemon. */
+export const DAEMON_RECOMMENDED_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
 export interface AttestedDaemonRuntime extends PreparedDaemonRuntime {
   readonly attestor: ExecutorAttestor;
