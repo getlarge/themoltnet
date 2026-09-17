@@ -34,7 +34,21 @@ export interface CatalogueProfileRecord {
   id: string;
   name: string;
   teamId: string;
+  description: string | null;
+  /**
+   * The policy the composer shows before a run starts. These come free with
+   * `runtimeProfiles.list()`; narrowing them away would leave the desktop
+   * unable to show what a run will actually execute under.
+   */
+  provider: string;
+  model: string;
   runtimeKind: string;
+  toolEnforcement: string;
+  defaultWorkspaceMode: string | null;
+  maxTurns: number;
+  /** Identifies exactly which revision of the profile a run would pin. */
+  revision: number;
+  definitionCid: string;
   requiredEnv: readonly string[];
   requiredExecutables: readonly string[];
 }

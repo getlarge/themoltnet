@@ -25,7 +25,15 @@ function port(overrides: Partial<CatalogueAgentPort> = {}): CatalogueAgentPort {
                 id: 'profile-1',
                 name: 'opus-review',
                 teamId: TEAM_A,
+                description: 'Deep review with an enforced tool policy.',
+                provider: 'anthropic',
+                model: 'claude-opus-5',
                 runtimeKind: 'gondolin_pi',
+                toolEnforcement: 'enforce',
+                defaultWorkspaceMode: 'dedicated_worktree',
+                maxTurns: 40,
+                revision: 7,
+                definitionCid: 'bafyreih5k2qz7x4m9wnd3tvu6ge8sc1prbjyloa',
                 requiredEnv: ['ANTHROPIC_API_KEY'],
                 requiredExecutables: [],
               },
@@ -155,6 +163,13 @@ describe('buildCatalogue', () => {
     const profile = catalogue.profiles.find((p) => p.name === 'opus-review');
     expect(profile?.ready).toBe(true);
     expect(profile?.blockers).toEqual([]);
+    // The composer shows what the run will execute under, so the policy
+    // fields must survive the catalogue rather than being narrowed away.
+    expect(profile?.provider).toBe('anthropic');
+    expect(profile?.model).toBe('claude-opus-5');
+    expect(profile?.toolEnforcement).toBe('enforce');
+    expect(profile?.maxTurns).toBe(40);
+    expect(profile?.revision).toBe(7);
   });
 
   it('marks a profile unready when this machine lacks its provider key', async () => {

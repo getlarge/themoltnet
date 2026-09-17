@@ -112,10 +112,42 @@
             },
             "type": "array"
           },
+          "defaultWorkspaceMode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definitionCid": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
+          "maxTurns": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
           "name": {
+            "type": "string"
+          },
+          "provider": {
             "type": "string"
           },
           "ready": {
@@ -133,10 +165,16 @@
             },
             "type": "array"
           },
+          "revision": {
+            "type": "integer"
+          },
           "runtimeKind": {
             "type": "string"
           },
           "teamId": {
+            "type": "string"
+          },
+          "toolEnforcement": {
             "type": "string"
           }
         },
@@ -144,7 +182,15 @@
           "id",
           "name",
           "teamId",
+          "description",
+          "provider",
+          "model",
           "runtimeKind",
+          "toolEnforcement",
+          "defaultWorkspaceMode",
+          "maxTurns",
+          "revision",
+          "definitionCid",
           "requiredEnv",
           "requiredExecutables",
           "ready",

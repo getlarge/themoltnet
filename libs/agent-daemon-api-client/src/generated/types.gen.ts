@@ -29,13 +29,21 @@ export type AgentServerCatalogueProfile = {
     message: string;
     remedy: string;
   }>;
+  defaultWorkspaceMode: string | null;
+  definitionCid: string;
+  description: string | null;
   id: string;
+  maxTurns: number;
+  model: string;
   name: string;
+  provider: string;
   ready: boolean;
   requiredEnv: Array<string>;
   requiredExecutables: Array<string>;
+  revision: number;
   runtimeKind: string;
   teamId: string;
+  toolEnforcement: string;
 };
 
 export type AgentServerCatalogueTeam = {
