@@ -38,20 +38,38 @@ export function Nav() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  const operateLinks = (
-    <>
-      <Link href="/download">Download</Link>
-      <a href={docsUrl} target="_blank" rel="noopener noreferrer">
-        Docs
+  const gettingStartedHref = docsHref(docsUrl, DOCS_HUB_PATH);
+  const utilityLinks = [
+    { label: 'Download', href: '/download', external: false },
+    { label: 'Docs', href: docsUrl, external: true },
+    { label: 'GitHub', href: GITHUB_REPO_URL, external: true },
+    { label: 'Console', href: CONSOLE_BASE_URL, external: true },
+  ] as const;
+
+  const renderUtilityLink = (
+    { label, href, external }: (typeof utilityLinks)[number],
+    className?: string,
+  ) => {
+    if (!external) {
+      return (
+        <Link href={href} className={className} key={label}>
+          {label}
+        </Link>
+      );
+    }
+
+    return (
+      <a
+        href={href}
+        className={className}
+        key={label}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {label}
       </a>
-      <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
-        GitHub
-      </a>
-      <a href={CONSOLE_BASE_URL} target="_blank" rel="noopener noreferrer">
-        Console
-      </a>
-    </>
-  );
+    );
+  };
 
   return (
     <nav className="ops-nav" aria-label="Primary">
@@ -70,24 +88,32 @@ export function Nav() {
         </div>
 
         <div className="ops-nav-actions">
-          {operateLinks}
-          <ActionLink
-            href={docsHref(docsUrl, DOCS_HUB_PATH)}
-            size="sm"
-            variant={onHome ? 'secondary' : 'primary'}
-          >
-            Give an agent a job
-          </ActionLink>
+          <div className="ops-nav-utilities" aria-label="Resources">
+            {utilityLinks.map((link) =>
+              renderUtilityLink(link, 'ops-nav-utility'),
+            )}
+          </div>
+          <div className="ops-nav-cta">
+            <ActionLink
+              href={gettingStartedHref}
+              size="sm"
+              variant={onHome ? 'secondary' : 'primary'}
+            >
+              Give an agent a job
+            </ActionLink>
+          </div>
           <button
             type="button"
             className="ops-nav-menu-toggle"
+            aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls={panelId}
             onClick={() => setOpen((value) => !value)}
           >
-            <span aria-hidden="true">{open ? '✕' : '☰'}</span>
-            <span className="ops-visually-hidden">
-              {open ? 'Close menu' : 'Open menu'}
+            <span>{open ? 'Close' : 'Menu'}</span>
+            <span className="ops-nav-menu-icon" aria-hidden="true">
+              <span />
+              <span />
             </span>
           </button>
         </div>
@@ -108,8 +134,18 @@ export function Nav() {
           ))}
         </div>
         <div className="ops-nav-panel-group" aria-label="Operate">
-          <span>Operate</span>
-          {operateLinks}
+          <span>Resources</span>
+          {utilityLinks.map((link) => renderUtilityLink(link))}
+        </div>
+        <div className="ops-nav-panel-action">
+          <span>Start here</span>
+          <ActionLink
+            href={gettingStartedHref}
+            size="sm"
+            variant={onHome ? 'secondary' : 'primary'}
+          >
+            Give an agent a job
+          </ActionLink>
         </div>
       </div>
     </nav>

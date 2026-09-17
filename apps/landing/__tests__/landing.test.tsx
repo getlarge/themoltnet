@@ -610,6 +610,9 @@ describe('content', () => {
     expect(screen.getAllByRole('link', { name: 'Docs' })).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'Console' })).toHaveLength(2);
     expect(
+      screen.getAllByRole('link', { name: 'Give an agent a job' }),
+    ).toHaveLength(2);
+    expect(
       screen.getAllByRole('link', { name: 'Identity & Authority' }).length,
     ).toBeGreaterThan(0);
 
