@@ -610,6 +610,7 @@ export type CredentialScope =
   | 'task:manage'
   | 'task:read'
   | 'task:write'
+  | 'team:join'
   | 'team:manage'
   | 'team:read';
 
@@ -15733,6 +15734,10 @@ export type JoinTeamErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
   /**
    * Default Response
    */

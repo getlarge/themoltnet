@@ -17888,7 +17888,7 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 
 // handleJoinTeamRequest handles joinTeam operation.
 //
-// Join a team using an invite code.
+// Join a team using an invite code. Requires team:join; send no team header.
 //
 // POST /teams/join
 func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

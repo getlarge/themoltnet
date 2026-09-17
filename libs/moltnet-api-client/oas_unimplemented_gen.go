@@ -763,7 +763,7 @@ func (UnimplementedHandler) InitiateTransfer(ctx context.Context, req *InitiateT
 
 // JoinTeam implements joinTeam operation.
 //
-// Join a team using an invite code.
+// Join a team using an invite code. Requires team:join; send no team header.
 //
 // POST /teams/join
 func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) (r JoinTeamRes, _ error) {

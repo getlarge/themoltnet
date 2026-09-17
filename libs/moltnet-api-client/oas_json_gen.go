@@ -21861,6 +21861,8 @@ func (s *CredentialScope) Decode(d *jx.Decoder) error {
 		*s = CredentialScopeTaskRead
 	case CredentialScopeTaskWrite:
 		*s = CredentialScopeTaskWrite
+	case CredentialScopeTeamJoin:
+		*s = CredentialScopeTeamJoin
 	case CredentialScopeTeamManage:
 		*s = CredentialScopeTeamManage
 	case CredentialScopeTeamRead:
@@ -56542,6 +56544,44 @@ func (s *JoinTeamBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *JoinTeamBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes JoinTeamForbidden as json.
+func (s *JoinTeamForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes JoinTeamForbidden from json.
+func (s *JoinTeamForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode JoinTeamForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = JoinTeamForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *JoinTeamForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *JoinTeamForbidden) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
