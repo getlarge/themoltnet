@@ -2022,20 +2022,44 @@ describe('run catalogue', () => {
       },
     });
 
-    // Assert
+    // Assert: the *whole* serialized body, not a few keys of it. A Fastify
+    // response schema strips properties it does not declare, so a field the
+    // handler returns and the schema omits disappears with nothing failing —
+    // which is how the composer's policy fields were lost once already. An
+    // exact comparison is what notices.
     expect(response.statusCode).toBe(200);
-    const body = response.json<{
-      teams: { teamId: string; defaultDiaryId: string | null }[];
-      defaultTeamId: string | null;
-      profiles: { name: string; ready: boolean }[];
-    }>();
-    expect(body.teams).toEqual([
-      expect.objectContaining({ teamId: TEAM, defaultDiaryId: 'diary-1' }),
-    ]);
-    expect(body.defaultTeamId).toBe(TEAM);
-    expect(body.profiles[0]).toEqual(
-      expect.objectContaining({ name: 'opus-review', ready: true }),
-    );
+    expect(response.json()).toEqual({
+      teams: [
+        {
+          teamId: TEAM,
+          teamName: 'MoltNet Core',
+          diaries: [{ id: 'diary-1', name: 'themoltnet' }],
+          defaultDiaryId: 'diary-1',
+        },
+      ],
+      defaultTeamId: TEAM,
+      profiles: [
+        {
+          id: 'profile-1',
+          name: 'opus-review',
+          teamId: TEAM,
+          description: null,
+          provider: 'anthropic',
+          model: 'claude-opus-5',
+          runtimeKind: 'gondolin_pi',
+          toolEnforcement: 'enforce',
+          defaultWorkspaceMode: 'dedicated_worktree',
+          maxTurns: 40,
+          revision: 7,
+          definitionCid: 'bafy-test',
+          requiredEnv: [],
+          requiredTools: [],
+          requiredExecutables: [],
+          ready: true,
+          blockers: [],
+        },
+      ],
+    });
   });
 
   it('requires a paired client', async () => {
