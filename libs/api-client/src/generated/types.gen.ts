@@ -15761,6 +15761,10 @@ export type JoinTeamErrors = {
   /**
    * Default Response
    */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
   503: ProblemDetails;
 };
 

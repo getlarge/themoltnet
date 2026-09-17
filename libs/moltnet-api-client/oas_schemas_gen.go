@@ -26933,6 +26933,10 @@ func (s *InjectionThreat) SetType(val string) {
 	s.Type = val
 }
 
+type JoinTeamBadGateway ProblemDetails
+
+func (*JoinTeamBadGateway) joinTeamRes() {}
+
 type JoinTeamBadRequest ProblemDetails
 
 func (*JoinTeamBadRequest) joinTeamRes() {}

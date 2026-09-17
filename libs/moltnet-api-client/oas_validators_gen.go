@@ -17754,6 +17754,14 @@ func (s *InjectionThreat) Validate() error {
 	return nil
 }
 
+func (s *JoinTeamBadGateway) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *JoinTeamBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
