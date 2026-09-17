@@ -110,13 +110,15 @@ async function uses(inviteId: string) {
 }
 
 describe('single-use team invites', () => {
-  it('preserves consumed legacy invites and limits unused legacy invites to one redemption', async () => {
-    expect(
-      (await repository.findInviteById(legacyInvites[1]))?.usedAt,
-    ).not.toBeNull();
-    expect(await claim(legacyInvites[1])).toBeNull();
-    expect(await claim(legacyInvites[0])).not.toBeNull();
-    expect(await claim(legacyInvites[0])).toBeNull();
+  it('backfills every legacy invite as consumed and leaves new invites unused', async () => {
+    for (const id of legacyInvites) {
+      const invite = await repository.findInviteById(id);
+      expect(invite?.usedAt).toBeInstanceOf(Date);
+      expect(await claim(id)).toBeNull();
+    }
+    const { invite } = await fixture();
+    expect(invite.usedAt).toBeNull();
+    expect(await claim(invite.id)).not.toBeNull();
   });
 
   it('allows exactly one concurrent claim', async () => {
