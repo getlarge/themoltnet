@@ -66,6 +66,11 @@ export {
   type RunWorkflowOptions,
 } from './run-workflow.js';
 export {
+  initTeamEnrollmentWorkflow,
+  setTeamEnrollmentDeps,
+  teamEnrollmentWorkflow,
+} from './team-enrollment-workflow.js';
+export {
   FOUNDING_ACCEPT_EVENT,
   type FoundingMember,
   initTeamFoundingWorkflow,
