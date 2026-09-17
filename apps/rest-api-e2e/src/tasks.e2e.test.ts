@@ -2404,6 +2404,50 @@ describe('Tasks API', () => {
       expect(data![0].seq).toBeLessThan(data![1].seq);
     });
 
+    it('returns 400 when messages array is empty', async () => {
+      const { response } = await appendTaskMessages({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { messages: [] },
+      });
+      expect(response.status).toBe(400);
+    });
+
+    it('returns only messages after given seq', async () => {
+      // Append a third message
+      await appendTaskMessages({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { messages: [{ kind: 'text_delta', payload: { text: 'done' } }] },
+      });
+
+      // Fetch all 3 messages (no afterSeq filter)
+      const { data: all } = await listTaskMessages({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId, n: attemptN },
+        query: {},
+      });
+
+      // afterSeq is exclusive — use seq of the second message to get only the third
+      const secondSeq = all![1].seq;
+
+      const { data: after } = await listTaskMessages({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId, n: attemptN },
+        query: { afterSeq: secondSeq },
+      });
+
+      expect(after!.length).toBe(1);
+      expect(after![0].kind).toBe('text_delta');
+      expect(after![0].payload).toEqual({ text: 'done' });
+    });
+
+    // These run last: they append many messages to the shared attempt, and the
+    // tests above assert exact counts over it.
     it('filters by kind in the database, before pagination', async () => {
       // A rare kind buried past a page boundary is the case the filter exists
       // for: client-side filtering would need to page the whole attempt.
@@ -2455,48 +2499,6 @@ describe('Tasks API', () => {
         query: { kind: ['not_a_kind'] as never },
       });
       expect(response.status).toBe(400);
-    });
-
-    it('returns 400 when messages array is empty', async () => {
-      const { response } = await appendTaskMessages({
-        client,
-        auth: () => claimer.accessToken,
-        path: { id: taskId, n: attemptN },
-        body: { messages: [] },
-      });
-      expect(response.status).toBe(400);
-    });
-
-    it('returns only messages after given seq', async () => {
-      // Append a third message
-      await appendTaskMessages({
-        client,
-        auth: () => claimer.accessToken,
-        path: { id: taskId, n: attemptN },
-        body: { messages: [{ kind: 'text_delta', payload: { text: 'done' } }] },
-      });
-
-      // Fetch all 3 messages (no afterSeq filter)
-      const { data: all } = await listTaskMessages({
-        client,
-        auth: () => proposer.accessToken,
-        path: { id: taskId, n: attemptN },
-        query: {},
-      });
-
-      // afterSeq is exclusive — use seq of the second message to get only the third
-      const secondSeq = all![1].seq;
-
-      const { data: after } = await listTaskMessages({
-        client,
-        auth: () => proposer.accessToken,
-        path: { id: taskId, n: attemptN },
-        query: { afterSeq: secondSeq },
-      });
-
-      expect(after!.length).toBe(1);
-      expect(after![0].kind).toBe('text_delta');
-      expect(after![0].payload).toEqual({ text: 'done' });
     });
 
     // Regression test for issue #921: concurrent appendMessages calls for the
