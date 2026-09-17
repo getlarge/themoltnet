@@ -91,6 +91,7 @@ async function main() {
     relationshipWriter: createStubService() as never,
     tokenValidator: createStubService() as never,
     teamResolver: createStubService() as never,
+    teamEnrollmentRepository: createStubService() as never,
     teamRepository: createStubService() as never,
     relationshipReader: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',

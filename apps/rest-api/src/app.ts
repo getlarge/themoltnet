@@ -95,6 +95,7 @@ import type {
   TaskArtifactRepository,
   TaskRepository,
   TaskService,
+  TeamEnrollmentRepository,
   TeamRepository,
   TransactionRunner,
 } from './types.js';
@@ -162,6 +163,7 @@ export interface AppOptions {
   humanRepository: HumanRepository;
   cryptoService: CryptoService;
   groupRepository: GroupRepository;
+  teamEnrollmentRepository: TeamEnrollmentRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
@@ -413,6 +415,7 @@ export async function registerApiRoutes(
   decorateSafe('humanRepository', options.humanRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('groupRepository', options.groupRepository);
+  decorateSafe('teamEnrollmentRepository', options.teamEnrollmentRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('runtimeProfileRepository', options.runtimeProfileRepository);
@@ -505,7 +508,7 @@ export async function registerApiRoutes(
     nonceRepository: options.nonceRepository,
   });
   await app.register(registrationRoutes);
-  await app.register(teamRoutes);
+  await app.register(teamRoutes, { talosApi: options.oryClients.apiKeys });
   await app.register(groupRoutes);
   await app.register(runtimeSlotRoutes);
   await app.register(runtimeSessionRoutes);
