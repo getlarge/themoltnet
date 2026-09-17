@@ -13,6 +13,7 @@ import {
   vi,
 } from 'vitest';
 
+import { createProblem } from '../src/problems/index.js';
 import { teamInviteWorkflow } from '../src/workflows/team-invite-workflow.js';
 import {
   createMockAgent,
@@ -113,6 +114,24 @@ describe('POST /teams/join enrollment', () => {
       mocks.permissionChecker.canManageTeamCredentials,
     ).not.toHaveBeenCalled();
   });
+
+  it.each(['run', 'findEnrollment'] as const)(
+    'preserves rejected invite problems from %s without issuing a key',
+    async (method) => {
+      vi.mocked(teamInviteWorkflow[method]).mockRejectedValue(
+        createProblem('invite-exhausted'),
+      );
+      const response = await app.inject({
+        method: 'POST',
+        url: '/teams/join',
+        headers,
+        payload: { code, issueAgentKey: true },
+      });
+      expect(response.statusCode).toBe(410);
+      expect(response.json()).toMatchObject({ code: 'INVITE_EXHAUSTED' });
+      expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+    },
+  );
 
   it('requires the idempotency header before claiming an invite', async () => {
     const response = await app.inject({

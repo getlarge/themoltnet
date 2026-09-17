@@ -112,6 +112,28 @@ describe('invite workflow enrollment mode', () => {
     });
   });
 
+  it('rejects human enrollment with a forbidden problem before starting DBOS', async () => {
+    await expect(
+      teamInviteWorkflow.run({ ...input, subjectNs: KetoNamespace.Human }),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    expect(dbos.startWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('restores a saved invite rejection as a problem during enrollment replay', async () => {
+    dbos.getWorkflowStatus.mockResolvedValue({ status: 'SUCCESS' });
+    dbos.retrieveWorkflow.mockReturnValueOnce({
+      getResult: () =>
+        Promise.resolve(JSON.parse('{"problem":"invite-exhausted"}')),
+    });
+    await expect(
+      teamInviteWorkflow.findEnrollment('agent', 'request'),
+    ).rejects.toMatchObject({
+      statusCode: 410,
+      code: 'INVITE_EXHAUSTED',
+    });
+    expect(dbos.startWorkflow).not.toHaveBeenCalled();
+  });
+
   it('loads a durable enrollment result through DBOS', async () => {
     dbos.getWorkflowStatus.mockResolvedValue({ status: 'SUCCESS' });
     expect(

@@ -33,33 +33,24 @@ export async function enrollTeamAgent(
   }
   // Bind DBOS replay to the original code without persisting that bearer secret.
   const codeHash = createHash('sha256').update(input.code).digest('hex');
-  let grant;
-  try {
-    grant = await teamInviteWorkflow.findEnrollment(
-      input.subjectId,
-      input.idempotencyKey,
-    );
-    if (!grant) {
-      const invite = await app.teamRepository.findInviteByCode(input.code);
-      if (!invite) throw createProblem('not-found', 'Invalid invite code');
-      if (invite.expiresAt <= new Date()) throw createProblem('invite-expired');
-      const team = await app.teamRepository.findById(invite.teamId);
-      if (!team || team.personal)
-        throw createProblem('not-found', 'Invalid invite code');
-      if (team.status !== 'active') throw createProblem('team-not-active');
-      grant = await teamInviteWorkflow.run({
-        inviteId: invite.id,
-        subjectId: input.subjectId,
-        subjectNs: KetoNamespace.Agent,
-        enrollment: { idempotencyKey: input.idempotencyKey, codeHash },
-      });
-    }
-  } catch (error) {
-    // DBOS restores errors without preserving custom prototypes.
-    if (error instanceof Error && error.message === 'Team invite unavailable') {
-      throw createProblem('invite-exhausted');
-    }
-    throw error;
+  let grant = await teamInviteWorkflow.findEnrollment(
+    input.subjectId,
+    input.idempotencyKey,
+  );
+  if (!grant) {
+    const invite = await app.teamRepository.findInviteByCode(input.code);
+    if (!invite) throw createProblem('not-found', 'Invalid invite code');
+    if (invite.expiresAt <= new Date()) throw createProblem('invite-expired');
+    const team = await app.teamRepository.findById(invite.teamId);
+    if (!team || team.personal)
+      throw createProblem('not-found', 'Invalid invite code');
+    if (team.status !== 'active') throw createProblem('team-not-active');
+    grant = await teamInviteWorkflow.run({
+      inviteId: invite.id,
+      subjectId: input.subjectId,
+      subjectNs: KetoNamespace.Agent,
+      enrollment: { idempotencyKey: input.idempotencyKey, codeHash },
+    });
   }
   // Concurrent starts with the same workflow ID return its original result.
   if (grant.enrollmentCodeHash !== codeHash) {

@@ -5,6 +5,7 @@ import { KetoNamespace } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createProblem } from '../src/problems/index.js';
 import { enrollTeamAgent } from '../src/services/team-enrollment.service.js';
 import { teamInviteWorkflow } from '../src/workflows/team-invite-workflow.js';
 
@@ -138,7 +139,7 @@ describe('team enrollment request', () => {
 
   it('maps an atomic claim loss to an exhausted invite without issuing', async () => {
     vi.mocked(teamInviteWorkflow.run).mockRejectedValue(
-      new Error('Team invite unavailable'),
+      createProblem('invite-exhausted'),
     );
     await expect(enroll()).rejects.toMatchObject({ statusCode: 410 });
     expect(keys.issueEnrollment).not.toHaveBeenCalled();
