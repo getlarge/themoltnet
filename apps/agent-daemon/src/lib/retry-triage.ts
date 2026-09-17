@@ -216,7 +216,9 @@ export function classifyDeterministically(
   }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
-  if (isPermanentProviderRequestError(message)) return 'non_retryable';
+  if (code === 'llm_api_error' && isPermanentProviderRequestError(message)) {
+    return 'non_retryable';
+  }
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }

@@ -252,6 +252,21 @@ describe('retry triage classification', () => {
     ).toBe('retryable');
   });
 
+  it('keeps completion-reporting failures retryable despite provider-like wording', () => {
+    for (const message of [
+      '500 response: unknown field request_id',
+      '500 response: invalid argument request_id',
+    ]) {
+      expect(
+        classifyDeterministically({
+          code: 'complete_call_failed',
+          message,
+          retryable: true,
+        }),
+      ).toBe('retryable');
+    }
+  });
+
   it('uses medium/high retry triage for ambiguous errors', async () => {
     const result = await classifyAttemptFailure({
       ...BASE_INPUT,
