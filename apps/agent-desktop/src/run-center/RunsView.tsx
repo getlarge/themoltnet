@@ -10,7 +10,7 @@ import {
 } from '@themoltnet/design-system';
 import { useState } from 'react';
 
-import { duration, pluralize, relativeTime } from './format.js';
+import { duration, relativeTime } from './format.js';
 import type { RunsRoute } from './RunCenterApp.js';
 import { RunComposer } from './RunComposer.js';
 import { RunDetail } from './RunDetail.js';
@@ -212,11 +212,21 @@ function ActiveRunCard({
   return (
     <ControlSurface tone="network" active padding="md" as="article">
       <Stack gap={3}>
-        <Stack direction="row" justify="space-between" align="flex-start" gap={4} wrap>
+        <Stack
+          direction="row"
+          justify="space-between"
+          align="flex-start"
+          gap={4}
+          wrap
+        >
           <Stack gap={1} style={{ minWidth: 0 }}>
             <Stack direction="row" gap={2} align="center">
               <span className="run-dot run-dot--live" aria-hidden="true" />
-              <Text as="span" variant="caption" mono color="accent"
+              <Text
+                as="span"
+                variant="caption"
+                mono
+                color="accent"
                 style={{ color: 'var(--molt-success)' }}
               >
                 polling
@@ -247,12 +257,16 @@ function ActiveRunCard({
         <ProfileChain profiles={run.profiles} />
         <TaskTypeRow taskTypes={run.taskTypes} showLabel={false} />
 
-        <Stack direction="row" justify="space-between" align="center" gap={4} wrap>
+        <Stack
+          direction="row"
+          justify="space-between"
+          align="center"
+          gap={4}
+          wrap
+        >
           <Text variant="caption" color="secondary">
-            {pluralize(run.tasksClaimed, 'task')} claimed
-            {run.lastActivityAt
-              ? ` · last claim ${relativeTime(run.lastActivityAt, now)}`
-              : ' · waiting for matching work'}
+            Claiming for {run.teamName ?? 'this team'} · started{' '}
+            {relativeTime(run.startedAt, now)}
           </Text>
           <Stack direction="row" gap={2}>
             <Button variant="ghost" size="sm" onClick={onOpen}>
@@ -309,13 +323,15 @@ function RecentRunRow({
           </Text>
         </Stack>
         <Text variant="caption" color="muted">
-          {failed ? 'Failed' : 'Stopped'} {relativeTime(run.endedAt, now)} ·{' '}
-          {pluralize(run.tasksClaimed, 'task')} claimed
-          {run.exitCode !== null ? ` · exit ${run.exitCode}` : ''}
+          {failed ? 'Failed' : 'Stopped'}{' '}
+          {relativeTime(run.endedAt ?? null, now)}
+          {run.exitCode !== undefined && run.exitCode !== null
+            ? ` · exit ${run.exitCode}`
+            : ''}
         </Text>
-        {failed && run.lastError ? (
+        {failed ? (
           <Text variant="caption" color="error">
-            {run.lastError.message}
+            Open the log to see why it stopped.
           </Text>
         ) : null}
       </Stack>

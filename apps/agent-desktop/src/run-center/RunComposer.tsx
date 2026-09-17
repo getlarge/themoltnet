@@ -1,3 +1,4 @@
+import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 import {
   Badge,
   Button,
@@ -15,10 +16,13 @@ import { useMemo, useState } from 'react';
 
 import { relativeTime } from './format.js';
 import type {
-  ProfileSummary,
+  AgentServerCatalogueProfile,
   RunCenterActions,
   RunCenterData,
 } from './types.js';
+
+/** The daemon's own task-type registry; no server round trip needed. */
+const TASK_TYPE_OPTIONS = Object.keys(BUILT_IN_TASK_TYPES).sort();
 
 export interface RunComposerProps {
   data: RunCenterData;
@@ -36,14 +40,23 @@ export function RunComposer({
   now,
   onDone,
 }: RunComposerProps) {
+  // Everything the composer offers comes from the server: identities from the
+  // status surface, teams and profiles from the identity-scoped catalogue.
+  const agents = data.status?.agents ?? [];
+  const teams = data.catalogue?.teams ?? [];
+  const profiles = data.catalogue?.profiles ?? [];
+  const taskTypeOptions = TASK_TYPE_OPTIONS;
+
   const preset = presetId
-    ? (data.presets.find((candidate) => candidate.id === presetId) ?? null)
+    ? (data.presets.find((candidate) => candidate.teamId === presetId) ?? null)
     : null;
 
   const [agent, setAgent] = useState(
-    preset?.agent ?? data.agents[0]?.agentName ?? '',
+    preset?.agent ?? agents[0]?.agentName ?? '',
   );
-  const [teamId, setTeamId] = useState(preset?.teamId ?? data.teams[0]?.id ?? '');
+  const [teamId, setTeamId] = useState(
+    preset?.teamId ?? data.catalogue?.defaultTeamId ?? '',
+  );
   const [primaryId, setPrimaryId] = useState(preset?.profileIds[0] ?? '');
   const [fallbackIds, setFallbackIds] = useState<string[]>(
     preset?.profileIds.slice(1) ?? [],
@@ -59,26 +72,30 @@ export function RunComposer({
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const selectedAgent = data.agents.find(
+  const selectedAgent = agents.find(
     (candidate) => candidate.agentName === agent,
   );
-  const primary = data.profiles.find((candidate) => candidate.id === primaryId);
-  const team = data.teams.find((candidate) => candidate.id === teamId);
+  const primary = profiles.find((candidate) => candidate.teamId === primaryId);
+  const team = teams.find((candidate) => candidate.teamId === teamId);
+  // Team and diary are one binding; the catalogue resolves the pair or leaves
+  // it null when the operator must choose.
+  const selectedTeamDiary = team?.defaultDiaryId ?? null;
 
   const boundElsewhere = Boolean(
     selectedAgent &&
-      selectedAgent.kind === 'managed' &&
-      selectedAgent.boundTeamId &&
-      selectedAgent.boundTeamId !== teamId,
+    selectedAgent.kind === 'managed' &&
+    selectedAgent.teamId &&
+    selectedAgent.teamId !== teamId,
   );
 
   const availableFallbacks = useMemo(
     () =>
-      data.profiles.filter(
+      profiles.filter(
         (candidate) =>
-          candidate.id !== primaryId && !fallbackIds.includes(candidate.id),
+          candidate.teamId !== primaryId &&
+          !fallbackIds.includes(candidate.teamId),
       ),
-    [data.profiles, primaryId, fallbackIds],
+    [profiles, primaryId, fallbackIds],
   );
 
   const problems: string[] = [];
@@ -88,7 +105,7 @@ export function RunComposer({
   if (taskTypes.length === 0) problems.push('Choose at least one task type.');
   if (boundElsewhere)
     problems.push(
-      `${agent} is key-bound to another team and cannot claim work for ${team?.name ?? 'this team'}.`,
+      `${agent} is key-bound to another team and cannot claim work for ${team?.teamName ?? 'this team'}.`,
     );
   if (savePreset && !presetName.trim())
     problems.push('Name the preset, or turn off saving.');
@@ -105,18 +122,18 @@ export function RunComposer({
           name: presetName.trim(),
           agent,
           teamId,
+          diaryId: selectedTeamDiary,
           profileIds: [primaryId, ...fallbackIds],
           taskTypes,
-          mode: 'poll',
         });
       }
       await actions.startRun({
         agent,
         teamId,
-        profileIds: [primaryId, ...fallbackIds],
+        profiles: [primaryId, ...fallbackIds],
         taskTypes,
         mode: 'poll',
-        presetName: savePreset ? presetName.trim() : (preset?.name ?? null),
+        ...(selectedTeamDiary ? { diaryId: selectedTeamDiary } : {}),
       });
       onDone();
     } catch (error) {
@@ -164,7 +181,7 @@ export function RunComposer({
                   : undefined
               }
             >
-              {data.agents.map((candidate) => (
+              {agents.map((candidate) => (
                 <option key={candidate.agentName} value={candidate.agentName}>
                   {candidate.agentName}
                 </option>
@@ -180,18 +197,21 @@ export function RunComposer({
                   : undefined
               }
             >
-              {data.teams.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.name}
+              {teams.map((candidate) => (
+                <option key={candidate.teamId} value={candidate.teamId}>
+                  {candidate.teamName}
                 </option>
               ))}
             </Select>
           </div>
 
           {boundElsewhere ? (
-            <InlineNotice tone="error" title="Identity is bound to another team">
+            <InlineNotice
+              tone="error"
+              title="Identity is bound to another team"
+            >
               A managed agent key is issued for one team. Create an identity for{' '}
-              {team?.name} in Console with an invitation from that team, or
+              {team?.teamName} in Console with an invitation from that team, or
               switch the team back.
             </InlineNotice>
           ) : null}
@@ -206,8 +226,8 @@ export function RunComposer({
               hint="Profiles are authored in Console. This is the policy the run executes under."
             >
               <option value="">Select a profile…</option>
-              {data.profiles.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
+              {profiles.map((candidate) => (
+                <option key={candidate.teamId} value={candidate.teamId}>
                   {candidate.name}
                   {candidate.ready ? '' : ' — not ready on this Mac'}
                 </option>
@@ -219,7 +239,7 @@ export function RunComposer({
           <Divider style={{ margin: 0 }} />
 
           <TaskTypePicker
-            options={data.capabilities.taskTypes}
+            options={taskTypeOptions}
             selected={taskTypes}
             onChange={setTaskTypes}
           />
@@ -268,7 +288,7 @@ export function RunComposer({
               order instead of failing the task.
             </Text>
             <FallbackList
-              profiles={data.profiles}
+              profiles={profiles}
               fallbackIds={fallbackIds}
               available={availableFallbacks}
               onChange={setFallbackIds}
@@ -326,7 +346,13 @@ export function RunComposer({
         </Stack>
       </ControlSurface>
 
-      <Stack direction="row" justify="space-between" align="center" gap={4} wrap>
+      <Stack
+        direction="row"
+        justify="space-between"
+        align="center"
+        gap={4}
+        wrap
+      >
         <Stack gap={1}>
           {problems.length ? (
             <Text variant="caption" color="error">
@@ -367,7 +393,11 @@ export function RunComposer({
 }
 
 /** Read-only profile inspection. Authoring stays in Console, by decision. */
-function ProfileInspector({ profile }: { profile: ProfileSummary }) {
+function ProfileInspector({
+  profile,
+}: {
+  profile: AgentServerCatalogueProfile;
+}) {
   const theme = useTheme();
   return (
     <div
@@ -428,7 +458,7 @@ function TaskTypePicker({
   selected,
   onChange,
 }: {
-  options: RunCenterData['capabilities']['taskTypes'];
+  options: readonly string[];
   selected: string[];
   onChange: (next: string[]) => void;
 }) {
@@ -446,19 +476,22 @@ function TaskTypePicker({
         </Text>
       </legend>
       <div className="chip-group__items">
+        {/*
+          No tooltip: the task-type registry carries only structural metadata
+          and no descriptions, so any summary here would be invented.
+        */}
         {options.map((option) => (
           <label
-            key={option.type}
+            key={option}
             className="chip"
-            data-checked={selected.includes(option.type) || undefined}
-            title={option.summary}
+            data-checked={selected.includes(option) || undefined}
           >
             <input
               type="checkbox"
-              checked={selected.includes(option.type)}
-              onChange={() => toggle(option.type)}
+              checked={selected.includes(option)}
+              onChange={() => toggle(option)}
             />
-            <span>{option.type}</span>
+            <span>{option}</span>
           </label>
         ))}
       </div>
@@ -477,9 +510,9 @@ function FallbackList({
   available,
   onChange,
 }: {
-  profiles: ProfileSummary[];
+  profiles: AgentServerCatalogueProfile[];
   fallbackIds: string[];
-  available: ProfileSummary[];
+  available: AgentServerCatalogueProfile[];
   onChange: (next: string[]) => void;
 }) {
   const theme = useTheme();
@@ -496,7 +529,9 @@ function FallbackList({
       {fallbackIds.length ? (
         <ol className="fallback-list">
           {fallbackIds.map((id, index) => {
-            const profile = profiles.find((candidate) => candidate.id === id);
+            const profile = profiles.find(
+              (candidate) => candidate.teamId === id,
+            );
             return (
               <li key={id}>
                 <Text as="span" variant="caption" mono color="muted">
@@ -563,13 +598,17 @@ function FallbackList({
         >
           <option value="">Select a profile…</option>
           {available.map((candidate) => (
-            <option key={candidate.id} value={candidate.id}>
+            <option key={candidate.teamId} value={candidate.teamId}>
               {candidate.name}
             </option>
           ))}
         </Select>
       ) : (
-        <Text variant="caption" color="muted" style={{ color: theme.color.text.muted }}>
+        <Text
+          variant="caption"
+          color="muted"
+          style={{ color: theme.color.text.muted }}
+        >
           Every profile in this team is already in the chain.
         </Text>
       )}

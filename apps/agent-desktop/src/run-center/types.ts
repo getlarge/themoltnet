@@ -1,234 +1,110 @@
 /**
  * Desktop Run Center view model.
  *
- * These types are the shape the renderer needs. They are deliberately written
- * before the transport exists: PR 1 (Agent Server desktop-control contract)
- * has to produce them, PR 2 (native Rust HTTP client) has to carry them across
- * the bridge without the process-scoped token ever entering the WebView, and
- * PR 3 (custom runtime registration) owns `RuntimeEntry`.
- *
- * Nothing here calls Tauri. Every view is a pure function of these values plus
- * a `RunCenterActions` implementation, so the fixture harness and the native
- * bridge are interchangeable.
+ * Everything the Agent Server owns is **derived** from
+ * `@moltnet/agent-daemon-api-client`, which is generated from the daemon's
+ * OpenAPI. Re-declaring those shapes here is how fields silently drift out of
+ * the contract, so the only types written by hand are the ones the desktop
+ * genuinely owns: local presets, and the join between a run and the names the
+ * app can resolve for it.
  */
+import type {
+  AgentServerAgent,
+  AgentServerCatalogue,
+  AgentServerCatalogueProfile,
+  AgentServerCatalogueTeam,
+  AgentServerRun,
+  AgentServerStatus,
+} from '@moltnet/agent-daemon-api-client';
 
-export type RunStatus = 'running' | 'exited' | 'stopped' | 'failed';
-
-/**
- * The shipped lifecycle contract (#2288/#2306) is reused as-is: the Run
- * Center adds views around it, it does not restate it.
- */
 import type { DesktopStatus, LifecycleState } from '../bridge.js';
 
-export type { DesktopStatus, LifecycleState };
+export type {
+  AgentServerAgent,
+  AgentServerCatalogue,
+  AgentServerCatalogueProfile,
+  AgentServerCatalogueTeam,
+  AgentServerRun,
+  AgentServerStatus,
+  DesktopStatus,
+  LifecycleState,
+};
 
-/** v1 is polling only. `drain` stays in the server protocol, not the desktop. */
-export type RunMode = 'poll';
+/** A profile blocker, as the server derives it for this machine. */
+export type ProfileBlocker = AgentServerCatalogueProfile['blockers'][number];
 
-/** An error the user can act on, as opposed to a stack trace. */
-export interface ActionableError {
-  /** Stable machine code, e.g. `profile_env_missing`. */
-  code: string;
-  /** What went wrong, in the user's terms. */
-  message: string;
-  /** What to do about it. Omitted when there is no user-side remedy. */
-  remedy?: string;
-  /** Deep link that performs the remedy, when one exists. */
-  remedyAction?: { label: string; target: 'console' | 'runtimes' | 'logs' };
-}
+/** v1 is polling only; the server also accepts `drain`. */
+export type RunMode = Extract<AgentServerRun['mode'], 'poll'>;
 
-export interface DesktopRun {
-  id: string;
-  /** Set when the run was started from a saved preset. */
+/**
+ * A run plus the names only the app can resolve: the preset it was launched
+ * from (local) and the team's display name (joined from the catalogue). The
+ * run itself is the server's type, unmodified.
+ */
+export interface DesktopRun extends AgentServerRun {
   presetName: string | null;
-  agent: string;
-  teamId: string;
-  teamName: string;
-  /**
-   * Ordered. `profiles[0]` is the primary; the rest are fallbacks the daemon
-   * tries in order. Names, not ids — the server resolves them for display.
-   */
-  profiles: string[];
-  taskTypes: string[];
-  mode: RunMode;
-  status: RunStatus;
-  pid: number | null;
-  exitCode: number | null;
-  startedAt: string;
-  endedAt: string | null;
-  /** Tasks this run has claimed since it started. */
-  tasksClaimed: number;
-  /** Last time the run claimed or completed a task. */
-  lastActivityAt: string | null;
-  lastError: ActionableError | null;
-}
-
-export interface ProfileReadinessBlocker {
-  code: 'env_missing' | 'executable_missing' | 'runtime_unregistered';
-  message: string;
-  remedy: string;
+  teamName: string | null;
 }
 
 /**
- * Profile catalogue entry. Read-only by design: authoring stays in Console.
- * `readiness` is computed by the Agent Server against *this machine* — the
- * provider keys it holds and the runtime kinds registered on it.
+ * A named run configuration, saved on this machine.
+ *
+ * Owned by the desktop, not the server: presets are per-machine UI state that
+ * never auto-starts and that nothing but this app reads.
  */
-export interface ProfileSummary {
-  id: string;
-  name: string;
-  description: string | null;
-  provider: string;
-  model: string;
-  runtimeKind: string;
-  toolEnforcement: 'off' | 'watch' | 'enforce';
-  defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
-  maxTurns: number;
-  requiredEnv: string[];
-  requiredExecutables: string[];
-  revision: number;
-  definitionCid: string;
-  updatedAt: string;
-  ready: boolean;
-  blockers: ProfileReadinessBlocker[];
-}
-
-export interface TeamSummary {
-  id: string;
-  name: string;
-}
-
-export interface AgentSummary {
-  agentName: string;
-  kind: 'managed' | 'external';
-  /** Managed agents are key-bound to one team and cannot poll another. */
-  boundTeamId: string | null;
-  fingerprint: string | null;
-}
-
-export interface TaskTypeSummary {
-  type: string;
-  title: string;
-  summary: string;
-}
-
-/** What this Agent Server build can do. Lets the desktop stay version-tolerant. */
-export interface DesktopCapabilities {
-  taskTypes: TaskTypeSummary[];
-  modes: RunMode[];
-  /** Runtime kinds this machine can execute right now. */
-  runtimeKinds: string[];
-  supportsCustomRuntimes: boolean;
-}
-
-/** Saved locally, on this machine. Never auto-started. */
 export interface RunPreset {
   id: string;
   name: string;
   agent: string;
   teamId: string;
-  /** Ordered: primary first. Profile ids, resolved for display at read time. */
+  diaryId: string | null;
+  /** Ordered: primary first, then fallbacks. */
   profileIds: string[];
   taskTypes: string[];
-  mode: RunMode;
   createdAt: string;
   lastUsedAt: string | null;
 }
 
-export type RuntimeSource = 'builtin' | 'file' | 'package';
-
-/**
- * Drift is the reason a registration exists at all: the registry pins a
- * fingerprint so a module that changed under the operator's feet refuses to
- * run instead of silently executing new code.
- */
-export type RuntimeDrift =
-  | 'none'
-  | 'entry_changed'
-  | 'lockfile_changed'
-  | 'missing';
-
-export interface RuntimeEntry {
-  kind: string;
-  source: RuntimeSource;
-  /** Absolute file path, or package name. Empty for the built-in runtime. */
-  label: string;
-  /** Project directory a package registration resolves against. */
-  projectDir: string | null;
-  /** sha256 of the resolved entry module. */
-  entryHash: string | null;
-  lockfilePath: string | null;
-  registeredAt: string | null;
-  drift: RuntimeDrift;
-  /** Profile names in the catalogue that name this kind. */
-  usedByProfiles: string[];
-}
-
-/** What the register dialog shows before the operator consents. */
-export interface RuntimeCandidate {
-  source: Exclude<RuntimeSource, 'builtin'>;
-  label: string;
-  projectDir: string | null;
-  /** Derived from the module's own `runtimeKind`, never typed by the user. */
-  kind: string;
-  entryHash: string;
-  lockfilePath: string | null;
-  /** Set when validation failed; the dialog then offers no Register action. */
-  error: ActionableError | null;
-}
-
-export interface RunCenterData {
-  server: DesktopStatus;
-  runs: DesktopRun[];
-  presets: RunPreset[];
-  profiles: ProfileSummary[];
-  teams: TeamSummary[];
-  agents: AgentSummary[];
-  capabilities: DesktopCapabilities;
-  runtimes: RuntimeEntry[];
-}
-
+/** What the composer sends to start a run. Mirrors the server's start body. */
 export interface StartRunInput {
   agent: string;
   teamId: string;
-  /** Ordered: primary first, then fallbacks. */
-  profileIds: string[];
+  diaryId?: string;
+  profiles: string[];
   taskTypes: string[];
   mode: RunMode;
-  presetName: string | null;
 }
 
-export interface SavePresetInput {
+export interface SavePresetInput extends Omit<
+  RunPreset,
+  'id' | 'createdAt' | 'lastUsedAt'
+> {
   id: string | null;
-  name: string;
-  agent: string;
-  teamId: string;
-  profileIds: string[];
-  taskTypes: string[];
-  mode: RunMode;
 }
 
 /**
- * Side effects the *Run Center* adds. Server install/trust/start/stop already
- * have a contract — `desktopBridge` in `../bridge.ts` — and it is used
- * directly by the shipped server panel. Nothing here duplicates it.
+ * Every side effect the renderer can ask for.
+ *
+ * Server lifecycle (install, trust, start, stop, updates) already has a
+ * contract — `desktopBridge` in `../bridge.ts` — and is used directly by the
+ * shipped Server panel. Nothing here duplicates it.
  */
 export interface RunCenterActions {
-  startRun(input: StartRunInput): Promise<void>;
+  /** Teams, diaries and profiles the selected identity can serve. */
+  catalogue(identity: string): Promise<AgentServerCatalogue>;
+  startRun(input: StartRunInput): Promise<AgentServerRun>;
   stopRun(runId: string): Promise<void>;
   savePreset(input: SavePresetInput): Promise<void>;
   deletePreset(presetId: string): Promise<void>;
-  /** Opens the native file picker. Resolves null when the user cancels. */
-  pickRuntimeFile(): Promise<RuntimeCandidate | null>;
-  /** Opens the native directory picker, then validates the package there. */
-  pickRuntimePackage(
-    packageName: string,
-    projectDir: string,
-  ): Promise<RuntimeCandidate>;
-  pickDirectory(): Promise<string | null>;
-  registerRuntime(candidate: RuntimeCandidate): Promise<void>;
-  unregisterRuntime(kind: string): Promise<void>;
-  openLogs(): Promise<void>;
   /** Streams a run's log lines. Returns an unsubscribe function. */
   subscribeRunLogs(runId: string, onLine: (line: string) => void): () => void;
+}
+
+/** Everything the shell renders. */
+export interface RunCenterData {
+  server: DesktopStatus;
+  status: AgentServerStatus | null;
+  runs: DesktopRun[];
+  presets: RunPreset[];
+  catalogue: AgentServerCatalogue | null;
 }

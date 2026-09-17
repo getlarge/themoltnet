@@ -806,6 +806,12 @@ importers:
 
   apps/agent-desktop:
     dependencies:
+      '@moltnet/agent-daemon-api-client':
+        specifier: workspace:*
+        version: link:../../libs/agent-daemon-api-client
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@tauri-apps/api':
         specifier: 2.11.1
         version: 2.11.1
