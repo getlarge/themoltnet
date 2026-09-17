@@ -1,5 +1,5 @@
 {
-  "id": "74bb76ef-988c-47e9-ba6e-c77481ff92f0",
+  "id": "a224712e-96d5-4681-9451-3207fcdc0646",
   "prevId": "30121c78-7fde-405a-a911-8ea13e76f4ae",
   "version": "7",
   "dialect": "postgresql",
@@ -5716,39 +5716,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "task_messages_task_attempt_kind_seq_idx": {
-          "name": "task_messages_task_attempt_kind_seq_idx",
-          "columns": [
-            {
-              "expression": "task_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "attempt_n",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "seq",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -6329,6 +6296,171 @@
       },
       "isRLSEnabled": false
     },
+    "public.team_enrollments": {
+      "name": "team_enrollments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "invite_id": {
+          "name": "invite_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_hash": {
+          "name": "idempotency_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invite_role": {
+          "name": "invite_role",
+          "type": "team_invite_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "membership_granted_at": {
+          "name": "membership_granted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "issued_key_id": {
+          "name": "issued_key_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "team_enrollments_agent_request_idx": {
+          "name": "team_enrollments_agent_request_idx",
+          "columns": [
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "team_enrollments_invite_agent_idx": {
+          "name": "team_enrollments_invite_agent_idx",
+          "columns": [
+            {
+              "expression": "invite_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "team_enrollments_agent_id_agents_id_fk": {
+          "name": "team_enrollments_agent_id_agents_id_fk",
+          "tableFrom": "team_enrollments",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "agent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "team_enrollments_team_id_teams_id_fk": {
+          "name": "team_enrollments_team_id_teams_id_fk",
+          "tableFrom": "team_enrollments",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "team_enrollments_membership_pair": {
+          "name": "team_enrollments_membership_pair",
+          "value": "(\"team_enrollments\".\"role\" IS NULL) = (\"team_enrollments\".\"membership_granted_at\" IS NULL)"
+        },
+        "team_enrollments_issuance_order": {
+          "name": "team_enrollments_issuance_order",
+          "value": "\"team_enrollments\".\"issued_key_id\" IS NULL OR \"team_enrollments\".\"membership_granted_at\" IS NOT NULL"
+        },
+        "team_enrollments_role": {
+          "name": "team_enrollments_role",
+          "value": "\"team_enrollments\".\"role\" IS NULL OR \"team_enrollments\".\"role\" IN ('owner', 'manager', 'executor', 'member')"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.team_invites": {
       "name": "team_invites",
       "schema": "",
@@ -6891,8 +7023,7 @@
         "tool_call_end",
         "turn_end",
         "error",
-        "info",
-        "tool_policy_decision"
+        "info"
       ]
     },
     "public.task_status": {
