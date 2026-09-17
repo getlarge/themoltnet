@@ -366,11 +366,18 @@ export function buildAgentServer(
       // Claiming an origin is free; proving the grant is not. An unauthenticated
       // caller asserting the native origin must not share the desktop client's
       // budget, or any local process could deny it service without ever holding
-      // the token. Presence of a token is enough to separate the buckets —
-      // whether it verifies is the route guard's job.
+      // the token. Verify before choosing the authenticated bucket: arbitrary
+      // non-empty values must stay in the bounded pre-auth bucket.
       const presented = request.headers[AGENT_SERVER_TOKEN_HEADER];
-      const authenticated =
-        typeof presented === 'string' && presented.length > 0;
+      let authenticated = false;
+      if (typeof presented === 'string' && presented.length > 0) {
+        try {
+          pairing.verify(origin, presented);
+          authenticated = true;
+        } catch (error) {
+          if (!(error instanceof AgentServerPairingError)) throw error;
+        }
+      }
       return authenticated
         ? `origin:${origin}`
         : `unauth:${origin}:${request.ip}`;

@@ -61,6 +61,37 @@ describe('native desktop client', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('does not let a guessed token exhaust the native client rate limit', async () => {
+    // Arrange
+    const pairing = new PairingService();
+    pairing.grantNative('supervisor-token');
+    const { app } = await fixture({ pairing, rateLimitMax: 1 });
+
+    // Act: a local process spends the pre-auth budget with a non-empty guess.
+    const guessed = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: NATIVE_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'guessed',
+      },
+    });
+    const authorized = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: NATIVE_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+      },
+    });
+
+    // Assert: the valid desktop request has an independent budget.
+    expect(guessed.statusCode).toBe(401);
+    expect(authorized.statusCode).toBe(200);
+  });
+
   it('does not let a browser origin reuse the native token', async () => {
     // Arrange
     const pairing = new PairingService();
