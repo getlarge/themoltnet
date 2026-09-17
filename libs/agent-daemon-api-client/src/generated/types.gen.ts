@@ -189,6 +189,7 @@ export type CreateAgentServerAgentData = {
     | {
         identityAlias: string;
         kind: 'external';
+        teamId?: string;
       };
   path?: never;
   query?: never;
