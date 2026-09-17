@@ -147,6 +147,57 @@ describe('agent key service', () => {
     expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
 
+  it('revokes before returning when membership disappears during issuance', async () => {
+    relationshipReader.isTeamMember
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey(),
+      secret: 'must-not-escape',
+    });
+    await expect(
+      service.issueEnrollment({ grant: enrollment, logger }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ keyId: KEY_ID }),
+      expect.anything(),
+    );
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(
+      'must-not-escape',
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+      'must-not-escape',
+    );
+  });
+
+  it('bounds Talos issuance with a service-owned deadline and records timeout without secrets', async () => {
+    const controller = new AbortController();
+    const timeout = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(controller.signal);
+    talosApi.adminIssueApiKey.mockImplementation(async (_request, init) => {
+      controller.abort(new DOMException('deadline', 'TimeoutError'));
+      init.signal.throwIfAborted();
+    });
+    try {
+      await expect(
+        service.issueEnrollment({ grant: enrollment, logger }),
+      ).rejects.toMatchObject({ statusCode: 502 });
+      expect(timeout).toHaveBeenCalledWith(30_000);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inviteId: enrollment.inviteId,
+          agentId: AGENT_ID,
+          teamId: TEAM_ID,
+          failureKind: 'timeout',
+        }),
+        'agent_key.upstream_error',
+      );
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
   it('revokes a malformed enrollment grant before returning a secret', async () => {
     talosApi.adminIssueApiKey.mockResolvedValue({
       issued_api_key: issuedKey({ scopes: ['key:manage'] }),

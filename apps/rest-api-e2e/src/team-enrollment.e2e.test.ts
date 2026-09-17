@@ -119,7 +119,7 @@ async function talosKeys(agentId: string, teamId: string) {
 
 // Run the real membership workflow without issuing a key, as if the HTTP
 // process stopped between its durable membership result and the Talos request.
-async function prepareMembership(
+async function prepareOwnerMembership(
   invite: { id: string; code: string },
   idempotencyKey: string,
 ) {
@@ -244,7 +244,7 @@ describe('team enrollment', () => {
   it('resumes an accepted claim after its invitation has been deleted', async () => {
     const invite = await invitation();
     const idempotencyKey = randomUUID();
-    await prepareMembership(invite, idempotencyKey);
+    await prepareOwnerMembership(invite, idempotencyKey);
     await deleteTeamInvite({
       client,
       auth: () => owner.accessToken,
@@ -334,10 +334,57 @@ describe('team enrollment', () => {
     },
   );
 
+  it('retries the durable grant after a failure before Talos creates a credential', async () => {
+    const invite = await invitation();
+    const idempotencyKey = randomUUID();
+    await prepareOwnerMembership(invite, idempotencyKey);
+    const api = harness.oryClients.apiKeys!;
+    const service = createAgentKeyService({
+      agentRepository: createAgentRepository(harness.db),
+      permissionChecker: createPermissionChecker(harness.oryClients.permission),
+      relationshipReader: createRelationshipReader(
+        harness.oryClients.relationshipRead,
+      ),
+      talosApi: {
+        adminIssueApiKey: async () => {
+          throw new Error('injected failure before issuance');
+        },
+        adminGetIssuedApiKey: api.adminGetIssuedApiKey.bind(api),
+        adminListIssuedApiKeys: api.adminListIssuedApiKeys.bind(api),
+        adminRevokeIssuedApiKey: api.adminRevokeIssuedApiKey.bind(api),
+        adminRotateIssuedApiKey: api.adminRotateIssuedApiKey.bind(api),
+      },
+    });
+    await expect(
+      service.issueEnrollment({
+        grant: {
+          inviteId: invite.id,
+          agentId: owner.agentId,
+          teamId: invite.teamId,
+        },
+        logger: { debug() {}, info() {}, warn() {} },
+      }),
+    ).rejects.toMatchObject({ statusCode: 502 });
+    expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(0);
+    expect(await usage(invite.id)).toBe(true);
+    const retried = await enroll(
+      invite.code,
+      idempotencyKey,
+      owner.accessToken,
+    );
+    expect(retried.response.status).toBe(200);
+    expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(1);
+    expect(
+      (await enroll(invite.code, idempotencyKey, owner.accessToken)).response
+        .status,
+    ).toBe(409);
+    expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(1);
+  });
+
   it('returns 409 after a lost Talos issuance response without rotating or consuming again', async () => {
     const invite = await invitation();
     const idempotencyKey = randomUUID();
-    await prepareMembership(invite, idempotencyKey);
+    await prepareOwnerMembership(invite, idempotencyKey);
     const grant = {
       inviteId: invite.id,
       agentId: owner.agentId,

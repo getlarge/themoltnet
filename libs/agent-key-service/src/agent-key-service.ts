@@ -454,7 +454,6 @@ async function revokeInvalidIssuedKey(
   } catch (error) {
     logger.warn(
       {
-        err: error,
         action: `${action}:cleanup`,
         failureKind: talosFailureKind(error, cleanupSignal),
         keyId: key.key_id,
@@ -469,7 +468,11 @@ function talosFailureKind(
   error: unknown,
   signal: AbortSignal | undefined,
 ): 'cancelled' | 'timeout' | 'upstream' {
-  if (signal?.aborted) return 'cancelled';
+  if (signal?.aborted)
+    return signal.reason instanceof Error &&
+      signal.reason.name === 'TimeoutError'
+      ? 'timeout'
+      : 'cancelled';
   if (typeof error !== 'object' || error === null) return 'upstream';
   const candidate = error as {
     name?: unknown;
@@ -798,10 +801,167 @@ async function scanAgentKeyPages(
   };
 }
 
+/** Shared Talos transport, validation and cleanup. Authorization stays at each entry point. */
+async function issueAndValidate(
+  deps: AgentKeyServiceDeps,
+  input: {
+    agentId: string;
+    binding: ResolvedAgentKeyBinding;
+    name: string;
+    requestId: string;
+    ttlDays: number;
+    scopes: string[];
+    logger: Logger;
+    signal?: AbortSignal;
+    recoverReplayByRotation?: boolean;
+    inviteId?: string;
+  },
+): Promise<{ key: AgentKey; secret?: string }> {
+  const api = getTalosApi(deps);
+  const signal = input.signal
+    ? AbortSignal.any([input.signal, AbortSignal.timeout(30_000)])
+    : AbortSignal.timeout(30_000);
+  const context = {
+    action: input.inviteId ? 'enrollment' : 'issue',
+    agentId: input.agentId,
+    ...bindingLogFields(input.binding),
+    ...(input.inviteId ? { inviteId: input.inviteId } : {}),
+  };
+  let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
+  try {
+    result = await api.adminIssueApiKey(
+      {
+        issueApiKeyRequest: {
+          actor_id: input.agentId,
+          name: input.name,
+          request_id: input.requestId,
+          ttl: `${input.ttlDays * SECONDS_PER_DAY}s`,
+          visibility: KeyVisibility.KeyVisibilitySecret,
+          scopes: input.scopes,
+          metadata: agentKeyMetadata(input.binding),
+        },
+      },
+      talosInit(signal),
+    );
+    if (
+      result.issued_api_key &&
+      !result.secret &&
+      input.recoverReplayByRotation
+    ) {
+      const replayed = toAgentKey(result.issued_api_key);
+      if (
+        replayed.agentId !== input.agentId ||
+        !bindingsEqual(replayed, input.binding)
+      )
+        throw createProblem(
+          'upstream-error',
+          'Talos returned an invalid replay binding',
+        );
+      result = await api.adminRotateIssuedApiKey(
+        {
+          keyId: replayed.id,
+          adminRotateIssuedApiKeyBody: {
+            metadata: agentKeyMetadata(input.binding),
+            scopes: input.scopes,
+            visibility: KeyVisibility.KeyVisibilitySecret,
+          },
+        },
+        talosInit(signal),
+      );
+      input.logger.warn(context, 'agent_key.idempotency_replay_rotated');
+    }
+  } catch (error) {
+    input.logger.warn(
+      { ...context, failureKind: talosFailureKind(error, signal) },
+      'agent_key.upstream_error',
+    );
+    throw createProblem(
+      'upstream-error',
+      'Key issuance was interrupted; retry with the same Idempotency-Key',
+    );
+  }
+  if (!result.issued_api_key) {
+    input.logger.warn(context, 'agent_key.malformed_upstream_row');
+    throw createProblem(
+      'upstream-error',
+      'Talos did not return the issued key identifier',
+    );
+  }
+  let key: AgentKey;
+  try {
+    key = toAgentKey(result.issued_api_key);
+    // A replay may carry a prior scope preset; it never returns a new secret.
+    if (
+      key.agentId !== input.agentId ||
+      !bindingsEqual(key, input.binding) ||
+      (Boolean(result.secret) &&
+        !credentialScopeSetsEqual(key.scopes, input.scopes))
+    ) {
+      throw createProblem(
+        'upstream-error',
+        'Talos returned an invalid issued key',
+      );
+    }
+  } catch {
+    input.logger.warn(
+      { ...context, keyId: result.issued_api_key.key_id },
+      'agent_key.malformed_upstream_row',
+    );
+    await revokeInvalidIssuedKey(
+      api,
+      result.issued_api_key,
+      { agentId: input.agentId, ...input.binding },
+      input.logger,
+      'issue',
+    );
+    throw createProblem(
+      'upstream-error',
+      'Talos returned an invalid issued agent key',
+    );
+  }
+  if (input.binding.bindingScope === 'team') {
+    try {
+      await assertCurrentAgentMember(deps, input.binding.teamId, input.agentId);
+    } catch (error) {
+      // Never return the secret after membership disappears during issuance.
+      await revokeInvalidIssuedKey(
+        api,
+        result.issued_api_key,
+        { agentId: input.agentId, ...input.binding },
+        input.logger,
+        'issue',
+      );
+      input.logger.warn(
+        { ...context, keyId: key.id },
+        'agent_key.membership_changed',
+      );
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'statusCode' in error &&
+        error.statusCode === 400
+      )
+        throw error;
+      throw createProblem(
+        'upstream-error',
+        'Could not verify membership after issuance',
+      );
+    }
+  }
+  input.logger.info(
+    {
+      ...context,
+      keyId: key.id,
+      outcome: result.secret ? 'issued' : 'replayed',
+    },
+    'agent_key.lifecycle',
+  );
+  return { key, ...(result.secret ? { secret: result.secret } : {}) };
+}
+
 export function createAgentKeyService(deps: AgentKeyServiceDeps) {
   return {
     async issue(input: IssueAgentKeyInput): Promise<AgentKeyWithSecret> {
-      const api = getTalosApi(deps);
       const binding = resolveBinding(input);
       const ttlDays = input.ttlDays ?? DEFAULT_TTL_DAYS;
       const scopes = input.scopes ?? [...AGENT_CREDENTIAL_SCOPES];
@@ -828,131 +988,23 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         );
       }
 
-      let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
-      try {
-        result = await api.adminIssueApiKey(
-          {
-            issueApiKeyRequest: {
-              actor_id: input.agentId,
-              name,
-              request_id: talosRequestId(input, binding),
-              ttl: `${ttlDays * SECONDS_PER_DAY}s`,
-              visibility: KeyVisibility.KeyVisibilitySecret,
-              scopes,
-              metadata: agentKeyMetadata(binding),
-            },
-          },
-          talosInit(input.signal),
-        );
-      } catch (error) {
-        input.logger.warn(
-          {
-            err: error,
-            action: 'issue',
-            agentId: input.agentId,
-            failureKind: talosFailureKind(error, input.signal),
-            ...bindingLogFields(binding),
-          },
-          'agent_key.upstream_error',
-        );
-        throw createProblem('upstream-error', 'Failed to issue agent key');
-      }
-      if (
-        result.issued_api_key &&
-        !result.secret &&
-        input.recoverReplayByRotation
-      ) {
-        const replayedKey = toAgentKey(result.issued_api_key);
-        result = await api.adminRotateIssuedApiKey(
-          {
-            keyId: replayedKey.id,
-            adminRotateIssuedApiKeyBody: {
-              metadata: agentKeyMetadata(binding),
-              scopes,
-              visibility: KeyVisibility.KeyVisibilitySecret,
-            },
-          },
-          talosInit(input.signal),
-        );
-        input.logger.warn(
-          {
-            action: 'issue:replay-recovered',
-            keyId: replayedKey.id,
-            agentId: input.agentId,
-            ...bindingLogFields(binding),
-          },
-          'agent_key.idempotency_replay_rotated',
-        );
-      }
-      if (result.issued_api_key && !result.secret) {
-        input.logger.warn(
-          {
-            action: 'issue:replay',
-            keyId: result.issued_api_key.key_id,
-            agentId: input.agentId,
-            ...bindingLogFields(binding),
-          },
-          'agent_key.idempotency_replay',
-        );
+      const result = await issueAndValidate(deps, {
+        agentId: input.agentId,
+        binding,
+        name,
+        ttlDays,
+        scopes,
+        requestId: talosRequestId(input, binding),
+        logger: input.logger,
+        signal: input.signal,
+        recoverReplayByRotation: input.recoverReplayByRotation,
+      });
+      if (!result.secret)
         throw createProblem(
           'conflict',
           'This idempotency key already issued an agent key. The original secret cannot be recovered; rotate or revoke the listed key.',
         );
-      }
-      if (!result.issued_api_key || !result.secret) {
-        throw createProblem(
-          'upstream-error',
-          'Talos did not return the issued agent key secret',
-        );
-      }
-
-      let key: AgentKey;
-      try {
-        key = toAgentKey(result.issued_api_key);
-        if (
-          key.agentId !== input.agentId ||
-          !bindingsEqual(key, binding) ||
-          !credentialScopeSetsEqual(key.scopes, scopes)
-        ) {
-          throw new Error('Issued key binding or scopes changed');
-        }
-      } catch (error) {
-        input.logger.warn(
-          {
-            err: error,
-            action: 'issue:validate',
-            keyId: result.issued_api_key.key_id,
-            agentId: input.agentId,
-            ...bindingLogFields(binding),
-          },
-          'agent_key.malformed_upstream_row',
-        );
-        await revokeInvalidIssuedKey(
-          api,
-          result.issued_api_key,
-          { agentId: input.agentId, ...binding },
-          input.logger,
-          'issue',
-        );
-        throw createProblem(
-          'upstream-error',
-          'Talos returned an invalid issued agent key',
-        );
-      }
-      input.logger.info(
-        {
-          action: 'issue',
-          keyId: result.issued_api_key.key_id,
-          agentId: input.agentId,
-          ...bindingLogFields(binding),
-          ttlDays,
-        },
-        'agent_key.lifecycle',
-      );
-      return {
-        key,
-        secret: result.secret,
-      };
+      return { key: result.key, secret: result.secret };
     },
 
     /** Internal enrollment grant: the completed invite workflow authorizes this path. */
@@ -963,71 +1015,17 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
     }): Promise<{ key: AgentKey; secret?: string }> {
       const { grant, logger, signal } = input;
       await assertCurrentAgentMember(deps, grant.teamId, grant.agentId);
-      const api = getTalosApi(deps);
-      const binding = { bindingScope: 'team', teamId: grant.teamId } as const;
-      const scopes = [...AGENT_CREDENTIAL_SCOPES];
-      let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
-      try {
-        result = await api.adminIssueApiKey(
-          {
-            issueApiKeyRequest: {
-              actor_id: grant.agentId,
-              name: 'Team enrollment',
-              request_id: grant.inviteId,
-              ttl: `${DEFAULT_TTL_DAYS * SECONDS_PER_DAY}s`,
-              visibility: KeyVisibility.KeyVisibilitySecret,
-              scopes,
-              metadata: agentKeyMetadata(binding),
-            },
-          },
-          talosInit(signal),
-        );
-      } catch (error) {
-        logger.warn(
-          {
-            inviteId: grant.inviteId,
-            failureKind: talosFailureKind(error, signal),
-          },
-          'agent_key.enrollment_upstream_error',
-        );
-        throw createProblem(
-          'upstream-error',
-          'Enrollment issuance was interrupted; retry with the same Idempotency-Key',
-        );
-      }
-      if (!result.issued_api_key) {
-        throw createProblem(
-          'upstream-error',
-          'Talos did not return the enrollment key identifier',
-        );
-      }
-      let key: AgentKey;
-      try {
-        key = toAgentKey(result.issued_api_key);
-        if (
-          key.agentId !== grant.agentId ||
-          !bindingsEqual(key, binding) ||
-          (Boolean(result.secret) &&
-            !credentialScopeSetsEqual(key.scopes, scopes))
-        ) {
-          throw new Error('Enrollment key binding or scopes changed');
-        }
-      } catch {
-        await revokeInvalidIssuedKey(
-          api,
-          result.issued_api_key,
-          { agentId: grant.agentId, ...binding },
-          logger,
-          'issue',
-        );
-        throw createProblem(
-          'upstream-error',
-          'Talos returned an invalid enrollment key',
-        );
-      }
-      // Talos omits the secret on replay. Return its identifier,
-      // but never rotate to recover a secret or checkpoint this response in DBOS.
-      return { key, ...(result.secret ? { secret: result.secret } : {}) };
+      return issueAndValidate(deps, {
+        agentId: grant.agentId,
+        binding: { bindingScope: 'team', teamId: grant.teamId },
+        name: 'Team enrollment',
+        requestId: grant.inviteId,
+        inviteId: grant.inviteId,
+        ttlDays: DEFAULT_TTL_DAYS,
+        scopes: [...AGENT_CREDENTIAL_SCOPES],
+        logger,
+        signal,
+      });
     },
 
     async list(input: ListAgentKeysInput): Promise<{

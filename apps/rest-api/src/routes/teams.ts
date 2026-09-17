@@ -1091,6 +1091,7 @@ export function teamRoutes(
           404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ConflictProblemDetailsSchema.$id),
           410: Type.Ref(ProblemDetailsSchema.$id),
+          502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -1109,13 +1110,17 @@ export function teamRoutes(
             'service-unavailable',
             'Agent key management is not configured',
           );
-        const result = await enrollTeamAgent(fastify, keys, {
-          subjectId,
-          subjectNs: ns,
-          code,
-          idempotencyKey: request.headers['idempotency-key'],
-          signal: requestAbortSignal(request, reply),
-        });
+        const result = await enrollTeamAgent(
+          { teamRepository: fastify.teamRepository, log: request.log },
+          keys,
+          {
+            subjectId,
+            subjectNs: ns,
+            code,
+            idempotencyKey: request.headers['idempotency-key'],
+            signal: requestAbortSignal(request, reply),
+          },
+        );
         return reply
           .header('Cache-Control', 'no-store')
           .status(200)

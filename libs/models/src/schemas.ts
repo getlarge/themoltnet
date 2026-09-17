@@ -451,12 +451,7 @@ export const TeamDetailSchema = Type.Object({
 
 export const JoinTeamResponseSchema = Type.Object({
   teamId: UuidSchema,
-  role: Type.Union([
-    Type.Literal('owner'),
-    Type.Literal('manager'),
-    Type.Literal('executor'),
-    Type.Literal('member'),
-  ]),
+  role: TeamRoleSchema,
 });
 
 export const UpdateTeamMemberRoleResponseSchema = Type.Object({

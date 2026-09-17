@@ -2,14 +2,18 @@ import { createHash } from 'node:crypto';
 
 import type { AgentKeyService } from '@moltnet/agent-key-service';
 import { KetoNamespace } from '@moltnet/auth';
-import type { FastifyInstance } from 'fastify';
+import type { TeamRepository } from '@moltnet/database';
+import type { FastifyBaseLogger } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import { teamInviteWorkflow } from '../workflows/team-invite-workflow.js';
 
 /** Talos returns the secret directly to this request; DBOS never sees it. */
 export async function enrollTeamAgent(
-  app: FastifyInstance,
+  app: {
+    teamRepository: Pick<TeamRepository, 'findInviteByCode' | 'findById'>;
+    log: FastifyBaseLogger;
+  },
   keys: AgentKeyService,
   input: {
     subjectId: string;

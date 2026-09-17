@@ -1,4 +1,8 @@
-import { KetoNamespace, type TeamRole } from '@moltnet/auth';
+import {
+  KetoNamespace,
+  type TeamRole,
+  type TeamInviteRole,
+} from '@moltnet/auth';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -58,7 +62,7 @@ beforeEach(() => {
 function grantMembership() {
   return dbos.registerStep.mock.results[0].value as (
     input: RedeemTeamInvite,
-    grant: { teamId: string; role: 'member' },
+    grant: { teamId: string; role: TeamInviteRole },
   ) => Promise<TeamRole>;
 }
 
@@ -77,6 +81,20 @@ describe('invite workflow enrollment mode', () => {
       expect(
         await grantMembership()(input, { teamId: 'team', role: 'member' }),
       ).toBe(role);
+      for (const write of Object.values(writer))
+        expect(write).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['manager', 'executor'] as const)(
+    'does not promote an existing member with a %s enrollment invitation',
+    async (role) => {
+      reader.listTeamMembers.mockResolvedValue([
+        { subjectId: 'agent', subjectNs: 'Agent', relation: 'members' },
+      ]);
+      expect(await grantMembership()(input, { teamId: 'team', role })).toBe(
+        'member',
+      );
       for (const write of Object.values(writer))
         expect(write).not.toHaveBeenCalled();
     },
