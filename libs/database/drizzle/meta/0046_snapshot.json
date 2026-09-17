@@ -6333,6 +6333,20 @@
           "primaryKey": false,
           "notNull": false
         },
+        "max_uses": {
+          "name": "max_uses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "use_count": {
+          "name": "use_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "creator_agent_id": {
           "name": "creator_agent_id",
           "type": "uuid",
