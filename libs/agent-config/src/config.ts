@@ -13,6 +13,8 @@ import {
 import { homedir } from 'node:os';
 import { basename, dirname, join, sep } from 'node:path';
 
+import { withConfigLock } from './config-lock.js';
+
 export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
 }
@@ -78,8 +80,8 @@ export function identitySeedKey(fingerprint: string): string {
   return `identity/${fingerprint}/seed`;
 }
 
-export function agentKeyKey(subjectId: string): string {
-  return `agent-key/${subjectId}`;
+export function agentKeyKey(subjectId: string, teamId?: string): string {
+  return `agent-key/${subjectId}${teamId ? `/${teamId}` : ''}`;
 }
 
 interface MoltNetConfigBase {
@@ -120,9 +122,17 @@ export type MoltNetConfigAnchor =
  * A canonical profile must contain at least one authentication mechanism.
  * Profiles may contain both during credential transitions.
  */
-type MoltNetAuthenticationConfig =
-  | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
-  | { agent_key_ref?: SecretReference; oauth2: OAuth2Config };
+export interface AgentKeyConfiguration {
+  agent_key_ref?: SecretReference;
+  agent_key_refs?: Record<string, SecretReference>;
+}
+
+type MoltNetAuthenticationConfig = AgentKeyConfiguration &
+  (
+    | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
+    | { agent_key_refs: Record<string, SecretReference>; oauth2?: OAuth2Config }
+    | { oauth2: OAuth2Config }
+  );
 
 export type MoltNetConfig = MoltNetConfigBase &
   CanonicalMoltNetConfigAnchor &
@@ -344,6 +354,19 @@ export async function writeConfig(
   configDir?: string,
   options: WriteConfigOptions = {},
 ): Promise<string> {
+  const path = await resolveConfigPath(configDir);
+  if (!path)
+    throw new Error('no active identity selected before writing config');
+  return withConfigLock(path, () =>
+    writeConfigUnlocked(config, dirname(path), options),
+  );
+}
+
+async function writeConfigUnlocked(
+  config: MoltNetConfig,
+  configDir?: string,
+  options: WriteConfigOptions = {},
+): Promise<string> {
   assertCanonicalConfig(config);
   const dir = await resolveConfigDir(configDir);
   if (!dir) {
@@ -419,6 +442,24 @@ async function linkExclusive(
   await handle.close();
 }
 
+/** Reload and mutate inside the shared writer lock; unknown fields survive. */
+export async function updateConfig(
+  mutate: (config: MoltNetConfig) => void | Promise<void>,
+  configDir?: string,
+): Promise<void> {
+  const path = await resolveConfigPath(configDir);
+  if (!path) throw new Error('No config found — run `moltnet register` first');
+  const dir = dirname(path);
+  await withConfigLock(path, async () => {
+    const config = await readConfig(dir);
+    if (!config)
+      throw new Error('No config found — run `moltnet register` first');
+    assertCanonicalConfig(config);
+    await mutate(config);
+    await writeConfigUnlocked(config, dir);
+  });
+}
+
 export async function updateConfigSection(
   section: keyof MoltNetConfig,
   data: object,
@@ -461,17 +502,11 @@ export async function updateConfigSection(
     }
     return updateGitHubConfig(github as GitHubConfig, configDir);
   }
-  const config = await readConfig(configDir);
-  if (!config) {
-    throw new Error('No config found — run `moltnet register` first');
-  }
-  assertCanonicalConfig(config);
-  const existing =
-    (config[section] as Record<string, unknown> | undefined) ?? {};
-  Object.assign(config, {
-    [section]: { ...existing, ...(data as Record<string, unknown>) },
-  });
-  await writeConfig(config, configDir);
+  await updateConfig((config) => {
+    const existing =
+      (config[section] as Record<string, unknown> | undefined) ?? {};
+    Object.assign(config, { [section]: { ...existing, ...data } });
+  }, configDir);
 }
 
 /** Replace the OAuth2 union atomically so the opposite secret form is removed. */
@@ -479,11 +514,6 @@ export async function updateOAuth2Config(
   oauth2: OAuth2Config,
   configDir?: string,
 ): Promise<void> {
-  const config = await readConfig(configDir);
-  if (!config) {
-    throw new Error('No config found — run `moltnet register` first');
-  }
-  assertCanonicalConfig(config);
   const plaintext = oauth2.client_secret?.trim();
   const reference = oauth2.client_secret_ref;
   if (!oauth2.client_id.trim() || Boolean(plaintext) === Boolean(reference)) {
@@ -491,8 +521,9 @@ export async function updateOAuth2Config(
       'OAuth2 config must set client_id and exactly one of client_secret or client_secret_ref',
     );
   }
-  config.oauth2 = oauth2;
-  await writeConfig(config, configDir);
+  await updateConfig((config) => {
+    config.oauth2 = oauth2;
+  }, configDir);
 }
 
 /** Replace the keys union atomically so the opposite seed form is removed. */
@@ -500,11 +531,6 @@ export async function updateKeysConfig(
   keys: KeysConfig,
   configDir?: string,
 ): Promise<void> {
-  const config = await readConfig(configDir);
-  if (!config) {
-    throw new Error('No config found — run `moltnet register` first');
-  }
-  assertCanonicalConfig(config);
   const plaintext = keys.private_key?.trim();
   const reference = keys.private_key_ref;
   if (!keys.public_key.trim() || Boolean(plaintext) === Boolean(reference)) {
@@ -512,8 +538,9 @@ export async function updateKeysConfig(
       'Keys config must set public_key and exactly one of private_key or private_key_ref',
     );
   }
-  config.keys = keys;
-  await writeConfig(config, configDir);
+  await updateConfig((config) => {
+    config.keys = keys;
+  }, configDir);
 }
 
 /** Replace the GitHub union atomically so the opposite PEM form is removed. */
@@ -521,11 +548,6 @@ export async function updateGitHubConfig(
   github: GitHubConfig,
   configDir?: string,
 ): Promise<void> {
-  const config = await readConfig(configDir);
-  if (!config) {
-    throw new Error('No config found — run `moltnet register` first');
-  }
-  assertCanonicalConfig(config);
   const path = github.private_key_path?.trim();
   const reference = github.private_key_ref;
   if (!github.app_id.trim() || Boolean(path) === Boolean(reference)) {
@@ -533,6 +555,7 @@ export async function updateGitHubConfig(
       'GitHub config must set app_id and exactly one of private_key_path or private_key_ref',
     );
   }
-  config.github = github;
-  await writeConfig(config, configDir);
+  await updateConfig((config) => {
+    config.github = github;
+  }, configDir);
 }

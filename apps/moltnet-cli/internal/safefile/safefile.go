@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/gofrs/flock"
 	"github.com/natefinch/atomic"
@@ -21,8 +22,9 @@ const PrivateMode os.FileMode = 0o600
 
 // Lock holds the cooperative lock for one file resource.
 type Lock struct {
-	file *flock.Flock
-	path string
+	file            *flock.Flock
+	path            string
+	writerDirectory string
 }
 
 // Acquire serializes CLI writers that target path.
@@ -35,7 +37,16 @@ func Acquire(path string) (*Lock, error) {
 	if err != nil {
 		return nil, err
 	}
-	return acquire(canonical+".lock", absolute)
+	lock, err := acquire(canonical+".lock", absolute)
+	if err != nil {
+		return nil, err
+	}
+	lock.writerDirectory, err = acquireWriterDirectory(absolute, 5*time.Second)
+	if err != nil {
+		_ = lock.Close()
+		return nil, err
+	}
+	return lock, nil
 }
 
 // AcquireNamed serializes access to a non-file resource, such as a provider
@@ -104,9 +115,11 @@ func (l *Lock) Close() error {
 	if l == nil || l.file == nil {
 		return nil
 	}
+	directoryErr := releaseWriterDirectory(l.writerDirectory)
+	l.writerDirectory = ""
 	err := l.file.Close()
 	l.file = nil
-	return err
+	return errors.Join(directoryErr, err)
 }
 
 // Replace verifies the expected contents while the caller holds the resource

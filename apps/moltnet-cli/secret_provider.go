@@ -40,6 +40,7 @@ type credentialBindingIDs struct {
 	LegacyIdentityID string
 	ClientID         string
 	Fingerprint      string
+	TeamID           string
 }
 
 // secretReferenceBinding describes which reference keys may resolve one
@@ -77,6 +78,10 @@ func IdentitySeedKey(fingerprint string) string {
 // AgentKeyKey returns the stable provider key for an agent's team-bound key.
 func AgentKeyKey(subjectID string) string {
 	return "agent-key/" + subjectID
+}
+
+func TeamAgentKeyKey(subjectID, teamID string) string {
+	return AgentKeyKey(subjectID) + "/" + teamID
 }
 
 var secretProviderNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -125,6 +130,9 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 	case credentialAgentKey:
 		if subjectID == "" {
 			return "", fmt.Errorf("credential binding requires subject_id")
+		}
+		if ids.TeamID != "" {
+			return TeamAgentKeyKey(subjectID, ids.TeamID), nil
 		}
 		return AgentKeyKey(subjectID), nil
 	}

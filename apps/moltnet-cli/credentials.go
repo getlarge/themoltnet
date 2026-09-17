@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
@@ -14,17 +15,19 @@ type SubjectType string
 const SubjectTypeAgent SubjectType = "agent"
 
 type CredentialsFile struct {
-	SubjectID        string               `json:"subject_id,omitempty"`
-	SubjectType      SubjectType          `json:"subject_type,omitempty"`
-	AgentKeyRef      *SecretReference     `json:"agent_key_ref,omitempty"`
-	OAuth2           CredentialsOAuth2    `json:"oauth2"`
-	Keys             CredentialsKeys      `json:"keys"`
-	Endpoints        CredentialsEndpoints `json:"endpoints"`
-	RegisteredAt     string               `json:"registered_at"`
-	SSH              *SSHSection          `json:"ssh,omitempty"`
-	Git              *GitSection          `json:"git,omitempty"`
-	GitHub           *GitHubSection       `json:"github,omitempty"`
+	SubjectID        string                     `json:"subject_id,omitempty"`
+	SubjectType      SubjectType                `json:"subject_type,omitempty"`
+	AgentKeyRef      *SecretReference           `json:"agent_key_ref,omitempty"`
+	AgentKeyRefs     map[string]SecretReference `json:"agent_key_refs,omitempty"`
+	OAuth2           CredentialsOAuth2          `json:"oauth2"`
+	Keys             CredentialsKeys            `json:"keys"`
+	Endpoints        CredentialsEndpoints       `json:"endpoints"`
+	RegisteredAt     string                     `json:"registered_at"`
+	SSH              *SSHSection                `json:"ssh,omitempty"`
+	Git              *GitSection                `json:"git,omitempty"`
+	GitHub           *GitHubSection             `json:"github,omitempty"`
 	legacyIdentityID string
+	extraFields      map[string]json.RawMessage
 }
 
 func (c *CredentialsFile) CanonicalSubject() (string, bool) {
@@ -49,6 +52,21 @@ func (c *CredentialsFile) UnmarshalJSON(data []byte) error {
 	}
 	*c = CredentialsFile(document.canonicalCredentials)
 	c.legacyIdentityID = document.IdentityID
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	shape := reflect.TypeOf(*c)
+	for i := 0; i < shape.NumField(); i++ {
+		field := shape.Field(i)
+		if field.PkgPath == "" {
+			delete(raw, strings.Split(field.Tag.Get("json"), ",")[0])
+		}
+	}
+	delete(raw, "identity_id")
+	if len(raw) > 0 {
+		c.extraFields = raw
+	}
 	return nil
 }
 
@@ -58,13 +76,27 @@ func (c *CredentialsFile) UnmarshalJSON(data []byte) error {
 // would make the document impossible to authenticate or migrate.
 func (c CredentialsFile) MarshalJSON() ([]byte, error) {
 	type canonicalCredentials CredentialsFile
-	if c.legacyIdentityID == "" {
-		return json.Marshal(canonicalCredentials(c))
+	encoded, err := json.Marshal(canonicalCredentials(c))
+	if err != nil {
+		return nil, err
 	}
-	return json.Marshal(struct {
-		canonicalCredentials
-		IdentityID string `json:"identity_id"`
-	}{canonicalCredentials(c), c.legacyIdentityID})
+	var document map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &document); err != nil {
+		return nil, err
+	}
+	for key, value := range c.extraFields {
+		if _, known := document[key]; !known {
+			document[key] = value
+		}
+	}
+	if c.legacyIdentityID != "" {
+		identity, err := json.Marshal(c.legacyIdentityID)
+		if err != nil {
+			return nil, err
+		}
+		document["identity_id"] = identity
+	}
+	return json.Marshal(document)
 }
 
 type CredentialsOAuth2 struct {
