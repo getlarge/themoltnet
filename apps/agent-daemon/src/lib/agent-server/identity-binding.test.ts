@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,7 +17,6 @@ afterEach(() => {
 function identityDir(env?: string): string {
   const dir = mkdtempSync(join(tmpdir(), 'identity-'));
   dirs.push(dir);
-  mkdirSync(dir, { recursive: true });
   if (env !== undefined) writeFileSync(join(dir, 'env'), env);
   return dir;
 }

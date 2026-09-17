@@ -1997,6 +1997,7 @@ describe('run catalogue', () => {
           revision: 7,
           definitionCid: 'bafy-test',
           requiredEnv: [],
+          requiredTools: [],
           requiredExecutables: [],
         },
       ]),

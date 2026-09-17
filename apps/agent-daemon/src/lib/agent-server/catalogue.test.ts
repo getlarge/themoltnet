@@ -35,6 +35,7 @@ function port(overrides: Partial<CatalogueAgentPort> = {}): CatalogueAgentPort {
                 revision: 7,
                 definitionCid: 'bafyreih5k2qz7x4m9wnd3tvu6ge8sc1prbjyloa',
                 requiredEnv: ['ANTHROPIC_API_KEY'],
+                requiredTools: [],
                 requiredExecutables: [],
               },
             ]

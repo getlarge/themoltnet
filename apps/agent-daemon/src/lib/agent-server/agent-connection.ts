@@ -37,11 +37,24 @@ export async function connectActivatedAgent(
   const { activated, onMissingKey, connectImpl = connect } = options;
   const { activation, config } = activated;
   const managed = activation.source === 'managed';
-  const agentKey = await resolveAgentKey(
-    config,
-    managed ? options.secretProviders : options.externalSecretProviders,
-    options.teamId ?? activation.boundTeamId,
-  );
+  // `resolveAgentKey` throws when the reference cannot be read and returns
+  // null when there is none to read. Both mean the same thing to a caller —
+  // this identity cannot authenticate — and without mapping them the operator
+  // sees a generic failure instead of which identity is unusable.
+  let agentKey: string | null;
+  try {
+    agentKey = await resolveAgentKey(
+      config,
+      managed ? options.secretProviders : options.externalSecretProviders,
+      options.teamId ?? activation.boundTeamId,
+    );
+  } catch (cause) {
+    throw onMissingKey(
+      `${managed ? 'managed' : 'external'} agent "${activation.alias}" has no usable agent key: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+    );
+  }
   if (!agentKey) {
     throw onMissingKey(
       `${managed ? 'managed' : 'external'} agent "${activation.alias}" has no agent key`,

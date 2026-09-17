@@ -16,6 +16,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { parse as parseEnv } from 'dotenv';
+
 export interface IdentityDefaultBinding {
   teamId?: string;
   diaryId?: string;
@@ -31,30 +33,12 @@ export function readIdentityDefaultBinding(
     // An absent or unreadable default is not a reason to fail the catalogue.
     return {};
   }
-  const env = parseEnvFile(contents);
-  const teamId = env.get('MOLTNET_TEAM_ID');
-  const diaryId = env.get('MOLTNET_DIARY_ID');
+  // The Go CLI reads this same file with `godotenv.Read`. Using the dotenv
+  // parser rather than a hand-rolled one keeps the daemon from resolving a
+  // different identity default than the CLI does from identical bytes.
+  const env = parseEnv(contents);
+  const teamId = env['MOLTNET_TEAM_ID']?.trim();
+  const diaryId = env['MOLTNET_DIARY_ID']?.trim();
   if (!teamId || !diaryId) return {};
   return { teamId, diaryId };
-}
-
-function parseEnvFile(contents: string): Map<string, string> {
-  const values = new Map<string, string>();
-  for (const rawLine of contents.split('\n')) {
-    const line = rawLine.trim();
-    if (line.length === 0 || line.startsWith('#')) continue;
-    const separator = line.indexOf('=');
-    if (separator === -1) continue;
-    const key = line.slice(0, separator).trim();
-    const value = unquote(line.slice(separator + 1).trim());
-    if (key.length > 0 && value.length > 0) values.set(key, value);
-  }
-  return values;
-}
-
-function unquote(value: string): string {
-  const quoted =
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"));
-  return quoted && value.length >= 2 ? value.slice(1, -1) : value;
 }

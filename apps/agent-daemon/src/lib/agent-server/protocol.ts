@@ -1,5 +1,5 @@
-import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { RuntimeProfile } from '@moltnet/runtime-profiles';
+import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
@@ -115,6 +115,7 @@ export const AgentServerCatalogueProfileSchema = Type.Intersect(
       'revision',
       'definitionCid',
       'requiredEnv',
+      'requiredTools',
       'requiredExecutables',
     ]),
     Type.Object({

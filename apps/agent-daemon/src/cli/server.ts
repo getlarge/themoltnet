@@ -18,7 +18,10 @@ import {
   AgentServerLockError,
   withAgentServerLock,
 } from '../lib/agent-server/lock.js';
-import { applyNativeClientGrant } from '../lib/agent-server/native-grant.js';
+import {
+  applyNativeClientGrant,
+  NATIVE_TOKEN_ENV,
+} from '../lib/agent-server/native-grant.js';
 import { PairingService } from '../lib/agent-server/pairing.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
@@ -115,6 +118,18 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             pairing,
             env: processEnvSnapshot(),
           });
+          if (Boolean(values.supervised) && !nativeClient) {
+            // A supervised server exists to be driven by the desktop app. With
+            // no grant it passes its health check and rejects every control
+            // request, which looks like a desktop bug rather than a missing
+            // token. Refuse to start instead of appearing healthy.
+            console.error(
+              `A supervised Agent Server requires ${NATIVE_TOKEN_ENV}. ` +
+                'Start it from MoltNet Agent, or omit --supervised to run it ' +
+                'for browser pairing only.',
+            );
+            return 1;
+          }
           const shutdownController = new AbortController();
           const subscriptions = await ProviderLoginService.create({
             authPath: store.piAuthJsonPath,
@@ -126,13 +141,16 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             secretProviders,
             logger,
           });
+          // One instance, so what a run can execute and what the catalogue
+          // advertises as runnable cannot disagree.
+          const runtimeRegistry = new RuntimeRegistry(store.root);
           const runs = new RunManager({
             store,
             secretProviders,
             externalSecretProviders,
             baseEnv: processEnvSnapshot(),
             logger,
-            runtimeRegistry: new RuntimeRegistry(store.root),
+            runtimeRegistry,
             runtimeSettings,
           });
           const tls = isMacos() ? await ensureTrustedLocalTls(root) : undefined;
@@ -146,6 +164,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             runs,
             subscriptions,
             providers,
+            runtimeRegistry,
             allowedOrigins,
             selfOrigin,
             ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),

@@ -56,6 +56,7 @@ export type CatalogueProfileRecord = Pick<
   | 'revision'
   | 'definitionCid'
   | 'requiredEnv'
+  | 'requiredTools'
   | 'requiredExecutables'
 >;
 
@@ -74,7 +75,11 @@ export interface CatalogueTeam {
   teamId: string;
   teamName: string;
   diaries: { id: string; name: string }[];
-  /** Null when the operator must choose: several diaries and no binding. */
+  /**
+   * Non-null only when exactly one diary is known for the team, or the
+   * identity binding names one that belongs to it. Null otherwise — which
+   * covers both several diaries and none — and the operator chooses.
+   */
   defaultDiaryId: string | null;
 }
 

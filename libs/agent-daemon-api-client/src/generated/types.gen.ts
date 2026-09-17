@@ -34,6 +34,7 @@ export type AgentServerCatalogueProfile = {
   provider: string;
   requiredEnv: Array<string>;
   requiredExecutables: Array<string>;
+  requiredTools: Array<string>;
   revision: number;
   runtimeKind: string;
   teamId: string;

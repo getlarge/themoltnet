@@ -358,9 +358,18 @@ export function buildAgentServer(
       new AgentServerHttpError(429, 'rate_limited', 'Too many requests'),
     keyGenerator: (request) => {
       const origin = request.headers.origin;
-      return isConfiguredOrigin(origin, options)
+      if (!isConfiguredOrigin(origin, options)) return `ip:${request.ip}`;
+      // Claiming an origin is free; proving the grant is not. An unauthenticated
+      // caller asserting the native origin must not share the desktop client's
+      // budget, or any local process could deny it service without ever holding
+      // the token. Presence of a token is enough to separate the buckets —
+      // whether it verifies is the route guard's job.
+      const presented = request.headers[AGENT_SERVER_TOKEN_HEADER];
+      const authenticated =
+        typeof presented === 'string' && presented.length > 0;
+      return authenticated
         ? `origin:${origin}`
-        : `ip:${request.ip}`;
+        : `unauth:${origin}:${request.ip}`;
     },
   });
 
@@ -585,11 +594,24 @@ function machineCapabilities(
 ): MachineCapabilities {
   const providerEnv = new Map<string, boolean>();
   for (const provider of Object.values(options.providers.list())) {
-    providerEnv.set(provider.envName, provider.hasApiKey);
+    // Several providers can share an environment name. Availability is the
+    // union: one configured key satisfies the variable, and iteration order
+    // must not decide the answer.
+    const configured = providerEnv.get(provider.envName) === true;
+    providerEnv.set(provider.envName, configured || provider.hasApiKey);
   }
   const runtimeKinds = new Set<string>([BUILT_IN_RUNTIME_KIND]);
   for (const entry of options.runtimeRegistry?.list() ?? []) {
-    runtimeKinds.add(entry.kind);
+    // `resolve` re-hashes the module and its lockfile and throws when either
+    // drifted — the same check run start performs. Using `list` here would
+    // advertise a modified runtime as ready and fail at start instead.
+    try {
+      if (options.runtimeRegistry?.resolve(entry.kind)) {
+        runtimeKinds.add(entry.kind);
+      }
+    } catch {
+      // Drifted or missing: not available until it is registered again.
+    }
   }
   return { providerEnv, runtimeKinds };
 }

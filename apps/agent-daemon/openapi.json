@@ -182,6 +182,16 @@
                 "maxItems": 100,
                 "type": "array"
               },
+              "requiredTools": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9._/-]+$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
               "revision": {
                 "minimum": 1,
                 "type": "integer"
@@ -232,6 +242,7 @@
               "maxTurns",
               "toolEnforcement",
               "requiredEnv",
+              "requiredTools",
               "requiredExecutables",
               "revision",
               "definitionCid"
