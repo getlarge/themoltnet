@@ -15719,6 +15719,10 @@ export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
 export type JoinTeamData = {
   body: {
     code: string;
+    issueAgentKey?: true;
+  };
+  headers?: {
+    'idempotency-key'?: string;
   };
   path?: never;
   query?: never;
@@ -15767,7 +15771,8 @@ export type JoinTeamResponses = {
    * Default Response
    */
   200: {
-    role: 'manager' | 'executor' | 'member';
+    agentKey?: AgentKeyWithSecret;
+    role: 'owner' | 'manager' | 'executor' | 'member';
     /**
      * UUID v4 identifier
      */
