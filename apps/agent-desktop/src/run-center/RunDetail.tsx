@@ -3,7 +3,6 @@ import {
   Button,
   ControlSurface,
   DescriptionList,
-  InlineNotice,
   Stack,
   Text,
 } from '@themoltnet/design-system';
@@ -67,7 +66,13 @@ export function RunDetail({
         >
           ← Runs
         </Button>
-        <Stack direction="row" justify="space-between" align="flex-start" gap={4} wrap>
+        <Stack
+          direction="row"
+          justify="space-between"
+          align="flex-start"
+          gap={4}
+          wrap
+        >
           <Stack gap={2}>
             <Stack direction="row" gap={3} align="center" wrap>
               <Text as="h1" variant="h4">
@@ -85,7 +90,11 @@ export function RunDetail({
             </Text>
           </Stack>
           <Stack direction="row" gap={2}>
-            <Button variant="ghost" size="sm" onClick={() => void actions.openLogs()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void desktopBridge.openLogs()}
+            >
               Open log folder
             </Button>
             {live ? (
@@ -96,7 +105,9 @@ export function RunDetail({
                 loadingLabel="Stopping run"
                 onClick={() => {
                   setStopping(true);
-                  void actions.stopRun(run.id).finally(() => setStopping(false));
+                  void actions
+                    .stopRun(run.id)
+                    .finally(() => setStopping(false));
                 }}
               >
                 Stop
@@ -110,36 +121,6 @@ export function RunDetail({
         </Stack>
       </Stack>
 
-      {run.lastError ? (
-        <InlineNotice
-          tone="error"
-          title="This run stopped because it could not execute"
-          action={
-            run.lastError.remedyAction ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void desktopBridge.openConsole()}
-              >
-                {run.lastError.remedyAction.label}
-              </Button>
-            ) : undefined
-          }
-        >
-          <Stack gap={1}>
-            <Text variant="caption">{run.lastError.message}</Text>
-            {run.lastError.remedy ? (
-              <Text variant="caption" color="secondary">
-                {run.lastError.remedy}
-              </Text>
-            ) : null}
-            <Text variant="caption" color="muted" mono>
-              {run.lastError.code}
-            </Text>
-          </Stack>
-        </InlineNotice>
-      ) : null}
-
       <ControlSurface padding="md" as="section">
         <Stack gap={4}>
           <ProfileChain profiles={run.profiles} />
@@ -152,24 +133,22 @@ export function RunDetail({
               { label: 'Team', value: run.teamName },
               {
                 label: live ? 'Elapsed' : 'Ran for',
-                value: duration(run.startedAt, live ? now : Date.parse(run.endedAt ?? run.startedAt)),
+                value: duration(
+                  run.startedAt,
+                  live ? now : Date.parse(run.endedAt ?? run.startedAt),
+                ),
                 mono: true,
-              },
-              {
-                label: 'Tasks claimed',
-                value: String(run.tasksClaimed),
-                mono: true,
-              },
-              {
-                label: 'Last activity',
-                value: relativeTime(run.lastActivityAt, now),
               },
               { label: 'Started', value: relativeTime(run.startedAt, now) },
               {
                 label: 'Ended',
                 value: run.endedAt ? relativeTime(run.endedAt, now) : '—',
               },
-              { label: 'PID', value: run.pid ? String(run.pid) : '—', mono: true },
+              {
+                label: 'PID',
+                value: run.pid ? String(run.pid) : '—',
+                mono: true,
+              },
               {
                 label: 'Exit code',
                 value: run.exitCode === null ? '—' : String(run.exitCode),
@@ -181,7 +160,13 @@ export function RunDetail({
       </ControlSurface>
 
       <Stack gap={3}>
-        <Stack direction="row" justify="space-between" align="center" gap={4} wrap>
+        <Stack
+          direction="row"
+          justify="space-between"
+          align="center"
+          gap={4}
+          wrap
+        >
           <Text variant="overline" color="muted">
             Log
           </Text>

@@ -9,7 +9,7 @@
  * STORY: I see what my agents are doing now, relaunch work I already trust,
  *   and visit the server only when it asks for me.
  * FIRST VIEWPORT: A title strip carrying live server state, a left rail of
- *   Runs / Runtimes / Server above saved presets, and a Runs pane that opens
+ *   Runs / Server above saved presets, and a Runs pane that opens
  *   on live runs — each a full-width control surface with a teal state dot,
  *   the ordered profile chain, task types, claim count and Stop.
  * FORM: Operate; extension of the shipped agent-desktop world. Sidebar shell,
@@ -29,10 +29,9 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { ServerPanel } from '../App.js';
 import { RunsView } from './RunsView.js';
-import { RuntimesView } from './RuntimesView.js';
 import type { RunCenterActions, RunCenterData } from './types.js';
 
-export type RunCenterScreen = 'runs' | 'runtimes' | 'server';
+export type RunCenterScreen = 'runs' | 'server';
 
 /** Where the Runs pane is: the list, the composer, or one run's detail. */
 export type RunsRoute =
@@ -81,10 +80,6 @@ export function RunCenterApp({
     () => data.runs.filter((run) => run.status === 'running'),
     [data.runs],
   );
-  const driftedRuntimes = useMemo(
-    () => data.runtimes.filter((runtime) => runtime.drift !== 'none'),
-    [data.runtimes],
-  );
 
   const openPreset = useCallback((presetId: string) => {
     setScreen('runs');
@@ -104,15 +99,6 @@ export function RunCenterApp({
       current: screen === 'runs',
       badge: activeRuns.length ? (
         <Badge variant="success">{activeRuns.length}</Badge>
-      ) : undefined,
-    },
-    {
-      id: 'runtimes',
-      label: 'Runtimes',
-      href: '#runtimes',
-      current: screen === 'runtimes',
-      badge: driftedRuntimes.length ? (
-        <Badge variant="warning">{driftedRuntimes.length}</Badge>
       ) : undefined,
     },
     {
@@ -215,9 +201,6 @@ export function RunCenterApp({
               route={runsRoute}
               onRoute={setRunsRoute}
             />
-          ) : null}
-          {screen === 'runtimes' ? (
-            <RuntimesView data={data} actions={actions} now={now} />
           ) : null}
           {screen === 'server' ? <ServerPanel /> : null}
         </main>
