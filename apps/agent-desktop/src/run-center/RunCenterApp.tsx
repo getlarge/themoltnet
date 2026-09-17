@@ -29,7 +29,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { ServerPanel } from '../App.js';
 import { ProvidersView } from './ProvidersView.js';
-import { providerActions } from './run-center-bridge.js';
+import { providerActions, subscriptionActions } from './run-center-bridge.js';
 import { RunsView } from './RunsView.js';
 import type { RunCenterActions, RunCenterData } from './types.js';
 
@@ -92,8 +92,11 @@ export function RunCenterApp({
   }, []);
 
   // A provider with no key is the most common reason a profile cannot run.
-  const missingKeys = Object.values(data.providers).filter(
-    (provider) => !provider.hasApiKey,
+  const connectedSubscriptions = new Set(
+    data.subscriptions.filter((entry) => entry.connected).map((e) => e.id),
+  );
+  const missingKeys = Object.entries(data.providers).filter(
+    ([id, provider]) => !provider.hasApiKey && !connectedSubscriptions.has(id),
   ).length;
   const serverTone = SERVER_TONE[data.server.state] ?? SERVER_TONE.checking;
   const serverNeedsUser = ['needs_trust', 'needs_install', 'failed'].includes(
@@ -224,6 +227,8 @@ export function RunCenterApp({
             <ProvidersView
               providers={data.providers}
               actions={providerActions}
+              subscriptions={data.subscriptions}
+              subscriptionActions={subscriptionActions}
               onChanged={onProvidersChanged}
             />
           ) : null}
