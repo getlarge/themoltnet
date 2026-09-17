@@ -985,7 +985,7 @@ describe('buildApp', () => {
           "name": "teams_delete",
         },
         {
-          "inputSchema": "f7475c12da368732",
+          "inputSchema": "c3c5b26a2e10bbcd",
           "name": "teams_invite_create",
         },
         {
