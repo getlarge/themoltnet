@@ -84,8 +84,15 @@ func TestE2E_CLI_TeamEnrollmentStorageAndIndependentRotation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, stderr, err := enroll(codeA, idemA); err == nil || !strings.Contains(stderr, "409") {
-		t.Fatalf("replay must conflict: %v %s", err, stderr)
+	// The replay never reaches the server. `teams join --store` records that
+	// this idempotency key already minted a key whose secret cannot be read
+	// back, and refuses locally rather than risk issuing a second unrecoverable
+	// credential. Asserting an HTTP 409 described the behaviour from before that
+	// guard existed, when the request was sent and the server rejected the
+	// repeated key.
+	if _, stderr, err := enroll(codeA, idemA); err == nil ||
+		!strings.Contains(stderr, "enrollment already issued key") {
+		t.Fatalf("replay must be refused before contacting the server: %v %s", err, stderr)
 	}
 	after, err := os.ReadFile(configPath)
 	if err != nil {
