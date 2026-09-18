@@ -82,7 +82,15 @@ async function freePort(): Promise<number> {
 
 async function waitFor(
   predicate: () => Promise<boolean>,
-  { timeoutMs, intervalMs = 250 }: { timeoutMs: number; intervalMs?: number },
+  {
+    timeoutMs,
+    intervalMs = 250,
+    diagnostics,
+  }: {
+    timeoutMs: number;
+    intervalMs?: number;
+    diagnostics?: () => string;
+  },
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -91,7 +99,9 @@ async function waitFor(
       setTimeout(r, intervalMs);
     });
   }
-  throw new Error(`condition not met within ${timeoutMs}ms`);
+  throw new Error(
+    `condition not met within ${timeoutMs}ms${diagnostics ? `: ${diagnostics()}` : ''}`,
+  );
 }
 
 function startJsonStub(
@@ -1038,7 +1048,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(unknown.response.status).toBe(404);
   }, 120_000);
 
-  it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {
+  async function enrollSecondTeam() {
     const configDir = join(agentServerRoot, 'identities', agentName);
     const provider = new FileSecretProvider({
       root: join(agentServerRoot, 'secrets'),
@@ -1096,6 +1106,18 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
       { teamId: teamB.id },
     );
+    return {
+      secretA: secretA!,
+      secretB: secretB!,
+      agentA,
+      agentB,
+      teamB,
+      diaryB,
+      profileB,
+    };
+  }
+
+  function teamRunLifecycle(secrets: readonly string[]) {
     const start = (id: string, profile: string) =>
       startAgentServerRun({
         client: agentServerClient(),
@@ -1107,35 +1129,114 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
           mode: 'poll',
         },
       });
-    const assertStarted = async (id: string, expectedTeam: string) => {
-      // Each supervised HOME builds its own cold snapshot (1–3 minutes).
-      // Concurrent builds need the full setup allowance, not one polling tick.
+    const assertStarted = async (runId: string, expectedTeam: string) => {
       const log = await readRunLogs(
-        id,
+        runId,
         (text) =>
           text.includes('agent-daemon.starting') || text.includes('[fatal]'),
         180_000,
       );
       const status = (
         await listAgentServerRuns({ client: agentServerClient() })
-      ).data?.find((run) => run.id === id);
-      expect(log, JSON.stringify(status)).toContain('agent-daemon.starting');
-      expect(log).toContain(`"boundTeamId":"${expectedTeam}"`);
-      expect(log).not.toContain(secretA!);
-      expect(log).not.toContain(secretB!);
-      expect(log).not.toContain('[fatal]');
+      ).data?.find((run) => run.id === runId);
+      // Diagnostics are an allowlisted projection, never raw config, task input or logs.
+      const context = JSON.stringify({
+        stage: 'startup',
+        teamId: expectedTeam,
+        runId,
+        status: status?.status,
+        active: status?.active,
+        exitCode: status?.exitCode,
+        startupSeen: log.includes('agent-daemon.starting'),
+        fatalSeen: log.includes('[fatal]'),
+      });
+      expect(log.includes('agent-daemon.starting'), context).toBe(true);
+      expect(log.includes(`"boundTeamId":"${expectedTeam}"`), context).toBe(
+        true,
+      );
+      expect(
+        secrets.some((secret) => log.includes(secret)),
+        context,
+      ).toBe(false);
+      expect(log.includes('[fatal]'), context).toBe(false);
     };
-    const starts = await Promise.all([
-      start(teamId, profileName),
-      start(teamB.id, profileB.id),
-    ]);
-    for (const started of starts)
-      expect(started.response.status, JSON.stringify(started.error)).toBe(201);
-    const ids = starts.map((started) => started.data!.id);
-    await Promise.all([
-      assertStarted(ids[0], teamId),
-      assertStarted(ids[1], teamB.id),
-    ]);
+    const startBoth = async (otherTeam: string, otherProfile: string) => {
+      const responses = await Promise.all([
+        start(teamId, profileName),
+        start(otherTeam, otherProfile),
+      ]);
+      for (const response of responses)
+        expect(response.response.status, JSON.stringify(response.error)).toBe(
+          201,
+        );
+      const runs = responses.map((response, index) => ({
+        runId: response.data!.id,
+        teamId: index === 0 ? teamId : otherTeam,
+      }));
+      await Promise.all(
+        runs.map((run) => assertStarted(run.runId, run.teamId)),
+      );
+      return runs;
+    };
+    const waitForClaims = async (
+      tasks: { id: string }[],
+      runs: { runId: string; teamId: string }[],
+      stage: string,
+    ) => {
+      let diagnostic = JSON.stringify({
+        stage,
+        tasks: tasks.map(({ id }) => id),
+        runs,
+      });
+      await waitFor(
+        async () => {
+          const current = await Promise.all(
+            tasks.map(({ id }) => agent.tasks.get(id)),
+          );
+          const running = await listAgentServerRuns({
+            client: agentServerClient(),
+          });
+          diagnostic = JSON.stringify({
+            stage,
+            tasks: current.map(({ id, teamId: taskTeam, status }) => ({
+              id,
+              teamId: taskTeam,
+              status,
+            })),
+            runs: runs.map(({ runId, teamId: runTeam }) => {
+              const run = running.data?.find(({ id }) => id === runId);
+              return {
+                runId,
+                teamId: runTeam,
+                status: run?.status,
+                active: run?.active,
+                exitCode: run?.exitCode,
+              };
+            }),
+          });
+          return current.every((task) => task.status !== 'queued');
+        },
+        { timeoutMs: 60_000, intervalMs: 1000, diagnostics: () => diagnostic },
+      );
+    };
+    return { start, startBoth, waitForClaims };
+  }
+
+  async function restartTeamSupervisor() {
+    await supervisor.stop();
+    supervisor = await AgentServerSupervisor.start({
+      root: agentServerRoot,
+      apiUrl: harness.restApiUrl,
+      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
+    });
+    base = supervisor.baseUrl;
+  }
+
+  it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {
+    const { secretA, secretB, agentA, agentB, teamB, diaryB, profileB } =
+      await enrollSecondTeam();
+    const lifecycle = teamRunLifecycle([secretA, secretB]);
+    const runs = await lifecycle.startBoth(teamB.id, profileB.id);
     const tasks = await Promise.all(
       [
         [teamId, privateDiaryId],
@@ -1152,36 +1253,15 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         ),
       ),
     );
-    await waitFor(
-      async () =>
-        (
-          await Promise.all(tasks.map((task) => agent.tasks.get(task.id)))
-        ).every((task) => task.status !== 'queued'),
-      { timeoutMs: 60_000 },
-    );
+    await lifecycle.waitForClaims(tasks, runs, 'concurrent claims');
     const running = await listAgentServerRuns({ client: agentServerClient() });
-    for (const id of ids)
+    for (const { runId } of runs)
       expect(running.data).toContainEqual(
-        expect.objectContaining({ id, active: true }),
+        expect.objectContaining({ id: runId, active: true }),
       );
-    await supervisor.stop();
-    supervisor = await AgentServerSupervisor.start({
-      root: agentServerRoot,
-      apiUrl: harness.restApiUrl,
-      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
-    });
-    base = supervisor.baseUrl;
-    // The paired client and persisted activation survive a real process replacement.
-    const restarted = await Promise.all([
-      start(teamId, profileName),
-      start(teamB.id, profileB.id),
-    ]);
-    for (const run of restarted)
-      expect(run.response.status, JSON.stringify(run.error)).toBe(201);
-    await Promise.all([
-      assertStarted(restarted[0].data!.id, teamId),
-      assertStarted(restarted[1].data!.id, teamB.id),
-    ]);
+
+    await restartTeamSupervisor();
+    const restarted = await lifecycle.startBoth(teamB.id, profileB.id);
     const aKeys = await agent.agentKeys.list(
       { agentId: managedSubjectId, status: 'active' },
       { teamId },
@@ -1196,8 +1276,17 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     await expect(agentB.agents.whoami()).resolves.toMatchObject({
       subjectId: managedSubjectId,
     });
-    const rejected = await start(teamId, profileName);
+    const rejected = await lifecycle.start(teamId, profileName);
     expect(rejected.response.status).toBe(400);
+    expect(rejected.error).toEqual({
+      code: 'verification_failed',
+      message: `Cannot start agent "${agentName}" for team "${teamId}": credential verification failed. Check the selected team key and activation.`,
+    });
+    expect(
+      [secretA, secretB].some((secret) =>
+        JSON.stringify(rejected.error).includes(secret),
+      ),
+    ).toBe(false);
     const deniedTask = await agent.tasks.create(
       {
         taskType: 'freeform',
@@ -1216,18 +1305,19 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
       { teamId: teamB.id },
     );
-    await waitFor(
-      async () => (await agent.tasks.get(afterRevoke.id)).status !== 'queued',
-      { timeoutMs: 60_000 },
+    await lifecycle.waitForClaims(
+      [afterRevoke],
+      restarted,
+      'claim after other team revocation',
     );
     expect((await agent.tasks.get(deniedTask.id)).status).toBe('queued');
-    expect(await configFilesContaining(agentServerRoot, secretA!)).toEqual([]);
-    expect(await configFilesContaining(agentServerRoot, secretB!)).toEqual([]);
+    expect(await configFilesContaining(agentServerRoot, secretA)).toEqual([]);
+    expect(await configFilesContaining(agentServerRoot, secretB)).toEqual([]);
     await Promise.all(
-      restarted.map((run) =>
+      restarted.map(({ runId }) =>
         stopAgentServerRun({
           client: agentServerClient(),
-          path: { runId: run.data!.id },
+          path: { runId },
         }),
       ),
     );

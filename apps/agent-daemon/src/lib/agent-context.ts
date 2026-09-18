@@ -20,7 +20,11 @@ import {
   createNodeSecretProviderRegistry,
 } from '@themoltnet/sdk/node';
 
-import { assessAgentStartupPin, type SubjectPin } from './identity-pin.js';
+import {
+  assessAgentStartupPin,
+  matchesCredentialTeam,
+  type SubjectPin,
+} from './identity-pin.js';
 
 /**
  * Where an operator goes after the daemon refuses to start. The published site
@@ -159,11 +163,7 @@ export async function validateStartupBinding(options: {
       });
     }
   }
-  if (
-    options.credentialTeamId &&
-    (whoami.credentialBinding?.bindingScope !== 'team' ||
-      whoami.credentialBinding.boundTeamId !== options.credentialTeamId)
-  ) {
+  if (!matchesCredentialTeam(whoami, options.credentialTeamId)) {
     throw new Error(
       'Daemon startup validation failed: selected team credential has a different binding.',
     );

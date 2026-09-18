@@ -24,15 +24,17 @@ import {
   READ_ONLY_CAPABILITIES,
   SecretProviderRegistry,
 } from '@themoltnet/sdk';
+import * as SdkNode from '@themoltnet/sdk/node';
 import { FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
-import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
+import { type ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
+import { RuntimeRegistry } from './runtime-registry.js';
 import {
   AGENT_SERVER_TOKEN_HEADER,
   buildAgentServer,
@@ -76,6 +78,7 @@ interface Fixture {
 const cleanups: (() => Promise<void> | void)[] = [];
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   for (const cleanup of cleanups.splice(0)) await cleanup();
 });
 
@@ -88,6 +91,7 @@ async function fixture(
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
     externalSecrets?: Record<string, string>;
+    realCredentialPreflight?: boolean;
     resolveRuntimeModule?: (
       spec: RunSpec,
       agent: ActivatedAgent,
@@ -101,6 +105,7 @@ async function fixture(
     symlinkImpl,
     resolveRuntimeModule,
     externalSecrets = {},
+    realCredentialPreflight = false,
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
@@ -195,7 +200,12 @@ async function fixture(
       scriptPath: '/app/main.js',
     },
     spawnImpl,
-    verifyActivationImpl: verifyActivation,
+    verifyActivationImpl: realCredentialPreflight
+      ? verifyAgentActivation
+      : verifyActivation,
+    ...(realCredentialPreflight
+      ? { runtimeRegistry: new RuntimeRegistry(store.root) }
+      : {}),
     ...(symlinkImpl ? { symlinkImpl } : {}),
     ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
     ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
@@ -1475,6 +1485,144 @@ describe('agent server providers and runs', () => {
     expect(spawned[0]?.options.env['MOLTNET_PRIVATE_KEY']).toBe(
       signing.privateKey,
     );
+  });
+
+  it('launches external team slots through verification, profile lookup and child projection', async () => {
+    const keys = await cryptoService.generateKeyPair();
+    const privateKeyRef = `identity/${keys.fingerprint}/seed`;
+    const externalSecrets = {
+      'agent-key/agent-1/a': 'external-a',
+      'agent-key/agent-1/b': 'external-b',
+      [privateKeyRef]: keys.privateKey,
+    };
+    const profileRequests: { agentKey: string | undefined; teamId: string }[] =
+      [];
+    const connectMock = vi.spyOn(SdkNode, 'connect').mockImplementation(
+      async (options) =>
+        ({
+          agents: {
+            whoami: async () => ({
+              subjectId: 'agent-1',
+              subjectType: 'agent',
+              publicKey: keys.publicKey,
+              fingerprint: keys.fingerprint,
+              credentialBinding: {
+                bindingScope: 'team',
+                boundTeamId: options?.agentKey?.slice(-1),
+              },
+            }),
+          },
+          runtimeProfiles: {
+            list: async ({ teamId }: { teamId: string }) => {
+              profileRequests.push({ agentKey: options?.agentKey, teamId });
+              return {
+                items: [
+                  {
+                    id: `profile-${teamId}`,
+                    name: 'profile',
+                    teamId,
+                    runtimeKind: 'gondolin_pi',
+                    sandbox: {},
+                  },
+                ],
+              };
+            },
+          },
+        }) as unknown as Awaited<ReturnType<typeof SdkNode.connect>>,
+    );
+    const { app, store, spawned } = await fixture({
+      externalSecrets,
+      realCredentialPreflight: true,
+    });
+    store.writeAgentConfig('central', {
+      subject_id: 'agent-1',
+      subject_type: 'agent',
+      registered_at: 't',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/agent-1' },
+      agent_key_refs: {
+        a: { provider: 'memory', key: 'agent-key/agent-1/a' },
+        b: { provider: 'memory', key: 'agent-key/agent-1/b' },
+      },
+      keys: {
+        public_key: keys.publicKey,
+        fingerprint: keys.fingerprint,
+        private_key_ref: { provider: 'memory', key: privateKeyRef },
+      },
+      endpoints: {
+        api: 'https://api.themolt.net',
+        mcp: 'https://mcp.themolt.net',
+      },
+    });
+    store.writeActivation({
+      source: 'external',
+      alias: 'central',
+      subjectId: 'agent-1',
+      publicKey: keys.publicKey,
+      fingerprint: keys.fingerprint,
+      createdAt: 't',
+      configPath: store.agentPath('central'),
+      configApiUrl: 'https://api.themolt.net',
+    });
+    const token = await pair(app);
+    const start = (teamId: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/v1/runs',
+        headers: {
+          host: HOST,
+          origin: CONSOLE_ORIGIN,
+          [AGENT_SERVER_TOKEN_HEADER]: token,
+          'content-type': 'application/json',
+        },
+        payload: {
+          agent: 'central',
+          teamId,
+          profiles: ['profile'],
+          taskTypes: ['freeform'],
+          mode: 'poll',
+        },
+      });
+    const responses = await Promise.all([start('a'), start('b')]);
+    for (const response of responses)
+      expect(response.statusCode, response.body).toBe(201);
+    expect(profileRequests).toEqual(
+      expect.arrayContaining([
+        { agentKey: 'external-a', teamId: 'a' },
+        { agentKey: 'external-b', teamId: 'b' },
+      ]),
+    );
+    expect(profileRequests).toHaveLength(2);
+    for (const child of spawned) {
+      const env = child.options.env;
+      expect(env.MOLTNET_AGENT_KEY).toBe(`external-${env.MOLTNET_TEAM_ID}`);
+      expect(env.MOLTNET_PRIVATE_KEY).toBe(keys.privateKey);
+      expect(env.MOLTNET_CLIENT_SECRET).toBeUndefined();
+      expect(child.args).toContain(env.MOLTNET_TEAM_ID);
+    }
+
+    // A configured but unavailable slot cannot use the valid fallback or other team.
+    delete (externalSecrets as Record<string, string>)['agent-key/agent-1/b'];
+    connectMock.mockClear();
+    profileRequests.length = 0;
+    const failed = await start('b');
+    expect(failed.statusCode).toBe(400);
+    expect(failed.json()).toMatchObject({ code: 'verification_failed' });
+    expect(connectMock).not.toHaveBeenCalled();
+    expect(profileRequests).toEqual([]);
+    expect(spawned).toHaveLength(2);
+
+    connectMock.mockRejectedValueOnce(
+      new Error('upstream error with external-a'),
+    );
+    const rejected = await start('a');
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json()).toEqual({
+      code: 'verification_failed',
+      message:
+        'Cannot start agent "central" for team "a": credential verification failed. Check the selected team key and activation.',
+    });
+    expect(rejected.body).not.toContain('external-a');
+    expect(spawned).toHaveLength(2);
   });
 
   it('projects independent team references into concurrent managed children', async () => {

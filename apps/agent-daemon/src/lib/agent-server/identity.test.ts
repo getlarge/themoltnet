@@ -992,7 +992,7 @@ describe('external agent server agents', () => {
 describe.each(['managed', 'external'] as const)(
   '%s per-run team credentials',
   (source) => {
-    it('verifies concurrent selections independently, refreshes keys and fails a selected slot without OAuth fallback', async () => {
+    async function teamCredentialFixture() {
       const store = freshStore();
       const config = externalConfig({
         agent_key_refs: {
@@ -1049,18 +1049,36 @@ describe.each(['managed', 'external'] as const)(
           undefined,
           team,
         );
+      return { store, values, verify };
+    }
+
+    it('uses the activation team when no run team is supplied', async () => {
+      const { verify } = await teamCredentialFixture();
       await expect(verify()).resolves.toMatchObject({ boundTeamId: 'a' });
       expect(connectMock).toHaveBeenLastCalledWith(
         expect.objectContaining({ agentKey: 'a' }),
       );
+    });
+
+    it('verifies concurrent selections without changing the activation', async () => {
+      const { store, verify } = await teamCredentialFixture();
       const [a, b] = await Promise.all([verify('a'), verify('b')]);
       expect([a.boundTeamId, b.boundTeamId]).toEqual(['a', 'b']);
       expect(store.readActivation('multi')?.boundTeamId).toBe('a');
+    });
+
+    it('refreshes a rotated team key on the next verification', async () => {
+      const { values, verify } = await teamCredentialFixture();
+      await verify('b');
       values['agent-key/agent-1/b'] = 'b-rotated';
       await expect(verify('b')).resolves.toMatchObject({ boundTeamId: 'b' });
       expect(connectMock).toHaveBeenLastCalledWith(
         expect.objectContaining({ agentKey: 'b-rotated' }),
       );
+    });
+
+    it('fails a missing selected slot without fallback while the other team works', async () => {
+      const { values, verify } = await teamCredentialFixture();
       delete values['agent-key/agent-1/a'];
       connectMock.mockClear();
       await expect(verify('a')).rejects.toThrow('could not resolve');

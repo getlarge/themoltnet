@@ -33,7 +33,11 @@ import {
   type RegisterResult,
 } from '@themoltnet/sdk/node';
 
-import { assessIdentityPin, type IdentityPin } from '../identity-pin.js';
+import {
+  assessIdentityPin,
+  type IdentityPin,
+  matchesCredentialTeam,
+} from '../identity-pin.js';
 import {
   type AgentActivation,
   type AgentServerStore,
@@ -763,8 +767,7 @@ async function authenticateConfig(
     signal,
   );
   const selection = selectAgentKeyReference(config, teamId);
-  const boundTeam = boundTeamIdFromWhoami(whoami);
-  if (selection?.teamId && boundTeam !== selection.teamId) {
+  if (!matchesCredentialTeam(whoami, selection?.teamId)) {
     throw new AgentServerIdentityError(
       'verification_failed',
       'authenticated credential team binding does not match the selected team',

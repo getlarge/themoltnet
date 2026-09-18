@@ -39,6 +39,7 @@ import {
 } from '../options.js';
 import {
   type ActivatedAgent,
+  AgentServerIdentityError,
   externalAgentLocation,
   verifyAgentActivation,
 } from './identity.js';
@@ -364,7 +365,19 @@ export class RunManager {
       undefined,
       signal,
       spec.teamId,
-    );
+    ).catch((cause: unknown) => {
+      if (
+        cause instanceof AgentServerIdentityError &&
+        cause.code === 'verification_failed'
+      ) {
+        throw new AgentServerIdentityError(
+          cause.code,
+          `Cannot start agent "${spec.agent}" for team "${spec.teamId}": credential verification failed. Check the selected team key and activation.`,
+          { cause },
+        );
+      }
+      throw cause;
+    });
     this.assertStartOpen(signal);
     if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
       throw new AgentServerRunError(
