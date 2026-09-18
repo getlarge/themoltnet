@@ -472,6 +472,12 @@ async function importIdentity({ body, workDir, index }) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const resolvedProject = process.env.ORY_RESOLVED_PROJECT_ID;
+  if (!resolvedProject || resolvedProject !== args.targetProject) {
+    fatal(
+      'ORY_RESOLVED_PROJECT_ID must match --target-project after independent workspace resolution',
+    );
+  }
   if (args.preflightOnly) {
     const projectUrl = requireProjectUrl();
     await verifyTenant({

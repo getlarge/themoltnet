@@ -1,15 +1,9 @@
-name: Ory Identity Restore
+name: Ory Development Identity Restore
 
-# Restores Kratos identities from an encrypted backup bundle produced by
-# "Ory Backup Export". The bundle passphrase (ORY_BACKUP_PASSPHRASE) only
-# exists as an environment secret, so decryption happens here rather than on a
-# workstation — the plaintext identities (which carry OIDC credentials and PII)
-# never leave the runner.
-#
-# Identity IDs CANNOT be preserved (Ory has no API to choose them), so a
-# successful apply emits an old -> new ID mapping that must then be replayed
-# against Postgres (agents.identity_id, humans.identity_id) and Keto
-# (Agent:<identity_id> tuples).
+# Restores identities only into the isolated development tenant. Production is
+# intentionally not a selectable target. The protected environment supplies
+# the target URL and expected ID independently; the workflow resolves the ID
+# again from the Ory workspace before any restore process can run.
 
 on:
   workflow_dispatch:
@@ -18,13 +12,6 @@ on:
         description: 'Run ID of the Ory Backup Export that produced the bundle'
         required: true
         type: string
-      target_project:
-        description: 'Ory project to restore into'
-        required: true
-        type: choice
-        options:
-          - stage
-          - production
       mode:
         description: 'plan = diff only (no writes); apply = import identities'
         required: true
@@ -33,6 +20,10 @@ on:
         options:
           - plan
           - apply
+      confirm_development_only:
+        description: 'Type RESTORE DEVELOPMENT IDENTITIES'
+        required: true
+        type: string
       limit:
         description: 'Optional: import at most N identities (canary run). Blank = all.'
         required: false
@@ -44,13 +35,21 @@ permissions:
 
 jobs:
   restore:
-    name: Restore Ory identities (${{ inputs.mode }} -> ${{ inputs.target_project }})
+    name: Restore Ory development identities (${{ inputs.mode }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # The production environment holds ORY_BACKUP_PASSPHRASE and can carry a
-    # required-reviewer rule, which gates `apply` behind a human approval.
-    environment: production
+    environment: ory-restore-development
     steps:
+      - name: Require development-only confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirm_development_only }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMATION" = "RESTORE DEVELOPMENT IDENTITIES" || {
+            echo "::error::Development-only confirmation did not match."
+            exit 1
+          }
+
       - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
@@ -60,30 +59,24 @@ jobs:
       - name: Install Ory CLI
         run: bash <(curl -s https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b /usr/local/bin ory
 
-      - name: Resolve target project ID
+      - name: Resolve and verify development target
         id: target
-        # Ory project IDs are not secrets — ORY_PROJECT_ID is already committed
-        # in plaintext in env.public. Pinning them here keeps the workflow from
-        # silently targeting an empty/wrong project if a var is unset, which is
-        # the exact failure mode that caused the incident this restores from.
         env:
-          TARGET_KIND: ${{ inputs.target_project }}
+          ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
+          ORY_WORKSPACE_ID: ${{ secrets.ORY_WORKSPACE_ID }}
+          TARGET_PROJECT_URL: ${{ secrets.ORY_PROJECT_URL }}
+          EXPECTED_PROJECT_ID: ${{ secrets.ORY_PROJECT_ID }}
         run: |
           set -euo pipefail
-          case "$TARGET_KIND" in
-            production)
-              TARGET=7219f256-464a-4511-874c-bde7724f6897
-              URL=https://auth.themolt.net
-              ;;
-            stage)
-              TARGET=733bd245-607b-4f0d-80d1-ef1b413aba69
-              URL=https://musing-ellis-0cbj34g2d2.projects.oryapis.com
-              ;;
-            *) echo "::error::Unknown target_project: $TARGET_KIND"; exit 1 ;;
-          esac
-          echo "Resolved $TARGET_KIND -> $TARGET ($URL)"
-          echo "project_id=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "project_url=$URL" >> "$GITHUB_OUTPUT"
+          PROJECTS_FILE="$RUNNER_TEMP/ory-projects.json"
+          ory list projects \
+            --workspace "$ORY_WORKSPACE_ID" \
+            --format json > "$PROJECTS_FILE"
+          RESOLVED_PROJECT_ID="$(node infra/ory/resolve-project-target.mjs \
+            --projects "$PROJECTS_FILE" \
+            --project-url "$TARGET_PROJECT_URL" \
+            --expected-project "$EXPECTED_PROJECT_ID")"
+          echo "project_id=$RESOLVED_PROJECT_ID" >> "$GITHUB_OUTPUT"
 
       - name: Download backup bundle
         uses: actions/download-artifact@v8
@@ -93,35 +86,31 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ./ory-backup
 
-      - name: Show bundle provenance
-        run: |
-          echo "--- bundle README ---"
-          cat ./ory-backup/README.txt
-          echo "--- bundle metadata ---"
-          cat ./ory-backup/metadata.json
-
       - name: Restore
         env:
-          # Identity operations are data-plane calls: they need the PROJECT key.
-          # The workspace key cannot authenticate them (it stalls the CLI).
           ORY_PROJECT_API_KEY: ${{ secrets.ORY_PROJECT_API_KEY }}
-          ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
           ORY_BACKUP_PASSPHRASE: ${{ secrets.ORY_BACKUP_PASSPHRASE }}
-          # Pins the tenant: the preflight proves the project key belongs to
-          # the project served at this URL before anything is written.
-          ORY_PROJECT_URL: ${{ steps.target.outputs.project_url }}
+          ORY_PROJECT_URL: ${{ secrets.ORY_PROJECT_URL }}
+          ORY_RESOLVED_PROJECT_ID: ${{ steps.target.outputs.project_id }}
+          RESTORE_LIMIT: ${{ inputs.limit }}
+          RESTORE_MODE: ${{ inputs.mode }}
         run: |
-          LIMIT_ARG=""
-          if [ -n "${{ inputs.limit }}" ]; then
-            LIMIT_ARG="--limit ${{ inputs.limit }}"
+          set -euo pipefail
+          LIMIT_ARGS=()
+          if [ -n "$RESTORE_LIMIT" ]; then
+            [[ "$RESTORE_LIMIT" =~ ^[1-9][0-9]*$ ]] || {
+              echo "::error::limit must be a positive integer"
+              exit 1
+            }
+            LIMIT_ARGS=(--limit "$RESTORE_LIMIT")
           fi
           node infra/ory/restore.mjs \
             --bundle ./ory-backup/bundle.tar.gz.enc \
-            --target-project "${{ steps.target.outputs.project_id }}" \
-            --mode "${{ inputs.mode }}" \
+            --target-project "$ORY_RESOLVED_PROJECT_ID" \
+            --mode "$RESTORE_MODE" \
             --work-dir ./.ory-restore \
             --map-out ./.ory-restore/identity-id-map.json \
-            $LIMIT_ARG
+            "${LIMIT_ARGS[@]}"
 
       - name: Upload ID mapping
         if: always()
