@@ -262,7 +262,13 @@ export function TeamsView({
         </ControlSurface>
       ))}
       {catalogue && !catalogue.teams.length ? (
-        <Text>No teams are enrolled for this identity yet.</Text>
+        <InlineNotice tone="info" title="No indexed team credentials">
+          Enroll below, or preview indexing an existing team-bound key with{' '}
+          <code>moltnet --identity {identity} config migrate --dry-run</code>.
+          Apply the reviewed migration by removing <code>--dry-run</code>, then
+          refresh team access. The migration verifies the key’s team binding and
+          retains the original fallback credential.
+        </InlineNotice>
       ) : null}
       <ControlSurface>
         <Stack gap={4}>
