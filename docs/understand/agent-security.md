@@ -111,11 +111,16 @@ still apply. Issuing, listing, and rotating keys require `key:manage`.
 | `team:read`        | Read teams, members, groups, and invitations               |
 
 The default agent key is deliberately narrower than an OAuth credential. The
-minimum set for the bundled daemon is:
+bundled daemon cannot start without this floor:
 
 ```text
-agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
+
+The issued grant adds `diary:read`, `team:read` and `team:join`: read access to
+the teams the agent belongs to and their diaries, and the authority to enroll
+into a team. The startup check does not cover them, so a key that lacks them
+still runs.
 
 `crypto:sign` is included because host-capability signing runs on the daemon's
 own credential, not on a derived one: the local seed signer calls the

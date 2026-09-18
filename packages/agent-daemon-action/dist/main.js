@@ -30327,7 +30327,49 @@ var CREDENTIAL_SCOPES = {
 	TeamRead: "team:read"
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.TeamRead, CREDENTIAL_SCOPES.TeamJoin, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+/**
+* What the agent daemon cannot run without, checked against
+* `GET /agents/whoami` at startup. Task credentials attenuate it further to
+* `task:execute` alone.
+*
+* This is the **boot floor**, and deliberately not the same list as
+* `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
+* and `POST /agent-keys` caps a new key at the scopes of the credential
+* requesting it, so no key can ever widen itself. A scope added here therefore
+* stops every daemon already in the field, and only a human with a Console
+* session can mint the replacement. Add one only when the daemon genuinely
+* cannot work without it; anything a caller merely benefits from belongs in
+* `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
+*
+* `crypto:sign` is part of the minimum because host-capability signing runs on
+* the daemon's own credential: the local seed signer calls the signing-request
+* endpoints, which require it. A grant without it produces a daemon that boots
+* cleanly and then fails the first time guest code signs a diary entry or a
+* commit.
+*/
+var DAEMON_MINIMUM_SCOPES = [
+	CREDENTIAL_SCOPES.AgentProfile,
+	CREDENTIAL_SCOPES.CryptoSign,
+	CREDENTIAL_SCOPES.RuntimeRead,
+	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TaskClaim,
+	CREDENTIAL_SCOPES.TaskExecute
+];
+/**
+* Read and enrollment authority a daemon uses when it has it, and runs without
+* when it does not: reading the teams it belongs to and their diaries, and
+* joining a team it is not yet a member of.
+*
+* Which product surface each one enables is deliberately not recorded here.
+* That mapping belongs to whatever consumes the scope and changes with it,
+* while the scope names are the contract and do not.
+*/
+var DAEMON_OPTIONAL_SCOPES = [
+	CREDENTIAL_SCOPES.DiaryRead,
+	CREDENTIAL_SCOPES.TeamRead,
+	CREDENTIAL_SCOPES.TeamJoin
+];
+[...DAEMON_MINIMUM_SCOPES, ...DAEMON_OPTIONAL_SCOPES];
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
 /** Full grant ceiling for first-party agent OAuth2 clients. */

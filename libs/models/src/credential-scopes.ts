@@ -51,8 +51,18 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
 );
 
 /**
- * Minimum grant for the agent daemon. Task credentials attenuate this further
- * to `task:execute` alone.
+ * What the agent daemon cannot run without, checked against
+ * `GET /agents/whoami` at startup. Task credentials attenuate it further to
+ * `task:execute` alone.
+ *
+ * This is the **boot floor**, and deliberately not the same list as
+ * `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
+ * and `POST /agent-keys` caps a new key at the scopes of the credential
+ * requesting it, so no key can ever widen itself. A scope added here therefore
+ * stops every daemon already in the field, and only a human with a Console
+ * session can mint the replacement. Add one only when the daemon genuinely
+ * cannot work without it; anything a caller merely benefits from belongs in
+ * `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
  *
  * `crypto:sign` is part of the minimum because host-capability signing runs on
  * the daemon's own credential: the local seed signer calls the signing-request
@@ -60,16 +70,34 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
  * cleanly and then fails the first time guest code signs a diary entry or a
  * commit.
  */
-export const AGENT_CREDENTIAL_SCOPES = [
+export const DAEMON_MINIMUM_SCOPES = [
   CREDENTIAL_SCOPES.AgentProfile,
   CREDENTIAL_SCOPES.CryptoSign,
-  CREDENTIAL_SCOPES.DiaryRead,
-  CREDENTIAL_SCOPES.TeamRead,
-  CREDENTIAL_SCOPES.TeamJoin,
   CREDENTIAL_SCOPES.RuntimeRead,
   CREDENTIAL_SCOPES.TaskRead,
   CREDENTIAL_SCOPES.TaskClaim,
   CREDENTIAL_SCOPES.TaskExecute,
+] as const satisfies readonly CredentialScope[];
+
+/**
+ * Read and enrollment authority a daemon uses when it has it, and runs without
+ * when it does not: reading the teams it belongs to and their diaries, and
+ * joining a team it is not yet a member of.
+ *
+ * Which product surface each one enables is deliberately not recorded here.
+ * That mapping belongs to whatever consumes the scope and changes with it,
+ * while the scope names are the contract and do not.
+ */
+export const DAEMON_OPTIONAL_SCOPES = [
+  CREDENTIAL_SCOPES.DiaryRead,
+  CREDENTIAL_SCOPES.TeamRead,
+  CREDENTIAL_SCOPES.TeamJoin,
+] as const satisfies readonly CredentialScope[];
+
+/** What a newly issued agent key should carry: the floor plus the rest. */
+export const AGENT_CREDENTIAL_SCOPES = [
+  ...DAEMON_MINIMUM_SCOPES,
+  ...DAEMON_OPTIONAL_SCOPES,
 ] as const satisfies readonly CredentialScope[];
 
 /**

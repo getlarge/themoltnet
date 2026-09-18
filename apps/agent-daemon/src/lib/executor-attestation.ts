@@ -1,5 +1,10 @@
 import { cryptoService } from '@moltnet/crypto-service';
-import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  type CredentialScope,
+  DAEMON_MINIMUM_SCOPES,
+  DAEMON_OPTIONAL_SCOPES,
+} from '@moltnet/models';
 import {
   createExecutorAttestor,
   type ExecutorAttestor,
@@ -13,7 +18,28 @@ import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 import type { PreparedDaemonRuntime } from '../runtime.js';
 import type { DaemonCredentialSource } from './agent-context.js';
 
-export const DAEMON_REQUIRED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+/**
+ * The startup gate, which is the boot floor rather than the issuance default.
+ * Gating on the wider `AGENT_CREDENTIAL_SCOPES` would refuse every key minted
+ * before a scope was added to it, and a key cannot widen itself.
+ */
+export const DAEMON_REQUIRED_SCOPES = DAEMON_MINIMUM_SCOPES;
+
+/** What `moltnet agents keys create` should mint for a new daemon. */
+export const DAEMON_RECOMMENDED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+
+/**
+ * Optional scopes this credential does not carry.
+ *
+ * `GET /agents/whoami` already reports the credential's scopes; reducing that
+ * to pass/fail discards the part a caller can act on. Returned as scope names
+ * rather than capability flags on purpose -- which surface each scope unlocks
+ * belongs to the caller and changes with it, while the names do not.
+ */
+export function missingOptionalScopes(whoami: Whoami): CredentialScope[] {
+  const available = new Set(whoami.scopes ?? []);
+  return DAEMON_OPTIONAL_SCOPES.filter((scope) => !available.has(scope));
+}
 
 export interface AttestedDaemonRuntime extends PreparedDaemonRuntime {
   readonly attestor: ExecutorAttestor;
@@ -83,7 +109,7 @@ export function validateDaemonScopes(whoami: Whoami): void {
     throw new Error(
       'Daemon startup credential is missing required scopes: ' +
         `${missing.join(' ')}. Issue a replacement credential with ` +
-        `${DAEMON_REQUIRED_SCOPES.join(' ')}.`,
+        `${DAEMON_RECOMMENDED_SCOPES.join(' ')}.`,
     );
   }
 }
