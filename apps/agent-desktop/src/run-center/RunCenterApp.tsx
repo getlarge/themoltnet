@@ -25,13 +25,15 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ServerPanel } from '../App.js';
+import { desktopBridge } from '../bridge.js';
 import { RunsView } from './RunsView.js';
+import { TeamsView } from './TeamsView.js';
 import type { RunCenterActions, RunCenterData } from './types.js';
 
-export type RunCenterScreen = 'runs' | 'server';
+export type RunCenterScreen = 'runs' | 'teams' | 'server';
 
 /** Where the Runs pane is: the list, the composer, or one run's detail. */
 export type RunsRoute =
@@ -74,6 +76,26 @@ export function RunCenterApp({
 }: RunCenterAppProps) {
   const theme = useTheme();
   const [screen, setScreen] = useState<RunCenterScreen>(initialScreen);
+  useEffect(() => {
+    let active = true;
+    let stop: (() => void) | undefined;
+    void desktopBridge
+      .subscribeRemoveRequest(() => {
+        if (active) setScreen('server');
+      })
+      .then(
+        (unsubscribe) => {
+          if (active) stop = unsubscribe;
+          else unsubscribe();
+        },
+        () => {},
+      );
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, []);
+
   const [runsRoute, setRunsRoute] = useState<RunsRoute>(initialRunsRoute);
 
   const activeRuns = useMemo(
@@ -100,6 +122,12 @@ export function RunCenterApp({
       badge: activeRuns.length ? (
         <Badge variant="success">{activeRuns.length}</Badge>
       ) : undefined,
+    },
+    {
+      id: 'teams',
+      label: 'Identity and teams',
+      href: '#teams',
+      current: screen === 'teams',
     },
     {
       id: 'server',
@@ -200,9 +228,15 @@ export function RunCenterApp({
               now={now}
               route={runsRoute}
               onRoute={setRunsRoute}
+              onTeams={() => setScreen('teams')}
             />
           ) : null}
-          {screen === 'server' ? <ServerPanel /> : null}
+          {screen === 'teams' ? (
+            <TeamsView data={data} actions={actions} now={now} />
+          ) : null}
+          <div hidden={screen !== 'server'}>
+            <ServerPanel />
+          </div>
         </main>
       </div>
     </div>

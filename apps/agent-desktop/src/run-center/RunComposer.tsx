@@ -12,10 +12,11 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { relativeTime } from './format.js';
 import type {
+  AgentServerCatalogue,
   AgentServerCatalogueProfile,
   RunCenterActions,
   RunCenterData,
@@ -30,6 +31,7 @@ export interface RunComposerProps {
   /** Prefills from a saved preset when set. */
   presetId: string | null;
   now: number;
+  onTeams?: () => void;
   onDone: () => void;
 }
 
@@ -39,20 +41,26 @@ export function RunComposer({
   presetId,
   now,
   onDone,
+  onTeams,
 }: RunComposerProps) {
   // Everything the composer offers comes from the server: identities from the
   // status surface, teams and profiles from the identity-scoped catalogue.
   const agents = data.status?.agents ?? [];
-  const teams = data.catalogue?.teams ?? [];
-  const profiles = data.catalogue?.profiles ?? [];
+  const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(
+    data.catalogue,
+  );
+  const teams = catalogue?.teams ?? [];
   const taskTypeOptions = TASK_TYPE_OPTIONS;
 
   const preset = presetId
-    ? (data.presets.find((candidate) => candidate.teamId === presetId) ?? null)
+    ? (data.presets.find((candidate) => candidate.id === presetId) ?? null)
     : null;
 
   const [agent, setAgent] = useState(
-    preset?.agent ?? agents[0]?.agentName ?? '',
+    preset?.agent ??
+      data.status?.selectedIdentity ??
+      agents[0]?.agentName ??
+      '',
   );
   const [teamId, setTeamId] = useState(
     preset?.teamId ?? data.catalogue?.defaultTeamId ?? '',
@@ -72,34 +80,61 @@ export function RunComposer({
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let current = true;
+    setCatalogue(null);
+    if (!agent) return;
+    void actions.catalogue(agent).then(
+      (value) => {
+        if (!current) return;
+        setCatalogue(value);
+        setTeamId((selected) =>
+          value.teams.some((team) => team.teamId === selected && team.available)
+            ? selected
+            : (value.defaultTeamId ?? ''),
+        );
+      },
+      () => {
+        if (current)
+          setSubmitError(
+            'Team access could not be verified. Open Identity and teams to enroll or renew.',
+          );
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [actions, agent]);
+  const profiles = useMemo(
+    () =>
+      (catalogue?.profiles ?? []).filter(
+        (profile) => profile.teamId === teamId,
+      ),
+    [catalogue, teamId],
+  );
   const selectedAgent = agents.find(
     (candidate) => candidate.agentName === agent,
   );
-  const primary = profiles.find((candidate) => candidate.teamId === primaryId);
+  const primary = profiles.find((candidate) => candidate.id === primaryId);
   const team = teams.find((candidate) => candidate.teamId === teamId);
   // Team and diary are one binding; the catalogue resolves the pair or leaves
   // it null when the operator must choose.
   const selectedTeamDiary = team?.defaultDiaryId ?? null;
 
-  const boundElsewhere = Boolean(
-    selectedAgent &&
-    selectedAgent.kind === 'managed' &&
-    selectedAgent.teamId &&
-    selectedAgent.teamId !== teamId,
-  );
+  const boundElsewhere = Boolean(team && !team.available);
 
   const availableFallbacks = useMemo(
     () =>
       profiles.filter(
         (candidate) =>
-          candidate.teamId !== primaryId &&
-          !fallbackIds.includes(candidate.teamId),
+          candidate.id !== primaryId && !fallbackIds.includes(candidate.id),
       ),
     [profiles, primaryId, fallbackIds],
   );
 
   const problems: string[] = [];
   if (!agent) problems.push('Choose an identity.');
+  if (!team?.available) problems.push('Verify an available team credential.');
   if (!teamId) problems.push('Choose a team.');
   if (!primaryId) problems.push('Choose a runtime profile.');
   if (taskTypes.length === 0) problems.push('Choose at least one task type.');
@@ -174,7 +209,11 @@ export function RunComposer({
             <Select
               label="Identity"
               value={agent}
-              onChange={(event) => setAgent(event.target.value)}
+              onChange={(event) => {
+                setAgent(event.target.value);
+                setPrimaryId('');
+                setFallbackIds([]);
+              }}
               hint={
                 selectedAgent?.fingerprint
                   ? `Agent key ${selectedAgent.fingerprint}`
@@ -190,7 +229,11 @@ export function RunComposer({
             <Select
               label="Team"
               value={teamId}
-              onChange={(event) => setTeamId(event.target.value)}
+              onChange={(event) => {
+                setTeamId(event.target.value);
+                setPrimaryId('');
+                setFallbackIds([]);
+              }}
               error={
                 boundElsewhere
                   ? `${agent} cannot claim work for this team`
@@ -205,14 +248,13 @@ export function RunComposer({
             </Select>
           </div>
 
-          {boundElsewhere ? (
-            <InlineNotice
-              tone="error"
-              title="Identity is bound to another team"
-            >
-              A managed agent key is issued for one team. Create an identity for{' '}
-              {team?.teamName} in Console with an invitation from that team, or
-              switch the team back.
+          {boundElsewhere || !teams.some((entry) => entry.available) ? (
+            <InlineNotice tone="warning" title="Team access needs attention">
+              {team?.blockers.map((blocker) => blocker.message).join(' ') ||
+                'Enroll this identity into a team before starting a run.'}
+              <Button variant="ghost" onClick={onTeams}>
+                Enroll or renew team access
+              </Button>
             </InlineNotice>
           ) : null}
 
@@ -227,7 +269,7 @@ export function RunComposer({
             >
               <option value="">Select a profile…</option>
               {profiles.map((candidate) => (
-                <option key={candidate.teamId} value={candidate.teamId}>
+                <option key={candidate.id} value={candidate.id}>
                   {candidate.name}
                   {candidate.ready ? '' : ' — not ready on this Mac'}
                 </option>
@@ -529,9 +571,7 @@ function FallbackList({
       {fallbackIds.length ? (
         <ol className="fallback-list">
           {fallbackIds.map((id, index) => {
-            const profile = profiles.find(
-              (candidate) => candidate.teamId === id,
-            );
+            const profile = profiles.find((candidate) => candidate.id === id);
             return (
               <li key={id}>
                 <Text as="span" variant="caption" mono color="muted">
@@ -598,7 +638,7 @@ function FallbackList({
         >
           <option value="">Select a profile…</option>
           {available.map((candidate) => (
-            <option key={candidate.teamId} value={candidate.teamId}>
+            <option key={candidate.id} value={candidate.id}>
               {candidate.name}
             </option>
           ))}
