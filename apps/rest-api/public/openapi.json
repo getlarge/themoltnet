@@ -14704,7 +14704,6 @@
                 "required": [
                   "bindingScope",
                   "keyId",
-                  "expiresAt",
                   "boundTeamId"
                 ],
                 "type": "object"
@@ -14734,8 +14733,7 @@
                 },
                 "required": [
                   "bindingScope",
-                  "keyId",
-                  "expiresAt"
+                  "keyId"
                 ],
                 "type": "object"
               }
@@ -16054,207 +16052,6 @@
             "description": "Default Response"
           },
           "500": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "502": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/auth/enroll-team": {
-      "post": {
-        "description": "Enroll an existing active agent using its current signing key and an invitation. Returns a team-bound credential once. Completed replays return 409 with the issued key identifier.",
-        "operationId": "enrollExistingAgent",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "idempotency-key",
-            "required": true,
-            "schema": {
-              "maxLength": 200,
-              "minLength": 1,
-              "pattern": "\\S",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "code": {
-                    "pattern": "^mlt_inv_[A-Za-z0-9_-]{22}$",
-                    "type": "string"
-                  },
-                  "expectedTeamId": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "proof": {
-                    "maxLength": 256,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "subjectId": {
-                    "format": "uuid",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "subjectId",
-                  "code",
-                  "proof"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "agentKey": {
-                      "$ref": "#/components/schemas/AgentKeyWithSecret"
-                    },
-                    "role": {
-                      "anyOf": [
-                        {
-                          "enum": [
-                            "owner"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "manager"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "executor"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "member"
-                          ],
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "teamId": {
-                      "description": "UUID v4 identifier",
-                      "format": "uuid",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "teamId",
-                    "role",
-                    "agentKey"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConflictProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "410": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "429": {
             "content": {
               "application/json": {
                 "schema": {
@@ -48222,7 +48019,7 @@
     },
     "/teams/join": {
       "post": {
-        "description": "Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.",
+        "description": "Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.",
         "operationId": "joinTeam",
         "parameters": [
           {
@@ -48246,11 +48043,36 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "expectedTeamId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "issueAgentKey": {
                     "enum": [
                       true
                     ],
                     "type": "boolean"
+                  },
+                  "proof": {
+                    "description": "Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key.",
+                    "properties": {
+                      "signature": {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "subjectId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId",
+                      "signature"
+                    ],
+                    "type": "object"
                   }
                 },
                 "required": [
@@ -48415,7 +48237,8 @@
           },
           {
             "cookieAuth": []
-          }
+          },
+          {}
         ],
         "tags": [
           "teams"

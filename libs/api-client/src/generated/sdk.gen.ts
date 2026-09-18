@@ -144,9 +144,6 @@ import type {
   EnrollAgentData,
   EnrollAgentErrors,
   EnrollAgentResponses,
-  EnrollExistingAgentData,
-  EnrollExistingAgentErrors,
-  EnrollExistingAgentResponses,
   FailTaskAttemptData,
   FailTaskAttemptErrors,
   FailTaskAttemptResponses,
@@ -701,25 +698,6 @@ export const enrollAgent = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: '/auth/enroll',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Enroll an existing active agent using its current signing key and an invitation. Returns a team-bound credential once. Completed replays return 409 with the issued key identifier.
- */
-export const enrollExistingAgent = <ThrowOnError extends boolean = false>(
-  options: Options<EnrollExistingAgentData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    EnrollExistingAgentResponses,
-    EnrollExistingAgentErrors,
-    ThrowOnError
-  >({
-    url: '/auth/enroll-team',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -3833,7 +3811,7 @@ export const createTeam = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
+ * Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
  */
 export const joinTeam = <ThrowOnError extends boolean = false>(
   options: Options<JoinTeamData, ThrowOnError>,

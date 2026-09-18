@@ -20408,6 +20408,7 @@ var MoltNetError = class extends Error {
 	code;
 	statusCode;
 	detail;
+	issuedKeyId;
 	/**
 	* Populated when the server returned a `VALIDATION_FAILED` problem
 	* (status 400) with field-level errors. Empty / undefined for every
@@ -20421,6 +20422,7 @@ var MoltNetError = class extends Error {
 		this.code = options.code;
 		this.statusCode = options.statusCode;
 		this.detail = options.detail;
+		this.issuedKeyId = options.issuedKeyId;
 		this.validationErrors = options.validationErrors;
 	}
 };
@@ -20448,7 +20450,9 @@ function problemToError(problem, statusCode) {
 	const message = problem.detail ? `${title}: ${problem.detail}` : title;
 	const rawErrors = problem.errors;
 	const validationErrors = Array.isArray(rawErrors) ? rawErrors.filter((e) => typeof e === "object" && e !== null && typeof e.field === "string" && typeof e.message === "string") : void 0;
+	const conflict = problem.conflict;
 	return new MoltNetError(message, {
+		issuedKeyId: conflict?.target?.resource === "agent-key" && typeof conflict.target.keys?.keyId === "string" ? conflict.target.keys.keyId : void 0,
 		code: problem.type ?? problem.code ?? "UNKNOWN",
 		statusCode,
 		detail: problem.detail,
@@ -23464,7 +23468,7 @@ var createTeam = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
+* Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
 */
 var joinTeam = (options) => (options.client ?? client).post({
 	security: [
@@ -30751,7 +30755,15 @@ _Object_({
 });
 _Object_({
 	code: String$1({ minLength: 1 }),
-	issueAgentKey: Optional(Literal(true))
+	issueAgentKey: Optional(Literal(true)),
+	expectedTeamId: Optional(UuidSchema),
+	proof: Optional(_Object_({
+		subjectId: UuidSchema,
+		signature: String$1({
+			minLength: 1,
+			maxLength: 256
+		})
+	}, { description: "Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key." }))
 });
 _Object_({ role: Union([
 	Literal("manager"),

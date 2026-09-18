@@ -189,10 +189,6 @@ type EnrollAgentRes interface {
 	enrollAgentRes()
 }
 
-type EnrollExistingAgentRes interface {
-	enrollExistingAgentRes()
-}
-
 type FailTaskAttemptRes interface {
 	failTaskAttemptRes()
 }
