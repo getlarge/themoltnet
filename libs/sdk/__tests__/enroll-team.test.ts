@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
 import { CredentialPersistenceError } from '../src/credential-persistence.js';
-import { EnrollmentRecoveryError,enrollTeam } from '../src/enroll-team.js';
+import { EnrollmentRecoveryError, enrollTeam } from '../src/enroll-team.js';
 import { requestProofEnrollment } from '../src/enrollment-proof.js';
 
 vi.mock('../src/enrollment-proof.js', () => ({
