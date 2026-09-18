@@ -17,7 +17,7 @@ afterEach(() => {
     .splice(0)
     .forEach((root) => rmSync(root, { recursive: true, force: true }));
 });
-async function fixture() {
+async function fixture(activated = true) {
   const root = mkdtempSync(join(tmpdir(), 'server-enrollment-'));
   roots.push(root);
   const store = new AgentServerStore(root).ensure();
@@ -48,15 +48,16 @@ async function fixture() {
       mcp: 'https://mcp.themolt.net',
     },
   });
-  store.writeActivation({
-    source: 'managed',
-    alias: 'agent',
-    subjectId: 'subject',
-    publicKey: keys.publicKey,
-    fingerprint: keys.fingerprint,
-    createdAt: '2026-09-18T00:00:00Z',
-    apiUrl: 'https://api.themolt.net',
-  });
+  if (activated)
+    store.writeActivation({
+      source: 'managed',
+      alias: 'agent',
+      subjectId: 'subject',
+      publicKey: keys.publicKey,
+      fingerprint: keys.fingerprint,
+      createdAt: '2026-09-18T00:00:00Z',
+      apiUrl: 'https://api.themolt.net',
+    });
   const registry = new SecretProviderRegistry().register(provider);
   return {
     store,
@@ -103,6 +104,23 @@ describe('local team enrollment boundary', () => {
       keyId: 'new-key',
     });
     expect(JSON.stringify(result)).not.toContain(f.keys.privateKey);
+  });
+
+  it('enrolls a local identity before first activation without needing its expired credential', async () => {
+    const f = await fixture(false);
+    vi.spyOn(SdkNode, 'enrollTeam').mockResolvedValue({
+      teamId: 'team',
+      key: { id: 'new-key' },
+    } as SdkNode.EnrollTeamResult);
+    expect(f.store.readActivation('agent')).toBeNull();
+    await enrollIdentityTeam({
+      ...f.options,
+      input: { mode: 'enroll', code: 'invite', idempotencyKey: 'request' },
+    });
+    expect(f.store.readActivation('agent')).toMatchObject({
+      subjectId: 'subject',
+      publicKey: f.keys.publicKey,
+    });
   });
 
   it.each([false, true])(

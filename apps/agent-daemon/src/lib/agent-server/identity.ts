@@ -909,6 +909,35 @@ export function requireActivation(
   return activation;
 }
 
+/** Enrollment may recover a central identity before its first online activation. */
+export async function loadEnrollmentIdentity(
+  store: AgentServerStore,
+  alias: string,
+): Promise<ActivatedAgent> {
+  if (store.readActivation(alias)) return loadAgentActivation(store, alias);
+  const configPath = store.agentPath(alias);
+  const config = await readCurrentConfig(configPath);
+  if (!isCanonicalConfig(config))
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      'Enrollment requires a canonical agent identity',
+    );
+  const apiUrl = requireTrustedConfigApiUrl(config, configPath);
+  return {
+    config,
+    activation: {
+      source: 'external',
+      alias,
+      configPath,
+      configApiUrl: apiUrl,
+      apiUrl,
+      subjectId: config.subject_id,
+      ...identityFromConfig(config),
+      createdAt: config.registered_at,
+    },
+  };
+}
+
 /** Resolve pinned local identity state without requiring a live API credential. */
 export async function loadAgentActivation(
   store: AgentServerStore,

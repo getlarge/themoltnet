@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { CatalogueAgentPort } from './catalogue.js';
+import type { Catalogue, CatalogueAgentPort } from './catalogue.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
@@ -199,7 +199,7 @@ describe('run catalogue', () => {
 
     // Assert
     expect(response.statusCode).toBe(200);
-    const body = response.json();
+    const body = response.json<Catalogue>();
     expect(body.teams[0]).toMatchObject({
       available: false,
       credential,

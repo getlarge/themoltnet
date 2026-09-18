@@ -38,7 +38,6 @@ import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
-  type verifyAgentActivation,
 } from './identity.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
@@ -167,7 +166,7 @@ export interface RunManagerOptions {
   /** Injectable for focused filesystem-failure tests. */
   symlinkImpl?: typeof symlinkSync;
   now?: () => Date;
-  verifyActivationImpl?: typeof verifyAgentActivation;
+  verifyActivationImpl?: typeof verifyTeamActivation;
   logger?: RunLogger;
   maxLogBytes?: number;
   maxCompletedRuns?: number;

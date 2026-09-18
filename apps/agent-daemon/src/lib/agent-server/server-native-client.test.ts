@@ -40,6 +40,31 @@ describe('native desktop client', () => {
     expect(response.statusCode).toBe(200);
   });
 
+  it.each([undefined, 'guessed'])(
+    'rejects enrollment without the native grant (%s)',
+    async (token) => {
+      const pairing = new PairingService();
+      pairing.grantNative('supervisor-token');
+      const { app } = await fixture({ pairing });
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/agents/agent/teams',
+        headers: {
+          host: HOST,
+          origin: NATIVE_CLIENT_ORIGIN,
+          ...(token ? { [AGENT_SERVER_TOKEN_HEADER]: token } : {}),
+        },
+        payload: {
+          mode: 'enroll',
+          code: 'invite-sentinel',
+          idempotencyKey: 'request',
+        },
+      });
+      expect(response.statusCode).toBe(401);
+      expect(response.body).not.toContain('invite-sentinel');
+    },
+  );
+
   it('rejects the native origin with a wrong token', async () => {
     // Arrange
     const pairing = new PairingService();
