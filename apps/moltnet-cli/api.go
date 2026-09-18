@@ -98,25 +98,21 @@ func newAuthenticatedClient(apiURL, credPath string, team ...string) (*moltnetap
 		return newAgentKeyAuthenticatedClient(apiURL, agentKey)
 	}
 
-	selectedTeam, err := resolveCredentialTeam(credPath, team...)
+	creds, resolvedPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {
 		if errors.Is(err, errCredentialsNotFound) {
 			return nil, fmt.Errorf("no credentials found: %w; set %s for key-only authentication", err, agentKeyEnv)
 		}
 		return nil, err
 	}
-	client, err := newConfigAuthenticatedClient(apiURL, credPath, NewSecretProviderRegistry(), selectedTeam)
-	if err == nil {
-		return client, nil
+	selectedTeam := ""
+	if !hasOAuth2Configuration(creds) && hasAgentKeyConfiguration(creds) {
+		selectedTeam, err = resolveCredentialTeam(resolvedPath, team...)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if errors.Is(err, errCredentialsNotFound) {
-		return nil, fmt.Errorf(
-			"no credentials found: %w; set %s for key-only authentication",
-			err,
-			agentKeyEnv,
-		)
-	}
-	return nil, err
+	return newCredentialsAuthenticatedClient(apiURL, creds, resolvedPath, NewSecretProviderRegistry(), selectedTeam)
 }
 
 // newConfigAuthenticatedClient authenticates with the credential declared by
@@ -130,6 +126,10 @@ func newConfigAuthenticatedClient(apiURL, credPath string, registry *SecretProvi
 	if err != nil {
 		return nil, fmt.Errorf("load credentials for authentication: %w", err)
 	}
+	return newCredentialsAuthenticatedClient(apiURL, creds, resolvedPath, registry, team...)
+}
+
+func newCredentialsAuthenticatedClient(apiURL string, creds *CredentialsFile, resolvedPath string, registry *SecretProviderRegistry, team ...string) (*moltnetapi.Client, error) {
 	if hasOAuth2Configuration(creds) {
 		client, oauthErr := newOAuth2AuthenticatedClient(apiURL, creds, registry)
 		if oauthErr != nil {

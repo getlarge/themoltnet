@@ -47,12 +47,12 @@ func newTeamKeyIndexMigration(destination string) configMigration {
 				if err := json.Unmarshal(data, &indexed); err != nil {
 					return false, fmt.Errorf("invalid agent_key_ref_verified checkpoint")
 				}
-				if indexed.Reference == *creds.AgentKeyRef && indexed.SubjectID == creds.SubjectID {
+				if indexed.Reference == *creds.AgentKeyRef && indexed.SubjectID == creds.SubjectID && strings.TrimSpace(indexed.KeyID) != "" {
 					if indexed.BindingScope == "identity" {
 						return false, nil
 					}
 					if indexed.BindingScope == "team" && indexed.TeamID != "" {
-						if ref, ok := creds.AgentKeyRefs[indexed.TeamID]; ok && ref.Key == TeamAgentKeyKey(creds.SubjectID, indexed.TeamID) {
+						if ref, ok := creds.AgentKeyRefs[indexed.TeamID]; ok && ref == (SecretReference{Provider: destination, Key: TeamAgentKeyKey(creds.SubjectID, indexed.TeamID)}) {
 							return false, nil
 						}
 					}
@@ -91,7 +91,7 @@ func newTeamKeyIndexMigration(destination string) configMigration {
 			stored := false
 			if team, ok := binding.GetProvenanceGraphTeamNode(); ok {
 				if team.BoundTeamId == uuid.Nil || strings.TrimSpace(team.KeyId) == "" {
-					return fmt.Errorf("legacy key has incomplete team binding")
+					return migrationStageError("verify_binding", configmigrate.FailureState{}, fmt.Errorf("legacy key has incomplete team binding"))
 				}
 				indexed.BindingScope = "team"
 				indexed.TeamID = team.BoundTeamId.String()
@@ -102,17 +102,20 @@ func newTeamKeyIndexMigration(destination string) configMigration {
 				}
 				stored, err = providers.Ensure(ref, key)
 				if err != nil {
-					return migrationStageError("ensure_destination", retainedRetryableState(stored), fmt.Errorf("could not copy and verify the team credential"))
+					return migrationStageError("ensure_destination", retainedSecretState(stored), fmt.Errorf("could not copy and verify the team credential"))
 				}
 				if creds.AgentKeyRefs == nil {
 					creds.AgentKeyRefs = map[string]SecretReference{}
 				}
 				creds.AgentKeyRefs[indexed.TeamID] = ref
 			} else if identity, ok := binding.GetProvenanceGraphIdentityNode(); ok {
+				if strings.TrimSpace(identity.KeyId) == "" {
+					return migrationStageError("verify_binding", configmigrate.FailureState{}, fmt.Errorf("legacy key has incomplete identity binding"))
+				}
 				indexed.BindingScope = "identity"
 				indexed.KeyID = identity.KeyId
 			} else {
-				return fmt.Errorf("unsupported legacy credential binding")
+				return migrationStageError("verify_binding", configmigrate.FailureState{}, fmt.Errorf("unsupported legacy credential binding"))
 			}
 			updated, err := rewriteCredentialsDocument(raw, func(top map[string]json.RawMessage) error {
 				if indexed.BindingScope == "team" {
