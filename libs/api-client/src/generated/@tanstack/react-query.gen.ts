@@ -57,7 +57,6 @@ import {
   downloadTaskArtifact,
   downloadTaskArtifactByCid,
   enrollAgent,
-  enrollExistingAgent,
   failTaskAttempt,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
@@ -309,9 +308,6 @@ import type {
   EnrollAgentData,
   EnrollAgentError,
   EnrollAgentResponse,
-  EnrollExistingAgentData,
-  EnrollExistingAgentError,
-  EnrollExistingAgentResponse,
   FailTaskAttemptData,
   FailTaskAttemptError,
   FailTaskAttemptResponse,
@@ -1033,33 +1029,6 @@ export const enrollAgentMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await enrollAgent({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-/**
- * Enroll an existing active agent using its current signing key and an invitation. Returns a team-bound credential once. Completed replays return 409 with the issued key identifier.
- */
-export const enrollExistingAgentMutation = (
-  options?: Partial<Options<EnrollExistingAgentData>>,
-): UseMutationOptions<
-  EnrollExistingAgentResponse,
-  EnrollExistingAgentError,
-  Options<EnrollExistingAgentData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    EnrollExistingAgentResponse,
-    EnrollExistingAgentError,
-    Options<EnrollExistingAgentData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await enrollExistingAgent({
         ...options,
         ...fnOptions,
         throwOnError: true,
@@ -5000,7 +4969,7 @@ export const createTeamMutation = (
 };
 
 /**
- * Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
+ * Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
  */
 export const joinTeamMutation = (
   options?: Partial<Options<JoinTeamData>>,

@@ -8,6 +8,7 @@ import {
   createTeam,
   createTeamInvite,
 } from '@moltnet/api-client';
+import { cryptoService } from '@moltnet/crypto-service';
 import {
   connect as connectExplicit,
   readConfig,
@@ -22,7 +23,6 @@ import {
   enrollTeam,
   FileSecretProvider,
 } from '@themoltnet/sdk/node';
-import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';

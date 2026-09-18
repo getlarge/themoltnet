@@ -57,7 +57,6 @@ import { problemRoutes } from './routes/problems.js';
 import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
-import { teamEnrollmentRoutes } from './routes/team-enrollment.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { runtimeModelRoutes } from './routes/runtime-models.js';
 import { runtimePolicyRoutes } from './routes/runtime-policies.js';
@@ -506,10 +505,6 @@ export async function registerApiRoutes(
     nonceRepository: options.nonceRepository,
   });
   await app.register(registrationRoutes);
-  await app.register(teamEnrollmentRoutes, {
-    talosApi: options.oryClients.apiKeys,
-    identityApi: options.oryClients.identity,
-  });
   await app.register(teamRoutes, { talosApi: options.oryClients.apiKeys });
   await app.register(groupRoutes);
   await app.register(runtimeSlotRoutes);

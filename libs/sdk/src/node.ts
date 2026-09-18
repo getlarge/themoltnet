@@ -8,8 +8,8 @@ import { resolveOAuth2ClientSecret } from './credential-resolver.js';
 import type { MoltNetConfig } from './credentials.js';
 export { CredentialPersistenceError } from './credential-persistence.js';
 export {
-  enrollTeam,
   EnrollmentRecoveryError,
+  enrollTeam,
   type EnrollTeamOptions,
   type EnrollTeamResult,
 } from './enroll-team.js';

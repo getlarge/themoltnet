@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
 import { CredentialPersistenceError } from '../src/credential-persistence.js';
-import { enrollTeam, EnrollmentRecoveryError } from '../src/enroll-team.js';
+import { EnrollmentRecoveryError,enrollTeam } from '../src/enroll-team.js';
 import { requestProofEnrollment } from '../src/enrollment-proof.js';
 
 vi.mock('../src/enrollment-proof.js', () => ({

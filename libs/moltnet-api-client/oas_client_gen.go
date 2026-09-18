@@ -314,13 +314,6 @@ type Invoker interface {
 	//
 	// POST /auth/enroll
 	EnrollAgent(ctx context.Context, request OptEnrollAgentReq, params EnrollAgentParams) (EnrollAgentRes, error)
-	// EnrollExistingAgent invokes enrollExistingAgent operation.
-	//
-	// Enroll an existing active agent using its current signing key and an invitation. Returns a
-	// team-bound credential once. Completed replays return 409 with the issued key identifier.
-	//
-	// POST /auth/enroll-team
-	EnrollExistingAgent(ctx context.Context, request *EnrollExistingAgentReq, params EnrollExistingAgentParams) (EnrollExistingAgentRes, error)
 	// FailTaskAttempt invokes failTaskAttempt operation.
 	//
 	// Mark an attempt as failed with error details.
@@ -538,8 +531,9 @@ type Invoker interface {
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam invokes joinTeam operation.
 	//
-	// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
-	// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+	// Join using an invitation and either a credential/session with team:join, or an existing agent
+	// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
+	// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
 	// replays return 409.
 	//
 	// POST /teams/join
@@ -8648,104 +8642,6 @@ func (c *Client) sendEnrollAgent(ctx context.Context, request OptEnrollAgentReq,
 	return result, nil
 }
 
-// EnrollExistingAgent invokes enrollExistingAgent operation.
-//
-// Enroll an existing active agent using its current signing key and an invitation. Returns a
-// team-bound credential once. Completed replays return 409 with the issued key identifier.
-//
-// POST /auth/enroll-team
-func (c *Client) EnrollExistingAgent(ctx context.Context, request *EnrollExistingAgentReq, params EnrollExistingAgentParams) (EnrollExistingAgentRes, error) {
-	res, err := c.sendEnrollExistingAgent(ctx, request, params)
-	return res, err
-}
-
-func (c *Client) sendEnrollExistingAgent(ctx context.Context, request *EnrollExistingAgentReq, params EnrollExistingAgentParams) (res EnrollExistingAgentRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("enrollExistingAgent"),
-		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/auth/enroll-team"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, EnrollExistingAgentOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/auth/enroll-team"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-	if err := encodeEnrollExistingAgentRequest(request, r); err != nil {
-		return res, errors.Wrap(err, "encode request")
-	}
-
-	stage = "EncodeHeaderParams"
-	h := uri.NewHeaderEncoder(r.Header)
-	{
-		cfg := uri.HeaderParameterEncodingConfig{
-			Name:    "idempotency-key",
-			Explode: false,
-		}
-		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.StringToString(params.IdempotencyKey))
-		}); err != nil {
-			return res, errors.Wrap(err, "encode header")
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer func() {
-		// Drain the body to EOF before closing, so the underlying
-		// connection can be reused by the Transport regardless of the
-		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
-		_, _ = io.Copy(io.Discard, body)
-		_ = body.Close()
-	}()
-
-	stage = "DecodeResponse"
-	result, err := decodeEnrollExistingAgentResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // FailTaskAttempt invokes failTaskAttempt operation.
 //
 // Mark an attempt as failed with error details.
@@ -14017,8 +13913,9 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 
 // JoinTeam invokes joinTeam operation.
 //
-// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
-// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+// Join using an invitation and either a credential/session with team:join, or an existing agent
+// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
+// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
 // replays return 409.
 //
 // POST /teams/join
@@ -14137,6 +14034,7 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

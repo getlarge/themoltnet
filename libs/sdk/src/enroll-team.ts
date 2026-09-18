@@ -18,8 +18,8 @@ import {
   type EnrollmentSigner,
   requestProofEnrollment,
 } from './enrollment-proof.js';
-import type { SecretProvider } from './secrets.js';
 import { MoltNetError } from './errors.js';
+import type { SecretProvider } from './secrets.js';
 
 export interface EnrollTeamOptions {
   /** Existing authenticated agent; no destination-team context is required. */

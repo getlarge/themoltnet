@@ -12,9 +12,8 @@ import {
   createTeam,
   createTeamInvite,
   deleteTeamInvite,
-  enrollExistingAgent,
-  getWhoami,
   getTeam,
+  getWhoami,
   joinTeam,
   revokeAgentKey,
 } from '@moltnet/api-client';
@@ -23,8 +22,8 @@ import {
   createPermissionChecker,
   createRelationshipReader,
 } from '@moltnet/auth';
-import { createAgentRepository, teamInvites, teams } from '@moltnet/database';
 import { cryptoService } from '@moltnet/crypto-service';
+import { createAgentRepository, teamInvites, teams } from '@moltnet/database';
 import { buildTeamEnrollmentMessage } from '@moltnet/models';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -463,6 +462,54 @@ describe('team enrollment', () => {
 });
 
 describe('proof enrollment against API and Talos', () => {
+  it('redeems a human-created Console invitation and renews after credential revocation', async () => {
+    const consoleClient = createClient({ baseUrl: harness.baseUrl });
+    consoleClient.interceptors.request.use((request) => {
+      request.headers.set('X-Moltnet-Session-Token', human.sessionToken);
+      return request;
+    });
+    const team = await createTeam({
+      client: consoleClient,
+      body: { name: `Desktop enrollment ${randomUUID()}` },
+    });
+    expect(team.response.status).toBe(201);
+    const invite = await createTeamInvite({
+      client: consoleClient,
+      path: { id: team.data!.id },
+      body: { role: 'executor' },
+    });
+    expect(invite.response.status).toBe(201);
+    const original = await proofEnroll(invite.data!.code, team.data!.id);
+    expect(original.response.status).toBe(200);
+    const key = original.data!.agentKey!;
+    const revoked = await revokeAgentKey({
+      client: consoleClient,
+      headers: { 'x-moltnet-team-id': team.data!.id },
+      path: { keyId: key.key.id },
+      body: { reason: 'key_compromise' },
+    });
+    expect(revoked.response.status).toBe(204);
+    expect(
+      (await getWhoami({ client, auth: () => key.secret })).response.status,
+    ).toBe(401);
+    const renewal = await createTeamInvite({
+      client: consoleClient,
+      path: { id: team.data!.id },
+      body: { role: 'executor' },
+    });
+    expect(renewal.response.status).toBe(201);
+    const replacement = await proofEnroll(renewal.data!.code, team.data!.id);
+    expect(replacement.response.status).toBe(200);
+    expect(
+      (
+        await getWhoami({
+          client,
+          auth: () => replacement.data!.agentKey!.secret,
+        })
+      ).response.status,
+    ).toBe(200);
+  });
+
   async function proofEnroll(
     code: string,
     expectedTeamId?: string,
@@ -478,10 +525,15 @@ describe('proof enrollment against API and Talos', () => {
       buildTeamEnrollmentMessage(input),
       agent.keyPair.privateKey,
     );
-    return enrollExistingAgent({
+    return joinTeam({
       client,
       headers: { 'idempotency-key': idempotencyKey },
-      body: { subjectId: input.subjectId, code, expectedTeamId, proof },
+      body: {
+        code,
+        expectedTeamId,
+        issueAgentKey: true,
+        proof: { subjectId: input.subjectId, signature: proof },
+      },
     });
   }
 
@@ -525,7 +577,7 @@ describe('proof enrollment against API and Talos', () => {
     expect(replay.response.status).toBe(409);
     expect(replay.error).toMatchObject({
       conflict: {
-        target: { keys: { keyId: replacement.data!.agentKey.key.id } },
+        target: { keys: { keyId: replacement.data!.agentKey!.key.id } },
       },
     });
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(2);

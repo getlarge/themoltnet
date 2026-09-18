@@ -1,6 +1,6 @@
 import { cryptoService } from '@moltnet/crypto-service';
 import { buildTeamEnrollmentMessage } from '@moltnet/models';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { enrollTeamAgent } from '../src/services/team-enrollment.service.js';
 import {
@@ -57,19 +57,53 @@ async function send(overrides = {}, idempotencyKey = input.idempotencyKey) {
   );
   return app.inject({
     method: 'POST',
-    url: '/auth/enroll-team',
+    url: '/teams/join',
     headers: { 'idempotency-key': idempotencyKey },
     payload: {
-      subjectId: input.subjectId,
+      issueAgentKey: true,
       code: input.code,
       expectedTeamId: input.expectedTeamId,
-      proof,
+      proof: { subjectId: input.subjectId, signature: proof },
       ...overrides,
     },
   });
 }
 
 describe('existing identity enrollment proof', () => {
+  it('rejects anonymous joins without proof', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      payload: { code: input.code, issueAgentKey: true },
+      headers: { 'idempotency-key': input.idempotencyKey },
+    });
+    expect(response.statusCode).toBe(401);
+    expect(enrollTeamAgent).not.toHaveBeenCalled();
+  });
+
+  it('does not enable proof authentication on other team operations', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/teams',
+      payload: {
+        name: 'not authorized',
+        proof: { subjectId: OWNER_ID, signature: 'invalid' },
+      },
+    });
+    expect(response.statusCode).toBe(401);
+    expect(enrollTeamAgent).not.toHaveBeenCalled();
+  });
+
+  it('requires key issuance for proof enrollment', async () => {
+    expect((await send({ issueAgentKey: undefined })).statusCode).toBe(400);
+    expect(enrollTeamAgent).not.toHaveBeenCalled();
+  });
+
+  it('requires a retry identifier for proof enrollment', async () => {
+    expect((await send({}, '')).statusCode).toBe(400);
+    expect(enrollTeamAgent).not.toHaveBeenCalled();
+  });
+
   it('accepts a locally signed proof without an API credential', async () => {
     await send();
     expect(enrollTeamAgent).toHaveBeenCalledWith(
@@ -86,8 +120,13 @@ describe('existing identity enrollment proof', () => {
   it.each([
     { code: 'mlt_inv_bcdefghijklmnopqrstuvw' },
     { expectedTeamId: 'bbbbbbbb-0000-4000-8000-000000000002' },
-    { subjectId: 'cccccccc-0000-4000-8000-000000000003' },
-    { proof: 'invalid' },
+    {
+      proof: {
+        subjectId: 'cccccccc-0000-4000-8000-000000000003',
+        signature: 'invalid',
+      },
+    },
+    { proof: { subjectId: OWNER_ID, signature: 'invalid' } },
   ])('rejects tampered proof inputs before redemption', async (change) => {
     expect((await send(change)).statusCode).toBeGreaterThanOrEqual(400);
     expect(enrollTeamAgent).not.toHaveBeenCalled();
