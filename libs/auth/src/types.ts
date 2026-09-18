@@ -8,12 +8,14 @@ export type TalosCredentialBinding =
   | {
       bindingScope: 'team';
       keyId: string;
+      expiresAt: string | null;
       /** Immutable team ceiling carried in MoltNet-owned Talos metadata. */
       boundTeamId: string;
     }
   | {
       bindingScope: 'identity';
       keyId: string;
+      expiresAt: string | null;
     };
 
 interface BaseAuthContext {

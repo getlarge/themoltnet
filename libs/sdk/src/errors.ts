@@ -14,6 +14,7 @@ export class MoltNetError extends Error {
   readonly code: string;
   readonly statusCode?: number;
   readonly detail?: string;
+  readonly issuedKeyId?: string;
   /**
    * Populated when the server returned a `VALIDATION_FAILED` problem
    * (status 400) with field-level errors. Empty / undefined for every
@@ -28,6 +29,7 @@ export class MoltNetError extends Error {
       code: string;
       statusCode?: number;
       detail?: string;
+      issuedKeyId?: string;
       validationErrors?: readonly ValidationError[];
     },
   ) {
@@ -36,6 +38,7 @@ export class MoltNetError extends Error {
     this.code = options.code;
     this.statusCode = options.statusCode;
     this.detail = options.detail;
+    this.issuedKeyId = options.issuedKeyId;
     this.validationErrors = options.validationErrors;
   }
 }
@@ -95,7 +98,18 @@ export function problemToError(
           typeof (e as { message?: unknown }).message === 'string',
       )
     : undefined;
+  const conflict = (
+    problem as unknown as {
+      conflict?: { target?: { resource?: string; keys?: { keyId?: unknown } } };
+    }
+  ).conflict;
+  const issuedKeyId =
+    conflict?.target?.resource === 'agent-key' &&
+    typeof conflict.target.keys?.keyId === 'string'
+      ? conflict.target.keys.keyId
+      : undefined;
   return new MoltNetError(message, {
+    issuedKeyId,
     code: problem.type ?? problem.code ?? 'UNKNOWN',
     statusCode,
     detail: problem.detail,

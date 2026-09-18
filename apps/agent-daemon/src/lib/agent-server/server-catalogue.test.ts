@@ -24,7 +24,13 @@ describe('run catalogue', () => {
   const TEAM = '4f2a91c8-1d3e-4b77-9a02-6c1b8e7d5a40';
 
   /** A fake authenticated agent standing in for the SDK client. */
-  const catalogueAgent: CatalogueAgentPort = {
+  const credential = {
+    keyId: 'key-1',
+    expiresAt: null,
+    verifiedAt: '2026-09-18T12:00:00.000Z',
+    scopes: ['team:read', 'diary:read'],
+  };
+  const data = {
     listTeams: () =>
       Promise.resolve([{ id: TEAM, name: 'MoltNet Core', personal: false }]),
     listDiaries: () =>
@@ -49,6 +55,19 @@ describe('run catalogue', () => {
           requiredExecutables: [],
         },
       ]),
+  };
+
+  const catalogueAgent: CatalogueAgentPort = {
+    teamIds: [TEAM],
+    lastVerified: () => credential,
+    readTeam: async () => ({
+      team: (await data.listTeams())[0]!,
+      diaries: await data.listDiaries(),
+      profiles: (await data.listProfiles()) as Awaited<
+        ReturnType<CatalogueAgentPort['readTeam']>
+      >['profiles'],
+      credential,
+    }),
   };
 
   it('returns the teams, diaries and profiles the identity can serve', async () => {
@@ -81,6 +100,9 @@ describe('run catalogue', () => {
         {
           teamId: TEAM,
           teamName: 'MoltNet Core',
+          available: true,
+          blockers: [],
+          credential,
           diaries: [{ id: 'diary-1', name: 'themoltnet' }],
           defaultDiaryId: 'diary-1',
         },
@@ -149,11 +171,8 @@ describe('run catalogue', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('explains a key that predates the catalogue scopes', async () => {
-    // A credential's scopes are fixed when it is minted and no key can widen
-    // itself, so every key issued before `team:read`/`diary:read` joined the
-    // default fails here and can only be replaced by a human in Console. A
-    // bare 500 would send the operator looking for a server fault instead.
+  it('sanitizes resource denial without misdiagnosing missing scopes', async () => {
+    // A resource authorization denial is not evidence about credential scopes.
     const stale = Object.assign(new Error('upstream-secret-sentinel'), {
       statusCode: 403,
     });
@@ -161,7 +180,7 @@ describe('run catalogue', () => {
       catalogueAgentFor: () =>
         Promise.resolve({
           ...catalogueAgent,
-          listTeams: () => Promise.reject(stale),
+          readTeam: () => Promise.reject(stale),
         }),
     });
     const token = await pair(app);
@@ -179,13 +198,16 @@ describe('run catalogue', () => {
     });
 
     // Assert
-    expect(response.statusCode).toBe(403);
-    const body = response.json<{ code: string; message: string }>();
-    expect(body.code).toBe('agent_key_scopes_insufficient');
-    expect(body.message).toMatch(/team:read/u);
-    expect(body.message).toMatch(/Console/u);
-    expect(body.message).not.toContain('team:join');
-    expect(body.message).not.toContain('upstream-secret-sentinel');
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.teams[0]).toMatchObject({
+      available: false,
+      credential,
+      blockers: [{ code: 'agent_key_unavailable' }],
+    });
+    expect(body.defaultTeamId).toBeNull();
+    expect(body.profiles).toEqual([]);
+    expect(response.body).not.toContain('upstream-secret-sentinel');
   });
 
   it('rejects a request with no identity', async () => {

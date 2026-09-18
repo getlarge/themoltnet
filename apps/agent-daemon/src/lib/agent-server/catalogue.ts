@@ -19,6 +19,11 @@ import {
   type MachineCapabilities,
   type ProfileBlocker,
 } from './readiness.js';
+import {
+  type CredentialBlocker,
+  credentialBlocker,
+  type CredentialMetadata,
+} from './team-credentials.js';
 
 /**
  * Record shapes are *derived* from the SDK namespaces rather than re-declared,
@@ -66,14 +71,23 @@ export type CatalogueProfileRecord = Pick<
  * the SDK.
  */
 export interface CatalogueAgentPort {
-  listTeams(): Promise<CatalogueTeamRecord[]>;
-  listDiaries(): Promise<CatalogueDiaryRecord[]>;
-  listProfiles(teamId: string): Promise<CatalogueProfileRecord[]>;
+  /** Local indexed slots, not a cross-team API query. */
+  teamIds: string[];
+  lastVerified(teamId: string): CredentialMetadata | undefined;
+  readTeam(teamId: string): Promise<{
+    team: CatalogueTeamRecord;
+    diaries: CatalogueDiaryRecord[];
+    profiles: CatalogueProfileRecord[];
+    credential: CredentialMetadata;
+  }>;
 }
 
 export interface CatalogueTeam {
   teamId: string;
   teamName: string;
+  available: boolean;
+  blockers: CredentialBlocker[];
+  credential?: CredentialMetadata;
   diaries: { id: string; name: string }[];
   /**
    * Non-null only when exactly one diary is known for the team, or the
@@ -106,37 +120,52 @@ export async function buildCatalogue(options: {
   identityDefault: IdentityDefaultBinding;
 }): Promise<Catalogue> {
   const { agent, machine, identityDefault } = options;
-  const [teamRecords, diaryRecords] = await Promise.all([
-    agent.listTeams(),
-    agent.listDiaries(),
-  ]);
-
-  const teams: CatalogueTeam[] = teamRecords.map((team) => {
-    const diaries = diaryRecords
-      .filter((diary) => diary.teamId === team.id)
-      .map((diary) => ({ id: diary.id, name: diary.name }));
-    return {
-      teamId: team.id,
-      teamName: team.name,
-      diaries,
-      defaultDiaryId: resolveDefaultDiary(team.id, diaries, identityDefault),
-    };
-  });
-
-  // A binding pointing at a team this identity cannot serve is stale; falling
-  // back to the first team beats presenting an unusable default.
-  const boundTeam = teams.find(
-    (team) => team.teamId === identityDefault.teamId,
+  const entries = await Promise.all(
+    agent.teamIds.map(async (teamId) => {
+      try {
+        const result = await agent.readTeam(teamId);
+        if (result.team.id !== teamId)
+          throw new Error('Team response mismatch');
+        const diaries = result.diaries
+          .filter((diary) => diary.teamId === teamId)
+          .map(({ id, name }) => ({ id, name }));
+        const team: CatalogueTeam = {
+          teamId,
+          teamName: result.team.name,
+          available: true,
+          blockers: [],
+          credential: result.credential,
+          diaries,
+          defaultDiaryId: resolveDefaultDiary(teamId, diaries, identityDefault),
+        };
+        const profiles = result.profiles
+          .filter((profile) => profile.teamId === teamId)
+          .map((profile) => ({
+            ...profile,
+            ...deriveProfileReadiness(profile, machine),
+          }));
+        return { team, profiles };
+      } catch (error) {
+        const team: CatalogueTeam = {
+          teamId,
+          teamName: teamId,
+          available: false,
+          blockers: [credentialBlocker(error)],
+          credential: agent.lastVerified(teamId),
+          diaries: [],
+          defaultDiaryId: null,
+        };
+        return { team, profiles: [] };
+      }
+    }),
   );
-  const defaultTeamId = boundTeam?.teamId ?? teams[0]?.teamId ?? null;
-
-  const profileLists = await Promise.all(
-    teams.map((team) => agent.listProfiles(team.teamId)),
-  );
-  const profiles = profileLists.flat().map((profile) => ({
-    ...profile,
-    ...deriveProfileReadiness(profile, machine),
-  }));
+  const teams = entries.map(({ team }) => team);
+  const available = teams.filter((team) => team.available);
+  const defaultTeamId =
+    available.find((team) => team.teamId === identityDefault.teamId)?.teamId ??
+    available[0]?.teamId ??
+    null;
+  const profiles = entries.flatMap((entry) => entry.profiles);
 
   return { teams, defaultTeamId, profiles };
 }

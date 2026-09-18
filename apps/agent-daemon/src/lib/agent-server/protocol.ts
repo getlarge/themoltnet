@@ -81,10 +81,26 @@ export const AgentServerProviderSchema = Type.Object(
   { $id: 'AgentServerProvider' },
 );
 
+const CredentialMetadataSchema = Type.Object({
+  keyId: Type.String(),
+  expiresAt: Type.Optional(Type.Union([DateTime, Type.Null()])),
+  verifiedAt: DateTime,
+  scopes: StringList,
+});
+
 export const AgentServerCatalogueTeamSchema = Type.Object(
   {
     teamId: Type.String(),
     teamName: Type.String(),
+    available: Type.Boolean(),
+    credential: Type.Optional(CredentialMetadataSchema),
+    blockers: Type.Array(
+      Type.Object({
+        code: Type.String(),
+        message: Type.String(),
+        remedy: Type.String(),
+      }),
+    ),
     diaries: Type.Array(
       Type.Object({ id: Type.String(), name: Type.String() }),
     ),
@@ -168,6 +184,7 @@ export const AgentServerRunRecordSchema = Type.Object(
     lastError: Type.Optional(
       Type.Object({ code: Type.String(), message: Type.String() }),
     ),
+    credential: Type.Optional(CredentialMetadataSchema),
     startedAt: DateTime,
     endedAt: Type.Optional(DateTime),
   },
@@ -365,6 +382,42 @@ export const AgentServerRouteSchemas = {
     security: pairedSecurity,
     body: CreateAgentSchema,
     response: { 201: schemaRef(AgentServerAgentSchema), ...problemResponse },
+  },
+  enrollTeam: {
+    operationId: 'enrollAgentServerTeam',
+    tags: ['agents'],
+    security: pairedSecurity,
+    params: AgentParamsSchema,
+    body: Type.Intersect([
+      Type.Object({
+        code: Type.String({ minLength: 1, maxLength: 4096 }),
+        idempotencyKey: Type.String({ minLength: 1, maxLength: 256 }),
+      }),
+      Type.Union([
+        Type.Object({ mode: Type.Literal('enroll') }),
+        Type.Object({
+          mode: Type.Literal('replace'),
+          teamId: Type.String({ minLength: 1 }),
+        }),
+      ]),
+    ]),
+    response: {
+      200: Type.Union([
+        Type.Object({
+          state: Type.Literal('persisted'),
+          teamId: Type.String(),
+          keyId: Type.String(),
+        }),
+        Type.Object({
+          state: Type.Literal('recovery_required'),
+          secretCaptured: Type.Boolean(),
+          issuedKeyId: Type.Optional(Type.String()),
+          recoveryId: Type.String(),
+          message: Type.String(),
+        }),
+      ]),
+      ...problemResponse,
+    },
   },
   reconcileAgent: {
     operationId: 'reconcileAgentServerAgent',

@@ -211,6 +211,7 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().credentialBinding).toEqual({
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'key-123',
         boundTeamId: OWNER_ID,
@@ -222,6 +223,7 @@ describe('Agent routes', () => {
       const keyApp = await createTestApp(mocks, {
         ...KEY_AUTH_CONTEXT,
         credentialBinding: {
+          expiresAt: null,
           bindingScope: 'identity',
           keyId: 'identity-key-123',
         },
@@ -236,6 +238,7 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().credentialBinding).toEqual({
+        expiresAt: null,
         bindingScope: 'identity',
         keyId: 'identity-key-123',
       });
@@ -355,7 +358,11 @@ describe('Agent routes', () => {
         'identity-bound',
         {
           ...VALID_AUTH_CONTEXT,
-          credentialBinding: { bindingScope: 'identity', keyId: 'key-456' },
+          credentialBinding: {
+            expiresAt: null,
+            bindingScope: 'identity',
+            keyId: 'key-456',
+          },
         } satisfies AuthContext,
       ],
     ])('rejects %s agent keys even with agent:profile', async (_, ctx) => {

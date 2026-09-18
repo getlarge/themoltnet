@@ -555,21 +555,37 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     );
 
     try {
-      await expect(
-        runOnce([
-          '--agent',
-          AGENT_NAME,
-          '--agent-root',
-          root,
-          '--task-id',
-          task.id,
-          '--profile',
-          'must-not-resolve',
-          '--team',
-          teamId,
-        ]),
-      ).rejects.toThrow(
-        /missing required scopes.*crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute/,
+      const error = await runOnce([
+        '--agent',
+        AGENT_NAME,
+        '--agent-root',
+        root,
+        '--task-id',
+        task.id,
+        '--profile',
+        'must-not-resolve',
+        '--team',
+        teamId,
+      ]).then(
+        () => null,
+        (cause: unknown) =>
+          cause instanceof Error ? cause : new Error(String(cause)),
+      );
+      expect(error, 'expected `once` to reject before claiming').not.toBeNull();
+      const message = error?.message ?? '';
+
+      // Only the floor is missing-and-required. `diary:read`, `team:read` and
+      // `team:join` are absent from this key too, but startup does not check
+      // them, so naming them here would tell the operator to fix something that
+      // is not stopping the daemon. Written out rather than derived from the
+      // constant: a list that grows with it cannot notice the gate widening.
+      expect(message).toMatch(
+        /missing required scopes: crypto:sign runtime:read task:read task:claim task:execute/,
+      );
+      // The remedy still names the full grant, so a replacement key is minted
+      // with everything the daemon can use, not just enough to boot.
+      expect(message).toContain(
+        'Issue a replacement credential with agent:profile crypto:sign runtime:read task:read task:claim task:execute diary:read team:read team:join',
       );
       const unchanged = await oauthAgent.tasks.get(task.id);
       expect(unchanged.status).toBe(task.status);

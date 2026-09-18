@@ -57,6 +57,7 @@ import { enrollTeamAgent } from '../services/team-enrollment.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requestAbortSignal } from '../utils/request-abort-signal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
+import { verifyTeamJoinProof } from '../utils/team-join-proof.js';
 import {
   FOUNDING_ACCEPT_EVENT,
   teamFoundingWorkflow,
@@ -341,7 +342,18 @@ export function teamRoutes(
     talosApi: options.talosApi,
   });
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
-  server.addHook('preHandler', requireAuth);
+  server.addHook('preHandler', async function (request, reply) {
+    // Only an explicit proof on join selects its operation-scoped verifier.
+    // Missing/invalid credentials never trigger an implicit proof fallback.
+    if (
+      request.routeOptions.schema?.operationId === 'joinTeam' &&
+      request.body &&
+      typeof request.body === 'object' &&
+      'proof' in request.body
+    )
+      return;
+    await requireAuth.call(this, request, reply);
+  });
 
   // ── Create Team ──────────────────────────────────────────────
   server.post(
@@ -1059,6 +1071,7 @@ export function teamRoutes(
     '/teams/join',
     {
       config: {
+        rateLimit: fastify.rateLimitConfig?.registration,
         auth: {
           credentialBindingScope: 'identity',
           requiredScopes: ['team:join'],
@@ -1068,8 +1081,13 @@ export function teamRoutes(
         operationId: 'joinTeam',
         tags: ['teams'],
         description:
-          'Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+          'Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.',
+        security: [
+          { bearerAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+          {},
+        ],
         body: JoinTeamSchema,
         headers: Type.Object({
           'idempotency-key': Type.Optional(
@@ -1097,8 +1115,22 @@ export function teamRoutes(
       },
     },
     async (request, reply) => {
-      const { subjectId, subjectNs: ns } = requireKetoSubject(request);
-      const { code } = request.body;
+      const { code, proof, expectedTeamId } = request.body;
+      const signal = requestAbortSignal(request, reply);
+      const principal = proof
+        ? await verifyTeamJoinProof(
+            fastify,
+            {
+              code,
+              proof,
+              expectedTeamId,
+              issueAgentKey: request.body.issueAgentKey,
+              idempotencyKey: request.headers['idempotency-key'],
+            },
+            signal,
+          )
+        : requireKetoSubject(request);
+      const { subjectId, subjectNs: ns } = principal;
       if (request.body.issueAgentKey) {
         if (ns !== KetoNamespace.Agent)
           throw createProblem(
@@ -1118,7 +1150,9 @@ export function teamRoutes(
             subjectNs: ns,
             code,
             idempotencyKey: request.headers['idempotency-key'],
-            signal: requestAbortSignal(request, reply),
+            expectedTeamId,
+            proofAuthenticated: Boolean(proof),
+            signal,
           },
         );
         return reply
@@ -1130,6 +1164,12 @@ export function teamRoutes(
       const invite = await fastify.teamRepository.findInviteByCode(code);
       if (!invite) {
         throw createProblem('not-found', 'Invalid invite code');
+      }
+      if (expectedTeamId && invite.teamId !== expectedTeamId) {
+        throw createProblem(
+          'conflict',
+          'Invitation belongs to a different team',
+        );
       }
 
       const pending = await teamInviteWorkflow.findPending({

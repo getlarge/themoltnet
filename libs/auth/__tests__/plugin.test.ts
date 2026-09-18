@@ -320,6 +320,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
@@ -348,6 +349,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
@@ -378,6 +380,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
@@ -414,6 +417,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
@@ -453,6 +457,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
@@ -491,6 +496,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
@@ -568,6 +574,7 @@ describe('requireAuth preHandler', () => {
     const authContext: AuthContext = {
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        expiresAt: null,
         bindingScope: 'identity',
         keyId: 'talos-key-audit-123',
       },

@@ -20408,6 +20408,7 @@ var MoltNetError = class extends Error {
 	code;
 	statusCode;
 	detail;
+	issuedKeyId;
 	/**
 	* Populated when the server returned a `VALIDATION_FAILED` problem
 	* (status 400) with field-level errors. Empty / undefined for every
@@ -20421,6 +20422,7 @@ var MoltNetError = class extends Error {
 		this.code = options.code;
 		this.statusCode = options.statusCode;
 		this.detail = options.detail;
+		this.issuedKeyId = options.issuedKeyId;
 		this.validationErrors = options.validationErrors;
 	}
 };
@@ -20448,7 +20450,9 @@ function problemToError(problem, statusCode) {
 	const message = problem.detail ? `${title}: ${problem.detail}` : title;
 	const rawErrors = problem.errors;
 	const validationErrors = Array.isArray(rawErrors) ? rawErrors.filter((e) => typeof e === "object" && e !== null && typeof e.field === "string" && typeof e.message === "string") : void 0;
+	const conflict = problem.conflict;
 	return new MoltNetError(message, {
+		issuedKeyId: conflict?.target?.resource === "agent-key" && typeof conflict.target.keys?.keyId === "string" ? conflict.target.keys.keyId : void 0,
 		code: problem.type ?? problem.code ?? "UNKNOWN",
 		statusCode,
 		detail: problem.detail,
@@ -23464,7 +23468,7 @@ var createTeam = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
+* Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
 */
 var joinTeam = (options) => (options.client ?? client).post({
 	security: [
@@ -30327,19 +30331,49 @@ var CREDENTIAL_SCOPES = {
 	TeamRead: "team:read"
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-[
-	...[
-		CREDENTIAL_SCOPES.AgentProfile,
-		CREDENTIAL_SCOPES.CryptoSign,
-		CREDENTIAL_SCOPES.RuntimeRead,
-		CREDENTIAL_SCOPES.TaskRead,
-		CREDENTIAL_SCOPES.TaskClaim,
-		CREDENTIAL_SCOPES.TaskExecute
-	],
+/**
+* What the agent daemon cannot run without, checked against
+* `GET /agents/whoami` at startup. Task credentials attenuate it further to
+* `task:execute` alone.
+*
+* This is the **boot floor**, and deliberately not the same list as
+* `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
+* and `POST /agent-keys` caps a new key at the scopes of the credential
+* requesting it, so no key can ever widen itself. A scope added here therefore
+* stops every daemon already in the field, and only a human with a Console
+* session can mint the replacement. Add one only when the daemon genuinely
+* cannot work without it; anything a caller merely benefits from belongs in
+* `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
+*
+* `crypto:sign` is part of the minimum because host-capability signing runs on
+* the daemon's own credential: the local seed signer calls the signing-request
+* endpoints, which require it. A grant without it produces a daemon that boots
+* cleanly and then fails the first time guest code signs a diary entry or a
+* commit.
+*/
+var DAEMON_MINIMUM_SCOPES = [
+	CREDENTIAL_SCOPES.AgentProfile,
+	CREDENTIAL_SCOPES.CryptoSign,
+	CREDENTIAL_SCOPES.RuntimeRead,
+	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TaskClaim,
+	CREDENTIAL_SCOPES.TaskExecute
+];
+/**
+* Read and enrollment authority a daemon uses when it has it, and runs without
+* when it does not: reading the teams it belongs to and their diaries, and
+* joining a team it is not yet a member of.
+*
+* Which product surface each one enables is deliberately not recorded here.
+* That mapping belongs to whatever consumes the scope and changes with it,
+* while the scope names are the contract and do not.
+*/
+var DAEMON_OPTIONAL_SCOPES = [
 	CREDENTIAL_SCOPES.DiaryRead,
 	CREDENTIAL_SCOPES.TeamRead,
 	CREDENTIAL_SCOPES.TeamJoin
 ];
+[...DAEMON_MINIMUM_SCOPES, ...DAEMON_OPTIONAL_SCOPES];
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
@@ -30721,7 +30755,15 @@ _Object_({
 });
 _Object_({
 	code: String$1({ minLength: 1 }),
-	issueAgentKey: Optional(Literal(true))
+	issueAgentKey: Optional(Literal(true)),
+	expectedTeamId: Optional(UuidSchema),
+	proof: Optional(_Object_({
+		subjectId: UuidSchema,
+		signature: String$1({
+			minLength: 1,
+			maxLength: 256
+		})
+	}, { description: "Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key." }))
 });
 _Object_({ role: Union([
 	Literal("manager"),
