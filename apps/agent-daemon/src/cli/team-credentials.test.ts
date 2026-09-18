@@ -35,6 +35,8 @@ vi.mock('../config.js', () => ({
   loadConfig: () => ({
     credentialSource: 'config',
     credentialEnforcement: 'off',
+    profileCredentialRequirements: '',
+    credentialBindings: '',
   }),
 }));
 vi.mock('../lib/executor-attestation.js', () => ({
