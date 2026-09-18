@@ -13,6 +13,7 @@ import {
   readConfig,
   SecretProviderRegistry,
   updateConfigSection,
+  updateConfig,
   writeConfig,
 } from '@themoltnet/sdk';
 import {
@@ -92,6 +93,7 @@ async function localIdentity() {
         },
       },
       endpoints: { api: harness.baseUrl, mcp: harness.baseUrl + '/mcp' },
+      oauth2: { client_id: agent.clientId, client_secret: agent.clientSecret },
       agent_key_refs: {},
     },
     dir,
@@ -136,6 +138,9 @@ describe('SDK team enrollment persistence and reconnect', () => {
     expect(first).not.toHaveProperty('secret');
     expect(first.reference.key).toBe(`agent-key/${agent.agentId}/${a.teamId}`);
     expect(second.reference.key).toBe(`agent-key/${agent.agentId}/${b.teamId}`);
+    await updateConfig((config) => {
+      delete config.oauth2;
+    }, dir);
     const config = await readConfig(dir);
     expect(config?.agent_key_refs).toEqual({
       [a.teamId]: first.reference,
@@ -234,6 +239,9 @@ describe('SDK team enrollment persistence and reconnect', () => {
       { [invite.teamId]: recovery.reference },
       dir,
     );
+    await updateConfig((config) => {
+      delete config.oauth2;
+    }, dir);
     const reconnected = await connect({
       configDir: dir,
       teamId: invite.teamId,

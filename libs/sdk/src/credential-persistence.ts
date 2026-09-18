@@ -11,7 +11,7 @@ export class CredentialPersistenceError extends Error {
   constructor(readonly recoveryPath?: string) {
     super(
       recoveryPath
-        ? `Credential persistence failed; protected recovery material is at ${recoveryPath}`
+        ? `Credential persistence failed; recovery material may be incomplete; inspect the protected file at ${recoveryPath}`
         : 'Credential persistence failed before recovery material could be saved',
     );
     this.name = 'CredentialPersistenceError';
@@ -26,6 +26,7 @@ export async function prepareCredentialPersistence(configDir: string) {
   const file = await open(path, 'wx', 0o600);
   let closed = false;
   let captured = false;
+  let captureAttempted = false;
   let completed = false;
   const close = async () => {
     if (!closed) {
@@ -40,6 +41,7 @@ export async function prepareCredentialPersistence(configDir: string) {
   ) => {
     if (captured) return;
     try {
+      captureAttempted = true;
       await file.writeFile(
         JSON.stringify({
           version: 1,
@@ -54,13 +56,13 @@ export async function prepareCredentialPersistence(configDir: string) {
       await close();
     } catch {
       await close().catch(() => undefined);
-      throw new CredentialPersistenceError(captured ? path : undefined);
+      throw new CredentialPersistenceError(captureAttempted ? path : undefined);
     }
   };
   return {
     path,
     get recoveryPath() {
-      return captured && !completed ? path : undefined;
+      return captureAttempted && !completed ? path : undefined;
     },
     capture,
     async cancel() {
@@ -85,7 +87,9 @@ export async function prepareCredentialPersistence(configDir: string) {
         completed = true;
       } catch {
         await close().catch(() => undefined);
-        throw new CredentialPersistenceError(captured ? path : undefined);
+        throw new CredentialPersistenceError(
+          captureAttempted ? path : undefined,
+        );
       }
     },
   };

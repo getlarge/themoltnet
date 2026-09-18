@@ -4,7 +4,7 @@ import {
   assertCanonicalConfig,
   readConfig,
   resolveConfigDir,
-  updateConfig,
+  updateTeamAgentKeyReference,
 } from '@moltnet/agent-config';
 import type { TeamAgentKey } from '@moltnet/api-client';
 
@@ -83,26 +83,32 @@ export async function enrollTeam(
     {
       subjectId: config.subject_id,
       teamId: result.teamId,
-      keyId: issued.key.id,
+      keyId: issued.key?.id,
     },
     (store) =>
-      updateConfig(async (current) => {
-        if (
-          current.subject_id !== config.subject_id ||
-          issued.key.agentId !== config.subject_id ||
-          issued.key.bindingScope !== 'team' ||
-          issued.key.teamId !== result.teamId
-        ) {
-          throw new Error(
-            'Enrollment credential is not bound to the selected identity and team',
-          );
-        }
-        await store();
-        current.agent_key_refs = {
-          ...current.agent_key_refs,
-          [result.teamId]: reference,
-        };
-      }, dir),
+      updateTeamAgentKeyReference(
+        config.subject_id,
+        result.teamId,
+        reference,
+        dir,
+        async (current) => {
+          if (
+            !issued.key ||
+            !issued.key.id ||
+            typeof issued.secret !== 'string' ||
+            !issued.secret.trim() ||
+            current.subject_id !== config.subject_id ||
+            issued.key.agentId !== config.subject_id ||
+            issued.key.bindingScope !== 'team' ||
+            issued.key.teamId !== result.teamId
+          ) {
+            throw new Error(
+              'Enrollment credential is not bound to the selected identity and team',
+            );
+          }
+          await store();
+        },
+      ),
   );
   return {
     teamId: result.teamId,

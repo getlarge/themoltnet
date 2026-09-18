@@ -80,6 +80,7 @@ export {
   resolveConfigDir,
   resolveConfigPath,
   type SecretReference,
+  updateConfig,
   updateConfigSection,
   updateGitHubConfig,
   updateKeysConfig,
@@ -230,6 +231,8 @@ export {
 } from './tasks/index.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
 export {
+  type AgentKeyConfiguration,
+  type SelectedAgentKey,
   hasAgentKeyConfiguration,
   hasUsableCredentialConfiguration,
   selectAgentKeyReference,
