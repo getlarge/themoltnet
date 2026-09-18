@@ -1,3 +1,4 @@
+/* eslint-disable @nx/enforce-module-boundaries -- Process fixture exercises the server routes directly. */
 import type {
   AuthContext,
   RelationshipReader,
@@ -6,9 +7,9 @@ import type {
 import type { TeamRepository } from '@moltnet/database';
 import Fastify from 'fastify';
 
-import { teamRoutes } from '../../src/routes/teams.js';
-import { sharedSchemas } from '../../src/schemas.js';
-import type { RedeemTeamInvite } from '../../src/workflows/team-invite-workflow.js';
+import { teamRoutes } from '../../../rest-api/src/routes/teams.js';
+import { sharedSchemas } from '../../../rest-api/src/schemas.js';
+import type { RedeemTeamInvite } from '../../../rest-api/src/workflows/team-invite-workflow.js';
 
 /** Real production routes; only identity verification is injected in this isolated crash fixture. */
 export async function startInviteHttpServer(

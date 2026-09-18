@@ -16,13 +16,13 @@ import {
   shutdownDBOS,
 } from '@moltnet/database';
 
-import { startInviteHttpServer } from '../../../rest-api/__tests__/fixtures/invite-http-server.js';
 import {
   initTeamInviteWorkflow,
   type RedeemTeamInvite,
   setTeamInviteDeps,
   teamInviteWorkflow,
 } from '../../../rest-api/src/workflows/team-invite-workflow.js';
+import { startInviteHttpServer } from './invite-http-server.js';
 
 async function main(): Promise<void> {
   const databaseUrl = process.env.INVITE_TEST_DATABASE_URL!;
