@@ -30,22 +30,20 @@ const run: DesktopRun = {
 describe('captured run credential', () => {
   it('checks the viewed identity and warns about replacement without changing or stopping the run', async () => {
     const actions: RunCenterActions = {
-      catalogue: vi
-        .fn()
-        .mockResolvedValue({
-          teams: [
-            {
-              teamId: 'team',
-              credential: {
-                ...credential,
-                keyId: 'replacement',
-                expiresAt: '2027-01-01T00:00:00Z',
-              },
+      catalogue: vi.fn().mockResolvedValue({
+        teams: [
+          {
+            teamId: 'team',
+            credential: {
+              ...credential,
+              keyId: 'replacement',
+              expiresAt: '2027-01-01T00:00:00Z',
             },
-          ],
-          profiles: [],
-          defaultTeamId: 'team',
-        }),
+          },
+        ],
+        profiles: [],
+        defaultTeamId: 'team',
+      }),
       startRun: vi.fn(),
       stopRun: vi.fn(),
       savePreset: vi.fn(),
