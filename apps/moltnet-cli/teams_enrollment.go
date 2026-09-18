@@ -16,6 +16,19 @@ type teamsJoinOpts struct {
 	out, errOut                            io.Writer
 }
 
+// Contains the exact retry input, including the invitation bearer code. This
+// lives only in the mode-0600 recovery artifact, never in command output.
+type enrollmentRecoveryRequest struct {
+	APIURL         string `json:"apiUrl"`
+	SubjectID      string `json:"subjectId"`
+	Code           string `json:"code"`
+	IdempotencyKey string `json:"idempotencyKey"`
+}
+
+func (t *agentKeyStoreTarget) enrollmentOutcomeUnknown() error {
+	return fmt.Errorf("enrollment issuance outcome is unknown; retain the protected recovery file %s and retry only the same API, identity, invitation code and idempotency key recorded there; if replay returns 409, reconcile and revoke the previously issued key before using a fresh invitation (its secret cannot be recovered)", t.recoveryPath)
+}
+
 func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
 	if opts.store.enabled && !opts.issueAgentKey {
 		return fmt.Errorf("--store requires --issue-agent-key")
@@ -44,12 +57,32 @@ func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
 		request.IssueAgentKey = moltnetapi.NewOptJoinTeamReqIssueAgentKey(moltnetapi.JoinTeamReqIssueAgentKeyTrue)
 		params.IdempotencyKey = moltnetapi.NewOptString(opts.idempotencyKey)
 	}
+	if store != nil {
+		if err := store.capture(agentKeyRecovery{
+			Stage: "issuance_outcome_unknown", CredentialsPath: store.credentialsPath,
+			Enrollment: &enrollmentRecoveryRequest{APIURL: opts.apiURL, SubjectID: store.subjectID, Code: opts.code, IdempotencyKey: opts.idempotencyKey},
+		}); err != nil {
+			return fmt.Errorf("could not persist enrollment retry context; issuance was not attempted")
+		}
+	}
 	response, err := client.JoinTeam(context.Background(), request, params)
 	if err != nil {
+		if store != nil {
+			return store.enrollmentOutcomeUnknown()
+		}
 		return fmt.Errorf("teams join: %w", formatTransportError(err))
 	}
 	result, ok := response.(*moltnetapi.JoinTeamOK)
 	if !ok {
+		if store != nil {
+			switch response.(type) {
+			case *moltnetapi.JoinTeamBadRequest, *moltnetapi.JoinTeamUnauthorized, *moltnetapi.JoinTeamForbidden, *moltnetapi.JoinTeamNotFound, *moltnetapi.JoinTeamGone, *moltnetapi.JoinTeamTooManyRequests:
+				// A definitive rejection of this attempt permits pending cleanup.
+				store.captured = false
+			default:
+				return store.enrollmentOutcomeUnknown()
+			}
+		}
 		return formatAPIError(response)
 	}
 	if !opts.issueAgentKey {
@@ -62,6 +95,9 @@ func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
 	}
 	issued, ok := result.AgentKey.Get()
 	if !ok {
+		if store != nil {
+			return store.enrollmentOutcomeUnknown()
+		}
 		return fmt.Errorf("enrollment did not return an agent key")
 	}
 	if store != nil {

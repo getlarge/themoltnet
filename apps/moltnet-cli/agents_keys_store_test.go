@@ -199,6 +199,7 @@ func TestAgentsKeysStoreFailurePathsNeverEmitTheSecret(t *testing.T) {
 
 	t.Run("store failure preserves the secret only in the recovery artifact", func(t *testing.T) {
 		credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+		defer assertCredentialReferencesUnchanged(t, credentialsPath)()
 		registry := NewSecretProviderRegistry()
 		registry.Register(osKeyringProviderName, failingWriteSecretProvider{})
 		capture := newRecoveryCapture(t)
@@ -226,13 +227,14 @@ func TestAgentsKeysStoreFailurePathsNeverEmitTheSecret(t *testing.T) {
 		if info, _ := os.Stat(result.RecoveryPath); info.Mode().Perm() != privateFileMode {
 			t.Fatalf("recovery file mode = %o", info.Mode().Perm())
 		}
-		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRef != nil {
+		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRef != nil || len(creds.AgentKeyRefs) != 0 {
 			t.Fatal("agent_key_ref must not be written when the secret was not stored")
 		}
 	})
 
 	t.Run("read-back mismatch is a storage failure", func(t *testing.T) {
 		credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+		defer assertCredentialReferencesUnchanged(t, credentialsPath)()
 		registry := NewSecretProviderRegistry()
 		provider := &echoingSecretProvider{}
 		registry.Register(osKeyringProviderName, provider)
@@ -254,6 +256,7 @@ func TestAgentsKeysStoreFailurePathsNeverEmitTheSecret(t *testing.T) {
 
 	t.Run("changed subject preserves recovery before touching the provider", func(t *testing.T) {
 		credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+		defer assertCredentialReferencesUnchanged(t, credentialsPath)()
 		registry, provider := newMemorySecretProviderRegistry()
 		capture := newRecoveryCapture(t)
 		// Swap the subject after the target was prepared: the locked
@@ -284,13 +287,14 @@ func TestAgentsKeysStoreFailurePathsNeverEmitTheSecret(t *testing.T) {
 		if len(capture.written) != 1 || capture.latest(t).Secret != secret || capture.latest(t).SecretStored {
 			t.Fatalf("unstored secret must remain in recovery: %+v", capture.written)
 		}
-		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRef != nil {
+		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRef != nil || len(creds.AgentKeyRefs) != 0 {
 			t.Fatal("agent_key_ref must not be bound to a changed subject")
 		}
 	})
 
 	t.Run("recovery artifact and stdout both failing still never prints the secret", func(t *testing.T) {
 		credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+		defer assertCredentialReferencesUnchanged(t, credentialsPath)()
 		registry := NewSecretProviderRegistry()
 		registry.Register(osKeyringProviderName, failingWriteSecretProvider{})
 		capture := newRecoveryCapture(t)
@@ -378,7 +382,7 @@ func TestAgentsKeysRotateStoreReplacesSecretAndChecksAgent(t *testing.T) {
 	if len(capture.written) != 2 || capture.latest(t).Secret != secret || capture.latest(t).Stage != "verify_identity" {
 		t.Fatalf("mismatch after rotation must preserve the new secret in the recovery artifact: %+v", capture.written)
 	}
-	if creds, _ := ReadConfigFrom(other); creds.AgentKeyRef != nil {
+	if creds, _ := ReadConfigFrom(other); creds.AgentKeyRef != nil || len(creds.AgentKeyRefs) != 0 {
 		t.Fatal("mismatched subject must not gain agent_key_ref")
 	}
 }
@@ -484,3 +488,133 @@ func (p *echoingSecretProvider) CanWrite() bool             { return true }
 func (p *echoingSecretProvider) Get(string) (string, error) { return "normalized-elsewhere", nil }
 func (p *echoingSecretProvider) Set(string, string) error   { p.writes++; return nil }
 func (p *echoingSecretProvider) Delete(string) error        { return nil }
+
+func TestAgentKeyStoreBindingFailuresPreserveActualIssuedReference(t *testing.T) {
+	for _, scenario := range []string{"subject", "team", "identity"} {
+		t.Run(scenario, func(t *testing.T) {
+			path := writeAgentKeyStoreFixture(t, testAgentID)
+			before, _ := os.ReadFile(path)
+			registry, provider := newMemorySecretProviderRegistry()
+			capture := newRecoveryCapture(t)
+			target, err := prepareAgentKeyStore(storeOpts(registry, capture), path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			target.enrollment = true
+			target.expectedTeam = testTeamID
+			key := validAgentKey("issued-id")
+			expected := TeamAgentKeyKey(testAgentID, testTeamID)
+			switch scenario {
+			case "subject":
+				team, _ := key.GetTeamAgentKey()
+				team.AgentId = uuid.MustParse("00000000-0000-4000-8000-00000000beef")
+				key = moltnetapi.NewTeamAgentKeyAgentKey(team)
+				expected = TeamAgentKeyKey(team.AgentId.String(), testTeamID)
+			case "team":
+				target.expectedTeam = "00000000-0000-4000-8000-00000000beef"
+			case "identity":
+				key = validIdentityAgentKey("issued-id")
+				expected = AgentKeyKey(testAgentID)
+			}
+			var out bytes.Buffer
+			err = target.persist(&out, &out, storedAgentKeyOutput{Key: key}, "one-time-secret")
+			if err == nil {
+				t.Fatal("binding mismatch accepted")
+			}
+			recovered := capture.latest(t)
+			if recovered.AgentKeyRef.Key != expected || recovered.IssuedKey == nil {
+				t.Fatal("recovery lost actual issued binding")
+			}
+			if len(provider.values) != 0 {
+				t.Fatal("mismatched credential stored")
+			}
+			after, _ := os.ReadFile(path)
+			if !bytes.Equal(before, after) {
+				t.Fatal("binding rejection changed credential document")
+			}
+			assertNoSecret(t, "one-time-secret", &out)
+		})
+	}
+}
+
+func TestAgentKeyStoreCleanupFailureReportsCompletedCredential(t *testing.T) {
+	path := writeAgentKeyStoreFixture(t, testAgentID)
+	registry, provider := newMemorySecretProviderRegistry()
+	capture := newRecoveryCapture(t)
+	opts := storeOpts(registry, capture)
+	opts.removeRecovery = func(string) error { return errors.New("remove denied") }
+	target, err := prepareAgentKeyStore(opts, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out, errOut bytes.Buffer
+	if err = target.persist(&out, &errOut, storedAgentKeyOutput{Key: validAgentKey("issued")}, "saved-secret"); err != nil {
+		t.Fatal(err)
+	}
+	var result storedAgentKeyOutput
+	if err = json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if !result.SecretStored || !result.CredentialsUpdated || !result.CleanupRequired || result.ManualRecoveryRequired || result.RecoveryPath == "" {
+		t.Fatalf("wrong completed result: %+v", result)
+	}
+	if provider.values[TeamAgentKeyKey(testAgentID, testTeamID)] != "saved-secret" {
+		t.Fatal("secret not saved")
+	}
+	creds, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if creds.AgentKeyRefs[testTeamID] != result.AgentKeyRef {
+		t.Fatal("credential not usable")
+	}
+	if !strings.Contains(errOut.String(), "no credential restoration is needed") {
+		t.Fatal("cleanup guidance missing")
+	}
+	assertNoSecret(t, "saved-secret", &out, &errOut)
+}
+
+func TestCredentialUpdateGuardRunsBeforeSecretSideEffect(t *testing.T) {
+	path := writeAgentKeyStoreFixture(t, testAgentID)
+	before, _ := os.ReadFile(path)
+	changed := append(append([]byte(nil), before...), ' ')
+	called := false
+	err := updateLockedCredentialsBytes(path, func(raw []byte) ([]byte, error) {
+		if err := os.WriteFile(path, changed, 0600); err != nil {
+			return nil, err
+		}
+		return raw, nil
+	}, func() error { called = true; return nil })
+	if err == nil || called {
+		t.Fatal("stale document allowed secret side effect")
+	}
+	after, _ := os.ReadFile(path)
+	if !bytes.Equal(after, changed) {
+		t.Fatal("concurrent change lost")
+	}
+}
+
+func assertCredentialReferencesUnchanged(t *testing.T, path string) func() {
+	t.Helper()
+	read := func() map[string]json.RawMessage {
+		t.Helper()
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var doc map[string]json.RawMessage
+		if err = json.Unmarshal(data, &doc); err != nil {
+			t.Fatal(err)
+		}
+		return doc
+	}
+	before := read()
+	return func() {
+		after := read()
+		for _, field := range []string{"agent_key_ref", "agent_key_refs"} {
+			if !bytes.Equal(before[field], after[field]) {
+				t.Errorf("failed storage changed %s", field)
+			}
+		}
+	}
+}

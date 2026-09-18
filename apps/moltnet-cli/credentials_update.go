@@ -124,7 +124,7 @@ func writeNewConfig(config *CredentialsFile, path string) (string, error) {
 }
 
 // One lock/read/replace protocol for raw and typed credential updates.
-func updateLockedCredentialsBytes(path string, mutate func([]byte) ([]byte, error)) error {
+func updateLockedCredentialsBytes(path string, mutate func([]byte) ([]byte, error), beforeCommit ...func() error) error {
 	lock, err := safefile.Acquire(path)
 	if err != nil {
 		return err
@@ -144,6 +144,21 @@ func updateLockedCredentialsBytes(path string, mutate func([]byte) ([]byte, erro
 	}
 	if err := validateTeamKeyAuthentication(&config); err != nil {
 		return err
+	}
+	if int64(len(updated)) > maxMigrationConfigBytes {
+		return fmt.Errorf("updated credentials exceed the size limit")
+	}
+	for _, commit := range beforeCommit {
+		fresh, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(fresh, current) {
+			return fmt.Errorf("credentials changed before storing the secret")
+		}
+		if err := commit(); err != nil {
+			return err
+		}
 	}
 	return lock.Replace(current, updated, maxMigrationConfigBytes)
 }

@@ -25,7 +25,8 @@ type agentKeyStoreOpts struct {
 	secretProviders *SecretProviderRegistry
 	// writeRecovery persists a recovery artifact and returns its path. Tests
 	// point it at a temp dir; the default is the user cache recovery dir.
-	writeRecovery func(agentKeyRecovery) (string, error)
+	writeRecovery  func(agentKeyRecovery) (string, error)
+	removeRecovery func(string) error
 }
 
 // agentKeyStoreTarget is resolved before any network call so a misconfigured
@@ -41,6 +42,8 @@ type agentKeyStoreTarget struct {
 	enrollment      bool
 	recoveryPath    string
 	captured        bool
+	issuedRef       *SecretReference
+	removeRecovery  func(string) error
 }
 
 // storedAgentKeyOutput is printed instead of the secret-bearing result when
@@ -55,6 +58,7 @@ type storedAgentKeyOutput struct {
 	SecretStored           bool                `json:"secretStored"`
 	CredentialsUpdated     bool                `json:"credentialsUpdated"`
 	ManualRecoveryRequired bool                `json:"manualRecoveryRequired,omitempty"`
+	CleanupRequired        bool                `json:"cleanupRequired,omitempty"`
 	RecoveryPath           string              `json:"recoveryPath,omitempty"`
 }
 
@@ -63,12 +67,14 @@ type storedAgentKeyOutput struct {
 // value; once the secret is safely stored the artifact records the reference
 // and the state the operator must reconcile.
 type agentKeyRecovery struct {
-	Stage           string          `json:"stage"`
-	Reason          string          `json:"reason"`
-	AgentKeyRef     SecretReference `json:"agentKeyRef"`
-	CredentialsPath string          `json:"credentialsPath"`
-	SecretStored    bool            `json:"secretStored"`
-	Secret          string          `json:"secret,omitempty"`
+	Stage           string                     `json:"stage"`
+	Reason          string                     `json:"reason"`
+	AgentKeyRef     SecretReference            `json:"agentKeyRef"`
+	CredentialsPath string                     `json:"credentialsPath"`
+	SecretStored    bool                       `json:"secretStored"`
+	Secret          string                     `json:"secret,omitempty"`
+	IssuedKey       *moltnetapi.AgentKey       `json:"issuedKey,omitempty"`
+	Enrollment      *enrollmentRecoveryRequest `json:"enrollment,omitempty"`
 }
 
 func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeyStoreTarget, error) {
@@ -103,12 +109,17 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if writeRecovery == nil {
 		writeRecovery = writeAgentKeyRecoveryFile
 	}
+	removeRecovery := opts.removeRecovery
+	if removeRecovery == nil {
+		removeRecovery = os.Remove
+	}
 	return &agentKeyStoreTarget{
 		credentialsPath: credentialsPath,
 		subjectID:       subjectID,
 		ref:             SecretReference{Provider: destination, Key: AgentKeyKey(subjectID)},
 		providers:       providers,
 		writeRecovery:   writeRecovery,
+		removeRecovery:  removeRecovery,
 	}, nil
 }
 
@@ -160,6 +171,11 @@ func (t *agentKeyStoreTarget) selectSlot(key moltnetapi.AgentKey) error {
 	if !ok {
 		return fmt.Errorf("unsupported credential binding")
 	}
+	actual := SecretReference{Provider: t.ref.Provider, Key: AgentKeyKey(agentID)}
+	if team, ok := key.GetTeamAgentKey(); ok {
+		actual.Key = TeamAgentKeyKey(agentID, team.TeamId.String())
+	}
+	t.issuedRef = &actual
 	if err := t.requireAgentID(agentID); err != nil {
 		return err
 	}
@@ -206,11 +222,16 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 		return t.fail(out, output, stage, preserved, err)
 	}
 	output.CredentialsUpdated = true
-	if err := os.Remove(t.recoveryPath); err != nil {
-		return t.fail(out, output, "remove_recovery", "", fmt.Errorf("credential saved but protected recovery cleanup failed"))
+	if err := t.removeRecovery(t.recoveryPath); err != nil {
+		output.CleanupRequired = true
+		output.RecoveryPath = t.recoveryPath
+		if errOut != nil {
+			fmt.Fprintf(errOut, "Credential saved and usable. Remove only the stale protected recovery file %s; no credential restoration is needed.\n", t.recoveryPath)
+		}
+	} else {
+		t.captured = false
+		t.recoveryPath = ""
 	}
-	t.captured = false
-	t.recoveryPath = ""
 	if err := printJSONTo(out, output); err != nil {
 		return err
 	}
@@ -223,57 +244,44 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 var errAgentKeySubjectChanged = errors.New("credentials file subject anchor changed since the key was minted")
 
 func (t *agentKeyStoreTarget) updateCredentials(store func() error) error {
-	lock, err := safefile.Acquire(t.credentialsPath)
-	if err != nil {
-		return fmt.Errorf("lock credentials: %w", err)
-	}
-	defer lock.Close()
-	current, err := configmigrate.ReadBoundedRegularFile(t.credentialsPath, maxMigrationConfigBytes)
-	if err != nil {
-		return fmt.Errorf("read credentials: %w", err)
-	}
-	creds, document, err := parseCredentialsDocument(current)
-	if err != nil {
-		return err
-	}
-	if subjectID, ok := creds.CanonicalSubject(); !ok || subjectID != t.subjectID {
-		return errAgentKeySubjectChanged
-	}
-	if t.enrollment && t.teamID != "" {
-		if previous, ok := creds.AgentKeyRefs[t.teamID]; ok && previous != t.ref {
-			return fmt.Errorf("team already has a different stored credential reference")
-		}
-	}
-	if err := store(); err != nil {
-		return err
-	}
-	updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
-		refJSON, err := json.Marshal(t.ref)
+	return updateLockedCredentialsBytes(t.credentialsPath, func(current []byte) ([]byte, error) {
+		creds, document, err := parseCredentialsDocument(current)
 		if err != nil {
-			return fmt.Errorf("marshal secret reference: %w", err)
+			return nil, err
 		}
-		if t.teamID == "" {
-			top["agent_key_ref"] = refJSON
-		} else {
-			if creds.AgentKeyRefs == nil {
-				creds.AgentKeyRefs = map[string]SecretReference{}
+		if subjectID, ok := creds.CanonicalSubject(); !ok || subjectID != t.subjectID {
+			return nil, errAgentKeySubjectChanged
+		}
+		if t.enrollment && t.teamID != "" {
+			if previous, ok := creds.AgentKeyRefs[t.teamID]; ok && previous != t.ref {
+				return nil, fmt.Errorf("team already has a different stored credential reference")
 			}
-			creds.AgentKeyRefs[t.teamID] = t.ref
-			refs, err := json.Marshal(creds.AgentKeyRefs)
+		}
+		updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
+			refJSON, err := json.Marshal(t.ref)
 			if err != nil {
-				return err
+				return fmt.Errorf("marshal secret reference: %w", err)
 			}
-			top["agent_key_refs"] = refs
+			if t.teamID == "" {
+				top["agent_key_ref"] = refJSON
+			} else {
+				if creds.AgentKeyRefs == nil {
+					creds.AgentKeyRefs = map[string]SecretReference{}
+				}
+				creds.AgentKeyRefs[t.teamID] = t.ref
+				refs, err := json.Marshal(creds.AgentKeyRefs)
+				if err != nil {
+					return err
+				}
+				top["agent_key_refs"] = refs
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	if err := lock.Replace(current, updated, maxMigrationConfigBytes); err != nil {
-		return fmt.Errorf("replace credentials: %w", err)
-	}
-	return nil
+		return updated, nil
+	}, store)
 }
 
 // fail records the partial state durably before reporting it. The secret is
@@ -281,12 +289,16 @@ func (t *agentKeyStoreTarget) updateCredentials(store func() error) error {
 // in the provider; stdout and the error carry paths and state, never values.
 func (t *agentKeyStoreTarget) fail(out io.Writer, output storedAgentKeyOutput, stage, secret string, cause error) error {
 	output.ManualRecoveryRequired = true
-	output.AgentKeyRef = t.ref
+	output.AgentKeyRef = SecretReference{}
+	if t.issuedRef != nil {
+		output.AgentKeyRef = *t.issuedRef
+	}
 	output.CredentialsPath = t.credentialsPath
 	recovery := agentKeyRecovery{
 		Stage:           stage,
 		Reason:          cause.Error(),
-		AgentKeyRef:     t.ref,
+		AgentKeyRef:     output.AgentKeyRef,
+		IssuedKey:       &output.Key,
 		CredentialsPath: t.credentialsPath,
 		SecretStored:    output.SecretStored,
 		Secret:          secret,
