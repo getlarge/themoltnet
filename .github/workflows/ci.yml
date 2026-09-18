@@ -539,6 +539,9 @@ jobs:
       # remains available while GitHub queues the agents and orchestrator.
       - name: Start Nx Cloud CI execution
         if: steps.matrix.outputs.has-agents == 'true'
+        env:
+          NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
         run: |
           for attempt in 1 2 3; do
             if pnpm exec nx-cloud start-nx-agents; then
@@ -571,7 +574,10 @@ jobs:
       matrix: ${{ fromJson(needs.affected.outputs.agents-matrix) }}
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+      NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
       NX_CI_EXECUTION_ENV: distributed
+      NX_AGENT_NAME: github-${{ matrix.agent }}
+      NX_AGENT_LAUNCH_TEMPLATE: linux-medium
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
       # check:pack runs on these distributed workers, so its pre-merge
@@ -685,6 +691,10 @@ jobs:
     needs: [affected]
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+      # start-nx-agents ran in `affected`, so this runner has no local DTE
+      # marker. Enable distribution explicitly while retaining the shared
+      # GitHub-derived execution ID and the `distributed` environment.
+      NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
       NX_CI_EXECUTION_ENV: distributed
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
