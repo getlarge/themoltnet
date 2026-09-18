@@ -218,7 +218,11 @@ export function TeamsView({
           </option>
         ))}
       </Select>
-      {loading ? <Text role="status">Checking team access…</Text> : null}
+      {loading ? (
+        <div role="status">
+          <Text>Checking team access…</Text>
+        </div>
+      ) : null}
       {catalogue?.teams.map((entry) => (
         <ControlSurface key={entry.teamId}>
           <Stack gap={3}>
