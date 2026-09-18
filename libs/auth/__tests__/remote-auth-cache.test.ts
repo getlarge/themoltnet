@@ -29,6 +29,7 @@ const context: AgentAuthContext = {
   scopes: ['entries:read'],
   currentTeamId: null,
   credentialBinding: {
+    expiresAt: null,
     bindingScope: 'team',
     keyId: 'key-1',
     boundTeamId: 'team-1',

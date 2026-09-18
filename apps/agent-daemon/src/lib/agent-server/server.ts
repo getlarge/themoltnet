@@ -41,16 +41,16 @@ import {
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
-import { connectActivatedAgent } from './agent-connection.js';
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
   createManagedAgent,
+  loadAgentActivation,
   publicAgentView,
   reconcileManagedRegistration,
   requireActivation,
-  verifyAgentActivation,
 } from './identity.js';
 import { readIdentityDefaultBinding } from './identity-binding.js';
 import { AgentServerModelDiscoveryError } from './model-discovery.js';
@@ -79,6 +79,11 @@ import {
   type ProviderModelEntry,
   type ProviderModelModality,
 } from './store.js';
+import {
+  requireCredentialSnapshot,
+  TeamCredentialError,
+  verifyTeamActivation,
+} from './team-credentials.js';
 
 export const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const BODY_LIMIT = 64 * 1024;
@@ -553,11 +558,9 @@ function registerCatalogueRoute(
       const alias = identity.trim();
       // Throws a typed not-found when the alias is not activated here.
       requireActivation(options.store, alias);
-      const agent = explainScopeFailures(
-        await (options.catalogueAgentFor
-          ? options.catalogueAgentFor(alias)
-          : defaultCatalogueAgent(options, alias)),
-      );
+      const agent = await (options.catalogueAgentFor
+        ? options.catalogueAgentFor(alias)
+        : defaultCatalogueAgent(options, alias));
       return buildCatalogue({
         agent,
         machine: machineCapabilities(options),
@@ -569,68 +572,39 @@ function registerCatalogueRoute(
   );
 }
 
-/** The read scopes the catalogue needs beyond what the daemon needs to run. */
-const CATALOGUE_SCOPES = ['diary:read', 'team:read'] as const;
-
-/**
- * Say why the composer is empty when the agent key cannot answer.
- *
- * A credential's scopes are fixed when it is minted, and `POST /agent-keys`
- * caps a new key at the scopes of the credential requesting it — so a key
- * issued before the catalogue scopes joined the default cannot widen itself,
- * and no amount of retrying here will help. Only a human with a Console
- * session can mint the replacement. Left alone the API's 403 surfaces as a
- * generic 500, which sends the operator hunting for a server fault instead of
- * reissuing a key.
- *
- * Scoped to 403 on purpose: a 401 means the key is invalid or revoked, which
- * is a different repair.
- */
-function explainScopeFailures(agent: CatalogueAgentPort): CatalogueAgentPort {
-  const guard = async <T>(call: () => Promise<T>): Promise<T> => {
-    try {
-      return await call();
-    } catch (cause) {
-      if ((cause as { statusCode?: number })?.statusCode !== 403) throw cause;
-      throw new AgentServerHttpError(
-        403,
-        'agent_key_scopes_insufficient',
-        `This agent key cannot read the teams and diaries a run is composed from. It needs ${CATALOGUE_SCOPES.join(' and ')}, which keys issued earlier do not carry. A key's scopes are fixed when it is issued, so mint a replacement in Console and attach it here.`,
-      );
-    }
-  };
-  return {
-    listTeams: () => guard(() => agent.listTeams()),
-    listDiaries: () => guard(() => agent.listDiaries()),
-    listProfiles: (teamId) => guard(() => agent.listProfiles(teamId)),
-  };
-}
-
-/** The real catalogue client: the same credentials a run would use. */
+/** Resolve and verify each indexed team independently with its exact key. */
 async function defaultCatalogueAgent(
   options: BuildAgentServerOptions,
   alias: string,
 ): Promise<CatalogueAgentPort> {
-  const activated = await verifyAgentActivation(
-    options.store,
-    alias,
-    options.secretProviders,
-    options.externalSecretProviders,
-    undefined,
-    options.shutdownSignal,
-  );
-  const agent = await connectActivatedAgent({
-    activated,
-    secretProviders: options.secretProviders,
-    externalSecretProviders: options.externalSecretProviders,
-    onMissingKey: (message) =>
-      new AgentServerHttpError(409, 'agent_key_missing', message),
-  });
+  const { config } = await loadAgentActivation(options.store, alias);
   return {
-    listTeams: async () => (await agent.teams.list()).items,
-    listDiaries: async () => (await agent.diaries.list()).items,
-    listProfiles: async (teamId) =>
-      (await agent.runtimeProfiles.list({ teamId })).items,
+    teamIds: Object.keys(config.agent_key_refs ?? {}),
+    lastVerified: (teamId) =>
+      requireActivation(options.store, alias).credentialHealth?.[teamId],
+    readTeam: async (teamId) => {
+      const activated = await verifyTeamActivation(
+        options.store,
+        alias,
+        options.secretProviders,
+        options.externalSecretProviders,
+        undefined,
+        options.shutdownSignal,
+        teamId,
+      );
+      const { client, metadata } = requireCredentialSnapshot(activated);
+      const [team, diaries, profiles] = await Promise.all([
+        client.teams.get(teamId),
+        client.diaries.list(),
+        client.runtimeProfiles.list({ teamId }),
+      ]);
+      return {
+        team,
+        diaries: diaries.items,
+        profiles: profiles.items,
+        credential: metadata,
+      };
+    },
   };
 }
 
@@ -753,6 +727,21 @@ function registerAgentRoutes(
         'invalid_body',
         '"kind" must be "managed" or "external"',
       );
+    },
+  );
+  app.post(
+    '/v1/agents/:agentName/teams',
+    { schema: AgentServerRouteSchemas.enrollTeam },
+    async (request) => {
+      requirePairedOrigin(request);
+      const { agentName } = request.params as { agentName: string };
+      return enrollIdentityTeam({
+        store,
+        alias: agentName,
+        managed: options.secretProviders,
+        external: options.externalSecretProviders,
+        input: request.body as TeamEnrollmentInput,
+      });
     },
   );
   app.post(
@@ -1129,6 +1118,12 @@ function normalizeAgentServerError(error: unknown): {
   code: string;
   message: string;
 } {
+  if (error instanceof TeamCredentialError)
+    return {
+      statusCode: 400,
+      code: error.blocker.code,
+      message: error.blocker.message,
+    };
   if (error instanceof AgentServerHttpError) {
     return {
       statusCode: error.statusCode,

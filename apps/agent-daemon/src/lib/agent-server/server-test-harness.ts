@@ -18,13 +18,14 @@ import { PassThrough } from 'node:stream';
 
 import {
   READ_ONLY_CAPABILITIES,
+  resolveAgentKey,
   SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { FileSecretProvider } from '@themoltnet/sdk/node';
+import { type connect, FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
-import { type ActivatedAgent, verifyAgentActivation } from './identity.js';
+import { type ActivatedAgent } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
@@ -33,6 +34,10 @@ import type { BuildAgentServerOptions } from './server.js';
 import { buildAgentServer } from './server.js';
 import type { RunSpec } from './store.js';
 import { AgentServerStore, AgentServerStoreError } from './store.js';
+import {
+  captureTeamCredential,
+  verifyTeamActivation,
+} from './team-credentials.js';
 
 export const CONSOLE_ORIGIN = 'https://console.themolt.net';
 export const HOST = '127.0.0.1:17374';
@@ -164,9 +169,14 @@ export async function fixture(
     children.push(child);
     return child as unknown as ChildProcess;
   };
-  const verifyActivation: typeof verifyAgentActivation = (
+  const verifyActivation: typeof verifyTeamActivation = async (
     activationStore,
     alias,
+    _managed,
+    _external,
+    _connect,
+    _signal,
+    teamId,
   ) => {
     const activation = activationStore.readActivation(alias);
     if (!activation) {
@@ -187,13 +197,33 @@ export async function fixture(
         `Missing config for '${alias}'`,
       );
     }
-    return Promise.resolve({
-      activation,
-      config,
-      ...(activation.boundTeamId
-        ? { boundTeamId: activation.boundTeamId }
-        : {}),
-    });
+    return Promise.resolve(
+      captureTeamCredential(
+        {
+          activation,
+          config,
+          ...(activation.boundTeamId
+            ? { boundTeamId: activation.boundTeamId }
+            : {}),
+        },
+        {
+          agentKey:
+            activation.source === 'external'
+              ? (await resolveAgentKey(
+                  config,
+                  externalSecretProviders,
+                  teamId,
+                ))!
+              : `test-key-${teamId}`,
+          metadata: {
+            keyId: `key-${teamId}`,
+            verifiedAt: new Date().toISOString(),
+            scopes: [],
+          },
+          client: {} as Awaited<ReturnType<typeof connect>>,
+        },
+      ),
+    );
   };
   const runs = new RunManager({
     store,
@@ -207,7 +237,7 @@ export async function fixture(
     },
     spawnImpl,
     verifyActivationImpl: realCredentialPreflight
-      ? verifyAgentActivation
+      ? verifyTeamActivation
       : verifyActivation,
     ...(realCredentialPreflight
       ? { runtimeRegistry: new RuntimeRegistry(store.root) }

@@ -141,6 +141,30 @@ fn problem_message(body: &str) -> Option<String> {
     value.get("message")?.as_str().map(str::to_string)
 }
 
+/// Explicit allowlist prevents an upstream response extension exposing a secret.
+pub fn enrollment_metadata(body: &str) -> Result<serde_json::Value, String> {
+    let value: serde_json::Value =
+        serde_json::from_str(body).map_err(|_| "Unreadable enrollment response".to_string())?;
+    let fields: &[&str] = match value.get("state").and_then(|v| v.as_str()) {
+        Some("persisted") => &["state", "teamId", "keyId"],
+        Some("recovery_required") => &[
+            "state",
+            "secretCaptured",
+            "issuedKeyId",
+            "recoveryId",
+            "message",
+        ],
+        _ => return Err("Unknown enrollment response".to_string()),
+    };
+    let mut output = serde_json::Map::new();
+    for field in fields {
+        if let Some(item) = value.get(*field) {
+            output.insert((*field).to_string(), item.clone());
+        }
+    }
+    Ok(serde_json::Value::Object(output))
+}
+
 fn base64_url_nopad(bytes: &[u8]) -> String {
     use base64::Engine as _;
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
@@ -149,6 +173,15 @@ fn base64_url_nopad(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn enrollment_response_never_forwards_credential_material() {
+        let result = enrollment_metadata(r#"{"state":"persisted","teamId":"team","keyId":"key","secret":"sentinel","agentKey":{"secret":"sentinel"}}"#).unwrap();
+        assert_eq!(
+            result,
+            serde_json::json!({"state":"persisted","teamId":"team","keyId":"key"})
+        );
+    }
 
     #[test]
     fn generates_a_token_with_enough_entropy_to_resist_guessing() {

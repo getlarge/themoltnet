@@ -1,12 +1,28 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import {
+  buildCatalogue,
+  type CatalogueAgentPort,
+  type CatalogueDiaryRecord,
+  type CatalogueProfileRecord,
+} from './catalogue.js';
 
 const TEAM_A = '4f2a91c8-1d3e-4b77-9a02-6c1b8e7d5a40';
 const TEAM_B = 'b83c0d16-7e54-4a91-8f22-0d95c4e61b38';
 
-function port(overrides: Partial<CatalogueAgentPort> = {}): CatalogueAgentPort {
-  return {
+const credential = {
+  keyId: 'key-1',
+  expiresAt: null,
+  verifiedAt: '2026-09-18T12:00:00.000Z',
+  scopes: ['team:read', 'diary:read'],
+};
+function port(
+  overrides: {
+    listDiaries?: () => Promise<CatalogueDiaryRecord[]>;
+    teamIds?: string[];
+  } = {},
+): CatalogueAgentPort {
+  const data = {
     listTeams: () =>
       Promise.resolve([
         { id: TEAM_A, name: 'MoltNet Core', personal: false },
@@ -17,7 +33,7 @@ function port(overrides: Partial<CatalogueAgentPort> = {}): CatalogueAgentPort {
         { id: 'diary-a', name: 'themoltnet', teamId: TEAM_A },
         { id: 'diary-b', name: 'clairon', teamId: TEAM_B },
       ]),
-    listProfiles: (teamId) =>
+    listProfiles: (teamId: string): Promise<CatalogueProfileRecord[]> =>
       Promise.resolve(
         teamId === TEAM_A
           ? [
@@ -43,6 +59,16 @@ function port(overrides: Partial<CatalogueAgentPort> = {}): CatalogueAgentPort {
       ),
     ...overrides,
   };
+  return {
+    teamIds: overrides.teamIds ?? [TEAM_A, TEAM_B],
+    lastVerified: () => credential,
+    readTeam: async (teamId) => ({
+      team: (await data.listTeams()).find((team) => team.id === teamId)!,
+      diaries: await data.listDiaries(),
+      profiles: await data.listProfiles(teamId),
+      credential,
+    }),
+  };
 }
 
 const machine = {
@@ -64,12 +90,18 @@ describe('buildCatalogue', () => {
       {
         teamId: TEAM_A,
         teamName: 'MoltNet Core',
+        available: true,
+        blockers: [],
+        credential,
         diaries: [{ id: 'diary-a', name: 'themoltnet' }],
         defaultDiaryId: 'diary-a',
       },
       {
         teamId: TEAM_B,
         teamName: 'Clairon Pilot',
+        available: true,
+        blockers: [],
+        credential,
         diaries: [{ id: 'diary-b', name: 'clairon' }],
         defaultDiaryId: 'diary-b',
       },
@@ -194,7 +226,7 @@ describe('buildCatalogue', () => {
     // The desktop shows an empty state pointing at Console to enrol one.
     const catalogue = await buildCatalogue({
       agent: port({
-        listTeams: () => Promise.resolve([]),
+        teamIds: [],
         listDiaries: () => Promise.resolve([]),
       }),
       machine,
@@ -204,5 +236,30 @@ describe('buildCatalogue', () => {
     expect(catalogue.teams).toEqual([]);
     expect(catalogue.defaultTeamId).toBeNull();
     expect(catalogue.profiles).toEqual([]);
+  });
+  it('keeps usable B and cached A metadata when A fails without leaking upstream errors', async () => {
+    const agent = port();
+    const readTeam = agent.readTeam.bind(agent);
+    agent.readTeam = (teamId) =>
+      teamId === TEAM_A
+        ? Promise.reject(
+            Object.assign(new Error('secret-sentinel'), { statusCode: 403 }),
+          )
+        : readTeam(teamId);
+    const result = await buildCatalogue({
+      agent,
+      machine,
+      identityDefault: { teamId: TEAM_A },
+    });
+    expect(result.defaultTeamId).toBe(TEAM_B);
+    expect(result.teams[0]).toMatchObject({
+      available: false,
+      credential,
+      diaries: [],
+      blockers: [{ code: 'agent_key_unavailable' }],
+    });
+    expect(result.teams[1]?.available).toBe(true);
+    expect(result.profiles).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain('secret-sentinel');
   });
 });

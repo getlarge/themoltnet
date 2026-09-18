@@ -19,6 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { cryptoService } from '@moltnet/crypto-service';
+import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import { SecretProviderRegistry } from '@themoltnet/sdk';
 import * as SdkNode from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -532,7 +533,8 @@ describe('agent server providers and runs', () => {
       '--warm-retention-sec',
       '1800',
     ]);
-    expect(options.env['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
+    expect(options.env['MOLTNET_AGENT_KEY']).toBe('test-key-team-1');
+    expect(options.env['MOLTNET_AGENT_KEY_REF']).toBeUndefined();
     expect(options.env['MOLTNET_PRIVATE_KEY_REF']).toBe(
       'file:identity/FP-1/seed',
     );
@@ -786,14 +788,14 @@ describe('agent server providers and runs', () => {
     expect(childEnv).not.toHaveProperty('SSH_AUTH_SOCK');
     expect(childEnv).not.toHaveProperty('KUBECONFIG');
     expect(childEnv).not.toHaveProperty('DOCKER_CONFIG');
-    expect(childEnv).not.toHaveProperty('MOLTNET_AGENT_KEY');
+    expect(childEnv.MOLTNET_AGENT_KEY).toBe('test-key-team-1');
     expect(childEnv).not.toHaveProperty('MOLTNET_CLIENT_SECRET');
     expect(childEnv).not.toHaveProperty('MOLTNET_PRIVATE_KEY');
     expect(childEnv).not.toHaveProperty('GITHUB_TOKEN');
     expect(childEnv).not.toHaveProperty('ANTHROPIC_API_KEY');
     expect(childEnv).not.toHaveProperty('DATABASE_URL');
     expect(childEnv).not.toHaveProperty('PI_AUTH_JSON');
-    expect(childEnv['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
+    expect(childEnv.MOLTNET_AGENT_KEY_REF).toBeUndefined();
   });
 
   it('caps active child logs at the configured byte budget', async () => {
@@ -1049,8 +1051,11 @@ describe('agent server providers and runs', () => {
               subjectType: 'agent',
               publicKey: keys.publicKey,
               fingerprint: keys.fingerprint,
+              scopes: [...DAEMON_MINIMUM_SCOPES, 'team:read', 'diary:read'],
               credentialBinding: {
                 bindingScope: 'team',
+                keyId: `key-${options?.agentKey}`,
+                expiresAt: null,
                 boundTeamId: options?.agentKey?.slice(-1),
               },
             }),
@@ -1149,7 +1154,7 @@ describe('agent server providers and runs', () => {
     profileRequests.length = 0;
     const failed = await start('b');
     expect(failed.statusCode).toBe(400);
-    expect(failed.json()).toMatchObject({ code: 'verification_failed' });
+    expect(failed.json()).toMatchObject({ code: 'agent_key_unavailable' });
     expect(connectMock).not.toHaveBeenCalled();
     expect(profileRequests).toEqual([]);
     expect(spawned).toHaveLength(2);
@@ -1202,11 +1207,11 @@ describe('agent server providers and runs', () => {
     for (const response of responses)
       expect(response.statusCode, response.body).toBe(201);
     expect(
-      spawned.map(({ options }) => options.env.MOLTNET_AGENT_KEY_REF).sort(),
-    ).toEqual(['file:agent-key/agent-1/a', 'file:agent-key/agent-1/b']);
+      spawned.map(({ options }) => options.env.MOLTNET_AGENT_KEY).sort(),
+    ).toEqual(['test-key-a', 'test-key-b']);
     for (const { options } of spawned) {
       expect(options.env.MOLTNET_CLIENT_SECRET).toBeUndefined();
-      expect(options.env.MOLTNET_AGENT_KEY).toBeUndefined();
+      expect(options.env.MOLTNET_AGENT_KEY_REF).toBeUndefined();
     }
     expect(store.readAgentConfig('course-bot')?.agent_key_ref).toEqual(
       config.agent_key_ref,

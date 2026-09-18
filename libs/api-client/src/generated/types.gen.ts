@@ -3268,10 +3268,12 @@ export type Whoami = {
     | {
         bindingScope: 'team';
         boundTeamId: string;
+        expiresAt?: string | null;
         keyId: string;
       }
     | {
         bindingScope: 'identity';
+        expiresAt?: string | null;
         keyId: string;
       };
   currentTeamId?: string | null;
@@ -15719,7 +15721,21 @@ export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
 export type JoinTeamData = {
   body: {
     code: string;
+    /**
+     * UUID v4 identifier
+     */
+    expectedTeamId?: string;
     issueAgentKey?: true;
+    /**
+     * Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key.
+     */
+    proof?: {
+      signature: string;
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+    };
   };
   headers?: {
     'idempotency-key'?: string;

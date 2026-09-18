@@ -18,6 +18,9 @@ import type {
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
+  EnrollAgentServerTeamData,
+  EnrollAgentServerTeamErrors,
+  EnrollAgentServerTeamResponses,
   GetAgentServerCatalogueData,
   GetAgentServerCatalogueErrors,
   GetAgentServerCatalogueResponses,
@@ -130,6 +133,23 @@ export const reconcileAgentServerAgent = <ThrowOnError extends boolean = false>(
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/agents/{agentName}/reconcile',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const enrollAgentServerTeam = <ThrowOnError extends boolean = false>(
+  options: Options<EnrollAgentServerTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    EnrollAgentServerTeamResponses,
+    EnrollAgentServerTeamErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/agents/{agentName}/teams',
     ...options,
     headers: {
       'Content-Type': 'application/json',

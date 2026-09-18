@@ -22,6 +22,7 @@ export interface RunsViewProps {
   now: number;
   route: RunsRoute;
   onRoute: (route: RunsRoute) => void;
+  onTeams?: () => void;
 }
 
 export function RunsView({
@@ -30,14 +31,17 @@ export function RunsView({
   now,
   route,
   onRoute,
+  onTeams,
 }: RunsViewProps) {
   if (route.kind === 'compose') {
     return (
       <RunComposer
+        key={route.presetId ?? 'new'}
         data={data}
         actions={actions}
         presetId={route.presetId}
         now={now}
+        onTeams={onTeams}
         onDone={() => onRoute({ kind: 'list' })}
       />
     );
@@ -56,7 +60,15 @@ export function RunsView({
       );
     }
   }
-  return <RunsList data={data} actions={actions} now={now} onRoute={onRoute} />;
+  return (
+    <RunsList
+      data={data}
+      actions={actions}
+      now={now}
+      onRoute={onRoute}
+      onTeams={onTeams}
+    />
+  );
 }
 
 function RunsList({
@@ -64,6 +76,7 @@ function RunsList({
   actions,
   now,
   onRoute,
+  onTeams,
 }: Omit<RunsViewProps, 'route'>) {
   const theme = useTheme();
   const [stopping, setStopping] = useState<string | null>(null);
@@ -115,6 +128,14 @@ function RunsList({
         </InlineNotice>
       ) : null}
 
+      {serverReady && !data.catalogue?.teams.some((team) => team.available) ? (
+        <InlineNotice tone="warning" title="Team enrollment required">
+          Enroll an identity before starting a run.{' '}
+          <Button variant="ghost" onClick={onTeams}>
+            Identity and teams
+          </Button>
+        </InlineNotice>
+      ) : null}
       {active.length ? (
         <Stack gap={3}>
           <SectionLabel>Active</SectionLabel>
