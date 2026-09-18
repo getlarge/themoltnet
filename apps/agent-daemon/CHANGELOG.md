@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.59.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.58.0...agent-daemon-v0.59.0) (2026-09-18)
+
+
+### Features
+
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Bug Fixes
+
+* **agent-daemon:** bind a run's diary to the team it runs for ([282e4b4](https://github.com/getlarge/themoltnet/commit/282e4b45001e5878bc7f0ae55a7ee46e7bbcf1b3))
+* **agent-daemon:** bind a run's diary to the team it runs for ([c883b23](https://github.com/getlarge/themoltnet/commit/c883b23abc33b15b25f66513086512484ec17c94))
+* **agent-daemon:** regenerate agent server OpenAPI spec and client ([45ea0c2](https://github.com/getlarge/themoltnet/commit/45ea0c2e014a0f7653c09692763d00f3092df0f1))
+* **tool-policy:** bound model-controlled names and stop dropping late refusals ([c870f4d](https://github.com/getlarge/themoltnet/commit/c870f4d31884e1a0e610530f1a04ed12d9f71526)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.18.0
+
 ## [0.58.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.57.1...agent-daemon-v0.58.0) (2026-09-16)
 
 

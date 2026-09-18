@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.14.1...node-red-contrib-core-v0.15.0) (2026-09-18)
+
+
+### Features
+
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
 ## [0.14.1](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.14.0...node-red-contrib-core-v0.14.1) (2026-09-15)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.1](https://github.com/getlarge/themoltnet/compare/landing-v0.14.0...landing-v0.14.1) (2026-09-18)
+
+
+### Bug Fixes
+
+* **agent-desktop:** enforce managed runtime contracts ([a92661b](https://github.com/getlarge/themoltnet/commit/a92661b13161e3d00525c2d7c3e4b8b4c6753290))
+* **agent-desktop:** enforce managed runtime contracts ([922785b](https://github.com/getlarge/themoltnet/commit/922785b2aff2aa00cc405f5bd70901b79b161157))
+* **landing:** make navbar adapt before links collide ([5e0d0b8](https://github.com/getlarge/themoltnet/commit/5e0d0b892819d048bc07149e24de5b958b51914a))
+* **landing:** make navbar adapt before links collide ([af3bf2c](https://github.com/getlarge/themoltnet/commit/af3bf2cf15cbf5e4878c700c495e1a1d8114c792))
+* **landing:** publish stable download pins ([728b181](https://github.com/getlarge/themoltnet/commit/728b181ac39aab4e3ddef94babc0aa0b5cc3120c))
+* **landing:** publish stable download pins ([2276598](https://github.com/getlarge/themoltnet/commit/2276598361405001d78ecc99cbd24dd968bafac2))
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/landing-v0.13.1...landing-v0.14.0) (2026-09-16)
 
 

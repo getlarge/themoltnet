@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.17.0...pi-runtime-v0.18.0) (2026-09-18)
+
+
+### Features
+
+* **shell-command-analyzer:** resolve subcommand-scoped git escape flags ([bc15533](https://github.com/getlarge/themoltnet/commit/bc155333d3a6a5102d96f01a2ff0433b9477e769)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Bug Fixes
+
+* **tool-policy:** bound model-controlled names and stop dropping late refusals ([c870f4d](https://github.com/getlarge/themoltnet/commit/c870f4d31884e1a0e610530f1a04ed12d9f71526)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+* **tool-policy:** refuse execution-redirecting env prefixes and quoted escapes ([431fb6b](https://github.com/getlarge/themoltnet/commit/431fb6b775f94aac1a4e5e1a23194a6ef4ba1087)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/shell-command-analyzer bumped to 0.4.0
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.16.0...pi-runtime-v0.17.0) (2026-09-16)
 
 
