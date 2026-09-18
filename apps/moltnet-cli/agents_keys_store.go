@@ -25,25 +25,28 @@ type agentKeyStoreOpts struct {
 	secretProviders *SecretProviderRegistry
 	// writeRecovery persists a recovery artifact and returns its path. Tests
 	// point it at a temp dir; the default is the user cache recovery dir.
-	writeRecovery  func(agentKeyRecovery) (string, error)
-	removeRecovery func(string) error
+	writeRecovery   func(agentKeyRecovery) (string, error)
+	removeRecovery  func(string) error
+	replaceRecovery func(string, []byte) error
 }
 
 // agentKeyStoreTarget is resolved before any network call so a misconfigured
 // destination or credentials file fails without minting a key.
 type agentKeyStoreTarget struct {
-	credentialsPath string
-	subjectID       string
-	ref             SecretReference
-	providers       *SecretProviderRegistry
-	writeRecovery   func(agentKeyRecovery) (string, error)
-	teamID          string
-	expectedTeam    string
-	enrollment      bool
-	recoveryPath    string
-	captured        bool
-	issuedRef       *SecretReference
-	removeRecovery  func(string) error
+	credentialsPath        string
+	subjectID              string
+	ref                    SecretReference
+	providers              *SecretProviderRegistry
+	writeRecovery          func(agentKeyRecovery) (string, error)
+	teamID                 string
+	expectedTeam           string
+	enrollment             bool
+	recoveryPath           string
+	retainRecovery         bool
+	recoveryContainsSecret bool
+	issuedRef              *SecretReference
+	removeRecovery         func(string) error
+	replaceRecovery        func(string, []byte) error
 }
 
 // storedAgentKeyOutput is printed instead of the secret-bearing result when
@@ -55,6 +58,8 @@ type storedAgentKeyOutput struct {
 	IdempotencyKey         string              `json:"idempotencyKey,omitempty"`
 	AgentKeyRef            SecretReference     `json:"agentKeyRef"`
 	CredentialsPath        string              `json:"credentialsPath"`
+	SecretWritten          bool                `json:"secretWritten,omitempty"`
+	SecretCaptured         bool                `json:"secretCaptured,omitempty"`
 	SecretStored           bool                `json:"secretStored"`
 	CredentialsUpdated     bool                `json:"credentialsUpdated"`
 	ManualRecoveryRequired bool                `json:"manualRecoveryRequired,omitempty"`
@@ -71,9 +76,12 @@ type agentKeyRecovery struct {
 	Reason          string                     `json:"reason"`
 	AgentKeyRef     SecretReference            `json:"agentKeyRef"`
 	CredentialsPath string                     `json:"credentialsPath"`
+	SecretWritten   bool                       `json:"secretWritten,omitempty"`
 	SecretStored    bool                       `json:"secretStored"`
 	Secret          string                     `json:"secret,omitempty"`
 	IssuedKey       *moltnetapi.AgentKey       `json:"issuedKey,omitempty"`
+	Rotation        *rotationRecoveryRequest   `json:"rotation,omitempty"`
+	Reconciliation  *enrollmentReconciliation  `json:"reconciliation,omitempty"`
 	Enrollment      *enrollmentRecoveryRequest `json:"enrollment,omitempty"`
 }
 
@@ -113,6 +121,10 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if removeRecovery == nil {
 		removeRecovery = os.Remove
 	}
+	replaceRecovery := opts.replaceRecovery
+	if replaceRecovery == nil {
+		replaceRecovery = safefile.Write
+	}
 	return &agentKeyStoreTarget{
 		credentialsPath: credentialsPath,
 		subjectID:       subjectID,
@@ -120,6 +132,7 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 		providers:       providers,
 		writeRecovery:   writeRecovery,
 		removeRecovery:  removeRecovery,
+		replaceRecovery: replaceRecovery,
 	}, nil
 }
 
@@ -143,9 +156,11 @@ func (t *agentKeyStoreTarget) reserve() error {
 	return nil
 }
 
-func (t *agentKeyStoreTarget) close() {
-	if t != nil && !t.captured && t.recoveryPath != "" {
-		_ = os.Remove(t.recoveryPath)
+func (t *agentKeyStoreTarget) close(result *error) {
+	if t != nil && !t.retainRecovery && t.recoveryPath != "" {
+		if err := t.removeRecovery(t.recoveryPath); err != nil && !os.IsNotExist(err) {
+			*result = errors.Join(*result, fmt.Errorf("remove stale protected recovery file %s manually; cleanup failed", t.recoveryPath))
+		}
 	}
 }
 
@@ -159,10 +174,11 @@ func (t *agentKeyStoreTarget) capture(recovery agentKeyRecovery) error {
 	if err != nil {
 		return err
 	}
-	if err := safefile.Write(t.recoveryPath, append(data, '\n')); err != nil {
+	if err := t.replaceRecovery(t.recoveryPath, append(data, '\n')); err != nil {
 		return fmt.Errorf("could not write protected credential recovery")
 	}
-	t.captured = true
+	t.retainRecovery = true
+	t.recoveryContainsSecret = recovery.Secret != ""
 	return nil
 }
 
@@ -204,11 +220,16 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 	err := t.updateCredentials(func() error {
 		stage = "store_secret"
 		if t.enrollment {
-			if _, err := t.providers.Ensure(t.ref, secret); err != nil {
+			changed, err := t.providers.Ensure(t.ref, secret)
+			output.SecretWritten = changed
+			if err != nil {
 				return err
 			}
 		} else if err := t.providers.Replace(t.ref, secret); err != nil {
 			return err
+		}
+		if !t.enrollment {
+			output.SecretWritten = true
 		}
 		output.SecretStored = true
 		stage = "update_credentials"
@@ -229,7 +250,7 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 			fmt.Fprintf(errOut, "Credential saved and usable. Remove only the stale protected recovery file %s; no credential restoration is needed.\n", t.recoveryPath)
 		}
 	} else {
-		t.captured = false
+		t.retainRecovery = false
 		t.recoveryPath = ""
 	}
 	if err := printJSONTo(out, output); err != nil {
@@ -300,12 +321,14 @@ func (t *agentKeyStoreTarget) fail(out io.Writer, output storedAgentKeyOutput, s
 		AgentKeyRef:     output.AgentKeyRef,
 		IssuedKey:       &output.Key,
 		CredentialsPath: t.credentialsPath,
+		SecretWritten:   output.SecretWritten,
 		SecretStored:    output.SecretStored,
 		Secret:          secret,
 	}
 	recoveryErr := t.capture(recovery)
+	output.SecretCaptured = t.recoveryContainsSecret
 	recoveryPath := t.recoveryPath
-	if t.captured {
+	if t.retainRecovery {
 		output.RecoveryPath = recoveryPath
 	}
 	printErr := printJSONTo(out, output)
@@ -314,10 +337,15 @@ func (t *agentKeyStoreTarget) fail(out io.Writer, output storedAgentKeyOutput, s
 	switch {
 	case output.SecretStored:
 		next = fmt.Sprintf("the key is stored at %s:%s; restore the credential reference in %s manually", t.ref.Provider, t.ref.Key, t.credentialsPath)
-	case t.captured:
+	case t.recoveryContainsSecret:
 		next = fmt.Sprintf("the one-time secret was written to the protected recovery file %s", recoveryPath)
+	case t.retainRecovery:
+		next = fmt.Sprintf("the recovery file %s is retained, but secret capture was not confirmed; revoke this key and mint a new one", recoveryPath)
 	default:
 		next = "the one-time secret could not be preserved; revoke this key and mint a new one"
+	}
+	if output.SecretWritten && !output.SecretStored {
+		next += "; a destination write occurred but was not verified; reconcile that slot before retrying"
 	}
 	err := fmt.Errorf("credential --store failed during %s: %w; %s", stage, cause, next)
 	if recoveryErr != nil {

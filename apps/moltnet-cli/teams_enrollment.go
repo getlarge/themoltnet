@@ -29,7 +29,7 @@ func (t *agentKeyStoreTarget) enrollmentOutcomeUnknown() error {
 	return fmt.Errorf("enrollment issuance outcome is unknown; retain the protected recovery file %s and retry only the same API, identity, invitation code and idempotency key recorded there; if replay returns 409, reconcile and revoke the previously issued key before using a fresh invitation (its secret cannot be recovered)", t.recoveryPath)
 }
 
-func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
+func runTeamsJoinWithOptions(opts teamsJoinOpts) (returnErr error) {
 	if opts.store.enabled && !opts.issueAgentKey {
 		return fmt.Errorf("--store requires --issue-agent-key")
 	}
@@ -45,7 +45,7 @@ func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
 		if err := store.reserve(); err != nil {
 			return err
 		}
-		defer store.close()
+		defer store.close(&returnErr)
 	}
 	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
@@ -75,10 +75,13 @@ func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
 	result, ok := response.(*moltnetapi.JoinTeamOK)
 	if !ok {
 		if store != nil {
+			if conflict, ok := response.(*moltnetapi.ConflictProblemDetails); ok {
+				return store.reconcileEnrollment(conflict)
+			}
 			switch response.(type) {
 			case *moltnetapi.JoinTeamBadRequest, *moltnetapi.JoinTeamUnauthorized, *moltnetapi.JoinTeamForbidden, *moltnetapi.JoinTeamNotFound, *moltnetapi.JoinTeamGone, *moltnetapi.JoinTeamTooManyRequests:
 				// A definitive rejection of this attempt permits pending cleanup.
-				store.captured = false
+				store.retainRecovery = false
 			default:
 				return store.enrollmentOutcomeUnknown()
 			}
@@ -106,4 +109,39 @@ func runTeamsJoinWithOptions(opts teamsJoinOpts) error {
 	}
 	writeSecretNotice(opts.errOut)
 	return printJSONTo(opts.out, result)
+}
+
+// Key IDs and bindings are non-secret and identify the exact credential to revoke.
+type enrollmentReconciliation struct {
+	KeyID     string `json:"keyId"`
+	SubjectID string `json:"subjectId"`
+	TeamID    string `json:"teamId"`
+}
+
+func (t *agentKeyStoreTarget) reconcileEnrollment(problem *moltnetapi.ConflictProblemDetails) error {
+	target, ok := problem.Conflict.Target.Get()
+	if !ok || target.Resource != "agent-key" {
+		return t.enrollmentOutcomeUnknown()
+	}
+	keys, ok := target.Keys.Get()
+	if !ok || keys["keyId"] == "" || keys["subjectId"] != t.subjectID || keys["teamId"] == "" {
+		return t.enrollmentOutcomeUnknown()
+	}
+	record := enrollmentReconciliation{KeyID: keys["keyId"], SubjectID: keys["subjectId"], TeamID: keys["teamId"]}
+	if err := t.capture(agentKeyRecovery{Stage: "issued_secret_unavailable", CredentialsPath: t.credentialsPath, Reconciliation: &record}); err != nil {
+		return fmt.Errorf("enrollment already issued key %s for team %s; revoke that exact key with authorized management credentials; could not update recovery file %s", record.KeyID, record.TeamID, t.recoveryPath)
+	}
+	return fmt.Errorf("enrollment already issued key %s for team %s; its secret cannot be recovered; revoke that exact key with authorized management credentials before using a fresh invitation; recovery file: %s", record.KeyID, record.TeamID, t.recoveryPath)
+}
+
+type rotationRecoveryRequest struct {
+	APIURL         string `json:"apiUrl"`
+	SubjectID      string `json:"subjectId"`
+	KeyID          string `json:"keyId"`
+	TeamID         string `json:"teamId,omitempty"`
+	IdentityScoped bool   `json:"identityScoped"`
+}
+
+func (t *agentKeyStoreTarget) rotationOutcomeUnknown() error {
+	return fmt.Errorf("rotation outcome is unknown; the old secret may already be invalid; retain protected recovery file %s and reconcile the recorded key using independent management credentials before another rotation", t.recoveryPath)
 }

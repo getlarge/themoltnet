@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -617,4 +619,100 @@ func assertCredentialReferencesUnchanged(t *testing.T, path string) func() {
 			}
 		}
 	}
+}
+
+func TestEnrollmentCaptureFailureDoesNotClaimMetadataContainsSecret(t *testing.T) {
+	path := writeAgentKeyStoreFixture(t, testAgentID)
+	registry, provider := newMemorySecretProviderRegistry()
+	capture := newRecoveryCapture(t)
+	opts := storeOpts(registry, capture)
+	target, err := prepareAgentKeyStore(opts, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = target.capture(agentKeyRecovery{Stage: "issuance_outcome_unknown", Enrollment: &enrollmentRecoveryRequest{Code: "private-code", IdempotencyKey: "stable"}}); err != nil {
+		t.Fatal(err)
+	}
+	target.replaceRecovery = func(string, []byte) error { return errors.New("injected replace failure") }
+	var out bytes.Buffer
+	err = target.persist(&out, &out, storedAgentKeyOutput{Key: validAgentKey("issued")}, "new-secret")
+	if err == nil || strings.Contains(err.Error(), "secret was written") {
+		t.Fatalf("false capture claim: %v", err)
+	}
+	var result storedAgentKeyOutput
+	if e := json.Unmarshal(out.Bytes(), &result); e != nil {
+		t.Fatal(e)
+	}
+	if result.SecretCaptured || result.SecretStored || result.RecoveryPath == "" {
+		t.Fatalf("incorrect capture state: %+v", result)
+	}
+	if artifact := capture.latest(t); artifact.Secret != "" || artifact.Stage != "issuance_outcome_unknown" {
+		t.Fatal("metadata unexpectedly replaced")
+	}
+	if len(provider.values) != 0 {
+		t.Fatal("provider called after failed capture")
+	}
+	assertNoSecret(t, "new-secret", &out)
+}
+
+func TestEnrollmentStoreReportsUnverifiedDestinationWrite(t *testing.T) {
+	path := writeAgentKeyStoreFixture(t, testAgentID)
+	registry, provider := newMemorySecretProviderRegistry()
+	registry.Register(osKeyringProviderName, &unverifiedTeamCopyProvider{memorySecretProvider: provider})
+	capture := newRecoveryCapture(t)
+	target, err := prepareAgentKeyStore(storeOpts(registry, capture), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target.enrollment = true
+	var out bytes.Buffer
+	err = target.persist(&out, &out, storedAgentKeyOutput{Key: validAgentKey("issued")}, "new-secret")
+	if err == nil || !strings.Contains(err.Error(), "write occurred but was not verified") {
+		t.Fatalf("missing partial write guidance: %v", err)
+	}
+	var result storedAgentKeyOutput
+	if e := json.Unmarshal(out.Bytes(), &result); e != nil {
+		t.Fatal(e)
+	}
+	if !result.SecretWritten || result.SecretStored || !result.SecretCaptured || result.CredentialsUpdated {
+		t.Fatalf("wrong state: %+v", result)
+	}
+	artifact := capture.latest(t)
+	if !artifact.SecretWritten || artifact.SecretStored || artifact.Secret != "new-secret" {
+		t.Fatal("partial write state not retained")
+	}
+}
+
+func TestRotationLostResponseRetainsKnownKeyForReconciliation(t *testing.T) {
+	path := writeAgentKeyStoreFixture(t, testAgentID)
+	registry, provider := newMemorySecretProviderRegistry()
+	capture := newRecoveryCapture(t)
+	key := TeamAgentKeyKey(testAgentID, testTeamID)
+	provider.values[key] = "old-secret"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, _, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		_ = conn.Close()
+	}))
+	defer server.Close()
+	client, err := newAgentKeyAuthenticatedClient(server.URL, "independent-manager")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	err = runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{apiURL: server.URL, credPath: path, teamID: testTeamID, keyID: "existing-key", store: storeOpts(registry, capture), out: &out, errOut: &out})
+	if err == nil || !strings.Contains(err.Error(), "rotation outcome is unknown") {
+		t.Fatalf("unexpected rotation result: %v", err)
+	}
+	artifact := capture.latest(t)
+	if artifact.Stage != "rotation_outcome_unknown" || artifact.Rotation == nil || artifact.Rotation.KeyID != "existing-key" || artifact.Rotation.TeamID != testTeamID || artifact.Rotation.APIURL != server.URL {
+		t.Fatal("rotation context missing")
+	}
+	if provider.values[key] != "old-secret" {
+		t.Fatal("unknown rotation changed provider")
+	}
+	assertNoSecret(t, "old-secret", &out)
 }
