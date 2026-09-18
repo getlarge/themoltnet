@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
+import { Configuration, WorkspaceApi } from '@ory/client-fetch';
 import { pathToFileURL } from 'node:url';
 
 function fail(message) {
@@ -49,6 +49,30 @@ export function resolveProjectTarget({
   return resolvedProject;
 }
 
+export async function resolveProjectTargetFromWorkspace({
+  workspace,
+  projectUrl,
+  expectedProject,
+  accessToken,
+  workspaceApi,
+}) {
+  if (!workspace) fail('The Ory workspace ID is required.');
+  if (!accessToken && !workspaceApi) {
+    fail('ORY_WORKSPACE_API_KEY is required.');
+  }
+
+  const api =
+    workspaceApi ??
+    new WorkspaceApi(
+      new Configuration({
+        basePath: 'https://api.console.ory.sh',
+        accessToken,
+      }),
+    );
+  const projects = await api.listWorkspaceProjects({ workspace });
+  return resolveProjectTarget({ projects, projectUrl, expectedProject });
+}
+
 function parseArgs(argv) {
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
@@ -61,7 +85,7 @@ function parseArgs(argv) {
   }
 
   for (const required of [
-    '--projects',
+    '--workspace',
     '--project-url',
     '--expected-project',
   ]) {
@@ -76,16 +100,23 @@ if (
 ) {
   try {
     const args = parseArgs(process.argv.slice(2));
-    const projects = JSON.parse(readFileSync(args.get('--projects'), 'utf8'));
     process.stdout.write(
-      resolveProjectTarget({
-        projects,
+      await resolveProjectTargetFromWorkspace({
+        workspace: args.get('--workspace'),
         projectUrl: args.get('--project-url'),
         expectedProject: args.get('--expected-project'),
+        accessToken: process.env.ORY_WORKSPACE_API_KEY,
       }),
     );
   } catch (error) {
-    console.error(`ERROR: ${error.message}`);
+    const message =
+      error instanceof Error &&
+      (error.message.startsWith('The Ory') ||
+        error.message.startsWith('Expected one') ||
+        error.message.startsWith('ORY_WORKSPACE'))
+        ? error.message
+        : 'Ory workspace project resolution failed.';
+    console.error(`ERROR: ${message}`);
     process.exit(1);
   }
 }

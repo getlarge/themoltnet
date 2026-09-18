@@ -56,8 +56,12 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install Ory CLI
-        run: bash <(curl -s https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b /usr/local/bin ory
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Resolve and verify development target
         id: target
@@ -68,12 +72,8 @@ jobs:
           EXPECTED_PROJECT_ID: ${{ secrets.ORY_PROJECT_ID }}
         run: |
           set -euo pipefail
-          PROJECTS_FILE="$RUNNER_TEMP/ory-projects.json"
-          ory list projects \
-            --workspace "$ORY_WORKSPACE_ID" \
-            --format json > "$PROJECTS_FILE"
           RESOLVED_PROJECT_ID="$(node infra/ory/resolve-project-target.mjs \
-            --projects "$PROJECTS_FILE" \
+            --workspace "$ORY_WORKSPACE_ID" \
             --project-url "$TARGET_PROJECT_URL" \
             --expected-project "$EXPECTED_PROJECT_ID")"
           echo "project_id=$RESOLVED_PROJECT_ID" >> "$GITHUB_OUTPUT"

@@ -85,6 +85,7 @@
     "@nx/vite": "catalog:",
     "@nx/vitest": "catalog:",
     "@nx/web": "catalog:",
+    "@ory/client-fetch": "catalog:",
     "@playwright/test": "catalog:",
     "@swc-node/register": "catalog:",
     "@swc/core": "catalog:",
