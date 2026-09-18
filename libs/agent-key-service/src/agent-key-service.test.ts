@@ -53,7 +53,7 @@ function issuedKey(overrides: Partial<IssuedApiKey> = {}): IssuedApiKey {
       team_id: TEAM_ID,
     },
     create_time: new Date('2026-07-24T08:00:00.000Z'),
-    expire_time: new Date('2026-08-23T08:00:00.000Z'),
+    expire_time: new Date('2099-08-23T08:00:00.000Z'),
     ...overrides,
   };
 }
@@ -366,6 +366,22 @@ describe('agent key service', () => {
     await expect(
       service.rotate({ keyId: KEY_ID, logger, subject, teamId: TEAM_ID }),
     ).rejects.toMatchObject({ statusCode: 409 });
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    KeyStatus.KeyStatusActive,
+    KeyStatus.KeyStatusUnspecified,
+    undefined,
+  ])('reconciles an elapsed expiry despite raw status %s', async (status) => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ status, expire_time: new Date(0) }),
+    );
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({ issued_api_keys: [] });
+    await expect(
+      service.rotate({ keyId: KEY_ID, logger, subject, teamId: TEAM_ID }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledTimes(1);
     expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
   });
 

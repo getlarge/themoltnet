@@ -887,6 +887,7 @@ describe('agent key routes', () => {
       },
     });
     expect(response.statusCode).toBe(409);
+    expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
     expect(response.json().conflict.target).toEqual({
       resource: 'agent-key',
       keys: {
@@ -899,6 +900,23 @@ describe('agent key routes', () => {
     });
     expect(response.json()).not.toHaveProperty('secret');
     expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('evicts predecessor authentication when the rotation response is lost upstream', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    talosApi.adminRotateIssuedApiKey.mockRejectedValue(
+      new Error('connection closed'),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+    expect(response.statusCode).toBe(502);
+    expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
   });
 
   it('requires an independent credential to rotate the current Talos key', async () => {

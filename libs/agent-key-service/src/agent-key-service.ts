@@ -1139,10 +1139,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       const scopes = key.scopes ?? [];
       assertDelegableScopes(scopes, input.subject);
 
-      if (
-        key.status === KeyStatus.KeyStatusRevoked ||
-        key.status === KeyStatus.KeyStatusExpired
-      ) {
+      if (effectiveStatus(key) !== 'active') {
         return rejectCompletedRotation(api, input, binding);
       }
 

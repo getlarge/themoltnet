@@ -253,15 +253,19 @@ export async function agentKeyRoutes(
     },
     async (request, reply) => {
       const binding = operationBinding(request, request.query.bindingScope);
-      const rotated = await agentKeys.rotate({
-        ...binding,
-        keyId: request.params.keyId,
-        logger: request.log,
-        signal: requestAbortSignal(request, reply),
-        subject: authSubject(request),
-      });
-      fastify.tokenValidator.evictTalosKey(request.params.keyId);
-      return rotated;
+      try {
+        return await agentKeys.rotate({
+          ...binding,
+          keyId: request.params.keyId,
+          logger: request.log,
+          signal: requestAbortSignal(request, reply),
+          subject: authSubject(request),
+        });
+      } finally {
+        // Replay and ambiguous upstream failures may follow a committed rotation.
+        // Revalidate the predecessor instead of retaining cached authorization.
+        fastify.tokenValidator.evictTalosKey(request.params.keyId);
+      }
     },
   );
 
