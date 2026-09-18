@@ -37189,7 +37189,7 @@ func decodeRotateAgentKeyResponse(resp *http.Response) (res RotateAgentKeyRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response RotateAgentKeyConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

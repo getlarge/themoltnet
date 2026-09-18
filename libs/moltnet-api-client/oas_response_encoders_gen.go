@@ -11148,7 +11148,7 @@ func encodeRotateAgentKeyResponse(response RotateAgentKeyRes, w http.ResponseWri
 
 		return nil
 
-	case *RotateAgentKeyConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

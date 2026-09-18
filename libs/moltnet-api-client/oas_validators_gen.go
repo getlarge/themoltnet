@@ -26261,14 +26261,6 @@ func (s *RotateAgentKeyBadGateway) Validate() error {
 	return nil
 }
 
-func (s *RotateAgentKeyConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *RotateAgentKeyForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {

@@ -15437,7 +15437,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
