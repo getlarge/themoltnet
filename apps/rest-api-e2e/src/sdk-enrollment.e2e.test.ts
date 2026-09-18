@@ -22,6 +22,7 @@ import {
   enrollTeam,
   FileSecretProvider,
 } from '@themoltnet/sdk/node';
+import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -147,7 +148,8 @@ describe('SDK team enrollment persistence and reconnect', () => {
       [b.teamId]: second.reference,
     });
     expect(config?.agent_key_ref).toBeUndefined();
-    expect(await readdir(join(dir, 'credential-recovery'))).toEqual([]);
+    // The completed replay retains request context, never a second secret.
+    expect(await readdir(join(dir, 'credential-recovery'))).toHaveLength(1);
     const registry = new SecretProviderRegistry().register(provider);
     const connectionA = await connect({
       configDir: dir,
@@ -250,4 +252,50 @@ describe('SDK team enrollment persistence and reconnect', () => {
     });
     expect((await reconnected.teams.get(invite.teamId)).id).toBe(invite.teamId);
   });
+});
+
+it('persists proof enrollment and renewal without using the configured OAuth credentials', async () => {
+  const { dir, provider } = await localIdentity();
+  await updateConfig((config) => {
+    delete config.oauth2;
+  }, dir);
+  const invite = await invitation();
+  const signer = {
+    sign: (message: string) =>
+      cryptoService.sign(message, agent.keyPair.privateKey),
+  };
+  const original = await enrollTeam({
+    signer,
+    code: invite.code,
+    idempotencyKey: randomUUID(),
+    configDir: dir,
+    secretProvider: provider,
+  });
+  const predecessor = await provider.read(original.reference.key);
+  const client = createClient({ baseUrl: harness.baseUrl });
+  const renewal = await createTeamInvite({
+    client,
+    auth: () => owner.accessToken,
+    path: { id: invite.teamId },
+    body: { role: 'member' },
+  });
+  expect(renewal.response.status).toBe(201);
+  const replacement = await enrollTeam({
+    signer,
+    replacement: { teamId: invite.teamId },
+    code: renewal.data!.code,
+    idempotencyKey: randomUUID(),
+    configDir: dir,
+    secretProvider: provider,
+  });
+  expect(replacement.key.id).not.toBe(original.key.id);
+  expect(await provider.read(replacement.reference.key)).not.toBe(predecessor);
+  const reconnected = await connect({
+    configDir: dir,
+    teamId: invite.teamId,
+    apiUrl: harness.baseUrl,
+    secretProviders: new SecretProviderRegistry().register(provider),
+  });
+  expect((await reconnected.teams.get(invite.teamId)).id).toBe(invite.teamId);
+  expect(await readdir(join(dir, 'credential-recovery'))).toEqual([]);
 });
