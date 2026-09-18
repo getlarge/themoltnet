@@ -908,3 +908,31 @@ export function requireActivation(
   }
   return activation;
 }
+
+/** Resolve pinned local identity state without requiring a live API credential. */
+export async function loadAgentActivation(
+  store: AgentServerStore,
+  alias: string,
+): Promise<ActivatedAgent> {
+  const activation = requireActivation(store, alias);
+  const configPath =
+    activation.source === 'managed'
+      ? store.agentPath(alias)
+      : activation.configPath;
+  if (activation.source === 'external' && configPath !== store.agentPath(alias))
+    externalAgentLocation(configPath);
+  const config = await readCurrentConfig(configPath);
+  const apiUrl =
+    activation.source === 'managed'
+      ? activation.apiUrl
+      : activation.configApiUrl;
+  assertActivatedConfig(
+    config,
+    activation,
+    configPath,
+    requireTrustedConfigApiUrl(config, configPath),
+    apiUrl,
+  );
+  requireTrustedApiOverride(activation.apiUrl, apiUrl, configPath);
+  return { activation, config };
+}
