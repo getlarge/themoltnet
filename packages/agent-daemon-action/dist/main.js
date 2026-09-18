@@ -19867,6 +19867,542 @@ function readEnvCredentials() {
 	};
 }
 //#endregion
+//#region ../../libs/agent-config/src/config.ts
+function oauth2SecretKey(subjectId, clientId) {
+	return `oauth2/${subjectId}/${clientId}`;
+}
+function identitySeedKey(fingerprint) {
+	return `identity/${fingerprint}/seed`;
+}
+function agentKeyKey(subjectId, teamId) {
+	return `agent-key/${subjectId}${teamId ? `/${teamId}` : ""}`;
+}
+function getConfigDir() {
+	return join(homedir(), ".config", "moltnet");
+}
+/**
+* The one identity-alias grammar. Must stay identical to `AGENT_ALIAS_PATTERN`
+* in `@moltnet/models` (the REST `AgentAliasSchema`) and agentNamePattern in
+* apps/moltnet-cli (Go); the daemon's AgentServerStore reuses this constant
+* directly. An alias is a directory name in a store all of them write and the
+* value the CLI publishes as the network alias, so a value one accepts and
+* another rejects makes an identity unreadable by half the system or
+* unpublishable. The literal is repeated rather than imported because this
+* package is bundled into published packages that must not pick up models'
+* typebox dependency; `identity-alias.test.ts` pins all three copies.
+*/
+var identitiesDirName = "identities";
+var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+function assertIdentityAlias(alias) {
+	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
+	return alias;
+}
+function getIdentityDir(alias) {
+	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
+}
+/** Resolve an explicit credentials directory, active identity, or default. */
+async function resolveConfigDir(configDir) {
+	if (configDir) return configDir;
+	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+	if (!alias) try {
+		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
+		const selector = JSON.parse(content);
+		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
+		alias = selector.default_identity?.trim();
+	} catch (error) {
+		if (error.code === "ENOENT") return null;
+		throw error;
+	}
+	return alias ? getIdentityDir(alias) : null;
+}
+async function readConfig(configDir) {
+	const dir = await resolveConfigDir(configDir);
+	if (!dir) return null;
+	return readConfigFile(join(dir, "moltnet.json"));
+}
+async function readConfigFile(path) {
+	try {
+		return JSON.parse(await readFile(path, "utf-8"));
+	} catch (error) {
+		if (error.code === "ENOENT") return null;
+		throw new Error(`Unable to read MoltNet config at ${path}.`, { cause: error });
+	}
+}
+//#endregion
+//#region ../../libs/agent-config/src/agent-key-selection.ts
+/** Presence only: a configured but invalid credential must fail resolution. */
+function hasAgentKeyConfiguration(config) {
+	return config.agent_key_ref !== void 0 || Object.keys(config.agent_key_refs ?? {}).length > 0;
+}
+/** Select once, before contacting any provider. Failure never tries another grant. */
+function selectAgentKeyReference(config, selectedTeam) {
+	const team = selectedTeam?.trim();
+	const entries = config.agent_key_refs ?? {};
+	if (team && Object.hasOwn(entries, team)) return {
+		reference: entries[team],
+		teamId: team
+	};
+	if (config.agent_key_ref !== void 0) return { reference: config.agent_key_ref };
+	const teams = Object.keys(entries);
+	if (!teams.length) return null;
+	if (!team && teams.length === 1) {
+		if (!teams[0].trim()) throw new Error("Team key map contains an empty team ID");
+		return {
+			reference: entries[teams[0]],
+			teamId: teams[0]
+		};
+	}
+	throw new Error(team ? "No agent key configured for the selected team; enroll that team first" : "Multiple team agent keys configured; select a team explicitly");
+}
+/** Provider-independent binding, also used before storing a reference. */
+function assertAgentKeyReferenceBinding(selection, subjectId) {
+	const { reference, teamId } = selection;
+	const subject = subjectId?.trim();
+	if (!subject || teamId !== void 0 && !teamId.trim()) throw new Error("Agent key binding requires subject_id and a nonempty team");
+	const expected = agentKeyKey(subject, teamId);
+	if (!reference || !/^[a-z][a-z0-9-]*$/.test(reference.provider) || reference.provider === "env" || reference.key !== expected && !(reference.provider === "file" && reference.key === expected.replaceAll("/", "."))) throw new Error("Agent key reference is not bound to this subject and team");
+}
+var { p: P, n: N, Gx, Gy, a: _a, d: _d } = {
+	p: 57896044618658097711785492504343953926634992332820282019728792003956564819949n,
+	n: 7237005577332262213973186563042994240857116359379907606001950938285454250989n,
+	h: 8n,
+	a: 57896044618658097711785492504343953926634992332820282019728792003956564819948n,
+	d: 37095705934669439343138083508754565189542113879843219016388785533085940283555n,
+	Gx: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,
+	Gy: 46316835694926478169428394003475163141307993866256225615783033603165251855960n
+};
+var h = 8n;
+var L = 32;
+var L2 = 64;
+var err = (m = "") => {
+	throw new Error(m);
+};
+var isBig = (n) => typeof n === "bigint";
+var isStr = (s) => typeof s === "string";
+var isBytes$1 = (a) => a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
+/** assert is Uint8Array (of specific length) */
+var abytes$1 = (a, l) => !isBytes$1(a) || typeof l === "number" && l > 0 && a.length !== l ? err("Uint8Array expected") : a;
+/** create Uint8Array */
+var u8n = (len) => new Uint8Array(len);
+var u8fr = (buf) => Uint8Array.from(buf);
+var padh = (n, pad) => n.toString(16).padStart(pad, "0");
+var bytesToHex = (b) => Array.from(abytes$1(b)).map((e) => padh(e, 2)).join("");
+var C = {
+	_0: 48,
+	_9: 57,
+	A: 65,
+	F: 70,
+	a: 97,
+	f: 102
+};
+var _ch = (ch) => {
+	if (ch >= C._0 && ch <= C._9) return ch - C._0;
+	if (ch >= C.A && ch <= C.F) return ch - (C.A - 10);
+	if (ch >= C.a && ch <= C.f) return ch - (C.a - 10);
+};
+var hexToBytes = (hex) => {
+	const e = "hex invalid";
+	if (!isStr(hex)) return err(e);
+	const hl = hex.length;
+	const al = hl / 2;
+	if (hl % 2) return err(e);
+	const array = u8n(al);
+	for (let ai = 0, hi = 0; ai < al; ai++, hi += 2) {
+		const n1 = _ch(hex.charCodeAt(hi));
+		const n2 = _ch(hex.charCodeAt(hi + 1));
+		if (n1 === void 0 || n2 === void 0) return err(e);
+		array[ai] = n1 * 16 + n2;
+	}
+	return array;
+};
+/** normalize hex or ui8a to ui8a */
+var toU8 = (a, len) => abytes$1(isStr(a) ? hexToBytes(a) : u8fr(abytes$1(a)), len);
+var cr = () => globalThis?.crypto;
+var subtle = () => cr()?.subtle ?? err("crypto.subtle must be defined");
+var concatBytes = (...arrs) => {
+	const r = u8n(arrs.reduce((sum, a) => sum + abytes$1(a).length, 0));
+	let pad = 0;
+	arrs.forEach((a) => {
+		r.set(a, pad);
+		pad += a.length;
+	});
+	return r;
+};
+/** WebCrypto OS-level CSPRNG (random number generator). Will throw when not available. */
+var randomBytes$1 = (len = L) => {
+	return cr().getRandomValues(u8n(len));
+};
+var big = BigInt;
+var arange = (n, min, max, msg = "bad number: out of range") => isBig(n) && min <= n && n < max ? n : err(msg);
+/** modular division */
+var M = (a, b = P) => {
+	const r = a % b;
+	return r >= 0n ? r : b + r;
+};
+var modN = (a) => M(a, N);
+/** Modular inversion using eucledian GCD (non-CT). No negative exponent for now. */
+var invert = (num, md) => {
+	if (num === 0n || md <= 0n) err("no inverse n=" + num + " mod=" + md);
+	let a = M(num, md), b = md, x = 0n, y = 1n, u = 1n, v = 0n;
+	while (a !== 0n) {
+		const q = b / a, r = b % a;
+		const m = x - u * q, n = y - v * q;
+		b = a, a = r, x = u, y = v, u = m, v = n;
+	}
+	return b === 1n ? M(x, md) : err("no inverse");
+};
+var apoint = (p) => p instanceof Point ? p : err("Point expected");
+var B256 = 2n ** 256n;
+/** Point in XYZT extended coordinates. */
+var Point = class Point {
+	static BASE;
+	static ZERO;
+	ex;
+	ey;
+	ez;
+	et;
+	constructor(ex, ey, ez, et) {
+		const max = B256;
+		this.ex = arange(ex, 0n, max);
+		this.ey = arange(ey, 0n, max);
+		this.ez = arange(ez, 1n, max);
+		this.et = arange(et, 0n, max);
+		Object.freeze(this);
+	}
+	static fromAffine(p) {
+		return new Point(p.x, p.y, 1n, M(p.x * p.y));
+	}
+	/** RFC8032 5.1.3: Uint8Array to Point. */
+	static fromBytes(hex, zip215 = false) {
+		const d = _d;
+		const normed = u8fr(abytes$1(hex, L));
+		const lastByte = hex[31];
+		normed[31] = lastByte & -129;
+		const y = bytesToNumLE(normed);
+		arange(y, 0n, zip215 ? B256 : P);
+		const y2 = M(y * y);
+		let { isValid, value: x } = uvRatio(M(y2 - 1n), M(d * y2 + 1n));
+		if (!isValid) err("bad point: y not sqrt");
+		const isXOdd = (x & 1n) === 1n;
+		const isLastByteOdd = (lastByte & 128) !== 0;
+		if (!zip215 && x === 0n && isLastByteOdd) err("bad point: x==0, isLastByteOdd");
+		if (isLastByteOdd !== isXOdd) x = M(-x);
+		return new Point(x, y, 1n, M(x * y));
+	}
+	/** Checks if the point is valid and on-curve. */
+	assertValidity() {
+		const a = _a;
+		const d = _d;
+		const p = this;
+		if (p.is0()) throw new Error("bad point: ZERO");
+		const { ex: X, ey: Y, ez: Z, et: T } = p;
+		const X2 = M(X * X);
+		const Y2 = M(Y * Y);
+		const Z2 = M(Z * Z);
+		const Z4 = M(Z2 * Z2);
+		if (M(Z2 * M(M(X2 * a) + Y2)) !== M(Z4 + M(d * M(X2 * Y2)))) throw new Error("bad point: equation left != right (1)");
+		if (M(X * Y) !== M(Z * T)) throw new Error("bad point: equation left != right (2)");
+		return this;
+	}
+	/** Equality check: compare points P&Q. */
+	equals(other) {
+		const { ex: X1, ey: Y1, ez: Z1 } = this;
+		const { ex: X2, ey: Y2, ez: Z2 } = apoint(other);
+		const X1Z2 = M(X1 * Z2);
+		const X2Z1 = M(X2 * Z1);
+		const Y1Z2 = M(Y1 * Z2);
+		const Y2Z1 = M(Y2 * Z1);
+		return X1Z2 === X2Z1 && Y1Z2 === Y2Z1;
+	}
+	is0() {
+		return this.equals(I);
+	}
+	/** Flip point over y coordinate. */
+	negate() {
+		return new Point(M(-this.ex), this.ey, this.ez, M(-this.et));
+	}
+	/** Point doubling. Complete formula. Cost: `4M + 4S + 1*a + 6add + 1*2`. */
+	double() {
+		const { ex: X1, ey: Y1, ez: Z1 } = this;
+		const a = _a;
+		const A = M(X1 * X1);
+		const B = M(Y1 * Y1);
+		const C = M(2n * M(Z1 * Z1));
+		const D = M(a * A);
+		const x1y1 = X1 + Y1;
+		const E = M(M(x1y1 * x1y1) - A - B);
+		const G = D + B;
+		const F = G - C;
+		const H = D - B;
+		const X3 = M(E * F);
+		const Y3 = M(G * H);
+		const T3 = M(E * H);
+		return new Point(X3, Y3, M(F * G), T3);
+	}
+	/** Point addition. Complete formula. Cost: `8M + 1*k + 8add + 1*2`. */
+	add(other) {
+		const { ex: X1, ey: Y1, ez: Z1, et: T1 } = this;
+		const { ex: X2, ey: Y2, ez: Z2, et: T2 } = apoint(other);
+		const a = _a;
+		const d = _d;
+		const A = M(X1 * X2);
+		const B = M(Y1 * Y2);
+		const C = M(T1 * d * T2);
+		const D = M(Z1 * Z2);
+		const E = M((X1 + Y1) * (X2 + Y2) - A - B);
+		const F = M(D - C);
+		const G = M(D + C);
+		const H = M(B - a * A);
+		const X3 = M(E * F);
+		const Y3 = M(G * H);
+		const T3 = M(E * H);
+		return new Point(X3, Y3, M(F * G), T3);
+	}
+	/**
+	* Point-by-scalar multiplication. Scalar must be in range 1 <= n < CURVE.n.
+	* Uses {@link wNAF} for base point.
+	* Uses fake point to mitigate side-channel leakage.
+	* @param n scalar by which point is multiplied
+	* @param safe safe mode guards against timing attacks; unsafe mode is faster
+	*/
+	multiply(n, safe = true) {
+		if (!safe && (n === 0n || this.is0())) return I;
+		arange(n, 1n, N);
+		if (n === 1n) return this;
+		if (this.equals(G)) return wNAF(n).p;
+		let p = I;
+		let f = G;
+		for (let d = this; n > 0n; d = d.double(), n >>= 1n) if (n & 1n) p = p.add(d);
+		else if (safe) f = f.add(d);
+		return p;
+	}
+	/** Convert point to 2d xy affine point. (X, Y, Z) ∋ (x=X/Z, y=Y/Z) */
+	toAffine() {
+		const { ex: x, ey: y, ez: z } = this;
+		if (this.equals(I)) return {
+			x: 0n,
+			y: 1n
+		};
+		const iz = invert(z, P);
+		if (M(z * iz) !== 1n) err("invalid inverse");
+		return {
+			x: M(x * iz),
+			y: M(y * iz)
+		};
+	}
+	toBytes() {
+		const { x, y } = this.assertValidity().toAffine();
+		const b = numTo32bLE(y);
+		b[31] |= x & 1n ? 128 : 0;
+		return b;
+	}
+	toHex() {
+		return bytesToHex(this.toBytes());
+	}
+	clearCofactor() {
+		return this.multiply(big(h), false);
+	}
+	isSmallOrder() {
+		return this.clearCofactor().is0();
+	}
+	isTorsionFree() {
+		let p = this.multiply(N / 2n, false).double();
+		if (N % 2n) p = p.add(this);
+		return p.is0();
+	}
+	static fromHex(hex, zip215) {
+		return Point.fromBytes(toU8(hex), zip215);
+	}
+	get x() {
+		return this.toAffine().x;
+	}
+	get y() {
+		return this.toAffine().y;
+	}
+	toRawBytes() {
+		return this.toBytes();
+	}
+};
+/** Generator / base point */
+var G = new Point(Gx, Gy, 1n, M(Gx * Gy));
+/** Identity / zero point */
+var I = new Point(0n, 1n, 1n, 0n);
+Point.BASE = G;
+Point.ZERO = I;
+var numTo32bLE = (num) => hexToBytes(padh(arange(num, 0n, B256), L2)).reverse();
+var bytesToNumLE = (b) => big("0x" + bytesToHex(u8fr(abytes$1(b)).reverse()));
+var pow2 = (x, power) => {
+	let r = x;
+	while (power-- > 0n) {
+		r *= r;
+		r %= P;
+	}
+	return r;
+};
+var pow_2_252_3 = (x) => {
+	const b2 = x * x % P * x % P;
+	const b5 = pow2(pow2(b2, 2n) * b2 % P, 1n) * x % P;
+	const b10 = pow2(b5, 5n) * b5 % P;
+	const b20 = pow2(b10, 10n) * b10 % P;
+	const b40 = pow2(b20, 20n) * b20 % P;
+	const b80 = pow2(b40, 40n) * b40 % P;
+	return {
+		pow_p_5_8: pow2(pow2(pow2(pow2(b80, 80n) * b80 % P, 80n) * b80 % P, 10n) * b10 % P, 2n) * x % P,
+		b2
+	};
+};
+var RM1 = 19681161376707505956807079304988542015446066515923890162744021073123829784752n;
+var uvRatio = (u, v) => {
+	const v3 = M(v * v * v);
+	const pow = pow_2_252_3(u * M(v3 * v3 * v)).pow_p_5_8;
+	let x = M(u * v3 * pow);
+	const vx2 = M(v * x * x);
+	const root1 = x;
+	const root2 = M(x * RM1);
+	const useRoot1 = vx2 === u;
+	const useRoot2 = vx2 === M(-u);
+	const noRoot = vx2 === M(-u * RM1);
+	if (useRoot1) x = root1;
+	if (useRoot2 || noRoot) x = root2;
+	if ((M(x) & 1n) === 1n) x = M(-x);
+	return {
+		isValid: useRoot1 || useRoot2,
+		value: x
+	};
+};
+var modL_LE = (hash) => modN(bytesToNumLE(hash));
+var sha512a = (...m) => etc.sha512Async(...m);
+var hash2extK = (hashed) => {
+	const head = hashed.slice(0, L);
+	head[0] &= 248;
+	head[31] &= 127;
+	head[31] |= 64;
+	const prefix = hashed.slice(L, L2);
+	const scalar = modL_LE(head);
+	const point = G.multiply(scalar);
+	return {
+		head,
+		prefix,
+		scalar,
+		point,
+		pointBytes: point.toBytes()
+	};
+};
+var getExtendedPublicKeyAsync = (priv) => sha512a(toU8(priv, L)).then(hash2extK);
+var hashFinishA = (res) => sha512a(res.hashable).then(res.finish);
+var _sign = (e, rBytes, msg) => {
+	const { pointBytes: P, scalar: s } = e;
+	const r = modL_LE(rBytes);
+	const R = G.multiply(r).toBytes();
+	const hashable = concatBytes(R, P, msg);
+	const finish = (hashed) => {
+		return abytes$1(concatBytes(R, numTo32bLE(modN(r + modL_LE(hashed) * s))), L2);
+	};
+	return {
+		hashable,
+		finish
+	};
+};
+/**
+* Signs message (NOT message hash) using private key. Async.
+* Follows RFC8032 5.1.6.
+*/
+var signAsync = async (msg, privKey) => {
+	const m = toU8(msg);
+	const e = await getExtendedPublicKeyAsync(privKey);
+	return hashFinishA(_sign(e, await sha512a(e.prefix, m), m));
+};
+/** Math, hex, byte helpers. Not in `utils` because utils share API with noble-curves. */
+var etc = {
+	sha512Async: async (...messages) => {
+		const s = subtle();
+		const m = concatBytes(...messages);
+		return u8n(await s.digest("SHA-512", m.buffer));
+	},
+	sha512Sync: void 0,
+	bytesToHex,
+	hexToBytes,
+	concatBytes,
+	mod: M,
+	invert,
+	randomBytes: randomBytes$1
+};
+var W = 8;
+var pwindows = Math.ceil(256 / W) + 1;
+var pwindowSize = 2 ** (W - 1);
+var precompute = () => {
+	const points = [];
+	let p = G;
+	let b = p;
+	for (let w = 0; w < pwindows; w++) {
+		b = p;
+		points.push(b);
+		for (let i = 1; i < pwindowSize; i++) {
+			b = b.add(p);
+			points.push(b);
+		}
+		p = b.double();
+	}
+	return points;
+};
+var Gpows = void 0;
+var ctneg = (cnd, p) => {
+	const n = p.negate();
+	return cnd ? n : p;
+};
+/**
+* Precomputes give 12x faster getPublicKey(), 10x sign(), 2x verify() by
+* caching multiples of G (base point). Cache is stored in 32MB of RAM.
+* Any time `G.multiply` is done, precomputes are used.
+* Not used for getSharedSecret, which instead multiplies random pubkey `P.multiply`.
+*
+* w-ary non-adjacent form (wNAF) precomputation method is 10% slower than windowed method,
+* but takes 2x less RAM. RAM reduction is possible by utilizing `.subtract`.
+*
+* !! Precomputes can be disabled by commenting-out call of the wNAF() inside Point#multiply().
+*/
+var wNAF = (n) => {
+	const comp = Gpows || (Gpows = precompute());
+	let p = I;
+	let f = G;
+	const pow_2_w = 2 ** W;
+	const maxNum = pow_2_w;
+	const mask = big(pow_2_w - 1);
+	const shiftBy = big(W);
+	for (let w = 0; w < pwindows; w++) {
+		let wbits = Number(n & mask);
+		n >>= shiftBy;
+		if (wbits > pwindowSize) {
+			wbits -= maxNum;
+			n += 1n;
+		}
+		const off = w * pwindowSize;
+		const offF = off;
+		const offP = off + Math.abs(wbits) - 1;
+		const isEven = w % 2 !== 0;
+		const isNeg = wbits < 0;
+		if (wbits === 0) f = f.add(ctneg(isEven, comp[offF]));
+		else p = p.add(ctneg(isNeg, comp[offP]));
+	}
+	return {
+		p,
+		f
+	};
+};
+//#endregion
+//#region ../../libs/crypto-service/src/ssh.ts
+/**
+* SSH key format conversion for MoltNet Ed25519 keys
+*
+* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
+* for use with git commit signing and SSH authentication.
+*/
+if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
+	const hash = createHash("sha512");
+	m.forEach((msg) => hash.update(msg));
+	return hash.digest();
+};
+//#endregion
 //#region ../../libs/sdk/src/errors.ts
 var MoltNetError = class extends Error {
 	code;
@@ -23622,12 +24158,12 @@ function createDiaryTransfersNamespace(context) {
 //#endregion
 //#region ../../node_modules/.pnpm/@noble+hashes@1.8.0/node_modules/@noble/hashes/esm/utils.js
 /** Checks if something is Uint8Array. Be careful: nodejs Buffer will return true. */
-function isBytes$1(a) {
+function isBytes(a) {
 	return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
 }
 /** Asserts something is Uint8Array. */
-function abytes$1(b, ...lengths) {
-	if (!isBytes$1(b)) throw new Error("Uint8Array expected");
+function abytes(b, ...lengths) {
+	if (!isBytes(b)) throw new Error("Uint8Array expected");
 	if (lengths.length > 0 && !lengths.includes(b.length)) throw new Error("Uint8Array expected of length " + lengths + ", got length=" + b.length);
 }
 /** Asserts a hash instance has not been destroyed / finished */
@@ -23637,7 +24173,7 @@ function aexists(instance, checkFinished = true) {
 }
 /** Asserts output is properly-sized byte array */
 function aoutput(out, instance) {
-	abytes$1(out);
+	abytes(out);
 	const min = instance.outputLen;
 	if (out.length < min) throw new Error("digestInto() expects output buffer of length at least " + min);
 }
@@ -23670,7 +24206,7 @@ function utf8ToBytes$1(str) {
 */
 function toBytes(data) {
 	if (typeof data === "string") data = utf8ToBytes$1(data);
-	abytes$1(data);
+	abytes(data);
 	return data;
 }
 /** For runtime check if class implements interface */
@@ -23731,7 +24267,7 @@ var HashMD = class extends Hash$1 {
 	update(data) {
 		aexists(this);
 		data = toBytes(data);
-		abytes$1(data);
+		abytes(data);
 		const { view, buffer, blockLen } = this;
 		const len = data.length;
 		for (let pos = 0; pos < len;) {
@@ -24914,433 +25450,6 @@ function computeContentCid(entryType, title, content, tags) {
 	const digest = create(SHA2_256_CODE, computeCanonicalHash(entryType, title, content, tags));
 	return CID.createV1(85, digest).toString(base32);
 }
-var { p: P, n: N, Gx, Gy, a: _a, d: _d } = {
-	p: 57896044618658097711785492504343953926634992332820282019728792003956564819949n,
-	n: 7237005577332262213973186563042994240857116359379907606001950938285454250989n,
-	h: 8n,
-	a: 57896044618658097711785492504343953926634992332820282019728792003956564819948n,
-	d: 37095705934669439343138083508754565189542113879843219016388785533085940283555n,
-	Gx: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,
-	Gy: 46316835694926478169428394003475163141307993866256225615783033603165251855960n
-};
-var h = 8n;
-var L = 32;
-var L2 = 64;
-var err = (m = "") => {
-	throw new Error(m);
-};
-var isBig = (n) => typeof n === "bigint";
-var isStr = (s) => typeof s === "string";
-var isBytes = (a) => a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array";
-/** assert is Uint8Array (of specific length) */
-var abytes = (a, l) => !isBytes(a) || typeof l === "number" && l > 0 && a.length !== l ? err("Uint8Array expected") : a;
-/** create Uint8Array */
-var u8n = (len) => new Uint8Array(len);
-var u8fr = (buf) => Uint8Array.from(buf);
-var padh = (n, pad) => n.toString(16).padStart(pad, "0");
-var bytesToHex = (b) => Array.from(abytes(b)).map((e) => padh(e, 2)).join("");
-var C = {
-	_0: 48,
-	_9: 57,
-	A: 65,
-	F: 70,
-	a: 97,
-	f: 102
-};
-var _ch = (ch) => {
-	if (ch >= C._0 && ch <= C._9) return ch - C._0;
-	if (ch >= C.A && ch <= C.F) return ch - (C.A - 10);
-	if (ch >= C.a && ch <= C.f) return ch - (C.a - 10);
-};
-var hexToBytes = (hex) => {
-	const e = "hex invalid";
-	if (!isStr(hex)) return err(e);
-	const hl = hex.length;
-	const al = hl / 2;
-	if (hl % 2) return err(e);
-	const array = u8n(al);
-	for (let ai = 0, hi = 0; ai < al; ai++, hi += 2) {
-		const n1 = _ch(hex.charCodeAt(hi));
-		const n2 = _ch(hex.charCodeAt(hi + 1));
-		if (n1 === void 0 || n2 === void 0) return err(e);
-		array[ai] = n1 * 16 + n2;
-	}
-	return array;
-};
-/** normalize hex or ui8a to ui8a */
-var toU8 = (a, len) => abytes(isStr(a) ? hexToBytes(a) : u8fr(abytes(a)), len);
-var cr = () => globalThis?.crypto;
-var subtle = () => cr()?.subtle ?? err("crypto.subtle must be defined");
-var concatBytes = (...arrs) => {
-	const r = u8n(arrs.reduce((sum, a) => sum + abytes(a).length, 0));
-	let pad = 0;
-	arrs.forEach((a) => {
-		r.set(a, pad);
-		pad += a.length;
-	});
-	return r;
-};
-/** WebCrypto OS-level CSPRNG (random number generator). Will throw when not available. */
-var randomBytes$1 = (len = L) => {
-	return cr().getRandomValues(u8n(len));
-};
-var big = BigInt;
-var arange = (n, min, max, msg = "bad number: out of range") => isBig(n) && min <= n && n < max ? n : err(msg);
-/** modular division */
-var M = (a, b = P) => {
-	const r = a % b;
-	return r >= 0n ? r : b + r;
-};
-var modN = (a) => M(a, N);
-/** Modular inversion using eucledian GCD (non-CT). No negative exponent for now. */
-var invert = (num, md) => {
-	if (num === 0n || md <= 0n) err("no inverse n=" + num + " mod=" + md);
-	let a = M(num, md), b = md, x = 0n, y = 1n, u = 1n, v = 0n;
-	while (a !== 0n) {
-		const q = b / a, r = b % a;
-		const m = x - u * q, n = y - v * q;
-		b = a, a = r, x = u, y = v, u = m, v = n;
-	}
-	return b === 1n ? M(x, md) : err("no inverse");
-};
-var apoint = (p) => p instanceof Point ? p : err("Point expected");
-var B256 = 2n ** 256n;
-/** Point in XYZT extended coordinates. */
-var Point = class Point {
-	static BASE;
-	static ZERO;
-	ex;
-	ey;
-	ez;
-	et;
-	constructor(ex, ey, ez, et) {
-		const max = B256;
-		this.ex = arange(ex, 0n, max);
-		this.ey = arange(ey, 0n, max);
-		this.ez = arange(ez, 1n, max);
-		this.et = arange(et, 0n, max);
-		Object.freeze(this);
-	}
-	static fromAffine(p) {
-		return new Point(p.x, p.y, 1n, M(p.x * p.y));
-	}
-	/** RFC8032 5.1.3: Uint8Array to Point. */
-	static fromBytes(hex, zip215 = false) {
-		const d = _d;
-		const normed = u8fr(abytes(hex, L));
-		const lastByte = hex[31];
-		normed[31] = lastByte & -129;
-		const y = bytesToNumLE(normed);
-		arange(y, 0n, zip215 ? B256 : P);
-		const y2 = M(y * y);
-		let { isValid, value: x } = uvRatio(M(y2 - 1n), M(d * y2 + 1n));
-		if (!isValid) err("bad point: y not sqrt");
-		const isXOdd = (x & 1n) === 1n;
-		const isLastByteOdd = (lastByte & 128) !== 0;
-		if (!zip215 && x === 0n && isLastByteOdd) err("bad point: x==0, isLastByteOdd");
-		if (isLastByteOdd !== isXOdd) x = M(-x);
-		return new Point(x, y, 1n, M(x * y));
-	}
-	/** Checks if the point is valid and on-curve. */
-	assertValidity() {
-		const a = _a;
-		const d = _d;
-		const p = this;
-		if (p.is0()) throw new Error("bad point: ZERO");
-		const { ex: X, ey: Y, ez: Z, et: T } = p;
-		const X2 = M(X * X);
-		const Y2 = M(Y * Y);
-		const Z2 = M(Z * Z);
-		const Z4 = M(Z2 * Z2);
-		if (M(Z2 * M(M(X2 * a) + Y2)) !== M(Z4 + M(d * M(X2 * Y2)))) throw new Error("bad point: equation left != right (1)");
-		if (M(X * Y) !== M(Z * T)) throw new Error("bad point: equation left != right (2)");
-		return this;
-	}
-	/** Equality check: compare points P&Q. */
-	equals(other) {
-		const { ex: X1, ey: Y1, ez: Z1 } = this;
-		const { ex: X2, ey: Y2, ez: Z2 } = apoint(other);
-		const X1Z2 = M(X1 * Z2);
-		const X2Z1 = M(X2 * Z1);
-		const Y1Z2 = M(Y1 * Z2);
-		const Y2Z1 = M(Y2 * Z1);
-		return X1Z2 === X2Z1 && Y1Z2 === Y2Z1;
-	}
-	is0() {
-		return this.equals(I);
-	}
-	/** Flip point over y coordinate. */
-	negate() {
-		return new Point(M(-this.ex), this.ey, this.ez, M(-this.et));
-	}
-	/** Point doubling. Complete formula. Cost: `4M + 4S + 1*a + 6add + 1*2`. */
-	double() {
-		const { ex: X1, ey: Y1, ez: Z1 } = this;
-		const a = _a;
-		const A = M(X1 * X1);
-		const B = M(Y1 * Y1);
-		const C = M(2n * M(Z1 * Z1));
-		const D = M(a * A);
-		const x1y1 = X1 + Y1;
-		const E = M(M(x1y1 * x1y1) - A - B);
-		const G = D + B;
-		const F = G - C;
-		const H = D - B;
-		const X3 = M(E * F);
-		const Y3 = M(G * H);
-		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
-	}
-	/** Point addition. Complete formula. Cost: `8M + 1*k + 8add + 1*2`. */
-	add(other) {
-		const { ex: X1, ey: Y1, ez: Z1, et: T1 } = this;
-		const { ex: X2, ey: Y2, ez: Z2, et: T2 } = apoint(other);
-		const a = _a;
-		const d = _d;
-		const A = M(X1 * X2);
-		const B = M(Y1 * Y2);
-		const C = M(T1 * d * T2);
-		const D = M(Z1 * Z2);
-		const E = M((X1 + Y1) * (X2 + Y2) - A - B);
-		const F = M(D - C);
-		const G = M(D + C);
-		const H = M(B - a * A);
-		const X3 = M(E * F);
-		const Y3 = M(G * H);
-		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
-	}
-	/**
-	* Point-by-scalar multiplication. Scalar must be in range 1 <= n < CURVE.n.
-	* Uses {@link wNAF} for base point.
-	* Uses fake point to mitigate side-channel leakage.
-	* @param n scalar by which point is multiplied
-	* @param safe safe mode guards against timing attacks; unsafe mode is faster
-	*/
-	multiply(n, safe = true) {
-		if (!safe && (n === 0n || this.is0())) return I;
-		arange(n, 1n, N);
-		if (n === 1n) return this;
-		if (this.equals(G)) return wNAF(n).p;
-		let p = I;
-		let f = G;
-		for (let d = this; n > 0n; d = d.double(), n >>= 1n) if (n & 1n) p = p.add(d);
-		else if (safe) f = f.add(d);
-		return p;
-	}
-	/** Convert point to 2d xy affine point. (X, Y, Z) ∋ (x=X/Z, y=Y/Z) */
-	toAffine() {
-		const { ex: x, ey: y, ez: z } = this;
-		if (this.equals(I)) return {
-			x: 0n,
-			y: 1n
-		};
-		const iz = invert(z, P);
-		if (M(z * iz) !== 1n) err("invalid inverse");
-		return {
-			x: M(x * iz),
-			y: M(y * iz)
-		};
-	}
-	toBytes() {
-		const { x, y } = this.assertValidity().toAffine();
-		const b = numTo32bLE(y);
-		b[31] |= x & 1n ? 128 : 0;
-		return b;
-	}
-	toHex() {
-		return bytesToHex(this.toBytes());
-	}
-	clearCofactor() {
-		return this.multiply(big(h), false);
-	}
-	isSmallOrder() {
-		return this.clearCofactor().is0();
-	}
-	isTorsionFree() {
-		let p = this.multiply(N / 2n, false).double();
-		if (N % 2n) p = p.add(this);
-		return p.is0();
-	}
-	static fromHex(hex, zip215) {
-		return Point.fromBytes(toU8(hex), zip215);
-	}
-	get x() {
-		return this.toAffine().x;
-	}
-	get y() {
-		return this.toAffine().y;
-	}
-	toRawBytes() {
-		return this.toBytes();
-	}
-};
-/** Generator / base point */
-var G = new Point(Gx, Gy, 1n, M(Gx * Gy));
-/** Identity / zero point */
-var I = new Point(0n, 1n, 1n, 0n);
-Point.BASE = G;
-Point.ZERO = I;
-var numTo32bLE = (num) => hexToBytes(padh(arange(num, 0n, B256), L2)).reverse();
-var bytesToNumLE = (b) => big("0x" + bytesToHex(u8fr(abytes(b)).reverse()));
-var pow2 = (x, power) => {
-	let r = x;
-	while (power-- > 0n) {
-		r *= r;
-		r %= P;
-	}
-	return r;
-};
-var pow_2_252_3 = (x) => {
-	const b2 = x * x % P * x % P;
-	const b5 = pow2(pow2(b2, 2n) * b2 % P, 1n) * x % P;
-	const b10 = pow2(b5, 5n) * b5 % P;
-	const b20 = pow2(b10, 10n) * b10 % P;
-	const b40 = pow2(b20, 20n) * b20 % P;
-	const b80 = pow2(b40, 40n) * b40 % P;
-	return {
-		pow_p_5_8: pow2(pow2(pow2(pow2(b80, 80n) * b80 % P, 80n) * b80 % P, 10n) * b10 % P, 2n) * x % P,
-		b2
-	};
-};
-var RM1 = 19681161376707505956807079304988542015446066515923890162744021073123829784752n;
-var uvRatio = (u, v) => {
-	const v3 = M(v * v * v);
-	const pow = pow_2_252_3(u * M(v3 * v3 * v)).pow_p_5_8;
-	let x = M(u * v3 * pow);
-	const vx2 = M(v * x * x);
-	const root1 = x;
-	const root2 = M(x * RM1);
-	const useRoot1 = vx2 === u;
-	const useRoot2 = vx2 === M(-u);
-	const noRoot = vx2 === M(-u * RM1);
-	if (useRoot1) x = root1;
-	if (useRoot2 || noRoot) x = root2;
-	if ((M(x) & 1n) === 1n) x = M(-x);
-	return {
-		isValid: useRoot1 || useRoot2,
-		value: x
-	};
-};
-var modL_LE = (hash) => modN(bytesToNumLE(hash));
-var sha512a = (...m) => etc.sha512Async(...m);
-var hash2extK = (hashed) => {
-	const head = hashed.slice(0, L);
-	head[0] &= 248;
-	head[31] &= 127;
-	head[31] |= 64;
-	const prefix = hashed.slice(L, L2);
-	const scalar = modL_LE(head);
-	const point = G.multiply(scalar);
-	return {
-		head,
-		prefix,
-		scalar,
-		point,
-		pointBytes: point.toBytes()
-	};
-};
-var getExtendedPublicKeyAsync = (priv) => sha512a(toU8(priv, L)).then(hash2extK);
-var hashFinishA = (res) => sha512a(res.hashable).then(res.finish);
-var _sign = (e, rBytes, msg) => {
-	const { pointBytes: P, scalar: s } = e;
-	const r = modL_LE(rBytes);
-	const R = G.multiply(r).toBytes();
-	const hashable = concatBytes(R, P, msg);
-	const finish = (hashed) => {
-		return abytes(concatBytes(R, numTo32bLE(modN(r + modL_LE(hashed) * s))), L2);
-	};
-	return {
-		hashable,
-		finish
-	};
-};
-/**
-* Signs message (NOT message hash) using private key. Async.
-* Follows RFC8032 5.1.6.
-*/
-var signAsync = async (msg, privKey) => {
-	const m = toU8(msg);
-	const e = await getExtendedPublicKeyAsync(privKey);
-	return hashFinishA(_sign(e, await sha512a(e.prefix, m), m));
-};
-/** Math, hex, byte helpers. Not in `utils` because utils share API with noble-curves. */
-var etc = {
-	sha512Async: async (...messages) => {
-		const s = subtle();
-		const m = concatBytes(...messages);
-		return u8n(await s.digest("SHA-512", m.buffer));
-	},
-	sha512Sync: void 0,
-	bytesToHex,
-	hexToBytes,
-	concatBytes,
-	mod: M,
-	invert,
-	randomBytes: randomBytes$1
-};
-var W = 8;
-var pwindows = Math.ceil(256 / W) + 1;
-var pwindowSize = 2 ** (W - 1);
-var precompute = () => {
-	const points = [];
-	let p = G;
-	let b = p;
-	for (let w = 0; w < pwindows; w++) {
-		b = p;
-		points.push(b);
-		for (let i = 1; i < pwindowSize; i++) {
-			b = b.add(p);
-			points.push(b);
-		}
-		p = b.double();
-	}
-	return points;
-};
-var Gpows = void 0;
-var ctneg = (cnd, p) => {
-	const n = p.negate();
-	return cnd ? n : p;
-};
-/**
-* Precomputes give 12x faster getPublicKey(), 10x sign(), 2x verify() by
-* caching multiples of G (base point). Cache is stored in 32MB of RAM.
-* Any time `G.multiply` is done, precomputes are used.
-* Not used for getSharedSecret, which instead multiplies random pubkey `P.multiply`.
-*
-* w-ary non-adjacent form (wNAF) precomputation method is 10% slower than windowed method,
-* but takes 2x less RAM. RAM reduction is possible by utilizing `.subtract`.
-*
-* !! Precomputes can be disabled by commenting-out call of the wNAF() inside Point#multiply().
-*/
-var wNAF = (n) => {
-	const comp = Gpows || (Gpows = precompute());
-	let p = I;
-	let f = G;
-	const pow_2_w = 2 ** W;
-	const maxNum = pow_2_w;
-	const mask = big(pow_2_w - 1);
-	const shiftBy = big(W);
-	for (let w = 0; w < pwindows; w++) {
-		let wbits = Number(n & mask);
-		n >>= shiftBy;
-		if (wbits > pwindowSize) {
-			wbits -= maxNum;
-			n += 1n;
-		}
-		const off = w * pwindowSize;
-		const offF = off;
-		const offP = off + Math.abs(wbits) - 1;
-		const isEven = w % 2 !== 0;
-		const isNeg = wbits < 0;
-		if (wbits === 0) f = f.add(ctneg(isEven, comp[offF]));
-		else p = p.add(ctneg(isNeg, comp[offP]));
-	}
-	return {
-		p,
-		f
-	};
-};
 //#endregion
 //#region ../../libs/sdk/src/namespaces/entries.ts
 /**
@@ -37259,11 +37368,16 @@ function createTeamsNamespace(context) {
 				body
 			}));
 		},
-		async join(code) {
+		async join(code, options) {
+			if (options?.issueAgentKey && !options.idempotencyKey.trim()) throw new Error("Agent-key enrollment requires an idempotency key");
 			return unwrapResult(await joinTeam({
 				client,
 				auth,
-				body: { code }
+				body: {
+					code,
+					...options?.issueAgentKey ? { issueAgentKey: true } : {}
+				},
+				...options?.issueAgentKey ? { headers: { "idempotency-key": options.idempotencyKey } } : {}
 			}));
 		},
 		async delete(id) {
@@ -37550,19 +37664,6 @@ function withConnectionSignal(fetchImpl, connectionSignal) {
 		});
 	};
 }
-//#endregion
-//#region ../../libs/crypto-service/src/ssh.ts
-/**
-* SSH key format conversion for MoltNet Ed25519 keys
-*
-* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
-* for use with git commit signing and SSH authentication.
-*/
-if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
-	const hash = createHash("sha512");
-	m.forEach((msg) => hash.update(msg));
-	return hash.digest();
-};
 new TextEncoder();
 //#endregion
 //#region ../../libs/crypto-service/src/crypto.service.ts
@@ -39379,68 +39480,6 @@ var _decodeOptions = {
 _decodeOptions.tags[CID_CBOR_TAG] = cidDecoder;
 ({ ..._decodeOptions }), _decodeOptions.tags.slice();
 new TextEncoder().encode("SSHSIG");
-//#endregion
-//#region ../../libs/agent-config/src/config.ts
-function oauth2SecretKey(subjectId, clientId) {
-	return `oauth2/${subjectId}/${clientId}`;
-}
-function identitySeedKey(fingerprint) {
-	return `identity/${fingerprint}/seed`;
-}
-function agentKeyKey(subjectId, teamId) {
-	return `agent-key/${subjectId}${teamId ? `/${teamId}` : ""}`;
-}
-function getConfigDir() {
-	return join(homedir(), ".config", "moltnet");
-}
-/**
-* The one identity-alias grammar. Must stay identical to `AGENT_ALIAS_PATTERN`
-* in `@moltnet/models` (the REST `AgentAliasSchema`) and agentNamePattern in
-* apps/moltnet-cli (Go); the daemon's AgentServerStore reuses this constant
-* directly. An alias is a directory name in a store all of them write and the
-* value the CLI publishes as the network alias, so a value one accepts and
-* another rejects makes an identity unreadable by half the system or
-* unpublishable. The literal is repeated rather than imported because this
-* package is bundled into published packages that must not pick up models'
-* typebox dependency; `identity-alias.test.ts` pins all three copies.
-*/
-var identitiesDirName = "identities";
-var IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
-function assertIdentityAlias(alias) {
-	if (!IDENTITY_ALIAS_PATTERN.test(alias)) throw new Error(`invalid identity alias: ${alias}`);
-	return alias;
-}
-function getIdentityDir(alias) {
-	return join(getConfigDir(), identitiesDirName, assertIdentityAlias(alias));
-}
-/** Resolve an explicit credentials directory, active identity, or default. */
-async function resolveConfigDir(configDir) {
-	if (configDir) return configDir;
-	let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
-	if (!alias) try {
-		const content = await readFile(join(getConfigDir(), "identity-selector.json"), "utf-8");
-		const selector = JSON.parse(content);
-		if (selector.version !== 1) throw new Error(`identity selector version ${String(selector.version)} is not supported`);
-		alias = selector.default_identity?.trim();
-	} catch (error) {
-		if (error.code === "ENOENT") return null;
-		throw error;
-	}
-	return alias ? getIdentityDir(alias) : null;
-}
-async function readConfig(configDir) {
-	const dir = await resolveConfigDir(configDir);
-	if (!dir) return null;
-	return readConfigFile(join(dir, "moltnet.json"));
-}
-async function readConfigFile(path) {
-	try {
-		return JSON.parse(await readFile(path, "utf-8"));
-	} catch (error) {
-		if (error.code === "ENOENT") return null;
-		throw new Error(`Unable to read MoltNet config at ${path}.`, { cause: error });
-	}
-}
 var OS_KEYRING_SECRET_PROVIDER = "os-keyring";
 var READ_ONLY_CAPABILITIES = Object.freeze({
 	read: true,
@@ -39734,19 +39773,24 @@ async function resolveOAuth2ClientSecret(config, registry) {
 	throw new CredentialResolutionError(kind, "missing", "config must set exactly one of client_secret or client_secret_ref");
 }
 /**
-* Resolve an agent key from `agent_key_ref`. Returns `null` when the config
+* Resolve the selected team reference or compatibility fallback. Returns `null` when the config
 * has no reference; the caller decides whether another auth mode is valid.
 */
-async function resolveAgentKey(config, registry) {
+async function resolveAgentKey(config, registry, teamId) {
 	const kind = "agent-key";
-	const reference = config.agent_key_ref;
-	if (!reference) return null;
+	let selected;
 	try {
-		assertSecretReferenceBinding(kind, reference, { subjectId: config.subject_id });
+		selected = selectAgentKeyReference(config, teamId);
+	} catch (cause) {
+		throw new CredentialResolutionError(kind, "ambiguous", cause.message);
+	}
+	if (!selected) return null;
+	try {
+		assertAgentKeyReferenceBinding(selected, config.subject_id);
 	} catch (cause) {
 		throw new CredentialResolutionError(kind, "unbound", cause.message);
 	}
-	const value = (await resolveThroughRegistry(kind, registry, reference)).trim();
+	const value = (await resolveThroughRegistry(kind, registry, selected.reference)).trim();
 	if (!value) throw new CredentialResolutionError(kind, "invalid_value", "agent key is empty");
 	return value;
 }
@@ -39847,15 +39891,15 @@ async function resolveConnection(options) {
 			apiUrl
 		};
 	}
-	if (config?.agent_key_ref) {
+	if (config && hasAgentKeyConfiguration(config)) {
 		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
 		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl);
 		requireSecureCredentialApiUrl(apiUrl);
 		let agentKey;
 		try {
-			agentKey = await resolveAgentKey(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
+			agentKey = await resolveAgentKey(config, options.secretProviders ?? createDefaultSecretProviderRegistry(), options.teamId);
 		} catch (error) {
-			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "Agent key reference is not bound to this MoltNet subject." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "ambiguous" ? error.message : error.code === "unbound" ? "Agent key reference is not bound to this MoltNet subject." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
 			throw new MoltNetError("Unable to resolve agent_key_ref.", {
 				code: "NO_CREDENTIALS",
 				detail: error instanceof Error ? error.message : String(error)

@@ -8,6 +8,7 @@ import {
   assertTrustedConfigApiUrl,
   AuthenticationError,
   getIdentityDir,
+  hasAgentKeyConfiguration,
   readConfig,
   requireSecureCredentialApiUrl,
   resolveAgentKey,
@@ -226,7 +227,7 @@ export async function resolveAgentContext(
   // host never implies projecting it into the guest — the guest receives no
   // MoltNet credential material.
   const config = await readConfig(agentDir);
-  if (!config?.agent_key_ref) {
+  if (!config || !hasAgentKeyConfiguration(config)) {
     throw new Error(agentKeyRequiredMessage(agentDir, agentName));
   }
   const secretProviders = createNodeSecretProviderRegistry();

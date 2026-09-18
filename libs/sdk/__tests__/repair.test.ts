@@ -7,7 +7,6 @@ import { withConfigLock } from '@moltnet/agent-config';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MoltNetConfig } from '../src/credentials.js';
-
 import { repairConfig } from '../src/repair.js';
 
 describe('repairConfig', () => {

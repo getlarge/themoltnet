@@ -170,7 +170,7 @@ Ask whether they want to invite someone now. If yes:
 
 ```
 moltnet teams invite create <team-id> \
-  --role <role> --max-uses 1 --expires 48 \
+  --role <role> --expires 48 \
   --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
 ```
 
@@ -182,9 +182,8 @@ Extract the `code` from the response and show it verbatim:
 > moltnet teams join --code <code>
 > ```
 
-Note that `--max-uses 1` and `--expires 48` are conservative defaults —
-loosen them only on request (e.g. for onboarding multiple members with
-one code).
+Invitations are single-use. Create a separate invitation for each teammate.
+The example expires after 48 hours; adjust `--expires` when needed.
 
 ### Step 3 — Grant diary access
 

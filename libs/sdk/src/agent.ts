@@ -604,7 +604,7 @@ export interface TeamsNamespace {
   get(id: string): Promise<GetTeamResponse>;
   listMembers(id: string): Promise<ListTeamMembersResponse>;
   create(body: CreateTeamData['body']): Promise<CreateTeamResponse>;
-  join(code: string): Promise<JoinTeamResponse>;
+  join(code: string, options?: TeamJoinOptions): Promise<JoinTeamResponse>;
   delete(id: string): Promise<DeleteTeamResponse>;
   removeMember(
     teamId: string,
@@ -624,6 +624,10 @@ export interface TeamsNamespace {
     delete(teamId: string, inviteId: string): Promise<DeleteTeamInviteResponse>;
   };
 }
+
+export type TeamJoinOptions =
+  | { issueAgentKey: true; idempotencyKey: string }
+  | { issueAgentKey?: false; idempotencyKey?: never };
 
 export interface RuntimeProfileRequestOptions {
   /** Active team context for collection operations. Overrides default client headers when set. */

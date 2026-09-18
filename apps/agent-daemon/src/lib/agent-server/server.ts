@@ -20,7 +20,10 @@ import {
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
-import { type SecretProviderRegistry } from '@themoltnet/sdk';
+import {
+  hasAgentKeyConfiguration,
+  type SecretProviderRegistry,
+} from '@themoltnet/sdk';
 import { type FileSecretProvider } from '@themoltnet/sdk/node';
 import Fastify, {
   type FastifyBaseLogger,
@@ -622,7 +625,7 @@ function identityViews(store: AgentServerStore) {
   return store.listIdentityAliases().map((alias) => ({
     alias,
     activated: activated.has(alias),
-    hasAgentKey: Boolean(store.readAgentConfig(alias)?.agent_key_ref),
+    hasAgentKey: hasAgentKeyConfiguration(store.readAgentConfig(alias) ?? {}),
   }));
 }
 

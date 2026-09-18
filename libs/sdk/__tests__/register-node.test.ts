@@ -61,7 +61,12 @@ const agentKeyResponse = {
   ...oauthResponse,
   credential: {
     type: 'agent_key' as const,
-    key: { id: 'key-1' },
+    key: {
+      id: 'key-1',
+      agentId: 'agent-123',
+      bindingScope: 'team',
+      teamId: 'team-123',
+    },
     secret: 'agent-key-secret',
   },
 };
@@ -328,12 +333,12 @@ describe('register (node)', () => {
       connectAgent,
     });
 
-    expect(result.config.agent_key_ref).toEqual({
+    expect(result.config.agent_key_refs?.['team-123']).toEqual({
       provider: 'memory',
-      key: agentKeyKey('agent-123'),
+      key: agentKeyKey('agent-123', 'team-123'),
     });
     expect(result.config).not.toHaveProperty('oauth2');
-    expect(provider.values.get(agentKeyKey('agent-123'))).toBe(
+    expect(provider.values.get(agentKeyKey('agent-123', 'team-123'))).toBe(
       'agent-key-secret',
     );
     expect(connectAgent).toHaveBeenCalledWith(
@@ -341,6 +346,41 @@ describe('register (node)', () => {
     );
     expect(updateWhoamiFn).not.toHaveBeenCalled();
     expect(result.aliasPublication).toEqual({ status: 'skipped' });
+  });
+
+  it('preserves identity-scoped registration keys as fallbacks', async () => {
+    vi.mocked(enrollAgent).mockResolvedValue(
+      success({
+        ...agentKeyResponse,
+        credential: {
+          ...agentKeyResponse.credential,
+          key: {
+            id: 'identity-key',
+            agentId: 'agent-123',
+            bindingScope: 'identity',
+          },
+        },
+      }),
+    );
+    const root = await freshRoot();
+    const provider = memoryProvider();
+    const result = await register({
+      name: 'identity-key',
+      apiUrl: 'https://api.example.test',
+      credentialType: 'agent_key',
+      enrollmentToken: 'A'.repeat(43),
+      secretProvider: provider,
+      configDir: join(root, 'identity-key'),
+      connectAgent: fakeConnect().connectAgent,
+    });
+    expect(result.config.agent_key_ref).toEqual({
+      provider: 'memory',
+      key: agentKeyKey('agent-123'),
+    });
+    expect(result.config.agent_key_refs).toBeUndefined();
+    expect(provider.values.get(agentKeyKey('agent-123'))).toBe(
+      'agent-key-secret',
+    );
   });
 
   it('refuses an alias whose config already exists before any network call', async () => {
@@ -516,7 +556,7 @@ describe('register (node)', () => {
     );
   });
 
-  it('keeps the seed when the config cannot be written', async () => {
+  it('keeps the seed and refuses registration when recovery storage cannot be written', async () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const root = await freshRoot();
     // A file where the identity directory belongs makes the write fail.
@@ -534,15 +574,16 @@ describe('register (node)', () => {
     }).catch((error: unknown) => error);
 
     expect(failure).toMatchObject({
-      code: 'registration_incomplete',
-      subjectId: 'agent-123',
+      code: 'provider_unavailable',
+      subjectId: undefined,
       recoveryCommand: undefined,
       seedReference: {
         provider: 'memory',
         key: identitySeedKey('ABCD-1234-EF56-7890'),
       },
-      message: expect.stringContaining('its config could not be written'),
+      message: expect.stringContaining('registration was not attempted'),
     });
+    expect(registerAgent).not.toHaveBeenCalled();
     expect(provider.values.get(identitySeedKey('ABCD-1234-EF56-7890'))).toBe(
       'dGVzdHByaXZrZXk=',
     );

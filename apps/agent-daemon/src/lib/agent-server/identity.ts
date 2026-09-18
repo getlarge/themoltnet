@@ -13,11 +13,13 @@ import {
   type Agent,
   assertTrustedConfigApiUrl,
   AuthenticationError,
+  hasAgentKeyConfiguration,
   isCanonicalConfig,
   type MoltNetConfig,
   requireSecureCredentialApiUrl,
   resolveAgentKey,
   type SecretProviderRegistry,
+  selectAgentKeyReference,
   type Whoami,
 } from '@themoltnet/sdk';
 import {
@@ -289,9 +291,13 @@ export async function reconcileManagedRegistration(
     store.clearPendingRegistration(alias);
     return null;
   }
+  const reference = config
+    ? selectAgentKeyReference(config)?.reference
+    : undefined;
   if (
-    !config?.agent_key_ref ||
-    config.agent_key_ref.provider !== FILE_SECRET_PROVIDER ||
+    !config ||
+    !reference ||
+    reference.provider !== FILE_SECRET_PROVIDER ||
     config.keys.private_key_ref?.provider !== FILE_SECRET_PROVIDER
   ) {
     throw new AgentServerIdentityError(
@@ -300,7 +306,7 @@ export async function reconcileManagedRegistration(
     );
   }
   const [agentKey, privateKeyState] = await Promise.all([
-    secrets.read(config.agent_key_ref.key),
+    secrets.read(reference.key),
     secrets.probe(config.keys.private_key_ref.key),
   ]);
   if (!agentKey || privateKeyState !== 'present') {
@@ -374,7 +380,7 @@ export async function attachExternalAgent(
   try {
     if (!central) externalAgentLocation(configPath);
     const config = await readCurrentConfig(configPath);
-    if (central && !config.agent_key_ref) {
+    if (central && !hasAgentKeyConfiguration(config)) {
       throw new AgentServerIdentityError(
         'unsupported_credential',
         `central identity "${alias}" needs a stored agent key before the Agent Server can run it`,
@@ -553,7 +559,7 @@ async function verifyExternalActivation(
   if (!central) externalAgentLocation(activation.configPath);
   assertTrustedConfigApiUrl(activation.configApiUrl);
   const config = await readCurrentConfig(activation.configPath);
-  if (central && !config.agent_key_ref) {
+  if (central && !hasAgentKeyConfiguration(config)) {
     throw new AgentServerIdentityError(
       'unsupported_credential',
       `central identity "${activation.alias}" needs a stored agent key before the Agent Server can run it`,
@@ -848,7 +854,7 @@ export function publicAgentView(
       ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
       apiUrl: activation.apiUrl,
       createdAt: activation.createdAt,
-      hasAgentKey: Boolean(config?.agent_key_ref),
+      hasAgentKey: Boolean(config && hasAgentKeyConfiguration(config)),
       hasPrivateKey: Boolean(config?.keys.private_key_ref),
     };
   }

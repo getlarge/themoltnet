@@ -75,9 +75,12 @@ const cases: readonly TypecheckCase[] = [
     name: 'isolation',
     description:
       'root entry resolves without @moltnet/* packages or Node typings',
-    consumer: `import type { Agent, EntriesNamespace } from '@themoltnet/sdk';
-import { MoltNetError, connect, updateOAuth2Config } from '@themoltnet/sdk';
+    consumer: `import type { Agent, EntriesNamespace, AgentKeyConfiguration, SelectedAgentKey } from '@themoltnet/sdk';
+import { MoltNetError, connect, updateOAuth2Config, selectAgentKeyReference } from '@themoltnet/sdk';
 
+const keyConfig: AgentKeyConfiguration = { agent_key_refs: {} };
+const selected: SelectedAgentKey | null = selectAgentKeyReference(keyConfig);
+void selected;
 declare const _agent: Agent;
 declare const _entries: EntriesNamespace;
 const _err: MoltNetError = new MoltNetError('test', { code: 'TEST' });

@@ -20,6 +20,7 @@ export {
   resolveConfigDir,
   resolveConfigPath,
   type SecretReference,
+  updateConfig,
   updateConfigSection,
   updateGitHubConfig,
   updateKeysConfig,

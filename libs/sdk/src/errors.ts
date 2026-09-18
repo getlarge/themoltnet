@@ -142,6 +142,7 @@ export class RegisterIdentityError extends MoltNetError {
   readonly fingerprint?: string;
   readonly configPath?: string;
   readonly recoveryCommand?: string;
+  readonly recoveryPath?: string;
   readonly seedReference?: { provider: string; key: string };
 
   constructor(
@@ -155,6 +156,7 @@ export class RegisterIdentityError extends MoltNetError {
       fingerprint?: string;
       configPath?: string;
       recoveryCommand?: string;
+      recoveryPath?: string;
       seedReference?: { provider: string; key: string };
     } = {},
   ) {
@@ -170,6 +172,7 @@ export class RegisterIdentityError extends MoltNetError {
     this.fingerprint = options.fingerprint;
     this.configPath = options.configPath;
     this.recoveryCommand = options.recoveryCommand;
+    this.recoveryPath = options.recoveryPath;
     this.seedReference = options.seedReference;
   }
 

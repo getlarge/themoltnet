@@ -68,7 +68,12 @@ const enrollmentPayload = () =>
       publicKey: 'ed25519:public',
       credential: {
         type: 'agent_key',
-        key: { id: 'key-1' },
+        key: {
+          id: 'key-1',
+          agentId: 'agent-1',
+          bindingScope: 'team',
+          teamId: 'team-1',
+        },
         secret: 'agent-key-secret',
       },
     },
@@ -232,7 +237,9 @@ describe('managed agent server agents', () => {
       subject_id: 'agent-1',
       subject_type: 'agent',
       registered_at: result.config.registered_at,
-      agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
+      agent_key_refs: {
+        'team-1': { provider: 'file', key: 'agent-key/agent-1/team-1' },
+      },
       keys: {
         public_key: 'ed25519:public',
         fingerprint: 'FP-1',
@@ -303,7 +310,7 @@ describe('managed agent server agents', () => {
       verifyAgentActivation(
         store,
         'team-bot',
-        registry({ 'agent-key/agent-1': 'agent-key-secret' }),
+        registry({ 'agent-key/agent-1/team-1': 'agent-key-secret' }),
         registry(),
       ),
     ).rejects.toThrow('team binding does not match');
