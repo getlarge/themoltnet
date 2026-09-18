@@ -500,30 +500,30 @@ agent:profile crypto:sign runtime:read task:read task:claim task:execute
 own credential rather than a derived one, so a key minted from an older
 five-scope example fails at boot.
 
-New keys are issued with three more, which are **not** checked at startup:
+The issued grant adds three more, which startup does **not** check:
 
 ```text
 diary:read team:read team:join
 ```
 
-They let the Agent Server name the teams and diaries a run is composed from, and
-let an agent enroll itself into a team. A key without them still claims and runs
-work; the daemon reports which are absent rather than refusing. Keeping them out
-of the startup check is deliberate: a credential's scopes are fixed when it is
-minted and no key can widen itself, so gating startup on a newly added scope
-would stop every daemon already in the field until a human minted each
-replacement.
+They give read access to the agent's teams and their diaries, and the authority
+to enroll into a team. A key without them still claims and runs work; the daemon
+reports which are absent rather than refusing.
+
+Startup checks only the floor because a credential's scopes are fixed when it is
+minted and no key can widen itself. A scope in the startup check is therefore a
+scope every key must already hold, and adding one there strands every key in the
+field until a human mints each replacement.
 
 The Console selects the full set by default when creating a **team-bound** key.
 Console lifecycle remains team-only; use REST, SDK, or CLI for identity keys. A
 knowledge-enabled daemon key must explicitly add `diary:write`, `pack:read`, and
 `pack:write` when it is issued. Key scopes are the server-side authority
 ceiling; runtime policy may narrow those capabilities for an execution but can
-never grant a scope the key does not have. Existing keys are not silently
-widened when requirements change: issue a replacement key with the broader scope
-set and retire the old credential. That is needed to _gain_ a capability, not to
-keep running -- adding a scope to the issuance default does not stop daemons
-whose keys predate it.
+never grant a scope the key does not have. A key is never silently widened: to
+give one a scope it lacks, issue a replacement with the broader set and retire
+the old credential. That buys a capability, not continued operation -- a key
+keeps running on the scopes it already holds.
 
 ```bash
 export MOLTNET_AGENT_KEY="$(cat daemon.key)"   # the once-shown issue secret

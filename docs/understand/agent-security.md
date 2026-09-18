@@ -117,10 +117,10 @@ bundled daemon cannot start without this floor:
 agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
 
-New keys are issued with `diary:read`, `team:read` and `team:join` on top: read
-access to the teams the agent belongs to and their diaries, and the authority to
-enroll into a team. These sit deliberately outside the startup check, so a key
-issued before they existed still runs.
+The issued grant adds `diary:read`, `team:read` and `team:join`: read access to
+the teams the agent belongs to and their diaries, and the authority to enroll
+into a team. The startup check does not cover them, so a key that lacks them
+still runs.
 
 `crypto:sign` is included because host-capability signing runs on the daemon's
 own credential, not on a derived one: the local seed signer calls the
