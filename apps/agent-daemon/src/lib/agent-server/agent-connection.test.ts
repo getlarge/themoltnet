@@ -120,6 +120,57 @@ describe('connectActivatedAgent', () => {
     expect(calls[0]?.agentKey).toBe('external-key');
   });
 
+  it.each(['managed', 'external'] as const)(
+    'selects the requested team key for a %s identity',
+    async (source) => {
+      const agent = activated({ source });
+      agent.activation.boundTeamId = 'team-a';
+      agent.config.agent_key_refs = {
+        'team-a': { provider: 'memory', key: 'agent-key/agent-1/team-a' },
+        'team-b': { provider: 'memory', key: 'agent-key/agent-1/team-b' },
+      };
+      const providers = registry({
+        'agent-key/agent-1': 'fallback',
+        'agent-key/agent-1/team-a': 'key-a',
+        'agent-key/agent-1/team-b': 'key-b',
+      });
+      const { impl, calls } = recordingConnect();
+
+      await connectActivatedAgent({
+        activated: agent,
+        teamId: 'team-b',
+        secretProviders: source === 'managed' ? providers : registry({}),
+        externalSecretProviders:
+          source === 'external' ? providers : registry({}),
+        onMissingKey: failIfCalled,
+        connectImpl: impl,
+      });
+
+      expect(calls[0]?.agentKey).toBe('key-b');
+    },
+  );
+
+  it('does not fall back when the selected team key cannot be read', async () => {
+    const agent = activated({ source: 'managed' });
+    agent.config.agent_key_refs = {
+      'team-b': { provider: 'memory', key: 'agent-key/agent-1/team-b' },
+    };
+    const { impl } = recordingConnect();
+    const providers = registry({ 'agent-key/agent-1': 'fallback' });
+
+    await expect(
+      connectActivatedAgent({
+        activated: agent,
+        teamId: 'team-b',
+        secretProviders: providers,
+        externalSecretProviders: registry({}),
+        onMissingKey: (message) => new Error(message),
+        connectImpl: impl,
+      }),
+    ).rejects.toThrow('has no usable agent key');
+    expect(impl).not.toHaveBeenCalled();
+  });
+
   it('raises the caller error when a managed identity has no key', async () => {
     // Arrange
     const { impl } = recordingConnect();

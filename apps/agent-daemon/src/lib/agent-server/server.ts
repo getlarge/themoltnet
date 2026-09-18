@@ -20,10 +20,6 @@ import {
   rejectExplicitCrossSite,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
-import {
-  AGENT_CREDENTIAL_SCOPES,
-  DAEMON_MINIMUM_SCOPES,
-} from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
@@ -574,9 +570,7 @@ function registerCatalogueRoute(
 }
 
 /** The read scopes the catalogue needs beyond what the daemon needs to run. */
-const CATALOGUE_SCOPES = AGENT_CREDENTIAL_SCOPES.filter(
-  (scope) => !(DAEMON_MINIMUM_SCOPES as readonly string[]).includes(scope),
-);
+const CATALOGUE_SCOPES = ['diary:read', 'team:read'] as const;
 
 /**
  * Say why the composer is empty when the agent key cannot answer.
@@ -601,7 +595,7 @@ function explainScopeFailures(agent: CatalogueAgentPort): CatalogueAgentPort {
       throw new AgentServerHttpError(
         403,
         'agent_key_scopes_insufficient',
-        `This agent key cannot read the teams and diaries a run is composed from. It needs ${CATALOGUE_SCOPES.join(' and ')}, which keys issued earlier do not carry. A key's scopes are fixed when it is issued, so mint a replacement in Console and attach it here. MoltNet said: ${(cause as Error).message}`,
+        `This agent key cannot read the teams and diaries a run is composed from. It needs ${CATALOGUE_SCOPES.join(' and ')}, which keys issued earlier do not carry. A key's scopes are fixed when it is issued, so mint a replacement in Console and attach it here.`,
       );
     }
   };

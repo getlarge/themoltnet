@@ -154,7 +154,7 @@ describe('run catalogue', () => {
     // itself, so every key issued before `team:read`/`diary:read` joined the
     // default fails here and can only be replaced by a human in Console. A
     // bare 500 would send the operator looking for a server fault instead.
-    const stale = Object.assign(new Error('insufficient scope: team:read'), {
+    const stale = Object.assign(new Error('upstream-secret-sentinel'), {
       statusCode: 403,
     });
     const { app, store } = await fixture({
@@ -184,6 +184,8 @@ describe('run catalogue', () => {
     expect(body.code).toBe('agent_key_scopes_insufficient');
     expect(body.message).toMatch(/team:read/u);
     expect(body.message).toMatch(/Console/u);
+    expect(body.message).not.toContain('team:join');
+    expect(body.message).not.toContain('upstream-secret-sentinel');
   });
 
   it('rejects a request with no identity', async () => {

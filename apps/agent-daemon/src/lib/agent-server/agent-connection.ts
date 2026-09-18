@@ -48,11 +48,9 @@ export async function connectActivatedAgent(
       managed ? options.secretProviders : options.externalSecretProviders,
       options.teamId ?? activation.boundTeamId,
     );
-  } catch (cause) {
+  } catch {
     throw onMissingKey(
-      `${managed ? 'managed' : 'external'} agent "${activation.alias}" has no usable agent key: ${
-        cause instanceof Error ? cause.message : String(cause)
-      }`,
+      `${managed ? 'managed' : 'external'} agent "${activation.alias}" has no usable agent key`,
     );
   }
   if (!agentKey) {

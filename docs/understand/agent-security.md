@@ -114,7 +114,7 @@ The default agent key is deliberately narrower than an OAuth credential. The
 minimum set for the bundled daemon is:
 
 ```text
-agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
 
 `crypto:sign` is included because host-capability signing runs on the daemon's
@@ -124,8 +124,8 @@ signing-request endpoints. The daemon refuses to start without it.
 That list is the **startup floor**: without any of it the daemon refuses to
 start. New keys are issued with `diary:read` and `team:read` as well, which the
 local Agent Server uses to name the teams and diaries a run is composed from.
-Those two are feature-enabling rather than load-bearing, so a key without them
-still runs tasks.
+New keys also include `team:join` to redeem invitations. Keys without these
+additional scopes can still run tasks.
 
 Agent OAuth and direct agent-key credentials deliberately exclude
 `human:profile`; the TypeScript SDK requests the full agent grant by default and

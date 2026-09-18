@@ -59,13 +59,13 @@ describe('credential scopes', () => {
     expect(AGENT_CREDENTIAL_SCOPES).toEqual([
       'agent:profile',
       'crypto:sign',
-      'diary:read',
-      'team:read',
-      'team:join',
       'runtime:read',
       'task:read',
       'task:claim',
       'task:execute',
+      'diary:read',
+      'team:read',
+      'team:join',
     ]);
     expect(AGENT_CREDENTIAL_SCOPES).not.toContain('key:manage');
     expect(AGENT_CREDENTIAL_SCOPES).not.toContain('team:manage');
