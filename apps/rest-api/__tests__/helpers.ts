@@ -827,6 +827,7 @@ export async function createTestApp(
     pool?: { query(sql: string): Promise<unknown> };
     dbosReady?: () => boolean;
     oryProjectUrl?: string;
+    identityApi?: Pick<OryClients['identity'], 'getIdentity'>;
     talosApi?: { getJwks(): Promise<unknown> };
   },
   /**
@@ -876,7 +877,10 @@ export async function createTestApp(
 
   const mockOryClients: OryClients = {
     frontend: {} as OryClients['frontend'],
-    identity: mockIdentityApi,
+    identity: {
+      ...mockIdentityApi,
+      ...healthOptions?.identityApi,
+    } as OryClients['identity'],
     oauth2: mockOAuth2Api,
     permission: {} as OryClients['permission'],
     relationship: {} as OryClients['relationship'],

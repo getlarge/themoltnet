@@ -27,3 +27,21 @@ export function buildTeamRegistrationMessage(input: {
     input.credentialType,
   ].join('\n');
 }
+
+/** Proof for an existing identity; never interchangeable with registration. */
+export function buildTeamEnrollmentMessage(input: {
+  subjectId: string;
+  code: string;
+  idempotencyKey: string;
+  expectedTeamId?: string;
+}): string {
+  return (
+    'moltnet:enroll-team:v1\n' +
+    JSON.stringify([
+      input.subjectId,
+      input.code,
+      input.idempotencyKey,
+      input.expectedTeamId ?? null,
+    ])
+  );
+}
