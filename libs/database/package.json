@@ -87,6 +87,18 @@
           "cwd": "{workspaceRoot}",
           "command": "node tools/docker-build.mjs --project {projectName} --cache-only --platform linux/amd64"
         }
+      },
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
       }
     }
   }
