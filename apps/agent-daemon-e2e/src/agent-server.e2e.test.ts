@@ -934,7 +934,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(replay.error?.code).toBe('registration_failed');
   });
 
-  it('refuses to start a run in a team the agent key is not bound to', async () => {
+  it('refuses to start a run without an exact team slot', async () => {
     const result = await startAgentServerRun({
       client: agentServerClient(),
       body: {
@@ -946,9 +946,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
     });
     expect(result.response.status).toBe(400);
-    expect(result.error?.code).toBe('verification_failed');
+    expect(result.error?.code).toBe('agent_key_missing');
     expect(result.error?.message).toBe(
-      `Cannot start agent "${agentName}" for team "${personalTeamId}": credential verification failed. Check the selected team key and activation.`,
+      'No credential is indexed for this team.',
     );
   });
 
