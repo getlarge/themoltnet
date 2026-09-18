@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.75.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.74.0...moltnet-api-client-v1.75.0) (2026-09-18)
+
+
+### Features
+
+* **auth:** separate invitation redemption from team management ([9714a6c](https://github.com/getlarge/themoltnet/commit/9714a6cfec79903092dd9bd41df48bd219dc6139))
+* **cli:** enroll and store independent team credentials ([#2337](https://github.com/getlarge/themoltnet/issues/2337), 7/8) ([5e815c1](https://github.com/getlarge/themoltnet/commit/5e815c13485d2daee10deec3fd6c2923765d4e39))
+* **teams:** enroll agents through single-use invite workflow ([9b3cc5e](https://github.com/getlarge/themoltnet/commit/9b3cc5e8b0033fedbb99e8e6e66c09fb0abd4b1f))
+* **teams:** redeem single-use invites through DBOS ([b973116](https://github.com/getlarge/themoltnet/commit/b973116b394deef6eac151f66e7238937ca0dbf6))
+
+
+### Codegen
+
+* **api:** regenerate enrollment clients and action bundle ([8fab445](https://github.com/getlarge/themoltnet/commit/8fab445255d1fa5bfa0eddd797e0c6ea6dea8130))
+* **api:** regenerate enrollment upstream-error responses ([8b1bf08](https://github.com/getlarge/themoltnet/commit/8b1bf08805c74028e5f2c3c71e38c4e784103df3))
+* **codegen:** expose rotation reconciliation conflicts ([9aec724](https://github.com/getlarge/themoltnet/commit/9aec724408708cf44ef20bbaea1c40285f6f16bf))
+* **codegen:** regenerate single-use invitation contracts ([def97a3](https://github.com/getlarge/themoltnet/commit/def97a36ae11f8e9501ad5087161e80a1923382d))
+
 ## [1.74.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.73.0...moltnet-api-client-v1.74.0) (2026-09-18)
 
 

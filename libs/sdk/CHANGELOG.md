@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.143.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.142.0...sdk-v0.143.0) (2026-09-18)
+
+
+### Features
+
+* **config:** share team credential selection and writer locks ([#2337](https://github.com/getlarge/themoltnet/issues/2337), 4/8) ([4e20b93](https://github.com/getlarge/themoltnet/commit/4e20b930343354a4e930836c908a5e4700bc13d0))
+* **sdk:** enroll and reconnect with independently stored team keys ([1d81a6f](https://github.com/getlarge/themoltnet/commit/1d81a6ffd3ef7aaf2d914620064d3069300964ef))
+* **sdk:** enroll and reconnect with per-team credentials ([c1a9d4f](https://github.com/getlarge/themoltnet/commit/c1a9d4f4fb5dc637782cea0a99eef4319a597e13))
+
+
+### Bug Fixes
+
+* **config:** harden locked credential updates ([b5928a8](https://github.com/getlarge/themoltnet/commit/b5928a8b7aad2c5270b19c9f9020b99c953335ce))
+* **config:** lock existing mutations across Go and Node writers ([59b0842](https://github.com/getlarge/themoltnet/commit/59b0842870dffdc5e87fc0499dcd6e8087c10227))
+* **credentials:** separate file-backed team slots from fallback files ([f445b61](https://github.com/getlarge/themoltnet/commit/f445b61bc36ef025cf0a883ab61218a6906bf13d))
+* **sdk:** initialize enrollment fixture storage and sort imports ([73e9d21](https://github.com/getlarge/themoltnet/commit/73e9d21650aac84ca33827f10207e51c1c41fdea))
+* **sdk:** validate enrollment and preserve recovery paths ([59b41ce](https://github.com/getlarge/themoltnet/commit/59b41cec51a57cff00a1736772b1dce01fbc6ab6))
+
 ## [0.142.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.141.1...sdk-v0.142.0) (2026-09-15)
 
 
