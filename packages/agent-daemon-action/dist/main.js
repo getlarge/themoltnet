@@ -22928,7 +22928,7 @@ var createTeam = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Join a team using an invite code.
+* Join a team using an invite code. Requires team:join; send no team header.
 */
 var joinTeam = (options) => (options.client ?? client).post({
 	security: [
@@ -30213,11 +30213,12 @@ var CREDENTIAL_SCOPES = {
 	TaskManage: "task:manage",
 	TaskRead: "task:read",
 	TaskWrite: "task:write",
+	TeamJoin: "team:join",
 	TeamManage: "team:manage",
 	TeamRead: "team:read"
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.TeamRead, CREDENTIAL_SCOPES.TeamJoin, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
@@ -30242,6 +30243,7 @@ var MCP_CLIENT_SCOPES = [
 	CREDENTIAL_SCOPES.TaskManage,
 	CREDENTIAL_SCOPES.TaskRead,
 	CREDENTIAL_SCOPES.TaskWrite,
+	CREDENTIAL_SCOPES.TeamJoin,
 	CREDENTIAL_SCOPES.TeamManage,
 	CREDENTIAL_SCOPES.TeamRead
 ];

@@ -8536,6 +8536,7 @@ const (
 	CredentialScopeTaskManage      CredentialScope = "task:manage"
 	CredentialScopeTaskRead        CredentialScope = "task:read"
 	CredentialScopeTaskWrite       CredentialScope = "task:write"
+	CredentialScopeTeamJoin        CredentialScope = "team:join"
 	CredentialScopeTeamManage      CredentialScope = "team:manage"
 	CredentialScopeTeamRead        CredentialScope = "team:read"
 )
@@ -8559,6 +8560,7 @@ func (CredentialScope) AllValues() []CredentialScope {
 		CredentialScopeTaskManage,
 		CredentialScopeTaskRead,
 		CredentialScopeTaskWrite,
+		CredentialScopeTeamJoin,
 		CredentialScopeTeamManage,
 		CredentialScopeTeamRead,
 	}
@@ -8598,6 +8600,8 @@ func (s CredentialScope) MarshalText() ([]byte, error) {
 	case CredentialScopeTaskRead:
 		return []byte(s), nil
 	case CredentialScopeTaskWrite:
+		return []byte(s), nil
+	case CredentialScopeTeamJoin:
 		return []byte(s), nil
 	case CredentialScopeTeamManage:
 		return []byte(s), nil
@@ -8658,6 +8662,9 @@ func (s *CredentialScope) UnmarshalText(data []byte) error {
 		return nil
 	case CredentialScopeTaskWrite:
 		*s = CredentialScopeTaskWrite
+		return nil
+	case CredentialScopeTeamJoin:
+		*s = CredentialScopeTeamJoin
 		return nil
 	case CredentialScopeTeamManage:
 		*s = CredentialScopeTeamManage
@@ -26951,6 +26958,10 @@ func (s *InjectionThreat) SetType(val string) {
 type JoinTeamBadRequest ProblemDetails
 
 func (*JoinTeamBadRequest) joinTeamRes() {}
+
+type JoinTeamForbidden ProblemDetails
+
+func (*JoinTeamForbidden) joinTeamRes() {}
 
 type JoinTeamGone ProblemDetails
 

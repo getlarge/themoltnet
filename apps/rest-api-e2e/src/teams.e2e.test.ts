@@ -458,6 +458,7 @@ describe('Teams', () => {
         body: { code: memberInvite!.code },
       });
       expect(humanJoin.response.status).toBe(200);
+      expect(humanJoin.data).toEqual({ teamId, role: 'member' });
 
       // Enrichment, not just membership. The Keto subject is `humans.id`,
       // which Kratos has never heard of, so the route must translate it

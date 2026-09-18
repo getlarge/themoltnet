@@ -510,7 +510,7 @@ type Handler interface {
 	InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam implements joinTeam operation.
 	//
-	// Join a team using an invite code.
+	// Join a team using an invite code. Requires team:join; send no team header.
 	//
 	// POST /teams/join
 	JoinTeam(ctx context.Context, req *JoinTeamReq) (JoinTeamRes, error)

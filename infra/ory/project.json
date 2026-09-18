@@ -467,6 +467,7 @@
               "task:manage",
               "task:read",
               "task:write",
+              "team:join",
               "team:manage",
               "team:read"
             ],
@@ -518,6 +519,7 @@
               "task:manage",
               "task:read",
               "task:write",
+              "team:join",
               "team:manage",
               "team:read"
             ],

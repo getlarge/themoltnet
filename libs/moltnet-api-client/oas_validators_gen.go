@@ -7842,6 +7842,8 @@ func (s CredentialScope) Validate() error {
 		return nil
 	case "task:write":
 		return nil
+	case "team:join":
+		return nil
 	case "team:manage":
 		return nil
 	case "team:read":
@@ -17781,6 +17783,14 @@ func (s *InjectionThreat) Validate() error {
 }
 
 func (s *JoinTeamBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *JoinTeamForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

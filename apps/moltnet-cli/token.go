@@ -38,6 +38,7 @@ var agentOAuthScopes = []string{
 	"task:manage",
 	"task:read",
 	"task:write",
+	"team:join",
 	"team:manage",
 	"team:read",
 }

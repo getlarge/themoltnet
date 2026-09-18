@@ -42,6 +42,7 @@ describe('credential scopes', () => {
       'task:manage',
       'task:read',
       'task:write',
+      'team:join',
       'team:manage',
       'team:read',
     ]);
@@ -54,6 +55,19 @@ describe('credential scopes', () => {
   });
 
   it('exports exact job-oriented credential presets', () => {
+    expect(AGENT_CREDENTIAL_SCOPES).toEqual([
+      'agent:profile',
+      'crypto:sign',
+      'diary:read',
+      'team:read',
+      'team:join',
+      'runtime:read',
+      'task:read',
+      'task:claim',
+      'task:execute',
+    ]);
+    expect(AGENT_CREDENTIAL_SCOPES).not.toContain('key:manage');
+    expect(AGENT_CREDENTIAL_SCOPES).not.toContain('team:manage');
     expect(TASK_WORKFLOW_CREDENTIAL_SCOPES).toEqual([
       'agent:profile',
       'task:read',

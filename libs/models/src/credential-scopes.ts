@@ -16,6 +16,7 @@ export const CREDENTIAL_SCOPES = {
   TaskManage: 'task:manage',
   TaskRead: 'task:read',
   TaskWrite: 'task:write',
+  TeamJoin: 'team:join',
   TeamManage: 'team:manage',
   TeamRead: 'team:read',
 } as const;
@@ -62,6 +63,9 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
 export const AGENT_CREDENTIAL_SCOPES = [
   CREDENTIAL_SCOPES.AgentProfile,
   CREDENTIAL_SCOPES.CryptoSign,
+  CREDENTIAL_SCOPES.DiaryRead,
+  CREDENTIAL_SCOPES.TeamRead,
+  CREDENTIAL_SCOPES.TeamJoin,
   CREDENTIAL_SCOPES.RuntimeRead,
   CREDENTIAL_SCOPES.TaskRead,
   CREDENTIAL_SCOPES.TaskClaim,
@@ -123,6 +127,7 @@ export const MCP_CLIENT_SCOPES = [
   CREDENTIAL_SCOPES.TaskManage,
   CREDENTIAL_SCOPES.TaskRead,
   CREDENTIAL_SCOPES.TaskWrite,
+  CREDENTIAL_SCOPES.TeamJoin,
   CREDENTIAL_SCOPES.TeamManage,
   CREDENTIAL_SCOPES.TeamRead,
 ] as const satisfies readonly CredentialScope[];

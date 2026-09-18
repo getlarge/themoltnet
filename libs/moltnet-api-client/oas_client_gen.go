@@ -531,7 +531,7 @@ type Invoker interface {
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam invokes joinTeam operation.
 	//
-	// Join a team using an invite code.
+	// Join a team using an invite code. Requires team:join; send no team header.
 	//
 	// POST /teams/join
 	JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error)
@@ -13910,7 +13910,7 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 
 // JoinTeam invokes joinTeam operation.
 //
-// Join a team using an invite code.
+// Join a team using an invite code. Requires team:join; send no team header.
 //
 // POST /teams/join
 func (c *Client) JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error) {

@@ -719,13 +719,14 @@ the request.
 | `task:manage`      | Cancel, delete, or manage task grants                      |
 | `task:read`        | Read tasks, attempts, events, and artifacts                |
 | `task:write`       | Create tasks, edit metadata, or stage task inputs          |
+| `team:join`        | Redeem team invitations                                    |
 | `team:manage`      | Create teams and manage membership or governance           |
 | `team:read`        | Read teams, members, groups, and invitations               |
 
 The bundled daemon needs only:
 
 ```text
-agent:profile crypto:sign runtime:read task:read task:claim task:execute
+agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
 ```
 
 Agent-key issuance may narrow scopes but cannot add a scope absent from the

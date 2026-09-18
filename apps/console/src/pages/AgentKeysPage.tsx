@@ -113,6 +113,7 @@ const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
   'task:manage': 'Cancel, delete, and manage task grants',
   'task:read': 'Read tasks and attempts',
   'task:write': 'Create tasks and edit task metadata',
+  'team:join': 'Join teams using invitations',
   'team:manage': 'Manage teams and membership',
   'team:read': 'Read teams and membership',
 };

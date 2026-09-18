@@ -2473,6 +2473,12 @@
           },
           {
             "enum": [
+              "team:join"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
               "team:manage"
             ],
             "type": "string"
@@ -47991,7 +47997,7 @@
     },
     "/teams/join": {
       "post": {
-        "description": "Join a team using an invite code.",
+        "description": "Join a team using an invite code. Requires team:join; send no team header.",
         "operationId": "joinTeam",
         "requestBody": {
           "content": {
@@ -48067,6 +48073,16 @@
             "description": "Default Response"
           },
           "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
             "content": {
               "application/json": {
                 "schema": {

@@ -4969,7 +4969,7 @@ export const createTeamMutation = (
 };
 
 /**
- * Join a team using an invite code.
+ * Join a team using an invite code. Requires team:join; send no team header.
  */
 export const joinTeamMutation = (
   options?: Partial<Options<JoinTeamData>>,
