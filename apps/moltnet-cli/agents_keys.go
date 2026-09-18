@@ -332,6 +332,7 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 	}
 	if store != nil {
 		store.expectedTeam = opts.teamID
+		store.expectedIdentity = opts.identityScoped
 		if err := store.reserve(); err != nil {
 			return err
 		}
@@ -492,6 +493,7 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	}
 	if store != nil {
 		store.expectedTeam = opts.teamID
+		store.expectedIdentity = opts.identityScoped
 		if err := store.reserve(); err != nil {
 			return err
 		}
@@ -514,7 +516,9 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	rotated, ok := res.(*moltnetapi.AgentKeyWithSecret)
 	if !ok {
 		if store != nil {
-			switch res.(type) {
+			switch response := res.(type) {
+			case *moltnetapi.ConflictProblemDetails:
+				return store.reconcileRotation(response, opts.keyID)
 			case *moltnetapi.RotateAgentKeyUnauthorized, *moltnetapi.RotateAgentKeyForbidden, *moltnetapi.RotateAgentKeyNotFound:
 				store.retainRecovery = false
 			default:

@@ -143,5 +143,29 @@ type rotationRecoveryRequest struct {
 }
 
 func (t *agentKeyStoreTarget) rotationOutcomeUnknown() error {
-	return fmt.Errorf("rotation outcome is unknown; the old secret may already be invalid; retain protected recovery file %s and reconcile the recorded key using independent management credentials before another rotation", t.recoveryPath)
+	return fmt.Errorf("rotation outcome is unknown; the old secret may already be invalid; retain protected recovery file %s and retry the same rotation request using independent management credentials to identify its replacement; do not rotate another key", t.recoveryPath)
+}
+
+// A completed rotation returns its exact successor without another issuance.
+func (t *agentKeyStoreTarget) reconcileRotation(problem *moltnetapi.ConflictProblemDetails, previousKeyID string) error {
+	target, ok := problem.Conflict.Target.Get()
+	if !ok || target.Resource != "agent-key" {
+		return t.rotationOutcomeUnknown()
+	}
+	keys, ok := target.Keys.Get()
+	if !ok || keys["keyId"] == "" || keys["keyId"] == previousKeyID || keys["previousKeyId"] != previousKeyID || keys["subjectId"] != t.subjectID {
+		return t.rotationOutcomeUnknown()
+	}
+	if t.expectedIdentity {
+		if keys["bindingScope"] != "identity" || keys["teamId"] != "" {
+			return t.rotationOutcomeUnknown()
+		}
+	} else if keys["bindingScope"] != "team" || keys["teamId"] != t.expectedTeam {
+		return t.rotationOutcomeUnknown()
+	}
+	record := enrollmentReconciliation{KeyID: keys["keyId"], SubjectID: keys["subjectId"], TeamID: keys["teamId"]}
+	if err := t.capture(agentKeyRecovery{Stage: "rotated_secret_unavailable", CredentialsPath: t.credentialsPath, Reconciliation: &record}); err != nil {
+		return fmt.Errorf("rotation already issued replacement key %s; revoke that exact key with authorized management credentials; could not update recovery file %s", record.KeyID, t.recoveryPath)
+	}
+	return fmt.Errorf("rotation already issued replacement key %s; its secret cannot be recovered; revoke that exact key with authorized management credentials; recovery file: %s", record.KeyID, t.recoveryPath)
 }

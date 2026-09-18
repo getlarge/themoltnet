@@ -40,6 +40,7 @@ type agentKeyStoreTarget struct {
 	writeRecovery          func(agentKeyRecovery) (string, error)
 	teamID                 string
 	expectedTeam           string
+	expectedIdentity       bool
 	enrollment             bool
 	recoveryPath           string
 	retainRecovery         bool
@@ -196,6 +197,9 @@ func (t *agentKeyStoreTarget) selectSlot(key moltnetapi.AgentKey) error {
 		return err
 	}
 	if team, ok := key.GetTeamAgentKey(); ok {
+		if t.expectedIdentity {
+			return fmt.Errorf("expected an identity-scoped credential")
+		}
 		if t.expectedTeam != "" && team.TeamId.String() != t.expectedTeam {
 			return fmt.Errorf("issued credential is bound to a different team")
 		}
@@ -225,11 +229,12 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 			if err != nil {
 				return err
 			}
-		} else if err := t.providers.Replace(t.ref, secret); err != nil {
-			return err
-		}
-		if !t.enrollment {
-			output.SecretWritten = true
+		} else {
+			changed, err := t.providers.ReplaceWithResult(t.ref, secret)
+			output.SecretWritten = changed
+			if err != nil {
+				return err
+			}
 		}
 		output.SecretStored = true
 		stage = "update_credentials"

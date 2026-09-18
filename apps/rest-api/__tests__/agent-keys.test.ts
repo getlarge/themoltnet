@@ -845,6 +845,7 @@ describe('agent key routes', () => {
         keyId: KEY_ID,
         adminRotateIssuedApiKeyBody: {
           metadata: {
+            rotated_from_key_id: KEY_ID,
             schema_version: 2,
             subject_type: 'agent',
             binding_scope: 'team',
@@ -857,6 +858,47 @@ describe('agent key routes', () => {
       { signal: expect.any(AbortSignal) },
     );
     expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
+  });
+
+  it('serializes the exact replacement on a completed rotation retry', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ status: KeyStatus.KeyStatusRevoked }),
+    );
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [
+        issuedKey({
+          key_id: ROTATED_KEY_ID,
+          metadata: {
+            schema_version: 2,
+            subject_type: 'agent',
+            binding_scope: 'team',
+            team_id: TEAM_ID,
+            rotated_from_key_id: KEY_ID,
+          },
+        }),
+      ],
+    });
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().conflict.target).toEqual({
+      resource: 'agent-key',
+      keys: {
+        keyId: ROTATED_KEY_ID,
+        previousKeyId: KEY_ID,
+        subjectId: OWNER_ID,
+        bindingScope: 'team',
+        teamId: TEAM_ID,
+      },
+    });
+    expect(response.json()).not.toHaveProperty('secret');
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
   });
 
   it('requires an independent credential to rotate the current Talos key', async () => {

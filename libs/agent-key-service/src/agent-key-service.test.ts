@@ -289,6 +289,101 @@ describe('agent key service', () => {
     ).toEqual(requestedScopes);
   });
 
+  it.each(['team', 'identity'] as const)(
+    'reconciles a completed %s rotation across pages without issuing',
+    async (scope) => {
+      const metadata = {
+        schema_version: 2,
+        subject_type: 'agent',
+        binding_scope: scope,
+        ...(scope === 'team' ? { team_id: TEAM_ID } : {}),
+      };
+      talosApi.adminGetIssuedApiKey.mockResolvedValue(
+        issuedKey({ status: KeyStatus.KeyStatusRevoked, metadata }),
+      );
+      talosApi.adminListIssuedApiKeys
+        .mockResolvedValueOnce({
+          issued_api_keys: [issuedKey({ key_id: 'unrelated', metadata })],
+          next_page_token: 'next',
+        })
+        .mockResolvedValueOnce({
+          issued_api_keys: [
+            issuedKey({
+              key_id: ROTATED_KEY_ID,
+              metadata: { ...metadata, rotated_from_key_id: KEY_ID },
+            }),
+          ],
+        });
+      await expect(
+        service.rotate({
+          keyId: KEY_ID,
+          logger,
+          subject,
+          ...(scope === 'team'
+            ? { teamId: TEAM_ID }
+            : { bindingScope: 'identity' as const }),
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        extensions: {
+          conflict: {
+            target: {
+              resource: 'agent-key',
+              keys: {
+                keyId: ROTATED_KEY_ID,
+                previousKeyId: KEY_ID,
+                subjectId: AGENT_ID,
+                bindingScope: scope,
+              },
+            },
+          },
+        },
+      });
+      expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+      expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it('does not reconcile another subject or team and never rotates an inactive key', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ status: KeyStatus.KeyStatusRevoked }),
+    );
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [
+        issuedKey({
+          actor_id: OTHER_AGENT_ID,
+          metadata: { ...issuedKey().metadata, rotated_from_key_id: KEY_ID },
+        }),
+        issuedKey({
+          metadata: {
+            ...issuedKey().metadata,
+            team_id: OTHER_TEAM_ID,
+            rotated_from_key_id: KEY_ID,
+          },
+        }),
+      ],
+    });
+    await expect(
+      service.rotate({ keyId: KEY_ID, logger, subject, teamId: TEAM_ID }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('bounds rotation reconciliation and does not issue on upstream failure', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ status: KeyStatus.KeyStatusRevoked }),
+    );
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [],
+      next_page_token: 'repeated',
+    });
+    await expect(
+      service.rotate({ keyId: KEY_ID, logger, subject, teamId: TEAM_ID }),
+    ).rejects.toMatchObject({ statusCode: 502 });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledTimes(2);
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['binding', { actor_id: OTHER_AGENT_ID }, false],
     ['scopes', { scopes: ['task:read'] as string[] }, true],
@@ -525,6 +620,7 @@ describe('agent key service', () => {
       adminRotateIssuedApiKeyBody: {
         visibility: KeyVisibility.KeyVisibilitySecret,
         metadata: {
+          rotated_from_key_id: KEY_ID,
           schema_version: 2,
           subject_type: 'agent',
           binding_scope: 'team',

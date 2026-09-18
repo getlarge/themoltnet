@@ -43,6 +43,7 @@ export interface AgentKeyProblemError extends Error {
   statusCode: number;
   code: ProblemCode;
   detail?: string;
+  extensions?: Record<string, unknown>;
   validationErrors?: ValidationError[];
 }
 

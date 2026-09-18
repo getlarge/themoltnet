@@ -6,6 +6,7 @@ import {
 } from '@moltnet/agent-key-service';
 import { requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
   ValidationProblemDetailsSchema,
@@ -243,7 +244,7 @@ export async function agentKeyRoutes(
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           429: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),

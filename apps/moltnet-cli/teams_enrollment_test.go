@@ -64,7 +64,7 @@ func TestEnrollmentLostResponseRetainsRetryContextThroughConflict(t *testing.T) 
 			_ = conn.Close()
 			return
 		}
-		w.Header().Set("Content-Type", "application/problem+json")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 		_ = json.NewEncoder(w).Encode(map[string]any{"type": "about:blank", "title": "Conflict", "status": 409, "code": "CONFLICT", "conflict": map[string]any{"target": map[string]any{"resource": "agent-key", "keys": map[string]string{"keyId": "issued-key-1", "subjectId": testAgentID, "teamId": testTeamID}}}})
 	}))
@@ -115,7 +115,7 @@ func TestEnrollmentDefinitiveRejectionRemovesPendingArtifact(t *testing.T) {
 	registry, _ := newMemorySecretProviderRegistry()
 	capture := newRecoveryCapture(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/problem+json")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
 		_, _ = io.WriteString(w, `{"type":"about:blank","title":"Not Found","status":404,"code":"NOT_FOUND","detail":"Invalid invite"}`)
 	}))
@@ -142,7 +142,7 @@ func TestEnrollmentRejectionReportsPendingCleanupFailure(t *testing.T) {
 	opts := storeOpts(registry, capture)
 	opts.removeRecovery = func(string) error { return errors.New("remove denied") }
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/problem+json")
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
 		_, _ = io.WriteString(w, `{"type":"about:blank","title":"Not Found","status":404,"code":"NOT_FOUND"}`)
 	}))

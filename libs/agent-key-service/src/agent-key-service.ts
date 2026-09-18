@@ -520,6 +520,74 @@ async function getBoundKey(
   return { key, binding };
 }
 
+// Talos replaces the key ID on rotation. Keep the predecessor in replacement
+// metadata so an authorized retry can reconcile a lost response without issuing.
+async function rejectCompletedRotation(
+  api: TalosApi,
+  input: RotateAgentKeyInput,
+  binding: StoredAgentKeyBinding,
+): Promise<never> {
+  let pageToken: string | undefined;
+  const seen = new Set<string>();
+  for (let page = 0; page < MAX_TALOS_LIST_PAGES_PER_REQUEST; page++) {
+    let result: Awaited<ReturnType<typeof api.adminListIssuedApiKeys>>;
+    try {
+      result = await api.adminListIssuedApiKeys(
+        { filter: actorFilter(binding.agentId), pageSize: 100, pageToken },
+        talosInit(input.signal),
+      );
+    } catch {
+      throw createProblem('upstream-error', 'Could not reconcile rotated key');
+    }
+    for (const candidate of result.issued_api_keys ?? []) {
+      const candidateBinding = readBinding(candidate);
+      const metadata = candidate.metadata as
+        | Record<string, unknown>
+        | undefined;
+      if (
+        metadata?.rotated_from_key_id === input.keyId &&
+        candidateBinding?.agentId === binding.agentId &&
+        bindingsEqual(candidateBinding, binding)
+      ) {
+        const error = createProblem(
+          'conflict',
+          'This key was already rotated; the replacement secret is unavailable.',
+        );
+        error.extensions = {
+          conflict: {
+            target: {
+              resource: 'agent-key',
+              keys: {
+                keyId: candidate.key_id,
+                previousKeyId: input.keyId,
+                subjectId: binding.agentId,
+                bindingScope: binding.bindingScope,
+                ...(binding.bindingScope === 'team'
+                  ? { teamId: binding.teamId }
+                  : {}),
+              },
+            },
+          },
+        };
+        throw error;
+      }
+    }
+    pageToken = result.next_page_token;
+    if (!pageToken) {
+      throw createProblem(
+        'conflict',
+        'This key is inactive. No replacement could be identified; do not retry rotation with another key.',
+      );
+    }
+    if (seen.has(pageToken)) break;
+    seen.add(pageToken);
+  }
+  throw createProblem(
+    'upstream-error',
+    'Rotation reconciliation exceeded the page limit',
+  );
+}
+
 async function canManageAllTeamKeys(
   deps: AgentKeyServiceDeps,
   subject: AgentKeySubject,
@@ -1071,13 +1139,23 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       const scopes = key.scopes ?? [];
       assertDelegableScopes(scopes, input.subject);
 
+      if (
+        key.status === KeyStatus.KeyStatusRevoked ||
+        key.status === KeyStatus.KeyStatusExpired
+      ) {
+        return rejectCompletedRotation(api, input, binding);
+      }
+
       let result: Awaited<ReturnType<typeof api.adminRotateIssuedApiKey>>;
       try {
         result = await api.adminRotateIssuedApiKey(
           {
             keyId: input.keyId,
             adminRotateIssuedApiKeyBody: {
-              metadata: agentKeyMetadata(requestedBinding),
+              metadata: {
+                ...agentKeyMetadata(requestedBinding),
+                rotated_from_key_id: input.keyId,
+              },
               scopes,
               visibility: KeyVisibility.KeyVisibilitySecret,
             },

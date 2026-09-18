@@ -683,13 +683,21 @@ func TestEnrollmentStoreReportsUnverifiedDestinationWrite(t *testing.T) {
 	}
 }
 
-func TestRotationLostResponseRetainsKnownKeyForReconciliation(t *testing.T) {
+func TestRotationLostResponseReconcilesReplacement(t *testing.T) {
 	path := writeAgentKeyStoreFixture(t, testAgentID)
 	registry, provider := newMemorySecretProviderRegistry()
 	capture := newRecoveryCapture(t)
 	key := TeamAgentKeyKey(testAgentID, testTeamID)
 	provider.values[key] = "old-secret"
+	calls := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls > 1 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_ = json.NewEncoder(w).Encode(map[string]any{"type": "about:blank", "title": "Conflict", "status": 409, "code": "CONFLICT", "conflict": map[string]any{"target": map[string]any{"resource": "agent-key", "keys": map[string]string{"keyId": "replacement-key", "previousKeyId": "existing-key", "subjectId": testAgentID, "teamId": testTeamID, "bindingScope": "team"}}}})
+			return
+		}
 		conn, _, err := w.(http.Hijacker).Hijack()
 		if err != nil {
 			t.Error(err)
@@ -714,5 +722,83 @@ func TestRotationLostResponseRetainsKnownKeyForReconciliation(t *testing.T) {
 	if provider.values[key] != "old-secret" {
 		t.Fatal("unknown rotation changed provider")
 	}
+	out.Reset()
+	err = runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{apiURL: server.URL, credPath: path, teamID: testTeamID, keyID: "existing-key", store: storeOpts(registry, capture), out: &out, errOut: &out})
+	if err == nil || !strings.Contains(err.Error(), "replacement key replacement-key") {
+		t.Fatalf("missing replacement identifier: %v", err)
+	}
+	artifact = capture.latest(t)
+	if artifact.Stage != "rotated_secret_unavailable" || artifact.Reconciliation == nil || artifact.Reconciliation.KeyID != "replacement-key" || artifact.Reconciliation.TeamID != testTeamID || calls != 2 {
+		t.Fatal("replacement not reconciled")
+	}
+	if provider.values[key] != "old-secret" {
+		t.Fatal("reconciliation changed provider")
+	}
 	assertNoSecret(t, "old-secret", &out)
+}
+
+func TestIdentityScopedLifecycleRejectsTeamResponse(t *testing.T) {
+	for _, operation := range []string{"create", "rotate"} {
+		t.Run(operation, func(t *testing.T) {
+			path := writeAgentKeyStoreFixture(t, testAgentID)
+			before, _ := os.ReadFile(path)
+			registry, provider := newMemorySecretProviderRegistry()
+			capture := newRecoveryCapture(t)
+			_, _, client := newTestServer(t, agentKeyStubSecret("unexpected-team-secret"))
+			var out bytes.Buffer
+			var err error
+			if operation == "create" {
+				err = runAgentsKeysCreateWithClient(context.Background(), client, agentsKeysCreateOpts{credPath: path, identityScoped: true, agentID: testAgentID, name: "test", store: storeOpts(registry, capture), out: &out, errOut: &out})
+			} else {
+				err = runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{credPath: path, identityScoped: true, keyID: "old-key", store: storeOpts(registry, capture), out: &out, errOut: &out})
+			}
+			if err == nil || !strings.Contains(err.Error(), "expected an identity-scoped credential") {
+				t.Fatalf("unexpected result: %v", err)
+			}
+			after, _ := os.ReadFile(path)
+			if !bytes.Equal(before, after) || len(provider.values) != 0 {
+				t.Fatal("binding mismatch changed credentials")
+			}
+			artifact := capture.latest(t)
+			if artifact.IssuedKey == nil || artifact.Secret != "unexpected-team-secret" || artifact.AgentKeyRef.Key != TeamAgentKeyKey(testAgentID, testTeamID) {
+				t.Fatal("actual issued credential not retained")
+			}
+			assertNoSecret(t, "unexpected-team-secret", &out)
+		})
+	}
+}
+
+func TestLifecycleStoreReportsUnverifiedReplacement(t *testing.T) {
+	for _, mode := range []string{"mismatch", "read-error"} {
+		t.Run(mode, func(t *testing.T) {
+			path := writeAgentKeyStoreFixture(t, testAgentID)
+			before, _ := os.ReadFile(path)
+			registry, memory := newMemorySecretProviderRegistry()
+			provider := &echoingSecretProvider{}
+			registry.Register(osKeyringProviderName, provider)
+			if mode == "read-error" {
+				registry.Register(osKeyringProviderName, &unverifiedTeamCopyProvider{memorySecretProvider: memory})
+			}
+			capture := newRecoveryCapture(t)
+			target, err := prepareAgentKeyStore(storeOpts(registry, capture), path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			err = target.persist(&out, &out, storedAgentKeyOutput{Key: validAgentKey("replacement")}, "replacement-secret")
+			if err == nil || !strings.Contains(err.Error(), "write occurred but was not verified") {
+				t.Fatalf("missing partial write guidance: %v", err)
+			}
+			var result storedAgentKeyOutput
+			if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			artifact := capture.latest(t)
+			after, _ := os.ReadFile(path)
+			if (mode == "mismatch" && provider.writes != 1) || !result.SecretWritten || result.SecretStored || result.CredentialsUpdated || !artifact.SecretWritten || artifact.SecretStored || artifact.Secret != "replacement-secret" || !bytes.Equal(before, after) {
+				t.Fatal("incorrect partial replacement state")
+			}
+			assertNoSecret(t, "replacement-secret", &out)
+		})
+	}
 }
