@@ -64,7 +64,14 @@ export function TeamsView({
       .catalogue(identity)
       .then(
         (value) => {
-          if (current) setCatalogue(value);
+          if (current) {
+            setCatalogue(value);
+            setFeedback((previous) =>
+              previous?.title === 'Team access could not be refreshed'
+                ? null
+                : previous,
+            );
+          }
         },
         () => {
           if (current)
@@ -211,7 +218,11 @@ export function TeamsView({
           </option>
         ))}
       </Select>
-      {loading ? <Text role="status">Checking team access…</Text> : null}
+      {loading ? (
+        <div role="status">
+          <Text>Checking team access…</Text>
+        </div>
+      ) : null}
       {catalogue?.teams.map((entry) => (
         <ControlSurface key={entry.teamId}>
           <Stack gap={3}>

@@ -98,21 +98,24 @@ export interface SavePresetInput extends Omit<
  * shipped Server panel. Nothing here duplicates it.
  */
 export interface RunCenterActions {
-  enrollTeam?(
+  enrollTeam?: (
     identity: string,
     request: EnrollAgentServerTeamData['body'],
-  ): Promise<EnrollAgentServerTeamResponses[200]>;
-  createIdentity?(name: string, invitation: string): Promise<void>;
-  openTeamInvites?(teamId?: string): Promise<void>;
-  refresh?(): Promise<void>;
+  ) => Promise<EnrollAgentServerTeamResponses[200]>;
+  createIdentity?: (name: string, invitation: string) => Promise<void>;
+  openTeamInvites?: (teamId?: string) => Promise<void>;
+  refresh?: () => Promise<void>;
   /** Teams, diaries and profiles the selected identity can serve. */
-  catalogue(identity: string): Promise<AgentServerCatalogue>;
-  startRun(input: StartRunInput): Promise<AgentServerRun>;
-  stopRun(runId: string): Promise<void>;
-  savePreset(input: SavePresetInput): Promise<void>;
-  deletePreset(presetId: string): Promise<void>;
+  catalogue: (identity: string) => Promise<AgentServerCatalogue>;
+  startRun: (input: StartRunInput) => Promise<AgentServerRun>;
+  stopRun: (runId: string) => Promise<void>;
+  savePreset: (input: SavePresetInput) => Promise<void>;
+  deletePreset: (presetId: string) => Promise<void>;
   /** Streams a run's log lines. Returns an unsubscribe function. */
-  subscribeRunLogs(runId: string, onLine: (line: string) => void): () => void;
+  subscribeRunLogs: (
+    runId: string,
+    onLine: (line: string) => void,
+  ) => () => void;
 }
 
 /**

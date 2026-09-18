@@ -193,4 +193,17 @@ describe('desktop team enrollment', () => {
     await screen.findByText('Healthy');
     expect(actions.stopRun).not.toHaveBeenCalled();
   });
+  it('clears a refresh error after team access is verified again', async () => {
+    const { data, actions } = fixture();
+    vi.mocked(actions.catalogue).mockRejectedValueOnce(new Error('offline'));
+    show(data, actions);
+    await screen.findByText('Team access could not be refreshed');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Refresh team access' }),
+    );
+    await screen.findByText('Research');
+    expect(
+      screen.queryByText('Team access could not be refreshed'),
+    ).not.toBeInTheDocument();
+  });
 });
