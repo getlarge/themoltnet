@@ -11,7 +11,7 @@ import {
   enrollTeam,
 } from '@themoltnet/sdk/node';
 
-import { loadAgentActivation } from './identity.js';
+import { loadEnrollmentIdentity } from './identity.js';
 import type { AgentServerStore } from './store.js';
 
 export type TeamEnrollmentInput = {
@@ -27,7 +27,7 @@ export async function enrollIdentityTeam(options: {
   external: SecretProviderRegistry;
   input: TeamEnrollmentInput;
 }) {
-  const { activation, config } = await loadAgentActivation(
+  const { activation, config } = await loadEnrollmentIdentity(
     options.store,
     options.alias,
   );
@@ -60,6 +60,10 @@ export async function enrollIdentityTeam(options: {
       secretProvider: provider,
       apiUrl: activation.apiUrl ?? config.endpoints?.api,
     });
+    // Proof enrollment authenticates the local signing identity before issuance.
+    // Future catalogue/run access still performs live, exact-slot verification.
+    if (!options.store.readActivation(options.alias))
+      options.store.writeActivation(activation);
     return {
       state: 'persisted' as const,
       teamId: result.teamId,
