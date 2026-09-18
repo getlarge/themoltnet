@@ -231,6 +231,25 @@ describe('retry triage classification', () => {
     }
   });
 
+  it('preserves explicit transient provider evidence over request-shape wording', async () => {
+    const result = await classifyAttemptFailure({
+      ...BASE_INPUT,
+      error: {
+        code: 'llm_api_error',
+        message: 'Unsupported parameter: reasoning_effort',
+        retryable: true,
+      },
+    });
+
+    expect(result.source).toBe('explicit');
+    expect(result.error.retryable).toBe(true);
+    expect(result.error.retry).toMatchObject({
+      source: 'explicit',
+      decision: 'retry',
+      confidence: 'high',
+    });
+  });
+
   it('keeps generic validation and transient provider failures retryable or ambiguous', () => {
     expect(
       classifyDeterministically({
