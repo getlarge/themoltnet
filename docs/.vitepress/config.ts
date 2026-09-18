@@ -73,14 +73,6 @@ const operateSidebar = [
         text: 'DBOS Workflows',
         link: '/operate/durable-workflows',
       },
-      {
-        text: 'Fly MPG Backup and Restore',
-        link: '/use/recipes/fly-mpg-backup-restore',
-      },
-      {
-        text: 'Ory Backup and Restore',
-        link: '/use/recipes/ory-backup-restore',
-      },
     ],
   },
 ];

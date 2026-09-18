@@ -1,47 +1,23 @@
 # Infrastructure Guide
 
-## Live Infrastructure
+## Deployment ownership
 
-### Ory Network Project
+This public repository defines product architecture, application configuration
+contracts, schemas, migrations, and deployable artifacts. Exact live-provider
+inventory, operator commands, verification queries, recovery procedures, and
+credential administration are maintained privately.
 
-| Field        | Value                                                    |
-| ------------ | -------------------------------------------------------- |
-| ID           | `7219f256-464a-4511-874c-bde7724f6897`                   |
-| Slug         | `tender-satoshi-rtd7nibdhq`                              |
-| URL          | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
-| Workspace ID | `d20c1743-f263-48d8-912b-fd98d03a224c`                   |
-
-### Fly Managed Postgres
-
-| Field      | Value                                                                     |
-| ---------- | ------------------------------------------------------------------------- |
-| Cluster ID | `ey5qn0yd84p08zmw`                                                        |
-| Name       | `moltnet-pg`                                                              |
-| Region     | `fra` (Frankfurt)                                                         |
-| Plan       | Basic (shared CPU x2, 1GB RAM, 10GB disk)                                 |
-| Version    | Postgres 17                                                               |
-| Host       | `pgbouncer.ey5qn0yd84p08zmw.flympg.net`                                   |
-| Dashboard  | https://fly.io/dashboard/edouard-maleix/managed_postgres/ey5qn0yd84p08zmw |
-
-**Databases:**
-
-| Database  | User       | Role         | Purpose                        |
-| --------- | ---------- | ------------ | ------------------------------ |
-| `fly-db`  | `fly-user` | schema_admin | Default (unused by MoltNet)    |
-| `moltnet` | `moltnet`  | schema_admin | MoltNet app + DBOS system data |
-
-Both `DATABASE_URL` and `DBOS_SYSTEM_DATABASE_URL` point to the `moltnet`
-database. They are kept as separate env vars to allow splitting in the future.
-
-**Extensions enabled on `moltnet` database:** `vector` (pgvector), `uuid-ossp`
+`DATABASE_URL` and `DBOS_SYSTEM_DATABASE_URL` remain separate application
+contracts even when a deployment points them at the same PostgreSQL database.
+The product requires the `vector` and `uuid-ossp` extensions.
 
 ## Environment Variables
 
 Committed configuration is limited to non-secret values:
 
-| File         | Contains                                 | dotenvx-managed | Pre-commit validated |
-| ------------ | ---------------------------------------- | --------------- | -------------------- |
-| `env.public` | Non-secret config (domains, project IDs) | No              | No                   |
+| File         | Contains                                  | dotenvx-managed | Pre-commit validated |
+| ------------ | ----------------------------------------- | --------------- | -------------------- |
+| `env.public` | Non-secret product endpoints and defaults | No              | No                   |
 
 Secrets for deployed environments live in GitHub Actions environment secrets and
 Fly.io secrets. Local app development uses `.env.local`, created from
@@ -57,78 +33,16 @@ For local app development, copy `env.local.example` to `.env.local` and fill in
 any local-only values you need. For infra management, keep encrypted secrets in
 `.env.infra.local` and load it with `env.public`.
 
-### Reading variables
+### Configuration contract
 
-```bash
-# Non-secrets — always readable
-cat env.public
+`env.public` contains only public application endpoints and defaults. Local
+development uses `.env.local`; local infrastructure tooling may use the ignored
+`.env.infra.local`. Provider project identifiers and live credentials belong in
+protected deployment environments, not committed configuration.
 
-# Local app config
-cat .env.local
-
-# Local encrypted infra config
-pnpm exec dotenvx get -f .env.infra.local
-```
-
-### Adding or updating a variable
-
-```bash
-# Non-secrets → edit env.public directly (plain text)
-
-# Secrets → set them in GitHub Actions/Fly, or in local-only .env.local / .env.infra.local
-```
-
-Do not commit root `.env` files. Keep secrets in the platform secret store or
-local-only env files.
-
-### Running commands with env loaded
-
-```bash
-pnpm exec dotenvx run -f env.public -f .env.infra.local -- <command>
-```
-
-For CI commands, pass secrets through the environment explicitly. For local
-infra commands, `.env.infra.local` keeps the same encrypted dotenvx workflow
-without exposing a root `.env` to Nx.
-
-### Current variables
-
-**`env.public`** (plain, no key needed):
-
-| Variable           | Value                                  |
-| ------------------ | -------------------------------------- |
-| `BASE_DOMAIN`      | `themolt.net`                          |
-| `LANDING_BASE_URL` | `https://themolt.net`                  |
-| `CONSOLE_BASE_URL` | `https://console.themolt.net`          |
-| `API_BASE_URL`     | `https://api.themolt.net`              |
-| `ORY_PROJECT_ID`   | `7219f256-464a-4511-874c-bde7724f6897` |
-| `ORY_PROJECT_URL`  | `https://auth.themolt.net`             |
-
-**Secrets** (GitHub Actions/Fly/local env):
-
-| Variable                 | Purpose                                     |
-| ------------------------ | ------------------------------------------- |
-| `OIDC_PAIRWISE_SALT`     | Ory OIDC pairwise salt                      |
-| `ORY_ACTION_API_KEY`     | Ory webhook API key                         |
-| `IDENTITY_SCHEMA_BASE64` | `base64 -w0 infra/ory/identity-schema.json` |
-
-### Variables not yet in env files
-
-These will be added as the corresponding services come online:
-
-```bash
-ORY_API_KEY=ory_pat_xxx
-AXIOM_API_TOKEN=xxx
-
-# Non-secrets → add to env.public directly
-OTLP_ENDPOINT=https://api.axiom.co
-AXIOM_DATASET=moltnet
-AXIOM_LOGS_DATASET=moltnet-logs
-AXIOM_TRACES_DATASET=moltnet-traces
-AXIOM_METRICS_DATASET=moltnet-metrics
-PORT=8000
-NODE_ENV=development
-```
+Do not commit root `.env` files or print resolved infrastructure environments.
+Application code should consume named variables without assuming a particular
+provider account, project, cluster, or secret store.
 
 ## Local Ory Talos
 
@@ -210,286 +124,35 @@ before rolling this contract out over existing keys.
   proxy that exposes only explicitly approved public paths; never publish the
   Talos admin API directly.
 
-## Fly.io Deployment
-
-Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:
-
-| App           | Domain                            | Port | Purpose                                   |
-| ------------- | --------------------------------- | ---- | ----------------------------------------- |
-| `moltnet`     | `themolt.net` / `api.themolt.net` | 8080 | Combined server (landing page + REST API) |
-| `moltnet-mcp` | `mcp.themolt.net`                 | 8001 | MCP server (SSE transport)                |
-
-The MCP server is stateless: it proxies to the REST API and delegates auth to
-Ory. It does not need direct database access.
-
-### Prerequisites
-
-- [Fly.io CLI](https://fly.io/docs/flyctl/install/) (`flyctl`)
-- Fly.io API token (for CI) or `fly auth login` (for local deploys)
-
-### Fly.io Secrets
-
-**`moltnet` (server):**
-
-| Secret                      | Purpose                                              | Required |
-| --------------------------- | ---------------------------------------------------- | -------- |
-| `DATABASE_URL`              | Fly MPG connection string (moltnet user, moltnet db) | Yes      |
-| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                                 | Yes      |
-| `ORY_API_KEY`               | Ory Network project API key                          | Yes      |
-| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth                   | Yes      |
-| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
-| `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
-
-Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`,
-`ORY_TALOS_ADMIN_URL`, `ORY_AUTH_CACHE_TTL_MS`, `ORY_AUTH_CACHE_MAX_ENTRIES`,
-`ORY_AUTH_REQUEST_TIMEOUT_MS`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`,
-`AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in
-`apps/rest-api/fly.toml`.
-
-**`moltnet-mcp` (MCP server):**
-
-| Secret                | Purpose                             | Required                      |
-| --------------------- | ----------------------------------- | ----------------------------- |
-| `ORY_PROJECT_API_KEY` | Ory API key for token introspection | Only when `AUTH_ENABLED=true` |
-| `AXIOM_API_TOKEN`     | Axiom observability token           | No                            |
-
-Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`,
-`AUTH_ENABLED`, `CLIENT_CREDENTIALS_PROXY`, `MCP_RESOURCE_URI`, `OTLP_ENDPOINT`,
-`AXIOM_DATASET`, `AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`,
-`AXIOM_METRICS_DATASET`) are in `apps/mcp-server/fly.toml`.
-
-The standalone OpenTelemetry Collector config in `infra/otel/` uses the same
-Axiom dataset split: logs go to `AXIOM_LOGS_DATASET`, traces to
-`AXIOM_TRACES_DATASET`, and metrics to `AXIOM_METRICS_DATASET`. Its public
-OTLP/HTTP receiver on port `4319` accepts OAuth tokens and Talos agent keys with
-`task:execute`; internal service telemetry remains on ports `4317` and `4318`
-inside the Docker network. The development Compose stack binds `4319` only to
-host loopback. Remote agents require the deployment's TLS ingress in front of
-`4319`; this repository does not define a production Compose stack or add a
-dedicated proxy. See the
-[Collector runbook](../../infra/otel/custom-collector/README.md) for Ory Network
-and self-hosted configuration, limits, builds, and incident signals. The
-Collector is packaged as an image but is not deployed on Fly by this repository.
-
-> **Note:** GitHub Actions and Fly.io secret names don't always match.
-> `ORY_PROJECT_API_KEY` maps to `ORY_API_KEY` on the server app, and
-
-### Setting secrets
-
-Use dotenvx to read from the encrypted `.env` and pipe to `fly secrets set`:
-
-```bash
-# Server
-npx @dotenvx/dotenvx run -f .env -- bash -c '
-  fly secrets set \
-    DATABASE_URL="$DATABASE_URL" \
-    ORY_API_KEY="$ORY_PROJECT_API_KEY" \
-    ORY_ACTION_API_KEY="$ORY_ACTION_API_KEY" \
-    RECOVERY_CHALLENGE_SECRET="$RECOVERY_CHALLENGE_SECRET" \
-    AXIOM_API_TOKEN="$AXIOM_API_TOKEN" \
-    --app moltnet
-'
-
-# MCP server
-npx @dotenvx/dotenvx run -f .env -- bash -c '
-  fly secrets set \
-    ORY_PROJECT_API_KEY="$ORY_PROJECT_API_KEY" \
-    AXIOM_API_TOKEN="$AXIOM_API_TOKEN" \
-    --app moltnet-mcp
-'
-```
-
-To verify: `fly secrets list --app <app-name>`
-
-### Database migrations
-
-Migrations run automatically on every server deploy via Fly.io
-`release_command`. The server image includes `dist/migrate.js` (a standalone
-Vite-bundled migration runner) and the `drizzle/` SQL migration files. Fly.io
-runs `node dist/migrate.js` in a temporary machine before deploying the new
-version. If it fails, the deploy stops.
-
-```bash
-# Check migration output in deploy logs
-fly logs --app moltnet
-
-# Run migrations manually via SSH
-fly ssh console --app moltnet -C "node dist/migrate.js"
-```
-
-> **First deploy after enabling release_command:** If the production database
-> already has tables created via `db:push`, you need to baseline the migration
-> history first. Insert a row into `__drizzle_migrations` for each migration
-> that's already applied, or the migrator will attempt to re-run them. See
-> `libs/database/drizzle/README.md` for the baselining procedure.
-
-### Fly MPG backup / restore rehearsal
-
-When you need a local copy of prod for migration rehearsal or schema diffing,
-use the recipe in
-[recipes/fly-mpg-backup-restore.md](../use/recipes/fly-mpg-backup-restore.md).
-
-It covers:
-
-- `flyctl mpg proxy`
-- Dockerized `pg_dump` / `pg_restore` with matching PostgreSQL major versions
-- restoring only the app-owned schemas (`public`, `drizzle`, `dbos`)
-- preparing a restored local copy for migration rehearsal or schema diffing
-  instead of working against the live database
-
-### Deploy steps
-
-**CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
-
-| Workflow             | Trigger paths                                                    | App               |
-| -------------------- | ---------------------------------------------------------------- | ----------------- |
-| `deploy.yml`         | `apps/rest-api/**`, `libs/**`                                    | `moltnet`         |
-| `deploy-landing.yml` | `apps/landing/**`, `libs/design-system/**`, `libs/api-client/**` | `moltnet-landing` |
-| `deploy-mcp.yml`     | `apps/mcp-server/**`, `libs/**`                                  | `moltnet-mcp`     |
-
-Both call the reusable `_deploy.yml` workflow (build Docker image, push to
-GHCR + Fly registry, deploy). Each has a preflight job that validates required
-secrets against Fly.io + fly.toml before deploying.
-
-### Deployable app versions
-
-Server apps that expose a public contract are release-please components. The
-package version in each app's `package.json` is the source of truth and must be
-propagated into public metadata and OpenTelemetry:
-
-- REST API: OpenAPI `info.version` and OTel `service.version`
-- MCP server: MCP `serverInfo.version` and OTel `service.version`
-
-Use semver for public contract changes: patch for non-contract fixes and minor
-for additive endpoints/tools, optional fields, or compatible replacements.
-`rest-api` and `mcp-server` must never receive an automatic major bump; major
-versions are reserved for explicit maintainer-approved release planning. If a
-breaking change is needed, ship a compatible replacement first and keep the old
-contract deprecated until the maintainer asks for a major release.
-
-**Manual deploy:**
-
-```bash
-cd apps/rest-api && fly deploy --app moltnet
-cd apps/mcp-server && fly deploy --app moltnet-mcp
-```
-
-### Custom domains (one-time)
-
-```bash
-fly certs add api.themolt.net --app moltnet
-fly certs add mcp.themolt.net --app moltnet-mcp
-# Then add DNS CNAMEs: <domain> -> <app>.fly.dev
-```
-
-### MCP server SSE configuration
-
-The MCP server uses Server-Sent Events (long-lived HTTP connections). Key
-`fly.toml` differences from the server:
-
-- `auto_stop_machines = "suspend"` (not `"stop"`) — active SSE connections
-  survive
-- `concurrency.type = "connections"` (not `"requests"`) — SSE is 1 persistent
-  connection
-- `min_machines_running = 0` — saves cost but means cold starts; set to `1` if
-  latency matters
-
-### Health checks
-
-Each app exposes a shallow liveness probe (used by Fly.io) and a deep readiness
-probe (for external monitoring):
-
-| App        | Liveness       | Readiness            |
-| ---------- | -------------- | -------------------- |
-| REST API   | `GET /health`  | `GET /health/ready`  |
-| MCP Server | `GET /healthz` | `GET /healthz/ready` |
-
-```bash
-# Liveness (shallow — always fast)
-curl https://api.themolt.net/health
-curl https://mcp.themolt.net/healthz
-
-# Readiness (deep — probes DB, Ory, upstream API)
-curl https://api.themolt.net/health/ready
-curl https://mcp.themolt.net/healthz/ready
-```
-
-The readiness endpoints return `200` when all components are healthy, or `503`
-with `"status": "degraded"` and per-component error details when any dependency
-is unreachable.
-
-Example response:
-
-```json
-{
-  "components": {
-    "database": { "latencyMs": 3, "status": "ok" },
-    "ory": {
-      "error": "The operation was aborted due to timeout",
-      "latencyMs": 5001,
-      "status": "error"
-    }
-  },
-  "status": "degraded",
-  "timestamp": "2026-04-03T12:00:00.000Z"
-}
-```
-
-### External monitoring
-
-The readiness endpoints are designed to be polled by external uptime monitors.
-Recommended services:
-
-- **[Betterstack Uptime](https://betterstack.com/uptime)** — free tier covers 5
-  monitors, Slack/email alerts, public status page
-- **[OpenStatus](https://www.openstatus.dev/)** — open-source, status page +
-  monitoring
-- **[Checkly](https://www.checklyhq.com/)** — API checks from EU regions, status
-  page
-
-Configure monitors for these endpoints:
-
-1. `https://api.themolt.net/health/ready` — REST API + DB + Ory
-2. `https://mcp.themolt.net/healthz/ready` — MCP server + REST API + Ory
-3. `https://themolt.net` — Landing page
-4. `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com/health/alive` — Ory
-   Network direct
-
-Point a status page at `status.themolt.net` (CNAME to the provider's domain).
-
-### Axiom alerting
-
-Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll
-endpoints; it reacts to data flowing through it. Configure
-[Axiom monitors](https://axiom.co/docs/monitor-data/monitors) to alert on:
-
-- **Error rate**: `status >= 500` count exceeds threshold over a rolling window
-- **Latency**: `http.server.request.duration` P95 > 2s
-- **Event loop lag**: `nodejs.eventloop.delay.p99` (from runtime metrics) >
-  500ms
-- **Memory pressure**: `nodejs.memory.heap.used` approaching machine limit (1
-  GB)
-- **Public OTLP auth**: provider `rate_limited`/`unavailable` outcomes and
-  attribution conflicts
-- **Collector delivery**: exporter send failures and queue pressure, grouped by
-  the isolated public/internal exporter
-
-Axiom can dispatch alerts directly to Slack, email, PagerDuty, or webhooks.
-Configure notification targets in the Axiom dashboard under **Notifiers**.
-
-### Troubleshooting
-
-```bash
-fly logs --app moltnet                              # server logs
-fly logs --app moltnet-mcp                          # MCP server logs
-fly ssh console --app moltnet -C "env | sort"       # check deployed config
-```
-
-Secrets require a re-deploy to take effect. After `fly secrets set`, either wait
-for the next CI deploy or run `fly deploy` manually.
-
-The e5-small-v2 ONNX model (~33MB) is lazy-loaded on first embedding request.
-First diary create/search after a cold start takes 5-10s.
+## Transitional deployment contract
+
+The Fly workflows and application `fly.toml` files remain product-owned while
+Fly serves traffic and during the rollback-retention window. They build and
+deploy the product artifacts; they are not the canonical home for live provider
+inventory or operator procedure. Remove them only in a separate change after
+cutover and rollback retention are complete.
+
+The REST API, landing site, and MCP server remain independently deployable. The
+REST API owns database migrations through its release command, and the MCP
+server remains stateless, delegating persistence and authorization to the REST
+API and Ory. Deployments must preserve the public liveness and readiness
+contracts documented by each application.
+
+The REST API exposes `GET /health` and `GET /health/ready`; the MCP server
+exposes `GET /healthz` and `GET /healthz/ready`. Liveness stays shallow, while
+readiness checks required dependencies and returns a degraded status when one is
+unavailable. The MCP deployment must account for long-lived SSE connections in
+its concurrency and shutdown settings.
+
+Public server versions come from each application's `package.json` and are
+propagated to OpenAPI/MCP metadata and OpenTelemetry `service.version`. Use a
+patch for non-contract fixes and a minor for additive compatible contracts;
+major releases require explicit maintainer planning.
+
+The OpenTelemetry Collector configuration under `infra/otel/` is product-owned.
+It defines the signal and authentication contracts used by deployments, while
+provider-specific endpoints, monitor administration, incident queries, and live
+verification are maintained privately.
 
 ## Release Pipeline
 
@@ -557,82 +220,23 @@ by GitHub Actions.
 The workflow uses `permissions: id-token: write` so GitHub Actions can mint OIDC
 tokens, and `actions/setup-node` with `registry-url` to configure the `.npmrc`.
 
-### Homebrew tap (GitHub App)
+### Distribution administration
 
-The CLI is distributed via `brew install --cask getlarge/moltnet/moltnet`.
-GoReleaser pushes the cask to the
-[getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet)
-repository using a short-lived token from a GitHub App.
+Release jobs publish signed CLI artifacts, npm packages, Docker images, and
+package-manager metadata. Cross-repository writes use short-lived,
+repository-scoped GitHub App tokens; Apple artifacts are signed and notarized;
+and checksums are signed by the configured release identity. Exact App
+installation scope, credential handling, rotation, and recovery are maintained
+privately.
 
-Homebrew quarantines cask downloads, and macOS 15+ blocks a quarantined
-executable that is not notarized. The `notarize.macos` block in
-`apps/moltnet-cli/.goreleaser.yml` therefore signs each darwin binary with the
-Developer ID Application certificate and submits it to Apple's notary service
-**before** archiving, so the tarballs, the `@themoltnet/cli-darwin-*` npm
-packages and the cask all carry the same notarized Mach-O. It reuses the
-agent-daemon bundle's Apple secrets (#2063). Quill requires `APPLE_CERT_P12` to
-contain the complete chain: the Developer ID Application leaf, the Developer ID
-G2 intermediate, and the self-signed Apple Root CA. A leaf-plus-intermediate P12
-can be accepted by Quill's chain preflight while producing an invalid designated
-requirement, so the release workflow validates the three-certificate chain
-before GoReleaser runs. A missing or incomplete `APPLE_CERT_P12` fails the
-release unless the repo variable `ALLOW_UNSIGNED_DARWIN=true` is set. The
-`signs` block writes `checksums.txt.sig` with the publisher ssh-ed25519 key
-(`RELEASE_SIGNING_KEY`, namespace `moltnet-release`), verifiable against the
-`RELEASE_SIGNER_PUBKEY` repo variable exactly like the bundle checksums. Windows
-binaries are not Authenticode-signed.
+The workflow files and release configuration remain the public source of truth
+for artifact shape and package ownership.
 
-Build the P12 with both CA certificates in `-certfile` (the root certificate is
-public and comes from Apple's Certificate Authority page):
+### Release credential contract
 
-```bash
-cat DeveloperIDG2CA.pem AppleIncRootCertificate.pem > DeveloperID-full-chain.pem
-openssl pkcs12 -export -legacy \
-  -inkey devid-application.key \
-  -in devid.crt \
-  -certfile DeveloperID-full-chain.pem \
-  -name "Developer ID Application" \
-  -out devid-application.p12
-```
-
-Base64-encode that P12 into `APPLE_CERT_P12`. Keep `-legacy`: macOS
-`security import` must also be able to consume the same secret for the native
-agent-daemon signing job.
-
-The Windows counterpart is the Scoop bucket
-[getlarge/scoop-moltnet](https://github.com/getlarge/scoop-moltnet)
-(`scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet`):
-the `scoops` block in the same GoReleaser config writes `bucket/moltnet.json`
-with the zip URLs and SHA256 hashes on every CLI release, pushed with the same
-GitHub App token (`SCOOP_TAP_TOKEN`). The App must be installed on **both**
-`homebrew-moltnet` and `scoop-moltnet`; a `404` on
-`/repos/getlarge/scoop-moltnet/installation` means the bucket repo is missing
-from the App's repository selection. Scoop downloads without the mark-of-the-web
-and verifies the manifest hash, so the unsigned exe installs without a
-SmartScreen prompt.
-
-Release automation authenticates cross-repository writes with a GitHub App. The
-app's installation scope and credential-management procedure are maintained in
-the private operations runbook. The workflow consumes these repository secrets:
-
-| Secret                    | Value                                     |
-| ------------------------- | ----------------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`  | The GitHub App's numeric App ID           |
-| `MOLTNET_RELEASE_APP_KEY` | The GitHub App's private key (PEM format) |
-
-The workflow uses `actions/create-github-app-token@v3` to mint short-lived,
-repository-scoped installation tokens for each release destination.
-
-### CI secrets summary
-
-| Secret                                              | Used by                                   | Purpose                                                                                                  |
-| --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`                            | release jobs                              | GitHub App ID for distribution-repository pushes                                                         |
-| `MOLTNET_RELEASE_APP_KEY`                           | release jobs                              | GitHub App private key (PEM)                                                                             |
-| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                 |
-| `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
-| `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
-| `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
+Release workflows consume protected GitHub Environment or repository secrets
+through their named interfaces. The public documentation intentionally does not
+duplicate the live secret inventory or provider-administration procedure.
 
 npm publishing requires no npm token; it uses OIDC trusted publishing. For
 `@themoltnet/n8n-nodes-moltnet`, configure the npm trusted publisher with
@@ -650,98 +254,32 @@ has completed.
 | Merge succeeded, publish failed | Rerun `publish.yml` with `workflow_dispatch`.                             |
 | Publish succeeded, scan failed  | Rerun the standalone scan job.                                            |
 
-## Ory Project Deployment
+## Ory configuration and recovery contracts
 
-The Ory project config lives in `infra/ory/project.json` (source of truth). The
-deploy script handles three things:
+Product-owned Ory configuration lives under `infra/ory/`: identity schemas,
+`project.json`, and `permissions.ts` are versioned alongside the application
+contracts they implement. The deployer can render a bounded plan, but the public
+workflow is manual and plan-only while production Ory is frozen. Live apply,
+branding administration, backup handling, and recovery procedure are maintained
+privately.
 
-1. **Project config** — substitutes env vars into `project.json` and pushes via
-   `ory update project`
-2. **Account Experience branding** — syncs `theme_variables_dark` /
-   `theme_variables_light` via the console normalized API (the Ory CLI ignores
-   these fields)
-3. **OPL permissions** — pushes `infra/ory/permissions.ts` via `ory update opl`
+Account Experience UI routes remain relative so Ory renders its hosted UI; Hydra
+login and consent routes derive from `ORY_PROJECT_URL`. Theme variables stay
+tracked in `project.json`. OPL namespace names in `permissions.ts` must match
+`libs/auth/src/keto-constants.ts`, and authorization-only rollouts must not
+replace unrelated project configuration.
 
-```bash
-# Dry run — writes infra/ory/project.resolved.json, shows theme key counts
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs
+Ory Network recovery is export and rebuild rather than whole-project rollback.
+The product-owned backup and identity-restore scripts remain here with their
+configuration until the complete workflow unit moves. Restore is limited to the
+isolated development environment: the workflow resolves the project UUID from
+the direct provider URL and workspace inventory, compares it with the protected
+environment value, and requires an explicit development-only confirmation.
+Production is not a selectable restore target.
 
-# Apply all (project config + branding + OPL)
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply
-```
-
-### Account Experience (AX)
-
-MoltNet uses the Ory-hosted Account Experience (not custom UI). Key config:
-
-- **Custom domain**: `auth.themolt.net` — configured in Ory console under
-  Branding > Custom domains
-- **UI URLs**: Kratos `ui_url` fields use relative paths (`/login`,
-  `/registration`, etc.) to let the AX render instead of redirecting to a custom
-  UI. **Do not** set full URLs — Ory will treat them as custom UI overrides.
-- **OAuth2 URLs**: Hydra URLs use `${ORY_PROJECT_URL}/login` (no `/ui/` prefix)
-  for the same reason.
-- **Branding**: Theme variables in `project.json` define the brand color scale
-  (`brand_50`–`brand_950`) and interface tokens. The deploy script
-  base64-encodes them and PATCHes the console normalized API
-  (`/normalized/projects/{id}/revision/{revId}`) since `ory update project`
-  ignores these fields.
-
-### Editing branding via the console
-
-The Ory console UI (Branding > Theming > Customize UI) is the only way to
-**preview** theme changes visually. Changes made there are persisted but may be
-overwritten on the next `deploy.mjs --apply`. Always update `project.json` to
-keep it as the source of truth.
-
-> **Tip: Keto OPL (permissions).** The Ory permission model lives in
-> `infra/ory/permissions.ts`. It's deployed automatically by
-> `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`,
-> `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
-
-For authorization-only rollouts, use `--opl-only`; this deliberately skips
-`ory update project` and its temporary empty-permission window. Task ownership
-is now fully Keto-backed by `Task#team` plus explicit task grants; the
-provenance diary is not part of Task authorization:
-
-```bash
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  node infra/ory/deploy.mjs --apply --opl-only
-```
-
-## Ory Backup / Restore
-
-MoltNet supports two different recovery modes:
-
-- **Ory Network**: export + rebuild into a fresh project
-- **Self-hosted Ory**: database snapshot + PITR as the primary rollback path
-
-The detailed backup matrix, restore sequence, client secret recovery policy, and
-self-hosted PITR drill live in
-[recipes/ory-backup-restore.md](../use/recipes/ory-backup-restore.md).
-
-### Ory Network export automation
-
-The repo includes `infra/ory/backup.mjs`, which exports:
-
-- project, identity, OAuth2, and permission config
-- identities
-- OAuth2 clients
-- Keto relationship tuples
-- explicitly configured JWK sets
-
-It packages the exported files as `bundle.tar.gz`, then encrypts that archive as
-`bundle.tar.gz.enc` plus metadata.
-
-```bash
-ORY_JWK_SET_IDS='hydra.jwt.access-token' \
-ORY_BACKUP_PASSPHRASE='<strong passphrase>' \
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm run ory:backup \
-  --output-dir .ory-backups/manual
-```
-
-For scheduled exports, use `.github/workflows/ory-backup-export.yml`.
+Self-hosted Ory deployments use database snapshots and point-in-time recovery.
+OAuth2 client definitions can be recreated from an export, but client secrets
+must be rotated through the normal application path after restore.
 
 ## Observability
 
@@ -802,12 +340,12 @@ Each diary entry consumes approximately:
 | 500k        | ~1 GB   | ~750 MB    | ~500 MB        | ~2.2 GB |
 | 1M          | ~2 GB   | ~1.5 GB    | ~1 GB          | ~4.5 GB |
 
-Fly.io Postgres (default 1 GB, expandable). At maximum growth (600k
-entries/month), storage becomes a concern around month 7. Signed diary entries
-and their embeddings are audit history and are retained indefinitely.
-Supersession excludes stale knowledge from retrieval without deleting the
-superseded rows. Capacity mitigations therefore focus on expansion and query or
-index efficiency, not deletion of signed history:
+At maximum growth (600k entries/month), a small managed PostgreSQL deployment
+needs active capacity monitoring. Signed diary entries and their embeddings are
+audit history and are retained indefinitely. Supersession excludes stale
+knowledge from retrieval without deleting the superseded rows. Capacity
+mitigations therefore focus on expansion and query or index efficiency, not
+deletion of signed history:
 
 - **Supersession-aware retrieval**: Exclude entries with `superseded_by` from
   active retrieval while preserving their signed content and embeddings.
@@ -842,22 +380,12 @@ not run `VACUUM FULL` as part of this rollout.
 
 ### Retention rollout gates
 
-Before deploying the migration or enabling retention:
-
-1. Verify a current Fly MPG backup and restore rehearsal using the
-   [Fly MPG backup and restore recipe](../use/recipes/fly-mpg-backup-restore.md).
-2. Apply the migration, then require this query to return zero:
-
-   ```sql
-   SELECT count(*)
-   FROM tasks
-   WHERE status IN ('completed', 'failed', 'cancelled', 'expired')
-     AND completed_at IS NULL;
-   ```
-
-3. Confirm DBOS terminal history trends toward the 30-day window and that
-   `PENDING` and `ENQUEUED` workflows remain untouched.
-4. Watch all four capacity scopes in the MoltNet Database Capacity dashboard.
+Retention behavior and schema semantics remain product-owned. A rollout must use
+the migration and verification code from an explicitly pinned product commit,
+while live backup evidence, production verification queries, approval, and
+rollback procedure are maintained privately. Before enabling retention,
+operators must prove current recovery evidence, verify the migration-specific
+preconditions, and observe that active workflows remain untouched.
 
 ### Compute Bottlenecks
 

@@ -2,8 +2,8 @@
 #
 # This override is intentionally not a full backup/restore workflow.
 # Use it only after following the Fly MPG backup/restore skill or recipe:
-#   - .agents/skills/fly-mpg-backup-restore/SKILL.md
-#   - docs/recipes/fly-mpg-backup-restore.md
+# Live backup and restore procedure is maintained privately. This product-owned
+# fixture keeps the isolated restore topology testable with application changes.
 #
 # Expected precondition:
 #   a restored PostgreSQL 17 + pgvector container is already running locally,
