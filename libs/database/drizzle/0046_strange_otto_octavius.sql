@@ -1,0 +1,2 @@
+ALTER TYPE "public"."task_message_kind" ADD VALUE 'tool_policy_decision';--> statement-breakpoint
+CREATE INDEX "task_messages_task_attempt_kind_seq_idx" ON "task_messages" USING btree ("task_id","attempt_n","kind","seq");

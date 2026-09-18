@@ -4582,6 +4582,13 @@
             "minimum": 0,
             "type": "integer"
           },
+          "kind": {
+            "description": "Return only messages of these kinds. Filtering happens in the database, so a rare kind such as tool_policy_decision does not require paging the whole attempt.",
+            "items": {
+              "$ref": "#/components/schemas/TaskMessageKind"
+            },
+            "type": "array"
+          },
           "limit": {
             "default": 200,
             "maximum": 200,
@@ -13112,6 +13119,12 @@
                   "info"
                 ],
                 "type": "string"
+              },
+              {
+                "enum": [
+                  "tool_policy_decision"
+                ],
+                "type": "string"
               }
             ]
           },
@@ -13178,6 +13191,12 @@
           {
             "enum": [
               "info"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "tool_policy_decision"
             ],
             "type": "string"
           }
@@ -41663,6 +41682,18 @@
               "maximum": 200,
               "minimum": 1,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Return only messages of these kinds. Filtering happens in the database, so a rare kind such as tool_policy_decision does not require paging the whole attempt.",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/TaskMessageKind"
+              },
+              "type": "array"
             }
           },
           {

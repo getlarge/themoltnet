@@ -12591,8 +12591,11 @@ type ListTaskMessagesParams struct {
 	// new ones.
 	AfterSeq OptInt `json:",omitempty,omitzero"`
 	Limit    OptInt `json:",omitempty,omitzero"`
-	ID       uuid.UUID
-	N        int
+	// Return only messages of these kinds. Filtering happens in the database, so a rare kind such as
+	// tool_policy_decision does not require paging the whole attempt.
+	Kind []TaskMessageKind `json:",omitempty"`
+	ID   uuid.UUID
+	N    int
 	// Team ID (UUID) for scoping the request. Optional.
 	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
@@ -12614,6 +12617,15 @@ func unpackListTaskMessagesParams(packed middleware.Parameters) (params ListTask
 		}
 		if v, ok := packed[key]; ok {
 			params.Limit = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "kind",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Kind = v.([]TaskMessageKind)
 		}
 	}
 	{
@@ -12778,6 +12790,71 @@ func decodeListTaskMessagesParams(args [2]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "limit",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: kind.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "kind",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotKindVal TaskMessageKind
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotKindVal = TaskMessageKind(c)
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.Kind = append(params.Kind, paramsDotKindVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				var failures []validate.FieldError
+				for i, elem := range params.Kind {
+					if err := func() error {
+						if err := elem.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "kind",
 			In:   "query",
 			Err:  err,
 		}

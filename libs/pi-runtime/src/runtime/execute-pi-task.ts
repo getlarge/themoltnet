@@ -103,6 +103,7 @@ import {
   guardGondolinToolDefinitions,
   toGuestPath,
 } from '../tool-operations.js';
+import { createToolPolicyDecisionSink } from '../tool-policy/decision-sink.js';
 import type { ToolEnforcement } from '../tool-policy/gate.js';
 import {
   createToolPolicyExtension,
@@ -110,6 +111,7 @@ import {
   type ToolPolicyDecisionContext,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
+import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
 
 export const GONDOLIN_TOOL_NAMES = [
@@ -797,6 +799,13 @@ export async function executePiTask(
   let reporterOpen = opts.reporterAlreadyOpened ?? false;
   let managed: Awaited<ReturnType<typeof resumeVm>> | null = null;
   let session: AgentSession | null = null;
+  // Policy refusals are emitted from pi's synchronous tool_call handler, so
+  // they cannot be awaited at the call site. The sink collects them and is
+  // drained before the reporter is finalized, or a late refusal — a security
+  // record — would be silently dropped at teardown.
+  const policyDecisionSink = createToolPolicyDecisionSink((record) =>
+    emit('tool_policy_decision', { ...record }),
+  );
   let piSessionContext: Context | undefined;
   let providerRequestContext: Context | undefined;
   // Tracked at function scope so the post-prompt summary block can
@@ -1426,9 +1435,13 @@ export async function executePiTask(
       // Built BEFORE the
       // subagent tool so the same gate factory can be propagated into subagent
       // sessions — otherwise a subagent would run un-gated (bypass, #1348 B2).
-      const toolPolicyExtensions: ReturnType<
-        typeof createToolPolicyExtension
-      >[] = [];
+      // Built per registration site, not shared: the parent session and each
+      // subagent register their own instance so a refusal carries the
+      // execution that made it. Sharing one instance made every subagent
+      // refusal indistinguishable from a parent one in the record.
+      let buildToolPolicyExtensions: (
+        execution: 'parent' | 'subagent',
+      ) => ReturnType<typeof createToolPolicyExtension>[] = () => [];
       let resolvedToolPolicy:
         | Awaited<ReturnType<typeof resolveSessionToolPolicy>>
         | undefined;
@@ -1481,14 +1494,35 @@ export async function executePiTask(
             ({ argvPrefix }) => !availableExecutables.has(argvPrefix[0]),
           );
           resolvedToolPolicy = { ...policy, allowedShellCommands };
-          toolPolicyExtensions.push(
+          const sessionPolicy = resolvedToolPolicy;
+          buildToolPolicyExtensions = (execution) => [
             createToolPolicyExtension({
-              policy: resolvedToolPolicy,
+              policy: sessionPolicy,
               analyzer,
               logger: toolPolicyLogger,
               context: toolPolicyDecisionContext,
+              // Pi's tool_call handler is synchronous, so the refusal cannot
+              // be awaited here. The promise is collected instead and drained
+              // before the reporter is finalized.
+              onDecision: (record) => {
+                recordToolPolicyDecisionSpan(
+                  record,
+                  // A subagent has no session span of its own yet, so its
+                  // refusal hangs off the parent session rather than floating
+                  // as a root span. The `execution` attribute is what makes
+                  // the two distinguishable until subagent sessions carry
+                  // their own OTel context.
+                  piSessionContext,
+                  {
+                    'moltnet.task.id': task.id,
+                    'moltnet.task.attempt': attemptN,
+                    'moltnet.execution.kind': execution,
+                  },
+                );
+                policyDecisionSink.record({ ...record, execution });
+              },
             }),
-          );
+          ];
         }
       }
 
@@ -1682,7 +1716,7 @@ export async function executePiTask(
           // matching the parent.
           extraExtensionFactories: [
             ...runtimeSubagentExtensions,
-            ...toolPolicyExtensions,
+            ...buildToolPolicyExtensions('subagent'),
           ],
         });
         parentSubagentTools.push(subagentHandle.tool);
@@ -1739,7 +1773,7 @@ export async function executePiTask(
             sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
             extraExtensionFactories: [
               ...runtimeParentExtensions,
-              ...toolPolicyExtensions,
+              ...buildToolPolicyExtensions('parent'),
               submitCompletion.extension,
             ],
           }),
@@ -1925,6 +1959,7 @@ export async function executePiTask(
       });
     }
 
+    await policyDecisionSink.drain();
     await Promise.all([...recordingPromise, ...sandboxRetirementEvents]);
 
     // Cancellation takes precedence over runError / parseError.
@@ -2035,6 +2070,10 @@ export async function executePiTask(
     const message = err instanceof Error ? err.message : String(err);
     return makeFailedOutput('executor_unexpected_error', message);
   } finally {
+    // Drain here, not only on the success path: an error thrown mid-attempt
+    // still reaches this block, and `cleanupAttempt` finalizes the reporter.
+    // `emit` never rejects, so this cannot mask the original failure.
+    await policyDecisionSink.drain();
     await cleanupAttempt({
       cancelSignal: reporter.cancelSignal,
       cancelListener,

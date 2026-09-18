@@ -78,6 +78,7 @@ export const TaskMessageKind = Type.Union(
     Type.Literal('turn_end'),
     Type.Literal('error'),
     Type.Literal('info'),
+    Type.Literal('tool_policy_decision'),
   ],
   { $id: 'TaskMessageKind' },
 );

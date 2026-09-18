@@ -33,7 +33,8 @@ export type TaskMessageKind =
   | 'tool_call_end'
   | 'turn_end'
   | 'error'
-  | 'info';
+  | 'info'
+  | 'tool_policy_decision';
 
 export interface TaskRef {
   taskId: string | null;

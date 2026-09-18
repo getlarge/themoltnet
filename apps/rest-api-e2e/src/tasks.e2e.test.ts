@@ -2446,6 +2446,61 @@ describe('Tasks API', () => {
       expect(after![0].payload).toEqual({ text: 'done' });
     });
 
+    // These run last: they append many messages to the shared attempt, and the
+    // tests above assert exact counts over it.
+    it('filters by kind in the database, before pagination', async () => {
+      // A rare kind buried past a page boundary is the case the filter exists
+      // for: client-side filtering would need to page the whole attempt.
+      const filler = Array.from({ length: 30 }, (_, i) => ({
+        kind: 'text_delta' as const,
+        payload: { text: `chunk-${i}` },
+      }));
+      await appendTaskMessages({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { messages: filler },
+      });
+      await appendTaskMessages({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          messages: [
+            {
+              kind: 'tool_policy_decision' as const,
+              payload: {
+                decision: 'blocked',
+                reason_code: 'tool_not_permitted',
+              },
+            },
+          ],
+        },
+      });
+
+      // A limit far below the total still returns the rare match, which only
+      // holds if the filter is applied before the limit.
+      const { data, error } = await listTaskMessages({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId, n: attemptN },
+        query: { kind: ['tool_policy_decision'], limit: 5 },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.length).toBe(1);
+      expect(data![0].kind).toBe('tool_policy_decision');
+    });
+
+    it('rejects an unknown kind rather than silently returning everything', async () => {
+      const { response } = await listTaskMessages({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: taskId, n: attemptN },
+        query: { kind: ['not_a_kind'] as never },
+      });
+      expect(response.status).toBe(400);
+    });
+
     // Regression test for issue #921: concurrent appendMessages calls for the
     // same (taskId, attemptN) race on seq generation. Under READ COMMITTED two
     // in-flight statements both read MAX(seq)=N and both INSERT seq=N+1,

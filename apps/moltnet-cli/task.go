@@ -404,7 +404,7 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 	}
 	teamParam := moltnetapi.NewOptUUID(teamUUID)
 
-	kindAllow, err := parseKindFilter(opts.kindFilter, opts.showDeltas)
+	kindAllow, requestedKinds, err := parseKindFilter(opts.kindFilter, opts.showDeltas)
 	if err != nil {
 		return err
 	}
@@ -446,7 +446,7 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 
 	interval := time.Duration(opts.intervalSec) * time.Second
 	for {
-		messages, err := fetchMessages(ctx, client, taskUUID, teamParam, attemptN, afterSeq)
+		messages, err := fetchMessages(ctx, client, taskUUID, teamParam, attemptN, afterSeq, requestedKinds)
 		if err != nil {
 			return err
 		}
@@ -536,7 +536,7 @@ func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID,
 	// ~100 pages to be very safe.
 	const maxPages = 200
 	for page := 0; page < maxPages; page++ {
-		messages, err := fetchMessages(ctx, client, taskID, teamID, attemptN, afterSeq)
+		messages, err := fetchMessages(ctx, client, taskID, teamID, attemptN, afterSeq, nil)
 		if err != nil {
 			return 0, err
 		}
@@ -553,12 +553,13 @@ func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID,
 	return max, nil
 }
 
-func fetchMessages(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, teamID moltnetapi.OptUUID, attemptN int, afterSeq moltnetapi.OptInt) ([]moltnetapi.TaskMessage, error) {
+func fetchMessages(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, teamID moltnetapi.OptUUID, attemptN int, afterSeq moltnetapi.OptInt, kinds []moltnetapi.TaskMessageKind) ([]moltnetapi.TaskMessage, error) {
 	params := moltnetapi.ListTaskMessagesParams{
 		ID:             taskID,
 		N:              attemptN,
 		AfterSeq:       afterSeq,
 		XMoltnetTeamID: teamID,
+		Kind:           kinds,
 	}
 	res, err := client.ListTaskMessages(ctx, params)
 	if err != nil {
@@ -601,12 +602,26 @@ func taskIsTerminal(ctx context.Context, client *moltnetapi.Client, taskID uuid.
 	}
 }
 
-// parseKindFilter validates `--kind` and returns a set of accepted kinds.
-// When the flag is empty, every kind passes (text_delta gated separately
-// by --show-deltas).
-func parseKindFilter(kindStr string, showDeltas bool) (map[string]bool, error) {
-	allKinds := []string{"text_delta", "tool_call_start", "tool_call_end", "turn_end", "error", "info"}
+// knownMessageKinds lists every message kind the API contract defines, taken
+// from the generated enum so a new kind needs no coordinated CLI edit.
+func knownMessageKinds() []string {
+	values := moltnetapi.TaskMessageKind("").AllValues()
+	names := make([]string, 0, len(values))
+	for _, v := range values {
+		names = append(names, string(v))
+	}
+	return names
+}
+
+// parseKindFilter validates `--kind` and returns the set of accepted kinds
+// plus the explicit selection to push to the server. When the flag is empty
+// every kind passes (text_delta gated separately by --show-deltas) and the
+// server-side filter is left off, so the `--show-deltas` cursor behaviour
+// below is unchanged.
+func parseKindFilter(kindStr string, showDeltas bool) (map[string]bool, []moltnetapi.TaskMessageKind, error) {
+	allKinds := knownMessageKinds()
 	allow := map[string]bool{}
+	var requested []moltnetapi.TaskMessageKind
 	if kindStr == "" {
 		for _, k := range allKinds {
 			allow[k] = true
@@ -618,7 +633,10 @@ func parseKindFilter(kindStr string, showDeltas bool) (map[string]bool, error) {
 		}
 		for _, k := range splitAndTrim(kindStr, ",") {
 			if !valid[k] {
-				return nil, fmt.Errorf("--kind: unknown kind %q (one of: %s)", k, strings.Join(allKinds, ","))
+				return nil, nil, fmt.Errorf("--kind: unknown kind %q (one of: %s)", k, strings.Join(allKinds, ","))
+			}
+			if !allow[k] {
+				requested = append(requested, moltnetapi.TaskMessageKind(k))
 			}
 			allow[k] = true
 		}
@@ -630,7 +648,7 @@ func parseKindFilter(kindStr string, showDeltas bool) (map[string]bool, error) {
 			delete(allow, "text_delta")
 		}
 	}
-	return allow, nil
+	return allow, requested, nil
 }
 
 func explicitlyMentions(csv, want string) bool {

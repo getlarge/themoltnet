@@ -87,6 +87,10 @@ function summarizePayloadForLog(
             ? payload.message.slice(0, LOG_TRUNCATE_LIMIT)
             : payload.message,
       };
+    case 'tool_policy_decision':
+      // Already literal-free by construction (executable names and argv
+      // fingerprints, never argv values), so it forwards whole.
+      return payload;
     case 'info':
       return Object.fromEntries(
         Object.entries(payload).map(([k, v]) => [

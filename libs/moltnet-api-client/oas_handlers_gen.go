@@ -23286,6 +23286,10 @@ func (s *Server) handleListTaskMessagesRequest(args [2]string, argsEscaped bool,
 					In:   "query",
 				}: params.Limit,
 				{
+					Name: "kind",
+					In:   "query",
+				}: params.Kind,
+				{
 					Name: "id",
 					In:   "path",
 				}: params.ID,

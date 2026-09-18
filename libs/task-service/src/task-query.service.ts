@@ -1,6 +1,11 @@
 import type { KetoNamespace } from '@moltnet/auth';
 import type { Task as DbTask } from '@moltnet/database';
-import type { Task, TaskAttempt, TaskMessage } from '@moltnet/tasks';
+import type {
+  Task,
+  TaskAttempt,
+  TaskMessage,
+  TaskMessageKind,
+} from '@moltnet/tasks';
 
 import {
   normalizeTaskTags,
@@ -72,7 +77,11 @@ export interface TaskQueryService {
     attemptN: number,
     callerId: string,
     callerNs: KetoNamespace,
-    opts: { afterSeq?: number; limit?: number },
+    opts: {
+      afterSeq?: number;
+      limit?: number;
+      kinds?: readonly TaskMessageKind[];
+    },
     teamId?: string,
   ): Promise<TaskMessage[]>;
 }

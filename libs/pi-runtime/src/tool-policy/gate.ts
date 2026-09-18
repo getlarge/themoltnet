@@ -6,6 +6,8 @@ import type {
   RiskTier,
 } from '@themoltnet/shell-command-analyzer';
 
+import { sanitizeExecutableName } from './sanitize.js';
+
 export type { ToolEnforcement } from '@moltnet/models';
 
 export interface ShellCommandRule {
@@ -224,7 +226,7 @@ export function decideToolCall(input: GateInput): GateDecision {
     ...new Set(
       resolved.tools
         .filter((tool) => tool.risk === 'arbitrary-code')
-        .map((tool) => tool.name),
+        .map((tool) => sanitizeExecutableName(tool.name)),
     ),
   ];
   if (arbitraryCode.length > 0) {
@@ -239,8 +241,8 @@ export function decideToolCall(input: GateInput): GateDecision {
 
   if (input.toolName !== 'bash') {
     const missing = resolved.tools
-      .map((tool) => tool.name)
-      .filter((name) => !input.allowedTools.has(name));
+      .filter((tool) => !input.allowedTools.has(tool.name))
+      .map((tool) => sanitizeExecutableName(tool.name));
     if (missing.length === 0) {
       return { allow: true, reasonCode: 'policy_allowed' };
     }
@@ -331,7 +333,7 @@ function toMatchedShellCommand(
   argvPrefix: readonly string[],
 ): MatchedShellCommand {
   return {
-    executable,
+    executable: sanitizeExecutableName(executable),
     argvPrefixFingerprint: fingerprintArgv(argvPrefix),
     argvPrefixLength: argvPrefix.length,
   };
@@ -339,7 +341,9 @@ function toMatchedShellCommand(
 
 function toMissingShellCommand(tool: ResolvedTool): MissingShellCommand {
   return {
-    executable: tool.name,
+    // Model-controlled: bounded before it reaches a durable sink. The
+    // fingerprint below stays the reliable identifier.
+    executable: sanitizeExecutableName(tool.name),
     argvFingerprint: fingerprintArgv(tool.argv),
     argvLength: tool.argv.length,
     dynamicTokenCount: tool.argv.filter((token) => token === null).length,

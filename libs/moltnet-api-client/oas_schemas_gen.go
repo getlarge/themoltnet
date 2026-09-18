@@ -55210,12 +55210,13 @@ func (s *TaskMessage) SetTimestamp(val time.Time) {
 type TaskMessageKind string
 
 const (
-	TaskMessageKindTextDelta     TaskMessageKind = "text_delta"
-	TaskMessageKindToolCallStart TaskMessageKind = "tool_call_start"
-	TaskMessageKindToolCallEnd   TaskMessageKind = "tool_call_end"
-	TaskMessageKindTurnEnd       TaskMessageKind = "turn_end"
-	TaskMessageKindError         TaskMessageKind = "error"
-	TaskMessageKindInfo          TaskMessageKind = "info"
+	TaskMessageKindTextDelta          TaskMessageKind = "text_delta"
+	TaskMessageKindToolCallStart      TaskMessageKind = "tool_call_start"
+	TaskMessageKindToolCallEnd        TaskMessageKind = "tool_call_end"
+	TaskMessageKindTurnEnd            TaskMessageKind = "turn_end"
+	TaskMessageKindError              TaskMessageKind = "error"
+	TaskMessageKindInfo               TaskMessageKind = "info"
+	TaskMessageKindToolPolicyDecision TaskMessageKind = "tool_policy_decision"
 )
 
 // AllValues returns all TaskMessageKind values.
@@ -55227,6 +55228,7 @@ func (TaskMessageKind) AllValues() []TaskMessageKind {
 		TaskMessageKindTurnEnd,
 		TaskMessageKindError,
 		TaskMessageKindInfo,
+		TaskMessageKindToolPolicyDecision,
 	}
 }
 
@@ -55244,6 +55246,8 @@ func (s TaskMessageKind) MarshalText() ([]byte, error) {
 	case TaskMessageKindError:
 		return []byte(s), nil
 	case TaskMessageKindInfo:
+		return []byte(s), nil
+	case TaskMessageKindToolPolicyDecision:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -55270,6 +55274,9 @@ func (s *TaskMessageKind) UnmarshalText(data []byte) error {
 		return nil
 	case TaskMessageKindInfo:
 		*s = TaskMessageKindInfo
+		return nil
+	case TaskMessageKindToolPolicyDecision:
+		*s = TaskMessageKindToolPolicyDecision
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

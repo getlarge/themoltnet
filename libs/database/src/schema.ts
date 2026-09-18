@@ -174,6 +174,7 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
   'turn_end',
   'error',
   'info',
+  'tool_policy_decision',
 ]);
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
@@ -1936,6 +1937,15 @@ export const taskMessages = pgTable(
   (table) => [
     primaryKey({ columns: [table.taskId, table.attemptN, table.seq] }),
     index('task_messages_task_attempt_idx').on(table.taskId, table.attemptN),
+    // Supports listing one attempt filtered by kind, in seq order. Without
+    // it, finding a rare kind — a policy refusal among thousands of
+    // text_delta rows — scans the attempt's whole message history.
+    index('task_messages_task_attempt_kind_seq_idx').on(
+      table.taskId,
+      table.attemptN,
+      table.kind,
+      table.seq,
+    ),
   ],
 );
 

@@ -1430,6 +1430,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           {
             afterSeq: request.query.afterSeq,
             limit: request.query.limit,
+            kinds: request.query.kind,
           },
           teamId,
         );

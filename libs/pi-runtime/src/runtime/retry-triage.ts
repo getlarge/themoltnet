@@ -7,6 +7,8 @@ import {
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
 
+import { REDACTED, redactKnownSecretShapes } from '../redact.js';
+
 export type PiRetryTriageThinkingLevel =
   | 'off'
   | 'minimal'
@@ -50,7 +52,6 @@ export type PiRetryTriage = (
 
 const MAX_TRIAGE_JSON_CHARS = 12_000;
 const MAX_TRIAGE_FIELD_CHARS = 2_000;
-const REDACTED = '[redacted]';
 
 const SECRET_KEY_PATTERN =
   /(?:api[_-]?key|token|secret|password|passwd|credential|authorization|private[_-]?key|access[_-]?token|refresh[_-]?token)/i;
@@ -215,14 +216,7 @@ function redactAndTruncate(value: unknown, path: string[]): unknown {
 }
 
 export function redactRetryTriageSecrets(value: string): string {
-  return value
-    .replace(/((?:bearer|basic)\s+)[a-z0-9._~+/=-]{16,}/gi, `$1${REDACTED}`)
-    .replace(/\bgh[pousr]_[a-z0-9_]{20,}\b/gi, REDACTED)
-    .replace(/\bsk-[a-z0-9_-]{16,}\b/gi, REDACTED)
-    .replace(
-      /\beyJ[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\.[a-z0-9_-]{20,}\b/gi,
-      REDACTED,
-    );
+  return redactKnownSecretShapes(value);
 }
 
 function truncateString(value: string, maxChars: number): string {
