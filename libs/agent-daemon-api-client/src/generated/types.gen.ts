@@ -52,6 +52,18 @@ export type AgentServerCatalogueProfile = {
 };
 
 export type AgentServerCatalogueTeam = {
+  available: boolean;
+  blockers: Array<{
+    code: string;
+    message: string;
+    remedy: string;
+  }>;
+  credential?: {
+    expiresAt?: string | null;
+    keyId: string;
+    scopes: Array<string>;
+    verifiedAt: string;
+  };
   defaultDiaryId: string | null;
   diaries: Array<{
     id: string;
@@ -95,6 +107,12 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
+  credential?: {
+    expiresAt?: string | null;
+    keyId: string;
+    scopes: Array<string>;
+    verifiedAt: string;
+  };
   diaryId?: string;
   endedAt?: string;
   exitCode?: number | null;
@@ -290,6 +308,58 @@ export type ReconcileAgentServerAgentResponses = {
 
 export type ReconcileAgentServerAgentResponse =
   ReconcileAgentServerAgentResponses[keyof ReconcileAgentServerAgentResponses];
+
+export type EnrollAgentServerTeamData = {
+  body?: {
+    code: string;
+    idempotencyKey: string;
+  } & (
+    | {
+        mode: 'enroll';
+      }
+    | {
+        mode: 'replace';
+        teamId: string;
+      }
+  );
+  path: {
+    agentName: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/teams';
+};
+
+export type EnrollAgentServerTeamErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type EnrollAgentServerTeamError =
+  EnrollAgentServerTeamErrors[keyof EnrollAgentServerTeamErrors];
+
+export type EnrollAgentServerTeamResponses = {
+  /**
+   * Default Response
+   */
+  200:
+    | {
+        keyId: string;
+        state: 'persisted';
+        teamId: string;
+      }
+    | {
+        issuedKeyId?: string;
+        message: string;
+        recoveryId: string;
+        secretCaptured: boolean;
+        state: 'recovery_required';
+      };
+};
+
+export type EnrollAgentServerTeamResponse =
+  EnrollAgentServerTeamResponses[keyof EnrollAgentServerTeamResponses];
 
 export type GetAgentServerCatalogueData = {
   body?: never;

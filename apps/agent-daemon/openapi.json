@@ -287,6 +287,65 @@
       },
       "AgentServerCatalogueTeam": {
         "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "blockers": {
+            "items": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "remedy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "remedy"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "credential": {
+            "properties": {
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "keyId": {
+                "type": "string"
+              },
+              "scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "verifiedAt": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "keyId",
+              "verifiedAt",
+              "scopes"
+            ],
+            "type": "object"
+          },
           "defaultDiaryId": {
             "anyOf": [
               {
@@ -325,6 +384,8 @@
         "required": [
           "teamId",
           "teamName",
+          "available",
+          "blockers",
           "diaries",
           "defaultDiaryId"
         ],
@@ -463,6 +524,40 @@
         "properties": {
           "agent": {
             "type": "string"
+          },
+          "credential": {
+            "properties": {
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "keyId": {
+                "type": "string"
+              },
+              "scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "verifiedAt": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "keyId",
+              "verifiedAt",
+              "scopes"
+            ],
+            "type": "object"
           },
           "diaryId": {
             "type": "string"
@@ -1081,6 +1176,169 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReconcileAgentResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/v1/agents/{agentName}/teams": {
+      "post": {
+        "operationId": "enrollAgentServerTeam",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "properties": {
+                      "code": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "idempotencyKey": {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "idempotencyKey"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "mode": {
+                            "enum": [
+                              "enroll"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "mode": {
+                            "enum": [
+                              "replace"
+                            ],
+                            "type": "string"
+                          },
+                          "teamId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "teamId"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "keyId": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "enum": [
+                            "persisted"
+                          ],
+                          "type": "string"
+                        },
+                        "teamId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "teamId",
+                        "keyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "issuedKeyId": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "recoveryId": {
+                          "type": "string"
+                        },
+                        "secretCaptured": {
+                          "type": "boolean"
+                        },
+                        "state": {
+                          "enum": [
+                            "recovery_required"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "secretCaptured",
+                        "recoveryId",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  ]
                 }
               }
             },
