@@ -141,6 +141,10 @@ describe('SDK team enrollment persistence and reconnect', () => {
     expect(second.reference.key).toBe(`agent-key/${agent.agentId}/${b.teamId}`);
     await updateConfig((config) => {
       delete config.oauth2;
+      config.agent_key_ref = {
+        provider: provider.name,
+        key: `agent-key/${config.subject_id}`,
+      };
     }, dir);
     const config = await readConfig(dir);
     expect(config?.agent_key_refs).toEqual({
@@ -243,6 +247,10 @@ describe('SDK team enrollment persistence and reconnect', () => {
     );
     await updateConfig((config) => {
       delete config.oauth2;
+      config.agent_key_ref = {
+        provider: provider.name,
+        key: `agent-key/${config.subject_id}`,
+      };
     }, dir);
     const reconnected = await connect({
       configDir: dir,
@@ -254,10 +262,14 @@ describe('SDK team enrollment persistence and reconnect', () => {
   });
 });
 
-it('persists proof enrollment and renewal without using the configured OAuth credentials', async () => {
+it('persists proof enrollment and renewal without any usable API credential', async () => {
   const { dir, provider } = await localIdentity();
   await updateConfig((config) => {
     delete config.oauth2;
+    config.agent_key_ref = {
+      provider: provider.name,
+      key: `agent-key/${config.subject_id}`,
+    };
   }, dir);
   const invite = await invitation();
   const signer = {
