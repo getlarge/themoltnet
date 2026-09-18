@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/shell-command-analyzer-v0.3.0...shell-command-analyzer-v0.4.0) (2026-09-18)
+
+
+### Features
+
+* **shell-command-analyzer:** resolve subcommand-scoped git escape flags ([bc15533](https://github.com/getlarge/themoltnet/commit/bc155333d3a6a5102d96f01a2ff0433b9477e769)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Bug Fixes
+
+* **tool-policy:** refuse execution-redirecting env prefixes and quoted escapes ([431fb6b](https://github.com/getlarge/themoltnet/commit/431fb6b775f94aac1a4e5e1a23194a6ef4ba1087)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/shell-command-analyzer-v0.2.0...shell-command-analyzer-v0.3.0) (2026-07-29)
 
 

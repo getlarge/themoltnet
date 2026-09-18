@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.74.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.73.0...moltnet-api-client-v1.74.0) (2026-09-18)
+
+
+### Features
+
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Bug Fixes
+
+* **tool-policy:** refresh generated spec, clients and action bundle ([56b293f](https://github.com/getlarge/themoltnet/commit/56b293fcb5c2fd85248ac569023e911d95628124)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
 ## [1.73.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.72.0...moltnet-api-client-v1.73.0) (2026-09-16)
 
 

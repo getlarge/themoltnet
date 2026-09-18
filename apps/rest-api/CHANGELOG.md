@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.59.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.58.2...rest-api-v0.59.0) (2026-09-18)
+
+
+### Features
+
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Bug Fixes
+
+* **tool-policy:** bound model-controlled names and stop dropping late refusals ([c870f4d](https://github.com/getlarge/themoltnet/commit/c870f4d31884e1a0e610530f1a04ed12d9f71526)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+* **tool-policy:** refresh generated spec, clients and action bundle ([56b293f](https://github.com/getlarge/themoltnet/commit/56b293fcb5c2fd85248ac569023e911d95628124)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.13.0
+
 ## [0.58.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.58.1...rest-api-v0.58.2) (2026-09-15)
 
 

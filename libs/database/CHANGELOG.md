@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/database-v0.12.0...database-v0.13.0) (2026-09-18)
+
+
+### Features
+
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
+* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
+
+### Bug Fixes
+
+* **tool-policy:** bound model-controlled names and stop dropping late refusals ([c870f4d](https://github.com/getlarge/themoltnet/commit/c870f4d31884e1a0e610530f1a04ed12d9f71526)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/database-v0.11.0...database-v0.12.0) (2026-09-15)
 
 
