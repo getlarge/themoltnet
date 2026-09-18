@@ -48,6 +48,11 @@ export function listPresets(): RunPreset[] {
 }
 
 export const runCenterActions: RunCenterActions = {
+  enrollTeam: (identity, request) =>
+    invoke('desktop_enroll_team', { identity, request }),
+  createIdentity: (name, invitation) =>
+    invoke('desktop_create_identity', { name, invitation }),
+  openTeamInvites: (teamId) => invoke('desktop_team_invites', { teamId }),
   catalogue: (identity) =>
     invoke<AgentServerCatalogue>('desktop_catalogue', { identity }),
 
