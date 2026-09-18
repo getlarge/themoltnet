@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { credentialLabel, expiryLabel } from './credential-health.js';
 import type {
@@ -49,6 +49,11 @@ export function TeamsView({
     error: boolean;
   } | null>(null);
   const inFlight = useRef(false);
+  const invitationId = useId();
+  useEffect(() => {
+    if (mode === 'replace' && team)
+      document.getElementById(invitationId)?.focus();
+  }, [mode, team, invitationId]);
   const [refreshVersion, setRefreshVersion] = useState(0);
   useEffect(() => {
     let current = true;
@@ -160,16 +165,25 @@ export function TeamsView({
   return (
     <Stack gap={6}>
       <Stack gap={2}>
-        <Button
-          variant="secondary"
-          disabled={busy || loading || !identity}
-          onClick={() => setRefreshVersion((value) => value + 1)}
+        <Stack
+          direction="row"
+          align="center"
+          justify="space-between"
+          wrap
+          gap={3}
         >
-          Refresh team access
-        </Button>
-        <Text as="h1" variant="h4">
-          Identity and teams
-        </Text>
+          <Text as="h1" variant="h4">
+            Identity and teams
+          </Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy || loading || !identity}
+            onClick={() => setRefreshVersion((value) => value + 1)}
+          >
+            Refresh team access
+          </Button>
+        </Stack>
         <Text color="secondary">
           Enroll this identity with an invitation from your team’s Console.
         </Text>
@@ -311,6 +325,7 @@ export function TeamsView({
             />
           ) : null}
           <Input
+            id={invitationId}
             label="Single-use invitation"
             type="password"
             autoComplete="off"
