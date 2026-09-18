@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { desktopBridge } from '../bridge.js';
+import { expiryLabel } from './credential-health.js';
 import { duration, pluralize, relativeTime } from './format.js';
 import { ProfileChain, TaskTypeRow } from './RunsView.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
@@ -36,6 +37,30 @@ export function RunDetail({
   onBack,
   onRunAgain,
 }: RunDetailProps) {
+  const [currentCredential, setCurrentCredential] =
+    useState<DesktopRun['credential']>();
+  useEffect(() => {
+    let active = true;
+    setCurrentCredential(undefined);
+    const refresh = async () => {
+      try {
+        const catalogue = await actions.catalogue(run.agent);
+        if (active)
+          setCurrentCredential(
+            catalogue.teams.find((team) => team.teamId === run.teamId)
+              ?.credential,
+          );
+      } catch {
+        if (active) setCurrentCredential(undefined);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 30000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [actions, run.agent, run.teamId]);
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [stopping, setStopping] = useState(false);
@@ -58,6 +83,21 @@ export function RunDetail({
 
   return (
     <Stack gap={6}>
+      <Text variant="caption" color="secondary">
+        Run credential: {expiryLabel(run.credential?.expiresAt)}
+      </Text>
+      {run.active &&
+      currentCredential &&
+      run.credential &&
+      currentCredential.keyId !== run.credential.keyId ? (
+        <InlineNotice
+          tone="warning"
+          title="Replacement available—restart to use it"
+        >
+          This run continues with its captured predecessor credential. Stop and
+          restart it when ready.
+        </InlineNotice>
+      ) : null}
       <Stack gap={2}>
         <Button
           variant="ghost"
