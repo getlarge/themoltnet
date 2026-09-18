@@ -239,7 +239,7 @@ describe('buildCatalogue', () => {
   });
   it('keeps usable B and cached A metadata when A fails without leaking upstream errors', async () => {
     const agent = port();
-    const readTeam = agent.readTeam;
+    const readTeam = agent.readTeam.bind(agent);
     agent.readTeam = (teamId) =>
       teamId === TEAM_A
         ? Promise.reject(

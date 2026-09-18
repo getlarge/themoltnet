@@ -1361,7 +1361,6 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         expect.objectContaining({
           teamId,
           available: false,
-          credential: expect.objectContaining({ keyId: aKeys.items[0].id }),
         }),
         expect.objectContaining({ teamId: teamB.id, available: true }),
       ]),
@@ -1371,6 +1370,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         (profile) => profile.teamId !== teamId,
       ),
     ).toBe(true);
+    expect(
+      afterRevocation.data?.teams.find((team) => team.teamId === teamId)
+        ?.credential?.keyId,
+    ).toBe(aKeys.items[0].id);
     expect(afterRevocation.data?.defaultTeamId).toBe(teamB.id);
     const deniedTask = await agent.tasks.create(
       {
