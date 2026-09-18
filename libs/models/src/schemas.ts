@@ -378,6 +378,7 @@ export const CreateTeamInviteSchema = Type.Object({
 
 export const JoinTeamSchema = Type.Object({
   code: Type.String({ minLength: 1 }),
+  issueAgentKey: Type.Optional(Type.Literal(true)),
 });
 
 export const UpdateTeamMemberRoleSchema = Type.Object({
@@ -450,11 +451,7 @@ export const TeamDetailSchema = Type.Object({
 
 export const JoinTeamResponseSchema = Type.Object({
   teamId: UuidSchema,
-  role: Type.Union([
-    Type.Literal('manager'),
-    Type.Literal('executor'),
-    Type.Literal('member'),
-  ]),
+  role: TeamRoleSchema,
 });
 
 export const UpdateTeamMemberRoleResponseSchema = Type.Object({

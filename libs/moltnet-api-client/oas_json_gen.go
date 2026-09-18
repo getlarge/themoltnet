@@ -56474,6 +56474,44 @@ func (s *InjectionThreat) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes JoinTeamBadGateway as json.
+func (s *JoinTeamBadGateway) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes JoinTeamBadGateway from json.
+func (s *JoinTeamBadGateway) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode JoinTeamBadGateway to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = JoinTeamBadGateway(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *JoinTeamBadGateway) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *JoinTeamBadGateway) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes JoinTeamBadRequest as json.
 func (s *JoinTeamBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -56636,6 +56674,12 @@ func (s *JoinTeamOK) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *JoinTeamOK) encodeFields(e *jx.Encoder) {
 	{
+		if s.AgentKey.Set {
+			e.FieldStart("agentKey")
+			s.AgentKey.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("role")
 		s.Role.Encode(e)
 	}
@@ -56645,9 +56689,10 @@ func (s *JoinTeamOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfJoinTeamOK = [2]string{
-	0: "role",
-	1: "teamId",
+var jsonFieldsNameOfJoinTeamOK = [3]string{
+	0: "agentKey",
+	1: "role",
+	2: "teamId",
 }
 
 // Decode decodes JoinTeamOK from json.
@@ -56659,8 +56704,18 @@ func (s *JoinTeamOK) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "agentKey":
+			if err := func() error {
+				s.AgentKey.Reset()
+				if err := s.AgentKey.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentKey\"")
+			}
 		case "role":
-			requiredBitSet[0] |= 1 << 0
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.Role.Decode(d); err != nil {
 					return err
@@ -56670,7 +56725,7 @@ func (s *JoinTeamOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"role\"")
 			}
 		case "teamId":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -56691,7 +56746,7 @@ func (s *JoinTeamOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -56753,6 +56808,8 @@ func (s *JoinTeamOKRole) Decode(d *jx.Decoder) error {
 	}
 	// Try to use constant string.
 	switch JoinTeamOKRole(v) {
+	case JoinTeamOKRoleOwner:
+		*s = JoinTeamOKRoleOwner
 	case JoinTeamOKRoleManager:
 		*s = JoinTeamOKRoleManager
 	case JoinTeamOKRoleExecutor:
@@ -56792,10 +56849,17 @@ func (s *JoinTeamReq) encodeFields(e *jx.Encoder) {
 		e.FieldStart("code")
 		e.Str(s.Code)
 	}
+	{
+		if s.IssueAgentKey.Set {
+			e.FieldStart("issueAgentKey")
+			s.IssueAgentKey.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfJoinTeamReq = [1]string{
+var jsonFieldsNameOfJoinTeamReq = [2]string{
 	0: "code",
+	1: "issueAgentKey",
 }
 
 // Decode decodes JoinTeamReq from json.
@@ -56818,6 +56882,16 @@ func (s *JoinTeamReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "issueAgentKey":
+			if err := func() error {
+				s.IssueAgentKey.Reset()
+				if err := s.IssueAgentKey.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"issueAgentKey\"")
 			}
 		default:
 			return d.Skip()
@@ -56871,6 +56945,38 @@ func (s *JoinTeamReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *JoinTeamReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes JoinTeamReqIssueAgentKey as json.
+func (s JoinTeamReqIssueAgentKey) Encode(e *jx.Encoder) {
+	e.Bool(bool(s))
+}
+
+// Decode decodes JoinTeamReqIssueAgentKey from json.
+func (s *JoinTeamReqIssueAgentKey) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode JoinTeamReqIssueAgentKey to nil")
+	}
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	*s = JoinTeamReqIssueAgentKey(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s JoinTeamReqIssueAgentKey) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *JoinTeamReqIssueAgentKey) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -74731,6 +74837,39 @@ func (s *OptAgentKeyBindingScope) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes AgentKeyWithSecret as json.
+func (o OptAgentKeyWithSecret) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes AgentKeyWithSecret from json.
+func (o *OptAgentKeyWithSecret) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptAgentKeyWithSecret to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptAgentKeyWithSecret) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptAgentKeyWithSecret) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ApproveSigningCredentialReq as json.
 func (o OptApproveSigningCredentialReq) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -75896,6 +76035,39 @@ func (s OptInt) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptInt) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes JoinTeamReqIssueAgentKey as json.
+func (o OptJoinTeamReqIssueAgentKey) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Bool(bool(o.Value))
+}
+
+// Decode decodes JoinTeamReqIssueAgentKey from json.
+func (o *OptJoinTeamReqIssueAgentKey) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptJoinTeamReqIssueAgentKey to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptJoinTeamReqIssueAgentKey) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptJoinTeamReqIssueAgentKey) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

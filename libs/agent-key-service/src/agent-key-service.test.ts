@@ -92,6 +92,131 @@ describe('agent key service', () => {
     relationshipReader.isTeamMember.mockResolvedValue(true);
   });
 
+  const enrollment = {
+    inviteId: '66666666-6666-4666-8666-666666666666',
+    agentId: AGENT_ID,
+    teamId: TEAM_ID,
+  };
+
+  it('uses the completed invite grant as the only issuance identity and never rotates replay', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey(),
+    });
+    const result = await service.issueEnrollment({
+      grant: enrollment,
+      logger,
+    });
+    expect(result.key.id).toBe(KEY_ID);
+    expect(result.secret).toBeUndefined();
+    expect(
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest,
+    ).toMatchObject({
+      request_id: enrollment.inviteId,
+      actor_id: AGENT_ID,
+      scopes: [...AGENT_CREDENTIAL_SCOPES],
+      metadata: {
+        schema_version: 2,
+        subject_type: 'agent',
+        binding_scope: 'team',
+        team_id: TEAM_ID,
+      },
+    });
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+    expect(permissionChecker.canManageTeamCredentials).not.toHaveBeenCalled();
+  });
+
+  it('does not revoke a replayed key if the current grant preset has changed', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: ['agent:profile'] }),
+    });
+    const result = await service.issueEnrollment({
+      grant: enrollment,
+      logger,
+    });
+    expect(result.key.id).toBe(KEY_ID);
+    expect(result.secret).toBeUndefined();
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+    expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('does not issue an enrollment key after membership is removed', async () => {
+    relationshipReader.isTeamMember.mockResolvedValue(false);
+    await expect(
+      service.issueEnrollment({ grant: enrollment, logger }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+  });
+
+  it('revokes before returning when membership disappears during issuance', async () => {
+    relationshipReader.isTeamMember
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey(),
+      secret: 'must-not-escape',
+    });
+    await expect(
+      service.issueEnrollment({ grant: enrollment, logger }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ keyId: KEY_ID }),
+      expect.anything(),
+    );
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(
+      'must-not-escape',
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+      'must-not-escape',
+    );
+  });
+
+  it('bounds Talos issuance with a service-owned deadline and records timeout without secrets', async () => {
+    const controller = new AbortController();
+    const timeout = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(controller.signal);
+    talosApi.adminIssueApiKey.mockImplementation((_request, init) => {
+      if (!init || typeof init === 'function' || !init.signal) {
+        throw new Error('Expected a service-owned abort signal');
+      }
+      const deadline = new DOMException('deadline', 'TimeoutError');
+      controller.abort(deadline);
+      expect(init.signal.aborted).toBe(true);
+      return Promise.reject(deadline);
+    });
+    try {
+      await expect(
+        service.issueEnrollment({ grant: enrollment, logger }),
+      ).rejects.toMatchObject({ statusCode: 502 });
+      expect(timeout).toHaveBeenCalledWith(30_000);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inviteId: enrollment.inviteId,
+          agentId: AGENT_ID,
+          teamId: TEAM_ID,
+          failureKind: 'timeout',
+        }),
+        'agent_key.upstream_error',
+      );
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
+  it('revokes a malformed enrollment grant before returning a secret', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: ['key:manage'] }),
+      secret: 'must-not-escape',
+    });
+    await expect(
+      service.issueEnrollment({ grant: enrollment, logger }),
+    ).rejects.toMatchObject({ statusCode: 502 });
+    expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalled();
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+      'must-not-escape',
+    );
+  });
+
   it('issues with server-owned binding, scopes, and deterministic request id', async () => {
     talosApi.adminIssueApiKey.mockResolvedValue({
       issued_api_key: issuedKey(),

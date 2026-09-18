@@ -22928,7 +22928,7 @@ var createTeam = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Join a team using an invite code. Requires team:join; send no team header.
+* Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
 */
 var joinTeam = (options) => (options.client ?? client).post({
 	security: [
@@ -30598,7 +30598,10 @@ _Object_({
 		default: 168
 	}))
 });
-_Object_({ code: String$1({ minLength: 1 }) });
+_Object_({
+	code: String$1({ minLength: 1 }),
+	issueAgentKey: Optional(Literal(true))
+});
 _Object_({ role: Union([
 	Literal("manager"),
 	Literal("executor"),
@@ -30654,11 +30657,7 @@ _Object_({
 });
 _Object_({
 	teamId: UuidSchema,
-	role: Union([
-		Literal("manager"),
-		Literal("executor"),
-		Literal("member")
-	])
+	role: TeamRoleSchema
 });
 _Object_({
 	updated: Boolean$1(),

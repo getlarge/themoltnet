@@ -763,10 +763,12 @@ func (UnimplementedHandler) InitiateTransfer(ctx context.Context, req *InitiateT
 
 // JoinTeam implements joinTeam operation.
 //
-// Join a team using an invite code. Requires team:join; send no team header.
+// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
+// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+// replays return 409.
 //
 // POST /teams/join
-func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) (r JoinTeamRes, _ error) {
+func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq, params JoinTeamParams) (r JoinTeamRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

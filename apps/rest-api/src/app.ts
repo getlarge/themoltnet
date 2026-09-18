@@ -505,7 +505,7 @@ export async function registerApiRoutes(
     nonceRepository: options.nonceRepository,
   });
   await app.register(registrationRoutes);
-  await app.register(teamRoutes);
+  await app.register(teamRoutes, { talosApi: options.oryClients.apiKeys });
   await app.register(groupRoutes);
   await app.register(runtimeSlotRoutes);
   await app.register(runtimeSessionRoutes);

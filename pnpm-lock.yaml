@@ -1616,6 +1616,9 @@ importers:
 
   apps/rest-api-e2e:
     dependencies:
+      '@moltnet/agent-key-service':
+        specifier: workspace:*
+        version: link:../../libs/agent-key-service
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client

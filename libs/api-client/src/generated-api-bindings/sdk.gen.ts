@@ -3811,7 +3811,7 @@ export const createTeam = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Join a team using an invite code. Requires team:join; send no team header.
+ * Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
  */
 export const joinTeam = <ThrowOnError extends boolean = false>(
   options: Options<JoinTeamData, ThrowOnError>,

@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 
 import { createClient, joinTeam } from '@moltnet/api-client';
@@ -156,7 +156,7 @@ async function fixture(subjectNs = KetoNamespace.Agent) {
       subjectId,
       subjectNs,
       inviteId: invite.id,
-    },
+    } as RedeemTeamInvite,
   };
 }
 
@@ -254,14 +254,21 @@ describe('team invitation process recovery', () => {
   });
 
   it.each([
-    [KetoNamespace.Agent, 'claim'],
-    [KetoNamespace.Agent, 'membership'],
-    [KetoNamespace.Human, 'claim'],
-    [KetoNamespace.Human, 'membership'],
+    [KetoNamespace.Agent, 'claim', false],
+    [KetoNamespace.Agent, 'claim', true],
+    [KetoNamespace.Agent, 'membership', false],
+    [KetoNamespace.Agent, 'membership', true],
+    [KetoNamespace.Human, 'claim', false],
+    [KetoNamespace.Human, 'membership', false],
   ] as const)(
-    'resumes %s membership after process death at %s without consuming twice',
-    async (subjectNs, point) => {
+    'resumes %s membership after death at %s (enrollment=%s) without consuming twice',
+    async (subjectNs, point, enrollment) => {
       const { input, team, invite } = await fixture(subjectNs);
+      if (enrollment)
+        input.enrollment = {
+          idempotencyKey: randomUUID(),
+          codeHash: createHash('sha256').update(invite.code).digest('hex'),
+        };
       const first = start(input, point);
       await first.waitFor(`PAUSED:${point}`);
       first.child.kill('SIGKILL');

@@ -99,7 +99,7 @@ func runTeamsJoinCmd(apiURL, credPath, code string) error {
 	req := &moltnetapi.JoinTeamReq{
 		Code: code,
 	}
-	res, err := client.JoinTeam(context.Background(), req)
+	res, err := client.JoinTeam(context.Background(), req, moltnetapi.JoinTeamParams{})
 	if err != nil {
 		return fmt.Errorf("teams join: %w", formatTransportError(err))
 	}

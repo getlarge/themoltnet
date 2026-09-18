@@ -47997,8 +47997,21 @@
     },
     "/teams/join": {
       "post": {
-        "description": "Join a team using an invite code. Requires team:join; send no team header.",
+        "description": "Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.",
         "operationId": "joinTeam",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -48007,6 +48020,12 @@
                   "code": {
                     "minLength": 1,
                     "type": "string"
+                  },
+                  "issueAgentKey": {
+                    "enum": [
+                      true
+                    ],
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -48024,8 +48043,17 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "agentKey": {
+                      "$ref": "#/components/schemas/AgentKeyWithSecret"
+                    },
                     "role": {
                       "anyOf": [
+                        {
+                          "enum": [
+                            "owner"
+                          ],
+                          "type": "string"
+                        },
                         {
                           "enum": [
                             "manager"
@@ -48123,6 +48151,16 @@
             "description": "Default Response"
           },
           "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
             "content": {
               "application/json": {
                 "schema": {

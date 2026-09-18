@@ -4,7 +4,9 @@ import {
   type RelationshipWriter,
   type TeamInviteRole,
   TeamRelation,
+  teamRelationToRole,
   type TeamRole,
+  teamRoleRank,
   teamRoleToRelation,
 } from '@moltnet/auth';
 import {
@@ -19,12 +21,15 @@ export interface RedeemTeamInvite {
   inviteId: string;
   subjectId: string;
   subjectNs: KetoNamespace;
+  enrollment?: { idempotencyKey: string; codeHash: string };
 }
 interface InviteGrant {
   teamId: string;
   role: TeamInviteRole;
 }
-interface InviteResult {
+export interface InviteResult {
+  inviteId: string;
+  enrollmentCodeHash?: string;
   teamId: string;
   role: TeamRole;
 }
@@ -74,6 +79,18 @@ export function initTeamInviteWorkflow(): void {
         )
       )
         return 'owner' as const;
+      if (input.enrollment) {
+        const existing = members
+          .filter(
+            (member) =>
+              member.subjectId === input.subjectId &&
+              member.subjectNs === String(input.subjectNs),
+          )
+          .map((member) => teamRelationToRole(member.relation))
+          .sort((a, b) => teamRoleRank(b) - teamRoleRank(a))[0];
+        // A fresh enrollment invitation keeps an existing member's role.
+        if (existing) return existing;
+      }
       const relation = teamRoleToRelation(grant.role);
       // Reconcile a Keto write that succeeded before its checkpoint was saved.
       if (
@@ -121,7 +138,7 @@ export function initTeamInviteWorkflow(): void {
   workflow = DBOS.registerWorkflow(
     async (input: RedeemTeamInvite) => {
       const grant = await deps.transactionRunner.runInTransaction(
-        async () => {
+        async (): Promise<InviteGrant | InviteRejection> => {
           const invite = await deps.teamRepository.findInviteById(
             input.inviteId,
           );
@@ -165,7 +182,14 @@ export function initTeamInviteWorkflow(): void {
       for (;;) {
         try {
           const role = await grantMembership(input, grant);
-          return { teamId: grant.teamId, role };
+          return {
+            inviteId: input.inviteId,
+            teamId: grant.teamId,
+            role,
+            ...(input.enrollment
+              ? { enrollmentCodeHash: input.enrollment.codeHash }
+              : {}),
+          };
         } catch {
           DBOS.logger.warn({
             event: 'team_invite.membership_retry',
@@ -200,7 +224,19 @@ async function awaitInviteResult(id: string): Promise<InviteOutcome> {
   return outcome;
 }
 
+function enrollmentWorkflowId(agentId: string, idempotencyKey: string): string {
+  return `team-enrollment:${agentId}:${idempotencyKey}`;
+}
+
 export const teamInviteWorkflow = {
+  async findEnrollment(
+    agentId: string,
+    idempotencyKey: string,
+  ): Promise<InviteResult | null> {
+    const id = enrollmentWorkflowId(agentId, idempotencyKey);
+    if (!(await DBOS.getWorkflowStatus(id))) return null;
+    return unwrapInviteOutcome(await awaitInviteResult(id));
+  },
   // Only reconnect unfinished work. Completed joins still use the route's
   // current-membership checks, so replay cannot resurrect removed membership.
   async findPending(input: RedeemTeamInvite): Promise<InviteResult | null> {
@@ -222,6 +258,19 @@ export const teamInviteWorkflow = {
         'service-unavailable',
         'Team invite workflow is not ready',
       );
+    if (input.enrollment) {
+      if (input.subjectNs !== KetoNamespace.Agent)
+        throw createProblem(
+          'forbidden',
+          'Only agents may request an enrollment key',
+        );
+      const id = enrollmentWorkflowId(
+        input.subjectId,
+        input.enrollment.idempotencyKey,
+      );
+      await DBOS.startWorkflow(workflow, { workflowID: id })(input);
+      return unwrapInviteOutcome(await awaitInviteResult(id));
+    }
     for (let attempt = 0; ; attempt++) {
       const id = inviteWorkflowId(input, attempt);
       const status = await DBOS.getWorkflowStatus(id);

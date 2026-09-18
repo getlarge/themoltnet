@@ -8,6 +8,11 @@
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
+  type AgentKeyServiceDeps,
+  type AgentKeyWithSecret,
+  createAgentKeyService,
+} from '@moltnet/agent-key-service';
+import {
   KetoNamespace,
   requireAuth,
   TEAM_ROLE,
@@ -47,7 +52,10 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
+import { AgentKeyWithSecretSchema } from '../schemas/agent-keys.js';
+import { enrollTeamAgent } from '../services/team-enrollment.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requestAbortSignal } from '../utils/request-abort-signal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import {
   FOUNDING_ACCEPT_EVENT,
@@ -322,7 +330,16 @@ function getAuthContext(request: FastifyRequest) {
 
 // ── Routes ─────────────────────────────────────────────────────
 
-export function teamRoutes(fastify: FastifyInstance) {
+export function teamRoutes(
+  fastify: FastifyInstance,
+  options: { talosApi?: AgentKeyServiceDeps['talosApi'] } = {},
+) {
+  const keys = createAgentKeyService({
+    agentRepository: fastify.agentRepository,
+    permissionChecker: fastify.permissionChecker,
+    relationshipReader: fastify.relationshipReader,
+    talosApi: options.talosApi,
+  });
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
@@ -1051,17 +1068,30 @@ export function teamRoutes(fastify: FastifyInstance) {
         operationId: 'joinTeam',
         tags: ['teams'],
         description:
-          'Join a team using an invite code. Requires team:join; send no team header.',
+          'Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: JoinTeamSchema,
+        headers: Type.Object({
+          'idempotency-key': Type.Optional(
+            Type.String({ minLength: 1, maxLength: 200, pattern: '\\S' }),
+          ),
+        }),
         response: {
-          200: JoinTeamResponseSchema,
+          200: Type.Object({
+            ...JoinTeamResponseSchema.properties,
+            agentKey: Type.Optional(
+              Type.Unsafe<AgentKeyWithSecret>(
+                Type.Ref(AgentKeyWithSecretSchema.$id),
+              ),
+            ),
+          }),
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ConflictProblemDetailsSchema.$id),
           410: Type.Ref(ProblemDetailsSchema.$id),
+          502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
@@ -1069,6 +1099,33 @@ export function teamRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { subjectId, subjectNs: ns } = requireKetoSubject(request);
       const { code } = request.body;
+      if (request.body.issueAgentKey) {
+        if (ns !== KetoNamespace.Agent)
+          throw createProblem(
+            'forbidden',
+            'Only agents may request an enrollment key',
+          );
+        if (!options.talosApi)
+          throw createProblem(
+            'service-unavailable',
+            'Agent key management is not configured',
+          );
+        const result = await enrollTeamAgent(
+          { teamRepository: fastify.teamRepository, log: request.log },
+          keys,
+          {
+            subjectId,
+            subjectNs: ns,
+            code,
+            idempotencyKey: request.headers['idempotency-key'],
+            signal: requestAbortSignal(request, reply),
+          },
+        );
+        return reply
+          .header('Cache-Control', 'no-store')
+          .status(200)
+          .send(result);
+      }
 
       const invite = await fastify.teamRepository.findInviteByCode(code);
       if (!invite) {

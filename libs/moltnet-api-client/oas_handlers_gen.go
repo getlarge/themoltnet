@@ -17888,7 +17888,9 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 
 // handleJoinTeamRequest handles joinTeam operation.
 //
-// Join a team using an invite code. Requires team:join; send no team header.
+// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
+// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+// replays return 409.
 //
 // POST /teams/join
 func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -18042,6 +18044,16 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 			return
 		}
 	}
+	params, err := decodeJoinTeamParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeJoinTeamRequest(r)
@@ -18069,13 +18081,18 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 			OperationID:      "joinTeam",
 			Body:             request,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "idempotency-key",
+					In:   "header",
+				}: params.IdempotencyKey,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = *JoinTeamReq
-			Params   = struct{}
+			Params   = JoinTeamParams
 			Response = JoinTeamRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -18085,14 +18102,14 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 		](
 			m,
 			mreq,
-			nil,
+			unpackJoinTeamParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.JoinTeam(ctx, request)
+				response, err = s.h.JoinTeam(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.JoinTeam(ctx, request)
+		response, err = s.h.JoinTeam(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

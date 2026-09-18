@@ -7439,6 +7439,19 @@ func encodeJoinTeamResponse(response JoinTeamRes, w http.ResponseWriter, span tr
 
 		return nil
 
+	case *JoinTeamBadGateway:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(502)
+		span.SetStatus(codes.Error, http.StatusText(502))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
 	case *JoinTeamServiceUnavailable:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(503)

@@ -241,6 +241,7 @@ export const TeamsCreateOutputSchema = Type.Object({
 export const TeamsJoinOutputSchema = Type.Object({
   teamId: Type.String(),
   role: Type.Union([
+    Type.Literal('owner'),
     Type.Literal('manager'),
     Type.Literal('executor'),
     Type.Literal('member'),
