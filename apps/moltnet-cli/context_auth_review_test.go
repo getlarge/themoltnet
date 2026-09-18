@@ -54,10 +54,8 @@ func TestGuidedContextBootstrapsMultipleTeamKeys(t *testing.T) {
 	const other = "00000000-0000-0000-0000-000000000099"
 	_, server, _ := newTestServer(t, &stubDiaryHandler{})
 	key := TeamAgentKeyKey(subject, team)
-	if err := os.MkdirAll(filepath.Dir(filepath.Join(secretDir, key)), 0700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(secretDir, key), []byte("team-only"), 0600); err != nil {
+	provider := FileSecretProvider{Root: secretDir, Writable: true}
+	if err := provider.Set(key, "team-only"); err != nil {
 		t.Fatal(err)
 	}
 	// The other slot is deliberately unavailable: selecting team must not read it.
