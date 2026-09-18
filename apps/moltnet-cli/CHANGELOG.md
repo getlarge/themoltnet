@@ -1,20 +1,5 @@
 # Changelog
 
-## [3.2.0](https://github.com/getlarge/themoltnet/compare/cli-v3.1.0...cli-v3.2.0) (2026-09-18)
-
-
-### Features
-
-* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
-* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
-
-
-### Bug Fixes
-
-* **cli:** classify GraphQL documents the guard reads from a file ([5248f7e](https://github.com/getlarge/themoltnet/commit/5248f7edb923b9cf98b04f57bca1ac95eef66bb8))
-* **cli:** classify GraphQL documents the guard reads from a file ([a5704e1](https://github.com/getlarge/themoltnet/commit/a5704e155d8659b22e80d4bafe0a65f685c84fb1))
-* **tool-policy:** bound model-controlled names and stop dropping late refusals ([c870f4d](https://github.com/getlarge/themoltnet/commit/c870f4d31884e1a0e610530f1a04ed12d9f71526)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
-
 ## [3.1.0](https://github.com/getlarge/themoltnet/compare/cli-v3.0.0...cli-v3.1.0) (2026-09-16)
 
 
