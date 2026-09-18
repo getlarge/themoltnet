@@ -526,6 +526,30 @@ describe('agent keys', () => {
     expect(rotated.data?.key.id).not.toBe(keyId);
     expect(rotated.data?.secret).toBeTruthy();
 
+    // Simulate the caller losing the issuance response: replay only the old ID.
+    const replay = await rotateAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      path: { keyId },
+    });
+    expect(replay.response.status).toBe(409);
+    expect(replay.error).toMatchObject({
+      conflict: {
+        target: {
+          resource: 'agent-key',
+          keys: {
+            keyId: rotated.data!.key.id,
+            previousKeyId: keyId,
+            subjectId: agent.agentId,
+            bindingScope: 'team',
+            teamId: agent.personalTeamId,
+          },
+        },
+      },
+    });
+    expect(replay.error).not.toHaveProperty('secret');
+
     const oldCredential = await getWhoami({
       client,
       auth: () => secret,

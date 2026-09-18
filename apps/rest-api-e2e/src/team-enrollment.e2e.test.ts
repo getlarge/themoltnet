@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { createAgentKeyService } from '@moltnet/agent-key-service';
 import {
   type Client,
+  type ConflictProblemDetails,
   createAgentKey,
   createClient,
   createTeam,
@@ -13,6 +14,7 @@ import {
   deleteTeamInvite,
   getTeam,
   joinTeam,
+  revokeAgentKey,
 } from '@moltnet/api-client';
 import {
   AGENT_CREDENTIAL_SCOPES,
@@ -415,9 +417,32 @@ describe('team enrollment', () => {
     expect(original).toHaveLength(1);
     const replay = await enroll(invite.code, idempotencyKey, owner.accessToken);
     expect(replay.response.status).toBe(409);
+    expect(replay.error).toMatchObject({
+      conflict: {
+        target: {
+          resource: 'agent-key',
+          keys: {
+            keyId: original[0].key_id,
+            subjectId: owner.agentId,
+            teamId: invite.teamId,
+          },
+        },
+      },
+    });
     const after = await talosKeys(owner.agentId, invite.teamId);
     expect(after.map((k) => k.key_id)).toEqual(original.map((k) => k.key_id));
     expect(after[0].update_time).toEqual(original[0].update_time);
+    const conflict = replay.error as ConflictProblemDetails;
+    const keyId = conflict.conflict.target?.keys?.keyId;
+    expect(keyId).toBe(original[0].key_id);
+    const revoked = await revokeAgentKey({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': invite.teamId },
+      path: { keyId: keyId! },
+      body: { reason: 'key_compromise' },
+    });
+    expect(revoked.response.status).toBe(204);
     expect(await usage(invite.id)).toBe(true);
   });
 });

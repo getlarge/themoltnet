@@ -126,7 +126,21 @@ describe('team enrollment request', () => {
   it('returns conflict when Talos omits the previously issued secret', async () => {
     vi.mocked(teamInviteWorkflow.findEnrollment).mockResolvedValue(grant);
     keys.issueEnrollment.mockResolvedValue({ key: { id: 'key-1' } });
-    await expect(enroll()).rejects.toMatchObject({ statusCode: 409 });
+    await expect(enroll()).rejects.toMatchObject({
+      statusCode: 409,
+      extensions: {
+        conflict: {
+          target: {
+            resource: 'agent-key',
+            keys: {
+              keyId: 'key-1',
+              subjectId: input.subjectId,
+              teamId: grant.teamId,
+            },
+          },
+        },
+      },
+    });
     expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 

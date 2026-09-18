@@ -296,7 +296,7 @@ func runAgentsKeysCreateCmd(opts agentsKeysCreateOpts) error {
 	return runAgentsKeysCreateWithClient(context.Background(), client, opts)
 }
 
-func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Client, opts agentsKeysCreateOpts) error {
+func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Client, opts agentsKeysCreateOpts) (returnErr error) {
 	// The overwhelmingly common create is an agent minting for itself, and the
 	// server already knows who that is: it authorizes by comparing the request's
 	// agentId against the authenticated subject. Requiring the flag anyway made
@@ -313,7 +313,7 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 				err,
 			)
 		}
-		opts.agentID = whoami.IdentityId.String()
+		opts.agentID = whoami.SubjectId.String()
 	}
 	req, params, idempotencyKey, err := buildCreateAgentKey(opts)
 	if err != nil {
@@ -329,6 +329,14 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 		if err := store.requireAgentID(opts.agentID); err != nil {
 			return err
 		}
+	}
+	if store != nil {
+		store.expectedTeam = opts.teamID
+		store.expectedIdentity = opts.identityScoped
+		if err := store.reserve(); err != nil {
+			return err
+		}
+		defer store.close(&returnErr)
 	}
 	// When the CLI generated the idempotency key, a failed create must surface
 	// it so a bare re-run can reuse it instead of minting a duplicate credential
@@ -474,7 +482,7 @@ func runAgentsKeysRotateCmd(opts agentsKeysRotateOpts) error {
 	return runAgentsKeysRotateWithClient(context.Background(), client, opts)
 }
 
-func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Client, opts agentsKeysRotateOpts) error {
+func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Client, opts agentsKeysRotateOpts) (returnErr error) {
 	params, err := buildRotateAgentKeyParams(opts)
 	if err != nil {
 		return err
@@ -483,26 +491,44 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	if err != nil {
 		return err
 	}
+	if store != nil {
+		store.expectedTeam = opts.teamID
+		store.expectedIdentity = opts.identityScoped
+		if err := store.reserve(); err != nil {
+			return err
+		}
+		defer store.close(&returnErr)
+	}
+	if store != nil {
+		if err := store.capture(agentKeyRecovery{Stage: "rotation_outcome_unknown", CredentialsPath: store.credentialsPath,
+			Rotation: &rotationRecoveryRequest{APIURL: opts.apiURL, SubjectID: store.subjectID, KeyID: opts.keyID, TeamID: opts.teamID, IdentityScoped: opts.identityScoped},
+		}); err != nil {
+			return fmt.Errorf("could not persist rotation context; rotation was not attempted")
+		}
+	}
 	res, err := client.RotateAgentKey(ctx, params)
 	if err != nil {
+		if store != nil {
+			return store.rotationOutcomeUnknown()
+		}
 		return fmt.Errorf("agents keys rotate: %w", formatTransportError(err))
 	}
 	rotated, ok := res.(*moltnetapi.AgentKeyWithSecret)
 	if !ok {
+		if store != nil {
+			switch response := res.(type) {
+			case *moltnetapi.ConflictProblemDetails:
+				return store.reconcileRotation(response, opts.keyID)
+			case *moltnetapi.RotateAgentKeyUnauthorized, *moltnetapi.RotateAgentKeyForbidden, *moltnetapi.RotateAgentKeyNotFound:
+				store.retainRecovery = false
+			default:
+				return store.rotationOutcomeUnknown()
+			}
+		}
 		return formatAPIError(res)
 	}
 	if store != nil {
-		output := storedAgentKeyOutput{Key: rotated.Key}
-		agentID, _ := agentKeyAgentID(rotated.Key)
-		if err := store.requireAgentID(agentID); err != nil {
-			// The old secret is already invalid. Preserve the new one in the
-			// protected recovery artifact rather than binding it to the wrong
-			// identity or printing it.
-			output.AgentKeyRef = store.ref
-			output.CredentialsPath = store.credentialsPath
-			return store.fail(opts.out, output, "verify_identity", rotated.Secret, err)
-		}
-		return store.persist(opts.out, opts.errOut, output, rotated.Secret)
+		return store.persist(opts.out, opts.errOut, storedAgentKeyOutput{Key: rotated.Key}, rotated.Secret)
 	}
 	writeSecretNotice(opts.errOut)
 	return printJSONTo(opts.out, rotated)

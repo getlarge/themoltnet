@@ -148,4 +148,28 @@ describe('POST /teams/join enrollment', () => {
     expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
     expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
+  it('returns exact non-secret reconciliation identifiers on completed replay', async () => {
+    const issued = await talosApi.adminIssueApiKey();
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issued.issued_api_key,
+    });
+    vi.mocked(teamInviteWorkflow.findEnrollment).mockResolvedValue(grant);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers,
+      payload: { code, issueAgentKey: true },
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      conflict: {
+        target: {
+          resource: 'agent-key',
+          keys: { keyId: '01JENROLLMENT', subjectId: OWNER_ID, teamId },
+        },
+      },
+    });
+    expect(response.body).not.toContain('one-time-secret');
+    expect(response.body).not.toContain(code);
+  });
 });

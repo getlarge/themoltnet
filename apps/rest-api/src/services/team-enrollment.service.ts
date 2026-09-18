@@ -5,7 +5,7 @@ import { KetoNamespace } from '@moltnet/auth';
 import type { TeamRepository } from '@moltnet/database';
 import type { FastifyBaseLogger } from 'fastify';
 
-import { createProblem } from '../problems/index.js';
+import { createConflictProblem, createProblem } from '../problems/index.js';
 import { teamInviteWorkflow } from '../workflows/team-invite-workflow.js';
 
 /** Talos returns the secret directly to this request; DBOS never sees it. */
@@ -76,9 +76,18 @@ export async function enrollTeamAgent(
     signal: input.signal,
   });
   if (!issued.secret) {
-    throw createProblem(
-      'conflict',
+    throw createConflictProblem(
       'This enrollment already issued a key. Its original secret cannot be recovered; revoke it and use a fresh invitation.',
+      {
+        target: {
+          resource: 'agent-key',
+          keys: {
+            keyId: issued.key.id,
+            subjectId: input.subjectId,
+            teamId: grant.teamId,
+          },
+        },
+      },
     );
   }
   return {

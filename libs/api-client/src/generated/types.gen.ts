@@ -3542,7 +3542,7 @@ export type RotateAgentKeyErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */

@@ -312,29 +312,36 @@ func (r *SecretProviderRegistry) Ensure(ref SecretReference, value string) (chan
 // read-back while holding the provider/key lock, so a concurrent writer
 // cannot interleave between storage and verification.
 func (r *SecretProviderRegistry) Replace(ref SecretReference, value string) error {
+	_, err := r.ReplaceWithResult(ref, value)
+	return err
+}
+
+// ReplaceWithResult reports a completed write even when read-back verification fails.
+func (r *SecretProviderRegistry) ReplaceWithResult(ref SecretReference, value string) (written bool, err error) {
 	providerName, key, provider, err := r.provider(ref)
 	if err != nil {
-		return err
+		return written, err
 	}
 	if value == "" {
-		return fmt.Errorf("secret value is required")
+		return written, fmt.Errorf("secret value is required")
 	}
 	lock, err := safefile.AcquireNamed("secret-provider", providerName+"\x00"+key)
 	if err != nil {
-		return err
+		return written, err
 	}
 	defer lock.Close()
 	if err := provider.Set(key, value); err != nil {
-		return fmt.Errorf("store secret with provider %q: %w", providerName, err)
+		return written, fmt.Errorf("store secret with provider %q: %w", providerName, err)
 	}
+	written = true
 	verified, err := provider.Get(key)
 	if err != nil {
-		return fmt.Errorf("verify secret with provider %q: %w", providerName, err)
+		return written, fmt.Errorf("verify secret with provider %q: %w", providerName, err)
 	}
 	if verified != value {
-		return fmt.Errorf("verify secret with provider %q: stored value does not match", providerName)
+		return written, fmt.Errorf("verify secret with provider %q: stored value does not match", providerName)
 	}
-	return nil
+	return written, nil
 }
 
 func (r *SecretProviderRegistry) Delete(ref SecretReference) error {

@@ -869,7 +869,8 @@ func TestRunAgentsKeysCreate_DefaultsAgentIDFromWhoami(t *testing.T) {
 	handler := agentKeysStubHandler{
 		whoami: func() moltnetapi.GetWhoamiRes {
 			return &moltnetapi.Whoami{
-				IdentityId:  uuid.MustParse(testAgentID),
+				IdentityId:  uuid.New(),
+				SubjectId:   uuid.MustParse(testAgentID),
 				SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
 			}
 		},
@@ -904,7 +905,8 @@ func TestRunAgentsKeysCreate_ExplicitAgentIDWins(t *testing.T) {
 		whoami: func() moltnetapi.GetWhoamiRes {
 			whoamiCalls++
 			return &moltnetapi.Whoami{
-				IdentityId:  uuid.MustParse(testAgentID),
+				IdentityId:  uuid.New(),
+				SubjectId:   uuid.MustParse(testAgentID),
 				SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
 			}
 		},

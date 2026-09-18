@@ -146,10 +146,16 @@ func newTeamsJoinCmd() *cobra.Command {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			code, _ := cmd.Flags().GetString("code")
-			return runTeamsJoinCmd(apiURL, credPath, code)
+			issue, _ := cmd.Flags().GetBool("issue-agent-key")
+			store, _ := cmd.Flags().GetBool("store")
+			return runTeamsJoinWithOptions(teamsJoinOpts{apiURL: apiURL, credPath: credPath, code: code, issueAgentKey: issue, idempotencyKey: flagString(cmd, "idempotency-key"), store: agentKeyStoreOpts{enabled: store, destination: flagString(cmd, "destination")}, out: cmd.OutOrStdout(), errOut: cmd.ErrOrStderr()})
 		},
 	}
 	cmd.Flags().String("code", "", "Invite code (required)")
+	cmd.Flags().Bool("issue-agent-key", false, "Enroll this agent and issue a restricted team key")
+	cmd.Flags().Bool("store", false, "Store the issued key without printing its secret")
+	cmd.Flags().String("idempotency-key", "", "Stable enrollment request ID (required for key issuance)")
+	cmd.Flags().String("destination", "", "Secret provider for --store (default: os-keyring)")
 	_ = cmd.MarkFlagRequired("code")
 	return cmd
 }

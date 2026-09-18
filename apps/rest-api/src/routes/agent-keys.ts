@@ -6,6 +6,7 @@ import {
 } from '@moltnet/agent-key-service';
 import { requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
   ValidationProblemDetailsSchema,
@@ -243,7 +244,7 @@ export async function agentKeyRoutes(
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
           429: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
@@ -252,15 +253,19 @@ export async function agentKeyRoutes(
     },
     async (request, reply) => {
       const binding = operationBinding(request, request.query.bindingScope);
-      const rotated = await agentKeys.rotate({
-        ...binding,
-        keyId: request.params.keyId,
-        logger: request.log,
-        signal: requestAbortSignal(request, reply),
-        subject: authSubject(request),
-      });
-      fastify.tokenValidator.evictTalosKey(request.params.keyId);
-      return rotated;
+      try {
+        return await agentKeys.rotate({
+          ...binding,
+          keyId: request.params.keyId,
+          logger: request.log,
+          signal: requestAbortSignal(request, reply),
+          subject: authSubject(request),
+        });
+      } finally {
+        // Replay and ambiguous upstream failures may follow a committed rotation.
+        // Revalidate the predecessor instead of retaining cached authorization.
+        fastify.tokenValidator.evictTalosKey(request.params.keyId);
+      }
     },
   );
 

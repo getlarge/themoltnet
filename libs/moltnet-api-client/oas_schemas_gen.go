@@ -4625,6 +4625,7 @@ func (*ConflictProblemDetails) rejectSigningRequestRes()                  {}
 func (*ConflictProblemDetails) rejectTransferRes()                        {}
 func (*ConflictProblemDetails) renderContextPackRes()                     {}
 func (*ConflictProblemDetails) revokeSigningCredentialRes()               {}
+func (*ConflictProblemDetails) rotateAgentKeyRes()                        {}
 func (*ConflictProblemDetails) submitSignatureRes()                       {}
 func (*ConflictProblemDetails) suspendSigningCredentialRes()              {}
 func (*ConflictProblemDetails) updateContextPackRes()                     {}
@@ -47294,10 +47295,6 @@ func (*RevokeTaskGrantUnauthorized) revokeTaskGrantRes() {}
 type RotateAgentKeyBadGateway ProblemDetails
 
 func (*RotateAgentKeyBadGateway) rotateAgentKeyRes() {}
-
-type RotateAgentKeyConflict ProblemDetails
-
-func (*RotateAgentKeyConflict) rotateAgentKeyRes() {}
 
 type RotateAgentKeyForbidden ProblemDetails
 
