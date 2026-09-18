@@ -45,6 +45,7 @@ async function fixture() {
       fingerprint: 'fp',
       private_key_ref: { provider: 'file', key: 'identity/fp/seed' },
     },
+    agent_key_ref: { provider: 'file', key: agentKeyKey('subject') },
     agent_key_refs: {},
   };
   await writeConfig(config, dir);
@@ -129,6 +130,26 @@ describe('shared config updates', () => {
       registered_at: '2026-09-17',
     });
   });
+  it('rejects empty authentication and padded team IDs without changing the document', async () => {
+    const { dir, path } = await fixture();
+    const before = await readFile(path, 'utf8');
+    await expect(
+      updateConfig((config) => {
+        delete config.agent_key_ref;
+        config.agent_key_refs = {};
+      }, dir),
+    ).rejects.toThrow('authentication mechanism');
+    await expect(
+      updateTeamAgentKeyReference(
+        'subject',
+        ' a ',
+        { provider: 'file', key: agentKeyKey('subject', ' a ') },
+        dir,
+      ),
+    ).rejects.toThrow('whitespace');
+    expect(await readFile(path, 'utf8')).toBe(before);
+  });
+
   it('preserves all concurrent entries and unrelated fields', async () => {
     const { dir, path } = await fixture();
     const original = JSON.parse(await readFile(path, 'utf8')) as Record<

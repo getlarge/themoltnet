@@ -124,6 +124,7 @@ export type MoltNetConfigAnchor =
  */
 export interface AgentKeyConfiguration {
   agent_key_ref?: SecretReference;
+  /** Must be nonempty when this is the only authentication mechanism; checked on write. */
   agent_key_refs?: Record<string, SecretReference>;
 }
 
@@ -375,6 +376,15 @@ async function writeConfigUnlocked(
   options: WriteConfigOptions = {},
 ): Promise<string> {
   assertCanonicalConfig(config);
+  if (
+    !config.agent_key_ref &&
+    !Object.keys(config.agent_key_refs ?? {}).length &&
+    !config.oauth2?.client_id?.trim()
+  ) {
+    throw new Error(
+      'Config requires an authentication mechanism; an empty team key map is not sufficient',
+    );
+  }
   const dir = await resolveConfigDir(configDir);
   if (!dir) {
     throw new Error(

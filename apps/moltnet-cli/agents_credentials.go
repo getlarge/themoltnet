@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
@@ -278,31 +277,24 @@ func recoveryDestinationNotice(creds *CredentialsFile, requested, provider strin
 }
 
 func reconcileRecoveredCredentials(path string, original *CredentialsFile, clientID string, destination SecretReference) error {
-	lock, err := safefile.Acquire(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Close()
-	raw, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
-	if err != nil {
-		return err
-	}
-	var current CredentialsFile
-	var currentDocument map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &current); err != nil {
-		return fmt.Errorf("parse credentials: %w", err)
-	}
-	if err := json.Unmarshal(raw, &currentDocument); err != nil {
-		return fmt.Errorf("parse credentials document: %w", err)
-	}
-	if current.SubjectID != original.SubjectID || current.SubjectType != original.SubjectType || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
-		return fmt.Errorf("credentials subject, client, or OAuth2 source changed concurrently")
-	}
-	updated, err := updateCredentialsDocumentWithReference(currentDocument, clientID, destination)
-	if err != nil {
-		return err
-	}
-	return lock.Replace(raw, updated, maxMigrationConfigBytes)
+	return updateLockedCredentialsBytes(path, func(raw []byte) ([]byte, error) {
+		var current CredentialsFile
+		var currentDocument map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &current); err != nil {
+			return nil, fmt.Errorf("parse credentials: %w", err)
+		}
+		if err := json.Unmarshal(raw, &currentDocument); err != nil {
+			return nil, fmt.Errorf("parse credentials document: %w", err)
+		}
+		if current.SubjectID != original.SubjectID || current.SubjectType != original.SubjectType || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
+			return nil, fmt.Errorf("credentials subject, client, or OAuth2 source changed concurrently")
+		}
+		updated, err := updateCredentialsDocumentWithReference(currentDocument, clientID, destination)
+		if err != nil {
+			return nil, err
+		}
+		return updated, nil
+	})
 }
 
 func sameOAuth2Source(a, b *CredentialsFile) bool {

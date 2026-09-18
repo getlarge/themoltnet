@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
@@ -11,32 +12,25 @@ import (
 // Reload under the interoperable writer lock. Mutators change only their own
 // raw fields, preserving fields introduced by newer readers and other teams.
 func updateLockedCredentialsDocument(path, subjectID string, mutate func(map[string]json.RawMessage) error) error {
-	lock, err := safefile.Acquire(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Close()
-	current, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
-	if err != nil {
-		return err
-	}
-	creds, document, err := parseCredentialsDocument(current)
-	if err != nil {
-		return err
-	}
-	if subject, ok := creds.CanonicalSubject(); !ok || subject != subjectID {
-		return fmt.Errorf("credentials file subject anchor changed before update")
-	}
-	updated, err := rewriteCredentialsDocument(document, mutate)
-	if err != nil {
-		return err
-	}
-	return lock.Replace(current, updated, maxMigrationConfigBytes)
+	return updateLockedCredentialsBytes(path, func(current []byte) ([]byte, error) {
+		creds, document, err := parseCredentialsDocument(current)
+		if err != nil {
+			return nil, err
+		}
+		if subject, ok := creds.CanonicalSubject(); !ok || subject != subjectID {
+			return nil, fmt.Errorf("credentials file subject anchor changed before update")
+		}
+		updated, err := rewriteCredentialsDocument(document, mutate)
+		if err != nil {
+			return nil, err
+		}
+		return updated, nil
+	})
 }
 
 func updateTeamAgentKeyReference(path, subjectID, teamID string, reference SecretReference) error {
-	if teamID == "" {
-		return fmt.Errorf("team ID is required")
+	if teamID == "" || teamID != strings.TrimSpace(teamID) {
+		return fmt.Errorf("canonical team ID is required (no surrounding whitespace)")
 	}
 	if err := validateSelectedAgentKey(&selectedAgentKey{reference, teamID}, subjectID); err != nil {
 		return err
@@ -64,38 +58,34 @@ func updateTeamAgentKeyReference(path, subjectID, teamID string, reference Secre
 // Apply a mutation to a fresh document under the shared Go/Node lock. Retain
 // unknown fields, including fields nested in sections understood by this CLI.
 func updateCredentials(path string, expected *CredentialsFile, mutate func(*CredentialsFile) error) error {
-	lock, err := safefile.Acquire(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Close()
-	raw, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
-	if err != nil {
-		return err
-	}
-	var current CredentialsFile
-	if err := json.Unmarshal(raw, &current); err != nil {
-		return err
-	}
-	if current.Keys.PublicKey != expected.Keys.PublicKey || current.SubjectID != expected.SubjectID || current.SubjectType != expected.SubjectType || current.legacyIdentityID != expected.legacyIdentityID {
-		return fmt.Errorf("credentials identity changed before update")
-	}
-	before, err := json.Marshal(current)
-	if err != nil {
-		return err
-	}
-	if err := mutate(&current); err != nil {
-		return err
-	}
-	after, err := json.Marshal(current)
-	if err != nil {
-		return err
-	}
-	updated, err := mergeCredentialChanges(raw, before, after)
-	if err != nil {
-		return err
-	}
-	return lock.Replace(raw, append(updated, '\n'), maxMigrationConfigBytes)
+	return updateLockedCredentialsBytes(path, func(raw []byte) ([]byte, error) {
+		var current CredentialsFile
+		if err := json.Unmarshal(raw, &current); err != nil {
+			return nil, err
+		}
+		if current.Keys.PublicKey != expected.Keys.PublicKey || current.SubjectID != expected.SubjectID || current.SubjectType != expected.SubjectType || current.legacyIdentityID != expected.legacyIdentityID {
+			return nil, fmt.Errorf("credentials identity changed before update")
+		}
+		before, err := json.Marshal(current)
+		if err != nil {
+			return nil, err
+		}
+		if err := mutate(&current); err != nil {
+			return nil, err
+		}
+		if err := validateTeamKeyAuthentication(&current); err != nil {
+			return nil, err
+		}
+		after, err := json.Marshal(current)
+		if err != nil {
+			return nil, err
+		}
+		updated, err := mergeCredentialChanges(raw, before, after)
+		if err != nil {
+			return nil, err
+		}
+		return append(updated, '\n'), nil
+	})
 }
 
 // Only apply fields changed by the mutator. The typed round trip must not
@@ -131,4 +121,36 @@ func writeNewConfig(config *CredentialsFile, path string) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+// One lock/read/replace protocol for raw and typed credential updates.
+func updateLockedCredentialsBytes(path string, mutate func([]byte) ([]byte, error)) error {
+	lock, err := safefile.Acquire(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	current, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
+	if err != nil {
+		return err
+	}
+	updated, err := mutate(current)
+	if err != nil {
+		return err
+	}
+	var config CredentialsFile
+	if err := json.Unmarshal(updated, &config); err != nil {
+		return err
+	}
+	if err := validateTeamKeyAuthentication(&config); err != nil {
+		return err
+	}
+	return lock.Replace(current, updated, maxMigrationConfigBytes)
+}
+
+func validateTeamKeyAuthentication(config *CredentialsFile) error {
+	if config.AgentKeyRefs != nil && len(config.AgentKeyRefs) == 0 && config.AgentKeyRef == nil && strings.TrimSpace(config.OAuth2.ClientID) == "" {
+		return fmt.Errorf("config requires an authentication mechanism; an empty team key map is not sufficient")
+	}
+	return nil
 }

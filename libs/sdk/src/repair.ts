@@ -40,36 +40,34 @@ export async function repairConfig(opts?: {
     return { issues: [], config: null };
   }
 
-  validateConfig(config, issues);
-  await checkFilePaths(config, issues);
-
-  if (!isCanonicalConfig(config)) {
-    return { issues, config };
-  }
-
-  // Apply auto-fixes
-  if (!config.endpoints.mcp && config.endpoints.api) {
-    config.endpoints.mcp = deriveMcpUrl(config.endpoints.api);
-    issues.push({
-      field: 'endpoints.mcp',
-      problem: 'missing — derived from API endpoint',
-      action: 'fixed',
-    });
-  }
-
-  const hasAutoFixes = issues.some((i) => i.action === 'fixed');
-  if (hasAutoFixes && !opts?.dryRun) {
+  const inspectAndRepair = async (current: MoltNetConfig) => {
+    issues.length = 0;
+    validateConfig(current, issues);
+    await checkFilePaths(current, issues);
+    if (
+      isCanonicalConfig(current) &&
+      !current.endpoints.mcp &&
+      current.endpoints.api
+    ) {
+      current.endpoints.mcp = deriveMcpUrl(current.endpoints.api);
+      issues.push({
+        field: 'endpoints.mcp',
+        problem: 'missing — derived from API endpoint',
+        action: 'fixed',
+      });
+    }
+    config = current;
+  };
+  if (isCanonicalConfig(config) && !opts?.dryRun) {
     const subjectId = config.subject_id;
-    await updateConfig((current) => {
+    await updateConfig(async (current) => {
       if (current.subject_id !== subjectId)
         throw new Error('Config subject changed before repair');
-      if (!current.endpoints.mcp && current.endpoints.api) {
-        current.endpoints.mcp = deriveMcpUrl(current.endpoints.api);
-      }
-      config = current;
+      await inspectAndRepair(current);
     }, dir);
+  } else {
+    await inspectAndRepair(config);
   }
-
   return { issues, config };
 }
 

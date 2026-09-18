@@ -212,6 +212,9 @@ func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
 // writeConfigFile serializes config and hands the bytes to write, so replacing
 // a config and exclusively creating one share a single serialization.
 func writeConfigFile(config *CredentialsFile, path string, write func(path string, data []byte) error) error {
+	if err := validateTeamKeyAuthentication(config); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create config dir: %w", err)
 	}

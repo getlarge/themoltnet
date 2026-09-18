@@ -2,9 +2,12 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import * as configApi from '@moltnet/agent-config';
+import { withConfigLock } from '@moltnet/agent-config';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { MoltNetConfig } from '../src/credentials.js';
+
 import { repairConfig } from '../src/repair.js';
 
 describe('repairConfig', () => {
@@ -42,6 +45,41 @@ describe('repairConfig', () => {
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, filename), JSON.stringify(config));
   }
+
+  it('reports the document reloaded after a concurrent endpoint update', async () => {
+    await writeConfig(tempDir, 'moltnet.json', {
+      ...validConfig,
+      endpoints: { api: validConfig.endpoints.api, mcp: '' },
+    });
+    let repairing: ReturnType<typeof repairConfig>;
+    let entered!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const original = configApi.updateConfig;
+    const spy = vi
+      .spyOn(configApi, 'updateConfig')
+      .mockImplementation((...args) => {
+        entered();
+        return original(...args);
+      });
+    await withConfigLock(join(tempDir, 'moltnet.json'), async () => {
+      repairing = repairConfig({ configDir: tempDir });
+      await ready;
+      // Repair has read the original document and is waiting for this lock.
+      await writeConfig(tempDir, 'moltnet.json', {
+        ...validConfig,
+        endpoints: {
+          api: validConfig.endpoints.api,
+          mcp: 'https://custom.example/mcp',
+        },
+      });
+    });
+    const result = await repairing!;
+    spy.mockRestore();
+    expect(result.config?.endpoints.mcp).toBe('https://custom.example/mcp');
+    expect(result.issues.some((issue) => issue.action === 'fixed')).toBe(false);
+  });
 
   it('reports no issues for a valid config', async () => {
     await writeConfig(tempDir, 'moltnet.json', validConfig);

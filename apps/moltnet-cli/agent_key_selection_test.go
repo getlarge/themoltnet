@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -177,10 +179,23 @@ func TestInterruptedNodeWriterPreservesConfig(t *testing.T) {
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
+	assertBusy := func() {
+		t.Helper()
+		err := updateTeamAgentKeyReference(path, "subject", "a", SecretReference{Provider: "file", Key: TeamAgentKeyKey("subject", "a")})
+		if err == nil || !strings.Contains(err.Error(), "lock busy") {
+			t.Fatalf("expected busy lock: %v", err)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil || string(data) != sharedConfigFixture {
+			t.Fatal("blocked writer changed config")
+		}
+	}
+	assertBusy()
 	if err := cmd.Process.Kill(); err != nil {
 		t.Fatal(err)
 	}
 	_ = cmd.Wait()
+	assertBusy()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -435,5 +450,35 @@ func TestGoNodeSelectorSeedingKeepsChosenIdentity(t *testing.T) {
 	}
 	if after.DefaultIdentity != selected.DefaultIdentity {
 		t.Fatal("replaced an existing selection")
+	}
+}
+
+func TestNodeRespectsGoWriterLock(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+	if err := os.WriteFile(path, []byte(sharedConfigFixture), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := safefile.Acquire(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Close()
+	output, err := nodeConfigCommand("update", path, "node").CombinedOutput()
+	if err == nil || !strings.Contains(string(output), "lock busy") {
+		t.Fatalf("expected busy lock: %v %s", err, output)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != sharedConfigFixture {
+		t.Fatal("blocked Node writer changed config")
+	}
+}
+
+func TestRejectEmptyTeamAuthenticationAndPaddedTeamID(t *testing.T) {
+	config := &CredentialsFile{AgentKeyRefs: map[string]SecretReference{}}
+	if _, err := WriteConfigTo(config, filepath.Join(t.TempDir(), "moltnet.json")); err == nil {
+		t.Fatal("empty authentication accepted")
+	}
+	if err := updateTeamAgentKeyReference("unused", "subject", " a ", SecretReference{Provider: "file", Key: TeamAgentKeyKey("subject", " a ")}); err == nil {
+		t.Fatal("padded team accepted")
 	}
 }
