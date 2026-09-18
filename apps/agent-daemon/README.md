@@ -204,8 +204,8 @@ An agent key used by the daemon needs this least-privilege scope set:
 agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
 
-New keys also carry `diary:read`, `team:read` and `team:join`, which the Agent
-Server uses to name teams and diaries and to enroll into a team. Those are not
+New keys also carry `diary:read`, `team:read` and `team:join` -- read access to
+the agent's teams and their diaries, plus enrollment into a team. Those are not
 checked at startup, so a key issued before they existed still runs; the daemon
 reports which are missing instead.
 

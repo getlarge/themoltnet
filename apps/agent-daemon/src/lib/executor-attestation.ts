@@ -29,20 +29,16 @@ export const DAEMON_REQUIRED_SCOPES = DAEMON_MINIMUM_SCOPES;
 export const DAEMON_RECOMMENDED_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
 /**
- * What this credential can do beyond claiming and running work.
+ * Optional scopes this credential does not carry.
  *
- * `GET /agents/whoami` already tells the daemon its own scopes; this keeps that
- * answer instead of reducing it to pass/fail, so the Agent Server can say which
- * features are unavailable rather than leaving the operator to infer it from an
- * empty team picker.
+ * `GET /agents/whoami` already reports the credential's scopes; reducing that
+ * to pass/fail discards the part a caller can act on. Returned as scope names
+ * rather than capability flags on purpose -- which surface each scope unlocks
+ * belongs to the caller and changes with it, while the names do not.
  */
-export interface DaemonCredentialCapabilities {
-  /** Name the teams and diaries a run is composed from. */
-  canComposeRuns: boolean;
-  /** Enroll this agent into a team it is not yet a member of. */
-  canJoinTeams: boolean;
-  /** Optional scopes this key does not hold, in declaration order. */
-  missing: CredentialScope[];
+export function missingOptionalScopes(whoami: Whoami): CredentialScope[] {
+  const available = new Set(whoami.scopes ?? []);
+  return DAEMON_OPTIONAL_SCOPES.filter((scope) => !available.has(scope));
 }
 
 export interface AttestedDaemonRuntime extends PreparedDaemonRuntime {
@@ -104,25 +100,18 @@ export async function resolveExecutorSigningPrivateKey(input: {
   }
 }
 
-export function validateDaemonScopes(
-  whoami: Whoami,
-): DaemonCredentialCapabilities {
+export function validateDaemonScopes(whoami: Whoami): void {
   const available = new Set(whoami.scopes ?? []);
-  const missingRequired = DAEMON_REQUIRED_SCOPES.filter(
+  const missing = DAEMON_REQUIRED_SCOPES.filter(
     (scope) => !available.has(scope),
   );
-  if (missingRequired.length > 0) {
+  if (missing.length > 0) {
     throw new Error(
       'Daemon startup credential is missing required scopes: ' +
-        `${missingRequired.join(' ')}. Issue a replacement credential with ` +
+        `${missing.join(' ')}. Issue a replacement credential with ` +
         `${DAEMON_RECOMMENDED_SCOPES.join(' ')}.`,
     );
   }
-  return {
-    canComposeRuns: available.has('diary:read') && available.has('team:read'),
-    canJoinTeams: available.has('team:join'),
-    missing: DAEMON_OPTIONAL_SCOPES.filter((scope) => !available.has(scope)),
-  };
 }
 
 export async function validateExecutorSigningIdentity(input: {

@@ -62,7 +62,7 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
  * stops every daemon already in the field, and only a human with a Console
  * session can mint the replacement. Add one only when the daemon genuinely
  * cannot work without it; anything a caller merely benefits from belongs in
- * `DAEMON_OPTIONAL_SCOPES`, where its absence degrades one feature.
+ * `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
  *
  * `crypto:sign` is part of the minimum because host-capability signing runs on
  * the daemon's own credential: the local seed signer calls the signing-request
@@ -80,12 +80,13 @@ export const DAEMON_MINIMUM_SCOPES = [
 ] as const satisfies readonly CredentialScope[];
 
 /**
- * Scopes a daemon works better with but can run without.
+ * Read and enrollment authority a daemon uses when it has it, and runs without
+ * when it does not: reading the teams it belongs to and their diaries, and
+ * joining a team it is not yet a member of.
  *
- * Absence degrades one feature each rather than stopping the process:
- * `diary:read`/`team:read` let the Agent Server name the teams and diaries a
- * run is composed from, and `team:join` lets an agent enroll itself into a new
- * team. A key that lacks them still claims and executes work.
+ * Which product surface each one enables is deliberately not recorded here.
+ * That mapping belongs to whatever consumes the scope and changes with it,
+ * while the scope names are the contract and do not.
  */
 export const DAEMON_OPTIONAL_SCOPES = [
   CREDENTIAL_SCOPES.DiaryRead,
@@ -93,10 +94,7 @@ export const DAEMON_OPTIONAL_SCOPES = [
   CREDENTIAL_SCOPES.TeamJoin,
 ] as const satisfies readonly CredentialScope[];
 
-/**
- * What a newly issued agent key should carry: the floor plus everything the
- * daemon can make use of.
- */
+/** What a newly issued agent key should carry: the floor plus the rest. */
 export const AGENT_CREDENTIAL_SCOPES = [
   ...DAEMON_MINIMUM_SCOPES,
   ...DAEMON_OPTIONAL_SCOPES,

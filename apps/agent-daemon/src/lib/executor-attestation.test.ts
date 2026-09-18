@@ -30,6 +30,7 @@ vi.mock('@themoltnet/sdk/node', () => ({
 import {
   attestPreparedRuntime,
   DAEMON_REQUIRED_SCOPES,
+  missingOptionalScopes,
   resolveExecutorSigningPrivateKey,
   validateDaemonScopes,
   validateExecutorSigningIdentity,
@@ -193,38 +194,31 @@ describe('daemon credential validation', () => {
     ).not.toThrow();
   });
 
-  it('reports the optional capabilities such a key does not have', () => {
-    // Not fatal, but not silent either: the composer cannot name teams or
-    // diaries without these, and the operator should learn that from the
-    // daemon rather than from an empty picker.
-    const capabilities = validateDaemonScopes(
-      agentWhoami({
-        scopes: [
-          'agent:profile',
-          'crypto:sign',
-          'runtime:read',
-          'task:read',
-          'task:claim',
-          'task:execute',
-        ],
-      }),
-    );
-
-    expect(capabilities.canComposeRuns).toBe(false);
-    expect(capabilities.canJoinTeams).toBe(false);
-    expect(capabilities.missing).toEqual(
-      expect.arrayContaining(['diary:read', 'team:read', 'team:join']),
-    );
+  it('names the optional scopes such a key does not hold', () => {
+    // Scope names, not capability flags: what each one unlocks is the caller's
+    // business and moves with the product, while the names are the contract.
+    expect(
+      missingOptionalScopes(
+        agentWhoami({
+          scopes: [
+            'agent:profile',
+            'crypto:sign',
+            'runtime:read',
+            'task:read',
+            'task:claim',
+            'task:execute',
+          ],
+        }),
+      ),
+    ).toEqual(['diary:read', 'team:read', 'team:join']);
   });
 
-  it('reports full capabilities for a freshly issued key', () => {
-    const capabilities = validateDaemonScopes(
-      agentWhoami({ scopes: [...AGENT_CREDENTIAL_SCOPES] }),
-    );
-
-    expect(capabilities.canComposeRuns).toBe(true);
-    expect(capabilities.canJoinTeams).toBe(true);
-    expect(capabilities.missing).toEqual([]);
+  it('names nothing for a freshly issued key', () => {
+    expect(
+      missingOptionalScopes(
+        agentWhoami({ scopes: [...AGENT_CREDENTIAL_SCOPES] }),
+      ),
+    ).toEqual([]);
   });
 
   it('refuses a credential that cannot sign', () => {
