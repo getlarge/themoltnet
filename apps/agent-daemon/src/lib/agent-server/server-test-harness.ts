@@ -25,7 +25,7 @@ import { type connect, FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
-import { type ActivatedAgent, verifyAgentActivation } from './identity.js';
+import { type ActivatedAgent, type verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';

@@ -38,7 +38,7 @@ import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
-  verifyAgentActivation,
+  type verifyAgentActivation,
 } from './identity.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
 import type { RuntimeRegistry } from './runtime-registry.js';

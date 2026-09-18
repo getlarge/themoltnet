@@ -172,10 +172,7 @@ describe('run catalogue', () => {
   });
 
   it('sanitizes resource denial without misdiagnosing missing scopes', async () => {
-    // A credential's scopes are fixed when it is minted and no key can widen
-    // itself, so every key issued before `team:read`/`diary:read` joined the
-    // default fails here and can only be replaced by a human in Console. A
-    // bare 500 would send the operator looking for a server fault instead.
+    // A resource authorization denial is not evidence about credential scopes.
     const stale = Object.assign(new Error('upstream-secret-sentinel'), {
       statusCode: 403,
     });
