@@ -138,7 +138,7 @@ export function initTeamInviteWorkflow(): void {
   workflow = DBOS.registerWorkflow(
     async (input: RedeemTeamInvite) => {
       const grant = await deps.transactionRunner.runInTransaction(
-        async () => {
+        async (): Promise<InviteGrant | InviteRejection> => {
           const invite = await deps.teamRepository.findInviteById(
             input.inviteId,
           );

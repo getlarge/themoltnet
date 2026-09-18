@@ -175,9 +175,14 @@ describe('agent key service', () => {
     const timeout = vi
       .spyOn(AbortSignal, 'timeout')
       .mockReturnValue(controller.signal);
-    talosApi.adminIssueApiKey.mockImplementation(async (_request, init) => {
-      controller.abort(new DOMException('deadline', 'TimeoutError'));
-      init.signal.throwIfAborted();
+    talosApi.adminIssueApiKey.mockImplementation((_request, init) => {
+      if (!init || typeof init === 'function' || !init.signal) {
+        throw new Error('Expected a service-owned abort signal');
+      }
+      const deadline = new DOMException('deadline', 'TimeoutError');
+      controller.abort(deadline);
+      expect(init.signal.aborted).toBe(true);
+      return Promise.reject(deadline);
     });
     try {
       await expect(

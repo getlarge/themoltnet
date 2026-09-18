@@ -1,7 +1,7 @@
 import {
   KetoNamespace,
-  type TeamRole,
   type TeamInviteRole,
+  type TeamRole,
 } from '@moltnet/auth';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 

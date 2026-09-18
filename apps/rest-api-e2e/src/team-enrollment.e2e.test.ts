@@ -97,14 +97,11 @@ function enroll(
   });
 }
 async function usage(inviteId: string) {
-  return (
-    (
-      await harness.db
-        .select()
-        .from(teamInvites)
-        .where(eq(teamInvites.id, inviteId))
-    )[0]?.usedAt != null
-  );
+  const [invite] = await harness.db
+    .select()
+    .from(teamInvites)
+    .where(eq(teamInvites.id, inviteId));
+  return invite?.usedAt instanceof Date;
 }
 async function talosKeys(agentId: string, teamId: string) {
   const response = await harness.oryClients.apiKeys!.adminListIssuedApiKeys({

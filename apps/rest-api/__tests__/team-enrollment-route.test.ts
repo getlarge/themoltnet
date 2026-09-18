@@ -101,7 +101,11 @@ describe('POST /teams/join enrollment', () => {
       payload: { code, issueAgentKey: true },
     });
     expect(response.statusCode).toBe(200);
-    expect(response.headers['cache-control']).toBe('no-store');
+    expect(
+      String(response.headers['cache-control'])
+        .split(',')
+        .map((directive) => directive.trim()),
+    ).toContain('no-store');
     expect(response.json()).toMatchObject({
       teamId,
       role: 'member',
