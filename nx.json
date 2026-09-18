@@ -48,6 +48,7 @@
       "{workspaceRoot}/pnpm-workspace.yaml",
       "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/.npmrc",
+      "{workspaceRoot}/.nx/ci-config.yaml",
       "{workspaceRoot}/nx.json"
     ]
   },

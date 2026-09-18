@@ -1,0 +1,5 @@
+dte:
+  distribute-on: manual
+  assignment-rules: .nx/workflows/assignment-rules.yml
+lifecycle:
+  heartbeat: false

@@ -283,6 +283,11 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    env:
+      # All distributed jobs must join the execution opened here. Keeping a
+      # dedicated environment prevents other Nx commands in this workflow from
+      # being associated with the manual DTE lifecycle.
+      NX_CI_EXECUTION_ENV: distributed
     outputs:
       base: ${{ steps.shas-fallback.outputs.base }}
       head: ${{ steps.shas-fallback.outputs.head }}
@@ -529,11 +534,30 @@ jobs:
           GOBIN="$PWD/.cache/golangci-lint/v2.5.0/bin" \
             go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
 
-  # Nx Cloud DTE agents. Each matrix slot is a GitHub-hosted runner that
-  # calls `nx-cloud start-agent` and shuts down when the orchestrator
-  # marks the run complete. Tests use testcontainers internally for any
-  # Postgres they need — no GHA `services:` block required. Agents only
-  # need Docker (which `ubuntu-latest` ships with).
+      # Open the manual execution before either downstream job can start. The
+      # versioned .nx/ci-config.yaml disables the heartbeat so the execution
+      # remains available while GitHub queues the agents and orchestrator.
+      - name: Start Nx Cloud CI execution
+        if: steps.matrix.outputs.has-agents == 'true'
+        env:
+          NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm exec nx-cloud start-nx-agents; then
+              exit 0
+            fi
+            echo "::warning::nx-cloud start-nx-agents attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+          done
+          echo "::error::nx-cloud start-nx-agents failed after 3 attempts"
+          exit 1
+
+  # Nx Cloud DTE agents join the execution opened by `affected`. Each matrix
+  # slot is a GitHub-hosted runner that calls `nx-cloud start-agent` and stays
+  # connected until the orchestrator explicitly completes the run. Tests use
+  # testcontainers internally for any Postgres they need — no GHA `services:`
+  # block required. Agents only need Docker (which `ubuntu-latest` ships with).
   agents:
     name: 'Agent #${{ matrix.agent }}'
     runs-on: ubuntu-latest
@@ -550,6 +574,10 @@ jobs:
       matrix: ${{ fromJson(needs.affected.outputs.agents-matrix) }}
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+      NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
+      NX_CI_EXECUTION_ENV: distributed
+      NX_AGENT_NAME: github-${{ matrix.agent }}
+      NX_AGENT_LAUNCH_TEMPLATE: linux-medium
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
       # check:pack runs on these distributed workers, so its pre-merge
@@ -644,11 +672,12 @@ jobs:
           echo "::error::nx-cloud start-agent failed after 3 attempts"
           exit 1
 
-  # Orchestrator: opens the Nx Cloud DTE run, fans tasks to the agents,
-  # waits for completion. Replaces the legacy lint / typecheck / test
-  # jobs AND the standalone build-and-push matrix: `build` gates the
-  # SSR/lib outputs and `docker:build --configuration=ci` builds + pushes
-  # the affected app images to GHCR, all distributed across the agent pool.
+  # Orchestrator: joins the execution opened by `affected`, fans tasks to the
+  # agents, waits for completion, and explicitly closes the run even on ordinary
+  # failure. Replaces the legacy lint / typecheck / test jobs AND the standalone
+  # build-and-push matrix: `build` gates the SSR/lib outputs, while
+  # `docker:build --configuration=ci` builds + pushes the affected app images to
+  # GHCR, all distributed across the agent pool.
   orchestrator:
     name: Orchestrator (lint, typecheck, test, build, docker)
     runs-on: ubuntu-latest
@@ -656,12 +685,17 @@ jobs:
     permissions:
       contents: read
       # docker:build (configuration=ci) is distributed to agents which push to
-      # GHCR; the agents carry packages:write. The orchestrator only opens the
-      # DTE run, but inherits the token used to mint the GHCR push on agents.
+      # GHCR; the agents carry packages:write. The orchestrator coordinates and
+      # explicitly completes that same DTE run.
       packages: write
     needs: [affected]
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+      # start-nx-agents ran in `affected`, so this runner has no local DTE
+      # marker. Enable distribution explicitly while retaining the shared
+      # GitHub-derived execution ID and the `distributed` environment.
+      NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
+      NX_CI_EXECUTION_ENV: distributed
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
       # Tag for the distributed docker:build (configuration=ci) push. Must match
@@ -695,25 +729,6 @@ jobs:
         run: pnpm run check:axiom
       - name: Check formatting
         run: pnpm exec nx format:check
-
-      # The Nx Cloud CLI lazy-downloads its runner bundle from
-      # cloud.nx.app on first invocation. The download is sometimes
-      # transiently unavailable; retry the start command itself.
-      - name: Start Nx Cloud CI run
-        if: needs.affected.outputs.has-agents == 'true'
-        run: |
-          for attempt in 1 2 3; do
-            if pnpm exec nx-cloud start-ci-run \
-                --distribute-on=manual \
-                --assignment-rules=.nx/workflows/assignment-rules.yml \
-                --require-explicit-completion; then
-              exit 0
-            fi
-            echo "::warning::nx-cloud start-ci-run attempt $attempt failed, retrying in $((attempt * 10))s..."
-            sleep $((attempt * 10))
-          done
-          echo "::error::nx-cloud start-ci-run failed after 3 attempts"
-          exit 1
 
       # Single distributed graph: lint/typecheck/test-ci/build/check:pack AND
       # docker:build (configuration=ci) all enter the SAME `nx affected` wave,
