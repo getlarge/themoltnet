@@ -4,8 +4,12 @@ on:
   push:
     branches: [main]
   # Run stacked PRs too: a stack's upper PR targets the preceding branch,
-  # not main, and must still receive the same validation.
+  # not main, and must still receive the same validation. Draft PRs skip CI
+  # (see the `if:` on each root job) so a freshly pushed stack does not fan
+  # out one full run per layer; `ready_for_review` starts CI when a PR leaves
+  # draft.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -27,7 +31,7 @@ jobs:
   # newer agent-daemon release exists, without forcing the bump.
   installer-pin:
     name: Installer pin freshness
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -47,7 +51,7 @@ jobs:
     name: Commit Convention
     # Only a pull request has a well-defined range of *our* commits. Linting on
     # push would fail on history that predates this check.
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -279,6 +283,8 @@ jobs:
   # when the projects they cover are actually affected by the diff.
   affected:
     name: Compute affected
+    # Draft PRs skip CI; every job that needs `affected` skips with it.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -787,6 +793,7 @@ jobs:
 
   code-analysis:
     name: Code Analysis (Knip)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -879,6 +886,7 @@ jobs:
 
   cli-go-mod-sync:
     name: CLI go.mod Sync
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -1003,6 +1011,7 @@ jobs:
 
   audit:
     name: Dependency Audit
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 5
     continue-on-error: true
@@ -1104,6 +1113,7 @@ jobs:
   # which is the whole thing this is meant to stop.
   override-hygiene:
     name: Override Hygiene
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     # Re-resolves the workspace, so it needs more headroom than a bare audit.
     timeout-minutes: 10
@@ -1168,6 +1178,7 @@ jobs:
           exit 1
   openapi:
     name: OpenAPI Spec
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1796,6 +1807,7 @@ jobs:
 
   skill-check:
     name: Skill Validation
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

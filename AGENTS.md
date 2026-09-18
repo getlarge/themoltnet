@@ -154,6 +154,23 @@ that would attribute the action to the human account. Headless runtimes without
 the hook must follow their runtime instructor, which uses command-scoped App
 tokens because no human-token fallback is available there.
 
+## Pull Requests Open as Drafts
+
+**Always open pull requests as drafts** (`gh pr create --draft`) and mark
+them ready (`gh pr ready <number>`) only when the change should be validated
+and reviewed. CI skips draft PRs entirely and starts on `ready_for_review`.
+A full CI run fans out to roughly twenty jobs, and every repository workflow
+shares one account-wide concurrent-job limit, so non-draft PRs pushed together
+queue each other, `main`, and releases.
+
+For a stack of PRs, open every layer as a draft. Mark ready the bottom layer
+(the one targeting `main`) and, if you want the combined change validated
+early, the tip. After the bottom layer merges, mark the next one ready. Do not
+mark the whole stack ready at once.
+
+PRs opened by automation (release-please, workflow-created maintenance PRs)
+stay non-draft so their CI runs.
+
 ## This Repository Is Public
 
 `getlarge/themoltnet` is public. Issues, pull requests, commit messages and

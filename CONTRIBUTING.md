@@ -39,8 +39,11 @@ For a focused first change:
    pnpm exec nx run <project>:typecheck
    ```
 
-4. Open a pull request using the template. Explain the user problem, the
-   approach, and how you verified it.
+4. Open a draft pull request (`gh pr create --draft`) using the template.
+   Explain the user problem, the approach, and how you verified it. CI does
+   not run on drafts; mark the PR ready for review when it should be
+   validated. For stacked PRs, mark only the bottom layer (and optionally the
+   tip) ready; keep the others in draft until the layer below them merges.
 
 The repository uses pnpm workspaces and Nx. Prefer Nx targets for build, test,
 lint, typecheck, and serve tasks; `AGENTS.md` documents the exceptions.
