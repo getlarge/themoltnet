@@ -1,42 +1,5 @@
 # Changelog
 
-## [3.2.0](https://github.com/getlarge/themoltnet/compare/cli-v3.1.0...cli-v3.2.0) (2026-09-18)
-
-
-### Features
-
-* **auth:** separate invitation redemption from team management ([9714a6c](https://github.com/getlarge/themoltnet/commit/9714a6cfec79903092dd9bd41df48bd219dc6139))
-* **auth:** separate invitation redemption from team management ([14e2975](https://github.com/getlarge/themoltnet/commit/14e29750008640631361b2669399bb917af76ad5))
-* **cli:** enroll and store independent team credentials ([#2337](https://github.com/getlarge/themoltnet/issues/2337), 7/8) ([5e815c1](https://github.com/getlarge/themoltnet/commit/5e815c13485d2daee10deec3fd6c2923765d4e39))
-* **cli:** persist team enrollment and lifecycle credentials safely ([5f866ef](https://github.com/getlarge/themoltnet/commit/5f866efe4f6cf2dfa4e8069aafbe203259b203a6))
-* **cli:** select team credentials and migrate verified legacy keys ([25bce17](https://github.com/getlarge/themoltnet/commit/25bce171cc5fb979a1450b0c591fee4721ad5d6a))
-* **cli:** select team keys and migrate verified legacy grants ([0247115](https://github.com/getlarge/themoltnet/commit/024711556224748fa124fd70748e885bf40bf1f0))
-* **config:** add team key maps and interoperable writer locks ([7026982](https://github.com/getlarge/themoltnet/commit/70269824b29a805d7f8065091d5c6d5bf4eee10b))
-* **config:** share team credential selection and writer locks ([#2337](https://github.com/getlarge/themoltnet/issues/2337), 4/8) ([4e20b93](https://github.com/getlarge/themoltnet/commit/4e20b930343354a4e930836c908a5e4700bc13d0))
-* **teams:** enroll agents through single-use invite workflow ([9b3cc5e](https://github.com/getlarge/themoltnet/commit/9b3cc5e8b0033fedbb99e8e6e66c09fb0abd4b1f))
-* **teams:** enroll existing agents with restricted team keys ([893efcf](https://github.com/getlarge/themoltnet/commit/893efcff7641f03c3b4b2b8027c011ba020cceb8))
-* **teams:** redeem single-use invites through DBOS ([b973116](https://github.com/getlarge/themoltnet/commit/b973116b394deef6eac151f66e7238937ca0dbf6))
-* **tool-policy:** record policy refusals as task messages, metrics and spans ([2ef8e1c](https://github.com/getlarge/themoltnet/commit/2ef8e1c31408e0f68f920209283c2e973431e8fe))
-* **tool-policy:** record policy refusals as task messages, metrics and spans ([ad27676](https://github.com/getlarge/themoltnet/commit/ad27676df865dc2bbb57e3c0d5b20f79a01d937e)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
-
-
-### Bug Fixes
-
-* **cli:** assert the replay guard the enrollment E2E actually hits ([c765081](https://github.com/getlarge/themoltnet/commit/c765081819b54f2505146760d51ae9d97d21c45e))
-* **cli:** assert the replay guard the enrollment E2E actually hits ([e1120bc](https://github.com/getlarge/themoltnet/commit/e1120bc99c76b0d45fe311f7228dd9d21c004581))
-* **cli:** classify GraphQL documents the guard reads from a file ([5248f7e](https://github.com/getlarge/themoltnet/commit/5248f7edb923b9cf98b04f57bca1ac95eef66bb8))
-* **cli:** classify GraphQL documents the guard reads from a file ([a5704e1](https://github.com/getlarge/themoltnet/commit/a5704e155d8659b22e80d4bafe0a65f685c84fb1))
-* **cli:** preserve auth precedence and migration recovery states ([27cbd55](https://github.com/getlarge/themoltnet/commit/27cbd5536a5f4b154f8c8095c3bb43d68f8b7f67))
-* **cli:** preserve enrollment recovery and accurate storage outcomes ([479941d](https://github.com/getlarge/themoltnet/commit/479941da55527a63ece2e880291b07d92903965d))
-* **config:** harden locked credential updates ([b5928a8](https://github.com/getlarge/themoltnet/commit/b5928a8b7aad2c5270b19c9f9020b99c953335ce))
-* **config:** lock existing mutations across Go and Node writers ([59b0842](https://github.com/getlarge/themoltnet/commit/59b0842870dffdc5e87fc0499dcd6e8087c10227))
-* **credentials:** reconcile rotation successors and preserve write state ([d12ac92](https://github.com/getlarge/themoltnet/commit/d12ac92bc3248320d2f3c19a320ec2464b96a472))
-* **credentials:** separate file-backed team slots from fallback files ([f445b61](https://github.com/getlarge/themoltnet/commit/f445b61bc36ef025cf0a883ab61218a6906bf13d))
-* **enrollment:** reconcile issued keys and preserve truthful recovery state ([0a5c834](https://github.com/getlarge/themoltnet/commit/0a5c834d623f52529898e0624a39f165bd941418))
-* **release:** recover cli v3.2.0 release cycle ([0cde9ff](https://github.com/getlarge/themoltnet/commit/0cde9ffd49f0d44645effd88e2393e9b16bdfaf3))
-* **release:** recover cli v3.2.0 release cycle ([63aa0e4](https://github.com/getlarge/themoltnet/commit/63aa0e4960234d2ed7c0fab4c74fbb668c2cbc2b))
-* **tool-policy:** bound model-controlled names and stop dropping late refusals ([c870f4d](https://github.com/getlarge/themoltnet/commit/c870f4d31884e1a0e610530f1a04ed12d9f71526)), closes [#2275](https://github.com/getlarge/themoltnet/issues/2275)
-
 ## [3.1.0](https://github.com/getlarge/themoltnet/compare/cli-v3.0.0...cli-v3.1.0) (2026-09-16)
 
 
