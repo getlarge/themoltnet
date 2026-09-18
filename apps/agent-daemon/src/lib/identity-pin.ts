@@ -63,3 +63,17 @@ export type SubjectPinAssessment =
       field: 'subjectId' | 'subjectType' | 'publicKey' | 'fingerprint';
       label: 'subject id' | 'subject type' | 'public key' | 'fingerprint';
     };
+
+/** A configured team slot must authenticate with that exact team ceiling. */
+export function matchesCredentialTeam(
+  current: {
+    credentialBinding?: { bindingScope: string; boundTeamId?: string };
+  },
+  credentialTeamId?: string,
+): boolean {
+  return (
+    !credentialTeamId ||
+    (current.credentialBinding?.bindingScope === 'team' &&
+      current.credentialBinding.boundTeamId === credentialTeamId)
+  );
+}

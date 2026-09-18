@@ -12,8 +12,8 @@ import {
   connect as connectExplicit,
   readConfig,
   SecretProviderRegistry,
-  updateConfigSection,
   updateConfig,
+  updateConfigSection,
   writeConfig,
 } from '@themoltnet/sdk';
 import {

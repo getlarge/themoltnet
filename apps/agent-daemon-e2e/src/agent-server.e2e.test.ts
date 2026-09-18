@@ -12,6 +12,7 @@
  * non-secret config files.
  */
 import { type ChildProcess, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import {
   createServer,
@@ -39,7 +40,14 @@ import {
   startAgentServerRun,
   stopAgentServerRun,
 } from '@moltnet/agent-daemon-api-client';
-import { type Agent, connect } from '@themoltnet/sdk';
+import {
+  type Agent,
+  connect,
+  readConfig,
+  resolveAgentKey,
+  SecretProviderRegistry,
+} from '@themoltnet/sdk';
+import { enrollTeam, FileSecretProvider } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
@@ -74,7 +82,15 @@ async function freePort(): Promise<number> {
 
 async function waitFor(
   predicate: () => Promise<boolean>,
-  { timeoutMs, intervalMs = 250 }: { timeoutMs: number; intervalMs?: number },
+  {
+    timeoutMs,
+    intervalMs = 250,
+    diagnostics,
+  }: {
+    timeoutMs: number;
+    intervalMs?: number;
+    diagnostics?: () => string;
+  },
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -83,7 +99,9 @@ async function waitFor(
       setTimeout(r, intervalMs);
     });
   }
-  throw new Error(`condition not met within ${timeoutMs}ms`);
+  throw new Error(
+    `condition not met within ${timeoutMs}ms${diagnostics ? `: ${diagnostics()}` : ''}`,
+  );
 }
 
 function startJsonStub(
@@ -283,7 +301,7 @@ class AgentServerSupervisor {
   }
 }
 
-/** Files under `root` (excluding the secrets directory) that contain `needle`. */
+/** Text config/log files under root; VM disk images are binary artifacts. */
 async function configFilesContaining(
   root: string,
   needle: string,
@@ -295,7 +313,10 @@ async function configFilesContaining(
       if (entry.isDirectory()) {
         if (entry.name === 'secrets') continue;
         await walk(path);
-      } else if (entry.isFile()) {
+      } else if (
+        entry.isFile() &&
+        /\.(json|jsonl|log|toml)$/.test(entry.name)
+      ) {
         const content = await readFile(path, 'utf8').catch((error: unknown) => {
           throw new Error(`could not inspect non-secret config file ${path}`, {
             cause: error,
@@ -453,7 +474,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(foreign.response.status).toBe(403);
   });
 
-  it('completes the pairing ceremony and binds the token to the origin', async () => {
+  async function pairConsole() {
     // Arrange: the Console starts a pairing from its own origin.
     const started = await startAgentServerPairing({
       client: agentServerClient(ALLOWED_ORIGIN, false),
@@ -496,7 +517,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(claimed.response.status).toBe(200);
     token = claimed.data!.token;
     expect(token.length).toBeGreaterThan(20);
+  }
 
+  it('completes the pairing ceremony and binds the token to the origin', async () => {
+    await pairConsole();
     const status = await getAgentServerStatus({
       client: agentServerClient(),
     });
@@ -920,8 +944,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
     });
     expect(result.response.status).toBe(400);
-    expect(result.error?.code).toBe('invalid_spec');
-    expect(result.error?.message).toContain('bound to team');
+    expect(result.error?.code).toBe('verification_failed');
+    expect(result.error?.message).toBe(
+      `Cannot start agent "${agentName}" for team "${personalTeamId}": credential verification failed. Check the selected team key and activation.`,
+    );
   });
 
   it('starts a daemon run that polls the API, streams its logs, and stops on request', async () => {
@@ -1026,6 +1052,323 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(unknown.response.status).toBe(404);
   }, 120_000);
+
+  async function enrollSecondTeam() {
+    const configDir = join(agentServerRoot, 'identities', agentName);
+    const provider = new FileSecretProvider({
+      root: join(agentServerRoot, 'secrets'),
+      writable: true,
+    });
+    const registry = new SecretProviderRegistry().register(provider);
+    const initial = await readConfig(configDir);
+    expect(initial).not.toBeNull();
+    const secretA = await resolveAgentKey(initial!, registry, teamId);
+    expect(secretA).toBeTruthy();
+    const agentA = await connect({
+      agentKey: secretA!,
+      apiUrl: harness.restApiUrl,
+    });
+    const teamB = await agent.teams.create({
+      name: `concurrent-${randomUUID()}`,
+    });
+    const invitation = await agent.teams.invites.create(teamB.id, {
+      role: 'executor',
+      expiresInHours: 1,
+    });
+    const enrolled = await enrollTeam({
+      agent: agentA,
+      configDir,
+      secretProvider: provider,
+      code: invitation.code,
+      idempotencyKey: randomUUID(),
+    });
+    expect(enrolled.teamId).toBe(teamB.id);
+    const current = await readConfig(configDir);
+    const secretB = await resolveAgentKey(current!, registry, teamB.id);
+    expect(secretB).toBeTruthy();
+    expect(secretB).not.toBe(secretA);
+    const agentB = await connect({
+      agentKey: secretB!,
+      apiUrl: harness.restApiUrl,
+    });
+    await expect(
+      agentB.diaries.get(privateDiaryId, { teamId }),
+    ).rejects.toThrow();
+    const diaryB = await agent.diaries.create(
+      { name: `concurrent-${randomUUID()}` },
+      { teamId: teamB.id },
+    );
+    await expect(
+      agentA.diaries.get(diaryB.id, { teamId: teamB.id }),
+    ).rejects.toThrow();
+    const profileB = await agent.runtimeProfiles.create(
+      {
+        name: `concurrent-${randomUUID()}`,
+        runtimeKind: 'gondolin_pi',
+        provider: PROVIDER_ID,
+        model: MODEL_ID,
+        sandbox: {},
+      },
+      { teamId: teamB.id },
+    );
+    return {
+      secretA: secretA!,
+      secretB: secretB!,
+      agentA,
+      agentB,
+      teamB,
+      diaryB,
+      profileB,
+    };
+  }
+
+  function teamRunLifecycle(secrets: readonly string[]) {
+    const start = (id: string, profile: string) =>
+      startAgentServerRun({
+        client: agentServerClient(),
+        body: {
+          agent: agentName,
+          teamId: id,
+          profiles: [profile],
+          taskTypes: ['freeform'],
+          mode: 'poll',
+        },
+      });
+    const assertStarted = async (runId: string, expectedTeam: string) => {
+      const log = await readRunLogs(
+        runId,
+        (text) =>
+          text.includes('agent-daemon.starting') || text.includes('[fatal]'),
+        180_000,
+      );
+      const status = (
+        await listAgentServerRuns({ client: agentServerClient() })
+      ).data?.find((run) => run.id === runId);
+      // Diagnostics are an allowlisted projection, never raw config, task input or logs.
+      const context = JSON.stringify({
+        stage: 'startup',
+        teamId: expectedTeam,
+        runId,
+        status: status?.status,
+        active: status?.active,
+        exitCode: status?.exitCode,
+        startupSeen: log.includes('agent-daemon.starting'),
+        fatalSeen: log.includes('[fatal]'),
+      });
+      expect(log.includes('agent-daemon.starting'), context).toBe(true);
+      expect(log.includes(`"boundTeamId":"${expectedTeam}"`), context).toBe(
+        true,
+      );
+      expect(
+        secrets.some((secret) => log.includes(secret)),
+        context,
+      ).toBe(false);
+      expect(log.includes('[fatal]'), context).toBe(false);
+    };
+    const startBoth = async (otherTeam: string, otherProfile: string) => {
+      const responses = await Promise.all([
+        start(teamId, profileName),
+        start(otherTeam, otherProfile),
+      ]);
+      for (const response of responses)
+        expect(response.response.status, JSON.stringify(response.error)).toBe(
+          201,
+        );
+      const runs = responses.map((response, index) => ({
+        runId: response.data!.id,
+        teamId: index === 0 ? teamId : otherTeam,
+      }));
+      await Promise.all(
+        runs.map((run) => assertStarted(run.runId, run.teamId)),
+      );
+      return runs;
+    };
+    const waitForClaims = async (
+      tasks: { id: string }[],
+      runs: { runId: string; teamId: string }[],
+      stage: string,
+    ) => {
+      let diagnostic = JSON.stringify({
+        stage,
+        tasks: tasks.map(({ id }) => id),
+        runs,
+      });
+      await waitFor(
+        async () => {
+          const current = await Promise.all(
+            tasks.map(({ id }) => agent.tasks.get(id)),
+          );
+          const running = await listAgentServerRuns({
+            client: agentServerClient(),
+          });
+          diagnostic = JSON.stringify({
+            stage,
+            tasks: current.map(({ id, teamId: taskTeam, status }) => ({
+              id,
+              teamId: taskTeam,
+              status,
+            })),
+            runs: runs.map(({ runId, teamId: runTeam }) => {
+              const run = running.data?.find(({ id }) => id === runId);
+              return {
+                runId,
+                teamId: runTeam,
+                status: run?.status,
+                active: run?.active,
+                exitCode: run?.exitCode,
+              };
+            }),
+          });
+          return current.every((task) => task.status !== 'queued');
+        },
+        { timeoutMs: 60_000, intervalMs: 1000, diagnostics: () => diagnostic },
+      );
+    };
+    const waitForRevocation = async (
+      run: { runId: string; teamId: string },
+      since: number,
+    ) => {
+      const hasAuthorizationFailure = (text: string) =>
+        text.split('\n').some((line) => {
+          if (!line.startsWith('data: ')) return false;
+          try {
+            const event = JSON.parse(line.slice(6)) as {
+              time?: number;
+              teamId?: string;
+              msg?: string;
+              err?: { statusCode?: number };
+            };
+            return (
+              typeof event.time === 'number' &&
+              event.time >= since &&
+              event.teamId === run.teamId &&
+              event.msg === 'polling-api.list_failed' &&
+              (event.err?.statusCode === 401 || event.err?.statusCode === 403)
+            );
+          } catch {
+            return false;
+          }
+        });
+      const log = await readRunLogs(run.runId, hasAuthorizationFailure, 60_000);
+      const context = JSON.stringify({ stage: 'revoked poll', ...run });
+      expect(hasAuthorizationFailure(log), context).toBe(true);
+      expect(
+        secrets.some((secret) => log.includes(secret)),
+        context,
+      ).toBe(false);
+    };
+    return { start, startBoth, waitForClaims, waitForRevocation };
+  }
+
+  async function restartTeamSupervisor() {
+    await supervisor.stop();
+    supervisor = await AgentServerSupervisor.start({
+      root: agentServerRoot,
+      apiUrl: harness.restApiUrl,
+      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
+    });
+    base = supervisor.baseUrl;
+    // Pairing tokens are process-local; persisted agent credentials are not.
+    const stale = await getAgentServerStatus({ client: agentServerClient() });
+    expect(stale.response.status).toBe(401);
+    await pairConsole();
+  }
+
+  it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {
+    const { secretA, secretB, agentA, agentB, teamB, diaryB, profileB } =
+      await enrollSecondTeam();
+    const lifecycle = teamRunLifecycle([secretA, secretB]);
+    const runs = await lifecycle.startBoth(teamB.id, profileB.id);
+    const tasks = await Promise.all(
+      [
+        [teamId, privateDiaryId],
+        [teamB.id, diaryB.id],
+      ].map(([id, diaryId]) =>
+        agent.tasks.create(
+          {
+            taskType: 'freeform',
+            title: 'concurrent team polling',
+            diaryId,
+            input: { brief: 'Verify independently authenticated task claim.' },
+          },
+          { teamId: id },
+        ),
+      ),
+    );
+    await lifecycle.waitForClaims(tasks, runs, 'concurrent claims');
+    const running = await listAgentServerRuns({ client: agentServerClient() });
+    for (const { runId } of runs)
+      expect(running.data).toContainEqual(
+        expect.objectContaining({ id: runId, active: true }),
+      );
+
+    await restartTeamSupervisor();
+    const restarted = await lifecycle.startBoth(teamB.id, profileB.id);
+    const aKeys = await agent.agentKeys.list(
+      { agentId: managedSubjectId, status: 'active' },
+      { teamId },
+    );
+    expect(aKeys.items).toHaveLength(1);
+    await agent.agentKeys.revoke(
+      aKeys.items[0].id,
+      { reason: 'superseded' },
+      { teamId },
+    );
+    await expect(agentA.agents.whoami()).rejects.toThrow();
+    await expect(agentB.agents.whoami()).resolves.toMatchObject({
+      subjectId: managedSubjectId,
+    });
+    const rejected = await lifecycle.start(teamId, profileName);
+    expect(rejected.response.status).toBe(400);
+    expect(rejected.error).toEqual({
+      code: 'verification_failed',
+      message: `Cannot start agent "${agentName}" for team "${teamId}": credential verification failed. Check the selected team key and activation.`,
+    });
+    expect(
+      [secretA, secretB].some((secret) =>
+        JSON.stringify(rejected.error).includes(secret),
+      ),
+    ).toBe(false);
+    const deniedTask = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        title: 'revoked team cannot claim',
+        diaryId: privateDiaryId,
+        input: { brief: 'This must remain queued after revocation.' },
+      },
+      { teamId },
+    );
+    // Require a denied poll after this task exists, not a historical failure.
+    const deniedTaskCreatedAt = Date.now();
+    const afterRevoke = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        title: 'other team remains active',
+        diaryId: diaryB.id,
+        input: { brief: 'Verify B continues after A revocation.' },
+      },
+      { teamId: teamB.id },
+    );
+    await Promise.all([
+      lifecycle.waitForClaims(
+        [afterRevoke],
+        restarted,
+        'claim after other team revocation',
+      ),
+      lifecycle.waitForRevocation(restarted[0], deniedTaskCreatedAt),
+    ]);
+    expect((await agent.tasks.get(deniedTask.id)).status).toBe('queued');
+    expect(await configFilesContaining(agentServerRoot, secretA)).toEqual([]);
+    expect(await configFilesContaining(agentServerRoot, secretB)).toEqual([]);
+    await Promise.all(
+      restarted.map(({ runId }) =>
+        stopAgentServerRun({
+          client: agentServerClient(),
+          path: { runId },
+        }),
+      ),
+    );
+  }, 600_000);
 
   it('shuts down cleanly on SIGTERM', async () => {
     await supervisor.stop();

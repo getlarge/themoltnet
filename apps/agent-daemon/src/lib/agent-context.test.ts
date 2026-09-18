@@ -765,3 +765,40 @@ describe('agent-key requirement', () => {
     }
   });
 });
+
+describe('selected daemon team slot', () => {
+  it('passes the run team into key resolution and carries the expected binding', async () => {
+    readConfigMock.mockResolvedValue({
+      agent_key_refs: {
+        a: { provider: 'file', key: 'agent-key/subject/a' },
+        b: { provider: 'file', key: 'agent-key/subject/b' },
+      },
+    });
+    resolveAgentKeyMock.mockResolvedValue('selected-b');
+    const context = await resolveAgentContext('multi', { teamId: 'b' });
+    expect(resolveAgentKeyMock).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.anything(),
+      'b',
+    );
+    expect(context.credentialTeamId).toBe('b');
+  });
+  it('does not accept an identity-scoped credential in a selected team slot', async () => {
+    await expect(
+      validateStartupBinding({
+        agent: {
+          agents: {
+            whoami: () =>
+              Promise.resolve({
+                identityId: 'identity',
+                subjectId: 'subject',
+                subjectType: 'agent' as const,
+              }),
+          },
+        },
+        teamId: 'b',
+        credentialTeamId: 'b',
+      }),
+    ).rejects.toThrow('different binding');
+  });
+});

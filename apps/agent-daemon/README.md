@@ -114,7 +114,7 @@ All config flows from environment variables. The daemon reads them in
 | Var                   | Required                           | Purpose                                                                   |
 | --------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
 | `GIT_CONFIG_GLOBAL`   | config-based                       | Optional git identity path; not needed for configless startup.            |
-| `MOLTNET_AGENT_NAME`  | yes                                | Agent name (matches `.moltnet/<name>/`).                                  |
+| `MOLTNET_AGENT_NAME`  | yes                                | Central identity alias (`identities/<name>/`).                            |
 | `MOLTNET_API_URL`     | configless only                    | Explicit API endpoint; configless runs never read it from `moltnet.json`. |
 | `MOLTNET_AGENT_KEY`   | no                                 | Team- or identity-scoped agent key. Overrides `moltnet.json`.             |
 | `MOLTNET_PRIVATE_KEY` | configless `once`, `poll`, `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
@@ -135,16 +135,17 @@ its gitconfig in `.moltnet/<agent>/`. Three paths create it:
 **The daemon runs on an agent key only.** OAuth2 client_credentials is not
 accepted: it hands the daemon the full agent OAuth2 grant against a least-privilege
 need, and a Hydra token cannot be a Talos derivation parent. A `moltnet.json`
-without `agent_key_ref` is refused at startup with the command that fixes it.
+without `agent_key_ref` or `agent_key_refs` is refused at startup with the command that fixes it.
 
 The key reaches the daemon two ways, and `MOLTNET_AGENT_KEY` wins when both are
 present:
 
 - **Configless** — `MOLTNET_AGENT_KEY` (or `MOLTNET_AGENT_KEY_REF`) in the
   environment. No agent files are read at all.
-- **From `moltnet.json`** — an `agent_key_ref` pointing at a secret provider,
-  which is what `moltnet agents keys create --store` writes. The plaintext
-  secret never lands in the file.
+- **From `moltnet.json`** — `agent_key_refs[teamId]` selects the run team's
+  provider reference. `agent_key_ref` is used only if that team has no entry.
+  A configured entry that fails never falls back. The plaintext secret never
+  lands in the file.
 
 Mint or rotate the key with the CLI, which is separate operator tooling and
 keeps using OAuth2 for its own authentication:
@@ -155,14 +156,21 @@ moltnet agents keys create --agent-id <uuid> --team-id <uuid> \
 moltnet agents keys rotate <key-id> --team-id <uuid> --store
 ```
 
+To enroll the same identity into another team, use
+`moltnet teams join --code <code> --issue-agent-key --store --idempotency-key <uuid>`.
+Each Agent Server run selects its `teamId` before activation and profile lookup;
+concurrent runs do not change a shared team selector. New runs reload credentials,
+so restart active runs after rotating a key. See the
+[enrollment and recovery guide](../../docs/operate/agent-keys.md#enroll-an-existing-agent-into-another-team).
+
 The daemon reconciles a team-bound key against `--team` at startup; an
 identity-scoped key may select any team where the agent is authorized. It fails
 fast if the key is rejected, is not an agent, or a team binding mismatches. See
 [Run the daemon with an agent key](../../docs/operate/agent-keys.md#run-the-daemon-with-an-agent-key).
 
 Daemon authentication and the guest boundary are two separate concerns. Where
-the agent key comes from (the environment, or an `agent_key_ref` in
-`.moltnet/<agent>/moltnet.json` resolved through the host secret provider)
+the agent key comes from (the environment, or a selected key reference in the
+central identity's `moltnet.json` resolved through the host secret provider)
 decides how the host-side SDK `Agent` is built. The guest boundary is fixed: **the guest never
 receives MoltNet credential material.** No `.moltnet` file, gitconfig, SSH
 signing key, GitHub App PEM, or MoltNet environment credential is injected into

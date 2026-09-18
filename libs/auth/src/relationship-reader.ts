@@ -241,6 +241,7 @@ export function createRelationshipReader(
             ? {
                 subjectSetObject: subject.subjectId,
                 subjectSetNamespace: subject.subjectNs,
+                subjectSetRelation: '',
               }
             : {}),
           pageToken,

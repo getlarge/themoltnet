@@ -560,6 +560,9 @@ function registerAgentRoutes(
           {
             name: identityAlias,
             configDir: store.identityDir(identityAlias),
+            ...(typeof body['teamId'] === 'string'
+              ? { teamId: body['teamId'] }
+              : {}),
             signal,
           },
         );

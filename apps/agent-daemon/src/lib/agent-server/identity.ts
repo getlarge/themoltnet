@@ -33,7 +33,11 @@ import {
   type RegisterResult,
 } from '@themoltnet/sdk/node';
 
-import { assessIdentityPin, type IdentityPin } from '../identity-pin.js';
+import {
+  assessIdentityPin,
+  type IdentityPin,
+  matchesCredentialTeam,
+} from '../identity-pin.js';
 import {
   type AgentActivation,
   type AgentServerStore,
@@ -240,19 +244,27 @@ export async function createManagedAgent(
  */
 function incompleteRegistrationMessage(
   alias: string,
-  known: { subjectId?: string; fingerprint?: string; configPath?: string },
+  known: {
+    subjectId?: string;
+    fingerprint?: string;
+    configPath?: string;
+    recoveryPath?: string;
+  },
 ): string {
   const endpoint = `POST /v1/agents/${alias}/reconcile`;
+  const recovery = known.recoveryPath
+    ? ` Inspect the protected recovery file at ${known.recoveryPath}; it may be incomplete.`
+    : '';
   const reconcile = known.configPath
     ? `Finish it with ${endpoint} and {"action":"resume"}, or discard the local record with {"action":"abandon"}.`
     : `No local config was written, so it cannot be resumed; discard the local record with ${endpoint} and {"action":"abandon"}.`;
   if (known.subjectId) {
-    return `the remote agent ${known.subjectId} was registered but local activation is incomplete. ${reconcile}`;
+    return `the remote agent ${known.subjectId} was registered but local activation is incomplete. ${reconcile}${recovery}`;
   }
   const fingerprint = known.fingerprint
     ? ` (fingerprint ${known.fingerprint})`
     : '';
-  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first. ${reconcile}`;
+  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first. ${reconcile}${recovery}`;
 }
 
 /** Resume a fully persisted registration or explicitly abandon local recovery. */
@@ -358,6 +370,7 @@ export interface AttachExternalAgentInput {
   /** Absolute path to the existing `.moltnet/<agent>` directory. */
   configDir: string;
   apiUrl?: string;
+  teamId?: string;
   signal?: AbortSignal;
 }
 
@@ -399,6 +412,7 @@ export async function attachExternalAgent(
       secretProviders,
       connectAgent,
       input.signal,
+      input.teamId,
     );
     const identity = identityFromConfig(config);
     assertIdentityMatches(
@@ -447,8 +461,10 @@ export async function verifyAgentActivation(
   externalSecretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent = connect,
   signal?: AbortSignal,
+  teamId?: string,
 ): Promise<ActivatedAgent> {
   const activation = requireActivation(store, alias);
+  teamId ??= activation.boundTeamId;
   const verified =
     activation.source === 'managed'
       ? await verifyManagedActivation(
@@ -457,6 +473,7 @@ export async function verifyAgentActivation(
           managedSecretProviders,
           connectAgent,
           signal,
+          teamId,
         )
       : await verifyExternalActivation(
           store,
@@ -464,6 +481,7 @@ export async function verifyAgentActivation(
           externalSecretProviders,
           connectAgent,
           signal,
+          teamId,
         );
   assertSubjectMatches(
     verified.whoami,
@@ -485,7 +503,8 @@ export async function verifyAgentActivation(
     `agent "${activation.alias}" config`,
   );
   const boundTeamId = boundTeamIdFromWhoami(verified.whoami);
-  if (activation.boundTeamId !== boundTeamId) {
+  const selection = selectAgentKeyReference(verified.config, teamId);
+  if (!selection?.teamId && activation.boundTeamId !== boundTeamId) {
     throw new AgentServerIdentityError(
       'verification_failed',
       `authenticated whoami team binding does not match agent "${activation.alias}" pinned activation`,
@@ -514,6 +533,7 @@ async function verifyManagedActivation(
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
   signal?: AbortSignal,
+  teamId?: string,
 ): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
   const configPath = store.agentPath(activation.alias);
   const config = await readCurrentConfig(configPath);
@@ -524,26 +544,14 @@ async function verifyManagedActivation(
     requireConfigApiUrl(config, configPath),
     activation.apiUrl,
   );
-  let agentKey: string | null;
-  try {
-    agentKey = await resolveAgentKey(config, secretProviders);
-  } catch (cause) {
-    throw verificationError(
-      `could not resolve the managed agent key for "${activation.alias}"`,
-      cause,
-    );
-  }
-  if (!agentKey) {
-    throw new AgentServerIdentityError(
-      'verification_failed',
-      `managed config for "${activation.alias}" has no agent_key_ref`,
-    );
-  }
-  const whoami = await callWhoami(
-    connectAgent,
-    { agentKey, apiUrl: activation.apiUrl },
+  const whoami = await authenticateConfig(
+    config,
     configPath,
+    activation.apiUrl,
+    secretProviders,
+    connectAgent,
     signal,
+    teamId,
   );
   return { config, whoami };
 }
@@ -554,6 +562,7 @@ async function verifyExternalActivation(
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
   signal?: AbortSignal,
+  teamId?: string,
 ): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
   const central = activation.configPath === store.agentPath(activation.alias);
   if (!central) externalAgentLocation(activation.configPath);
@@ -584,6 +593,7 @@ async function verifyExternalActivation(
     secretProviders,
     connectAgent,
     signal,
+    teamId,
   );
   return { config, whoami };
 }
@@ -730,13 +740,14 @@ async function authenticateConfig(
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
   signal?: AbortSignal,
+  teamId?: string,
 ): Promise<Whoami> {
   let agentKey: string | null;
   try {
-    agentKey = await resolveAgentKey(config, secretProviders);
+    agentKey = await resolveAgentKey(config, secretProviders, teamId);
   } catch (cause) {
     throw verificationError(
-      `could not resolve the daemon agent key from ${configPath}`,
+      `could not resolve the daemon agent key from ${configPath}; select a team and enroll or repair its stored key`,
       cause,
     );
   }
@@ -746,7 +757,7 @@ async function authenticateConfig(
       `external daemon config at ${configPath} must contain an agent_key_ref`,
     );
   }
-  return callWhoami(
+  const whoami = await callWhoami(
     connectAgent,
     {
       agentKey,
@@ -755,6 +766,14 @@ async function authenticateConfig(
     configPath,
     signal,
   );
+  const selection = selectAgentKeyReference(config, teamId);
+  if (!matchesCredentialTeam(whoami, selection?.teamId)) {
+    throw new AgentServerIdentityError(
+      'verification_failed',
+      'authenticated credential team binding does not match the selected team',
+    );
+  }
+  return whoami;
 }
 
 async function callWhoami(

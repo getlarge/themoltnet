@@ -143,12 +143,14 @@ export async function runOnce(
           agentRootDir: explicitAgentRootDir,
           credentialSource: cfg.credentialSource,
           envApiUrl: cfg.apiUrl,
+          teamId: values.team,
         });
         // Authenticate and validate team binding before resolving signing
         // material, consistently with poll/drain.
         gate = 'authenticate_and_bind';
         const whoami = await validateStartupBinding({
           agent: resolvedContext.agent,
+          credentialTeamId: resolvedContext.credentialTeamId,
           teamId: values.team,
           expectedAgent: cfg.expectedAgent,
         });

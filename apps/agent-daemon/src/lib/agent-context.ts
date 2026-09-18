@@ -12,6 +12,7 @@ import {
   readConfig,
   requireSecureCredentialApiUrl,
   resolveAgentKey,
+  selectAgentKeyReference,
   type Whoami,
 } from '@themoltnet/sdk';
 import {
@@ -19,7 +20,11 @@ import {
   createNodeSecretProviderRegistry,
 } from '@themoltnet/sdk/node';
 
-import { assessAgentStartupPin, type SubjectPin } from './identity-pin.js';
+import {
+  assessAgentStartupPin,
+  matchesCredentialTeam,
+  type SubjectPin,
+} from './identity-pin.js';
 
 /**
  * Where an operator goes after the daemon refuses to start. The published site
@@ -38,7 +43,7 @@ const DAEMON_KEY_SCOPES = AGENT_CREDENTIAL_SCOPES;
  *
  * - `environment`: configless — `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF`
  *   holds the key; no agent files are read.
- * - `config`: `moltnet.json` supplies an `agent_key_ref`.
+ * - `config`: `moltnet.json` supplies an `agent_key_ref` or team-indexed `agent_key_refs`.
  *
  * This is deliberately *not* an authentication mode. The daemon authenticates
  * with a team-bound agent key either way: OAuth2 client_credentials was retired
@@ -52,6 +57,7 @@ export interface DaemonAgentContext {
   agentRootDir: string;
   agent: Agent;
   credentialSource: DaemonCredentialSource;
+  credentialTeamId?: string;
 }
 
 /**
@@ -103,7 +109,7 @@ export function assessStartupBinding(
       reason:
         `the daemon must authenticate as an agent, but whoami reported ` +
         `subjectType "${whoami.subjectType}". Provide agent credentials ` +
-        `(an agent key or the agent's client id/secret).`,
+        `(an agent key).`,
     };
   }
   const boundTeamId =
@@ -132,14 +138,14 @@ export interface StartupWhoamiSource {
  * Validate at startup — after `connect()`, before polling — that the connected
  * credential can operate as `teamId`, failing fast with an actionable message
  * instead of letting an obscure 401/403 surface mid-poll. Runs in both auth
- * modes; in OAuth2 mode it also doubles as an API-reachability and
- * subject-type check. Returns the `whoami` so the caller can log the resolved
+ * credential sources and also checks API reachability and subject type. Returns the `whoami` so the caller can log the resolved
  * identity (never the secret).
  */
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
   teamId?: string;
   expectedAgent?: SubjectPin;
+  credentialTeamId?: string;
 }): Promise<Whoami> {
   let whoami: Whoami;
   const maxAttempts = 3;
@@ -156,6 +162,11 @@ export async function validateStartupBinding(options: {
         setTimeout(resolve, 100 * attempt);
       });
     }
+  }
+  if (!matchesCredentialTeam(whoami, options.credentialTeamId)) {
+    throw new Error(
+      'Daemon startup validation failed: selected team credential has a different binding.',
+    );
   }
   const assessment = assessStartupBinding(whoami, options.teamId);
   if (!assessment.ok) {
@@ -193,6 +204,7 @@ export async function resolveAgentContext(
      * than read here so this stays the daemon's single `process.env` owner.
      */
     envApiUrl?: string;
+    teamId?: string;
   } = {},
 ): Promise<DaemonAgentContext> {
   // One grammar, shared with the Go CLI and the daemon store. The previous
@@ -240,7 +252,11 @@ export async function resolveAgentContext(
   // connect() would therefore still authenticate with the over-scoped OAuth2
   // token on the launcher path — the exact outcome #2160 exists to prevent.
   // An explicit agentKey is step 1 and beats every environment variable.
-  const agentKey = await resolveAgentKey(config, secretProviders);
+  const agentKey = await resolveAgentKey(
+    config,
+    secretProviders,
+    options.teamId,
+  );
   if (!agentKey) {
     throw new Error(agentKeyRequiredMessage(agentDir, agentName));
   }
@@ -255,6 +271,7 @@ export async function resolveAgentContext(
     agentRootDir,
     agent,
     credentialSource: 'config',
+    credentialTeamId: selectAgentKeyReference(config, options.teamId)?.teamId,
   };
 }
 
@@ -269,7 +286,7 @@ function agentKeyRequiredMessage(agentDir: string, agentName: string): string {
   // hand, so name the commands that produce them rather than leaving
   // placeholders to guess at.
   return [
-    `${join(agentDir, 'moltnet.json')} has no "agent_key_ref". The daemon`,
+    `${join(agentDir, 'moltnet.json')} has no "agent_key_ref" or "agent_key_refs". The daemon`,
     `requires a team-bound agent key; OAuth2 client_credentials is no longer`,
     `accepted.`,
     ``,
@@ -282,7 +299,7 @@ function agentKeyRequiredMessage(agentDir: string, agentName: string): string {
     `    --scopes ${DAEMON_KEY_SCOPES.join(',')} \\`,
     `    --store`,
     ``,
-    `--store writes "agent_key_ref" into moltnet.json and keeps the secret in`,
+    `--store writes the team slot in "agent_key_refs" and keeps the secret in`,
     `a provider, so the key itself never lands in the file. Omit --scopes to`,
     `get the same daemon minimum by default.`,
     ``,

@@ -348,7 +348,6 @@ jobs:
           INITIAL_BASE: ${{ steps.shas.outputs.base }}
           INITIAL_HEAD: ${{ steps.shas.outputs.head }}
           EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_REF: ${{ github.base_ref }}
         run: |
           BASE="$INITIAL_BASE"
           HEAD="$INITIAL_HEAD"
@@ -364,12 +363,15 @@ jobs:
           if [ -z "$HEAD" ]; then
             HEAD="${{ github.sha }}"
           fi
-          # Stacked PRs must include changes inherited from their predecessor:
-          # unchanged images fall back to ci-main, not the predecessor's image.
-          if [ "$EVENT_NAME" = "pull_request" ] && [ "$PR_BASE_REF" != "main" ]; then
+          # Unchanged images fall back to ci-main, so inherited PR changes must
+          # be included even when the event base ref and resolved base differ.
+          # Keep the older common ancestor of the resolved CI base and main:
+          # this also preserves changes since the last successful main run.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             git fetch origin main
-            BASE=$(git merge-base origin/main "$HEAD")
-            echo "::notice::Validating stacked PR against main merge-base $BASE"
+            MAIN_BASE=$(git merge-base origin/main "$HEAD")
+            BASE=$(git merge-base "$BASE" "$MAIN_BASE")
+            echo "::notice::Validating PR against common CI/main base $BASE"
           fi
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
           echo "head=$HEAD" >> "$GITHUB_OUTPUT"

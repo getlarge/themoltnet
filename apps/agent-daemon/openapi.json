@@ -708,6 +708,10 @@
                           "external"
                         ],
                         "type": "string"
+                      },
+                      "teamId": {
+                        "format": "uuid",
+                        "type": "string"
                       }
                     },
                     "required": [

@@ -39,6 +39,7 @@ import {
 } from '../options.js';
 import {
   type ActivatedAgent,
+  AgentServerIdentityError,
   externalAgentLocation,
   verifyAgentActivation,
 } from './identity.js';
@@ -277,7 +278,7 @@ export class RunManager {
     ];
 
     if (activation.source === 'managed') {
-      const reference = selectAgentKeyReference(config)?.reference;
+      const reference = selectAgentKeyReference(config, spec.teamId)?.reference;
       if (!reference || !config.keys.private_key_ref) {
         throw new AgentServerRunError(
           'invalid_spec',
@@ -296,6 +297,7 @@ export class RunManager {
         const agentKey = await resolveAgentKey(
           config,
           this.options.externalSecretProviders,
+          spec.teamId,
         );
         if (!agentKey) {
           throw new Error('external daemon config has no agent key');
@@ -362,7 +364,20 @@ export class RunManager {
       this.options.externalSecretProviders,
       undefined,
       signal,
-    );
+      spec.teamId,
+    ).catch((cause: unknown) => {
+      if (
+        cause instanceof AgentServerIdentityError &&
+        cause.code === 'verification_failed'
+      ) {
+        throw new AgentServerIdentityError(
+          cause.code,
+          `Cannot start agent "${spec.agent}" for team "${spec.teamId}": credential verification failed. Check the selected team key and activation.`,
+          { cause },
+        );
+      }
+      throw cause;
+    });
     this.assertStartOpen(signal);
     if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
       throw new AgentServerRunError(
@@ -520,7 +535,7 @@ export class RunManager {
     activated: ActivatedAgent,
     cwd: string,
   ): Promise<string | undefined> {
-    const agent = await this.connectActivatedAgent(activated);
+    const agent = await this.connectActivatedAgent(activated, spec.teamId);
     const profiles = await resolveRuntimeProfiles({
       agent,
       profiles: spec.profiles,
@@ -556,34 +571,30 @@ export class RunManager {
     );
   }
 
-  private async connectActivatedAgent(activated: ActivatedAgent) {
+  private async connectActivatedAgent(
+    activated: ActivatedAgent,
+    teamId: string,
+  ) {
     const { activation, config } = activated;
-    if (activation.source === 'managed') {
-      const agentKey = await resolveAgentKey(
-        config,
-        this.options.secretProviders,
-      );
-      if (!agentKey) {
-        throw new AgentServerRunError(
-          'invalid_spec',
-          `managed agent "${activation.alias}" has no agent key`,
-        );
-      }
-      return connect({ agentKey, apiUrl: activation.apiUrl });
-    }
     const agentKey = await resolveAgentKey(
       config,
-      this.options.externalSecretProviders,
+      activation.source === 'managed'
+        ? this.options.secretProviders
+        : this.options.externalSecretProviders,
+      teamId,
     );
     if (!agentKey) {
       throw new AgentServerRunError(
         'invalid_spec',
-        `external agent "${activation.alias}" has no agent key`,
+        `agent "${activation.alias}" has no agent key`,
       );
     }
     return connect({
       agentKey,
-      apiUrl: activation.apiUrl ?? activation.configApiUrl,
+      apiUrl:
+        activation.source === 'managed'
+          ? activation.apiUrl
+          : (activation.apiUrl ?? activation.configApiUrl),
     });
   }
 
