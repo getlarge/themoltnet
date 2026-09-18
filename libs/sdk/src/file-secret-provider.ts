@@ -309,10 +309,13 @@ function resolveFileSecretPath(root: string, key: string): string {
   const normalizedRoot = resolve(root);
   // Preserve canonical nested keys while making every segment an explicit
   // path-injection sanitizer recognized by static analysis.
-  const safeKey = key
-    .split('/')
-    .map((segment) => basename(segment))
-    .join(sep);
+  // The fallback is a file at agent-key/<subject>; team slots must not
+  // attempt to turn that same file into a directory.
+  const segments = key.split('/');
+  if (segments.length === 3 && segments[0] === 'agent-key') {
+    segments[0] = 'agent-key-teams';
+  }
+  const safeKey = segments.map((segment) => basename(segment)).join(sep);
   const target = resolve(normalizedRoot, safeKey);
   assertStrictlyInsideRoot(normalizedRoot, target, key);
   return target;

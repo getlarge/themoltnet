@@ -99,11 +99,14 @@ func runSSHKeyExportCmd(errOut io.Writer, credPath, outDir string) error {
 	}
 
 	// Update the ssh section in the config file
-	creds.SSH = &SSHSection{
-		PrivateKeyPath: privPath,
-		PublicKeyPath:  pubPath,
-	}
-	if _, err := WriteConfigTo(creds, credPath); err != nil {
+	err = updateCredentials(credPath, creds, func(current *CredentialsFile) error {
+		current.SSH = &SSHSection{
+			PrivateKeyPath: privPath,
+			PublicKeyPath:  pubPath,
+		}
+		return nil
+	})
+	if err != nil {
 		return fmt.Errorf("update config with ssh paths: %w", err)
 	}
 

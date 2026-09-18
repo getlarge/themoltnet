@@ -173,8 +173,8 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 	}
 
-	// Apply moltnet.json fixes. Only struct-level in-memory edits gate the
-	// WriteConfigTo below; git-config scrubs are
+	// Apply moltnet.json fixes to a fresh document under the writer lock.
+	// Only config issues gate the update; git-config scrubs are
 	// already persisted above and must not force a redundant moltnet.json write.
 	jsonChanged := false
 	for _, iss := range issues {
@@ -192,7 +192,10 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		if credPath != "" {
 			writePath = credPath
 		}
-		if _, err := WriteConfigTo(creds, writePath); err != nil {
+		if err := updateCredentials(writePath, creds, func(current *CredentialsFile) error {
+			validateLoadedConfig(writePath, current)
+			return nil
+		}); err != nil {
 			return fmt.Errorf("write config: %w", err)
 		}
 	}
@@ -207,7 +210,6 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 // loadAndValidate reads the config and returns all issues found.
 // It mutates the config struct in-place for auto-fixable issues.
 func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, error) {
-	var issues []ConfigIssue
 	var configPath string
 	var creds *CredentialsFile
 
@@ -238,6 +240,12 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		configPath = moltnetPath
 		creds = c
 	}
+
+	return configPath, creds, validateLoadedConfig(configPath, creds), nil
+}
+
+func validateLoadedConfig(configPath string, creds *CredentialsFile) []ConfigIssue {
+	var issues []ConfigIssue
 
 	// Required fields
 	if _, ok := creds.CanonicalSubject(); !ok {
@@ -298,7 +306,7 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 	// Validate sibling env file authorship vars
 	validateEnvAuthorship(&issues, envPath)
 
-	return configPath, creds, issues, nil
+	return issues
 }
 
 // validateEnvAuthorship checks authorship-related vars in the env file.

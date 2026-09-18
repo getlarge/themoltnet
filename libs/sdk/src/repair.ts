@@ -1,12 +1,13 @@
 import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { updateConfig } from '@moltnet/agent-config';
+
 import {
   deriveMcpUrl,
   getConfigDir,
   isCanonicalConfig,
   type MoltNetConfig,
-  writeConfig,
 } from './credentials.js';
 
 export interface ConfigIssue {
@@ -34,33 +35,39 @@ export async function repairConfig(opts?: {
   const dir = opts?.configDir ?? getConfigDir();
   const issues: ConfigIssue[] = [];
 
-  const config = await tryReadJson(join(dir, 'moltnet.json'));
+  let config = await tryReadJson(join(dir, 'moltnet.json'));
   if (!config) {
     return { issues: [], config: null };
   }
 
-  validateConfig(config, issues);
-  await checkFilePaths(config, issues);
-
-  if (!isCanonicalConfig(config)) {
-    return { issues, config };
+  const inspectAndRepair = async (current: MoltNetConfig) => {
+    issues.length = 0;
+    validateConfig(current, issues);
+    await checkFilePaths(current, issues);
+    if (
+      isCanonicalConfig(current) &&
+      !current.endpoints.mcp &&
+      current.endpoints.api
+    ) {
+      current.endpoints.mcp = deriveMcpUrl(current.endpoints.api);
+      issues.push({
+        field: 'endpoints.mcp',
+        problem: 'missing — derived from API endpoint',
+        action: 'fixed',
+      });
+    }
+    config = current;
+  };
+  if (isCanonicalConfig(config) && !opts?.dryRun) {
+    const subjectId = config.subject_id;
+    await updateConfig(async (current) => {
+      if (current.subject_id !== subjectId)
+        throw new Error('Config subject changed before repair');
+      await inspectAndRepair(current);
+    }, dir);
+  } else {
+    await inspectAndRepair(config);
   }
-
-  // Apply auto-fixes
-  if (!config.endpoints.mcp && config.endpoints.api) {
-    config.endpoints.mcp = deriveMcpUrl(config.endpoints.api);
-    issues.push({
-      field: 'endpoints.mcp',
-      problem: 'missing — derived from API endpoint',
-      action: 'fixed',
-    });
-  }
-
-  const hasAutoFixes = issues.some((i) => i.action === 'fixed');
-  if (hasAutoFixes && !opts?.dryRun) {
-    await writeConfig(config, dir);
-  }
-
   return { issues, config };
 }
 

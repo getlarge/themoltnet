@@ -75,13 +75,16 @@ func runGitSetupCmd(errOut io.Writer, credPath, name, email string) error {
 	}
 
 	// Update config
-	creds.Git = &GitSection{
-		Name:       gitName,
-		Email:      gitEmail,
-		Signing:    true,
-		ConfigPath: gitconfigPath,
-	}
-	if _, err := WriteConfigTo(creds, credPath); err != nil {
+	err = updateCredentials(credPath, creds, func(current *CredentialsFile) error {
+		current.Git = &GitSection{
+			Name:       gitName,
+			Email:      gitEmail,
+			Signing:    true,
+			ConfigPath: gitconfigPath,
+		}
+		return nil
+	})
+	if err != nil {
 		return fmt.Errorf("update config: %w", err)
 	}
 

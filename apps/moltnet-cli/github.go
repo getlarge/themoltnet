@@ -97,7 +97,7 @@ func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProvider
 }
 
 func runGitHubSetupCmd(credPath, name, appSlug string) error {
-	creds, err := loadCredentials(credPath)
+	creds, credPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {
 		return err
 	}
@@ -157,15 +157,16 @@ func runGitHubSetupCmd(credPath, name, appSlug string) error {
 
 	// Step 5: Persist app_slug if not already stored
 	if creds.GitHub.AppSlug == "" {
-		creds.GitHub.AppSlug = slug
-		if credPath != "" {
-			if _, err := WriteConfigTo(creds, credPath); err != nil {
-				return fmt.Errorf("update config: %w", err)
+		if err := updateCredentials(credPath, creds, func(current *CredentialsFile) error {
+			if current.GitHub == nil || current.GitHub.AppID != creds.GitHub.AppID {
+				return fmt.Errorf("GitHub App changed before update")
 			}
-		} else {
-			if _, err := WriteConfig(creds); err != nil {
-				return fmt.Errorf("update config: %w", err)
+			if current.GitHub.AppSlug == "" {
+				current.GitHub.AppSlug = slug
 			}
+			return nil
+		}); err != nil {
+			return fmt.Errorf("update config: %w", err)
 		}
 	}
 

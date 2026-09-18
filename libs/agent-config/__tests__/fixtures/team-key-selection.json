@@ -1,0 +1,181 @@
+[
+  {
+    "config": {
+      "agent_key_ref": {
+        "key": "agent-key/subject",
+        "provider": "os-keyring"
+      },
+      "identity_id": "subject"
+    },
+    "name": "legacy fallback",
+    "reference": {
+      "key": "agent-key/subject",
+      "provider": "os-keyring"
+    }
+  },
+  {
+    "config": {
+      "agent_key_ref": {
+        "key": "agent-key/subject",
+        "provider": "os-keyring"
+      },
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "name": "mixed selected",
+    "reference": {
+      "key": "agent-key/subject/a",
+      "provider": "os-keyring"
+    },
+    "selectedTeam": "a",
+    "teamId": "a"
+  },
+  {
+    "config": {
+      "agent_key_ref": {
+        "key": "agent-key/subject",
+        "provider": "os-keyring"
+      },
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "name": "mixed absent selected",
+    "reference": {
+      "key": "agent-key/subject",
+      "provider": "os-keyring"
+    },
+    "selectedTeam": "b"
+  },
+  {
+    "config": {
+      "agent_key_ref": {
+        "key": "agent-key/subject",
+        "provider": "os-keyring"
+      },
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "name": "mixed no selection",
+    "reference": {
+      "key": "agent-key/subject",
+      "provider": "os-keyring"
+    }
+  },
+  {
+    "config": {
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "name": "map only single",
+    "reference": {
+      "key": "agent-key/subject/a",
+      "provider": "os-keyring"
+    },
+    "teamId": "a"
+  },
+  {
+    "config": {
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        },
+        "b": {
+          "key": "agent-key.subject.b",
+          "provider": "file"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "name": "map only selected",
+    "reference": {
+      "key": "agent-key.subject.b",
+      "provider": "file"
+    },
+    "selectedTeam": "b",
+    "teamId": "b"
+  },
+  {
+    "config": {
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        },
+        "b": {
+          "key": "agent-key.subject.b",
+          "provider": "file"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "error": true,
+    "name": "map only ambiguous"
+  },
+  {
+    "config": {
+      "agent_key_refs": {
+        "a": {
+          "key": "agent-key/subject/a",
+          "provider": "os-keyring"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "error": true,
+    "name": "map only missing selected",
+    "selectedTeam": "b"
+  },
+  {
+    "config": {
+      "oauth2": {
+        "client_id": "client",
+        "client_secret": "example"
+      },
+      "subject_id": "subject"
+    },
+    "name": "oauth only",
+    "reference": null
+  },
+  {
+    "config": {
+      "agent_key_refs": {},
+      "subject_id": "subject"
+    },
+    "name": "empty map",
+    "reference": null
+  },
+  {
+    "config": {
+      "agent_key_refs": {
+        "": {
+          "key": "agent-key/subject",
+          "provider": "file"
+        }
+      },
+      "subject_id": "subject"
+    },
+    "error": true,
+    "name": "empty team entry"
+  }
+]

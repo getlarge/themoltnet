@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
@@ -278,31 +277,24 @@ func recoveryDestinationNotice(creds *CredentialsFile, requested, provider strin
 }
 
 func reconcileRecoveredCredentials(path string, original *CredentialsFile, clientID string, destination SecretReference) error {
-	lock, err := safefile.Acquire(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Close()
-	raw, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
-	if err != nil {
-		return err
-	}
-	var current CredentialsFile
-	var currentDocument map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &current); err != nil {
-		return fmt.Errorf("parse credentials: %w", err)
-	}
-	if err := json.Unmarshal(raw, &currentDocument); err != nil {
-		return fmt.Errorf("parse credentials document: %w", err)
-	}
-	if current.SubjectID != original.SubjectID || current.SubjectType != original.SubjectType || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
-		return fmt.Errorf("credentials subject, client, or OAuth2 source changed concurrently")
-	}
-	updated, err := updateCredentialsDocumentWithReference(currentDocument, clientID, destination)
-	if err != nil {
-		return err
-	}
-	return lock.Replace(raw, updated, maxMigrationConfigBytes)
+	return updateLockedCredentialsBytes(path, func(raw []byte) ([]byte, error) {
+		var current CredentialsFile
+		var currentDocument map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &current); err != nil {
+			return nil, fmt.Errorf("parse credentials: %w", err)
+		}
+		if err := json.Unmarshal(raw, &currentDocument); err != nil {
+			return nil, fmt.Errorf("parse credentials document: %w", err)
+		}
+		if current.SubjectID != original.SubjectID || current.SubjectType != original.SubjectType || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
+			return nil, fmt.Errorf("credentials subject, client, or OAuth2 source changed concurrently")
+		}
+		updated, err := updateCredentialsDocumentWithReference(currentDocument, clientID, destination)
+		if err != nil {
+			return nil, err
+		}
+		return updated, nil
+	})
 }
 
 func sameOAuth2Source(a, b *CredentialsFile) bool {
@@ -550,11 +542,12 @@ func runAgentsCredentialsRotateWithClient(
 	if err != nil {
 		return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
 	}
-	writeCredentials := opts.writeCredentials
-	if writeCredentials == nil {
-		writeCredentials = writeCredentialsAtomic
+	if opts.writeCredentials != nil {
+		err = opts.writeCredentials(credentialsPath, updatedDocument)
+	} else {
+		err = persistRotatedInlineCredentials(credentialsPath, document, rotated.ClientId, rotated.ClientSecret)
 	}
-	if err := writeCredentials(credentialsPath, updatedDocument); err != nil {
+	if err != nil {
 		return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
 	}
 
@@ -723,13 +716,6 @@ func updateCredentialsDocument(
 	return append(data, '\n'), nil
 }
 
-func writeCredentialsAtomic(path string, data []byte) error {
-	if err := writeFileAtomic(path, data); err != nil {
-		return fmt.Errorf("replace credentials file: %w", err)
-	}
-	return nil
-}
-
 func writeCredentialsRecoveryFile(
 	output rotateCredentialsOutput,
 ) (string, error) {
@@ -808,4 +794,26 @@ func syncDirectoryBestEffort(path string) {
 	}
 	defer directory.Close()
 	_ = directory.Sync()
+}
+
+// Rotation may take a network round trip; reload before updating the inline
+// OAuth2 field so a concurrent enrollment cannot lose its team reference.
+func persistRotatedInlineCredentials(path string, original map[string]json.RawMessage, clientID, secret string) error {
+	raw, err := json.Marshal(original)
+	if err != nil {
+		return err
+	}
+	var expected CredentialsFile
+	if err := json.Unmarshal(raw, &expected); err != nil {
+		return err
+	}
+	return updateCredentials(path, &expected, func(current *CredentialsFile) error {
+		if current.OAuth2.ClientID != expected.OAuth2.ClientID || current.OAuth2.ClientSecret != expected.OAuth2.ClientSecret || !sameOAuth2Source(&expected, current) {
+			return fmt.Errorf("OAuth2 credentials changed during rotation")
+		}
+		current.OAuth2.ClientID = clientID
+		current.OAuth2.ClientSecret = secret
+		current.OAuth2.ClientSecretRef = nil
+		return nil
+	})
 }

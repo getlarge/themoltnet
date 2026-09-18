@@ -82,6 +82,50 @@ Rungs 3 and 4 name an identity rather than a path, so one variable selects the
 whole identity and a session cannot authenticate as one agent while signing as
 another (issue #2129).
 
+## Team credential storage contract
+
+An identity can retain a compatibility fallback and references for individual
+teams. References contain provider identifiers, never secret values:
+
+```json
+{
+  "agent_key_ref": {
+    "key": "agent-key/<subjectId>",
+    "provider": "os-keyring"
+  },
+  "agent_key_refs": {
+    "<teamId>": {
+      "key": "agent-key/<subjectId>/<teamId>",
+      "provider": "os-keyring"
+    }
+  }
+}
+```
+
+The shared Go and Node selection primitives choose the selected team's entry
+first. Only an absent entry permits the fallback. A configured entry with an
+invalid binding or a failed provider lookup is terminal. With no selected team,
+the fallback wins; a single map entry can be selected automatically, while
+multiple map entries require an explicit team. A map-only document is valid.
+Explicit credential overrides and interactive OAuth precedence are unchanged.
+
+Writers reload the document under an exclusive directory lock at
+`<canonical-parent>/moltnet.json.writer-lock`, then replace it atomically. Go
+also retains its existing OS file lock for compatibility with older CLI writers.
+Section updates preserve unrelated JSON fields and other team entries. Readers
+need no lock. A writer waits up to five seconds for the shared directory lock;
+it never steals an old lock because its owner might only be paused. After a
+crashed writer, confirm that no writer is running before removing the lock
+directory named in the error. The last committed config remains readable.
+
+Release both Go and Node readers before enabling enrollment, migration, or
+lifecycle writers that create team-map entries. The minimum release versions
+must be recorded when those reader releases are published; this unreleased
+contract does not establish a supported version floor. Keep the original
+fallback during migration rollout. Older credentials do not acquire new scopes
+automatically: refresh OAuth authorization or reissue a key with `team:join`
+before enrolling another team.
+
 ## Rotate the OAuth2 client secret
 
 Use the CLI for routine rotation because it preflights and atomically updates
@@ -741,3 +785,10 @@ another agent is reported and left unchanged. See
 Commit signing always uses the agent's SSH key regardless of authorship mode. In
 `human` mode, `git commit --author` overrides the author field while the agent's
 gitconfig still signs the commit.
+
+The file provider keeps logical team references as
+`agent-key/<subjectId>/<teamId>`, but stores their values at
+`<secret-root>/agent-key-teams/<subjectId>/<teamId>`. The sibling directory lets
+team slots coexist with an existing fallback file at
+`<secret-root>/agent-key/<subjectId>`. Go and Node use this same layout;
+projected team credentials must follow it. Existing fallback paths stay valid.

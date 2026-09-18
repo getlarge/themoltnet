@@ -39387,8 +39387,8 @@ function oauth2SecretKey(subjectId, clientId) {
 function identitySeedKey(fingerprint) {
 	return `identity/${fingerprint}/seed`;
 }
-function agentKeyKey(subjectId) {
-	return `agent-key/${subjectId}`;
+function agentKeyKey(subjectId, teamId) {
+	return `agent-key/${subjectId}${teamId ? `/${teamId}` : ""}`;
 }
 function getConfigDir() {
 	return join(homedir(), ".config", "moltnet");
@@ -40081,7 +40081,9 @@ var FileSecretProvider = class {
 function resolveFileSecretPath(root, key) {
 	validateFileSecretKey(key);
 	const normalizedRoot = resolve(root);
-	const target = resolve(normalizedRoot, key.split("/").map((segment) => basename(segment)).join(sep));
+	const segments = key.split("/");
+	if (segments.length === 3 && segments[0] === "agent-key") segments[0] = "agent-key-teams";
+	const target = resolve(normalizedRoot, segments.map((segment) => basename(segment)).join(sep));
 	assertStrictlyInsideRoot(normalizedRoot, target, key);
 	return target;
 }

@@ -1,4 +1,12 @@
 export {
+  assertAgentKeyReferenceBinding,
+  hasAgentKeyConfiguration,
+  hasUsableCredentialConfiguration,
+  selectAgentKeyReference,
+  type SelectedAgentKey,
+} from './agent-key-selection.js';
+export {
+  type AgentKeyConfiguration,
   agentKeyKey,
   type AgentSubjectType,
   assertCanonicalConfig,
@@ -23,6 +31,7 @@ export {
   resolveConfigDir,
   resolveConfigPath,
   type SecretReference,
+  updateConfig,
   updateConfigSection,
   updateGitHubConfig,
   updateKeysConfig,
@@ -30,4 +39,6 @@ export {
   writeConfig,
   type WriteConfigOptions,
 } from './config.js';
+export { withConfigLock } from './config-lock.js';
 export { exportSSHKey } from './ssh.js';
+export { updateTeamAgentKeyReference } from './team-key-update.js';
