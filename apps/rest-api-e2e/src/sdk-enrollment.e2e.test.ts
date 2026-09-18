@@ -141,10 +141,6 @@ describe('SDK team enrollment persistence and reconnect', () => {
     expect(second.reference.key).toBe(`agent-key/${agent.agentId}/${b.teamId}`);
     await updateConfig((config) => {
       delete config.oauth2;
-      config.agent_key_ref = {
-        provider: provider.name,
-        key: `agent-key/${config.subject_id}`,
-      };
     }, dir);
     const config = await readConfig(dir);
     expect(config?.agent_key_refs).toEqual({
@@ -247,10 +243,6 @@ describe('SDK team enrollment persistence and reconnect', () => {
     );
     await updateConfig((config) => {
       delete config.oauth2;
-      config.agent_key_ref = {
-        provider: provider.name,
-        key: `agent-key/${config.subject_id}`,
-      };
     }, dir);
     const reconnected = await connect({
       configDir: dir,
