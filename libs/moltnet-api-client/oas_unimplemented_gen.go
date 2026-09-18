@@ -441,6 +441,16 @@ func (UnimplementedHandler) EnrollAgent(ctx context.Context, req OptEnrollAgentR
 	return r, ht.ErrNotImplemented
 }
 
+// EnrollExistingAgent implements enrollExistingAgent operation.
+//
+// Enroll an existing active agent using its current signing key and an invitation. Returns a
+// team-bound credential once. Completed replays return 409 with the issued key identifier.
+//
+// POST /auth/enroll-team
+func (UnimplementedHandler) EnrollExistingAgent(ctx context.Context, req *EnrollExistingAgentReq, params EnrollExistingAgentParams) (r EnrollExistingAgentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // FailTaskAttempt implements failTaskAttempt operation.
 //
 // Mark an attempt as failed with error details.

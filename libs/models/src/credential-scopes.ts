@@ -51,23 +51,24 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
 );
 
 /**
- * What the agent daemon cannot run without.
+ * What the agent daemon cannot run without, checked against
+ * `GET /agents/whoami` at startup. Task credentials attenuate it further to
+ * `task:execute` alone.
+ *
+ * This is the **boot floor**, and deliberately not the same list as
+ * `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
+ * and `POST /agent-keys` caps a new key at the scopes of the credential
+ * requesting it, so no key can ever widen itself. A scope added here therefore
+ * stops every daemon already in the field, and only a human with a Console
+ * session can mint the replacement. Add one only when the daemon genuinely
+ * cannot work without it; anything a caller merely benefits from belongs in
+ * `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
  *
  * `crypto:sign` is part of the minimum because host-capability signing runs on
  * the daemon's own credential: the local seed signer calls the signing-request
  * endpoints, which require it. A grant without it produces a daemon that boots
  * cleanly and then fails the first time guest code signs a diary entry or a
  * commit.
- *
- * This is the **boot floor**, checked against `GET /agents/whoami` at startup,
- * and it is deliberately not the same list as `AGENT_CREDENTIAL_SCOPES`. A
- * credential's scopes are fixed when it is minted and `POST /agent-keys`
- * caps a new key at the scopes of the credential requesting it, so no key can
- * ever re-mint itself with more. Every scope added to the floor therefore
- * stops every daemon already in the field, and only a human with a Console
- * session can unstick it. Add a scope here only when the daemon genuinely
- * cannot do its job without it; anything a *caller* needs belongs in the
- * issuance default below, where its absence degrades one feature instead.
  */
 export const DAEMON_MINIMUM_SCOPES = [
   CREDENTIAL_SCOPES.AgentProfile,
@@ -79,23 +80,24 @@ export const DAEMON_MINIMUM_SCOPES = [
 ] as const satisfies readonly CredentialScope[];
 
 /**
- * What a newly issued agent key should carry. Task credentials attenuate this
- * further to `task:execute` alone.
+ * Read and enrollment authority a daemon uses when it has it, and runs without
+ * when it does not: reading the teams it belongs to and their diaries, and
+ * joining a team it is not yet a member of.
  *
- * The boot floor plus the two read scopes the local Agent Server needs to
- * describe the machine's own work. It answers "which teams is this agent in,
- * and which diary does a run write to" by calling `teams.list` and
- * `diaries.list` with the agent's credential — there is no separate identity
- * to ask, and the desktop app has no human session. Both are read-only and
- * team-scoped, and an agent that can already claim and execute a team's tasks
- * learning that team's name is not an escalation. Narrower keys remain
- * available for credentials that only ever execute.
+ * Which product surface each one enables is deliberately not recorded here.
+ * That mapping belongs to whatever consumes the scope and changes with it,
+ * while the scope names are the contract and do not.
  */
-export const AGENT_CREDENTIAL_SCOPES = [
-  ...DAEMON_MINIMUM_SCOPES,
+export const DAEMON_OPTIONAL_SCOPES = [
   CREDENTIAL_SCOPES.DiaryRead,
   CREDENTIAL_SCOPES.TeamRead,
   CREDENTIAL_SCOPES.TeamJoin,
+] as const satisfies readonly CredentialScope[];
+
+/** What a newly issued agent key should carry: the floor plus the rest. */
+export const AGENT_CREDENTIAL_SCOPES = [
+  ...DAEMON_MINIMUM_SCOPES,
+  ...DAEMON_OPTIONAL_SCOPES,
 ] as const satisfies readonly CredentialScope[];
 
 /**

@@ -1,4 +1,5 @@
 import { cryptoService } from '@moltnet/crypto-service';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import type { Whoami } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,6 +30,7 @@ vi.mock('@themoltnet/sdk/node', () => ({
 import {
   attestPreparedRuntime,
   DAEMON_REQUIRED_SCOPES,
+  missingOptionalScopes,
   resolveExecutorSigningPrivateKey,
   validateDaemonScopes,
   validateExecutorSigningIdentity,
@@ -169,12 +171,13 @@ describe('daemon credential validation', () => {
     ).not.toThrow();
   });
 
-  it('still boots a key issued before the catalogue scopes existed', () => {
-    // `AGENT_CREDENTIAL_SCOPES` now also asks for team:read and diary:read so
-    // the desktop catalogue can name teams and diaries. Scopes are fixed when
-    // a key is minted and no key can re-mint itself with more, so every key
-    // already in the field lacks them. They are not required to claim and run
-    // a task, so they must not gate startup.
+  it('still starts on a key issued before the grant was widened', () => {
+    // These six are hardcoded on purpose. Every other fixture here derives its
+    // scopes from DAEMON_REQUIRED_SCOPES, so when that constant grows the
+    // fixtures grow with it and no test can notice that a key issued earlier
+    // stopped working. A key's scopes are fixed when it is minted and no key
+    // can widen itself, so a scope added to the startup gate strands every
+    // credential already in the field until a human mints a replacement.
     expect(() =>
       validateDaemonScopes(
         agentWhoami({
@@ -189,6 +192,33 @@ describe('daemon credential validation', () => {
         }),
       ),
     ).not.toThrow();
+  });
+
+  it('names the optional scopes such a key does not hold', () => {
+    // Scope names, not capability flags: what each one unlocks is the caller's
+    // business and moves with the product, while the names are the contract.
+    expect(
+      missingOptionalScopes(
+        agentWhoami({
+          scopes: [
+            'agent:profile',
+            'crypto:sign',
+            'runtime:read',
+            'task:read',
+            'task:claim',
+            'task:execute',
+          ],
+        }),
+      ),
+    ).toEqual(['diary:read', 'team:read', 'team:join']);
+  });
+
+  it('names nothing for a freshly issued key', () => {
+    expect(
+      missingOptionalScopes(
+        agentWhoami({ scopes: [...AGENT_CREDENTIAL_SCOPES] }),
+      ),
+    ).toEqual([]);
   });
 
   it('refuses a credential that cannot sign', () => {

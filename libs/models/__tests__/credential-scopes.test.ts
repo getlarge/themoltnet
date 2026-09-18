@@ -7,6 +7,7 @@ import {
   CREDENTIAL_SCOPES,
   credentialScopeSetsEqual,
   DAEMON_MINIMUM_SCOPES,
+  DAEMON_OPTIONAL_SCOPES,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
   MCP_M2M_SCOPES,
@@ -56,6 +57,9 @@ describe('credential scopes', () => {
   });
 
   it('exports exact job-oriented credential presets', () => {
+    // Floor first, then what the daemon merely benefits from. The membership
+    // is unchanged; only the order moved, because the grant is now composed
+    // from the two lists rather than written out flat.
     expect(AGENT_CREDENTIAL_SCOPES).toEqual([
       'agent:profile',
       'crypto:sign',
@@ -84,20 +88,11 @@ describe('credential scopes', () => {
     ]);
   });
 
-  it('issues agent keys able to read the teams and diaries they are bound to', () => {
-    // The desktop catalogue calls `teams.list` and `diaries.list` with the
-    // agent's own credential. Without these the composer cannot name the team
-    // a run belongs to, or pair it with a diary.
-    expect(AGENT_CREDENTIAL_SCOPES).toContain('team:read');
-    expect(AGENT_CREDENTIAL_SCOPES).toContain('diary:read');
-  });
-
   it('keeps the daemon boot floor below the issuance default', () => {
-    // Scopes are fixed when a key is minted, so every key issued before this
-    // widening lacks the two new ones. If the boot floor moved with the
-    // default, each of those keys would stop a running daemon dead. The floor
-    // is what the daemon cannot work without; the default is what a new key
-    // should carry.
+    // The floor is what a daemon cannot run without; the default is what a new
+    // key should carry. They must not be the same list: scopes are fixed at
+    // issuance and no key can widen itself, so a scope added to the floor
+    // strands every credential already in the field.
     expect(DAEMON_MINIMUM_SCOPES).toEqual([
       'agent:profile',
       'crypto:sign',
@@ -106,11 +101,18 @@ describe('credential scopes', () => {
       'task:claim',
       'task:execute',
     ]);
-    expect(DAEMON_MINIMUM_SCOPES).not.toContain('team:read');
-    expect(DAEMON_MINIMUM_SCOPES).not.toContain('diary:read');
-    for (const scope of DAEMON_MINIMUM_SCOPES) {
-      expect(AGENT_CREDENTIAL_SCOPES).toContain(scope);
+    expect(DAEMON_OPTIONAL_SCOPES).toEqual([
+      'diary:read',
+      'team:read',
+      'team:join',
+    ]);
+    for (const scope of DAEMON_OPTIONAL_SCOPES) {
+      expect(DAEMON_MINIMUM_SCOPES).not.toContain(scope);
     }
+    expect(AGENT_CREDENTIAL_SCOPES).toEqual([
+      ...DAEMON_MINIMUM_SCOPES,
+      ...DAEMON_OPTIONAL_SCOPES,
+    ]);
   });
 
   it('compares scopes as exact duplicate-free sets', () => {

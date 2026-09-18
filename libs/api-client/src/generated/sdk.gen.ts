@@ -144,6 +144,9 @@ import type {
   EnrollAgentData,
   EnrollAgentErrors,
   EnrollAgentResponses,
+  EnrollExistingAgentData,
+  EnrollExistingAgentErrors,
+  EnrollExistingAgentResponses,
   FailTaskAttemptData,
   FailTaskAttemptErrors,
   FailTaskAttemptResponses,
@@ -698,6 +701,25 @@ export const enrollAgent = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: '/auth/enroll',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Enroll an existing active agent using its current signing key and an invitation. Returns a team-bound credential once. Completed replays return 409 with the issued key identifier.
+ */
+export const enrollExistingAgent = <ThrowOnError extends boolean = false>(
+  options: Options<EnrollExistingAgentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    EnrollExistingAgentResponses,
+    EnrollExistingAgentErrors,
+    ThrowOnError
+  >({
+    url: '/auth/enroll-team',
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -12,6 +12,8 @@ import {
   createTeam,
   createTeamInvite,
   deleteTeamInvite,
+  enrollExistingAgent,
+  getWhoami,
   getTeam,
   joinTeam,
   revokeAgentKey,
@@ -22,6 +24,8 @@ import {
   createRelationshipReader,
 } from '@moltnet/auth';
 import { createAgentRepository, teamInvites, teams } from '@moltnet/database';
+import { cryptoService } from '@moltnet/crypto-service';
+import { buildTeamEnrollmentMessage } from '@moltnet/models';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -455,5 +459,98 @@ describe('team enrollment', () => {
     });
     expect(revoked.response.status).toBe(204);
     expect(await usage(invite.id)).toBe(true);
+  });
+});
+
+describe('proof enrollment against API and Talos', () => {
+  async function proofEnroll(
+    code: string,
+    expectedTeamId?: string,
+    idempotencyKey = randomUUID(),
+  ) {
+    const input = {
+      subjectId: agent.agentId,
+      code,
+      expectedTeamId,
+      idempotencyKey,
+    };
+    const proof = await cryptoService.sign(
+      buildTeamEnrollmentMessage(input),
+      agent.keyPair.privateKey,
+    );
+    return enrollExistingAgent({
+      client,
+      headers: { 'idempotency-key': idempotencyKey },
+      body: { subjectId: input.subjectId, code, expectedTeamId, proof },
+    });
+  }
+
+  it('enrolls without API authentication, renews, and leaves the predecessor usable', async () => {
+    const invite = await invitation();
+    const original = await proofEnroll(invite.code);
+    expect(original.response.status).toBe(200);
+    const renewal = await createTeamInvite({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: invite.teamId },
+      body: { role: 'executor' },
+    });
+    expect(renewal.response.status).toBe(201);
+    const idempotencyKey = randomUUID();
+    const replacement = await proofEnroll(
+      renewal.data!.code,
+      invite.teamId,
+      idempotencyKey,
+    );
+    expect(replacement.response.status).toBe(200);
+    expect(replacement.data!.role).toBe('member');
+    for (const credential of [
+      original.data!.agentKey,
+      replacement.data!.agentKey,
+    ]) {
+      const whoami = await getWhoami({ client, auth: () => credential.secret });
+      expect(whoami.response.status).toBe(200);
+      expect(whoami.data!.credentialBinding).toMatchObject({
+        keyId: credential.key.id,
+        bindingScope: 'team',
+        boundTeamId: invite.teamId,
+        expiresAt: credential.key.expiresAt,
+      });
+    }
+    const replay = await proofEnroll(
+      renewal.data!.code,
+      invite.teamId,
+      idempotencyKey,
+    );
+    expect(replay.response.status).toBe(409);
+    expect(replay.error).toMatchObject({
+      conflict: {
+        target: { keys: { keyId: replacement.data!.agentKey.key.id } },
+      },
+    });
+    expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(2);
+  });
+
+  it('rejects wrong-team renewal without spending its invitation', async () => {
+    const invite = await invitation();
+    expect((await proofEnroll(invite.code, randomUUID())).response.status).toBe(
+      409,
+    );
+    expect(await usage(invite.id)).toBe(false);
+    expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(0);
+    expect(
+      (await proofEnroll(invite.code, invite.teamId)).response.status,
+    ).toBe(200);
+  });
+
+  it('issues once under concurrent proof redemption', async () => {
+    const invite = await invitation();
+    const idempotencyKey = randomUUID();
+    const responses = await Promise.all([
+      proofEnroll(invite.code, invite.teamId, idempotencyKey),
+      proofEnroll(invite.code, invite.teamId, idempotencyKey),
+    ]);
+    expect(responses.map((r) => r.response.status).sort()).toEqual([200, 409]);
+    expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(1);
   });
 });

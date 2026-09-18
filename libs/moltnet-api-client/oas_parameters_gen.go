@@ -4292,6 +4292,81 @@ func decodeEnrollAgentParams(args [0]string, argsEscaped bool, r *http.Request) 
 	return params, nil
 }
 
+// EnrollExistingAgentParams is parameters of enrollExistingAgent operation.
+type EnrollExistingAgentParams struct {
+	IdempotencyKey string
+}
+
+func unpackEnrollExistingAgentParams(packed middleware.Parameters) (params EnrollExistingAgentParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "idempotency-key",
+			In:   "header",
+		}
+		params.IdempotencyKey = packed[key].(string)
+	}
+	return params
+}
+
+func decodeEnrollExistingAgentParams(args [0]string, argsEscaped bool, r *http.Request) (params EnrollExistingAgentParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: idempotency-key.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.IdempotencyKey = c
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     200,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["\\S"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.IdempotencyKey)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "idempotency-key",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // FailTaskAttemptParams is parameters of failTaskAttempt operation.
 type FailTaskAttemptParams struct {
 	ID uuid.UUID

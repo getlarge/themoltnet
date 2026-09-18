@@ -494,6 +494,20 @@ func encodeEnrollAgentRequest(
 	return nil
 }
 
+func encodeEnrollExistingAgentRequest(
+	req *EnrollExistingAgentReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeFailTaskAttemptRequest(
 	req *FailTaskAttemptReq,
 	r *http.Request,

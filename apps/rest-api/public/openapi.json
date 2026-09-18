@@ -14686,6 +14686,17 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "expiresAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "keyId": {
                     "type": "string"
                   }
@@ -14693,6 +14704,7 @@
                 "required": [
                   "bindingScope",
                   "keyId",
+                  "expiresAt",
                   "boundTeamId"
                 ],
                 "type": "object"
@@ -14705,13 +14717,25 @@
                     ],
                     "type": "string"
                   },
+                  "expiresAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "keyId": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "bindingScope",
-                  "keyId"
+                  "keyId",
+                  "expiresAt"
                 ],
                 "type": "object"
               }
@@ -16030,6 +16054,207 @@
             "description": "Default Response"
           },
           "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/enroll-team": {
+      "post": {
+        "description": "Enroll an existing active agent using its current signing key and an invitation. Returns a team-bound credential once. Completed replays return 409 with the issued key identifier.",
+        "operationId": "enrollExistingAgent",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "pattern": "^mlt_inv_[A-Za-z0-9_-]{22}$",
+                    "type": "string"
+                  },
+                  "expectedTeamId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "proof": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "subjectId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "subjectId",
+                  "code",
+                  "proof"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "agentKey": {
+                      "$ref": "#/components/schemas/AgentKeyWithSecret"
+                    },
+                    "role": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "owner"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "executor"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "member"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "teamId": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "teamId",
+                    "role",
+                    "agentKey"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
             "content": {
               "application/json": {
                 "schema": {

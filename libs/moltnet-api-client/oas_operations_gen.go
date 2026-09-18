@@ -53,6 +53,7 @@ const (
 	DownloadTaskArtifactOperation                  OperationName = "DownloadTaskArtifact"
 	DownloadTaskArtifactByCidOperation             OperationName = "DownloadTaskArtifactByCid"
 	EnrollAgentOperation                           OperationName = "EnrollAgent"
+	EnrollExistingAgentOperation                   OperationName = "EnrollExistingAgent"
 	FailTaskAttemptOperation                       OperationName = "FailTaskAttempt"
 	FindLatestRuntimeSlotForAttemptOperation       OperationName = "FindLatestRuntimeSlotForAttempt"
 	FinishRuntimeSlotOperation                     OperationName = "FinishRuntimeSlot"

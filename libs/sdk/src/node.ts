@@ -9,6 +9,7 @@ import type { MoltNetConfig } from './credentials.js';
 export { CredentialPersistenceError } from './credential-persistence.js';
 export {
   enrollTeam,
+  EnrollmentRecoveryError,
   type EnrollTeamOptions,
   type EnrollTeamResult,
 } from './enroll-team.js';

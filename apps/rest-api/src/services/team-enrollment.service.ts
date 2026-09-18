@@ -20,6 +20,8 @@ export async function enrollTeamAgent(
     subjectNs: KetoNamespace;
     code: string;
     idempotencyKey?: string;
+    expectedTeamId?: string;
+    proofAuthenticated?: boolean;
     signal: AbortSignal;
   },
 ) {
@@ -36,7 +38,13 @@ export async function enrollTeamAgent(
     );
   }
   // Bind DBOS replay to the original code without persisting that bearer secret.
-  const codeHash = createHash('sha256').update(input.code).digest('hex');
+  const codeHash = createHash('sha256')
+    .update(
+      input.proofAuthenticated
+        ? JSON.stringify(['proof:v1', input.code, input.expectedTeamId ?? null])
+        : input.code,
+    )
+    .digest('hex');
   let grant = await teamInviteWorkflow.findEnrollment(
     input.subjectId,
     input.idempotencyKey,
@@ -44,6 +52,9 @@ export async function enrollTeamAgent(
   if (!grant) {
     const invite = await app.teamRepository.findInviteByCode(input.code);
     if (!invite) throw createProblem('not-found', 'Invalid invite code');
+    if (input.expectedTeamId && invite.teamId !== input.expectedTeamId) {
+      throw createProblem('conflict', 'Invitation belongs to a different team');
+    }
     if (invite.expiresAt <= new Date()) throw createProblem('invite-expired');
     const team = await app.teamRepository.findById(invite.teamId);
     if (!team || team.personal)
@@ -62,6 +73,9 @@ export async function enrollTeamAgent(
       'conflict',
       'Idempotency-Key was reused with different input',
     );
+  }
+  if (input.expectedTeamId && grant.teamId !== input.expectedTeamId) {
+    throw createProblem('conflict', 'Invitation belongs to a different team');
   }
   const team = await app.teamRepository.findById(grant.teamId);
   if (!team || team.personal || team.status !== 'active')
