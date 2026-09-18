@@ -1219,7 +1219,40 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         { timeoutMs: 60_000, intervalMs: 1000, diagnostics: () => diagnostic },
       );
     };
-    return { start, startBoth, waitForClaims };
+    const waitForRevocation = async (
+      run: { runId: string; teamId: string },
+      since: number,
+    ) => {
+      const hasAuthorizationFailure = (text: string) =>
+        text.split('\n').some((line) => {
+          if (!line.startsWith('data: ')) return false;
+          try {
+            const event = JSON.parse(line.slice(6)) as {
+              time?: number;
+              teamId?: string;
+              msg?: string;
+              err?: { statusCode?: number };
+            };
+            return (
+              typeof event.time === 'number' &&
+              event.time >= since &&
+              event.teamId === run.teamId &&
+              event.msg === 'polling-api.list_failed' &&
+              (event.err?.statusCode === 401 || event.err?.statusCode === 403)
+            );
+          } catch {
+            return false;
+          }
+        });
+      const log = await readRunLogs(run.runId, hasAuthorizationFailure, 60_000);
+      const context = JSON.stringify({ stage: 'revoked poll', ...run });
+      expect(hasAuthorizationFailure(log), context).toBe(true);
+      expect(
+        secrets.some((secret) => log.includes(secret)),
+        context,
+      ).toBe(false);
+    };
+    return { start, startBoth, waitForClaims, waitForRevocation };
   }
 
   async function restartTeamSupervisor() {
@@ -1296,6 +1329,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
       { teamId },
     );
+    // Require a denied poll after this task exists, not a historical failure.
+    const deniedTaskCreatedAt = Date.now();
     const afterRevoke = await agent.tasks.create(
       {
         taskType: 'freeform',
@@ -1305,11 +1340,14 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
       { teamId: teamB.id },
     );
-    await lifecycle.waitForClaims(
-      [afterRevoke],
-      restarted,
-      'claim after other team revocation',
-    );
+    await Promise.all([
+      lifecycle.waitForClaims(
+        [afterRevoke],
+        restarted,
+        'claim after other team revocation',
+      ),
+      lifecycle.waitForRevocation(restarted[0], deniedTaskCreatedAt),
+    ]);
     expect((await agent.tasks.get(deniedTask.id)).status).toBe('queued');
     expect(await configFilesContaining(agentServerRoot, secretA)).toEqual([]);
     expect(await configFilesContaining(agentServerRoot, secretB)).toEqual([]);
