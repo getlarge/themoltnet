@@ -36,7 +36,7 @@ beforeAll(async () => {
     const journalPath = join(legacy, 'meta/_journal.json');
     const journal = JSON.parse(await readFile(journalPath, 'utf8'));
     const boundary = journal.entries.findIndex(
-      (entry: { tag: string }) => entry.tag === '0046_overjoyed_firestar',
+      (entry: { tag: string }) => entry.tag === '0047_single_use_team_invites',
     );
     if (boundary < 0)
       throw new Error('Single-use migration missing from journal');
