@@ -277,7 +277,7 @@ describe('managed agent server agents', () => {
           ...whoami,
           credentialBinding: {
             bindingScope: 'team',
-            boundTeamId: 'team-original',
+            boundTeamId: 'team-1',
             keyId: 'key-1',
           },
         }),
@@ -291,8 +291,8 @@ describe('managed agent server agents', () => {
     });
 
     expect(created).toMatchObject({
-      activation: { boundTeamId: 'team-original' },
-      boundTeamId: 'team-original',
+      activation: { boundTeamId: 'team-1' },
+      boundTeamId: 'team-1',
     });
     connectMock.mockResolvedValueOnce({
       agents: {
@@ -376,13 +376,15 @@ describe('managed agent server agents', () => {
         ? Promise.reject(new Error('disk full'))
         : realWrite(key, value),
     );
-    await expect(
-      createManagedAgent(store, secrets, {
-        name: 'abandoned',
-        apiUrl: 'https://api.themolt.net',
-        enrollmentToken: 'enroll-tok',
-      }),
-    ).rejects.toMatchObject({ code: 'registration_incomplete' });
+    const failed = createManagedAgent(store, secrets, {
+      name: 'abandoned',
+      apiUrl: 'https://api.themolt.net',
+      enrollmentToken: 'enroll-tok',
+    });
+    await expect(failed).rejects.toMatchObject({
+      code: 'registration_incomplete',
+    });
+    await expect(failed).rejects.toThrow('credential-recovery');
 
     await expect(
       reconcileManagedRegistration(store, secrets, 'abandoned', 'abandon'),
@@ -1037,7 +1039,7 @@ describe.each(['managed', 'external'] as const)(
           teamId: 'a',
         });
       }
-      const verify = (team: string) =>
+      const verify = (team?: string) =>
         verifyAgentActivation(
           store,
           'multi',
@@ -1047,6 +1049,10 @@ describe.each(['managed', 'external'] as const)(
           undefined,
           team,
         );
+      await expect(verify()).resolves.toMatchObject({ boundTeamId: 'a' });
+      expect(connectMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ agentKey: 'a' }),
+      );
       const [a, b] = await Promise.all([verify('a'), verify('b')]);
       expect([a.boundTeamId, b.boundTeamId]).toEqual(['a', 'b']);
       expect(store.readActivation('multi')?.boundTeamId).toBe('a');
@@ -1058,6 +1064,7 @@ describe.each(['managed', 'external'] as const)(
       delete values['agent-key/agent-1/a'];
       connectMock.mockClear();
       await expect(verify('a')).rejects.toThrow('could not resolve');
+      await expect(verify()).rejects.toThrow('could not resolve');
       expect(connectMock).not.toHaveBeenCalled();
       await expect(verify('b')).resolves.toMatchObject({ boundTeamId: 'b' });
     });

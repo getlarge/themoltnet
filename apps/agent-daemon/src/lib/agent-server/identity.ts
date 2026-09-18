@@ -240,19 +240,27 @@ export async function createManagedAgent(
  */
 function incompleteRegistrationMessage(
   alias: string,
-  known: { subjectId?: string; fingerprint?: string; configPath?: string },
+  known: {
+    subjectId?: string;
+    fingerprint?: string;
+    configPath?: string;
+    recoveryPath?: string;
+  },
 ): string {
   const endpoint = `POST /v1/agents/${alias}/reconcile`;
+  const recovery = known.recoveryPath
+    ? ` Inspect the protected recovery file at ${known.recoveryPath}; it may be incomplete.`
+    : '';
   const reconcile = known.configPath
     ? `Finish it with ${endpoint} and {"action":"resume"}, or discard the local record with {"action":"abandon"}.`
     : `No local config was written, so it cannot be resumed; discard the local record with ${endpoint} and {"action":"abandon"}.`;
   if (known.subjectId) {
-    return `the remote agent ${known.subjectId} was registered but local activation is incomplete. ${reconcile}`;
+    return `the remote agent ${known.subjectId} was registered but local activation is incomplete. ${reconcile}${recovery}`;
   }
   const fingerprint = known.fingerprint
     ? ` (fingerprint ${known.fingerprint})`
     : '';
-  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first. ${reconcile}`;
+  return `registration for "${alias}" may have completed on the server${fingerprint}; look the agent up first. ${reconcile}${recovery}`;
 }
 
 /** Resume a fully persisted registration or explicitly abandon local recovery. */
@@ -452,6 +460,7 @@ export async function verifyAgentActivation(
   teamId?: string,
 ): Promise<ActivatedAgent> {
   const activation = requireActivation(store, alias);
+  teamId ??= activation.boundTeamId;
   const verified =
     activation.source === 'managed'
       ? await verifyManagedActivation(
