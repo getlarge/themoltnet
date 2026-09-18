@@ -1,6 +1,6 @@
 {
-  "id": "74bb76ef-988c-47e9-ba6e-c77481ff92f0",
-  "prevId": "30121c78-7fde-405a-a911-8ea13e76f4ae",
+  "id": "851238f1-2049-4d0b-88ce-9fc3f7212424",
+  "prevId": "74bb76ef-988c-47e9-ba6e-c77481ff92f0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6359,6 +6359,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'member'"
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "max_uses": {
           "name": "max_uses",
