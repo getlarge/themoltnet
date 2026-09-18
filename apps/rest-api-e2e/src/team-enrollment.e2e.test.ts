@@ -557,8 +557,8 @@ describe('proof enrollment against API and Talos', () => {
     expect(replacement.response.status).toBe(200);
     expect(replacement.data!.role).toBe('member');
     for (const credential of [
-      original.data!.agentKey,
-      replacement.data!.agentKey,
+      original.data!.agentKey!,
+      replacement.data!.agentKey!,
     ]) {
       const whoami = await getWhoami({ client, auth: () => credential.secret });
       expect(whoami.response.status).toBe(200);
@@ -581,6 +581,51 @@ describe('proof enrollment against API and Talos', () => {
       },
     });
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(2);
+  });
+
+  it('rejects tampered proof inputs without consuming the invitation', async () => {
+    const invite = await invitation();
+    const idempotencyKey = randomUUID();
+    const signature = await cryptoService.sign(
+      buildTeamEnrollmentMessage({
+        subjectId: agent.agentId,
+        code: invite.code,
+        idempotencyKey,
+        expectedTeamId: invite.teamId,
+      }),
+      agent.keyPair.privateKey,
+    );
+    for (const change of [
+      { code: randomUUID() },
+      { expectedTeamId: randomUUID() },
+      { proof: { subjectId: owner.agentId, signature } },
+    ]) {
+      const result = await joinTeam({
+        client,
+        headers: { 'idempotency-key': idempotencyKey },
+        body: {
+          code: invite.code,
+          issueAgentKey: true,
+          expectedTeamId: invite.teamId,
+          proof: { subjectId: agent.agentId, signature },
+          ...change,
+        },
+      });
+      expect(result.response.status).toBe(400);
+    }
+    const changedRequestKey = await joinTeam({
+      client,
+      headers: { 'idempotency-key': randomUUID() },
+      body: {
+        code: invite.code,
+        issueAgentKey: true,
+        expectedTeamId: invite.teamId,
+        proof: { subjectId: agent.agentId, signature },
+      },
+    });
+    expect(changedRequestKey.response.status).toBe(400);
+    expect(await usage(invite.id)).toBe(false);
+    expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(0);
   });
 
   it('rejects wrong-team renewal without spending its invitation', async () => {
