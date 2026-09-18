@@ -1,8 +1,9 @@
 /* eslint-disable @nx/enforce-module-boundaries -- Process fixture exercises the server routes directly. */
-import type {
-  AuthContext,
-  RelationshipReader,
-  RelationshipWriter,
+import {
+  type AuthContext,
+  KetoNamespace,
+  type RelationshipReader,
+  type RelationshipWriter,
 } from '@moltnet/auth';
 import type { TeamRepository } from '@moltnet/database';
 import Fastify from 'fastify';
@@ -39,7 +40,7 @@ export async function startInviteHttpServer(
   app.decorateRequest('authContext', null);
   app.addHook('onRequest', async (request) => {
     request.authContext = {
-      subjectType: input.subjectNs === 'Human' ? 'human' : 'agent',
+      subjectType: input.subjectNs === KetoNamespace.Human ? 'human' : 'agent',
       agentId: input.subjectId,
       humanId: input.subjectId,
       identityId: input.subjectId,
