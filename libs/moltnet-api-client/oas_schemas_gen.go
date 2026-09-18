@@ -8116,10 +8116,9 @@ type CreateTeamInviteCreated struct {
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	// UUID v4 identifier.
-	ID       uuid.UUID                   `json:"id"`
-	MaxUses  int                         `json:"maxUses"`
-	Role     CreateTeamInviteCreatedRole `json:"role"`
-	UseCount int                         `json:"useCount"`
+	ID     uuid.UUID                   `json:"id"`
+	Role   CreateTeamInviteCreatedRole `json:"role"`
+	UsedAt NilDateTime                 `json:"usedAt"`
 }
 
 // GetCode returns the value of Code.
@@ -8142,19 +8141,14 @@ func (s *CreateTeamInviteCreated) GetID() uuid.UUID {
 	return s.ID
 }
 
-// GetMaxUses returns the value of MaxUses.
-func (s *CreateTeamInviteCreated) GetMaxUses() int {
-	return s.MaxUses
-}
-
 // GetRole returns the value of Role.
 func (s *CreateTeamInviteCreated) GetRole() CreateTeamInviteCreatedRole {
 	return s.Role
 }
 
-// GetUseCount returns the value of UseCount.
-func (s *CreateTeamInviteCreated) GetUseCount() int {
-	return s.UseCount
+// GetUsedAt returns the value of UsedAt.
+func (s *CreateTeamInviteCreated) GetUsedAt() NilDateTime {
+	return s.UsedAt
 }
 
 // SetCode sets the value of Code.
@@ -8177,19 +8171,14 @@ func (s *CreateTeamInviteCreated) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
-// SetMaxUses sets the value of MaxUses.
-func (s *CreateTeamInviteCreated) SetMaxUses(val int) {
-	s.MaxUses = val
-}
-
 // SetRole sets the value of Role.
 func (s *CreateTeamInviteCreated) SetRole(val CreateTeamInviteCreatedRole) {
 	s.Role = val
 }
 
-// SetUseCount sets the value of UseCount.
-func (s *CreateTeamInviteCreated) SetUseCount(val int) {
-	s.UseCount = val
+// SetUsedAt sets the value of UsedAt.
+func (s *CreateTeamInviteCreated) SetUsedAt(val NilDateTime) {
+	s.UsedAt = val
 }
 
 func (*CreateTeamInviteCreated) createTeamInviteRes() {}
@@ -8252,18 +8241,12 @@ func (*CreateTeamInviteNotFound) createTeamInviteRes() {}
 
 type CreateTeamInviteReq struct {
 	ExpiresInHours OptInt                     `json:"expiresInHours"`
-	MaxUses        OptInt                     `json:"maxUses"`
 	Role           OptCreateTeamInviteReqRole `json:"role"`
 }
 
 // GetExpiresInHours returns the value of ExpiresInHours.
 func (s *CreateTeamInviteReq) GetExpiresInHours() OptInt {
 	return s.ExpiresInHours
-}
-
-// GetMaxUses returns the value of MaxUses.
-func (s *CreateTeamInviteReq) GetMaxUses() OptInt {
-	return s.MaxUses
 }
 
 // GetRole returns the value of Role.
@@ -8274,11 +8257,6 @@ func (s *CreateTeamInviteReq) GetRole() OptCreateTeamInviteReqRole {
 // SetExpiresInHours sets the value of ExpiresInHours.
 func (s *CreateTeamInviteReq) SetExpiresInHours(val OptInt) {
 	s.ExpiresInHours = val
-}
-
-// SetMaxUses sets the value of MaxUses.
-func (s *CreateTeamInviteReq) SetMaxUses(val OptInt) {
-	s.MaxUses = val
 }
 
 // SetRole sets the value of Role.
@@ -31814,10 +31792,9 @@ type ListTeamInvitesOKItemsItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	// UUID v4 identifier.
-	ID       uuid.UUID                      `json:"id"`
-	MaxUses  int                            `json:"maxUses"`
-	Role     ListTeamInvitesOKItemsItemRole `json:"role"`
-	UseCount int                            `json:"useCount"`
+	ID     uuid.UUID                      `json:"id"`
+	Role   ListTeamInvitesOKItemsItemRole `json:"role"`
+	UsedAt NilDateTime                    `json:"usedAt"`
 }
 
 // GetCode returns the value of Code.
@@ -31840,19 +31817,14 @@ func (s *ListTeamInvitesOKItemsItem) GetID() uuid.UUID {
 	return s.ID
 }
 
-// GetMaxUses returns the value of MaxUses.
-func (s *ListTeamInvitesOKItemsItem) GetMaxUses() int {
-	return s.MaxUses
-}
-
 // GetRole returns the value of Role.
 func (s *ListTeamInvitesOKItemsItem) GetRole() ListTeamInvitesOKItemsItemRole {
 	return s.Role
 }
 
-// GetUseCount returns the value of UseCount.
-func (s *ListTeamInvitesOKItemsItem) GetUseCount() int {
-	return s.UseCount
+// GetUsedAt returns the value of UsedAt.
+func (s *ListTeamInvitesOKItemsItem) GetUsedAt() NilDateTime {
+	return s.UsedAt
 }
 
 // SetCode sets the value of Code.
@@ -31875,19 +31847,14 @@ func (s *ListTeamInvitesOKItemsItem) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
-// SetMaxUses sets the value of MaxUses.
-func (s *ListTeamInvitesOKItemsItem) SetMaxUses(val int) {
-	s.MaxUses = val
-}
-
 // SetRole sets the value of Role.
 func (s *ListTeamInvitesOKItemsItem) SetRole(val ListTeamInvitesOKItemsItemRole) {
 	s.Role = val
 }
 
-// SetUseCount sets the value of UseCount.
-func (s *ListTeamInvitesOKItemsItem) SetUseCount(val int) {
-	s.UseCount = val
+// SetUsedAt sets the value of UsedAt.
+func (s *ListTeamInvitesOKItemsItem) SetUsedAt(val NilDateTime) {
+	s.UsedAt = val
 }
 
 type ListTeamInvitesOKItemsItemRole string

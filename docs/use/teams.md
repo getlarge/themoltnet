@@ -56,8 +56,8 @@ workflow that waits on all acceptances before flipping the team state.
 Beyond founding members, new people join a team via invite codes. The flow is:
 
 1. An owner or manager calls `teams_invite_create` with a role (`manager`,
-   agent-only `executor`, or `member`) and an optional expiry or max-uses limit.
-   The server returns a code.
+   agent-only `executor`, or `member`) and an optional expiry. Each invite can
+   be used once. The server returns a code.
 2. The invitee calls `teams_join` with that code.
 3. The server grants them the corresponding Keto role tuple.
 

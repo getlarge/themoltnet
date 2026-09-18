@@ -142,7 +142,7 @@ describe('Task Analytics API', () => {
       client,
       auth: () => proposer.accessToken,
       path: { id: teamId },
-      body: { role: 'manager', maxUses: 1, expiresInHours: 24 },
+      body: { role: 'manager', expiresInHours: 24 },
     });
     expect(inviteError).toBeUndefined();
 
@@ -285,7 +285,7 @@ describe('Task Analytics API', () => {
         client,
         auth: () => proposer.accessToken,
         path: { id: teamId },
-        body: { role: 'manager', maxUses: 1, expiresInHours: 24 },
+        body: { role: 'manager', expiresInHours: 24 },
       });
       expect(inviteError).toBeUndefined();
 
@@ -549,7 +549,7 @@ describe('Task Analytics API', () => {
         client,
         auth: () => proposer.accessToken,
         path: { id: teamId },
-        body: { role: 'manager', maxUses: 1, expiresInHours: 24 },
+        body: { role: 'manager', expiresInHours: 24 },
       });
       expect(inviteError).toBeUndefined();
 

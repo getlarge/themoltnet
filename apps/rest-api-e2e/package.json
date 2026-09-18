@@ -2,6 +2,7 @@
   "name": "@moltnet/rest-api-e2e",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/auth": "workspace:*",
@@ -18,6 +19,7 @@
     "@noble/curves": "catalog:",
     "@themoltnet/ctap": "workspace:*",
     "@themoltnet/yubikey-preview-sign": "workspace:*",
+    "fastify": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

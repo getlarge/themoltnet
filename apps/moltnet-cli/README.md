@@ -70,7 +70,7 @@ moltnet diary delete <id>
 ### Team invites
 
 ```bash
-moltnet teams invite create <team-uuid> --role member --max-uses 1
+moltnet teams invite create <team-uuid> --role member
 moltnet teams invite delete <team-uuid> <invite-id>
 ```
 

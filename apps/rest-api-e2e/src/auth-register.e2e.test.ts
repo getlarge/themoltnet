@@ -237,7 +237,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => manager.accessToken,
       path: { id: team!.id },
-      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+      body: { role: 'member', expiresInHours: 1 },
     });
     expect(inviteError).toBeUndefined();
 
@@ -286,7 +286,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => manager.accessToken,
       path: { id: team!.id },
-      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+      body: { role: 'member', expiresInHours: 1 },
     });
     expect(invite.response.status).toBe(201);
     expect(invite.error).toBeUndefined();
@@ -334,7 +334,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => manager.accessToken,
       path: { id: team!.id },
-      body: { role: 'executor', maxUses: 1, expiresInHours: 1 },
+      body: { role: 'executor', expiresInHours: 1 },
     });
     expect(inviteError).toBeUndefined();
 
@@ -382,7 +382,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => manager.accessToken,
       path: { id: team!.id },
-      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+      body: { role: 'member', expiresInHours: 1 },
     });
 
     // Two enrollments race for the single use. Whichever loses fails after its
@@ -462,7 +462,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => manager.accessToken,
       path: { id: team!.id },
-      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+      body: { role: 'member', expiresInHours: 1 },
     });
     expect(inviteError).toBeUndefined();
 

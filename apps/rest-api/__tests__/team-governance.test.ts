@@ -55,14 +55,25 @@ vi.mock('../src/workflows/diary-transfer-workflow.js', () => ({
   TRANSFER_DECISION_EVENT: 'diary.transfer.decision',
 }));
 
+vi.mock('../src/workflows/team-invite-workflow.js', () => ({
+  teamInviteWorkflow: {
+    run: vi.fn(),
+    findPending: vi.fn().mockResolvedValue(null),
+  },
+}));
 // Need to import DBOS after mock to get the mocked version
 import { DBOS } from '@moltnet/database';
+
+import { createProblem } from '../src/problems/index.js';
+import { teamInviteWorkflow } from '../src/workflows/team-invite-workflow.js';
 
 // DBOS is a module-level mock, not part of `mocks`, so `resetMockServices`
 // does not touch it. Clear its spies' call history before each test so
 // `toHaveBeenCalled` / `not.toHaveBeenCalled` assertions don't see calls
 // that leaked in from a previously-run test sharing the same app instance.
 beforeEach(() => {
+  vi.mocked(teamInviteWorkflow.run).mockReset();
+  vi.mocked(teamInviteWorkflow.findPending).mockReset().mockResolvedValue(null);
   vi.mocked(DBOS.startWorkflow).mockClear();
   vi.mocked(DBOS.send).mockClear();
   vi.mocked(DBOS.retrieveWorkflow).mockClear();
@@ -792,6 +803,10 @@ describe('POST /teams/join role promotion', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    vi.mocked(teamInviteWorkflow.run).mockResolvedValue({
+      teamId: TEAM_ID,
+      role: 'manager',
+    });
     mocks.teamRepository.findInviteByCode.mockResolvedValue({
       id: 'invite-1',
       teamId: TEAM_ID,
@@ -806,6 +821,59 @@ describe('POST /teams/join role promotion', () => {
       expiresAt: new Date(Date.now() + 60_000),
     });
   });
+
+  it.each([
+    ['not-found', 404],
+    ['forbidden', 403],
+    ['invite-expired', 410],
+    ['invite-exhausted', 410],
+    ['team-not-active', 400],
+  ])(
+    'preserves workflow %s responses at the HTTP boundary',
+    async (problem, status) => {
+      vi.mocked(teamInviteWorkflow.run).mockRejectedValue(
+        createProblem(problem),
+      );
+      mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
+      const response = await app.inject({
+        method: 'POST',
+        url: '/teams/join',
+        headers: authHeaders,
+        payload: { code: 'mlt_inv_test' },
+      });
+      expect(response.statusCode).toBe(status);
+    },
+  );
+
+  it.each([
+    ['member', 200],
+    ['owner', 409],
+  ] as const)(
+    'reconnects a pending %s membership with status %s',
+    async (role, status) => {
+      mocks.teamRepository.findInviteByCode.mockResolvedValue({
+        id: 'invite-1',
+        teamId: TEAM_ID,
+        usedAt: new Date(),
+        expiresAt: new Date(0),
+      });
+      vi.mocked(teamInviteWorkflow.findPending).mockResolvedValueOnce({
+        teamId: TEAM_ID,
+        role,
+      });
+      const response = await app.inject({
+        method: 'POST',
+        url: '/teams/join',
+        headers: authHeaders,
+        payload: { code: 'mlt_inv_test' },
+      });
+      expect(response.statusCode).toBe(status);
+      if (role === 'owner')
+        expect(response.json()).toMatchObject({ code: 'CONFLICT' });
+      else expect(response.json()).toEqual({ teamId: TEAM_ID, role });
+      expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
+    },
+  );
 
   it('promotes an existing member when a manager invite is redeemed', async () => {
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([
@@ -824,11 +892,30 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(mocks.relationshipWriter.grantTeamManagers).toHaveBeenCalledWith(
-      TEAM_ID,
-      OWNER_ID,
-      'Agent',
-    );
+    expect(teamInviteWorkflow.run).toHaveBeenCalledWith({
+      inviteId: 'invite-1',
+      subjectId: OWNER_ID,
+      subjectNs: 'Agent',
+    });
+  });
+
+  it('rejects a used invite before replaying a completed workflow', async () => {
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      role: 'manager',
+      usedAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams/join',
+      headers: authHeaders,
+      payload: { code: 'mlt_inv_test' },
+    });
+    expect(res.statusCode).toBe(410);
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 
   it('keeps same-role joins as conflict', async () => {
@@ -848,10 +935,14 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 
   it('downgrades an existing manager when a member invite is redeemed', async () => {
+    vi.mocked(teamInviteWorkflow.run).mockResolvedValue({
+      teamId: TEAM_ID,
+      role: 'member',
+    });
     mocks.teamRepository.findInviteByCode.mockResolvedValue({
       id: 'invite-1',
       teamId: TEAM_ID,
@@ -880,11 +971,11 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(mocks.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
-      TEAM_ID,
-      OWNER_ID,
-      'Agent',
-    );
+    expect(teamInviteWorkflow.run).toHaveBeenCalledWith({
+      inviteId: 'invite-1',
+      subjectId: OWNER_ID,
+      subjectNs: 'Agent',
+    });
   });
 
   it('rejects owner role changes when a lower invite role is redeemed', async () => {
@@ -910,7 +1001,7 @@ describe('POST /teams/join role promotion', () => {
     });
 
     expect(res.statusCode).toBe(409);
-    expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
   });
 
   it('rejects a human redeeming an executor invite without claiming it', async () => {
@@ -933,7 +1024,7 @@ describe('POST /teams/join role promotion', () => {
       });
 
       expect(res.statusCode).toBe(403);
-      expect(humanMocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+      expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
       expect(
         humanMocks.relationshipWriter.grantTeamExecutors,
       ).not.toHaveBeenCalled();

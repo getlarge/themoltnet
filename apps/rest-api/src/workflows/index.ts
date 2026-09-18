@@ -76,6 +76,11 @@ export {
   teamFoundingWorkflow,
 } from './team-founding-workflow.js';
 export {
+  initTeamInviteWorkflow,
+  setTeamInviteDeps,
+  teamInviteWorkflow,
+} from './team-invite-workflow.js';
+export {
   startTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,
   type TaskDeletionWorkflowResult,

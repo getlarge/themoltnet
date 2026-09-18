@@ -53,6 +53,7 @@ import {
   FOUNDING_ACCEPT_EVENT,
   teamFoundingWorkflow,
 } from '../workflows/team-founding-workflow.js';
+import { teamInviteWorkflow } from '../workflows/team-invite-workflow.js';
 
 // ── Member enrichment ───────────────────────────────────────────
 
@@ -926,7 +927,6 @@ export function teamRoutes(fastify: FastifyInstance) {
       const invite = await fastify.teamRepository.createInvite({
         teamId: id,
         role: request.body.role ?? 'member',
-        maxUses: request.body.maxUses ?? 1,
         expiresAt: new Date(Date.now() + expiresInHours * 3600_000),
         creator: inviteCreator,
       });
@@ -935,8 +935,7 @@ export function teamRoutes(fastify: FastifyInstance) {
         id: invite.id,
         code: invite.code,
         role: invite.role ?? 'member',
-        maxUses: invite.maxUses,
-        useCount: invite.useCount ?? 0,
+        usedAt: invite.usedAt?.toISOString() ?? null,
         expiresAt: invite.expiresAt,
         createdAt: invite.createdAt,
       });
@@ -983,8 +982,7 @@ export function teamRoutes(fastify: FastifyInstance) {
           id: inv.id,
           code: inv.code,
           role: inv.role,
-          maxUses: inv.maxUses,
-          useCount: inv.useCount,
+          usedAt: inv.usedAt?.toISOString() ?? null,
           expiresAt: inv.expiresAt,
           createdAt: inv.createdAt,
         })),
@@ -1064,6 +1062,7 @@ export function teamRoutes(fastify: FastifyInstance) {
           404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ConflictProblemDetailsSchema.$id),
           410: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
@@ -1074,6 +1073,20 @@ export function teamRoutes(fastify: FastifyInstance) {
       const invite = await fastify.teamRepository.findInviteByCode(code);
       if (!invite) {
         throw createProblem('not-found', 'Invalid invite code');
+      }
+
+      const pending = await teamInviteWorkflow.findPending({
+        inviteId: invite.id,
+        subjectId,
+        subjectNs: ns,
+      });
+      if (pending) {
+        if (pending.role === TEAM_ROLE.Owner) {
+          throw createProblem('conflict', 'Already a member of this team');
+        }
+        return reply
+          .status(200)
+          .send({ teamId: pending.teamId, role: pending.role });
       }
 
       if (invite.expiresAt < new Date()) {
@@ -1099,6 +1112,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       // Check if already a member
       const existingMembers = await fastify.relationshipReader.listTeamMembers(
         invite.teamId,
+        { subjectId, subjectNs: ns },
       );
       const existingMember = resolveManagedMember(existingMembers, subjectId);
       if (
@@ -1108,51 +1122,19 @@ export function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('conflict', 'Already a member of this team');
       }
 
-      // Atomic claim: INCREMENT use_count WHERE use_count < max_uses
-      // Returns null if exhausted — no race condition.
-      const claimed = await fastify.teamRepository.claimInvite(invite.id);
-      if (!claimed) {
-        throw createProblem('invite-exhausted');
-      }
+      if (invite.usedAt) throw createProblem('invite-exhausted');
 
-      try {
-        if (existingMember) {
-          await grantTeamRole(
-            fastify,
-            invite.teamId,
-            subjectId,
-            existingMember.subjectNs,
-            invite.role,
-          );
-        } else {
-          await grantTeamRole(
-            fastify,
-            invite.teamId,
-            subjectId,
-            ns,
-            invite.role,
-          );
-        }
-      } catch (err) {
-        request.log.error(
-          { teamId: invite.teamId, subjectId, inviteId: invite.id, err },
-          'team.join_keto_grant_failed — invite claimed but Keto write failed',
-        );
-        try {
-          await fastify.teamRepository.revertInviteClaim(invite.id);
-        } catch (revertErr) {
-          request.log.error(
-            { inviteId: invite.id, revertErr },
-            'team.join_invite_revert_failed',
-          );
-        }
-        throw err;
-      }
-
-      return reply.status(200).send({
-        teamId: invite.teamId,
-        role: invite.role,
+      const result = await teamInviteWorkflow.run({
+        inviteId: invite.id,
+        subjectId,
+        subjectNs: ns,
       });
+      if (result.role === TEAM_ROLE.Owner) {
+        throw createProblem('conflict', 'Already a member of this team');
+      }
+      return reply
+        .status(200)
+        .send({ teamId: result.teamId, role: result.role });
     },
   );
 

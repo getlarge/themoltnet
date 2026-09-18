@@ -371,7 +371,6 @@ export const CreateTeamInviteSchema = Type.Object({
       Type.Literal('member'),
     ]),
   ),
-  maxUses: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
   expiresInHours: Type.Optional(
     Type.Integer({ minimum: 1, maximum: 720, default: 168 }),
   ),
@@ -413,8 +412,7 @@ export const TeamInviteResponseSchema = Type.Object({
     Type.Literal('executor'),
     Type.Literal('member'),
   ]),
-  maxUses: Type.Integer(),
-  useCount: Type.Integer(),
+  usedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
   expiresAt: DateTimeUnsafe,
   createdAt: DateTimeUnsafe,
 });

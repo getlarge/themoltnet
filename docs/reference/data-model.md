@@ -54,8 +54,7 @@ erDiagram
         uuid team_id FK
         varchar code UK "mlt_inv_<random>"
         invite_role role "manager | executor | member"
-        integer max_uses
-        integer use_count
+        timestamp used_at
         uuid created_by FK
         timestamp expires_at
         timestamp created_at

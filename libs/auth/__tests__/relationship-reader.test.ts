@@ -29,6 +29,25 @@ describe('RelationshipReader', () => {
     reader = createRelationshipReader(mockRelationshipApi as any);
   });
 
+  it('filters team membership by the exact subject before pagination', async () => {
+    mockRelationshipApi.getRelationships
+      .mockResolvedValueOnce({ relation_tuples: [], next_page_token: 'next' })
+      .mockResolvedValueOnce({ relation_tuples: [] });
+    await reader.listTeamMembers(TEAM_ID_1, {
+      subjectId: AGENT_ID,
+      subjectNs: KetoNamespace.Human,
+    });
+    for (const [request] of mockRelationshipApi.getRelationships.mock.calls) {
+      expect(request).toMatchObject({
+        namespace: KetoNamespace.Team,
+        object: TEAM_ID_1,
+        subjectSetObject: AGENT_ID,
+        subjectSetNamespace: KetoNamespace.Human,
+      });
+    }
+    expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
+  });
+
   describe('listTeamIdsBySubject', () => {
     it('returns team IDs from relation tuples', async () => {
       mockRelationshipApi.getRelationships.mockResolvedValue({

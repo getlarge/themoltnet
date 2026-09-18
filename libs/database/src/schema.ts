@@ -1018,6 +1018,8 @@ export const teamInvites = pgTable(
     // Can't invite as owner — ownership transfer is a separate operation
     role: teamInviteRoleEnum('role').default('member').notNull(),
 
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    // Database-only rolling-deployment compatibility; remove after old binaries drain.
     maxUses: integer('max_uses').default(1).notNull(),
     useCount: integer('use_count').default(0).notNull(),
 
@@ -1241,8 +1243,14 @@ export type NewContextPack = typeof contextPacks.$inferInsert;
 export type ContextPackEntry = typeof contextPackEntries.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
-export type TeamInvite = typeof teamInvites.$inferSelect;
-export type NewTeamInvite = typeof teamInvites.$inferInsert;
+export type TeamInvite = Omit<
+  typeof teamInvites.$inferSelect,
+  'maxUses' | 'useCount'
+>;
+export type NewTeamInvite = Omit<
+  typeof teamInvites.$inferInsert,
+  'maxUses' | 'useCount'
+>;
 
 export type Group = typeof groups.$inferSelect;
 export type NewGroup = typeof groups.$inferInsert;

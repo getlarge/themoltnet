@@ -543,8 +543,7 @@ export function TeamDetailPage({ id }: { id: string }) {
                     id={inv.id}
                     code={inv.code}
                     role={inv.role ?? 'member'}
-                    maxUses={inv.maxUses}
-                    useCount={inv.useCount ?? 0}
+                    usedAt={inv.usedAt}
                     expiresAt={inv.expiresAt}
                     onDelete={(invId) => setConfirmDeleteInvite(invId)}
                   />

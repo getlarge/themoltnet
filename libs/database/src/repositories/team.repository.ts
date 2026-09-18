@@ -38,7 +38,6 @@ export interface CreateTeamInput {
 export interface CreateInviteInput {
   teamId: string;
   role: 'manager' | 'executor' | 'member';
-  maxUses: number;
   expiresAt: Date;
   creator: TeamCreator;
 }
@@ -64,10 +63,9 @@ export interface TeamRepository {
   createInvite(input: CreateInviteInput): Promise<TeamInvite>;
   findInviteByCode(code: string): Promise<TeamInvite | null>;
   findInviteById(id: string): Promise<TeamInvite | null>;
-  /** Atomically increment use_count if below max_uses. Returns null if exhausted. */
+  /** Atomically consume a single-use invite. Returns null if unavailable. */
   claimInvite(id: string): Promise<TeamInvite | null>;
-  incrementInviteUseCount(id: string): Promise<TeamInvite | null>;
-  /** Decrement use_count by 1 (floor at 0). Used to compensate a claimed invite when Keto grant fails. */
+  /** Release a claim when agent registration is compensated. */
   revertInviteClaim(id: string): Promise<TeamInvite | null>;
   listInvites(teamId: string): Promise<TeamInvite[]>;
   deleteInvite(id: string): Promise<boolean>;
@@ -164,7 +162,6 @@ export function createTeamRepository(db: Database): TeamRepository {
           teamId: input.teamId,
           code,
           role: input.role,
-          maxUses: input.maxUses,
           expiresAt: input.expiresAt,
           creatorAgentId:
             input.creator.kind === 'agent' ? input.creator.id : null,
@@ -196,22 +193,15 @@ export function createTeamRepository(db: Database): TeamRepository {
     async claimInvite(id) {
       const [invite] = await getExecutor(db)
         .update(teamInvites)
-        .set({ useCount: sql`${teamInvites.useCount} + 1` })
+        .set({ usedAt: sql`clock_timestamp()` })
         .where(
           and(
             eq(teamInvites.id, id),
-            sql`${teamInvites.useCount} < ${teamInvites.maxUses}`,
+            sql`${teamInvites.usedAt} IS NULL`,
+            sql`${teamInvites.expiresAt} > clock_timestamp()`,
+            sql`EXISTS (SELECT 1 FROM ${teams} WHERE ${teams.id} = ${teamInvites.teamId} AND ${teams.status} = 'active' AND NOT ${teams.personal} FOR SHARE)`,
           ),
         )
-        .returning();
-      return invite ?? null;
-    },
-
-    async incrementInviteUseCount(id) {
-      const [invite] = await getExecutor(db)
-        .update(teamInvites)
-        .set({ useCount: sql`${teamInvites.useCount} + 1` })
-        .where(eq(teamInvites.id, id))
         .returning();
       return invite ?? null;
     },
@@ -220,7 +210,7 @@ export function createTeamRepository(db: Database): TeamRepository {
       const [invite] = await getExecutor(db)
         .update(teamInvites)
         .set({
-          useCount: sql`GREATEST(${teamInvites.useCount} - 1, 0)`,
+          usedAt: null,
         })
         .where(eq(teamInvites.id, id))
         .returning();

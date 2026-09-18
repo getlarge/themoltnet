@@ -118,6 +118,7 @@ import {
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
   initTeamFoundingWorkflow,
+  initTeamInviteWorkflow,
   registerHumanOnboardingQueue,
   registerMaintenanceQueues,
   registerRegistrationQueue,
@@ -127,6 +128,7 @@ import {
   setMaintenanceDeps,
   setRegistrationDeps,
   setTeamFoundingDeps,
+  setTeamInviteDeps,
 } from './workflows/index.js';
 
 export interface BootstrapResult {
@@ -509,6 +511,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           config.dbosWorkflowRetention,
         ),
       () => initTeamFoundingWorkflow(),
+      () => initTeamInviteWorkflow(),
       () => initDiaryTransferWorkflow(),
     ],
     wireDependencies: [
@@ -608,6 +611,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       (workflowTransactionRunner) => {
+        setTeamInviteDeps({
+          teamRepository,
+          transactionRunner: workflowTransactionRunner,
+          relationshipReader,
+          relationshipWriter,
+        });
         setTeamFoundingDeps({
           teamRepository,
           transactionRunner: workflowTransactionRunner,

@@ -111,7 +111,7 @@ func runTeamsJoinCmd(apiURL, credPath, code string) error {
 }
 
 // runTeamsInviteCreateCmd creates an invite code for a team.
-func runTeamsInviteCreateCmd(apiURL, credPath, teamID, role string, expiresInHours, maxUses int) error {
+func runTeamsInviteCreateCmd(apiURL, credPath, teamID, role string, expiresInHours int) error {
 	teamUUID, err := uuid.Parse(teamID)
 	if err != nil {
 		return fmt.Errorf("invalid team ID %q: %w", teamID, err)
@@ -130,9 +130,6 @@ func runTeamsInviteCreateCmd(apiURL, credPath, teamID, role string, expiresInHou
 	}
 	if expiresInHours > 0 {
 		req.Value.ExpiresInHours = moltnetapi.OptInt{Value: expiresInHours, Set: true}
-	}
-	if maxUses > 0 {
-		req.Value.MaxUses = moltnetapi.OptInt{Value: maxUses, Set: true}
 	}
 
 	res, err := client.CreateTeamInvite(context.Background(), req, moltnetapi.CreateTeamInviteParams{ID: teamUUID})

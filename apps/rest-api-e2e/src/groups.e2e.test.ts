@@ -76,7 +76,7 @@ describe('Groups E2E', () => {
       client,
       auth: () => agentA.accessToken,
       path: { id: projectTeamId },
-      body: { role: 'member', maxUses: 1, expiresInHours: 24 },
+      body: { role: 'member', expiresInHours: 24 },
     });
     await joinTeam({
       client,

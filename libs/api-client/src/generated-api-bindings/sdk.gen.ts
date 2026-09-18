@@ -3811,7 +3811,7 @@ export const createTeam = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Join a team using an invite code.
+ * Join a team using an invite code. Requires team:join; send no team header.
  */
 export const joinTeam = <ThrowOnError extends boolean = false>(
   options: Options<JoinTeamData, ThrowOnError>,

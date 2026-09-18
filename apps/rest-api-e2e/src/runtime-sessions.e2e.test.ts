@@ -85,7 +85,7 @@ describe('Runtime sessions API', () => {
       client,
       auth: () => owner.accessToken,
       path: { id: teamId },
-      body: { role: 'member', maxUses: 1, expiresInHours: 24 },
+      body: { role: 'member', expiresInHours: 24 },
     });
     expect(inviteError).toBeUndefined();
 

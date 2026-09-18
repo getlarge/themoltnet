@@ -201,7 +201,6 @@ export async function handleTeamsInviteCreate(
     path: { id: args.team_id },
     body: {
       role: args.role,
-      maxUses: args.max_uses,
       expiresInHours: args.expires_in_hours,
     },
   });

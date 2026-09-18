@@ -104,13 +104,6 @@ export const TeamsInviteCreateSchema = Type.Object({
       },
     ),
   ),
-  max_uses: Type.Optional(
-    Type.Integer({
-      description:
-        'Maximum number of times the invite can be used. Default: 1.',
-      minimum: 1,
-    }),
-  ),
   expires_in_hours: Type.Optional(
     Type.Integer({
       description: 'Invite expiry in hours (1-720). Default: server default.',
@@ -122,7 +115,6 @@ export const TeamsInviteCreateSchema = Type.Object({
 export type TeamsInviteCreateInput = {
   team_id: string;
   role?: 'member' | 'executor' | 'manager';
-  max_uses?: number;
   expires_in_hours?: number;
 };
 
@@ -267,8 +259,7 @@ const TeamInviteSchema = Type.Object({
     Type.Literal('executor'),
     Type.Literal('member'),
   ]),
-  maxUses: Type.Number(),
-  useCount: Type.Number(),
+  usedAt: Type.Union([Type.String(), Type.Null()]),
   expiresAt: Type.String(),
   createdAt: Type.String(),
 });

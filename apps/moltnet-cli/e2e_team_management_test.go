@@ -35,7 +35,7 @@ func TestE2E_CLI_TeamLifecycle(t *testing.T) {
 
 	// 2. owner creates an invite (member role, 1 use)
 	stdout, _ = h.run(t, "teams", "invite", "create", teamID.String(),
-		"--role", "member", "--max-uses", "1")
+		"--role", "member")
 	var invite struct {
 		ID   uuid.UUID `json:"id"`
 		Code string    `json:"code"`

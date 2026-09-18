@@ -261,7 +261,7 @@ func TestTeamsInviteCreateHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, flag := range []string{"--role", "--expires", "--max-uses"} {
+	for _, flag := range []string{"--role", "--expires"} {
 		if !strings.Contains(stdout, flag) {
 			t.Errorf("expected invite create help to contain %q, got: %s", flag, stdout)
 		}
