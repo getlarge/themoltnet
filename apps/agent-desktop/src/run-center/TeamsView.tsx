@@ -64,7 +64,14 @@ export function TeamsView({
       .catalogue(identity)
       .then(
         (value) => {
-          if (current) setCatalogue(value);
+          if (current) {
+            setCatalogue(value);
+            setFeedback((previous) =>
+              previous?.title === 'Team access could not be refreshed'
+                ? null
+                : previous,
+            );
+          }
         },
         () => {
           if (current)
