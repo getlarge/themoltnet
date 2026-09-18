@@ -845,26 +845,35 @@ describe('POST /teams/join role promotion', () => {
     },
   );
 
-  it('reconnects a consumed invite to its pending membership workflow', async () => {
-    mocks.teamRepository.findInviteByCode.mockResolvedValue({
-      id: 'invite-1',
-      teamId: TEAM_ID,
-      usedAt: new Date(),
-      expiresAt: new Date(0),
-    });
-    vi.mocked(teamInviteWorkflow.findPending).mockResolvedValueOnce({
-      teamId: TEAM_ID,
-      role: 'member',
-    });
-    const response = await app.inject({
-      method: 'POST',
-      url: '/teams/join',
-      headers: authHeaders,
-      payload: { code: 'mlt_inv_test' },
-    });
-    expect(response.statusCode).toBe(200);
-    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
-  });
+  it.each([
+    ['member', 200],
+    ['owner', 409],
+  ] as const)(
+    'reconnects a pending %s membership with status %s',
+    async (role, status) => {
+      mocks.teamRepository.findInviteByCode.mockResolvedValue({
+        id: 'invite-1',
+        teamId: TEAM_ID,
+        usedAt: new Date(),
+        expiresAt: new Date(0),
+      });
+      vi.mocked(teamInviteWorkflow.findPending).mockResolvedValueOnce({
+        teamId: TEAM_ID,
+        role,
+      });
+      const response = await app.inject({
+        method: 'POST',
+        url: '/teams/join',
+        headers: authHeaders,
+        payload: { code: 'mlt_inv_test' },
+      });
+      expect(response.statusCode).toBe(status);
+      if (role === 'owner')
+        expect(response.json()).toMatchObject({ code: 'CONFLICT' });
+      else expect(response.json()).toEqual({ teamId: TEAM_ID, role });
+      expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
+    },
+  );
 
   it('promotes an existing member when a manager invite is redeemed', async () => {
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([

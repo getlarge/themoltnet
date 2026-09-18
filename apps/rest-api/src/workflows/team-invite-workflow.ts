@@ -4,8 +4,8 @@ import {
   type RelationshipWriter,
   type TeamInviteRole,
   TeamRelation,
-  teamRoleToRelation,
   type TeamRole,
+  teamRoleToRelation,
 } from '@moltnet/auth';
 import {
   DBOS,

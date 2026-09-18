@@ -17,7 +17,6 @@ import {
 } from '@moltnet/database';
 
 import { startInviteHttpServer } from '../../../rest-api/__tests__/fixtures/invite-http-server.js';
-
 import {
   initTeamInviteWorkflow,
   type RedeemTeamInvite,

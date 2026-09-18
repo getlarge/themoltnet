@@ -1080,10 +1080,14 @@ export function teamRoutes(fastify: FastifyInstance) {
         subjectId,
         subjectNs: ns,
       });
-      if (pending)
+      if (pending) {
+        if (pending.role === TEAM_ROLE.Owner) {
+          throw createProblem('conflict', 'Already a member of this team');
+        }
         return reply
           .status(200)
           .send({ teamId: pending.teamId, role: pending.role });
+      }
 
       if (invite.expiresAt < new Date()) {
         throw createProblem('invite-expired');
@@ -1128,7 +1132,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       if (result.role === TEAM_ROLE.Owner) {
         throw createProblem('conflict', 'Already a member of this team');
       }
-      return await reply
+      return reply
         .status(200)
         .send({ teamId: result.teamId, role: result.role });
     },
