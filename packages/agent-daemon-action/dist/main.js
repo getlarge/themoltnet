@@ -30657,12 +30657,7 @@ _Object_({
 });
 _Object_({
 	teamId: UuidSchema,
-	role: Union([
-		Literal("owner"),
-		Literal("manager"),
-		Literal("executor"),
-		Literal("member")
-	])
+	role: TeamRoleSchema
 });
 _Object_({
 	updated: Boolean$1(),
