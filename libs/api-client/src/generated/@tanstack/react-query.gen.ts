@@ -57,6 +57,7 @@ import {
   downloadTaskArtifact,
   downloadTaskArtifactByCid,
   enrollAgent,
+  enrollExistingAgent,
   failTaskAttempt,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
@@ -308,6 +309,9 @@ import type {
   EnrollAgentData,
   EnrollAgentError,
   EnrollAgentResponse,
+  EnrollExistingAgentData,
+  EnrollExistingAgentError,
+  EnrollExistingAgentResponse,
   FailTaskAttemptData,
   FailTaskAttemptError,
   FailTaskAttemptResponse,
@@ -1029,6 +1033,33 @@ export const enrollAgentMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await enrollAgent({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Enroll an existing active agent using its current signing key and an invitation. Returns a team-bound credential once. Completed replays return 409 with the issued key identifier.
+ */
+export const enrollExistingAgentMutation = (
+  options?: Partial<Options<EnrollExistingAgentData>>,
+): UseMutationOptions<
+  EnrollExistingAgentResponse,
+  EnrollExistingAgentError,
+  Options<EnrollExistingAgentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    EnrollExistingAgentResponse,
+    EnrollExistingAgentError,
+    Options<EnrollExistingAgentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await enrollExistingAgent({
         ...options,
         ...fnOptions,
         throwOnError: true,

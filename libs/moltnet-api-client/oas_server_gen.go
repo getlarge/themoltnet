@@ -293,6 +293,13 @@ type Handler interface {
 	//
 	// POST /auth/enroll
 	EnrollAgent(ctx context.Context, req OptEnrollAgentReq, params EnrollAgentParams) (EnrollAgentRes, error)
+	// EnrollExistingAgent implements enrollExistingAgent operation.
+	//
+	// Enroll an existing active agent using its current signing key and an invitation. Returns a
+	// team-bound credential once. Completed replays return 409 with the issued key identifier.
+	//
+	// POST /auth/enroll-team
+	EnrollExistingAgent(ctx context.Context, req *EnrollExistingAgentReq, params EnrollExistingAgentParams) (EnrollExistingAgentRes, error)
 	// FailTaskAttempt implements failTaskAttempt operation.
 	//
 	// Mark an attempt as failed with error details.

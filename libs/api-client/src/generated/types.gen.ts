@@ -3268,10 +3268,12 @@ export type Whoami = {
     | {
         bindingScope: 'team';
         boundTeamId: string;
+        expiresAt: string | null;
         keyId: string;
       }
     | {
         bindingScope: 'identity';
+        expiresAt: string | null;
         keyId: string;
       };
   currentTeamId?: string | null;
@@ -3855,6 +3857,80 @@ export type EnrollAgentResponses = {
 
 export type EnrollAgentResponse =
   EnrollAgentResponses[keyof EnrollAgentResponses];
+
+export type EnrollExistingAgentData = {
+  body: {
+    code: string;
+    expectedTeamId?: string;
+    proof: string;
+    subjectId: string;
+  };
+  headers: {
+    'idempotency-key': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/auth/enroll-team';
+};
+
+export type EnrollExistingAgentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  410: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type EnrollExistingAgentError =
+  EnrollExistingAgentErrors[keyof EnrollExistingAgentErrors];
+
+export type EnrollExistingAgentResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    agentKey: AgentKeyWithSecret;
+    role: 'owner' | 'manager' | 'executor' | 'member';
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+  };
+};
+
+export type EnrollExistingAgentResponse =
+  EnrollExistingAgentResponses[keyof EnrollExistingAgentResponses];
 
 export type RegisterAgentData = {
   body: {
