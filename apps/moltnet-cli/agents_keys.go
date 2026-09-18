@@ -127,7 +127,7 @@ type agentsKeysListOpts struct {
 }
 
 func runAgentsKeysListCmd(opts agentsKeysListOpts) error {
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func runAgentsKeysCreateCmd(opts agentsKeysCreateOpts) error {
 	if _, err := parseCredentialScopes(opts.scopes, opts.scopesSet); err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}
@@ -467,7 +467,7 @@ func runAgentsKeysRotateCmd(opts agentsKeysRotateOpts) error {
 	if _, err := prepareAgentKeyStore(opts.store, opts.credPath); err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}
@@ -547,7 +547,7 @@ type revokeAgentKeyOutput struct {
 }
 
 func runAgentsKeysRevokeCmd(opts agentsKeysRevokeOpts) error {
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}

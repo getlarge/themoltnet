@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -57,4 +59,27 @@ func validateSelectedAgentKey(selection *selectedAgentKey, subjectID string) err
 	return validateSecretReferenceBinding(credentialAgentKey, selection.Reference, credentialBindingIDs{
 		SubjectID: subjectID, TeamID: selection.TeamID,
 	})
+}
+
+// Commands with an explicit resource team select it before the location context.
+func resolveCredentialTeam(credPath string, explicit ...string) (string, error) {
+	if len(explicit) > 0 && strings.TrimSpace(explicit[0]) != "" {
+		return strings.TrimSpace(explicit[0]), nil
+	}
+	if team := strings.TrimSpace(os.Getenv("MOLTNET_TEAM_ID")); team != "" {
+		return team, nil
+	}
+	path, err := resolveCredentialsPath(credPath)
+	if err != nil {
+		return "", err
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	binding, err := resolveContextBinding(filepath.Dir(path), cwd)
+	if err != nil {
+		return "", fmt.Errorf("resolve credential team: %w", err)
+	}
+	return binding.teamID(), nil
 }

@@ -39,9 +39,9 @@ type subjectVerification struct {
 // Activation verifies the credential selected for ordinary CLI work. When the
 // document also contains an agent_key_ref, it verifies that daemon credential
 // independently and requires both credentials to identify the same subject.
-func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile) (*subjectVerification, error) {
+func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, team ...string) (*subjectVerification, error) {
 	registry := NewSecretProviderRegistry()
-	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry)
+	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry, team...)
 	if err != nil {
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
@@ -50,15 +50,20 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		return nil, fmt.Errorf("verify identity: %w", err)
 	}
 
+	if !hasOAuth2Configuration(creds) {
+		if err := verifySelectedTeamBinding(creds, whoami, team...); err != nil {
+			return nil, err
+		}
+	}
 	verified, err := verifyAuthenticatedSubject(credentialsPath, creds, whoami, true)
 	if err != nil {
 		return nil, err
 	}
-	if !hasOAuth2Configuration(creds) || creds.AgentKeyRef == nil {
+	if !hasOAuth2Configuration(creds) || !hasAgentKeyConfiguration(creds) {
 		return verified, nil
 	}
 
-	configKey, _, err := resolveAgentKey(creds, registry)
+	configKey, _, err := resolveAgentKey(creds, registry, team...)
 	if err != nil {
 		return nil, fmt.Errorf("verify daemon identity: resolve agent_key_ref: %w", err)
 	}
@@ -69,6 +74,9 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	keyWhoami, err := fetchAgentWhoami(context.Background(), keyClient)
 	if err != nil {
 		return nil, fmt.Errorf("verify daemon identity: %w", err)
+	}
+	if err := verifySelectedTeamBinding(creds, keyWhoami, team...); err != nil {
+		return nil, err
 	}
 	keyVerified, err := verifyAuthenticatedSubject(credentialsPath, creds, keyWhoami, true)
 	if err != nil {
@@ -290,4 +298,28 @@ func deriveFingerprintFromSeed(seedB64 string) (string, error) {
 		return "", fmt.Errorf("signing seed is not a valid Ed25519 seed: %w", err)
 	}
 	return Fingerprint(ed25519.NewKeyFromSeed(seed).Public().(ed25519.PublicKey)), nil
+}
+
+func verifySelectedTeamBinding(creds *CredentialsFile, whoami *moltnetapi.Whoami, team ...string) error {
+	selectedTeam := ""
+	if len(team) > 0 {
+		selectedTeam = team[0]
+	}
+	selection, err := selectAgentKeyReference(creds, selectedTeam)
+	if err != nil {
+		return err
+	}
+	if selection == nil {
+		return nil
+	}
+	binding, exists := whoami.CredentialBinding.Get()
+	if bound, ok := binding.GetProvenanceGraphTeamNode(); exists && ok {
+		expected := firstNonEmpty(selection.TeamID, selectedTeam)
+		if expected != "" && bound.BoundTeamId.String() != expected {
+			return fmt.Errorf("selected credential is bound to a different team; select or enroll the intended team")
+		}
+	} else if selection.TeamID != "" {
+		return fmt.Errorf("selected team slot did not authenticate with a team-bound credential")
+	}
+	return nil
 }

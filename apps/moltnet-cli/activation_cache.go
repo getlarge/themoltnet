@@ -19,7 +19,7 @@ import (
 // Version 5 moves activation state into the selected central identity. Older
 // repository-bound cache files deliberately fail validation rather than being
 // discovered or reused.
-const activationCacheVersion = 8
+const activationCacheVersion = 9
 
 // contexts.json is deliberately not a hashed input. The resolved team, diary,
 // context key and source are compared field by field in
@@ -205,7 +205,7 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error 
 		return fmt.Errorf("credentials not found at %s", credentialsPath)
 	}
 	apiURL := resolveAPIURLFromCredentials("", false, creds)
-	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds)
+	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds, ctx.Context.teamID())
 	if err != nil {
 		return err
 	}
@@ -248,13 +248,20 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if !authorshipConfigured {
 		authorshipMode = "agent"
 	}
-	credentialProviders := activationCredentialProviders(creds)
+	if _, err := selectAgentKeyReference(creds, ctx.Context.teamID()); err != nil {
+		return nil, err
+	}
+	credentialProviders := activationCredentialProviders(creds, ctx.Context.teamID())
 	credentialProvider := credentialProviders[activationCredentialOAuth2]
 	credentialStatus := "missing"
 	if creds.OAuth2.ClientSecret != "" {
 		credentialStatus = "available"
 	}
 	if creds.OAuth2.ClientSecretRef != nil {
+		credentialStatus = "configured"
+	}
+	if !hasOAuth2Configuration(creds) && hasAgentKeyConfiguration(creds) {
+		credentialProvider = credentialProviders[activationCredentialAgentKey]
 		credentialStatus = "configured"
 	}
 	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
@@ -401,7 +408,7 @@ const (
 	activationProviderAbsent          = "absent"
 )
 
-func activationCredentialProviders(creds *CredentialsFile) map[string]string {
+func activationCredentialProviders(creds *CredentialsFile, team ...string) map[string]string {
 	providers := map[string]string{
 		activationCredentialOAuth2:       activationProviderLegacyPlaintext,
 		activationCredentialIdentitySeed: activationProviderAbsent,
@@ -425,8 +432,12 @@ func activationCredentialProviders(creds *CredentialsFile) map[string]string {
 			providers[activationCredentialGitHubApp] = activationProviderLegacyFile
 		}
 	}
-	if creds.AgentKeyRef != nil {
-		providers[activationCredentialAgentKey] = creds.AgentKeyRef.Provider
+	selectedTeam := ""
+	if len(team) > 0 {
+		selectedTeam = team[0]
+	}
+	if selection, err := selectAgentKeyReference(creds, selectedTeam); err == nil && selection != nil {
+		providers[activationCredentialAgentKey] = selection.Reference.Provider
 	}
 	return providers
 }

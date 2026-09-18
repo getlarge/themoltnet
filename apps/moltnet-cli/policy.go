@@ -40,7 +40,7 @@ func runPolicyListCmd(stdout io.Writer, apiURL, credPath, teamID string) error {
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func runPolicyGetCmd(stdout io.Writer, apiURL, credPath, ref, teamID string) err
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func runPolicyCreateCmd(stdout io.Writer, apiURL, credPath, fromFile, teamID str
 	if err := decodePolicyFile(fromFile, &body); err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func runPolicyUpdateCmd(stdout io.Writer, apiURL, credPath, ref, fromFile, teamI
 	if err := decodePolicyFile(fromFile, &body); err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func runPolicyDeleteCmd(errOut io.Writer, apiURL, credPath, ref, teamID string) 
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func runProfilePoliciesCmd(stdout io.Writer, apiURL, credPath, ref, teamID strin
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func runProfileSetPoliciesCmd(errOut io.Writer, apiURL, credPath, ref string, po
 	if !clear && len(policyRefs) == 0 {
 		return fmt.Errorf("at least one --policy is required (or pass --clear to unbind every policy)")
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func runProfileAllowedToolsCmd(stdout io.Writer, apiURL, credPath, ref, teamID s
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}

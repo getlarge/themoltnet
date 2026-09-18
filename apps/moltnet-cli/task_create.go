@@ -57,7 +57,7 @@ type taskCreateOpts struct {
 }
 
 func runTaskCreateCmd(opts taskCreateOpts) error {
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}

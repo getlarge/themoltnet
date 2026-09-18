@@ -111,7 +111,7 @@ func runTaskGrantsListCmd(apiURL, credPath, taskID, teamID string) error {
 	if err != nil {
 		return err
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func runTaskGrantsCreateCmd(apiURL, credPath, taskID, teamID, subjectID, subject
 	if err := parsedNs.UnmarshalText([]byte(subjectNs)); err != nil {
 		return fmt.Errorf("invalid subject-ns %q: %w", subjectNs, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func runTaskGrantsRevokeCmd(apiURL, credPath, taskID, teamID, subjectID, subject
 	if err := parsedNs.UnmarshalText([]byte(subjectNs)); err != nil {
 		return fmt.Errorf("invalid subject-ns %q: %w", subjectNs, err)
 	}
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,7 @@ func runDiaryListCmd(apiURL, credPath string) error {
 
 // runDiaryCreateCmd creates a new diary.
 func runDiaryCreateCmd(apiURL, credPath, name, visibility, teamID string) error {
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}

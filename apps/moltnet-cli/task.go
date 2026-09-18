@@ -69,7 +69,7 @@ type taskListOpts struct {
 }
 
 func runTaskListCmd(opts taskListOpts) error {
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func parseOptRFC3339Flag(name, value string) (moltnetapi.OptDateTime, error) {
 }
 
 func runTaskGetCmd(apiURL, credPath, taskID, teamID string) error {
-	client, err := newAuthenticatedClient(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ type taskAttemptsOpts struct {
 }
 
 func runTaskAttemptsCmd(opts taskAttemptsOpts) error {
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}
@@ -382,7 +382,7 @@ func runTaskTailCmd(opts taskTailOpts) error {
 	if opts.intervalSec < 1 {
 		return fmt.Errorf("--interval must be >= 1, got %d", opts.intervalSec)
 	}
-	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath, opts.teamID)
 	if err != nil {
 		return err
 	}

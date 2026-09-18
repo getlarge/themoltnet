@@ -792,3 +792,27 @@ The file provider keeps logical team references as
 team slots coexist with an existing fallback file at
 `<secret-root>/agent-key/<subjectId>`. Go and Node use this same layout;
 projected team credentials must follow it. Existing fallback paths stay valid.
+
+### Selecting and migrating team credentials
+
+CLI commands with a team argument use that team's map entry. Commands without
+one use `MOLTNET_TEAM_ID`, then the selected identity's location context or
+identity default. A single map entry can be selected automatically; multiple
+entries without a fallback require an explicit team or context. A selected entry
+that cannot be resolved fails immediately. Explicit agent-key environment
+overrides and interactive OAuth2 precedence remain unchanged.
+
+`moltnet config migrate --destination <provider>` authenticates the exact legacy
+`agent_key_ref` to discover its subject and binding. It copies and reads back a
+team-bound credential before updating `agent_key_refs`, retaining the original
+fallback during rollout. Existing destination values must match; conflicts stop
+the migration. Identity-scoped credentials stay fallbacks and require enrollment
+to obtain a narrower team grant.
+
+The non-secret `agent_key_ref_verified` migration checkpoint records the source
+reference, subject, key ID, and binding. It makes repeated migration a no-op,
+including for identity-scoped fallbacks. Changing the source reference or
+removing the indexed slot causes migration to verify it again. Plans are bound
+to the original document; regenerate a plan after another writer changes it.
+Activation refresh verifies the selected key's subject and team binding, and
+older activation caches require refresh after upgrading these readers.
