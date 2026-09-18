@@ -148,6 +148,49 @@ fn desktop_catalogue(
         .map_err(|error| format!("the Agent Server returned an unreadable catalogue: {error}"))
 }
 
+#[tauri::command]
+fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, |token| control::get(token, "/v1/status"))?;
+    serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned an unreadable status".to_string())
+}
+
+#[tauri::command]
+fn desktop_enroll_team(
+    state: State<'_, AppState>,
+    identity: String,
+    request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let payload =
+        serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
+    let body = with_control_token(&state, |token| {
+        control::post(
+            token,
+            &format!("/v1/agents/{}/teams", urlencode(&identity)),
+            &payload,
+        )
+    })?;
+    control::enrollment_metadata(&body)
+}
+
+#[tauri::command]
+fn desktop_create_identity(
+    state: State<'_, AppState>,
+    name: String,
+    invitation: String,
+) -> Result<(), String> {
+    let payload =
+        serde_json::json!({ "kind": "managed", "name": name, "enrollmentToken": invitation })
+            .to_string();
+    with_control_token(&state, |token| control::post(token, "/v1/agents", &payload))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn desktop_team_invites(team_id: Option<String>) -> Result<(), String> {
+    lifecycle::open_team_invites(team_id.as_deref())
+}
+
 /// Run `operation` with the grant for the currently running server.
 fn with_control_token(
     state: &State<'_, AppState>,
@@ -431,6 +474,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             desktop_status,
             desktop_catalogue,
+            desktop_control_status,
+            desktop_enroll_team,
+            desktop_create_identity,
+            desktop_team_invites,
             desktop_start_run,
             desktop_stop_run,
             install_agent,
