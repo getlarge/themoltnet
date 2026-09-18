@@ -29,24 +29,28 @@ describe('RelationshipReader', () => {
     reader = createRelationshipReader(mockRelationshipApi as any);
   });
 
-  it('filters team membership by the exact subject before pagination', async () => {
-    mockRelationshipApi.getRelationships
-      .mockResolvedValueOnce({ relation_tuples: [], next_page_token: 'next' })
-      .mockResolvedValueOnce({ relation_tuples: [] });
-    await reader.listTeamMembers(TEAM_ID_1, {
-      subjectId: AGENT_ID,
-      subjectNs: KetoNamespace.Human,
-    });
-    for (const [request] of mockRelationshipApi.getRelationships.mock.calls) {
-      expect(request).toMatchObject({
-        namespace: KetoNamespace.Team,
-        object: TEAM_ID_1,
-        subjectSetObject: AGENT_ID,
-        subjectSetNamespace: KetoNamespace.Human,
+  it.each([KetoNamespace.Agent, KetoNamespace.Human])(
+    'filters team membership by the complete %s subject before pagination',
+    async (subjectNs) => {
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({ relation_tuples: [], next_page_token: 'next' })
+        .mockResolvedValueOnce({ relation_tuples: [] });
+      await reader.listTeamMembers(TEAM_ID_1, {
+        subjectId: AGENT_ID,
+        subjectNs,
       });
-    }
-    expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
-  });
+      for (const [request] of mockRelationshipApi.getRelationships.mock.calls) {
+        expect(request).toMatchObject({
+          namespace: KetoNamespace.Team,
+          object: TEAM_ID_1,
+          subjectSetObject: AGENT_ID,
+          subjectSetNamespace: subjectNs,
+          subjectSetRelation: '',
+        });
+      }
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
+    },
+  );
 
   describe('listTeamIdsBySubject', () => {
     it('returns team IDs from relation tuples', async () => {
