@@ -14686,6 +14686,17 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "expiresAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
                   "keyId": {
                     "type": "string"
                   }
@@ -14704,6 +14715,17 @@
                       "identity"
                     ],
                     "type": "string"
+                  },
+                  "expiresAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "keyId": {
                     "type": "string"
@@ -47997,7 +48019,7 @@
     },
     "/teams/join": {
       "post": {
-        "description": "Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.",
+        "description": "Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.",
         "operationId": "joinTeam",
         "parameters": [
           {
@@ -48021,11 +48043,36 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "expectedTeamId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "issueAgentKey": {
                     "enum": [
                       true
                     ],
                     "type": "boolean"
+                  },
+                  "proof": {
+                    "description": "Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key.",
+                    "properties": {
+                      "signature": {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "subjectId": {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "subjectId",
+                      "signature"
+                    ],
+                    "type": "object"
                   }
                 },
                 "required": [
@@ -48190,7 +48237,8 @@
           },
           {
             "cookieAuth": []
-          }
+          },
+          {}
         ],
         "tags": [
           "teams"

@@ -57,6 +57,22 @@ beforeEach(() => {
 });
 
 describe('team enrollment request', () => {
+  it('rejects a wrong-team renewal before consuming its invitation', async () => {
+    await expect(
+      enroll({ expectedTeamId: 'another-team' }),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(teamInviteWorkflow.run).not.toHaveBeenCalled();
+    expect(keys.issueEnrollment).not.toHaveBeenCalled();
+  });
+
+  it('binds proof replay to the expected team and authentication mode', async () => {
+    vi.mocked(teamInviteWorkflow.findEnrollment).mockResolvedValue(grant);
+    await expect(enroll({ proofAuthenticated: true })).rejects.toMatchObject({
+      statusCode: 409,
+    });
+    expect(keys.issueEnrollment).not.toHaveBeenCalled();
+  });
+
   it('uses the invite workflow and passes only its grant to Talos issuance', async () => {
     expect(await enroll()).toMatchObject({
       teamId: grant.teamId,

@@ -14,13 +14,13 @@ vi.mock('node:fs/promises', async (importOriginal) => {
     ...actual,
     open: async (...args: Parameters<typeof actual.open>) => {
       const file = await actual.open(...args);
-      const write = file.writeFile.bind(file);
+      const write = file.write.bind(file);
       const close = file.close.bind(file);
       if (injection.point === 'write')
-        file.writeFile = async (...values) => {
+        vi.spyOn(file, 'write').mockImplementation(async (...values) => {
           await write(...values);
           throw new Error('injected issued-secret');
-        };
+        });
       if (injection.point === 'sync')
         file.sync = async () => {
           throw new Error('injected issued-secret');

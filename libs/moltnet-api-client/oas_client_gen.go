@@ -531,8 +531,9 @@ type Invoker interface {
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam invokes joinTeam operation.
 	//
-	// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
-	// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+	// Join using an invitation and either a credential/session with team:join, or an existing agent
+	// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
+	// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
 	// replays return 409.
 	//
 	// POST /teams/join
@@ -13912,8 +13913,9 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 
 // JoinTeam invokes joinTeam operation.
 //
-// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
-// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+// Join using an invitation and either a credential/session with team:join, or an existing agent
+// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
+// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
 // replays return 409.
 //
 // POST /teams/join
@@ -14032,6 +14034,7 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
