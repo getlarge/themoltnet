@@ -1,4 +1,4 @@
-import { createClient, enrollExistingAgent } from '@moltnet/api-client';
+import { createClient, joinTeam } from '@moltnet/api-client';
 import { buildTeamEnrollmentMessage } from '@moltnet/models';
 
 import {
@@ -38,13 +38,13 @@ export async function requestProofEnrollment(input: {
     ),
   });
   const proof = await input.signer.sign(buildTeamEnrollmentMessage(input));
-  const response = await enrollExistingAgent({
+  const response = await joinTeam({
     client,
     headers: { 'idempotency-key': input.idempotencyKey },
     body: {
-      subjectId: input.subjectId,
       code: input.code,
-      proof,
+      issueAgentKey: true,
+      proof: { subjectId: input.subjectId, signature: proof },
       expectedTeamId: input.expectedTeamId,
     },
   });
