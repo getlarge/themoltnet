@@ -6,6 +6,8 @@ import {
   ALL_CREDENTIAL_SCOPES,
   CREDENTIAL_SCOPES,
   credentialScopeSetsEqual,
+  DAEMON_MINIMUM_SCOPES,
+  DAEMON_OPTIONAL_SCOPES,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
   MCP_M2M_SCOPES,
@@ -55,16 +57,19 @@ describe('credential scopes', () => {
   });
 
   it('exports exact job-oriented credential presets', () => {
+    // Floor first, then what the daemon merely benefits from. The membership
+    // is unchanged; only the order moved, because the grant is now composed
+    // from the two lists rather than written out flat.
     expect(AGENT_CREDENTIAL_SCOPES).toEqual([
       'agent:profile',
       'crypto:sign',
-      'diary:read',
-      'team:read',
-      'team:join',
       'runtime:read',
       'task:read',
       'task:claim',
       'task:execute',
+      'diary:read',
+      'team:read',
+      'team:join',
     ]);
     expect(AGENT_CREDENTIAL_SCOPES).not.toContain('key:manage');
     expect(AGENT_CREDENTIAL_SCOPES).not.toContain('team:manage');
@@ -80,6 +85,33 @@ describe('credential scopes', () => {
       'runtime:read',
       'task:read',
       'team:read',
+    ]);
+  });
+
+  it('keeps the daemon boot floor below the issuance default', () => {
+    // The floor is what a daemon cannot run without; the default is what a new
+    // key should carry. They must not be the same list: scopes are fixed at
+    // issuance and no key can widen itself, so a scope added to the floor
+    // strands every credential already in the field.
+    expect(DAEMON_MINIMUM_SCOPES).toEqual([
+      'agent:profile',
+      'crypto:sign',
+      'runtime:read',
+      'task:read',
+      'task:claim',
+      'task:execute',
+    ]);
+    expect(DAEMON_OPTIONAL_SCOPES).toEqual([
+      'diary:read',
+      'team:read',
+      'team:join',
+    ]);
+    for (const scope of DAEMON_OPTIONAL_SCOPES) {
+      expect(DAEMON_MINIMUM_SCOPES).not.toContain(scope);
+    }
+    expect(AGENT_CREDENTIAL_SCOPES).toEqual([
+      ...DAEMON_MINIMUM_SCOPES,
+      ...DAEMON_OPTIONAL_SCOPES,
     ]);
   });
 

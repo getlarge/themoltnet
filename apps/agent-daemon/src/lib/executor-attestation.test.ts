@@ -1,4 +1,5 @@
 import { cryptoService } from '@moltnet/crypto-service';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import type { Whoami } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -167,6 +168,63 @@ describe('daemon credential validation', () => {
         agentWhoami({ scopes: [...DAEMON_REQUIRED_SCOPES, 'diary:read'] }),
       ),
     ).not.toThrow();
+  });
+
+  it('still starts on a key issued before the grant was widened', () => {
+    // These six are hardcoded on purpose. Every other fixture here derives its
+    // scopes from DAEMON_REQUIRED_SCOPES, so when that constant grows the
+    // fixtures grow with it and no test can notice that a key issued earlier
+    // stopped working. A key's scopes are fixed when it is minted and no key
+    // can widen itself, so a scope added to the startup gate strands every
+    // credential already in the field until a human mints a replacement.
+    expect(() =>
+      validateDaemonScopes(
+        agentWhoami({
+          scopes: [
+            'agent:profile',
+            'crypto:sign',
+            'runtime:read',
+            'task:read',
+            'task:claim',
+            'task:execute',
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it('reports the optional capabilities such a key does not have', () => {
+    // Not fatal, but not silent either: the composer cannot name teams or
+    // diaries without these, and the operator should learn that from the
+    // daemon rather than from an empty picker.
+    const capabilities = validateDaemonScopes(
+      agentWhoami({
+        scopes: [
+          'agent:profile',
+          'crypto:sign',
+          'runtime:read',
+          'task:read',
+          'task:claim',
+          'task:execute',
+        ],
+      }),
+    );
+
+    expect(capabilities.canComposeRuns).toBe(false);
+    expect(capabilities.canJoinTeams).toBe(false);
+    expect(capabilities.missing).toEqual(
+      expect.arrayContaining(['diary:read', 'team:read', 'team:join']),
+    );
+  });
+
+  it('reports full capabilities for a freshly issued key', () => {
+    const capabilities = validateDaemonScopes(
+      agentWhoami({ scopes: [...AGENT_CREDENTIAL_SCOPES] }),
+    );
+
+    expect(capabilities.canComposeRuns).toBe(true);
+    expect(capabilities.canJoinTeams).toBe(true);
+    expect(capabilities.missing).toEqual([]);
   });
 
   it('refuses a credential that cannot sign', () => {

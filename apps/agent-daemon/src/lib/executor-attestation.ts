@@ -1,5 +1,10 @@
 import { cryptoService } from '@moltnet/crypto-service';
-import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  type CredentialScope,
+  DAEMON_MINIMUM_SCOPES,
+  DAEMON_OPTIONAL_SCOPES,
+} from '@moltnet/models';
 import {
   createExecutorAttestor,
   type ExecutorAttestor,
@@ -13,7 +18,32 @@ import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 import type { PreparedDaemonRuntime } from '../runtime.js';
 import type { DaemonCredentialSource } from './agent-context.js';
 
-export const DAEMON_REQUIRED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+/**
+ * The startup gate, which is the boot floor rather than the issuance default.
+ * Gating on the wider `AGENT_CREDENTIAL_SCOPES` would refuse every key minted
+ * before a scope was added to it, and a key cannot widen itself.
+ */
+export const DAEMON_REQUIRED_SCOPES = DAEMON_MINIMUM_SCOPES;
+
+/** What `moltnet agents keys create` should mint for a new daemon. */
+export const DAEMON_RECOMMENDED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+
+/**
+ * What this credential can do beyond claiming and running work.
+ *
+ * `GET /agents/whoami` already tells the daemon its own scopes; this keeps that
+ * answer instead of reducing it to pass/fail, so the Agent Server can say which
+ * features are unavailable rather than leaving the operator to infer it from an
+ * empty team picker.
+ */
+export interface DaemonCredentialCapabilities {
+  /** Name the teams and diaries a run is composed from. */
+  canComposeRuns: boolean;
+  /** Enroll this agent into a team it is not yet a member of. */
+  canJoinTeams: boolean;
+  /** Optional scopes this key does not hold, in declaration order. */
+  missing: CredentialScope[];
+}
 
 export interface AttestedDaemonRuntime extends PreparedDaemonRuntime {
   readonly attestor: ExecutorAttestor;
@@ -74,18 +104,25 @@ export async function resolveExecutorSigningPrivateKey(input: {
   }
 }
 
-export function validateDaemonScopes(whoami: Whoami): void {
+export function validateDaemonScopes(
+  whoami: Whoami,
+): DaemonCredentialCapabilities {
   const available = new Set(whoami.scopes ?? []);
-  const missing = DAEMON_REQUIRED_SCOPES.filter(
+  const missingRequired = DAEMON_REQUIRED_SCOPES.filter(
     (scope) => !available.has(scope),
   );
-  if (missing.length > 0) {
+  if (missingRequired.length > 0) {
     throw new Error(
       'Daemon startup credential is missing required scopes: ' +
-        `${missing.join(' ')}. Issue a replacement credential with ` +
-        `${DAEMON_REQUIRED_SCOPES.join(' ')}.`,
+        `${missingRequired.join(' ')}. Issue a replacement credential with ` +
+        `${DAEMON_RECOMMENDED_SCOPES.join(' ')}.`,
     );
   }
+  return {
+    canComposeRuns: available.has('diary:read') && available.has('team:read'),
+    canJoinTeams: available.has('team:join'),
+    missing: DAEMON_OPTIONAL_SCOPES.filter((scope) => !available.has(scope)),
+  };
 }
 
 export async function validateExecutorSigningIdentity(input: {

@@ -30327,7 +30327,48 @@ var CREDENTIAL_SCOPES = {
 	TeamRead: "team:read"
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.TeamRead, CREDENTIAL_SCOPES.TeamJoin, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+/**
+* What the agent daemon cannot run without, checked against
+* `GET /agents/whoami` at startup. Task credentials attenuate it further to
+* `task:execute` alone.
+*
+* This is the **boot floor**, and deliberately not the same list as
+* `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
+* and `POST /agent-keys` caps a new key at the scopes of the credential
+* requesting it, so no key can ever widen itself. A scope added here therefore
+* stops every daemon already in the field, and only a human with a Console
+* session can mint the replacement. Add one only when the daemon genuinely
+* cannot work without it; anything a caller merely benefits from belongs in
+* `DAEMON_OPTIONAL_SCOPES`, where its absence degrades one feature.
+*
+* `crypto:sign` is part of the minimum because host-capability signing runs on
+* the daemon's own credential: the local seed signer calls the signing-request
+* endpoints, which require it. A grant without it produces a daemon that boots
+* cleanly and then fails the first time guest code signs a diary entry or a
+* commit.
+*/
+var DAEMON_MINIMUM_SCOPES = [
+	CREDENTIAL_SCOPES.AgentProfile,
+	CREDENTIAL_SCOPES.CryptoSign,
+	CREDENTIAL_SCOPES.RuntimeRead,
+	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TaskClaim,
+	CREDENTIAL_SCOPES.TaskExecute
+];
+/**
+* Scopes a daemon works better with but can run without.
+*
+* Absence degrades one feature each rather than stopping the process:
+* `diary:read`/`team:read` let the Agent Server name the teams and diaries a
+* run is composed from, and `team:join` lets an agent enroll itself into a new
+* team. A key that lacks them still claims and executes work.
+*/
+var DAEMON_OPTIONAL_SCOPES = [
+	CREDENTIAL_SCOPES.DiaryRead,
+	CREDENTIAL_SCOPES.TeamRead,
+	CREDENTIAL_SCOPES.TeamJoin
+];
+[...DAEMON_MINIMUM_SCOPES, ...DAEMON_OPTIONAL_SCOPES];
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
 CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
 /** Full grant ceiling for first-party agent OAuth2 clients. */

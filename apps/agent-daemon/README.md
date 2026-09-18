@@ -201,12 +201,16 @@ of `MOLTNET_PRIVATE_KEY`.
 An agent key used by the daemon needs this least-privilege scope set:
 
 ```text
-agent:profile crypto:sign diary:read team:read team:join runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
 
-The Console selects these scopes by default. Knowledge-enabled workers must add
-`diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key is
-issued.
+New keys also carry `diary:read`, `team:read` and `team:join`, which the Agent
+Server uses to name teams and diaries and to enroll into a team. Those are not
+checked at startup, so a key issued before they existed still runs; the daemon
+reports which are missing instead.
+
+The Console selects the full set by default. Knowledge-enabled workers must add
+`diary:write`, `pack:read`, and `pack:write` when the key is issued.
 
 `crypto:sign` is in the minimum because host-capability signing runs on the
 daemon's own credential: the local seed signer calls the signing-request
