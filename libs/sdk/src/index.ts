@@ -232,10 +232,10 @@ export {
 export { TokenManager, type TokenManagerOptions } from './token.js';
 export {
   type AgentKeyConfiguration,
-  type SelectedAgentKey,
   hasAgentKeyConfiguration,
   hasUsableCredentialConfiguration,
   selectAgentKeyReference,
+  type SelectedAgentKey,
 } from '@moltnet/agent-config';
 export type {
   AgentKey,

@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { writeConfig, type MoltNetConfig } from '@moltnet/agent-config';
+import { type MoltNetConfig, writeConfig } from '@moltnet/agent-config';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
@@ -35,6 +35,7 @@ async function fixture() {
     endpoints: { api: 'https://api.example', mcp: 'https://api.example/mcp' },
   };
   await writeConfig(config, dir);
+  await mkdir(join(dir, 'secrets'), { mode: 0o700 });
   const provider = new FileSecretProvider({
     root: join(dir, 'secrets'),
     writable: true,

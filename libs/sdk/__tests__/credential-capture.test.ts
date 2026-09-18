@@ -1,3 +1,4 @@
+import type * as FsPromises from 'node:fs/promises';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,7 +9,7 @@ import { prepareCredentialPersistence } from '../src/credential-persistence.js';
 
 const injection = vi.hoisted(() => ({ point: '' }));
 vi.mock('node:fs/promises', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  const actual = await importOriginal<typeof FsPromises>();
   return {
     ...actual,
     open: async (...args: Parameters<typeof actual.open>) => {
