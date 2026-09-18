@@ -454,8 +454,8 @@ Polling environment:
 
 - `AXIOM_MONITORING_TOKEN`: Axiom token with monitor history/read access and,
   for the current single-token experiment, telemetry query read access.
-- `AXIOM_MONITOR_IDS`: optional comma-separated monitor ids. Defaults to the
-  MoltNet monitors created by `infra/axiom/monitors/apply.mjs`.
+- `AXIOM_MONITOR_IDS`: required comma-separated monitor IDs supplied by the
+  operator environment. Live monitor inventory is not committed here.
 - `AXIOM_POLL_WINDOW_MINUTES`: optional lookback window, default `15`.
 
 To test the flow without a real Axiom trigger, use the **inject synthetic
@@ -487,18 +487,17 @@ Suggested custom webhook body:
 }
 ```
 
-The parser/enricher task prompt asks the agent to use the repo-local
-`axiom-alert-triage` skill and produce a JSON artifact titled
+The parser/enricher task prompt asks the agent to use the configured
+observability-triage capability and produce a JSON artifact titled
 `telemetry-evidence`. The next task consumes that artifact, compares findings
 against the `getlarge/themoltnet` codebase, GitHub issues, and MoltNet entries,
 then writes `triage-report`. The final judge task writes `triage-judgment`.
 
 Before enabling live webhooks, refine Axiom monitors so broad auth/client noise
 (401/404) is separated from actionable alerts such as 5xx errors, latency
-regression, event loop pressure, and memory pressure. The companion repo-local
-`axiom-observability` skill and [`infra/axiom`](../../infra/axiom) document the
-monitor/dashboard maintenance conventions and provide idempotent apply scripts
-for the committed Axiom config.
+regression, event loop pressure, and memory pressure. Product-owned monitor and
+dashboard definitions remain under [`infra/axiom`](../../infra/axiom); live
+administration and incident queries are maintained privately.
 
 ## Build
 
