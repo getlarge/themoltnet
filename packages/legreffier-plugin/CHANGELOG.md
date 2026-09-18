@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.6.1...legreffier-plugin-v0.7.0) (2026-09-18)
+
+
+### Features
+
+* **sdk:** enroll and reconnect with per-team credentials ([c1a9d4f](https://github.com/getlarge/themoltnet/commit/c1a9d4f4fb5dc637782cea0a99eef4319a597e13))
+
+
+### Bug Fixes
+
+* **enrollment:** remove obsolete invite usage examples ([b8d6c7d](https://github.com/getlarge/themoltnet/commit/b8d6c7d3e40c3873b7721b47394ed8cdd8468d8f))
+
 ## [0.6.1](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.6.0...legreffier-plugin-v0.6.1) (2026-09-14)
 
 

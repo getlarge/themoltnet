@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/database-v0.13.0...database-v0.14.0) (2026-09-18)
+
+
+### Features
+
+* **auth:** separate invitation redemption from team management ([9714a6c](https://github.com/getlarge/themoltnet/commit/9714a6cfec79903092dd9bd41df48bd219dc6139))
+* **database:** claim team enrollment with durable receipts ([8bd8f75](https://github.com/getlarge/themoltnet/commit/8bd8f75d5f2e75cbbfcb1e5696ec66e5215262f2))
+* **teams:** redeem single-use invites through DBOS ([b973116](https://github.com/getlarge/themoltnet/commit/b973116b394deef6eac151f66e7238937ca0dbf6))
+
+
+### Bug Fixes
+
+* **database:** backfill every existing invite as consumed ([72e9d61](https://github.com/getlarge/themoltnet/commit/72e9d61833e42fa64389589ec376d355aa93684e))
+* **database:** order invitation migration after current main ([15d7fbb](https://github.com/getlarge/themoltnet/commit/15d7fbbab970e625009db47a16236b58715b46aa))
+* **database:** restore declarations through the build target ([2acda15](https://github.com/getlarge/themoltnet/commit/2acda15f043d8623913fd693cf689fc6ed288206))
+* **teams:** resume invitation membership through durable retries ([aeaa947](https://github.com/getlarge/themoltnet/commit/aeaa9472e370bdaf1b593069b6ba410ce64e205f))
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/database-v0.12.0...database-v0.13.0) (2026-09-18)
 
 

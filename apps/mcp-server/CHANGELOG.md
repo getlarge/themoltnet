@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.24.7...mcp-server-v0.25.0) (2026-09-18)
+
+
+### Features
+
+* **teams:** enroll agents through single-use invite workflow ([9b3cc5e](https://github.com/getlarge/themoltnet/commit/9b3cc5e8b0033fedbb99e8e6e66c09fb0abd4b1f))
+* **teams:** redeem single-use invites through DBOS ([b973116](https://github.com/getlarge/themoltnet/commit/b973116b394deef6eac151f66e7238937ca0dbf6))
+
+
+### Bug Fixes
+
+* **mcp:** align join output with preserved owner role ([5425b71](https://github.com/getlarge/themoltnet/commit/5425b71b93da519ed576fa4815e43ac4b0b0d913))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.14.0
+
 ## [0.24.7](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.24.6...mcp-server-v0.24.7) (2026-09-18)
 
 

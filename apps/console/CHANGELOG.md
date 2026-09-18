@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/console-v0.17.1...console-v0.18.0) (2026-09-18)
+
+
+### Features
+
+* **auth:** separate invitation redemption from team management ([9714a6c](https://github.com/getlarge/themoltnet/commit/9714a6cfec79903092dd9bd41df48bd219dc6139))
+* **teams:** redeem single-use invites through DBOS ([b973116](https://github.com/getlarge/themoltnet/commit/b973116b394deef6eac151f66e7238937ca0dbf6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.14.0
+    * @themoltnet/sdk bumped to 0.143.0
+
 ## [0.17.1](https://github.com/getlarge/themoltnet/compare/console-v0.17.0...console-v0.17.1) (2026-09-18)
 
 

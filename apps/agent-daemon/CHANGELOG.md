@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.60.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.59.0...agent-daemon-v0.60.0) (2026-09-18)
+
+
+### Features
+
+* **auth:** separate invitation redemption from team management ([9714a6c](https://github.com/getlarge/themoltnet/commit/9714a6cfec79903092dd9bd41df48bd219dc6139))
+* **daemon:** select and verify credentials per run team ([aeadf1c](https://github.com/getlarge/themoltnet/commit/aeadf1c895a4b84fb1a546ea46869208226009b1))
+* **daemon:** select credentials independently for each team run ([#2337](https://github.com/getlarge/themoltnet/issues/2337), 8/8) ([4829aec](https://github.com/getlarge/themoltnet/commit/4829aeca67e41d58cffcd1b0434e56bbc2618370))
+* **sdk:** enroll and reconnect with independently stored team keys ([1d81a6f](https://github.com/getlarge/themoltnet/commit/1d81a6ffd3ef7aaf2d914620064d3069300964ef))
+* **sdk:** enroll and reconnect with per-team credentials ([c1a9d4f](https://github.com/getlarge/themoltnet/commit/c1a9d4f4fb5dc637782cea0a99eef4319a597e13))
+
+
+### Bug Fixes
+
+* **agent-daemon:** gate startup on the boot floor, not the issuance default ([f697626](https://github.com/getlarge/themoltnet/commit/f69762695659eb05350d20b0f15e602792f62b42))
+* **agent-daemon:** gate startup on the boot floor, not the issuance default ([4080bcf](https://github.com/getlarge/themoltnet/commit/4080bcf13e88ed79287a39261cb48870894d8028)), closes [#2337](https://github.com/getlarge/themoltnet/issues/2337)
+* **daemon:** complete command credential test configuration ([c176b67](https://github.com/getlarge/themoltnet/commit/c176b67463eff8b79d65ac989ae71c448e759f06))
+* **daemon:** cover team credential entrypoints and diagnostics ([b843b76](https://github.com/getlarge/themoltnet/commit/b843b760e694d9aaec99dd227dca49fea257fd80))
+* **daemon:** honor activation team during credential selection ([e719ccb](https://github.com/getlarge/themoltnet/commit/e719ccbf580293e07c0e500c236a729ead57e4d8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.1.0
+    * @themoltnet/pi-runtime bumped to 0.18.1
+    * @themoltnet/sdk bumped to 0.143.0
+
 ## [0.59.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.58.0...agent-daemon-v0.59.0) (2026-09-18)
 
 

@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.60.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.59.0...rest-api-v0.60.0) (2026-09-18)
+
+
+### Features
+
+* **api:** reconcile enrollment membership through DBOS ([6d32a1e](https://github.com/getlarge/themoltnet/commit/6d32a1ec1efefc6ec0efe10487be9df5116911eb))
+* **auth:** separate invitation redemption from team management ([9714a6c](https://github.com/getlarge/themoltnet/commit/9714a6cfec79903092dd9bd41df48bd219dc6139))
+* **cli:** enroll and store independent team credentials ([#2337](https://github.com/getlarge/themoltnet/issues/2337), 7/8) ([5e815c1](https://github.com/getlarge/themoltnet/commit/5e815c13485d2daee10deec3fd6c2923765d4e39))
+* **teams:** enroll agents through single-use invite workflow ([9b3cc5e](https://github.com/getlarge/themoltnet/commit/9b3cc5e8b0033fedbb99e8e6e66c09fb0abd4b1f))
+* **teams:** enroll existing agents with restricted team keys ([893efcf](https://github.com/getlarge/themoltnet/commit/893efcff7641f03c3b4b2b8027c011ba020cceb8))
+* **teams:** redeem single-use invites through DBOS ([b973116](https://github.com/getlarge/themoltnet/commit/b973116b394deef6eac151f66e7238937ca0dbf6))
+
+
+### Bug Fixes
+
+* **agent-keys:** bound and reconcile enrollment issuance ([5b5588f](https://github.com/getlarge/themoltnet/commit/5b5588ff2d606cf820d0cc3bb90a0b22d6716f8c))
+* **credentials:** reconcile rotation successors and preserve write state ([d12ac92](https://github.com/getlarge/themoltnet/commit/d12ac92bc3248320d2f3c19a320ec2464b96a472))
+* **enrollment:** correct CI types and regression assertions ([cdb8882](https://github.com/getlarge/themoltnet/commit/cdb8882973220f6f3fb256d8e15c9a0e688783ed))
+* **enrollment:** reconcile issued keys and preserve truthful recovery state ([0a5c834](https://github.com/getlarge/themoltnet/commit/0a5c834d623f52529898e0624a39f165bd941418))
+* **enrollment:** restore invite problems on durable replay ([ffd9e2f](https://github.com/getlarge/themoltnet/commit/ffd9e2f13d653cfd78a4226225c833576b703a04))
+* **keys:** reconcile effective expiry and evict rotation cache ([bf7f676](https://github.com/getlarge/themoltnet/commit/bf7f67633b34cc20b14b80d1e06bad1a0ff6ada2))
+* **teams:** handle pending owner joins and clear CI errors ([e47d1bb](https://github.com/getlarge/themoltnet/commit/e47d1bbab7eeda50b5571a825ca9910569bce42b))
+* **teams:** preserve invite rejection problems across DBOS replay ([32bf002](https://github.com/getlarge/themoltnet/commit/32bf0024770b1b1f17b648620b3346d7373fde16))
+* **teams:** resume invitation membership through durable retries ([aeaa947](https://github.com/getlarge/themoltnet/commit/aeaa9472e370bdaf1b593069b6ba410ce64e205f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.14.0
+
 ## [0.59.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.58.2...rest-api-v0.59.0) (2026-09-18)
 
 
