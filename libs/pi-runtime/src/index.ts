@@ -40,6 +40,7 @@ export {
   type RuntimeModelSelection,
   RuntimeProfileModelResolutionError,
 } from './runtime/model-selection.js';
+export { isPermanentProviderRequestError } from './runtime/provider-error-classification.js';
 export {
   createPiRetryTriage,
   normalizeRetryTriageResult,

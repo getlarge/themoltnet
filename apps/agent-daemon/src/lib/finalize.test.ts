@@ -322,6 +322,55 @@ describe('finalizeTask', () => {
     expect(error.message).toContain('output.verification');
   });
 
+  it('adds actionable diagnostics to final provider request failures', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: 'Unsupported parameter: reasoning_effort',
+    };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error).toMatchObject({
+      code: 'llm_api_error',
+      retryable: false,
+      retry: {
+        source: 'deterministic',
+        decision: 'do_not_retry',
+        confidence: 'high',
+      },
+    });
+    expect(error.message).toContain('Provider/model: openai/gpt-5.');
+    expect(error.message).toContain(
+      'Runtime profile: default-coding (profile-1), revision 7.',
+    );
+    expect(error.message).toContain('Pi config source: store.');
+    expect(error.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+    expect(error.message).toContain(
+      'remove or disable these fields in the active Pi model/profile configuration',
+    );
+  });
+
   it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
