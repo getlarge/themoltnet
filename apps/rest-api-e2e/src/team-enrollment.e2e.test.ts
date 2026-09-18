@@ -122,6 +122,15 @@ async function prepareOwnerMembership(
   invite: { id: string; code: string },
   idempotencyKey: string,
 ) {
+  const latestVersion = async () => {
+    const result = await harness.db.execute<{ version_name: string }>(sql`
+      SELECT version_name FROM dbos.application_versions
+      ORDER BY version_timestamp DESC LIMIT 1
+    `);
+    expect(result.rows).toHaveLength(1);
+    return result.rows[0].version_name;
+  };
+  const apiVersion = await latestVersion();
   const root = resolve(import.meta.dirname, '../../..');
   await promisify(execFile)(
     process.execPath,
@@ -138,6 +147,7 @@ async function prepareOwnerMembership(
       env: {
         ...process.env,
         INVITE_TEST_DATABASE_URL: DATABASE_URL,
+        INVITE_TEST_LATEST_VERSION: apiVersion,
         INVITE_TEST_INPUT: JSON.stringify({
           inviteId: invite.id,
           subjectId: owner.agentId,
@@ -151,6 +161,7 @@ async function prepareOwnerMembership(
       timeout: 60_000,
     },
   );
+  expect(await latestVersion()).toBe(apiVersion);
 }
 
 describe('team enrollment', () => {

@@ -474,7 +474,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(foreign.response.status).toBe(403);
   });
 
-  it('completes the pairing ceremony and binds the token to the origin', async () => {
+  async function pairConsole() {
     // Arrange: the Console starts a pairing from its own origin.
     const started = await startAgentServerPairing({
       client: agentServerClient(ALLOWED_ORIGIN, false),
@@ -517,7 +517,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(claimed.response.status).toBe(200);
     token = claimed.data!.token;
     expect(token.length).toBeGreaterThan(20);
+  }
 
+  it('completes the pairing ceremony and binds the token to the origin', async () => {
+    await pairConsole();
     const status = await getAgentServerStatus({
       client: agentServerClient(),
     });
@@ -942,7 +945,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(result.response.status).toBe(400);
     expect(result.error?.code).toBe('verification_failed');
-    expect(result.error?.message).toContain('could not resolve');
+    expect(result.error?.message).toBe(
+      `Cannot start agent "${agentName}" for team "${personalTeamId}": credential verification failed. Check the selected team key and activation.`,
+    );
   });
 
   it('starts a daemon run that polls the API, streams its logs, and stops on request', async () => {
@@ -1263,6 +1268,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
     });
     base = supervisor.baseUrl;
+    // Pairing tokens are process-local; persisted agent credentials are not.
+    const stale = await getAgentServerStatus({ client: agentServerClient() });
+    expect(stale.response.status).toBe(401);
+    await pairConsole();
   }
 
   it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {

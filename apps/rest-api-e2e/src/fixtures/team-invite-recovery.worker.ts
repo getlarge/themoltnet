@@ -10,6 +10,7 @@ import {
   createDatabase,
   createDBOSTransactionRunner,
   createTeamRepository,
+  DBOS,
   getDataSource,
   initDBOS,
   launchDBOS,
@@ -74,6 +75,10 @@ async function main(): Promise<void> {
     },
   });
   await launchDBOS();
+  // This fixture registers only the invite workflow. Keep transactional
+  // enqueues owned by the live API rather than this short-lived process.
+  const apiVersion = process.env.INVITE_TEST_LATEST_VERSION;
+  if (apiVersion) await DBOS.setLatestApplicationVersion(apiVersion);
   if (process.env.INVITE_TEST_HTTP === '1') {
     const url = await startInviteHttpServer(
       input,
