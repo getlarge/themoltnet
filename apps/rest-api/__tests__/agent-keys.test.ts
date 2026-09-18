@@ -89,6 +89,7 @@ describe('agent key routes', () => {
           return {
             ...VALID_AUTH_CONTEXT,
             credentialBinding: {
+              expiresAt: null,
               bindingScope: 'team',
               keyId: KEY_ID,
               boundTeamId: TEAM_ID,
@@ -100,6 +101,7 @@ describe('agent key routes', () => {
             ...VALID_AUTH_CONTEXT,
             scopes: ['task:execute'],
             credentialBinding: {
+              expiresAt: null,
               bindingScope: 'team',
               keyId: '01JKEY00000000000000000099',
               boundTeamId: TEAM_ID,
@@ -110,6 +112,7 @@ describe('agent key routes', () => {
           return {
             ...VALID_AUTH_CONTEXT,
             credentialBinding: {
+              expiresAt: null,
               bindingScope: 'identity',
               keyId: '01JKEY00000000000000000098',
             },
@@ -120,6 +123,7 @@ describe('agent key routes', () => {
             ...VALID_AUTH_CONTEXT,
             scopes: ['task:execute'],
             credentialBinding: {
+              expiresAt: null,
               bindingScope: 'identity',
               keyId: '01JKEY00000000000000000099',
             },

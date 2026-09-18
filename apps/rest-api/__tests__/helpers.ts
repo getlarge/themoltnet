@@ -106,6 +106,7 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
 export const KEY_AUTH_CONTEXT: AuthContext = {
   ...VALID_AUTH_CONTEXT,
   credentialBinding: {
+    expiresAt: null,
     bindingScope: 'team',
     keyId: 'key-123',
     boundTeamId: OWNER_ID,

@@ -55,11 +55,19 @@ export const WhoamiSchema = Type.Object(
         Type.Object({
           bindingScope: Type.Literal('team'),
           keyId: Type.String(),
+          expiresAt: Type.Union([
+            Type.String({ format: 'date-time' }),
+            Type.Null(),
+          ]),
           boundTeamId: Type.String({ format: 'uuid' }),
         }),
         Type.Object({
           bindingScope: Type.Literal('identity'),
           keyId: Type.String(),
+          expiresAt: Type.Union([
+            Type.String({ format: 'date-time' }),
+            Type.Null(),
+          ]),
         }),
       ]),
     ),
