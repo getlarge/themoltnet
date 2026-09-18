@@ -379,6 +379,19 @@ export const CreateTeamInviteSchema = Type.Object({
 export const JoinTeamSchema = Type.Object({
   code: Type.String({ minLength: 1 }),
   issueAgentKey: Type.Optional(Type.Literal(true)),
+  expectedTeamId: Type.Optional(UuidSchema),
+  proof: Type.Optional(
+    Type.Object(
+      {
+        subjectId: UuidSchema,
+        signature: Type.String({ minLength: 1, maxLength: 256 }),
+      },
+      {
+        description:
+          'Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key.',
+      },
+    ),
+  ),
 });
 
 export const UpdateTeamMemberRoleSchema = Type.Object({
