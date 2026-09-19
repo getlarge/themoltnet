@@ -129,6 +129,64 @@ describe.each([
     run: runPoll,
     extra: ['--profile', 'profile', '--task-types', 'freeform'],
   },
+])('$name project credential selection', ({ run, extra }) => {
+  function invoke(team?: string) {
+    const configPath = join(root, 'projects.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        bindings: [
+          {
+            name: 'checkout',
+            apiUrl: 'https://api.themolt.net',
+            teamId: 'b',
+            projectId: 'project-1',
+            source: root,
+            strategy: 'existing',
+          },
+        ],
+      }),
+    );
+    return run([
+      '--agent',
+      'test-agent',
+      '--agent-root',
+      root,
+      '--config-file',
+      configPath,
+      '--binding',
+      'checkout',
+      ...(team ? ['--team', team] : []),
+      ...extra,
+    ]);
+  }
+
+  it('selects the binding team credential without an explicit team flag', async () => {
+    await expect(invoke()).rejects.toBe(boundary);
+    expect(connectMock).toHaveBeenCalledWith(
+      expect.objectContaining({ agentKey: 'secret-b' }),
+    );
+  });
+
+  it('rejects a conflicting team before resolving credentials', async () => {
+    await expect(invoke('a')).rejects.toThrow(/match/);
+    expect(connectMock).not.toHaveBeenCalled();
+    expect(signingMock).not.toHaveBeenCalled();
+  });
+});
+
+describe.each([
+  {
+    name: 'once',
+    run: runOnce,
+    extra: ['--task-id', 'task-1', '--profile', 'profile'],
+  },
+  {
+    name: 'poll',
+    run: runPoll,
+    extra: ['--profile', 'profile', '--task-types', 'freeform'],
+  },
   { name: 'sync-sessions', run: runSyncSessions, extra: [] },
 ])('$name team credential boundary', ({ run, extra }) => {
   const invoke = (team = 'b') =>
