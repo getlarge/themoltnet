@@ -1,5 +1,8 @@
 vi.mock('../src/runtime-local/local-control-oauth.js', () => ({
-  authorizeLocalControl: vi.fn().mockResolvedValue('paired-token-for-tests'),
+  authorizeLocalControl: vi.fn().mockImplementation(async () => ({
+    accessToken: 'paired-token-for-tests',
+    expiresAt: Date.now() + 900_000,
+  })),
 }));
 /**
  * Integration tests for the Local runtime page: real page + real
@@ -11,6 +14,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocalRuntimePage } from '../src/pages/LocalRuntimePage.js';
+import { authorizeLocalControl } from '../src/runtime-local/local-control-oauth.js';
+import { localControlTokens } from '../src/runtime-local/local-control-token-cache.js';
 import type { AgentServerProviderModel } from '../src/runtime-local/agent-server-response-validation.js';
 import { createTestWrapper } from './test-query-client.js';
 
@@ -121,6 +126,8 @@ function installFetch() {
 }
 
 beforeEach(() => {
+  localControlTokens.clear();
+  vi.mocked(authorizeLocalControl).mockClear();
   requests.length = 0;
   profilesState.items = [];
   vi.spyOn(window, 'open').mockReturnValue(null);
@@ -142,6 +149,28 @@ async function renderPage(connect = true) {
 }
 
 describe('LocalRuntimePage', () => {
+  it('reuses the approved token after leaving and returning to the page', async () => {
+    const first = await renderPage();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    first.unmount();
+    await renderPage(false);
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    expect(authorizeLocalControl).toHaveBeenCalledTimes(1);
+  });
+
+  it('discards a cached token rejected after a server restart', async () => {
+    const first = await renderPage();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    first.unmount();
+    handlers['GET /v1/status'] = () => jsonResponse({}, 401);
+    await renderPage(false);
+    expect(await screen.findByText('Sign-in required')).toBeInTheDocument();
+    expect(authorizeLocalControl).toHaveBeenCalledTimes(1);
+    expect(
+      localControlTokens.get(JSON.stringify([undefined, AGENT_SERVER])),
+    ).toBeNull();
+  });
+
   it('connects with a tab-memory token and renders all sections from /v1/status', async () => {
     await renderPage();
     expect(await screen.findByText('Connected')).toBeInTheDocument();

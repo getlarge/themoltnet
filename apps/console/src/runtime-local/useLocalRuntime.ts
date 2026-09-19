@@ -16,6 +16,10 @@ import {
   type StartRunBody,
 } from './agent-server-client.js';
 import { authorizeLocalControl } from './local-control-oauth.js';
+import {
+  type LocalControlToken,
+  localControlTokens,
+} from './local-control-token-cache.js';
 
 /**
  * Connection and state controller for the local agent server (#2062).
@@ -74,7 +78,10 @@ export function useLocalRuntime(): LocalRuntimeController {
   const [agentServerUrl, setAgentServerUrl] = useState(
     configuredAgentServerUrl,
   );
-  const tokenRef = useRef<string | null>(null);
+  const tokenCacheKey = JSON.stringify([
+    getConfig().oauthIssuer,
+    agentServerUrl,
+  ]);
   const authorizationAbortRef = useRef<AbortController | null>(null);
   const subscriptionAbortRef = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<LocalRuntimeStatus>('connecting');
@@ -87,14 +94,17 @@ export function useLocalRuntime(): LocalRuntimeController {
     () =>
       createAgentServerClient({
         baseUrl: agentServerUrl,
-        getToken: () => tokenRef.current,
+        getToken: () => localControlTokens.get(tokenCacheKey),
       }),
-    [agentServerUrl],
+    [agentServerUrl, tokenCacheKey],
   );
 
-  const persistToken = useCallback((token: string | null) => {
-    tokenRef.current = token;
-  }, []);
+  const persistToken = useCallback(
+    (token: LocalControlToken | null) => {
+      localControlTokens.set(tokenCacheKey, token);
+    },
+    [tokenCacheKey],
+  );
 
   const probe = useCallback(async () => {
     setStatus('connecting');
@@ -107,11 +117,11 @@ export function useLocalRuntime(): LocalRuntimeController {
       ) {
         const fallback = createAgentServerClient({
           baseUrl: DEFAULT_HTTP_AGENT_SERVER_URL,
-          getToken: () => tokenRef.current,
+          getToken: () => localControlTokens.get(tokenCacheKey),
         });
         const fallbackHealth = await fallback.health();
         if (fallbackHealth.status === 'ok') {
-          tokenRef.current = null;
+          persistToken(null);
           setAgentServerUrl(DEFAULT_HTTP_AGENT_SERVER_URL);
           return;
         }
@@ -131,7 +141,7 @@ export function useLocalRuntime(): LocalRuntimeController {
       setStatus('degraded');
       return;
     }
-    if (!tokenRef.current) {
+    if (!localControlTokens.get(tokenCacheKey)) {
       setStatus('unauthorized');
       return;
     }
@@ -147,7 +157,7 @@ export function useLocalRuntime(): LocalRuntimeController {
         setStatus('degraded');
       }
     }
-  }, [agentServerUrl, client, persistToken]);
+  }, [agentServerUrl, client, persistToken, tokenCacheKey]);
 
   useEffect(() => {
     // Remove the previous protocol's stored grant during migration.
@@ -185,7 +195,11 @@ export function useLocalRuntime(): LocalRuntimeController {
   }, [statusQuery.error, persistToken]);
 
   const authorize = useCallback(async () => {
-    authorizationAbortRef.current?.abort();
+    if (authorizationAbortRef.current) return;
+    if (localControlTokens.get(tokenCacheKey)) {
+      await probe();
+      return;
+    }
     const controller = new AbortController();
     authorizationAbortRef.current = controller;
     const popup = window.open('about:blank', '_blank', 'popup');
@@ -213,7 +227,7 @@ export function useLocalRuntime(): LocalRuntimeController {
         authorizationAbortRef.current = null;
       }
     }
-  }, [agentServerUrl, persistToken, probe]);
+  }, [agentServerUrl, persistToken, probe, tokenCacheKey]);
 
   const connectSubscription = useCallback(
     async (providerId: string) => {

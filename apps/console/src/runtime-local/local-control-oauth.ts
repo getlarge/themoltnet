@@ -1,12 +1,13 @@
 import { getConfig } from '../config.js';
 import { loopbackFetch, loopbackUrl } from '../loopback-url.js';
+import type { LocalControlToken } from './local-control-token-cache.js';
 
 /** Tokens and verifier live only in this tab; callbacks transfer only the code. */
 export async function authorizeLocalControl(
   baseUrl: string,
   popup: Window | null,
   signal: AbortSignal,
-): Promise<string> {
+): Promise<LocalControlToken> {
   if (!popup) throw new Error('Allow popups to sign in to local control.');
   const response = await loopbackFetch(
     fetch,
@@ -100,6 +101,7 @@ export async function authorizeLocalControl(
     }
     popup.location.replace(url.href);
   });
+  const exchangeStartedAt = Date.now();
   const exchange = await fetch(
     new URL('/oauth2/token', getConfig().oauthPublicUrl),
     {
@@ -122,10 +124,20 @@ export async function authorizeLocalControl(
   const tokens = (await exchange.json()) as {
     access_token?: string;
     refresh_token?: string;
+    expires_in?: number;
   };
-  if (!tokens.access_token || tokens.refresh_token)
+  if (
+    !tokens.access_token ||
+    tokens.refresh_token ||
+    typeof tokens.expires_in !== 'number' ||
+    !Number.isFinite(tokens.expires_in) ||
+    tokens.expires_in <= 0
+  )
     throw new Error('Invalid local-control response');
-  return tokens.access_token;
+  return {
+    accessToken: tokens.access_token,
+    expiresAt: exchangeStartedAt + Math.min(tokens.expires_in, 900) * 1000,
+  };
 }
 function encode(bytes: Uint8Array) {
   return btoa(String.fromCharCode(...bytes))

@@ -52,7 +52,7 @@ describe('Console PKCE callback boundary', () => {
           clientId: 'console',
           operatorConfigured: true,
         });
-      return Response.json({ access_token: 'local-only' });
+      return Response.json({ access_token: 'local-only', expires_in: 900 });
     });
     vi.stubGlobal('fetch', fetcher);
     const pending = authorizeLocalControl(
@@ -84,7 +84,10 @@ describe('Console PKCE callback boundary', () => {
     await Promise.resolve();
     expect(fetcher).toHaveBeenCalledTimes(1);
     emit(popup, window.location.origin, state);
-    expect(await pending).toBe('local-only');
+    const token = await pending;
+    expect(token.accessToken).toBe('local-only');
+    expect(token.expiresAt).toBeLessThanOrEqual(Date.now() + 900_000);
+    expect(token.expiresAt).toBeGreaterThan(Date.now());
     expect(fetcher).toHaveBeenCalledTimes(2);
     const form = fetcher.mock.calls[1][1]?.body as URLSearchParams;
     const digest = await webcrypto.subtle.digest(
