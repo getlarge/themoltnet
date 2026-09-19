@@ -6,8 +6,8 @@ import { type SecretProviderRegistry } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
   EnrollmentRecoveryError,
-  type EnrollTeamResult,
   enrollTeam,
+  type EnrollTeamResult,
 } from '@themoltnet/sdk/node';
 
 import { loadEnrollmentIdentity } from './identity.js';
