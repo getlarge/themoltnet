@@ -1,12 +1,12 @@
 import { basename, dirname } from 'node:path';
 
-import type { TeamAgentKey } from '@moltnet/api-client';
 import { isLoopbackHostname } from '@moltnet/loopback-companion';
 import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import { type SecretProviderRegistry } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
   EnrollmentRecoveryError,
+  type EnrollTeamResult,
   enrollTeam,
 } from '@themoltnet/sdk/node';
 
@@ -101,7 +101,7 @@ export async function enrollIdentityTeam(options: {
             'Provisioning unavailable; inspect recovery before fresh approval',
           );
         const agentKey = (await response.json()) as {
-          key: TeamAgentKey;
+          key: EnrollTeamResult['key'];
           secret: string;
         };
         return { teamId: options.input.teamId, role: 'member', agentKey };

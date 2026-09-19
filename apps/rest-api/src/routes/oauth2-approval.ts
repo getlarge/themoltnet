@@ -4,11 +4,12 @@ import {
   AGENT_CREDENTIAL_SCOPES,
   KetoNamespace,
   LOCAL_CONTROL_SCOPE,
+  type OryClients,
   PROVISIONING_SCOPE,
+  type ProvisioningGrant,
   readProvisioningGrant,
   requireAuth,
 } from '@moltnet/auth';
-import type { OryClients, ProvisioningGrant } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';

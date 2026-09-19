@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { applyNativeClientGrant } from './native-grant.js';
 import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
 } from './native-grant-service.js';
-import { applyNativeClientGrant } from './native-grant.js';
 
 /** Shaped like what the supervisor generates: 32 bytes, base64url (43 chars). */
 const SUPERVISOR_TOKEN = 'qN7dK2xR9vL4mZ8wP1sT6yB3cF5gH0jA2eU4iO7kM9Q';

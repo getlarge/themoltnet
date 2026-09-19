@@ -18,7 +18,6 @@ async function fixture(beforeJwks?: () => Promise<void>) {
   cleanup.push(() => rmSync(root, { recursive: true, force: true }));
   const { publicKey, privateKey } = await generateKeyPair('RS256');
   const jwk = { ...(await exportJWK(publicKey)), kid: 'test', alg: 'RS256' };
-  let oauth: OperatorOAuth;
   let authorization: URL;
   let issuer = '';
   let exchanges = 0;
@@ -50,27 +49,35 @@ async function fixture(beforeJwks?: () => Promise<void>) {
       )
       .sign(privateKey);
   }
-  const server = createServer(async (request, response) => {
-    response.setHeader('content-type', 'application/json');
-    if (request.url === '/.well-known/jwks.json') {
-      await beforeJwks?.();
-      response.end(JSON.stringify({ keys: [jwk] }));
-      return;
-    }
-    exchanges++;
-    let body = '';
-    for await (const chunk of request) body += String(chunk);
-    const form = new URLSearchParams(body);
-    expect(form.get('grant_type')).toBe('authorization_code');
-    expect(form.get('code')).toBe('approved-code');
-    expect(
-      createHash('sha256')
-        .update(form.get('code_verifier')!)
-        .digest('base64url'),
-    ).toBe(authorization.searchParams.get('code_challenge'));
-    response.end(JSON.stringify({ access_token: await token({}, false) }));
+  const server = createServer((request, response) => {
+    void (async () => {
+      response.setHeader('content-type', 'application/json');
+      if (request.url === '/.well-known/jwks.json') {
+        await beforeJwks?.();
+        response.end(JSON.stringify({ keys: [jwk] }));
+        return;
+      }
+      exchanges++;
+      let body = '';
+      for await (const chunk of request) body += String(chunk);
+      const form = new URLSearchParams(body);
+      expect(form.get('grant_type')).toBe('authorization_code');
+      expect(form.get('code')).toBe('approved-code');
+      expect(
+        createHash('sha256')
+          .update(form.get('code_verifier')!)
+          .digest('base64url'),
+      ).toBe(authorization.searchParams.get('code_challenge'));
+      response.end(JSON.stringify({ access_token: await token({}, false) }));
+    })().catch((error: unknown) => {
+      response.destroy(
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    });
   });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve);
+  });
   const address = server.address();
   issuer = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
   cleanup.push(
@@ -81,11 +88,13 @@ async function fixture(beforeJwks?: () => Promise<void>) {
       }),
   );
   const portProbe = createServer();
-  await new Promise<void>((resolve) =>
-    portProbe.listen(0, '127.0.0.1', resolve),
-  );
+  await new Promise<void>((resolve) => {
+    portProbe.listen(0, '127.0.0.1', resolve);
+  });
   const callbackPort = (portProbe.address() as { port: number }).port;
-  await new Promise<void>((resolve) => portProbe.close(() => resolve()));
+  await new Promise<void>((resolve) => {
+    portProbe.close(() => resolve());
+  });
   let opened!: (url: URL) => void;
   const openedPromise = new Promise<URL>((resolve) => {
     opened = resolve;
@@ -99,7 +108,7 @@ async function fixture(beforeJwks?: () => Promise<void>) {
     consoleClientId: 'console',
     callbackPort,
   };
-  oauth = new OperatorOAuth(config, root, (url) => {
+  const oauth = new OperatorOAuth(config, root, (url) => {
     authorization = new URL(url);
     opened(authorization);
   });

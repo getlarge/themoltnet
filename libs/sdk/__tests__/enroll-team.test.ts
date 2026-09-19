@@ -8,7 +8,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Agent } from '../src/agent.js';
 import { CredentialPersistenceError } from '../src/credential-persistence.js';
 import { EnrollmentRecoveryError, enrollTeam } from '../src/enroll-team.js';
-
 import { FileSecretProvider } from '../src/file-secret-provider.js';
 const directories: string[] = [];
 afterEach(async () => {

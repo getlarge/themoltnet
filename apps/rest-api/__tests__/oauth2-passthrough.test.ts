@@ -140,7 +140,9 @@ describe('POST /oauth2/token passthrough', () => {
     );
     // Hold both requests in the upstream phase so the single-flight behavior,
     // rather than only the persistent cache, is exercised.
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
     release();
     const [first, second] = await Promise.all(requests);
     expect(first.json().access_token).toBe('token-first');

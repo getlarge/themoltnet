@@ -12,11 +12,11 @@ import {
   AgentServerLockError,
   withAgentServerLock,
 } from '../lib/agent-server/lock.js';
-import { NativeGrantService } from '../lib/agent-server/native-grant-service.js';
 import {
   applyNativeClientGrant,
   NATIVE_TOKEN_ENV,
 } from '../lib/agent-server/native-grant.js';
+import { NativeGrantService } from '../lib/agent-server/native-grant-service.js';
 import { OperatorOAuth } from '../lib/agent-server/operator-oauth.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
@@ -214,7 +214,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
               console.error('native desktop client: authorized');
             }
             console.error(
-              'Pair from the Console "Local runtime" page; approve the one-click prompt this server opens.',
+              'Sign in through Desktop, then connect from the Console "Local runtime" page.',
             );
 
             return await waitForAgentServerShutdown(

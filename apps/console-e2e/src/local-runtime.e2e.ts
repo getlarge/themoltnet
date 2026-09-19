@@ -25,7 +25,7 @@ import {
   createTeamInvite,
   listAgentKeys,
 } from '@moltnet/api-client';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import {
   CONSOLE_URL,
@@ -165,10 +165,7 @@ test.describe.serial('Local runtime page', () => {
   });
   let serverEnv: NodeJS.ProcessEnv;
   let serverArgs: string[];
-  async function nativeApproval(
-    page: import('@playwright/test').Page,
-    start: () => Promise<unknown>,
-  ) {
+  async function nativeApproval(page: Page, start: () => Promise<unknown>) {
     const marker = join(agentServerRoot, 'authorization-url');
     rmSync(marker, { force: true });
     const pending = start();
@@ -191,7 +188,7 @@ test.describe.serial('Local runtime page', () => {
     if ('error' in result) throw result.error;
     return result.value;
   }
-  async function connectConsole(page: import('@playwright/test').Page) {
+  async function connectConsole(page: Page) {
     const popup = page.context().waitForEvent('page');
     await page.getByRole('button', { name: 'Connect', exact: true }).click();
     const approval = await popup;
@@ -353,7 +350,9 @@ test.describe.serial('Local runtime page', () => {
         agentName,
         'moltnet.json',
       );
-      const config = JSON.parse(readFileSync(configPath, 'utf8'));
+      const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+        agent_key_refs: Record<string, { provider: string }>;
+      };
       expect(config.agent_key_refs[destination]).toMatchObject({
         provider: 'file',
       });
@@ -476,7 +475,7 @@ test.describe.serial('Local runtime page', () => {
           join(agentServerRoot, 'identities', agentName, 'moltnet.json'),
           'utf8',
         ),
-      );
+      ) as { subject_id: string };
       const before = await listAgentKeys({
         client: humanClient,
         headers: { 'x-moltnet-team-id': teamId },
@@ -531,9 +530,9 @@ test.describe.serial('Local runtime page', () => {
     await loginViaBrowser(page, user);
     await page.goto(`${CONSOLE_URL}/runtime/local`);
     await connectConsole(page);
-    const stopped = new Promise<void>((resolve) =>
-      agentServer.once('exit', () => resolve()),
-    );
+    const stopped = new Promise<void>((resolve) => {
+      agentServer.once('exit', () => resolve());
+    });
     agentServer.kill('SIGTERM');
     await stopped;
     agentServer = spawnAgentServer(serverArgs, serverEnv);

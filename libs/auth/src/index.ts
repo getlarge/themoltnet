@@ -5,6 +5,8 @@
  * Uses Ory Network (Hydra + Keto) for token validation and permission checks.
  */
 
+export type { OAuth2Client } from '@ory/client-fetch';
+
 export {
   type AgentKeyBindingScope,
   agentKeyMetadata,
@@ -68,6 +70,7 @@ export {
   authPrincipalCreator,
   type PrincipalSource,
 } from './principal.js';
+export * from './provisioning.js';
 export {
   createRelationshipReader,
   type DiaryGrantTuple,
@@ -152,6 +155,3 @@ export type {
   SubjectType,
   TalosCredentialBinding,
 } from './types.js';
-export type { OAuth2Client } from '@ory/client-fetch';
-
-export * from './provisioning.js';

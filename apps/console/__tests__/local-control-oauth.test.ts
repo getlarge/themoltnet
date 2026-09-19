@@ -12,6 +12,22 @@ vi.mock('../src/config.js', () => ({
 }));
 beforeEach(() => {
   vi.stubGlobal('crypto', webcrypto);
+  class TestAbortSignal extends AbortSignal {
+    static override any(signals: AbortSignal[]): AbortSignal {
+      const combined = new AbortController();
+      for (const signal of signals) {
+        if (signal.aborted) combined.abort(signal.reason);
+        else
+          signal.addEventListener(
+            'abort',
+            () => combined.abort(signal.reason),
+            { once: true },
+          );
+      }
+      return combined.signal;
+    }
+  }
+  vi.stubGlobal('AbortSignal', TestAbortSignal);
 });
 afterEach(() => {
   vi.unstubAllGlobals();

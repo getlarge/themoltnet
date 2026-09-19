@@ -13,9 +13,9 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
   AGENT_CREDENTIAL_SCOPES,
   LOCAL_CONTROL_SCOPE,
+  type OryClients,
   PROVISIONING_SCOPE,
   readProvisioningGrant,
-  type OryClients,
 } from '@moltnet/auth';
 import { DBOS, DBOSErrors, type HumanRepository } from '@moltnet/database';
 import { DCR_MAX_SCOPES } from '@moltnet/models';
@@ -23,6 +23,7 @@ import type { IdentityApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import { loadOperatorOAuthClients } from '../config.js';
 import {
   DEFAULT_WORKFLOW_TIMEOUT_MS,
   HUMAN_ONBOARDING_QUEUE_NAME,
@@ -603,13 +604,13 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
         // Administratively registered public clients use consent-bound grants.
         // They are not dynamic registrations and never inherit the DCR ceiling.
+        const clients = loadOperatorOAuthClients();
         const nativeClient =
-          !!process.env.MOLTNET_NATIVE_OAUTH_CLIENT_ID &&
-          tokenRequest.client_id === process.env.MOLTNET_NATIVE_OAUTH_CLIENT_ID;
+          !!clients.nativeClientId &&
+          tokenRequest.client_id === clients.nativeClientId;
         const consoleClient =
-          !!process.env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID &&
-          tokenRequest.client_id ===
-            process.env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID;
+          !!clients.consoleClientId &&
+          tokenRequest.client_id === clients.consoleClientId;
         let approvedExtra: Record<string, unknown> = {};
         if (nativeClient || consoleClient) {
           const granted = tokenRequest.granted_scopes;

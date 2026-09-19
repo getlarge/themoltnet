@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { Catalogue, CatalogueAgentPort } from './catalogue.js';
+import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
   authorize,
@@ -16,7 +17,6 @@ import {
   fixture,
   HOST,
 } from './server-test-harness.js';
-import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 
 afterEach(cleanupAll);
 

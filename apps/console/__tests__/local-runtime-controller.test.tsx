@@ -24,7 +24,7 @@ let rejectToken = false;
 beforeEach(() => {
   rejectToken = false;
   sessionStorage.clear();
-  vi.mocked(authorizeLocalControl).mockResolvedValue('oauth-token');
+  vi.mocked(authorizeLocalControl).mockReset().mockResolvedValue('oauth-token');
   vi.spyOn(window, 'open').mockReturnValue({
     close: vi.fn(),
     closed: false,

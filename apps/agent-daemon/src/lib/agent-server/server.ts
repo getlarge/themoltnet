@@ -32,7 +32,6 @@ import {
 import { safeErrorContext } from '../safe-error-context.js';
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
-import { readIdentityDefaultBinding } from './identity-binding.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
@@ -42,6 +41,7 @@ import {
   reconcileManagedRegistration,
   requireActivation,
 } from './identity.js';
+import { readIdentityDefaultBinding } from './identity-binding.js';
 import { AgentServerModelDiscoveryError } from './model-discovery.js';
 import {
   NATIVE_CLIENT_ORIGIN,
