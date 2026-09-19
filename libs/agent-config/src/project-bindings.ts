@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { getConfigDir } from './config.js';
 import { withConfigLock } from './config-lock.js';
+import { assertProjectConfigOwner } from './project-config-owner.js';
 import { writeFileAtomic } from './write-file-atomic.js';
 
 export class ProjectConfigError extends Error {
@@ -72,7 +73,7 @@ export function getProjectConfigPath(): string {
   return join(getConfigDir(), 'projects.json');
 }
 
-function validateUnicode(value: unknown): void {
+function validateUnicode(value: unknown, ancestors = new Set<object>()): void {
   if (
     typeof value === 'string' &&
     /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(
@@ -80,11 +81,16 @@ function validateUnicode(value: unknown): void {
     )
   )
     throw new Error('Strings must contain well-formed Unicode');
-  if (value && typeof value === 'object')
+  if (value && typeof value === 'object') {
+    if (ancestors.has(value))
+      throw new Error('Project config must not contain cycles');
+    ancestors.add(value);
     for (const [key, child] of Object.entries(value)) {
-      validateUnicode(key);
-      validateUnicode(child);
+      validateUnicode(key, ancestors);
+      validateUnicode(child, ancestors);
     }
+    ancestors.delete(value);
+  }
 }
 
 function object(value: unknown, label: string): Record<string, unknown> {
@@ -281,14 +287,7 @@ export async function readProjectConfig(
     observed = true;
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAX_CONFIG_BYTES)
       throw new Error('Project config must be a regular file of at most 1 MiB');
-    if (
-      process.platform !== 'win32' &&
-      ((info.mode & 0o022) !== 0 ||
-        (info.uid !== 0 && info.uid !== process.getuid?.()))
-    )
-      throw new Error(
-        'Project config must be owned by root or the current user and not group/world writable',
-      );
+    assertProjectConfigOwner(info);
     const handle = await open(
       path,
       constants.O_RDONLY |
@@ -297,14 +296,7 @@ export async function readProjectConfig(
     );
     try {
       const opened = await handle.stat();
-      if (
-        process.platform !== 'win32' &&
-        ((opened.mode & 0o022) !== 0 ||
-          (opened.uid !== 0 && opened.uid !== process.getuid?.()))
-      )
-        throw new Error(
-          'Project config must be owned by root or the current user and not group/world writable',
-        );
+      assertProjectConfigOwner(opened);
       if (
         !opened.isFile() ||
         opened.dev !== info.dev ||
@@ -354,6 +346,12 @@ export async function updateProjectConfig(
   mutate: (config: ProjectConfig) => void | Promise<void>,
 ): Promise<void> {
   await withConfigLock(path, async () => {
+    try {
+      assertProjectConfigOwner(await lstat(path), true);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
+        throw contextualError(error, 'io', `${path}: `);
+    }
     const config = await readProjectConfig(path);
     await mutate(config);
     validateProjectConfig(config);
@@ -395,6 +393,7 @@ async function selectAncestors(
         const path = await canonicalize(resolve(base, binding.source));
         return ancestor(path, cwd) ? { binding, path } : null;
       } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
         throw new Error(
           `Registered source for binding ${binding.name} is unavailable: ${binding.source}`,
           { cause: error },
@@ -476,12 +475,22 @@ async function applyOverrides(
   canonicalize: typeof canonicalDirectory,
 ): Promise<ProjectBinding> {
   const result = structuredClone(binding);
-  const overrides = options.overrides ?? {};
-  fields(
-    object(overrides, 'overrides'),
-    ['source', 'strategy', 'diaryId'],
-    'override',
-  );
+  const input = object(options.overrides ?? {}, 'overrides');
+  const overrides: NonNullable<ProjectSelectionOptions['overrides']> = {};
+  for (const key of Reflect.ownKeys(input)) {
+    if (
+      typeof key !== 'string' ||
+      !['source', 'strategy', 'diaryId'].includes(key)
+    )
+      throw new Error(`Unknown override field: ${String(key)}`);
+    const descriptor = Object.getOwnPropertyDescriptor(input, key)!;
+    if (!Object.hasOwn(descriptor, 'value'))
+      throw new Error('Overrides must contain only data properties');
+    Object.defineProperty(overrides, key, {
+      value: descriptor.value,
+      enumerable: true,
+    });
+  }
   for (const key of ['source', 'strategy', 'diaryId'] as const) {
     if (Object.hasOwn(overrides, key) && overrides[key] !== undefined)
       Object.defineProperty(result, key, {

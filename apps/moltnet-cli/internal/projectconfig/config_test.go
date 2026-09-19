@@ -29,6 +29,7 @@ func TestProjectSharedFixtures(t *testing.T) {
 		ExpectedDiaryId  string
 		Error            bool
 		ErrorKind        string
+		ErrorMessage     string
 	}
 	if err := json.Unmarshal(data, &fixtures); err != nil {
 		t.Fatal(err)
@@ -58,6 +59,9 @@ func TestProjectSharedFixtures(t *testing.T) {
 			if f.Error {
 				if err == nil {
 					t.Fatal("expected error")
+				}
+				if f.ErrorMessage != "" && !strings.Contains(err.Error(), f.ErrorMessage) {
+					t.Fatalf("missing context %q: %v", f.ErrorMessage, err)
 				}
 				if errorKind(err) != f.ErrorKind {
 					t.Fatalf("expected %s error, got %s: %v", f.ErrorKind, errorKind(err), err)
@@ -331,5 +335,52 @@ func TestProjectRejectsInvalidUTF8Value(t *testing.T) {
 	c := &Config{Version: 1, Bindings: []Binding{{Name: string([]byte{0xff}), APIURL: "https://api.example", TeamID: "team", ProjectID: "project", Strategy: "none"}}}
 	if err := Validate(c); err == nil {
 		t.Fatal("accepted malformed UTF-8")
+	}
+}
+
+func TestProjectLeafDirectoryPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permissions")
+	}
+	for _, mode := range []os.FileMode{0111, 0000} {
+		source := filepath.Join(t.TempDir(), "leaf")
+		if err := os.Mkdir(source, mode); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(source, 0700) })
+		if _, err := canonicalDirectory(source); err != nil {
+			t.Errorf("mode %o: %v", mode, err)
+		}
+	}
+}
+func TestProjectReadIOKindAndSinglePath(t *testing.T) {
+	for _, oversized := range []bool{false, true} {
+		if !oversized && runtime.GOOS == "windows" {
+			continue
+		}
+		path := filepath.Join(t.TempDir(), "projects.json")
+		data := []byte(`{"version":1,"bindings":[]}`)
+		mode := os.FileMode(0620)
+		if oversized {
+			data = bytes.Repeat([]byte(" "), (1<<20)+1)
+			mode = 0600
+		}
+		if err := os.WriteFile(path, data, mode); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(path, mode); err != nil {
+			t.Fatal(err)
+		}
+		_, err := Read(path)
+		if err == nil || errorKind(err) != "io" || strings.Count(err.Error(), path) != 1 {
+			t.Fatalf("oversized=%v: %v", oversized, err)
+		}
+	}
+}
+func TestProjectParseMalformedRawUTF8(t *testing.T) {
+	data := []byte(`{"version":1,"bindings":[{"name":"broken","apiUrl":"https://api.example","teamId":"team","projectId":"project","strategy":"none"}]}`)
+	data[bytes.Index(data, []byte("broken"))] = 0xff
+	if _, err := Parse(data); err == nil || errorKind(err) != "validation" {
+		t.Fatalf("raw UTF8: %v", err)
 	}
 }

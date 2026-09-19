@@ -844,9 +844,12 @@ be writable by group or others. Both readers reject symbolic links, non-regular
 files, and files larger than 1 MiB. Windows uses filesystem ACLs rather than
 POSIX ownership/mode checks; readers do not inspect Windows ACLs. Store the file
 in an operator-controlled directory (parent-directory ownership is not checked).
-Read-only root-owned configuration supports non-root container workers. Writers
-sync the file before replacement and the parent directory afterward on POSIX.
-The Go/TypeScript writer-lock test needs Node.js and installed `tsx`.
+Read-only root-owned configuration supports non-root container workers. Both
+writers refuse updates to a file owned by another user, including root; change
+admin-provisioned configuration as its owner. Both writers sync the file before
+replacement. The TypeScript writer also syncs the parent directory afterward on
+POSIX; the Go writer does not currently guarantee that directory sync. The
+Go/TypeScript writer-lock test needs Node.js and installed `tsx`.
 
 The reserved hook phases are `afterCreate` and `beforeRun`. Each command uses an
 absolute executable path or a bare PATH name, an explicit string `args` array,

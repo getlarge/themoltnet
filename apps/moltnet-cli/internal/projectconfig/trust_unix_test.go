@@ -40,3 +40,15 @@ func TestProjectTrustedOwners(t *testing.T) {
 		}
 	}
 }
+
+func TestProjectWriteOwnership(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("non-root writer policy")
+	}
+	if err := validateWriteOwner(ownerInfo{uid: 0, mode: 0644}); err == nil {
+		t.Fatal("accepted replacement of root-owned config")
+	}
+	if err := validateWriteOwner(ownerInfo{uid: uint32(os.Getuid()), mode: 0600}); err != nil {
+		t.Fatal(err)
+	}
+}

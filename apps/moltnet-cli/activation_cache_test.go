@@ -536,6 +536,7 @@ func setupActivationCacheFixtureWithIdentity(
 	t.Helper()
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	sshDir := filepath.Join(agentDir, "ssh")
 	if err := os.MkdirAll(sshDir, 0o755); err != nil {

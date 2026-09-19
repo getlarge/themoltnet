@@ -368,6 +368,13 @@ func Update(path string, mutate func(*Config) error) error {
 		return err
 	}
 	defer lock.Close()
+	if info, err := os.Lstat(path); err == nil {
+		if err := validateWriteOwner(info); err != nil {
+			return &ConfigError{Kind: "io", Cause: fmt.Errorf("%s: %w", path, err)}
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 	c, err := Read(path)
 	if err != nil {
 		return err

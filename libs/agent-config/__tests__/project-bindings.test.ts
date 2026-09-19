@@ -228,6 +228,7 @@ const fixtures = JSON.parse(
   expectedDiaryId?: string;
   error?: boolean;
   errorKind?: string;
+  errorMessage?: string;
 }>;
 describe('shared Go/TypeScript fixtures', () => {
   it.each(fixtures)('$name', async (fixture) => {
@@ -241,7 +242,12 @@ describe('shared Go/TypeScript fixtures', () => {
     if (fixture.error) {
       await expect(
         resolveProjectBinding(fixture.config, options),
-      ).rejects.toMatchObject({ kind: fixture.errorKind });
+      ).rejects.toMatchObject({
+        kind: fixture.errorKind,
+        ...(fixture.errorMessage
+          ? { message: expect.stringContaining(fixture.errorMessage) }
+          : {}),
+      });
     } else {
       const selected = await resolveProjectBinding(fixture.config, options);
       expect(selected?.name ?? null).toBe(fixture.expected);
@@ -397,4 +403,99 @@ it('rejects malformed UTF-8 bytes instead of replacing a binding name', async ()
   await expect(readProjectConfig(configPath)).rejects.toMatchObject({
     kind: 'validation',
   });
+});
+
+it('rejects cyclic programmatic configuration with a validation error', () => {
+  const value = config();
+  Object.assign(value, { cycle: value });
+  try {
+    validateProjectConfig(value);
+    throw new Error('accepted cycle');
+  } catch (error) {
+    expect(error).toMatchObject({ kind: 'validation' });
+    expect(String(error)).not.toContain('Maximum call stack');
+  }
+});
+it('rejects accessor overrides without evaluating them', async () => {
+  let reads = 0;
+  const overrides = Object.defineProperty({}, 'strategy', {
+    enumerable: true,
+    get() {
+      reads++;
+      return reads === 1 ? 'existing' : 'none';
+    },
+  });
+  await expect(
+    resolveProjectBinding(config(), { configPath, cwd: root, overrides }),
+  ).rejects.toThrow(/data propert/i);
+  expect(reads).toBe(0);
+});
+it('validates non-enumerable own override keys', async () => {
+  const overrides = Object.defineProperty({}, 'unknown', { value: 'hidden' });
+  await expect(
+    resolveProjectBinding(config(), { configPath, cwd: root, overrides }),
+  ).rejects.toThrow(/Unknown override/);
+});
+it('preserves the diagnosis for a non-directory registered source', async () => {
+  await writeFile(join(root, 'file'), 'data');
+  const value = config();
+  value.bindings[0].source = './file';
+  await expect(
+    resolveProjectBinding(value, { configPath, cwd: root, native: true }),
+  ).rejects.toThrow(/not a directory/);
+});
+it.each([0o111, 0o000])(
+  'resolves a leaf directory with mode %s',
+  async (mode) => {
+    if (process.platform === 'win32') return;
+    const source = join(root, 'source');
+    await chmod(source, mode);
+    try {
+      expect(
+        (
+          await resolveProjectBinding(config(), {
+            configPath,
+            cwd: source,
+            native: true,
+          })
+        )?.source,
+      ).toBe(source);
+    } finally {
+      await chmod(source, 0o700);
+    }
+  },
+);
+it('resolves Unicode normalization aliases when supported by the filesystem', async () => {
+  const source = join(root, 'cafe\u0301');
+  await mkdir(source);
+  const alias = join(root, 'caf\u00e9');
+  try {
+    await realpath(alias);
+  } catch {
+    return;
+  }
+  const value = config();
+  value.bindings[0].source = source;
+  expect(
+    (
+      await resolveProjectBinding(value, {
+        configPath,
+        cwd: alias,
+        native: true,
+      })
+    )?.source,
+  ).toBe(await realpath(source));
+});
+
+it('applies a non-enumerable allowed data override once', async () => {
+  const overrides = Object.defineProperty({}, 'diaryId', { value: 'hidden' });
+  expect(
+    (
+      await resolveProjectBinding(config(), {
+        configPath,
+        cwd: root,
+        overrides,
+      })
+    )?.diaryId,
+  ).toBe('hidden');
 });

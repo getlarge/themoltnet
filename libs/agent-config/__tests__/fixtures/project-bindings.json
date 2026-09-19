@@ -1784,5 +1784,44 @@
     "errorKind": "validation",
     "name": "reject unpaired surrogate 0xdc00",
     "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "agent \ud83d\ude00",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "agent \ud83d\ude00",
+    "name": "valid Unicode surrogate pair",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": 42
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "errorKind": "validation",
+    "errorMessage": "bindings[0] (local)",
+    "name": "binding type error includes index and name",
+    "options": {}
   }
 ]

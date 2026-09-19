@@ -15,3 +15,11 @@ func validateOwner(info os.FileInfo) error {
 	}
 	return nil
 }
+
+func validateWriteOwner(info os.FileInfo) error {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || int(stat.Uid) != os.Getuid() {
+		return errors.New("project config updates require ownership by the current user")
+	}
+	return validateOwner(info)
+}
