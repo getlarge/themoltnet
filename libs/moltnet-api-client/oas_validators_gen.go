@@ -1279,6 +1279,8 @@ func (s BeginRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -1413,6 +1415,8 @@ func (s BeginRuntimeSlotConflictCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -1549,6 +1553,8 @@ func (s BeginRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -1683,6 +1689,8 @@ func (s BeginRuntimeSlotNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -2477,6 +2485,8 @@ func (s BeginRuntimeSlotUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -3734,6 +3744,8 @@ func (s ConflictProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -5121,6 +5133,119 @@ func (s *CreateGroupTooManyRequests) Validate() error {
 }
 
 func (s *CreateGroupUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateProjectBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateProjectForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateProjectNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateProjectReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Description.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     10000,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "description",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     255,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         regexMap["\\S"],
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Name)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "name",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *CreateProjectServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateProjectTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateProjectUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -10104,6 +10229,8 @@ func (s DownloadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -10238,6 +10365,8 @@ func (s DownloadRuntimeSessionForbiddenCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -10374,6 +10503,8 @@ func (s DownloadRuntimeSessionNotFoundCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -10509,6 +10640,8 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -10643,6 +10776,8 @@ func (s DownloadRuntimeSessionUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -10790,6 +10925,8 @@ func (s DownloadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -10936,6 +11073,8 @@ func (s DownloadTaskArtifactByCidBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -11070,6 +11209,8 @@ func (s DownloadTaskArtifactByCidForbiddenCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -11206,6 +11347,8 @@ func (s DownloadTaskArtifactByCidNotFoundCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -11340,6 +11483,8 @@ func (s DownloadTaskArtifactByCidServiceUnavailableCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -11476,6 +11621,8 @@ func (s DownloadTaskArtifactByCidUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -11610,6 +11757,8 @@ func (s DownloadTaskArtifactForbiddenCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -11746,6 +11895,8 @@ func (s DownloadTaskArtifactNotFoundCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -11881,6 +12032,8 @@ func (s DownloadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -12015,6 +12168,8 @@ func (s DownloadTaskArtifactUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -12798,6 +12953,8 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -12933,6 +13090,8 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -13067,6 +13226,8 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -13707,6 +13868,8 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -13853,6 +14016,8 @@ func (s FinishRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -13987,6 +14152,8 @@ func (s FinishRuntimeSlotConflictCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -14123,6 +14290,8 @@ func (s FinishRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -14257,6 +14426,8 @@ func (s FinishRuntimeSlotNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -14877,6 +15048,8 @@ func (s FinishRuntimeSlotUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -15839,6 +16012,8 @@ func (s *GetOAuth2TokenUnauthorized) Validate() error {
 
 func (s GetProblemTypeType) Validate() error {
 	switch s {
+	case "project-mismatch":
+		return nil
 	case "unauthorized":
 		return nil
 	case "forbidden":
@@ -15898,6 +16073,54 @@ func (s GetProblemTypeType) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s *GetProjectBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetProjectForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetProjectNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetProjectServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetProjectTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetProjectUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *GetPublicEntryBadRequest) Validate() error {
@@ -16289,6 +16512,8 @@ func (s GetRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -16424,6 +16649,8 @@ func (s GetRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -16558,6 +16785,8 @@ func (s GetRuntimeSessionNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -16918,6 +17147,8 @@ func (s GetRuntimeSessionUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -17637,6 +17868,8 @@ func (s InjectionConflictProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -18737,6 +18970,77 @@ func (s *ListPendingTransfersUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *ListProjectsBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListProjectsForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListProjectsNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListProjectsOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.Items == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "items",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ListProjectsServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListProjectsTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListProjectsUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListRuntimeModelsServiceUnavailable) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -18926,6 +19230,8 @@ func (s ListRuntimeSlotsBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -19061,6 +19367,8 @@ func (s ListRuntimeSlotsForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -19195,6 +19503,8 @@ func (s ListRuntimeSlotsNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -19886,6 +20196,8 @@ func (s ListRuntimeSlotsUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -20132,6 +20444,8 @@ func (s ListTaskArtifactsBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -20267,6 +20581,8 @@ func (s ListTaskArtifactsForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -20401,6 +20717,8 @@ func (s ListTaskArtifactsNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -20805,6 +21123,8 @@ func (s ListTaskArtifactsUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -23522,6 +23842,8 @@ func (s ProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -30446,6 +30768,8 @@ func (s StageTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -30581,6 +30905,8 @@ func (s StageTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -30715,6 +31041,8 @@ func (s StageTaskArtifactNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -30930,6 +31258,8 @@ func (s StageTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -31064,6 +31394,8 @@ func (s StageTaskArtifactUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -35181,6 +35513,126 @@ func (s *UpdateEntryRelationStatusUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *UpdateProjectBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateProjectForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateProjectNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateProjectReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Description.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     10000,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "description",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Name.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     255,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["\\S"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "name",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *UpdateProjectServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateProjectTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *UpdateProjectUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *UpdateRenderedPackBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -37532,6 +37984,8 @@ func (s UploadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -37666,6 +38120,8 @@ func (s UploadRuntimeSessionConflictCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -37802,6 +38258,8 @@ func (s UploadRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -37936,6 +38394,8 @@ func (s UploadRuntimeSessionNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -38281,6 +38741,8 @@ func (s UploadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -38429,6 +38891,8 @@ func (s UploadRuntimeSessionUnauthorizedCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -38575,6 +39039,8 @@ func (s UploadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -38710,6 +39176,8 @@ func (s UploadTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -38844,6 +39312,8 @@ func (s UploadTaskArtifactNotFoundCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -39163,6 +39633,8 @@ func (s UploadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "CONFLICT":
 		return nil
+	case "PROJECT_MISMATCH":
+		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
 	case "VALIDATION_FAILED":
@@ -39297,6 +39769,8 @@ func (s UploadTaskArtifactUnauthorizedCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil
@@ -39521,6 +39995,8 @@ func (s ValidationProblemDetailsCode) Validate() error {
 	case "NOT_FOUND":
 		return nil
 	case "CONFLICT":
+		return nil
+	case "PROJECT_MISMATCH":
 		return nil
 	case "UNSUPPORTED_MEDIA_TYPE":
 		return nil

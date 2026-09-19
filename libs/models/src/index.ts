@@ -9,6 +9,7 @@ export * from './hash.js';
 export * from './preview-sign.js';
 export * from './principal.js';
 export * from './problem-details.js';
+export * from './projects.js';
 export * from './provenance-graph.js';
 export * from './registration.js';
 export * from './render-method.js';

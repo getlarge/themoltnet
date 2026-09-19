@@ -54,6 +54,7 @@ import { oauth2GrantCachePlugin, oauth2Routes } from './routes/oauth2.js';
 import { packRoutes } from './routes/packs.js';
 import { previewSignChallengeRoutes } from './routes/preview-sign-challenges.js';
 import { problemRoutes } from './routes/problems.js';
+import { projectRoutes } from './routes/projects.js';
 import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
@@ -83,6 +84,7 @@ import type {
   GroupRepository,
   HumanRepository,
   NonceRepository,
+  ProjectRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
@@ -162,6 +164,7 @@ export interface AppOptions {
   humanRepository: HumanRepository;
   cryptoService: CryptoService;
   groupRepository: GroupRepository;
+  projectRepository: ProjectRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
@@ -413,6 +416,7 @@ export async function registerApiRoutes(
   decorateSafe('humanRepository', options.humanRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('groupRepository', options.groupRepository);
+  decorateSafe('projectRepository', options.projectRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
   decorateSafe('runtimeProfileRepository', options.runtimeProfileRepository);
@@ -507,6 +511,7 @@ export async function registerApiRoutes(
   await app.register(registrationRoutes);
   await app.register(teamRoutes, { talosApi: options.oryClients.apiKeys });
   await app.register(groupRoutes);
+  await app.register(projectRoutes);
   await app.register(runtimeSlotRoutes);
   await app.register(runtimeSessionRoutes);
   await app.register(taskArtifactRoutes);

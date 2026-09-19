@@ -143,6 +143,10 @@ type Handler interface {
 	//
 	// POST /teams/{id}/groups
 	CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
+	// CreateProject implements createProject operation.
+	//
+	// POST /teams/{id}/projects
+	CreateProject(ctx context.Context, req *CreateProjectReq, params CreateProjectParams) (CreateProjectRes, error)
 	// CreateRuntimeModel implements createRuntimeModel operation.
 	//
 	// Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime
@@ -406,6 +410,10 @@ type Handler interface {
 	//
 	// GET /problems/{type}
 	GetProblemType(ctx context.Context, params GetProblemTypeParams) error
+	// GetProject implements getProject operation.
+	//
+	// GET /teams/{id}/projects/{projectId}
+	GetProject(ctx context.Context, params GetProjectParams) (GetProjectRes, error)
 	// GetPublicEntry implements getPublicEntry operation.
 	//
 	// Get a single public diary entry by ID with author info. No authentication required.
@@ -599,6 +607,10 @@ type Handler interface {
 	//
 	// GET /problems
 	ListProblemTypes(ctx context.Context) ([]ListProblemTypesOKItem, error)
+	// ListProjects implements listProjects operation.
+	//
+	// GET /teams/{id}/projects
+	ListProjects(ctx context.Context, params ListProjectsParams) (ListProjectsRes, error)
 	// ListRuntimeModels implements listRuntimeModels operation.
 	//
 	// List runtime model catalog entries visible to the caller. Global entries are always included;
@@ -869,6 +881,10 @@ type Handler interface {
 	//
 	// PATCH /relations/{id}
 	UpdateEntryRelationStatus(ctx context.Context, req *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (UpdateEntryRelationStatusRes, error)
+	// UpdateProject implements updateProject operation.
+	//
+	// PATCH /teams/{id}/projects/{projectId}
+	UpdateProject(ctx context.Context, req OptUpdateProjectReq, params UpdateProjectParams) (UpdateProjectRes, error)
 	// UpdateRenderedPack implements updateRenderedPack operation.
 	//
 	// Update a rendered pack — pin/unpin or change expiration. Only the diary owner can manage packs.

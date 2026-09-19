@@ -54,18 +54,29 @@ export function createAsyncValidationContextFactory(
     callerNs: KetoNamespace,
     opts: { deferReadinessChecks?: boolean; currentTaskId?: string } = {},
   ): AsyncTaskValidationContext {
+    const resolvedTasks = new Map<
+      string,
+      ReturnType<AsyncTaskValidationContext['resolveTask']>
+    >();
     return {
       deferReadinessChecks: opts.deferReadinessChecks,
       currentTaskId: opts.currentTaskId,
-      async resolveTask(taskId: string) {
-        const canView = await permissionChecker.canViewTask(
-          taskId,
-          callerId,
-          callerNs,
-        );
-        if (!canView) return null;
-        const row = await taskRepository.findById(taskId);
-        return row ? dbTaskToWire(row) : null;
+      resolveTask(taskId: string) {
+        let pending = resolvedTasks.get(taskId);
+        if (!pending) {
+          pending = (async () => {
+            const canView = await permissionChecker.canViewTask(
+              taskId,
+              callerId,
+              callerNs,
+            );
+            if (!canView) return null;
+            const row = await taskRepository.findById(taskId);
+            return row ? dbTaskToWire(row) : null;
+          })();
+          resolvedTasks.set(taskId, pending);
+        }
+        return pending;
       },
       async listAttempts(taskId: string) {
         const canView = await permissionChecker.canViewTask(

@@ -5044,6 +5044,8 @@ func (s *BeginRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotBadRequestCodeNOTFOUND
 	case BeginRuntimeSlotBadRequestCodeCONFLICT:
 		*s = BeginRuntimeSlotBadRequestCodeCONFLICT
+	case BeginRuntimeSlotBadRequestCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotBadRequestCodePROJECTMISMATCH
 	case BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED:
@@ -5424,6 +5426,8 @@ func (s *BeginRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotConflictCodeNOTFOUND
 	case BeginRuntimeSlotConflictCodeCONFLICT:
 		*s = BeginRuntimeSlotConflictCodeCONFLICT
+	case BeginRuntimeSlotConflictCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotConflictCodePROJECTMISMATCH
 	case BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotConflictCodeVALIDATIONFAILED:
@@ -5789,6 +5793,8 @@ func (s *BeginRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotForbiddenCodeNOTFOUND
 	case BeginRuntimeSlotForbiddenCodeCONFLICT:
 		*s = BeginRuntimeSlotForbiddenCodeCONFLICT
+	case BeginRuntimeSlotForbiddenCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotForbiddenCodePROJECTMISMATCH
 	case BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED:
@@ -6154,6 +6160,8 @@ func (s *BeginRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotNotFoundCodeNOTFOUND
 	case BeginRuntimeSlotNotFoundCodeCONFLICT:
 		*s = BeginRuntimeSlotNotFoundCodeCONFLICT
+	case BeginRuntimeSlotNotFoundCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotNotFoundCodePROJECTMISMATCH
 	case BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED:
@@ -7372,6 +7380,8 @@ func (s *BeginRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotUnauthorizedCodeNOTFOUND
 	case BeginRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = BeginRuntimeSlotUnauthorizedCodeCONFLICT
+	case BeginRuntimeSlotUnauthorizedCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotUnauthorizedCodePROJECTMISMATCH
 	case BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
@@ -9534,14 +9544,21 @@ func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 			s.ProfileId.Encode(e)
 		}
 	}
+	{
+		if s.ProjectId.Set {
+			e.FieldStart("projectId")
+			s.ProjectId.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfClaimTaskReq = [5]string{
+var jsonFieldsNameOfClaimTaskReq = [6]string{
 	0: "executorFingerprint",
 	1: "executorManifest",
 	2: "executorSignature",
 	3: "leaseTtlSec",
 	4: "profileId",
+	5: "projectId",
 }
 
 // Decode decodes ClaimTaskReq from json.
@@ -9602,6 +9619,16 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"profileId\"")
+			}
+		case "projectId":
+			if err := func() error {
+				s.ProjectId.Reset()
+				if err := s.ProjectId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"projectId\"")
 			}
 		default:
 			return d.Skip()
@@ -11602,6 +11629,8 @@ func (s *ConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ConflictProblemDetailsCodeNOTFOUND
 	case ConflictProblemDetailsCodeCONFLICT:
 		*s = ConflictProblemDetailsCodeCONFLICT
+	case ConflictProblemDetailsCodePROJECTMISMATCH:
+		*s = ConflictProblemDetailsCodePROJECTMISMATCH
 	case ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ConflictProblemDetailsCodeVALIDATIONFAILED:
@@ -16183,6 +16212,606 @@ func (s *CreateGroupUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateProjectBadRequest as json.
+func (s *CreateProjectBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectBadRequest from json.
+func (s *CreateProjectBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateProjectCreated) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateProjectCreated) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfCreateProjectCreated = [10]string{
+	0: "archived",
+	1: "createdAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
+}
+
+// Decode decodes CreateProjectCreated from json.
+func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectCreated to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "creatorAgentId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateProjectCreated")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateProjectCreated) {
+					name = jsonFieldsNameOfCreateProjectCreated[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectCreated) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectCreated) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectForbidden as json.
+func (s *CreateProjectForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectForbidden from json.
+func (s *CreateProjectForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectNotFound as json.
+func (s *CreateProjectNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectNotFound from json.
+func (s *CreateProjectNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateProjectReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateProjectReq) encodeFields(e *jx.Encoder) {
+	{
+		if s.DefaultDiaryId.Set {
+			e.FieldStart("defaultDiaryId")
+			s.DefaultDiaryId.Encode(e)
+		}
+	}
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+}
+
+var jsonFieldsNameOfCreateProjectReq = [3]string{
+	0: "defaultDiaryId",
+	1: "description",
+	2: "name",
+}
+
+// Decode decodes CreateProjectReq from json.
+func (s *CreateProjectReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "defaultDiaryId":
+			if err := func() error {
+				s.DefaultDiaryId.Reset()
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateProjectReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateProjectReq) {
+					name = jsonFieldsNameOfCreateProjectReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectServiceUnavailable as json.
+func (s *CreateProjectServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectServiceUnavailable from json.
+func (s *CreateProjectServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectTooManyRequests as json.
+func (s *CreateProjectTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectTooManyRequests from json.
+func (s *CreateProjectTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectUnauthorized as json.
+func (s *CreateProjectUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectUnauthorized from json.
+func (s *CreateProjectUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateRuntimeModelBadRequest as json.
 func (s *CreateRuntimeModelBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -19957,6 +20586,12 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ProjectId.Set {
+			e.FieldStart("projectId")
+			s.ProjectId.Encode(e)
+		}
+	}
+	{
 		if s.References != nil {
 			e.FieldStart("references")
 			e.ArrStart()
@@ -20000,7 +20635,7 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateTaskReq = [14]string{
+var jsonFieldsNameOfCreateTaskReq = [15]string{
 	0:  "allowedProfiles",
 	1:  "claimCondition",
 	2:  "correlationId",
@@ -20009,12 +20644,13 @@ var jsonFieldsNameOfCreateTaskReq = [14]string{
 	5:  "expiresInSec",
 	6:  "input",
 	7:  "maxAttempts",
-	8:  "references",
-	9:  "requiredExecutorTrustLevel",
-	10: "runningTimeoutSec",
-	11: "tags",
-	12: "taskType",
-	13: "title",
+	8:  "projectId",
+	9:  "references",
+	10: "requiredExecutorTrustLevel",
+	11: "runningTimeoutSec",
+	12: "tags",
+	13: "taskType",
+	14: "title",
 }
 
 // Decode decodes CreateTaskReq from json.
@@ -20116,6 +20752,16 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxAttempts\"")
 			}
+		case "projectId":
+			if err := func() error {
+				s.ProjectId.Reset()
+				if err := s.ProjectId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"projectId\"")
+			}
 		case "references":
 			if err := func() error {
 				s.References = make([]TaskRef, 0)
@@ -20173,7 +20819,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -20205,7 +20851,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b01001000,
-		0b00010000,
+		0b00100000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -32224,6 +32870,8 @@ func (s *DownloadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionBadRequestCodeNOTFOUND
 	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = DownloadRuntimeSessionBadRequestCodeCONFLICT
+	case DownloadRuntimeSessionBadRequestCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionBadRequestCodePROJECTMISMATCH
 	case DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
@@ -32589,6 +33237,8 @@ func (s *DownloadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionForbiddenCodeNOTFOUND
 	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = DownloadRuntimeSessionForbiddenCodeCONFLICT
+	case DownloadRuntimeSessionForbiddenCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionForbiddenCodePROJECTMISMATCH
 	case DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
@@ -32954,6 +33604,8 @@ func (s *DownloadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionNotFoundCodeNOTFOUND
 	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = DownloadRuntimeSessionNotFoundCodeCONFLICT
+	case DownloadRuntimeSessionNotFoundCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionNotFoundCodePROJECTMISMATCH
 	case DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
@@ -33319,6 +33971,8 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) err
 		*s = DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND
 	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case DownloadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH
 	case DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
@@ -33684,6 +34338,8 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionUnauthorizedCodeNOTFOUND
 	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = DownloadRuntimeSessionUnauthorizedCodeCONFLICT
+	case DownloadRuntimeSessionUnauthorizedCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionUnauthorizedCodePROJECTMISMATCH
 	case DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
@@ -34076,6 +34732,8 @@ func (s *DownloadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactBadRequestCodeNOTFOUND
 	case DownloadTaskArtifactBadRequestCodeCONFLICT:
 		*s = DownloadTaskArtifactBadRequestCodeCONFLICT
+	case DownloadTaskArtifactBadRequestCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactBadRequestCodePROJECTMISMATCH
 	case DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED:
@@ -34468,6 +35126,8 @@ func (s *DownloadTaskArtifactByCidBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidBadRequestCodeNOTFOUND
 	case DownloadTaskArtifactByCidBadRequestCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidBadRequestCodeCONFLICT
+	case DownloadTaskArtifactByCidBadRequestCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidBadRequestCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED:
@@ -34833,6 +35493,8 @@ func (s *DownloadTaskArtifactByCidForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidForbiddenCodeNOTFOUND
 	case DownloadTaskArtifactByCidForbiddenCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidForbiddenCodeCONFLICT
+	case DownloadTaskArtifactByCidForbiddenCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidForbiddenCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED:
@@ -35198,6 +35860,8 @@ func (s *DownloadTaskArtifactByCidNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidNotFoundCodeNOTFOUND
 	case DownloadTaskArtifactByCidNotFoundCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidNotFoundCodeCONFLICT
+	case DownloadTaskArtifactByCidNotFoundCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidNotFoundCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED:
@@ -35563,6 +36227,8 @@ func (s *DownloadTaskArtifactByCidServiceUnavailableCode) Decode(d *jx.Decoder) 
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND
 	case DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT
+	case DownloadTaskArtifactByCidServiceUnavailableCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED:
@@ -35928,6 +36594,8 @@ func (s *DownloadTaskArtifactByCidUnauthorizedCode) Decode(d *jx.Decoder) error 
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND
 	case DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT
+	case DownloadTaskArtifactByCidUnauthorizedCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED:
@@ -36293,6 +36961,8 @@ func (s *DownloadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactForbiddenCodeNOTFOUND
 	case DownloadTaskArtifactForbiddenCodeCONFLICT:
 		*s = DownloadTaskArtifactForbiddenCodeCONFLICT
+	case DownloadTaskArtifactForbiddenCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactForbiddenCodePROJECTMISMATCH
 	case DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED:
@@ -36658,6 +37328,8 @@ func (s *DownloadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactNotFoundCodeNOTFOUND
 	case DownloadTaskArtifactNotFoundCodeCONFLICT:
 		*s = DownloadTaskArtifactNotFoundCodeCONFLICT
+	case DownloadTaskArtifactNotFoundCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactNotFoundCodePROJECTMISMATCH
 	case DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED:
@@ -37023,6 +37695,8 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = DownloadTaskArtifactServiceUnavailableCodeNOTFOUND
 	case DownloadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = DownloadTaskArtifactServiceUnavailableCodeCONFLICT
+	case DownloadTaskArtifactServiceUnavailableCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactServiceUnavailableCodePROJECTMISMATCH
 	case DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
@@ -37388,6 +38062,8 @@ func (s *DownloadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactUnauthorizedCodeNOTFOUND
 	case DownloadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = DownloadTaskArtifactUnauthorizedCodeCONFLICT
+	case DownloadTaskArtifactUnauthorizedCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactUnauthorizedCodePROJECTMISMATCH
 	case DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
@@ -39887,6 +40563,8 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) Decode(d *jx.Decoder) er
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
@@ -40252,6 +40930,8 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) Decode(d *jx.Decoder) err
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
@@ -40617,6 +41297,8 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) Decode(d *jx.Decoder) erro
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
@@ -41820,6 +42502,8 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) Decode(d *jx.Decoder) 
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
@@ -42212,6 +42896,8 @@ func (s *FinishRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotBadRequestCodeNOTFOUND
 	case FinishRuntimeSlotBadRequestCodeCONFLICT:
 		*s = FinishRuntimeSlotBadRequestCodeCONFLICT
+	case FinishRuntimeSlotBadRequestCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotBadRequestCodePROJECTMISMATCH
 	case FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED:
@@ -42592,6 +43278,8 @@ func (s *FinishRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotConflictCodeNOTFOUND
 	case FinishRuntimeSlotConflictCodeCONFLICT:
 		*s = FinishRuntimeSlotConflictCodeCONFLICT
+	case FinishRuntimeSlotConflictCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotConflictCodePROJECTMISMATCH
 	case FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotConflictCodeVALIDATIONFAILED:
@@ -42957,6 +43645,8 @@ func (s *FinishRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotForbiddenCodeNOTFOUND
 	case FinishRuntimeSlotForbiddenCodeCONFLICT:
 		*s = FinishRuntimeSlotForbiddenCodeCONFLICT
+	case FinishRuntimeSlotForbiddenCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotForbiddenCodePROJECTMISMATCH
 	case FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED:
@@ -43322,6 +44012,8 @@ func (s *FinishRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotNotFoundCodeNOTFOUND
 	case FinishRuntimeSlotNotFoundCodeCONFLICT:
 		*s = FinishRuntimeSlotNotFoundCodeCONFLICT
+	case FinishRuntimeSlotNotFoundCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotNotFoundCodePROJECTMISMATCH
 	case FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED:
@@ -44396,6 +45088,8 @@ func (s *FinishRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotUnauthorizedCodeNOTFOUND
 	case FinishRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = FinishRuntimeSlotUnauthorizedCodeCONFLICT
+	case FinishRuntimeSlotUnauthorizedCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotUnauthorizedCodePROJECTMISMATCH
 	case FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
@@ -49514,6 +50208,476 @@ func (s *GetOAuth2TokenUnauthorizedAdditional) UnmarshalJSON(data []byte) error 
 	return s.Decode(d)
 }
 
+// Encode encodes GetProjectBadRequest as json.
+func (s *GetProjectBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectBadRequest from json.
+func (s *GetProjectBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectForbidden as json.
+func (s *GetProjectForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectForbidden from json.
+func (s *GetProjectForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectNotFound as json.
+func (s *GetProjectNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectNotFound from json.
+func (s *GetProjectNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetProjectOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetProjectOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfGetProjectOK = [10]string{
+	0: "archived",
+	1: "createdAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
+}
+
+// Decode decodes GetProjectOK from json.
+func (s *GetProjectOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectOK to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "creatorAgentId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetProjectOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetProjectOK) {
+					name = jsonFieldsNameOfGetProjectOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectServiceUnavailable as json.
+func (s *GetProjectServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectServiceUnavailable from json.
+func (s *GetProjectServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectTooManyRequests as json.
+func (s *GetProjectTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectTooManyRequests from json.
+func (s *GetProjectTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectUnauthorized as json.
+func (s *GetProjectUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectUnauthorized from json.
+func (s *GetProjectUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes GetPublicEntryBadRequest as json.
 func (s *GetPublicEntryBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -51244,6 +52408,8 @@ func (s *GetRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionBadRequestCodeNOTFOUND
 	case GetRuntimeSessionBadRequestCodeCONFLICT:
 		*s = GetRuntimeSessionBadRequestCodeCONFLICT
+	case GetRuntimeSessionBadRequestCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionBadRequestCodePROJECTMISMATCH
 	case GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
@@ -51609,6 +52775,8 @@ func (s *GetRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionForbiddenCodeNOTFOUND
 	case GetRuntimeSessionForbiddenCodeCONFLICT:
 		*s = GetRuntimeSessionForbiddenCodeCONFLICT
+	case GetRuntimeSessionForbiddenCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionForbiddenCodePROJECTMISMATCH
 	case GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
@@ -51974,6 +53142,8 @@ func (s *GetRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionNotFoundCodeNOTFOUND
 	case GetRuntimeSessionNotFoundCodeCONFLICT:
 		*s = GetRuntimeSessionNotFoundCodeCONFLICT
+	case GetRuntimeSessionNotFoundCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionNotFoundCodePROJECTMISMATCH
 	case GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
@@ -52857,6 +54027,8 @@ func (s *GetRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionUnauthorizedCodeNOTFOUND
 	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = GetRuntimeSessionUnauthorizedCodeCONFLICT
+	case GetRuntimeSessionUnauthorizedCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionUnauthorizedCodePROJECTMISMATCH
 	case GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
@@ -56153,6 +57325,8 @@ func (s *InjectionConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = InjectionConflictProblemDetailsCodeNOTFOUND
 	case InjectionConflictProblemDetailsCodeCONFLICT:
 		*s = InjectionConflictProblemDetailsCodeCONFLICT
+	case InjectionConflictProblemDetailsCodePROJECTMISMATCH:
+		*s = InjectionConflictProblemDetailsCodePROJECTMISMATCH
 	case InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case InjectionConflictProblemDetailsCodeVALIDATIONFAILED:
@@ -61006,6 +62180,597 @@ func (s *ListProblemTypesOKItem) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ListProjectsBadRequest as json.
+func (s *ListProjectsBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsBadRequest from json.
+func (s *ListProjectsBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsForbidden as json.
+func (s *ListProjectsForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsForbidden from json.
+func (s *ListProjectsForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsNotFound as json.
+func (s *ListProjectsNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsNotFound from json.
+func (s *ListProjectsNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ListProjectsOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ListProjectsOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("items")
+		e.ArrStart()
+		for _, elem := range s.Items {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("nextOffset")
+		s.NextOffset.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfListProjectsOK = [2]string{
+	0: "items",
+	1: "nextOffset",
+}
+
+// Decode decodes ListProjectsOK from json.
+func (s *ListProjectsOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "items":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Items = make([]ListProjectsOKItemsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ListProjectsOKItemsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Items = append(s.Items, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"items\"")
+			}
+		case "nextOffset":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.NextOffset.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"nextOffset\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ListProjectsOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfListProjectsOK) {
+					name = jsonFieldsNameOfListProjectsOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ListProjectsOKItemsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ListProjectsOKItemsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfListProjectsOKItemsItem = [10]string{
+	0: "archived",
+	1: "createdAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
+}
+
+// Decode decodes ListProjectsOKItemsItem from json.
+func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsOKItemsItem to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "creatorAgentId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ListProjectsOKItemsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfListProjectsOKItemsItem) {
+					name = jsonFieldsNameOfListProjectsOKItemsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsOKItemsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsOKItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsServiceUnavailable as json.
+func (s *ListProjectsServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsServiceUnavailable from json.
+func (s *ListProjectsServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsTooManyRequests as json.
+func (s *ListProjectsTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsTooManyRequests from json.
+func (s *ListProjectsTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsUnauthorized as json.
+func (s *ListProjectsUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsUnauthorized from json.
+func (s *ListProjectsUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ListRuntimeModelsServiceUnavailable as json.
 func (s *ListRuntimeModelsServiceUnavailable) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -61786,6 +63551,8 @@ func (s *ListRuntimeSlotsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsBadRequestCodeNOTFOUND
 	case ListRuntimeSlotsBadRequestCodeCONFLICT:
 		*s = ListRuntimeSlotsBadRequestCodeCONFLICT
+	case ListRuntimeSlotsBadRequestCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsBadRequestCodePROJECTMISMATCH
 	case ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
@@ -62151,6 +63918,8 @@ func (s *ListRuntimeSlotsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsForbiddenCodeNOTFOUND
 	case ListRuntimeSlotsForbiddenCodeCONFLICT:
 		*s = ListRuntimeSlotsForbiddenCodeCONFLICT
+	case ListRuntimeSlotsForbiddenCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsForbiddenCodePROJECTMISMATCH
 	case ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
@@ -62516,6 +64285,8 @@ func (s *ListRuntimeSlotsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsNotFoundCodeNOTFOUND
 	case ListRuntimeSlotsNotFoundCodeCONFLICT:
 		*s = ListRuntimeSlotsNotFoundCodeCONFLICT
+	case ListRuntimeSlotsNotFoundCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsNotFoundCodePROJECTMISMATCH
 	case ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
@@ -63825,6 +65596,8 @@ func (s *ListRuntimeSlotsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsUnauthorizedCodeNOTFOUND
 	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
 		*s = ListRuntimeSlotsUnauthorizedCodeCONFLICT
+	case ListRuntimeSlotsUnauthorizedCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsUnauthorizedCodePROJECTMISMATCH
 	case ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
@@ -64559,6 +66332,8 @@ func (s *ListTaskArtifactsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsBadRequestCodeNOTFOUND
 	case ListTaskArtifactsBadRequestCodeCONFLICT:
 		*s = ListTaskArtifactsBadRequestCodeCONFLICT
+	case ListTaskArtifactsBadRequestCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsBadRequestCodePROJECTMISMATCH
 	case ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsBadRequestCodeVALIDATIONFAILED:
@@ -64924,6 +66699,8 @@ func (s *ListTaskArtifactsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsForbiddenCodeNOTFOUND
 	case ListTaskArtifactsForbiddenCodeCONFLICT:
 		*s = ListTaskArtifactsForbiddenCodeCONFLICT
+	case ListTaskArtifactsForbiddenCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsForbiddenCodePROJECTMISMATCH
 	case ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsForbiddenCodeVALIDATIONFAILED:
@@ -65289,6 +67066,8 @@ func (s *ListTaskArtifactsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsNotFoundCodeNOTFOUND
 	case ListTaskArtifactsNotFoundCodeCONFLICT:
 		*s = ListTaskArtifactsNotFoundCodeCONFLICT
+	case ListTaskArtifactsNotFoundCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsNotFoundCodePROJECTMISMATCH
 	case ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsNotFoundCodeVALIDATIONFAILED:
@@ -66144,6 +67923,8 @@ func (s *ListTaskArtifactsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsUnauthorizedCodeNOTFOUND
 	case ListTaskArtifactsUnauthorizedCodeCONFLICT:
 		*s = ListTaskArtifactsUnauthorizedCodeCONFLICT
+	case ListTaskArtifactsUnauthorizedCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsUnauthorizedCodePROJECTMISMATCH
 	case ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED:
@@ -78295,6 +80076,39 @@ func (s *OptUpdateDiaryReqVisibility) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes UpdateProjectReq as json.
+func (o OptUpdateProjectReq) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateProjectReq from json.
+func (o *OptUpdateProjectReq) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateProjectReq to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateProjectReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateProjectReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes UpdateRenderedPackReq as json.
 func (o OptUpdateRenderedPackReq) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -83013,6 +84827,8 @@ func (s *ProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ProblemDetailsCodeNOTFOUND
 	case ProblemDetailsCodeCONFLICT:
 		*s = ProblemDetailsCodeCONFLICT
+	case ProblemDetailsCodePROJECTMISMATCH:
+		*s = ProblemDetailsCodePROJECTMISMATCH
 	case ProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = ProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ProblemDetailsCodeVALIDATIONFAILED:
@@ -104004,6 +105820,8 @@ func (s *StageTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactBadRequestCodeNOTFOUND
 	case StageTaskArtifactBadRequestCodeCONFLICT:
 		*s = StageTaskArtifactBadRequestCodeCONFLICT
+	case StageTaskArtifactBadRequestCodePROJECTMISMATCH:
+		*s = StageTaskArtifactBadRequestCodePROJECTMISMATCH
 	case StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactBadRequestCodeVALIDATIONFAILED:
@@ -104369,6 +106187,8 @@ func (s *StageTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactForbiddenCodeNOTFOUND
 	case StageTaskArtifactForbiddenCodeCONFLICT:
 		*s = StageTaskArtifactForbiddenCodeCONFLICT
+	case StageTaskArtifactForbiddenCodePROJECTMISMATCH:
+		*s = StageTaskArtifactForbiddenCodePROJECTMISMATCH
 	case StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactForbiddenCodeVALIDATIONFAILED:
@@ -104734,6 +106554,8 @@ func (s *StageTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactNotFoundCodeNOTFOUND
 	case StageTaskArtifactNotFoundCodeCONFLICT:
 		*s = StageTaskArtifactNotFoundCodeCONFLICT
+	case StageTaskArtifactNotFoundCodePROJECTMISMATCH:
+		*s = StageTaskArtifactNotFoundCodePROJECTMISMATCH
 	case StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactNotFoundCodeVALIDATIONFAILED:
@@ -105229,6 +107051,8 @@ func (s *StageTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactServiceUnavailableCodeNOTFOUND
 	case StageTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = StageTaskArtifactServiceUnavailableCodeCONFLICT
+	case StageTaskArtifactServiceUnavailableCodePROJECTMISMATCH:
+		*s = StageTaskArtifactServiceUnavailableCodePROJECTMISMATCH
 	case StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
@@ -105594,6 +107418,8 @@ func (s *StageTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactUnauthorizedCodeNOTFOUND
 	case StageTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = StageTaskArtifactUnauthorizedCodeCONFLICT
+	case StageTaskArtifactUnauthorizedCodePROJECTMISMATCH:
+		*s = StageTaskArtifactUnauthorizedCodePROJECTMISMATCH
 	case StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
@@ -106861,6 +108687,10 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		s.OutputKind.Encode(e)
 	}
 	{
+		e.FieldStart("projectId")
+		s.ProjectId.Encode(e)
+	}
+	{
 		e.FieldStart("proposedByAgentId")
 		s.ProposedByAgentId.Encode(e)
 	}
@@ -106914,7 +108744,7 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTask = [28]string{
+var jsonFieldsNameOfTask = [29]string{
 	0:  "acceptedAttemptN",
 	1:  "allowedProfiles",
 	2:  "cancelReason",
@@ -106932,17 +108762,18 @@ var jsonFieldsNameOfTask = [28]string{
 	14: "inputSchemaCid",
 	15: "maxAttempts",
 	16: "outputKind",
-	17: "proposedByAgentId",
-	18: "proposedByHumanId",
-	19: "queuedAt",
-	20: "references",
-	21: "requiredExecutorTrustLevel",
-	22: "runningTimeoutSec",
-	23: "status",
-	24: "tags",
-	25: "taskType",
-	26: "teamId",
-	27: "title",
+	17: "projectId",
+	18: "proposedByAgentId",
+	19: "proposedByHumanId",
+	20: "queuedAt",
+	21: "references",
+	22: "requiredExecutorTrustLevel",
+	23: "runningTimeoutSec",
+	24: "status",
+	25: "tags",
+	26: "taskType",
+	27: "teamId",
+	28: "title",
 }
 
 // Decode decodes Task from json.
@@ -107140,8 +108971,18 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"outputKind\"")
 			}
-		case "proposedByAgentId":
+		case "projectId":
 			requiredBitSet[2] |= 1 << 1
+			if err := func() error {
+				if err := s.ProjectId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"projectId\"")
+			}
+		case "proposedByAgentId":
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.ProposedByAgentId.Decode(d); err != nil {
 					return err
@@ -107151,7 +108992,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"proposedByAgentId\"")
 			}
 		case "proposedByHumanId":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				if err := s.ProposedByHumanId.Decode(d); err != nil {
 					return err
@@ -107161,7 +109002,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"proposedByHumanId\"")
 			}
 		case "queuedAt":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.QueuedAt = v
@@ -107173,7 +109014,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"queuedAt\"")
 			}
 		case "references":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				s.References = make([]TaskReferencesItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -107191,7 +109032,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"references\"")
 			}
 		case "requiredExecutorTrustLevel":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.RequiredExecutorTrustLevel.Decode(d); err != nil {
 					return err
@@ -107201,7 +109042,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutorTrustLevel\"")
 			}
 		case "runningTimeoutSec":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				if err := s.RunningTimeoutSec.Decode(d); err != nil {
 					return err
@@ -107211,7 +109052,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runningTimeoutSec\"")
 			}
 		case "status":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -107221,7 +109062,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "tags":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				s.Tags = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -107241,7 +109082,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "taskType":
-			requiredBitSet[3] |= 1 << 1
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -107253,7 +109094,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 2
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -107265,7 +109106,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "title":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[3] |= 1 << 4
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -107287,7 +109128,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b00001111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -115480,6 +117321,601 @@ func (s *UpdateEntryRelationStatusUnauthorized) UnmarshalJSON(data []byte) error
 	return s.Decode(d)
 }
 
+// Encode encodes UpdateProjectBadRequest as json.
+func (s *UpdateProjectBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectBadRequest from json.
+func (s *UpdateProjectBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectForbidden as json.
+func (s *UpdateProjectForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectForbidden from json.
+func (s *UpdateProjectForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectNotFound as json.
+func (s *UpdateProjectNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectNotFound from json.
+func (s *UpdateProjectNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateProjectOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateProjectOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfUpdateProjectOK = [10]string{
+	0: "archived",
+	1: "createdAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
+}
+
+// Decode decodes UpdateProjectOK from json.
+func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectOK to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "creatorAgentId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateProjectOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUpdateProjectOK) {
+					name = jsonFieldsNameOfUpdateProjectOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateProjectReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateProjectReq) encodeFields(e *jx.Encoder) {
+	{
+		if s.Archived.Set {
+			e.FieldStart("archived")
+			s.Archived.Encode(e)
+		}
+	}
+	{
+		if s.DefaultDiaryId.Set {
+			e.FieldStart("defaultDiaryId")
+			s.DefaultDiaryId.Encode(e)
+		}
+	}
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		if s.Name.Set {
+			e.FieldStart("name")
+			s.Name.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateProjectReq = [4]string{
+	0: "archived",
+	1: "defaultDiaryId",
+	2: "description",
+	3: "name",
+}
+
+// Decode decodes UpdateProjectReq from json.
+func (s *UpdateProjectReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectReq to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "archived":
+			if err := func() error {
+				s.Archived.Reset()
+				if err := s.Archived.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "defaultDiaryId":
+			if err := func() error {
+				s.DefaultDiaryId.Reset()
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "name":
+			if err := func() error {
+				s.Name.Reset()
+				if err := s.Name.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateProjectReq")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectServiceUnavailable as json.
+func (s *UpdateProjectServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectServiceUnavailable from json.
+func (s *UpdateProjectServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectTooManyRequests as json.
+func (s *UpdateProjectTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectTooManyRequests from json.
+func (s *UpdateProjectTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectUnauthorized as json.
+func (s *UpdateProjectUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectUnauthorized from json.
+func (s *UpdateProjectUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes UpdateRenderedPackBadRequest as json.
 func (s *UpdateRenderedPackBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -120028,6 +122464,8 @@ func (s *UploadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionBadRequestCodeNOTFOUND
 	case UploadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = UploadRuntimeSessionBadRequestCodeCONFLICT
+	case UploadRuntimeSessionBadRequestCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionBadRequestCodePROJECTMISMATCH
 	case UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
@@ -120393,6 +122831,8 @@ func (s *UploadRuntimeSessionConflictCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionConflictCodeNOTFOUND
 	case UploadRuntimeSessionConflictCodeCONFLICT:
 		*s = UploadRuntimeSessionConflictCodeCONFLICT
+	case UploadRuntimeSessionConflictCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionConflictCodePROJECTMISMATCH
 	case UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
@@ -120758,6 +123198,8 @@ func (s *UploadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionForbiddenCodeNOTFOUND
 	case UploadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = UploadRuntimeSessionForbiddenCodeCONFLICT
+	case UploadRuntimeSessionForbiddenCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionForbiddenCodePROJECTMISMATCH
 	case UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
@@ -121123,6 +123565,8 @@ func (s *UploadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionNotFoundCodeNOTFOUND
 	case UploadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = UploadRuntimeSessionNotFoundCodeCONFLICT
+	case UploadRuntimeSessionNotFoundCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionNotFoundCodePROJECTMISMATCH
 	case UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
@@ -121930,6 +124374,8 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = UploadRuntimeSessionServiceUnavailableCodeNOTFOUND
 	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = UploadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case UploadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH
 	case UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
@@ -122295,6 +124741,8 @@ func (s *UploadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionUnauthorizedCodeNOTFOUND
 	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = UploadRuntimeSessionUnauthorizedCodeCONFLICT
+	case UploadRuntimeSessionUnauthorizedCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionUnauthorizedCodePROJECTMISMATCH
 	case UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
@@ -122687,6 +125135,8 @@ func (s *UploadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactBadRequestCodeNOTFOUND
 	case UploadTaskArtifactBadRequestCodeCONFLICT:
 		*s = UploadTaskArtifactBadRequestCodeCONFLICT
+	case UploadTaskArtifactBadRequestCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactBadRequestCodePROJECTMISMATCH
 	case UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactBadRequestCodeVALIDATIONFAILED:
@@ -123052,6 +125502,8 @@ func (s *UploadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactForbiddenCodeNOTFOUND
 	case UploadTaskArtifactForbiddenCodeCONFLICT:
 		*s = UploadTaskArtifactForbiddenCodeCONFLICT
+	case UploadTaskArtifactForbiddenCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactForbiddenCodePROJECTMISMATCH
 	case UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactForbiddenCodeVALIDATIONFAILED:
@@ -123417,6 +125869,8 @@ func (s *UploadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactNotFoundCodeNOTFOUND
 	case UploadTaskArtifactNotFoundCodeCONFLICT:
 		*s = UploadTaskArtifactNotFoundCodeCONFLICT
+	case UploadTaskArtifactNotFoundCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactNotFoundCodePROJECTMISMATCH
 	case UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactNotFoundCodeVALIDATIONFAILED:
@@ -124075,6 +126529,8 @@ func (s *UploadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactServiceUnavailableCodeNOTFOUND
 	case UploadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = UploadTaskArtifactServiceUnavailableCodeCONFLICT
+	case UploadTaskArtifactServiceUnavailableCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactServiceUnavailableCodePROJECTMISMATCH
 	case UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
@@ -124440,6 +126896,8 @@ func (s *UploadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactUnauthorizedCodeNOTFOUND
 	case UploadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = UploadTaskArtifactUnauthorizedCodeCONFLICT
+	case UploadTaskArtifactUnauthorizedCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactUnauthorizedCodePROJECTMISMATCH
 	case UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
@@ -125249,6 +127707,8 @@ func (s *ValidationProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ValidationProblemDetailsCodeNOTFOUND
 	case ValidationProblemDetailsCodeCONFLICT:
 		*s = ValidationProblemDetailsCodeCONFLICT
+	case ValidationProblemDetailsCodePROJECTMISMATCH:
+		*s = ValidationProblemDetailsCodePROJECTMISMATCH
 	case ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ValidationProblemDetailsCodeVALIDATIONFAILED:

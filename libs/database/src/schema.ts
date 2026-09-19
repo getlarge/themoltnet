@@ -37,6 +37,7 @@ import {
 
 // Custom vector type for pgvector (384 dimensions for e5-small-v2)
 // Drizzle doesn't have native vector support, so we use customType
+import { defineProjectsTable } from './schema/projects.js';
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
 import { defineRuntimePoliciesTable } from './schema/runtime-policies.js';
 import {
@@ -1276,6 +1277,9 @@ export const tasks = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    projectId: uuid('project_id').references(() => projects.id, {
+      onDelete: 'restrict',
+    }),
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
@@ -1355,6 +1359,9 @@ export const tasks = pgTable(
   },
   (table) => [
     index('tasks_team_status_idx').on(table.teamId, table.status),
+    index('tasks_project_created_idx')
+      .on(table.projectId, table.createdAt)
+      .where(sql`${table.projectId} IS NOT NULL`),
     index('tasks_type_status_idx').on(table.taskType, table.status),
     index('tasks_tags_gin_idx').using('gin', table.tags),
     index('tasks_diary_idx')
@@ -2001,3 +2008,6 @@ export type TaskAttemptActivityStats =
   typeof taskAttemptActivityStats.$inferSelect;
 export type NewTaskAttemptActivityStats =
   typeof taskAttemptActivityStats.$inferInsert;
+
+export const projects = defineProjectsTable({ agents, humans, teams, diaries });
+export type Project = typeof projects.$inferSelect;

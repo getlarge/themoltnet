@@ -758,6 +758,17 @@
           "profileId": {
             "format": "uuid",
             "type": "string"
+          },
+          "projectId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object"
@@ -919,6 +930,12 @@
                   {
                     "enum": [
                       "CONFLICT"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "PROJECT_MISMATCH"
                     ],
                     "type": "string"
                   },
@@ -2332,6 +2349,17 @@
             "default": 1,
             "minimum": 1,
             "type": "integer"
+          },
+          "projectId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "references": {
             "items": {
@@ -4342,6 +4370,12 @@
                       },
                       {
                         "enum": [
+                          "PROJECT_MISMATCH"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
                           "UNSUPPORTED_MEDIA_TYPE"
                         ],
                         "type": "string"
@@ -4716,6 +4750,20 @@
           "profileId": {
             "format": "uuid",
             "type": "string"
+          },
+          "projectId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "none"
+                ],
+                "type": "string"
+              }
+            ]
           },
           "proposedByAgentId": {
             "format": "uuid",
@@ -5997,6 +6045,12 @@
               {
                 "enum": [
                   "CONFLICT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "PROJECT_MISMATCH"
                 ],
                 "type": "string"
               },
@@ -11300,6 +11354,17 @@
               }
             ]
           },
+          "projectId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "proposedByAgentId": {
             "anyOf": [
               {
@@ -11583,6 +11648,7 @@
           "title",
           "tags",
           "teamId",
+          "projectId",
           "diaryId",
           "outputKind",
           "input",
@@ -14419,6 +14485,12 @@
                   {
                     "enum": [
                       "CONFLICT"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "PROJECT_MISMATCH"
                     ],
                     "type": "string"
                   },
@@ -26342,6 +26414,12 @@
               "anyOf": [
                 {
                   "enum": [
+                    "project-mismatch"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
                     "unauthorized"
                   ],
                   "type": "string"
@@ -29800,6 +29878,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -30030,6 +30114,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -30244,6 +30334,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -30453,6 +30549,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -30758,6 +30860,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -30988,6 +31096,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -31202,6 +31316,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -31411,6 +31531,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -31635,6 +31761,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -32117,6 +32249,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -32347,6 +32485,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -32556,6 +32700,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -32775,6 +32925,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -32984,6 +33140,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -33208,6 +33370,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -33755,6 +33923,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -33985,6 +34159,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -34199,6 +34379,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -34408,6 +34594,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -34933,6 +35125,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -35163,6 +35361,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -35372,6 +35576,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -35591,6 +35801,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -35802,6 +36018,12 @@
                             {
                               "enum": [
                                 "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "PROJECT_MISMATCH"
                               ],
                               "type": "string"
                             },
@@ -36296,6 +36518,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -36526,6 +36754,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -36735,6 +36969,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -36954,6 +37194,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -37165,6 +37411,12 @@
                             {
                               "enum": [
                                 "CONFLICT"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "PROJECT_MISMATCH"
                               ],
                               "type": "string"
                             },
@@ -37702,6 +37954,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -37932,6 +38190,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -38146,6 +38410,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -38355,6 +38625,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -38695,6 +38971,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -38925,6 +39207,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -39139,6 +39427,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -39348,6 +39642,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -39572,6 +39872,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -40018,6 +40324,25 @@
           },
           {
             "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "none"
+                  ],
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "proposedByAgentId",
             "required": false,
             "schema": {
@@ -40261,6 +40586,17 @@
                     "default": 1,
                     "minimum": 1,
                     "type": "integer"
+                  },
+                  "projectId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "references": {
                     "items": {
@@ -42164,6 +42500,17 @@
                   "profileId": {
                     "format": "uuid",
                     "type": "string"
+                  },
+                  "projectId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "type": "object"
@@ -43053,6 +43400,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -43283,6 +43636,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -43497,6 +43856,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -43706,6 +44071,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -44038,6 +44409,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -44268,6 +44645,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -44482,6 +44865,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -44691,6 +45080,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -44915,6 +45310,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -45354,6 +45755,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -45584,6 +45991,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -45798,6 +46211,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -46007,6 +46426,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -46241,6 +46666,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -46562,6 +46993,12 @@
                             },
                             {
                               "enum": [
+                                "PROJECT_MISMATCH"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "UNSUPPORTED_MEDIA_TYPE"
                               ],
                               "type": "string"
@@ -46792,6 +47229,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -47006,6 +47449,12 @@
                         },
                         {
                           "enum": [
+                            "PROJECT_MISMATCH"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "UNSUPPORTED_MEDIA_TYPE"
                           ],
                           "type": "string"
@@ -47215,6 +47664,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -47439,6 +47894,12 @@
                         {
                           "enum": [
                             "CONFLICT"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "PROJECT_MISMATCH"
                           ],
                           "type": "string"
                         },
@@ -49889,6 +50350,925 @@
         ],
         "tags": [
           "teams"
+        ]
+      }
+    },
+    "/teams/{id}/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeArchived",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "creatorAgentId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "creatorHumanId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "defaultDiaryId": {
+                            "anyOf": [
+                              {
+                                "format": "uuid",
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "description": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "teamId": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "teamId",
+                          "creatorAgentId",
+                          "creatorHumanId",
+                          "name",
+                          "description",
+                          "defaultDiaryId",
+                          "archived",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "nextOffset": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "nextOffset"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "post": {
+        "operationId": "createProject",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "defaultDiaryId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "maxLength": 10000,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "name": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "creatorAgentId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "creatorHumanId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "defaultDiaryId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "teamId",
+                    "creatorAgentId",
+                    "creatorHumanId",
+                    "name",
+                    "description",
+                    "defaultDiaryId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/teams/{id}/projects/{projectId}": {
+      "get": {
+        "operationId": "getProject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "creatorAgentId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "creatorHumanId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "defaultDiaryId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "teamId",
+                    "creatorAgentId",
+                    "creatorHumanId",
+                    "name",
+                    "description",
+                    "defaultDiaryId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
+        ]
+      },
+      "patch": {
+        "operationId": "updateProject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "archived": {
+                    "type": "boolean"
+                  },
+                  "defaultDiaryId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "maxLength": 10000,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "name": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "creatorAgentId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "creatorHumanId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "defaultDiaryId": {
+                      "anyOf": [
+                        {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "teamId",
+                    "creatorAgentId",
+                    "creatorHumanId",
+                    "name",
+                    "description",
+                    "defaultDiaryId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "projects"
         ]
       }
     },

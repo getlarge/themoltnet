@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,8 +41,87 @@ export async function runMigrations(databaseUrl: string): Promise<void> {
 
   try {
     await migrate(db, { migrationsFolder });
+    await runPostMigrations(pool, migrationsFolder);
   } finally {
     // Swallow pool cleanup errors so they don't mask migration failures
     await pool.end().catch(() => {});
+  }
+}
+
+/** Post-commit SQL lives with its schema migration, and runs once per tag. */
+async function runPostMigrations(pool: Pool, folder: string): Promise<void> {
+  const journal = JSON.parse(
+    readFileSync(resolve(folder, 'meta/_journal.json'), 'utf8'),
+  ) as { entries: { tag: string }[] };
+  const steps = journal.entries.flatMap(({ tag }) => {
+    const sql = readFileSync(resolve(folder, `${tag}.sql`), 'utf8');
+    const blocks = [
+      ...sql.matchAll(/\/\* moltnet:post-commit\s+([\s\S]*?)\*\//g),
+    ];
+    return blocks.length
+      ? [
+          {
+            tag,
+            statements: blocks.flatMap((match) =>
+              match[1]
+                .split('-- moltnet:statement-breakpoint')
+                .map((sql) => sql.trim())
+                .filter(Boolean),
+            ),
+          },
+        ]
+      : [];
+  });
+  if (!steps.length) return;
+  const client = await pool.connect();
+  try {
+    await client.query(
+      "SELECT pg_advisory_lock(hashtext('moltnet:post-migrations'))",
+    );
+    await client.query(
+      'CREATE TABLE IF NOT EXISTS drizzle.__moltnet_post_migrations (tag text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())',
+    );
+    for (const step of steps) {
+      const applied = await client.query(
+        'SELECT 1 FROM drizzle.__moltnet_post_migrations WHERE tag = $1',
+        [step.tag],
+      );
+      if (applied.rowCount) continue;
+      try {
+        // Concurrent builds may wait for old snapshots without blocking writes.
+        await client.query("SET lock_timeout = '0'");
+        for (const statement of step.statements) {
+          const index =
+            /^CREATE INDEX CONCURRENTLY IF NOT EXISTS ([a-z_][a-z0-9_]*) /i.exec(
+              statement,
+            )?.[1];
+          if (index) {
+            const state = await client.query<{ indisvalid: boolean }>(
+              'SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass($1)',
+              [`public.${index}`],
+            );
+            if (state.rows[0] && !state.rows[0].indisvalid)
+              await client.query(`DROP INDEX CONCURRENTLY public.${index}`);
+          }
+          await client.query(statement);
+        }
+        await client.query(
+          'INSERT INTO drizzle.__moltnet_post_migrations (tag) VALUES ($1)',
+          [step.tag],
+        );
+      } catch (cause) {
+        throw new Error(
+          `Post-migration step ${step.tag} failed; rerun migrations to resume`,
+          { cause },
+        );
+      } finally {
+        await client.query('RESET lock_timeout').catch(() => {});
+      }
+    }
+  } finally {
+    await client
+      .query("SELECT pg_advisory_unlock(hashtext('moltnet:post-migrations'))")
+      .catch(() => {});
+    client.release(true);
   }
 }

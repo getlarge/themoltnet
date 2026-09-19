@@ -33,6 +33,7 @@ import {
   createDiaryGrant,
   createEntryRelation,
   createGroup,
+  createProject,
   createRuntimeModel,
   createRuntimePolicy,
   createRuntimeProfile,
@@ -75,6 +76,7 @@ import {
   getNetworkInfo,
   getOAuth2Token,
   getProblemType,
+  getProject,
   getPublicEntry,
   getPublicFeed,
   getReadiness,
@@ -106,6 +108,7 @@ import {
   listGroups,
   listPendingTransfers,
   listProblemTypes,
+  listProjects,
   listRuntimeModels,
   listRuntimePolicies,
   listRuntimeProfiles,
@@ -151,6 +154,7 @@ import {
   updateDiary,
   updateDiaryEntryById,
   updateEntryRelationStatus,
+  updateProject,
   updateRenderedPack,
   updateRuntimeModel,
   updateRuntimePolicy,
@@ -236,6 +240,9 @@ import type {
   CreateGroupData,
   CreateGroupError,
   CreateGroupResponse,
+  CreateProjectData,
+  CreateProjectError,
+  CreateProjectResponse,
   CreateRuntimeModelData,
   CreateRuntimeModelError,
   CreateRuntimeModelResponse,
@@ -357,6 +364,9 @@ import type {
   GetOAuth2TokenError,
   GetOAuth2TokenResponse,
   GetProblemTypeData,
+  GetProjectData,
+  GetProjectError,
+  GetProjectResponse,
   GetPublicEntryData,
   GetPublicEntryError,
   GetPublicEntryResponse,
@@ -449,6 +459,9 @@ import type {
   ListPendingTransfersResponse,
   ListProblemTypesData,
   ListProblemTypesResponse,
+  ListProjectsData,
+  ListProjectsError,
+  ListProjectsResponse,
   ListRuntimeModelsData,
   ListRuntimeModelsError,
   ListRuntimeModelsResponse,
@@ -581,6 +594,9 @@ import type {
   UpdateEntryRelationStatusData,
   UpdateEntryRelationStatusError,
   UpdateEntryRelationStatusResponse,
+  UpdateProjectData,
+  UpdateProjectError,
+  UpdateProjectResponse,
   UpdateRenderedPackData,
   UpdateRenderedPackError,
   UpdateRenderedPackResponse,
@@ -5276,6 +5292,145 @@ export const updateTeamMemberRoleMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateTeamMemberRole({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listProjectsQueryKey = (options: Options<ListProjectsData>) =>
+  createQueryKey('listProjects', options);
+
+export const listProjectsOptions = (options: Options<ListProjectsData>) =>
+  queryOptions<
+    ListProjectsResponse,
+    ListProjectsError,
+    ListProjectsResponse,
+    ReturnType<typeof listProjectsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listProjects({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listProjectsQueryKey(options),
+  });
+
+export const listProjectsInfiniteQueryKey = (
+  options: Options<ListProjectsData>,
+): QueryKey<Options<ListProjectsData>> =>
+  createQueryKey('listProjects', options, true);
+
+export const listProjectsInfiniteOptions = (
+  options: Options<ListProjectsData>,
+) =>
+  infiniteQueryOptions<
+    ListProjectsResponse,
+    ListProjectsError,
+    InfiniteData<ListProjectsResponse>,
+    QueryKey<Options<ListProjectsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<ListProjectsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListProjectsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listProjects({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listProjectsInfiniteQueryKey(options),
+    },
+  );
+
+export const createProjectMutation = (
+  options?: Partial<Options<CreateProjectData>>,
+): UseMutationOptions<
+  CreateProjectResponse,
+  CreateProjectError,
+  Options<CreateProjectData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateProjectResponse,
+    CreateProjectError,
+    Options<CreateProjectData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createProject({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getProjectQueryKey = (options: Options<GetProjectData>) =>
+  createQueryKey('getProject', options);
+
+export const getProjectOptions = (options: Options<GetProjectData>) =>
+  queryOptions<
+    GetProjectResponse,
+    GetProjectError,
+    GetProjectResponse,
+    ReturnType<typeof getProjectQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getProject({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getProjectQueryKey(options),
+  });
+
+export const updateProjectMutation = (
+  options?: Partial<Options<UpdateProjectData>>,
+): UseMutationOptions<
+  UpdateProjectResponse,
+  UpdateProjectError,
+  Options<UpdateProjectData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateProjectResponse,
+    UpdateProjectError,
+    Options<UpdateProjectData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateProject({
         ...options,
         ...fnOptions,
         throwOnError: true,

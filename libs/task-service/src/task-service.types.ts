@@ -9,6 +9,7 @@ import type {
   ContextPackRepository,
   CorrelationSealRepository,
   DiaryRepository,
+  ProjectRepository,
   RenderedPackRepository,
   RuntimeProfileRepository,
   TaskArtifactRepository,
@@ -31,6 +32,8 @@ export interface CreateTaskInput {
   title?: string;
   tags?: string[];
   teamId: string;
+  /** Omitted: inherit the continuation parent, or General for new work. Null: General. */
+  projectId?: string | null;
   diaryId?: string;
   inputPayload: Record<string, unknown>;
   references?: unknown[];
@@ -50,6 +53,8 @@ export interface CreateTaskInput {
 }
 
 export interface ExecutorAttestationInput {
+  /** Omitted or null selects General; a UUID must match the task project. */
+  projectId?: string | null;
   executorManifest?: Record<string, unknown>;
   executorFingerprint?: string;
   executorSignature?: string;
@@ -97,6 +102,7 @@ export interface TaskServiceDeps {
   taskArtifactRepository: TaskArtifactRepository;
   taskInputArtifactObjectStore: TaskInputArtifactObjectStore;
   diaryRepository: DiaryRepository;
+  projectRepository: ProjectRepository;
   agentRepository: AgentRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
   runtimePolicyService: Pick<RuntimePolicyService, 'resolvePinnedAllowedTools'>;
