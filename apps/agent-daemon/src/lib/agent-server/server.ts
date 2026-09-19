@@ -444,13 +444,11 @@ export function buildAgentServer(
           },
         },
         handler: async (_request, reply) =>
-          reply
-            .code(410)
-            .send({
-              code: 'pairing_replaced',
-              message:
-                'Sign in through Desktop, then connect Console using OAuth PKCE.',
-            }),
+          reply.code(410).send({
+            code: 'pairing_replaced',
+            message:
+              'Sign in through Desktop, then connect Console using OAuth PKCE.',
+          }),
       });
     }
     app.get('/oauth/metadata', async () => {
