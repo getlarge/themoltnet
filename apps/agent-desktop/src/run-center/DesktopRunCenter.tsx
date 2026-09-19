@@ -54,7 +54,7 @@ export function DesktopRunCenter() {
         if (active) setServer(value);
       },
       () => {
-        if (active) setError(true);
+        if (active) setError('Could not read the local server state.');
       },
     );
     void desktopBridge
@@ -67,7 +67,7 @@ export function DesktopRunCenter() {
           else stop();
         },
         () => {
-          if (active) setError(true);
+          if (active) setError('Could not subscribe to local server updates.');
         },
       );
     return () => {
