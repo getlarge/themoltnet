@@ -765,12 +765,6 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
     setAgent(preferred?.agentName ?? agents[0]?.agentName ?? '');
   }, [agent, agents, runtime.data?.selectedIdentity]);
 
-  const selectedAgent = agents.find((entry) => entry.agentName === agent);
-  const boundElsewhere =
-    selectedAgent?.kind === 'managed' &&
-    Boolean(selectedAgent.teamId) &&
-    selectedAgent.teamId !== selectedTeam?.id;
-
   const start = async () => {
     if (!selectedTeam?.id) return;
     setBusy(true);
@@ -823,11 +817,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             ) : null}
             {agents.map((entry) => (
               <option key={entry.agentName} value={entry.agentName}>
-                {entry.kind === 'managed' &&
-                entry.teamId &&
-                entry.teamId !== selectedTeam?.id
-                  ? `${entry.agentName} · another team`
-                  : entry.agentName}
+                {entry.agentName}
               </option>
             ))}
           </Select>
@@ -878,16 +868,6 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             <option value="drain">Stop when queue is empty</option>
           </Select>
         </FieldGrid>
-        {boundElsewhere ? (
-          <Text variant="caption" color="error">
-            {agent} has a key bound to team{' '}
-            <Text as="span" mono>
-              {selectedAgent?.teamId}
-            </Text>{' '}
-            and cannot poll {selectedTeam?.name}. Create a new agent with an
-            invitation code from {selectedTeam?.name} instead.
-          </Text>
-        ) : null}
         <Stack direction="row" justify="space-between" align="center" wrap>
           <Text variant="caption" color="muted">
             The daemon stays on this machine. You can inspect or stop it below.
@@ -898,11 +878,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             loading={busy}
             loadingLabel="Starting run"
             disabled={
-              !agent ||
-              !profile.trim() ||
-              !taskType ||
-              !selectedTeam?.id ||
-              boundElsewhere
+              !agent || !profile.trim() || !taskType || !selectedTeam?.id
             }
             onClick={() => void start()}
           >

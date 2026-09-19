@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authorizeLocalControl } from '../src/runtime-local/local-control-oauth.js';
+import { localControlTokens } from '../src/runtime-local/local-control-token-cache.js';
 import { useLocalRuntime } from '../src/runtime-local/useLocalRuntime.js';
 import { createTestWrapper } from './test-query-client.js';
 
@@ -22,9 +23,15 @@ const status = {
 };
 let rejectToken = false;
 beforeEach(() => {
+  localControlTokens.clear();
   rejectToken = false;
   sessionStorage.clear();
-  vi.mocked(authorizeLocalControl).mockReset().mockResolvedValue('oauth-token');
+  vi.mocked(authorizeLocalControl)
+    .mockReset()
+    .mockResolvedValue({
+      accessToken: 'oauth-token',
+      expiresAt: Date.now() + 900_000,
+    });
   vi.spyOn(window, 'open').mockReturnValue({
     close: vi.fn(),
     closed: false,

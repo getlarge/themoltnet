@@ -424,7 +424,7 @@ describe('LocalRuntimePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('blocks starting a run for an agent bound to another team', async () => {
+  it('lets Agent Server resolve an enrolled team instead of blocking on the primary key team', async () => {
     agentServerState.status.agents[0] = {
       ...agentServerState.status.agents[0],
       teamId: 'personal-team-9',
@@ -433,8 +433,11 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText(/existing-bot/);
     const agentSelect = screen.getByLabelText('Agent');
     fireEvent.change(agentSelect, { target: { value: 'existing-bot' } });
-    expect(await screen.findByText(/bound to team/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Runtime profile'), {
+      target: { value: 'profile-for-selected-team' },
+    });
+    expect(screen.queryByText(/bound to team/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
     delete (agentServerState.status.agents[0] as { teamId?: string }).teamId;
   });
 
