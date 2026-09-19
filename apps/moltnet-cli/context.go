@@ -69,28 +69,19 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	return nil
 }
 
-func runContextSetCmd(cmd *cobra.Command, opts contextCommandOptions) error {
-	alias, agentDir, err := contextIdentity(opts.Identity)
+func runContextSetCmd(_ *cobra.Command, _ contextCommandOptions) error {
+	return fmt.Errorf("contexts have been replaced: use 'moltnet projects bindings set' with an explicit project, source folder and workspace strategy")
+}
+
+func runContextResetCmd(cmd *cobra.Command, identity string) error {
+	alias, agentDir, err := contextIdentity(identity)
 	if err != nil {
 		return err
 	}
-	if (opts.TeamID == "") != (opts.DiaryID == "") {
-		return fmt.Errorf("--team-id and --diary-id must be provided together")
-	}
-	if opts.TeamID == "" {
-		if !contextCommandInteractive(cmd) {
-			return fmt.Errorf("context set requires --team-id and --diary-id in non-interactive use")
-		}
-		opts.TeamID, opts.DiaryID, err = guidedContextBinding(cmd, agentDir)
-		if err != nil {
-			return err
-		}
-	}
-	resolved, err := setContextBinding(agentDir, "", contextBinding{TeamID: opts.TeamID, DiaryID: opts.DiaryID})
-	if err != nil {
+	if err := updateContextStore(agentDir, func(store *contextStore) { store.Contexts = nil }); err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Bound %s for %s (team %s, diary %s)\n", resolved.Key, alias, opts.TeamID, opts.DiaryID)
+	fmt.Fprintf(cmd.OutOrStdout(), "Reset legacy contexts for %s. Project registrations are unchanged.\n", alias)
 	return nil
 }
 

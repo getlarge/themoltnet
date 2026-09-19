@@ -36,6 +36,8 @@ Common targets: claude, codex.`,
 	cmd.Flags().String("agent", "", "Compatibility alias for --identity")
 	_ = cmd.Flags().MarkDeprecated("agent", "use --identity instead")
 	_ = cmd.Flags().MarkHidden("agent")
+	cmd.Flags().String("config-file", "", "Alternate project bindings configuration file")
+	cmd.Flags().String("binding", "", "Registered project binding to launch from")
 	cmd.Flags().Bool("dry-run", false, "Print environment and command without executing")
 	return cmd
 }
