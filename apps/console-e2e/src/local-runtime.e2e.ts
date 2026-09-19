@@ -24,6 +24,7 @@ import {
   createTeam,
   createTeamInvite,
   listAgentKeys,
+  revokeAgentKey,
 } from '@moltnet/api-client';
 import { expect, type Page, test } from '@playwright/test';
 
@@ -357,6 +358,13 @@ test.describe.serial('Local runtime page', () => {
         provider: 'file',
       });
       const firstKey = (enroll as { data: { keyId: string } }).data.keyId;
+      const revoked = await revokeAgentKey({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': destination },
+        path: { keyId: firstKey },
+        body: { reason: 'superseded' },
+      });
+      expect(revoked.response.status).toBe(204);
       const renewal = await nativeApproval(page, () =>
         enrollAgentServerTeam({
           client: localClient,

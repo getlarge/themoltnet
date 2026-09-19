@@ -89,9 +89,11 @@ export function OAuthApprovalPage() {
   return (
     <Stack gap={4}>
       <Text as="h1" variant="h4">
-        {approval?.operation === 'local-control'
-          ? 'Allow local agent control?'
-          : 'Approve team access'}
+        {approval?.operation === 'operator-sign-in'
+          ? 'Set the local operator?'
+          : approval?.operation === 'local-control'
+            ? 'Allow local agent control?'
+            : 'Approve team access'}
       </Text>
       {approval ? (
         <>
@@ -100,7 +102,9 @@ export function OAuthApprovalPage() {
               ? 'Renew the credential for'
               : approval.operation === 'enroll'
                 ? 'Enroll'
-                : 'Allow this Console to manage local agents on'}{' '}
+                : approval.operation === 'operator-sign-in'
+                  ? 'Use your signed-in account as the local operator on'
+                  : 'Allow this Console to manage local agents on'}{' '}
             {approval.agent ?? 'this computer'}
             {approval.team ? ` in ${approval.team}` : ''}.
           </Text>
@@ -113,9 +117,11 @@ export function OAuthApprovalPage() {
             ))}
           </ul>
           <Text color="secondary">
-            {approval.operation === 'local-control'
-              ? 'Access lasts fifteen minutes and ends when Agent Server restarts.'
-              : 'Approval expires in five minutes and authorizes this request only.'}
+            {approval.operation === 'operator-sign-in'
+              ? 'Approval expires in five minutes. Your operator identity stays on this computer until you remove it through native administration.'
+              : approval.operation === 'local-control'
+                ? 'Access lasts fifteen minutes and ends when Agent Server restarts.'
+                : 'Approval expires in five minutes and authorizes this request only.'}
           </Text>
           <Stack direction="row" gap={3}>
             <Button disabled={busy} onClick={() => void decide(true)}>
