@@ -24,6 +24,7 @@ func newProjectsCmd() *cobra.Command {
 		action := action
 		var teamID, name, description, diaryID string
 		var includeArchived, clearDiary bool
+		var limit, offset int
 		command := &cobra.Command{Use: action, Short: action + " a shared team project", Args: cobra.NoArgs}
 		if action == "get" || action == "update" || action == "archive" {
 			command.Use += " <project-id>"
@@ -43,8 +44,13 @@ func newProjectsCmd() *cobra.Command {
 		}
 		if action == "list" {
 			command.Flags().BoolVar(&includeArchived, "include-archived", false, "Include archived projects")
+			command.Flags().IntVar(&limit, "limit", 50, "Page size (1-100)")
+			command.Flags().IntVar(&offset, "offset", 0, "Number of projects to skip")
 		}
 		command.RunE = func(cmd *cobra.Command, args []string) error {
+			if action == "list" && (limit < 1 || limit > 100 || offset < 0) {
+				return fmt.Errorf("limit must be between 1 and 100 and offset must be non-negative")
+			}
 			team, err := uuid.Parse(teamID)
 			if err != nil {
 				return fmt.Errorf("invalid team ID: %w", err)
@@ -89,7 +95,7 @@ func newProjectsCmd() *cobra.Command {
 					}
 				}
 			case "list":
-				res, e := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{ID: team, IncludeArchived: moltnetapi.NewOptBool(includeArchived)})
+				res, e := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{ID: team, IncludeArchived: moltnetapi.NewOptBool(includeArchived), Limit: moltnetapi.NewOptInt(limit), Offset: moltnetapi.NewOptInt(offset)})
 				err = e
 				if err == nil {
 					if value, ok := res.(*moltnetapi.ListProjectsOK); ok {

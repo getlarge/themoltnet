@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -141,5 +143,49 @@ func TestProjectLegacyContextReset(t *testing.T) {
 	store, err := readContextStore(identity)
 	if err != nil || len(store.Contexts) != 0 {
 		t.Fatalf("reset failed: %v %v", store, err)
+	}
+}
+
+func TestProjectsListPaginationFlags(t *testing.T) {
+	out, _, err := executeCommand(NewRootCmd("test", ""), "projects", "list", "--help")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, flag := range []string{"--limit", "--offset"} {
+		if !strings.Contains(out, flag) {
+			t.Errorf("missing %s", flag)
+		}
+	}
+}
+
+func TestProjectsListPaginationRequest(t *testing.T) {
+	isolateCredentialDiscovery(t)
+	t.Setenv(agentKeyEnv, "ak_test_pagination")
+	t.Setenv(agentKeyRefEnv, "")
+	var received string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"items":[],"nextOffset":75}`))
+	}))
+	defer server.Close()
+	out, _, err := executeCommand(NewRootCmd("test", ""), "projects", "list", "--team-id", "00000000-0000-0000-0000-000000000001", "--api-url", server.URL, "--limit", "25", "--offset", "50")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(received, "limit=25") || !strings.Contains(received, "offset=50") {
+		t.Fatalf("query = %q", received)
+	}
+	if !strings.Contains(out, `"nextOffset": 75`) {
+		t.Fatalf("output = %s", out)
+	}
+}
+
+func TestProjectsListRejectsInvalidPagination(t *testing.T) {
+	for _, args := range [][]string{{"--limit", "0"}, {"--limit", "101"}, {"--offset", "-1"}} {
+		_, _, err := executeCommand(NewRootCmd("test", ""), append([]string{"projects", "list", "--team-id", "00000000-0000-0000-0000-000000000001"}, args...)...)
+		if err == nil || !strings.Contains(err.Error(), "limit must be") {
+			t.Fatalf("args %v: %v", args, err)
+		}
 	}
 }
