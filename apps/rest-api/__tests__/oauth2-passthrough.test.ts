@@ -117,6 +117,37 @@ describe('POST /oauth2/token passthrough', () => {
     expect(res.json().error).toBe('unsupported_grant_type');
   });
 
+  it.each([
+    ['urn:ietf:params:oauth:grant-type:device_code', 'device_code'],
+    ['authorization_code', 'code_verifier'],
+  ])('partitions concurrent %s requests by %s', async (grantType, field) => {
+    let release: () => void = () => undefined;
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      await barrier;
+      const request = new URLSearchParams(init.body as string);
+      return upstream(tokenBody(`token-${request.get(field)}`));
+    });
+    const requests = ['first', 'second'].map((value) =>
+      post(app, {
+        grant_type: grantType,
+        client_id: `partition-${field}`,
+        code: 'same-authorization-code',
+        [field]: value,
+      }),
+    );
+    // Hold both requests in the upstream phase so the single-flight behavior,
+    // rather than only the persistent cache, is exercised.
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    release();
+    const [first, second] = await Promise.all(requests);
+    expect(first.json().access_token).toBe('token-first');
+    expect(second.json().access_token).toBe('token-second');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('forwards the Authorization header for client_secret_basic', async () => {
     // Arrange
     fetchMock.mockResolvedValueOnce(upstream(tokenBody()));

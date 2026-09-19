@@ -151,17 +151,16 @@ export function clientCacheKeyPrefix(clientId: string): string {
 function grantCacheKey(
   body: Record<string, string>,
   authorization: string | undefined,
+  dpop: string | undefined,
 ): string {
+  // Keep the client prefix for rotation invalidation. Partition on the complete
+  // request so new grant parameters need no parallel cache-key field list.
+  const fields = Object.entries(body).sort(([a], [b]) => a.localeCompare(b));
   return [
-    // client id first so rotation can evict a whole client by prefix
     resolveClientId(body, authorization),
-    body.grant_type ?? '',
-    sha256(body.client_secret ?? ''),
-    sha256(body.refresh_token ?? ''),
-    sha256(body.code ?? ''),
-    body.scope ?? '',
-    body.audience ?? '',
+    sha256(JSON.stringify(fields)),
     sha256(authorization ?? ''),
+    sha256(dpop ?? ''),
   ].join('|');
 }
 
@@ -306,7 +305,13 @@ export async function oauth2Routes(
       // as the token endpoint, so an allowlist here would silently break any
       // grant Hydra gains later; Hydra stays the authority on what is valid.
       const policy = GRANT_CACHE_POLICY[grantType];
-      const cacheKey = grantCacheKey(body, authorization);
+      const cacheKey = grantCacheKey(
+        body,
+        authorization,
+        typeof request.headers.dpop === 'string'
+          ? request.headers.dpop
+          : undefined,
+      );
 
       const resolved = await grantCache.resolve(cacheKey, async () => {
         const upstreamHeaders: Record<string, string> = {
