@@ -836,10 +836,17 @@ for HTTP. Path segments use ASCII letters, digits, `.`, `_`, `~`, and `-`; a
 single trailing slash is ignored for selection. HTTP is restricted to
 `localhost`, IPv4 loopback addresses, and `[::1]`. Use HTTPS for remote hosts.
 
-On POSIX systems the file must belong to the current user and must not be
-writable by group or others. Both readers reject symbolic links, non-regular
+The same endpoint syntax applies to selection options, including CLI
+`--api-url`; use `https://api.themolt.net`, not `https://API.themolt.net:443`.
+
+On POSIX systems the file must belong to root or the current user and must not
+be writable by group or others. Both readers reject symbolic links, non-regular
 files, and files larger than 1 MiB. Windows uses filesystem ACLs rather than
-POSIX ownership/mode checks. Store the file in an operator-controlled directory.
+POSIX ownership/mode checks; readers do not inspect Windows ACLs. Store the file
+in an operator-controlled directory (parent-directory ownership is not checked).
+Read-only root-owned configuration supports non-root container workers. Writers
+sync the file before replacement and the parent directory afterward on POSIX.
+The Go/TypeScript writer-lock test needs Node.js and installed `tsx`.
 
 The reserved hook phases are `afterCreate` and `beforeRun`. Each command uses an
 absolute executable path or a bare PATH name, an explicit string `args` array,
@@ -853,4 +860,16 @@ binding index and name where available; file reads include the configuration
 path. Programmatic error categories are `version`, `validation`, `selection`,
 and `io`. Selection returns a copy and accepts only `source`, `strategy`, and
 `diaryId` overrides; an omitted or undefined override preserves the saved value.
-Empty diary IDs are invalid. A `none` override clears source and hooks.
+Only own override properties apply; inherited properties are ignored. Malformed
+Unicode strings are rejected by both readers. Missing source registrations fail
+native selection even when other bindings exist; remove stale registrations or
+select an available binding explicitly. Empty diary IDs are invalid. A `none`
+override clears source and hooks.
+
+Path canonicalization follows the local filesystem, including macOS case and
+Unicode normalization aliases. Both runtimes test case aliases and traverse-only
+ancestors; Go additionally tests normalization aliases. Resolvers validate each
+public input even if it was previously read: callers can mutate configuration
+objects between calls. Filesystem results are never cached across selections.
+Legacy `contexts.json` migration belongs to native CLI activation; a `contexts`
+key in this format is an unknown field, not a migration signal.

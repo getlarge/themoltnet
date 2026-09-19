@@ -1629,5 +1629,160 @@
     "expected": "local",
     "name": "numeric JSON representations",
     "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "expected": "local",
+    "expectedDiaryId": "run-diary",
+    "name": "diary override preserves explicit selection",
+    "options": {
+      "overrides": {
+        "diaryId": "run-diary"
+      }
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "hooks": {
+            "beforeRun": {
+              "args": [],
+              "command": "node",
+              "timeoutMs": 1
+            }
+          },
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "expected": "local",
+    "name": "hook timeout boundary 1",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "hooks": {
+            "beforeRun": {
+              "args": [],
+              "command": "node",
+              "timeoutMs": 600000
+            }
+          },
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "expected": "local",
+    "name": "hook timeout boundary 600000",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "hooks": {
+            "beforeRun": {
+              "command": "node",
+              "timeoutMs": 1000
+            }
+          },
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "errorKind": "validation",
+    "name": "hook requires args",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "\ud800",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "errorKind": "validation",
+    "name": "reject unpaired surrogate 0xd800",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "\udbff",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "errorKind": "validation",
+    "name": "reject unpaired surrogate 0xdbff",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "\udc00",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "errorKind": "validation",
+    "name": "reject unpaired surrogate 0xdc00",
+    "options": {}
   }
 ]

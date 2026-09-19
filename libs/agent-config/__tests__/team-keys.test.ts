@@ -35,6 +35,7 @@ const directories: string[] = [];
 async function fixture() {
   const dir = await mkdtemp(join(tmpdir(), 'team-config-'));
   directories.push(dir);
+  vi.stubEnv('HOME', dir);
   const config: MoltNetConfig = {
     subject_id: 'subject',
     subject_type: 'agent',
@@ -209,6 +210,7 @@ describe('shared config updates', () => {
     const config = (await readConfig(dir)) as MoltNetConfig;
     vi.stubEnv('HOME', dir);
     const root = join(dir, '.config/moltnet');
+    await rm(join(root, 'identity-selector.json'), { force: true });
     await Promise.all(
       ['first', 'second'].map((alias) =>
         writeConfig(config, join(root, 'identities', alias)),

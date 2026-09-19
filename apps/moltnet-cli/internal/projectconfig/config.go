@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -68,6 +67,19 @@ type Overrides struct {
 	Strategy *string `json:"strategy,omitempty"`
 	DiaryID  *string `json:"diaryId,omitempty"`
 }
+
+func (o *Overrides) UnmarshalJSON(data []byte) error {
+	type plain Overrides
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if _, err := exactFields(raw, "source", "strategy", "diaryId"); err != nil {
+		return classify(err, "selection")
+	}
+	return json.Unmarshal(data, (*plain)(o))
+}
+
 type Options struct {
 	ConfigPath string    `json:"configPath,omitempty"`
 	CWD        string    `json:"cwd"`
@@ -86,7 +98,7 @@ func Path() (string, error) {
 	}
 	return filepath.Join(directory, "projects.json"), nil
 }
-func nonempty(s string) bool {
+func isNonEmptyString(s string) bool {
 	return strings.Trim(s, "\t\n\v\f\r \u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff") != "" && !strings.ContainsRune(s, 0)
 }
 
@@ -156,7 +168,7 @@ func Validate(c *Config) (err error) {
 	defaults := map[string]bool{}
 	for index, b := range c.Bindings {
 		if bindingErr := func() error {
-			if !nonempty(b.Name) || !nonempty(b.APIURL) || !nonempty(b.TeamID) || !nonempty(b.ProjectID) {
+			if !isNonEmptyString(b.Name) || !isNonEmptyString(b.APIURL) || !isNonEmptyString(b.TeamID) || !isNonEmptyString(b.ProjectID) {
 				return errors.New("name, apiUrl, teamId and projectId must be non-empty strings")
 			}
 			if names[b.Name] {
@@ -172,13 +184,13 @@ func Validate(c *Config) (err error) {
 					return errors.New("no-workspace strategy cannot have source or hooks")
 				}
 			case "existing", "git-worktree", "isolated-directory":
-				if !nonempty(b.Source) {
+				if !isNonEmptyString(b.Source) {
 					return errors.New("source must be a non-empty string")
 				}
 			default:
 				return errors.New("an explicit workspace strategy is required")
 			}
-			if b.DiaryID != "" && !nonempty(b.DiaryID) {
+			if b.DiaryID != "" && !isNonEmptyString(b.DiaryID) {
 				return errors.New("diaryId must be a non-empty string")
 			}
 			if b.Default {
@@ -193,7 +205,7 @@ func Validate(c *Config) (err error) {
 					if h == nil {
 						continue
 					}
-					if !nonempty(h.Command) {
+					if !isNonEmptyString(h.Command) {
 						return errors.New("hook command must be non-empty")
 					}
 					if !filepath.IsAbs(h.Command) && (strings.ContainsAny(h.Command, "/\\") || h.Command == "." || h.Command == "..") {
@@ -243,6 +255,9 @@ func exactFields(value any, allowed ...string) (map[string]any, error) {
 }
 func Parse(data []byte) (_ *Config, err error) {
 	defer func() { err = classify(err, "validation") }()
+	if err := validateJSONUnicode(data); err != nil {
+		return nil, err
+	}
 	var value any
 	if err := json.Unmarshal(data, &value); err != nil {
 		return nil, err
@@ -250,9 +265,6 @@ func Parse(data []byte) (_ *Config, err error) {
 	raw, ok := value.(map[string]any)
 	if !ok {
 		return nil, errors.New("project config must be an object")
-	}
-	if _, ok := raw["contexts"]; ok {
-		return nil, errors.New("legacy contexts require migration: explicitly register each checkout path in projects.json")
 	}
 	if version, ok := raw["version"].(float64); ok && version > 1 {
 		return nil, classify(errors.New("newer project config version; upgrade moltnet and the daemon/SDK"), "version")
@@ -272,13 +284,21 @@ func Parse(data []byte) (_ *Config, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("bindings[%d]: %w", index, err)
 		}
+		encoded, err := json.Marshal(binding)
+		if err != nil {
+			return nil, fmt.Errorf("bindings[%d]: %w", index, err)
+		}
+		var typed Binding
+		if err := json.Unmarshal(encoded, &typed); err != nil {
+			return nil, fmt.Errorf("bindings[%d] (%v): %w", index, binding["name"], err)
+		}
 		for key, value := range binding {
 			if value == nil {
 				return nil, fmt.Errorf("bindings[%d].%s cannot be null", index, key)
 			}
 		}
 		if diary, ok := binding["diaryId"]; ok {
-			if text, ok := diary.(string); !ok || !nonempty(text) {
+			if text, ok := diary.(string); !ok || !isNonEmptyString(text) {
 				return nil, fmt.Errorf("bindings[%d].diaryId must be a non-empty string", index)
 			}
 		}
@@ -330,7 +350,7 @@ func Read(path string) (*Config, error) {
 	}
 	data, err := safefile.ReadBoundedRegularFileChecked(path, maxConfigBytes, validateOwner)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
+		return nil, classify(err, "io")
 	}
 	config, err := Parse(data)
 	if err != nil {
@@ -370,7 +390,7 @@ func Update(path string, mutate func(*Config) error) error {
 	}
 	return lock.Write(data)
 }
-func directory(path string) (string, error) {
+func canonicalDirectory(path string) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
@@ -386,13 +406,9 @@ func directory(path string) (string, error) {
 	if !info.IsDir() {
 		return "", fmt.Errorf("workspace source is not a directory: %s", path)
 	}
-	// EvalSymlinks preserves input case on case-insensitive macOS volumes.
-	if runtime.GOOS == "darwin" {
-		return diskCase(canonical)
-	}
-	return canonical, nil
+	return canonicalDiskPath(canonical)
 }
-func at(base, path string) string {
+func resolvePath(base, path string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
@@ -447,37 +463,10 @@ func Resolve(c *Config, o Options) (_ *Binding, err error) {
 			return nil, fmt.Errorf("binding %s does not match requested project, team or endpoint", o.Binding)
 		}
 	} else if o.Native {
-		cwd, err := directory(o.CWD)
+		candidates, err = selectAncestors(candidates, o.CWD, base)
 		if err != nil {
 			return nil, err
 		}
-		selected := []Binding{}
-		pathLength := -1
-		for _, b := range candidates {
-			if b.Source == "" {
-				continue
-			}
-			path, err := directory(at(base, b.Source))
-			if errors.Is(err, os.ErrNotExist) {
-				if len(candidates) == 1 {
-					return nil, fmt.Errorf("registered source for binding %s is unavailable: %s", b.Name, b.Source)
-				}
-				continue
-			}
-			if err != nil {
-				return nil, err
-			}
-			if ancestor(path, cwd) {
-				if len(path) > pathLength {
-					selected = []Binding{}
-					pathLength = len(path)
-				}
-				if len(path) == pathLength {
-					selected = append(selected, b)
-				}
-			}
-		}
-		candidates = selected
 	} else if len(candidates) > 1 {
 		projects := map[string]bool{}
 		defaults := []Binding{}
@@ -504,8 +493,13 @@ func Resolve(c *Config, o Options) (_ *Binding, err error) {
 		}
 		return nil, fmt.Errorf("ambiguous project binding: %s; select a binding explicitly", strings.Join(names, ", "))
 	}
+	return applyOverrides(candidates[0], o, base)
+}
+
+func applyOverrides(binding Binding, o Options, base string) (*Binding, error) {
+	var err error
 	// Clone hooks too: a caller must not mutate saved defaults through the result.
-	encoded, _ := json.Marshal(candidates[0])
+	encoded, _ := json.Marshal(binding)
 	var result Binding
 	if err := json.Unmarshal(encoded, &result); err != nil {
 		return nil, err
@@ -518,7 +512,7 @@ func Resolve(c *Config, o Options) (_ *Binding, err error) {
 		result.Strategy = *o.Overrides.Strategy
 	}
 	if o.Overrides.DiaryID != nil {
-		if !nonempty(*o.Overrides.DiaryID) {
+		if !isNonEmptyString(*o.Overrides.DiaryID) {
 			return nil, classify(errors.New("diaryId override must be a non-empty string"), "validation")
 		}
 		result.DiaryID = *o.Overrides.DiaryID
@@ -534,7 +528,7 @@ func Resolve(c *Config, o Options) (_ *Binding, err error) {
 		return nil, err
 	}
 	if result.Source != "" {
-		result.Source, err = directory(at(base, result.Source))
+		result.Source, err = canonicalDirectory(resolvePath(base, result.Source))
 		if err != nil {
 			return nil, err
 		}
@@ -543,32 +537,33 @@ func Resolve(c *Config, o Options) (_ *Binding, err error) {
 	return &result, nil
 }
 
-func diskCase(path string) (string, error) {
-	parent := filepath.Dir(path)
-	if parent == path {
-		return path, nil
-	}
-	canonicalParent, err := diskCase(parent)
+func selectAncestors(candidates []Binding, cwdPath, base string) ([]Binding, error) {
+	cwd, err := canonicalDirectory(cwdPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	target, err := os.Stat(path)
-	if err != nil {
-		return "", err
-	}
-	entries, err := os.ReadDir(canonicalParent)
-	if err != nil {
-		return "", err
-	}
-	for _, entry := range entries {
-		if !strings.EqualFold(entry.Name(), filepath.Base(path)) {
+	selected := []Binding{}
+	pathLength := -1
+	for _, b := range candidates {
+		if b.Source == "" {
 			continue
 		}
-		candidate := filepath.Join(canonicalParent, entry.Name())
-		info, err := os.Stat(candidate)
-		if err == nil && os.SameFile(target, info) {
-			return candidate, nil
+		path, err := canonicalDirectory(resolvePath(base, b.Source))
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("registered source for binding %s is unavailable: %s", b.Name, b.Source)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if ancestor(path, cwd) {
+			if len(path) > pathLength {
+				selected = []Binding{}
+				pathLength = len(path)
+			}
+			if len(path) == pathLength {
+				selected = append(selected, b)
+			}
 		}
 	}
-	return "", fmt.Errorf("cannot recover canonical path: %s", path)
+	return selected, nil
 }

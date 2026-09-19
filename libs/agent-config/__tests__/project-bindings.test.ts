@@ -49,12 +49,12 @@ function config(): ProjectConfig {
 }
 
 describe('project binding contract', () => {
-  it('rejects unsupported versions, legacy contexts, and unknown fields', () => {
+  it('rejects unsupported versions and unknown fields', () => {
     expect(() => validateProjectConfig({ version: 2, bindings: [] })).toThrow(
       /version/,
     );
     expect(() => validateProjectConfig({ version: 1, contexts: {} })).toThrow(
-      /migrat/i,
+      /unknown/i,
     );
     expect(() =>
       validateProjectConfig({ ...config(), credential: 'secret' }),
@@ -225,6 +225,7 @@ const fixtures = JSON.parse(
   expectedSource?: string;
   expectedApiUrl?: string;
   expectedStrategy?: string;
+  expectedDiaryId?: string;
   error?: boolean;
   errorKind?: string;
 }>;
@@ -246,6 +247,8 @@ describe('shared Go/TypeScript fixtures', () => {
       expect(selected?.name ?? null).toBe(fixture.expected);
       if (fixture.expectedApiUrl)
         expect(selected?.apiUrl).toBe(fixture.expectedApiUrl);
+      if (fixture.expectedDiaryId)
+        expect(selected?.diaryId).toBe(fixture.expectedDiaryId);
       if (fixture.expectedStrategy)
         expect(selected?.strategy).toBe(fixture.expectedStrategy);
       if (fixture.expectedSource)
@@ -313,4 +316,74 @@ it('persists the canonical endpoint', async () => {
   expect((await readProjectConfig(configPath)).bindings[0].apiUrl).toBe(
     'https://api.example',
   );
+});
+
+it('ignores inherited run overrides', async () => {
+  const selected = await resolveProjectBinding(config(), {
+    configPath,
+    cwd: root,
+    overrides: Object.create({
+      source: './missing',
+      strategy: 'none',
+      diaryId: 'inherited',
+    }),
+  });
+  expect(selected?.source).toBe(join(root, 'source'));
+  expect(selected?.strategy).toBe('existing');
+  expect(selected?.diaryId).toBeUndefined();
+});
+it('reports unavailable registrations even among multiple candidates', async () => {
+  const value = config();
+  value.bindings.push({
+    ...value.bindings[0],
+    name: 'missing',
+    source: './missing',
+    default: false,
+  });
+  await expect(
+    resolveProjectBinding(value, {
+      configPath,
+      cwd: join(root, 'source'),
+      native: true,
+    }),
+  ).rejects.toThrow(/missing.*unavailable/i);
+});
+it('rejects malformed Unicode strings', () => {
+  const value = config();
+  value.bindings[0].name = String.fromCharCode(0xd800);
+  expect(() => validateProjectConfig(value)).toThrow(/Unicode/i);
+});
+it('resolves case aliases on case-insensitive filesystems', async () => {
+  await mkdir(join(root, 'CaseDir'));
+  try {
+    await realpath(join(root, 'casedir'));
+  } catch {
+    return;
+  }
+  const value = config();
+  value.bindings[0].source = './CaseDir';
+  const selected = await resolveProjectBinding(value, {
+    configPath,
+    cwd: join(root, 'casedir'),
+    native: true,
+  });
+  expect(selected?.source).toBe(await realpath(join(root, 'CaseDir')));
+});
+
+it('resolves through a traverse-only ancestor', async () => {
+  if (process.platform === 'win32') return;
+  const source = join(root, 'source');
+  await chmod(source, 0o111);
+  try {
+    const value = config();
+    value.bindings[0].source = './source/nested';
+    const result = await resolveProjectBinding(value, {
+      configPath,
+      cwd: join(source, 'nested'),
+      native: true,
+    });
+    expect(result?.source).toBe(join(source, 'nested'));
+  } finally {
+    await chmod(source, 0o700);
+  }
 });

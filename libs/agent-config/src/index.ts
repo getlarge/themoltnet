@@ -44,6 +44,7 @@ export {
   getProjectConfigPath,
   type ProjectBinding,
   type ProjectConfig,
+  ProjectConfigError,
   type ProjectSelectionOptions,
   readProjectConfig,
   resolveProjectBinding,

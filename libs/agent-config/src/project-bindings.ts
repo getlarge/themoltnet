@@ -1,11 +1,11 @@
-import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, open, realpath, rename, stat, unlink } from 'node:fs/promises';
+import { lstat, open, realpath, stat } from 'node:fs/promises';
 import { isIP } from 'node:net';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { getConfigDir } from './config.js';
 import { withConfigLock } from './config-lock.js';
+import { writeFileAtomic } from './write-file-atomic.js';
 
 export class ProjectConfigError extends Error {
   constructor(
@@ -72,6 +72,21 @@ export function getProjectConfigPath(): string {
   return join(getConfigDir(), 'projects.json');
 }
 
+function validateUnicode(value: unknown): void {
+  if (
+    typeof value === 'string' &&
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(
+      value,
+    )
+  )
+    throw new Error('Strings must contain well-formed Unicode');
+  if (value && typeof value === 'object')
+    for (const [key, child] of Object.entries(value)) {
+      validateUnicode(key);
+      validateUnicode(child);
+    }
+}
+
 function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error(`${label} must be an object`);
@@ -87,7 +102,10 @@ function fields(
       throw new Error(`Unknown ${label} field: ${key}`);
   }
 }
-function text(value: unknown, label: string): asserts value is string {
+function requireNonEmptyString(
+  value: unknown,
+  label: string,
+): asserts value is string {
   if (
     typeof value !== 'string' ||
     !value.replace(/[\s\u0085]/gu, '') ||
@@ -155,11 +173,8 @@ export function validateProjectConfig(
 function validateProjectConfigValue(
   value: unknown,
 ): asserts value is ProjectConfig {
+  validateUnicode(value);
   const config = object(value, 'Project config');
-  if ('contexts' in config)
-    throw new Error(
-      'Legacy contexts require migration: explicitly register each checkout path in projects.json',
-    );
   if (config.version !== 1)
     throw new ProjectConfigError(
       'version',
@@ -191,7 +206,7 @@ function validateProjectConfigValue(
         'binding',
       );
       for (const key of ['name', 'apiUrl', 'teamId', 'projectId'])
-        text(b[key], key);
+        requireNonEmptyString(b[key], key);
       const name = b.name as string;
       if (names.has(name)) throw new Error(`Duplicate binding name: ${name}`);
       names.add(name);
@@ -205,8 +220,8 @@ function validateProjectConfigValue(
       if (b.strategy === 'none') {
         if (b.source !== undefined || b.hooks !== undefined)
           throw new Error('No-workspace strategy cannot have source or hooks');
-      } else text(b.source, 'source');
-      if (b.diaryId !== undefined) text(b.diaryId, 'diaryId');
+      } else requireNonEmptyString(b.source, 'source');
+      if (b.diaryId !== undefined) requireNonEmptyString(b.diaryId, 'diaryId');
       if (b.default !== undefined && typeof b.default !== 'boolean')
         throw new Error('default must be a boolean');
       if (b.default) {
@@ -221,7 +236,7 @@ function validateProjectConfigValue(
         for (const hook of Object.values(hooks)) {
           const h = object(hook, 'hook');
           fields(h, ['command', 'args', 'timeoutMs'], 'hook');
-          text(h.command, 'hook command');
+          requireNonEmptyString(h.command, 'hook command');
           if (
             !isAbsolute(h.command) &&
             (/[\\/]/.test(h.command) || h.command === '.' || h.command === '..')
@@ -268,10 +283,11 @@ export async function readProjectConfig(
       throw new Error('Project config must be a regular file of at most 1 MiB');
     if (
       process.platform !== 'win32' &&
-      ((info.mode & 0o022) !== 0 || info.uid !== process.getuid?.())
+      ((info.mode & 0o022) !== 0 ||
+        (info.uid !== 0 && info.uid !== process.getuid?.()))
     )
       throw new Error(
-        'Project config must be owned by the current user and not group/world writable',
+        'Project config must be owned by root or the current user and not group/world writable',
       );
     const handle = await open(
       path,
@@ -283,10 +299,11 @@ export async function readProjectConfig(
       const opened = await handle.stat();
       if (
         process.platform !== 'win32' &&
-        ((opened.mode & 0o022) !== 0 || opened.uid !== process.getuid?.())
+        ((opened.mode & 0o022) !== 0 ||
+          (opened.uid !== 0 && opened.uid !== process.getuid?.()))
       )
         throw new Error(
-          'Project config must be owned by the current user and not group/world writable',
+          'Project config must be owned by root or the current user and not group/world writable',
         );
       if (
         !opened.isFile() ||
@@ -341,23 +358,11 @@ export async function updateProjectConfig(
     const data = `${JSON.stringify(config, null, 2)}\n`;
     if (Buffer.byteLength(data) > MAX_CONFIG_BYTES)
       throw new Error('Project config exceeds 1 MiB');
-    const temp = `${path}.${randomUUID()}.tmp`;
-    try {
-      const handle = await open(temp, 'wx', 0o600);
-      try {
-        await handle.writeFile(data);
-        await handle.sync();
-      } finally {
-        await handle.close();
-      }
-      await rename(temp, path);
-    } finally {
-      await unlink(temp).catch(() => {});
-    }
+    await writeFileAtomic(path, data);
   });
 }
 
-async function directory(path: string): Promise<string> {
+async function canonicalDirectory(path: string): Promise<string> {
   const canonical = await realpath(path);
   if (!(await stat(canonical)).isDirectory())
     throw new Error(`Workspace source is not a directory: ${path}`);
@@ -371,12 +376,52 @@ function ancestor(parent: string, child: string): boolean {
   );
 }
 
+async function selectAncestors(
+  candidates: ProjectBinding[],
+  cwdPath: string,
+  base: string,
+  canonicalize: typeof canonicalDirectory,
+): Promise<ProjectBinding[]> {
+  const cwd = await canonicalize(cwdPath);
+  const ancestors: { binding: ProjectBinding; path: string }[] = [];
+  const resolved = await Promise.all(
+    candidates.map(async (binding) => {
+      if (!binding.source) return null;
+      try {
+        const path = await canonicalize(resolve(base, binding.source));
+        return ancestor(path, cwd) ? { binding, path } : null;
+      } catch (error) {
+        throw new Error(
+          `Registered source for binding ${binding.name} is unavailable: ${binding.source}`,
+          { cause: error },
+        );
+      }
+    }),
+  );
+  for (const item of resolved) if (item) ancestors.push(item);
+  const pathLength = Math.max(-1, ...ancestors.map((item) => item.path.length));
+  return ancestors
+    .filter((item) => item.path.length === pathLength)
+    .map((item) => item.binding);
+}
+
 /** Non-secret selection only: no remote checks, hooks, materialization or credential lookup. */
 async function resolveProjectBindingValue(
   config: ProjectConfig,
   options: ProjectSelectionOptions,
 ): Promise<ProjectBinding | null> {
+  // Public callers may mutate a previously read config; validate at this boundary.
   validateProjectConfig(config);
+  const paths = new Map<string, Promise<string>>();
+  const canonicalize = (path: string) => {
+    const absolute = resolve(path);
+    let result = paths.get(absolute);
+    if (!result) {
+      result = canonicalDirectory(absolute);
+      paths.set(absolute, result);
+    }
+    return result;
+  };
   const base = dirname(resolve(options.configPath ?? getProjectConfigPath()));
   const matches = (b: ProjectBinding) =>
     (!options.apiUrl || endpoint(b.apiUrl) === endpoint(options.apiUrl)) &&
@@ -390,32 +435,12 @@ async function resolveProjectBindingValue(
         `Binding ${options.binding} does not match the requested project, team or endpoint`,
       );
   } else if (options.native) {
-    const cwd = await directory(options.cwd);
-    const ancestors: { binding: ProjectBinding; path: string }[] = [];
-    for (const b of candidates) {
-      if (!b.source) continue;
-      let path: string;
-      try {
-        path = await directory(resolve(base, b.source));
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-          if (candidates.length === 1)
-            throw new Error(
-              `Registered source for binding ${b.name} is unavailable: ${b.source}`,
-            );
-          continue;
-        }
-        throw error;
-      }
-      if (ancestor(path, cwd)) ancestors.push({ binding: b, path });
-    }
-    const pathLength = Math.max(
-      -1,
-      ...ancestors.map((item) => item.path.length),
+    candidates = await selectAncestors(
+      candidates,
+      options.cwd,
+      base,
+      canonicalize,
     );
-    candidates = ancestors
-      .filter((item) => item.path.length === pathLength)
-      .map((item) => item.binding);
   } else if (candidates.length > 1) {
     const projects = new Set(
       candidates.map((b) =>
@@ -437,7 +462,16 @@ async function resolveProjectBindingValue(
     throw new Error(
       `Ambiguous project binding: ${candidates.map((b) => b.name).join(', ')}; select a binding explicitly`,
     );
-  const result = structuredClone(candidates[0]);
+  return applyOverrides(candidates[0], options, base, canonicalize);
+}
+
+async function applyOverrides(
+  binding: ProjectBinding,
+  options: ProjectSelectionOptions,
+  base: string,
+  canonicalize: typeof canonicalDirectory,
+): Promise<ProjectBinding> {
+  const result = structuredClone(binding);
   const overrides = options.overrides ?? {};
   fields(
     object(overrides, 'overrides'),
@@ -445,7 +479,7 @@ async function resolveProjectBindingValue(
     'override',
   );
   for (const key of ['source', 'strategy', 'diaryId'] as const) {
-    if (overrides[key] !== undefined)
+    if (Object.hasOwn(overrides, key) && overrides[key] !== undefined)
       Object.defineProperty(result, key, {
         value: overrides[key],
         writable: true,
@@ -454,16 +488,18 @@ async function resolveProjectBindingValue(
       });
   }
   if (result.strategy === 'none') {
-    if (overrides.source !== undefined)
+    if (Object.hasOwn(overrides, 'source') && overrides.source !== undefined)
       throw new Error('No-workspace override cannot specify a source');
     delete result.source;
     delete result.hooks;
   }
   validateProjectConfig({ version: 1, bindings: [result] });
   if (result.source)
-    result.source = await directory(
+    result.source = await canonicalize(
       resolve(
-        overrides.source !== undefined ? options.cwd : base,
+        Object.hasOwn(overrides, 'source') && overrides.source !== undefined
+          ? options.cwd
+          : base,
         result.source,
       ),
     );

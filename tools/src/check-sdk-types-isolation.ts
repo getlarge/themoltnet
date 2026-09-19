@@ -105,7 +105,11 @@ void _updateOAuth2Config;
       'types reached through two entries are one type, and each entry exports what it names',
     consumer: `import type { Agent, HumanClient } from '@themoltnet/sdk';
 import type { Agent as AgentFromNode } from '@themoltnet/sdk/node';
-import { connect } from '@themoltnet/sdk/node';
+import { connect, resolveProjectBinding, ProjectConfigError, type ProjectConfig, type ProjectSelectionOptions } from '@themoltnet/sdk/node';
+export function select(config: ProjectConfig, options: ProjectSelectionOptions) {
+  return resolveProjectBinding(config, options);
+}
+export const configError = new ProjectConfigError('selection', 'Choose a binding');
 import type { HumanClient as HumanClientFromHuman } from '@themoltnet/sdk/human';
 import { connectHuman } from '@themoltnet/sdk/human';
 

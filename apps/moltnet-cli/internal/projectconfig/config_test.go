@@ -26,6 +26,7 @@ func TestProjectSharedFixtures(t *testing.T) {
 		ExpectedSource   string
 		ExpectedApiUrl   string
 		ExpectedStrategy string
+		ExpectedDiaryId  string
 		Error            bool
 		ErrorKind        string
 	}
@@ -77,6 +78,9 @@ func TestProjectSharedFixtures(t *testing.T) {
 			}
 			if f.ExpectedApiUrl != "" && result.APIURL != f.ExpectedApiUrl {
 				t.Fatalf("unexpected endpoint: %s", result.APIURL)
+			}
+			if f.ExpectedDiaryId != "" && result.DiaryID != f.ExpectedDiaryId {
+				t.Fatalf("unexpected diary: %s", result.DiaryID)
 			}
 			if f.ExpectedStrategy != "" && result.Strategy != f.ExpectedStrategy {
 				t.Fatalf("unexpected strategy: %s", result.Strategy)
@@ -270,5 +274,55 @@ func TestProjectCanonicalWrite(t *testing.T) {
 	c, err := Read(path)
 	if err != nil || c.Bindings[0].APIURL != "https://api.example" {
 		t.Fatalf("noncanonical endpoint: %+v %v", c, err)
+	}
+}
+
+func TestProjectUnicodeNormalization(t *testing.T) {
+	root := t.TempDir()
+	source := filepath.Join(root, "caf\u00e9")
+	if err := os.Mkdir(source, 0700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(root, "cafe\u0301")
+	if _, err := os.Stat(alias); err != nil {
+		t.Skip("normalization-sensitive filesystem")
+	}
+	c := &Config{Version: 1, Bindings: []Binding{{Name: "local", APIURL: "https://api.example", TeamID: "team", ProjectID: "project", Source: source, Strategy: "existing"}}}
+	result, err := Resolve(c, Options{ConfigPath: filepath.Join(root, "projects.json"), CWD: alias, Native: true})
+	if err != nil || result == nil {
+		t.Fatalf("normalization alias: %v", err)
+	}
+}
+func TestProjectMalformedUnicode(t *testing.T) {
+	_, err := Parse([]byte(`{"version":1,"bindings":[{"name":"\ud800","apiUrl":"https://api.example","teamId":"team","projectId":"project","strategy":"none"}]}`))
+	if err == nil {
+		t.Fatal("accepted malformed Unicode")
+	}
+}
+
+func TestProjectOverrideUnknownKey(t *testing.T) {
+	var value Overrides
+	if err := json.Unmarshal([]byte(`{"__proto__":{}}`), &value); err == nil {
+		t.Fatal("accepted unknown override")
+	}
+}
+
+func TestProjectTraverseOnlyAncestor(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permissions")
+	}
+	root := t.TempDir()
+	parent := filepath.Join(root, "parent")
+	source := filepath.Join(parent, "source")
+	if err := os.MkdirAll(source, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(parent, 0111); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(parent, 0700)
+	result, err := canonicalDirectory(source)
+	if err != nil || result == "" {
+		t.Fatalf("traverse-only ancestor: %v", err)
 	}
 }
