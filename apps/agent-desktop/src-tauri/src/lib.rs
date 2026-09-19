@@ -166,7 +166,21 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 }
 
 #[tauri::command]
-async fn desktop_operator_sign_in(state: State<'_, AppState>) -> Result<(), String> {
+fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
+    let body = with_control_token(&state, |token| control::get(token, "/oauth/metadata"))?;
+    let metadata: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
+    Ok(metadata
+        .get("operatorConfigured")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false))
+}
+
+#[tauri::command]
+async fn desktop_operator_sign_in(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let token = state
         .lifecycle
         .lock()
@@ -179,6 +193,7 @@ async fn desktop_operator_sign_in(state: State<'_, AppState>) -> Result<(), Stri
     })
     .await
     .map_err(|_| "Sign-in task failed")??;
+    show_status(&app);
     Ok(())
 }
 
@@ -192,6 +207,7 @@ fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), St
 
 #[tauri::command]
 async fn desktop_enroll_team(
+    app: AppHandle,
     state: State<'_, AppState>,
     identity: String,
     request: serde_json::Value,
@@ -206,7 +222,9 @@ async fn desktop_enroll_team(
         )
     })
     .await?;
-    control::enrollment_metadata(&body)
+    let metadata = control::enrollment_metadata(&body)?;
+    show_status(&app);
+    Ok(metadata)
 }
 
 /// Run `operation` with the grant for the currently running server.
@@ -663,6 +681,7 @@ pub fn run() {
             desktop_control_status,
             desktop_enroll_team,
             desktop_operator_sign_in,
+            desktop_operator_configured,
             desktop_cancel_operator_approval,
             desktop_start_run,
             desktop_stop_run,

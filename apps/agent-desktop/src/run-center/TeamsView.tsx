@@ -52,6 +52,11 @@ export function TeamsView({
   const cancellationRequested = useRef(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   useEffect(() => {
+    if (!feedback || feedback.error) return;
+    const timer = window.setTimeout(() => setFeedback(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
+  useEffect(() => {
     let current = true;
     setCatalogue(null);
     if (!identity) return;
@@ -181,38 +186,48 @@ export function TeamsView({
           on this computer.
         </Text>
       </Stack>
-      <Button
-        variant="secondary"
-        disabled={busy}
-        onClick={async () => {
-          cancellationRequested.current = false;
-          setBusy(true);
-          setFeedback(null);
-          try {
-            if (!actions.signInOperator)
-              throw new Error('Native sign-in unavailable');
-            await actions.signInOperator();
-            setFeedback({
-              title: 'Local operator signed in',
-              message: 'You can now connect Console to local agents.',
-              error: false,
-            });
-          } catch {
-            setFeedback({
-              title: cancellationRequested.current
-                ? 'Approval cancelled'
-                : 'Sign-in did not complete',
-              message: 'Try again and approve in Console.',
-              error: !cancellationRequested.current,
-            });
-          } finally {
-            setBusy(false);
-            setCancelling(false);
-          }
-        }}
-      >
-        Sign in for local control
-      </Button>
+      {data.operatorConfigured ? (
+        <Stack direction="row" gap={3} align="center">
+          <Badge variant="success">Signed in</Badge>
+          <Text variant="caption" color="secondary">
+            Local control enabled on this computer
+          </Text>
+        </Stack>
+      ) : (
+        <Button
+          variant="secondary"
+          disabled={busy}
+          onClick={async () => {
+            cancellationRequested.current = false;
+            setBusy(true);
+            setFeedback(null);
+            try {
+              if (!actions.signInOperator)
+                throw new Error('Native sign-in unavailable');
+              await actions.signInOperator();
+              await actions.refresh?.();
+              setFeedback({
+                title: 'Local operator signed in',
+                message: 'You can now connect Console to local agents.',
+                error: false,
+              });
+            } catch {
+              setFeedback({
+                title: cancellationRequested.current
+                  ? 'Approval cancelled'
+                  : 'Sign-in did not complete',
+                message: 'Try again and approve in Console.',
+                error: !cancellationRequested.current,
+              });
+            } finally {
+              setBusy(false);
+              setCancelling(false);
+            }
+          }}
+        >
+          Sign in for local control
+        </Button>
+      )}
       {busy && actions.cancelOperatorApproval ? (
         <Stack direction="row" gap={3} align="center" wrap>
           <Text variant="caption" color="secondary">
@@ -386,13 +401,36 @@ export function TeamsView({
           </Stack>
         </Stack>
       </ControlSurface>
-      {feedback ? (
+      {feedback?.error ? (
         <InlineNotice
           tone={feedback.error ? 'error' : 'success'}
           title={feedback.title}
         >
           {feedback.message}
         </InlineNotice>
+      ) : null}
+      {feedback && !feedback.error ? (
+        <aside
+          className="run-center__toast"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <Stack gap={2}>
+            <Text weight="semibold">{feedback.title}</Text>
+            <Text variant="caption" color="secondary">
+              {feedback.message}
+            </Text>
+          </Stack>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFeedback(null)}
+            aria-label="Dismiss notification"
+          >
+            Dismiss
+          </Button>
+        </aside>
       ) : null}
       <ConfirmDialog
         open={confirm}

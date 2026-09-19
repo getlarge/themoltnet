@@ -17,6 +17,7 @@ import type {
 export function DesktopRunCenter() {
   const [server, setServer] = useState(INITIAL_STATUS);
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
+  const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
   const [presets, setPresets] = useState(listPresets);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,9 @@ export function DesktopRunCenter() {
         );
         if (currentEpoch !== epoch.current) return;
         setStatus(snapshot);
+        const configured = await invoke<boolean>('desktop_operator_configured').catch(() => null);
+        if (currentEpoch !== epoch.current) return;
+        if (configured !== null) setOperatorConfigured(configured);
         failures.current = 0;
         setError(null);
         const identity =
@@ -102,6 +106,7 @@ export function DesktopRunCenter() {
     epoch.current++;
     if (!['running', 'update_available'].includes(server.state)) {
       setStatus(null);
+      setOperatorConfigured(false);
       setCatalogue(null);
       return;
     }
@@ -171,6 +176,7 @@ export function DesktopRunCenter() {
         onProvidersChanged={() => void refresh()}
         now={now}
         data={{
+          operatorConfigured,
           server,
           status,
           catalogue,

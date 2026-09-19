@@ -86,6 +86,30 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
+  it('shows a dismissible toast after sign-in completes', async () => {
+    const { data, actions } = fixture();
+    actions.signInOperator = vi.fn().mockResolvedValue(undefined);
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in for local control' }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Local operator signed in',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dismiss notification' }),
+    );
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+  it('shows the persisted operator state without offering another sign-in', async () => {
+    const { data, actions } = fixture();
+    show({ ...data, operatorConfigured: true }, actions);
+    expect(await screen.findByText('Signed in')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Sign in for local control' }),
+    ).not.toBeInTheDocument();
+  });
   it('cancels an abandoned sign-in and enables retry after native cancellation', async () => {
     const { data, actions } = fixture();
     let rejectApproval!: (error: Error) => void;

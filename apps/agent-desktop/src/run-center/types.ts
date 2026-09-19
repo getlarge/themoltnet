@@ -140,6 +140,7 @@ export interface SubscriptionActions {
 
 /** Everything the shell renders. */
 export interface RunCenterData {
+  operatorConfigured?: boolean;
   server: DesktopStatus;
   status: AgentServerStatus | null;
   runs: DesktopRun[];
