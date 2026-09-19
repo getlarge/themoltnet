@@ -638,12 +638,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
             (scope === LOCAL_CONTROL_SCOPE &&
               extra['moltnet:provisioning'] !== undefined)
           )
-            return await reply
-              .status(403)
-              .send({
-                error: 'scope_not_allowed',
-                error_description: 'Invalid administrative consent grant',
-              });
+            return await reply.status(403).send({
+              error: 'scope_not_allowed',
+              error_description: 'Invalid administrative consent grant',
+            });
           approvedExtra = {
             'moltnet:instance': extra['moltnet:instance'],
             ...(provisioning ? { 'moltnet:provisioning': provisioning } : {}),
