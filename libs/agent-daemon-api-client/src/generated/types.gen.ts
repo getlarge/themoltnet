@@ -186,15 +186,6 @@ export type DiscoveredModels = {
   }>;
 };
 
-export type PairingClaimed = {
-  token: string;
-};
-
-export type PairingStarted = {
-  approvalPath: string;
-  pairingId: string;
-};
-
 export type ReconcileAgentResult =
   | AgentServerAgent
   | {
@@ -217,6 +208,20 @@ export type GetAgentServerHealthResponses = {
 
 export type GetAgentServerHealthResponse =
   GetAgentServerHealthResponses[keyof GetAgentServerHealthResponses];
+
+export type GetOauthMetadataData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/oauth/metadata';
+};
+
+export type GetOauthMetadataResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
 
 export type ListAgentServerAgentsData = {
   body?: never;
@@ -315,8 +320,8 @@ export type ReconcileAgentServerAgentResponse =
 
 export type EnrollAgentServerTeamData = {
   body?: {
-    code: string;
     idempotencyKey: string;
+    teamId: string;
   } & (
     | {
         mode: 'enroll';
@@ -394,6 +399,53 @@ export type GetAgentServerCatalogueResponses = {
 export type GetAgentServerCatalogueResponse =
   GetAgentServerCatalogueResponses[keyof GetAgentServerCatalogueResponses];
 
+export type DeleteV1OperatorData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/operator';
+};
+
+export type DeleteV1OperatorResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
+
+export type PostV1OperatorCancelData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/operator/cancel';
+};
+
+export type PostV1OperatorCancelResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};
+
+export type SignInAgentServerOperatorData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/operator/sign-in';
+};
+
+export type SignInAgentServerOperatorResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    state: string;
+  };
+};
+
+export type SignInAgentServerOperatorResponse =
+  SignInAgentServerOperatorResponses[keyof SignInAgentServerOperatorResponses];
+
 export type StartAgentServerPairingData = {
   body?: never;
   path?: never;
@@ -405,21 +457,14 @@ export type StartAgentServerPairingErrors = {
   /**
    * Default Response
    */
-  default: AgentServerProblem;
+  410: {
+    code: string;
+    message: string;
+  };
 };
 
 export type StartAgentServerPairingError =
   StartAgentServerPairingErrors[keyof StartAgentServerPairingErrors];
-
-export type StartAgentServerPairingResponses = {
-  /**
-   * Default Response
-   */
-  201: PairingStarted;
-};
-
-export type StartAgentServerPairingResponse =
-  StartAgentServerPairingResponses[keyof StartAgentServerPairingResponses];
 
 export type ClaimAgentServerPairingData = {
   body?: never;
@@ -434,21 +479,14 @@ export type ClaimAgentServerPairingErrors = {
   /**
    * Default Response
    */
-  default: AgentServerProblem;
+  410: {
+    code: string;
+    message: string;
+  };
 };
 
 export type ClaimAgentServerPairingError =
   ClaimAgentServerPairingErrors[keyof ClaimAgentServerPairingErrors];
-
-export type ClaimAgentServerPairingResponses = {
-  /**
-   * Default Response
-   */
-  200: PairingClaimed;
-};
-
-export type ClaimAgentServerPairingResponse =
-  ClaimAgentServerPairingResponses[keyof ClaimAgentServerPairingResponses];
 
 export type ListAgentServerProvidersData = {
   body?: never;

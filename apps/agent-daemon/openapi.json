@@ -932,32 +932,6 @@
         ],
         "type": "object"
       },
-      "PairingClaimed": {
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "token"
-        ],
-        "type": "object"
-      },
-      "PairingStarted": {
-        "properties": {
-          "approvalPath": {
-            "type": "string"
-          },
-          "pairingId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "pairingId",
-          "approvalPath"
-        ],
-        "type": "object"
-      },
       "ReconcileAgentResult": {
         "anyOf": [
           {
@@ -1014,6 +988,15 @@
         "tags": [
           "system"
         ]
+      }
+    },
+    "/oauth/metadata": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
       }
     },
     "/v1/agents": {
@@ -1237,19 +1220,18 @@
                 "allOf": [
                   {
                     "properties": {
-                      "code": {
-                        "maxLength": 4096,
-                        "minLength": 1,
-                        "type": "string"
-                      },
                       "idempotencyKey": {
                         "maxLength": 256,
                         "minLength": 1,
                         "type": "string"
+                      },
+                      "teamId": {
+                        "format": "uuid",
+                        "type": "string"
                       }
                     },
                     "required": [
-                      "code",
+                      "teamId",
                       "idempotencyKey"
                     ],
                     "type": "object"
@@ -1426,25 +1408,71 @@
         ]
       }
     },
-    "/v1/pairings": {
-      "post": {
-        "operationId": "startAgentServerPairing",
+    "/v1/operator": {
+      "delete": {
         "responses": {
-          "201": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/v1/operator/cancel": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/v1/operator/sign-in": {
+      "post": {
+        "operationId": "signInAgentServerOperator",
+        "responses": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingStarted"
+                  "properties": {
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
                 }
               }
             },
             "description": "Default Response"
-          },
-          "default": {
+          }
+        }
+      }
+    },
+    "/v1/pairings": {
+      "post": {
+        "deprecated": true,
+        "operationId": "startAgentServerPairing",
+        "responses": {
+          "410": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentServerProblem"
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "type": "object"
                 }
               }
             },
@@ -1452,12 +1480,13 @@
           }
         },
         "tags": [
-          "pairing"
+          "compatibility"
         ]
       }
     },
     "/v1/pairings/{pairingId}/claim": {
       "post": {
+        "deprecated": true,
         "operationId": "claimAgentServerPairing",
         "parameters": [
           {
@@ -1470,21 +1499,23 @@
           }
         ],
         "responses": {
-          "200": {
+          "410": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingClaimed"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentServerProblem"
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "type": "object"
                 }
               }
             },
@@ -1492,7 +1523,7 @@
           }
         },
         "tags": [
-          "pairing"
+          "compatibility"
         ]
       }
     },

@@ -37,6 +37,14 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/abort
 	AbortTaskAttempt(ctx context.Context, request OptAbortTaskAttemptReq, params AbortTaskAttemptParams) (AbortTaskAttemptRes, error)
+	// AcceptOperatorConsent invokes acceptOperatorConsent operation.
+	//
+	// POST /oauth2/consent
+	AcceptOperatorConsent(ctx context.Context, request *AcceptOperatorConsentReq) (AcceptOperatorConsentRes, error)
+	// AcceptOperatorLogin invokes acceptOperatorLogin operation.
+	//
+	// POST /oauth2/login
+	AcceptOperatorLogin(ctx context.Context, request *AcceptOperatorLoginReq) (AcceptOperatorLoginRes, error)
 	// AcceptTeamFounding invokes acceptTeamFounding operation.
 	//
 	// Accept a founding role in a team. Only valid while team is in founding status.
@@ -425,6 +433,10 @@ type Invoker interface {
 	//
 	// POST /oauth2/token
 	GetOAuth2Token(ctx context.Context) (GetOAuth2TokenRes, error)
+	// GetOperatorConsent invokes getOperatorConsent operation.
+	//
+	// GET /oauth2/consent
+	GetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (GetOperatorConsentRes, error)
 	// GetProblemType invokes getProblemType operation.
 	//
 	// Get details about a specific problem type (RFC 9457).
@@ -539,10 +551,8 @@ type Invoker interface {
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam invokes joinTeam operation.
 	//
-	// Join using an invitation and either a credential/session with team:join, or an existing agent
-	// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
-	// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
-	// replays return 409.
+	// Join using an invitation and a credential/session with team:join. Key issuance requires
+	// Idempotency-Key; secrets are returned once and completed replays return 409.
 	//
 	// POST /teams/join
 	JoinTeam(ctx context.Context, request *JoinTeamReq, params JoinTeamParams) (JoinTeamRes, error)
@@ -736,6 +746,10 @@ type Invoker interface {
 	//
 	// POST /packs/{id}/render/preview
 	PreviewRenderedPack(ctx context.Context, request *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
+	// ProvisionAgentCredential invokes provisionAgentCredential operation.
+	//
+	// POST /oauth2/provision
+	ProvisionAgentCredential(ctx context.Context, request *ProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error)
 	// RecoverAgentCredentials invokes recoverAgentCredentials operation.
 	//
 	// Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key.
@@ -1229,6 +1243,234 @@ func (c *Client) sendAbortTaskAttempt(ctx context.Context, request OptAbortTaskA
 
 	stage = "DecodeResponse"
 	result, err := decodeAbortTaskAttemptResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// AcceptOperatorConsent invokes acceptOperatorConsent operation.
+//
+// POST /oauth2/consent
+func (c *Client) AcceptOperatorConsent(ctx context.Context, request *AcceptOperatorConsentReq) (AcceptOperatorConsentRes, error) {
+	res, err := c.sendAcceptOperatorConsent(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendAcceptOperatorConsent(ctx context.Context, request *AcceptOperatorConsentReq) (res AcceptOperatorConsentRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("acceptOperatorConsent"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/oauth2/consent"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, AcceptOperatorConsentOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/oauth2/consent"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeAcceptOperatorConsentRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, AcceptOperatorConsentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeAcceptOperatorConsentResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// AcceptOperatorLogin invokes acceptOperatorLogin operation.
+//
+// POST /oauth2/login
+func (c *Client) AcceptOperatorLogin(ctx context.Context, request *AcceptOperatorLoginReq) (AcceptOperatorLoginRes, error) {
+	res, err := c.sendAcceptOperatorLogin(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendAcceptOperatorLogin(ctx context.Context, request *AcceptOperatorLoginReq) (res AcceptOperatorLoginRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("acceptOperatorLogin"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/oauth2/login"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, AcceptOperatorLoginOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/oauth2/login"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeAcceptOperatorLoginRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, AcceptOperatorLoginOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeAcceptOperatorLoginResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -11209,6 +11451,135 @@ func (c *Client) sendGetOAuth2Token(ctx context.Context) (res GetOAuth2TokenRes,
 	return result, nil
 }
 
+// GetOperatorConsent invokes getOperatorConsent operation.
+//
+// GET /oauth2/consent
+func (c *Client) GetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (GetOperatorConsentRes, error) {
+	res, err := c.sendGetOperatorConsent(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (res GetOperatorConsentRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getOperatorConsent"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/oauth2/consent"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetOperatorConsentOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/oauth2/consent"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "challenge" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "challenge",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.Challenge))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, GetOperatorConsentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetOperatorConsentResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // GetProblemType invokes getProblemType operation.
 //
 // Get details about a specific problem type (RFC 9457).
@@ -14254,10 +14625,8 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 
 // JoinTeam invokes joinTeam operation.
 //
-// Join using an invitation and either a credential/session with team:join, or an existing agent
-// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
-// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
-// replays return 409.
+// Join using an invitation and a credential/session with team:join. Key issuance requires
+// Idempotency-Key; secrets are returned once and completed replays return 409.
 //
 // POST /teams/join
 func (c *Client) JoinTeam(ctx context.Context, request *JoinTeamReq, params JoinTeamParams) (JoinTeamRes, error) {
@@ -14375,7 +14744,6 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
-				{},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20532,6 +20900,120 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 
 	stage = "DecodeResponse"
 	result, err := decodePreviewRenderedPackResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ProvisionAgentCredential invokes provisionAgentCredential operation.
+//
+// POST /oauth2/provision
+func (c *Client) ProvisionAgentCredential(ctx context.Context, request *ProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error) {
+	res, err := c.sendProvisionAgentCredential(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendProvisionAgentCredential(ctx context.Context, request *ProvisionAgentCredentialReq) (res ProvisionAgentCredentialRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("provisionAgentCredential"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/oauth2/provision"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ProvisionAgentCredentialOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/oauth2/provision"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeProvisionAgentCredentialRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, ProvisionAgentCredentialOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeProvisionAgentCredentialResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
