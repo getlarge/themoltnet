@@ -14,9 +14,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocalRuntimePage } from '../src/pages/LocalRuntimePage.js';
+import type { AgentServerProviderModel } from '../src/runtime-local/agent-server-response-validation.js';
 import { authorizeLocalControl } from '../src/runtime-local/local-control-oauth.js';
 import { localControlTokens } from '../src/runtime-local/local-control-token-cache.js';
-import type { AgentServerProviderModel } from '../src/runtime-local/agent-server-response-validation.js';
 import { createTestWrapper } from './test-query-client.js';
 
 const AGENT_SERVER = 'http://127.0.0.1:17374';

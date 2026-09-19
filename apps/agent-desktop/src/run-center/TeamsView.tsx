@@ -40,6 +40,7 @@ export function TeamsView({
   const [team, setTeam] = useState<AgentServerCatalogueTeam | null>(null);
   const [destinationTeamId, setDestinationTeamId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -48,6 +49,7 @@ export function TeamsView({
     error: boolean;
   } | null>(null);
   const inFlight = useRef(false);
+  const cancellationRequested = useRef(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   useEffect(() => {
     let current = true;
@@ -98,6 +100,7 @@ export function TeamsView({
     if (inFlight.current || (mode !== 'replace' && !destinationTeamId.trim()))
       return;
     inFlight.current = true;
+    cancellationRequested.current = false;
     const teamId = mode === 'replace' ? team!.teamId : destinationTeamId.trim();
     setConfirm(false);
     setBusy(true);
@@ -138,14 +141,17 @@ export function TeamsView({
       setTeam(null);
     } catch {
       setFeedback({
-        title: 'Enrollment could not be confirmed',
+        title: cancellationRequested.current
+          ? 'Approval cancelled'
+          : 'Enrollment could not be confirmed',
         message:
-          'Refresh team access before retrying. Check the selected team; if issuance completed, inspect local recovery status before using a fresh approval.',
-        error: true,
+          'Refresh team access before retrying. If issuance completed, inspect local recovery status before using a fresh approval.',
+        error: !cancellationRequested.current,
       });
     } finally {
       inFlight.current = false;
       setBusy(false);
+      setCancelling(false);
     }
   };
   return (
@@ -179,6 +185,7 @@ export function TeamsView({
         variant="secondary"
         disabled={busy}
         onClick={async () => {
+          cancellationRequested.current = false;
           setBusy(true);
           setFeedback(null);
           try {
@@ -192,17 +199,48 @@ export function TeamsView({
             });
           } catch {
             setFeedback({
-              title: 'Sign-in did not complete',
+              title: cancellationRequested.current
+                ? 'Approval cancelled'
+                : 'Sign-in did not complete',
               message: 'Try again and approve in Console.',
-              error: true,
+              error: !cancellationRequested.current,
             });
           } finally {
             setBusy(false);
+            setCancelling(false);
           }
         }}
       >
         Sign in for local control
       </Button>
+      {busy && actions.cancelOperatorApproval ? (
+        <Stack direction="row" gap={3} align="center" wrap>
+          <Text variant="caption" color="secondary">
+            If you closed the approval tab, cancel here to try again.
+          </Text>
+          <Button
+            variant="secondary"
+            disabled={cancelling}
+            onClick={async () => {
+              setCancelling(true);
+              cancellationRequested.current = true;
+              try {
+                await actions.cancelOperatorApproval?.();
+              } catch {
+                cancellationRequested.current = false;
+                setCancelling(false);
+                setFeedback({
+                  title: 'Cancellation could not be confirmed',
+                  message: 'Check the Server view, then try again.',
+                  error: true,
+                });
+              }
+            }}
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel approval'}
+          </Button>
+        </Stack>
+      ) : null}
       <Select
         label="Identity"
         value={identity}

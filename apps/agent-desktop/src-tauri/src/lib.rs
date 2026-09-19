@@ -183,6 +183,14 @@ async fn desktop_operator_sign_in(state: State<'_, AppState>) -> Result<(), Stri
 }
 
 #[tauri::command]
+fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
+    with_control_token(&state, |token| {
+        control::post(token, "/v1/operator/cancel", "{}")
+    })?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn desktop_enroll_team(
     state: State<'_, AppState>,
     identity: String,
@@ -655,6 +663,7 @@ pub fn run() {
             desktop_control_status,
             desktop_enroll_team,
             desktop_operator_sign_in,
+            desktop_cancel_operator_approval,
             desktop_start_run,
             desktop_stop_run,
             desktop_run_logs,

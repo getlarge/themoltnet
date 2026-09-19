@@ -86,6 +86,34 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
+  it('cancels an abandoned sign-in and enables retry after native cancellation', async () => {
+    const { data, actions } = fixture();
+    let rejectApproval!: (error: Error) => void;
+    const signIn = vi.fn(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectApproval = reject;
+        }),
+    );
+    const cancel = vi.fn(async () => {
+      rejectApproval(new Error('Approval cancelled'));
+    });
+    actions.signInOperator = signIn;
+    actions.cancelOperatorApproval = cancel;
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in for local control' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cancel approval' }),
+    );
+    expect(await screen.findByText('Approval cancelled')).toBeInTheDocument();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', { name: 'Sign in for local control' }),
+    ).toBeEnabled();
+  });
   it('confirms the exact replacement and leaves active runs alone', async () => {
     const { data, actions } = fixture();
     show(data, actions);

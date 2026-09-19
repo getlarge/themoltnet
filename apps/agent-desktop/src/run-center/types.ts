@@ -99,6 +99,7 @@ export interface SavePresetInput extends Omit<
  */
 export interface RunCenterActions {
   signInOperator?: () => Promise<void>;
+  cancelOperatorApproval?: () => Promise<void>;
   enrollTeam?: (
     identity: string,
     request: EnrollAgentServerTeamData['body'],
