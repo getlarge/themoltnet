@@ -424,9 +424,14 @@ describe('Hook routes', () => {
       });
     });
 
-    it.each(['moltnet:local-control', 'moltnet:provision'])(
-      'preserves only validated administrative %s consent claims',
-      async (scope) => {
+    it.each(
+      ['moltnet:local-control', 'moltnet:provision'].flatMap((scope) => [
+        { scope, granted: [scope] },
+        { scope, granted: [] },
+      ]),
+    )(
+      'preserves validated $scope consent with hook scopes $granted',
+      async ({ scope, granted }) => {
         vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
         try {
           vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
@@ -457,6 +462,7 @@ describe('Hook routes', () => {
                   'moltnet:identity_id': HUMAN_IDENTITY_ID,
                   'moltnet:subject_type': 'human',
                   'moltnet:instance': OWNER_ID,
+                  'moltnet:approved_scope': scope,
                   unapproved: 'must-not-survive',
                   ...(scope === 'moltnet:provision'
                     ? { 'moltnet:provisioning': provisioning }
@@ -466,7 +472,7 @@ describe('Hook routes', () => {
               request: {
                 client_id: 'native-client',
                 grant_types: ['authorization_code'],
-                granted_scopes: [scope],
+                granted_scopes: granted,
               },
             },
           });
@@ -480,6 +486,73 @@ describe('Hook routes', () => {
               ? { 'moltnet:provisioning': provisioning }
               : {}),
           });
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      },
+    );
+
+    it.each([
+      { approved: undefined, granted: [] },
+      { approved: undefined, granted: ['moltnet:local-control'] },
+      { approved: ['moltnet:local-control'], granted: [] },
+      { approved: 'diary:manage', granted: [] },
+      { approved: 'moltnet:local-control', granted: undefined },
+      { approved: 'moltnet:local-control', granted: 'moltnet:local-control' },
+      { approved: 'moltnet:local-control', granted: ['moltnet:provision'] },
+      {
+        approved: 'moltnet:local-control',
+        granted: ['moltnet:local-control', 'diary:manage'],
+      },
+      {
+        approved: 'moltnet:provision',
+        granted: [],
+        clientId: 'console-client',
+      },
+    ])(
+      'rejects invalid administrative scope binding $approved / $granted',
+      async ({ approved, granted, clientId = 'native-client' }) => {
+        vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
+        vi.stubEnv('MOLTNET_CONSOLE_OAUTH_CLIENT_ID', 'console-client');
+        try {
+          vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+            client_id: clientId,
+            metadata: {},
+          });
+          const response = await app.inject({
+            method: 'POST',
+            url: '/hooks/hydra/token-exchange',
+            headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+            payload: {
+              session: {
+                id_token: { subject: HUMAN_IDENTITY_ID },
+                extra: {
+                  'moltnet:identity_id': HUMAN_IDENTITY_ID,
+                  'moltnet:subject_type': 'human',
+                  'moltnet:instance': OWNER_ID,
+                  'moltnet:approved_scope': approved,
+                  ...(approved === 'moltnet:provision'
+                    ? {
+                        'moltnet:provisioning': {
+                          agentId: OWNER_ID,
+                          teamId: HUMAN_ID,
+                          operation: 'enroll',
+                          scopes: ['task:execute'],
+                          idempotencyKey: 'approved-request',
+                        },
+                      }
+                    : {}),
+                },
+              },
+              request: {
+                client_id: clientId,
+                grant_types: ['authorization_code'],
+                granted_scopes: granted,
+              },
+            },
+          });
+          expect([400, 403]).toContain(response.statusCode);
+          expect(mocks.humanRepository.findByIdentityId).not.toHaveBeenCalled();
         } finally {
           vi.unstubAllEnvs();
         }

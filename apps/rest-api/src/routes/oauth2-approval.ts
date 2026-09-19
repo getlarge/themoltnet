@@ -281,6 +281,7 @@ export async function oauth2ApprovalRoutes(
               'moltnet:human_id': result.human.humanId,
               'moltnet:subject_type': 'human',
               'moltnet:instance': result.instance,
+              'moltnet:approved_scope': result.consent.requested_scope![0],
               ...(result.grant ? { 'moltnet:provisioning': result.grant } : {}),
             },
           },
