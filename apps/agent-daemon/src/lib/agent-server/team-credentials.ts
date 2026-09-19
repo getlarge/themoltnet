@@ -5,6 +5,12 @@ import { connect } from '@themoltnet/sdk/node';
 import { type ActivatedAgent, loadAgentActivation } from './identity.js';
 import type { AgentServerStore } from './store.js';
 
+export const AGENT_SERVER_REQUIRED_SCOPES = [
+  ...DAEMON_MINIMUM_SCOPES,
+  'team:read',
+  'diary:read',
+];
+
 export interface CredentialMetadata {
   keyId: string;
   /** Missing means the API predates expiry metadata; null explicitly means no expiry. */
@@ -134,14 +140,15 @@ export async function verifyTeamActivation(
   };
   // Last verification is display information, never an authorization cache.
   store.writeCredentialMetadata(alias, teamId, metadata);
-  const missing = [...DAEMON_MINIMUM_SCOPES, 'team:read', 'diary:read'].filter(
+  const missing = AGENT_SERVER_REQUIRED_SCOPES.filter(
     (scope) => !metadata.scopes.includes(scope),
   );
   if (missing.length)
     throw new TeamCredentialError({
       code: 'agent_key_scopes_insufficient',
       message: `This credential lacks ${missing.join(', ')}.`,
-      remedy: 'Renew with an invitation carrying the required desktop scopes.',
+      remedy:
+        'Renew through Console approval with the required desktop scopes.',
     });
   activated.boundTeamId = teamId;
   return captureTeamCredential(activated, { agentKey, client, metadata });

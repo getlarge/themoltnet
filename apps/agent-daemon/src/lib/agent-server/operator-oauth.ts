@@ -113,7 +113,9 @@ export class OperatorOAuth {
       audience:
         scope === LOCAL_SCOPE ? 'moltnet:agent-server' : 'moltnet:provisioning',
       requiredClaims: ['exp', 'iat', 'sub'],
-      maxTokenAge: scope === LOCAL_SCOPE ? 900 : 300,
+      // Bound effective authorization by age as well as exp. Hydra records iat
+      // before issuance completes, so exp - iat can exceed the configured TTL.
+      maxTokenAge: clientId === this.config.nativeClientId ? 300 : 900,
     });
     const claims = payload.ext as Record<string, unknown> | undefined;
     const scopes =
@@ -127,8 +129,7 @@ export class OperatorOAuth {
       payload.client_id !== clientId ||
       claims?.['moltnet:subject_type'] !== 'human' ||
       claims['moltnet:identity_id'] !== payload.sub ||
-      claims['moltnet:instance'] !== this.instance ||
-      payload.exp! - payload.iat! > (scope === LOCAL_SCOPE ? 900 : 300)
+      claims['moltnet:instance'] !== this.instance
     )
       throw new Error('Invalid operator grant');
     return {

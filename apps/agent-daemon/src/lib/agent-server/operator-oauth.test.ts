@@ -43,7 +43,9 @@ async function fixture(beforeJwks?: () => Promise<void>) {
           ? overrides.aud
           : 'moltnet:agent-server',
       )
-      .setIssuedAt()
+      .setIssuedAt(
+        typeof overrides.iat === 'number' ? overrides.iat : undefined,
+      )
       .setExpirationTime(
         typeof overrides.exp === 'number' ? overrides.exp : '15m',
       )
@@ -141,6 +143,13 @@ describe('native PKCE operator', () => {
     ).toEqual({ issuer: f.config.issuer, subject: 'human' });
     const browser = await f.token();
     await expect(f.oauth.verifyBrowser(browser)).resolves.toBeUndefined();
+    const now = Math.floor(Date.now() / 1000);
+    await expect(
+      f.oauth.verifyBrowser(await f.token({ iat: now - 1, exp: now + 900 })),
+    ).resolves.toBeUndefined();
+    await expect(
+      f.oauth.verifyBrowser(await f.token({ iat: now - 901, exp: now + 60 })),
+    ).rejects.toThrow();
     await expect(
       f.oauth.verifyBrowser(await f.token({ scp: ['diary:write'] })),
     ).rejects.toThrow();
