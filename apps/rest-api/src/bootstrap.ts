@@ -39,6 +39,7 @@ import {
   createGroupRepository,
   createHumanRepository,
   createNonceRepository,
+  createProjectRepository,
   createRenderedPackRepository,
   createRuntimeModelRepository,
   createRuntimePolicyRepository,
@@ -346,6 +347,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const runtimePolicySnapshotRepository = createRuntimePolicySnapshotRepository(
     dbConnection.db,
   );
+  const projectRepository = createProjectRepository(dbConnection.db);
   const groupRepository = createGroupRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
@@ -439,6 +441,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       headObject: (key) => taskArtifactStorage.headObject(key),
     },
     diaryRepository,
+    projectRepository,
     agentRepository,
     runtimeProfileRepository,
     runtimePolicyService,
@@ -776,6 +779,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     humanRepository,
     cryptoService,
     groupRepository,
+    projectRepository,
     teamRepository,
     diaryTransferRepository,
     runtimeProfileRepository,

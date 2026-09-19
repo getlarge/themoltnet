@@ -186,6 +186,15 @@ export function createTaskService(deps: TaskServiceDeps) {
       const initialRow = await findTaskForTeam(taskId, teamId);
       if (!initialRow)
         throw new TaskServiceError('not_found', 'Task not found');
+      if (
+        (initialRow.projectId ?? null) !==
+        (executorAttestation.projectId ?? null)
+      ) {
+        throw new TaskServiceError(
+          'conflict',
+          'Run project does not match task project',
+        );
+      }
       let claimAuthorized = false;
       if (initialRow?.status === 'waiting') {
         const canClaimWaiting = await permissionChecker.canClaimTask(
@@ -365,10 +374,14 @@ export function createTaskService(deps: TaskServiceDeps) {
               );
             }
           }
-          const claimed = await taskRepository.claimIfQueued(taskId, {
-            claimAgentId: callerId,
-            claimExpiresAt,
-          });
+          const claimed = await taskRepository.claimIfQueued(
+            taskId,
+            {
+              claimAgentId: callerId,
+              claimExpiresAt,
+            },
+            executorAttestation.projectId ?? null,
+          );
           if (!claimed) return null;
 
           await persistExecutorVerification(claimedExecutor, taskRepository);

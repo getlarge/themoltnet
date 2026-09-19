@@ -4048,6 +4048,7 @@ type ClaimTaskReq struct {
 	ExecutorSignature   OptString                       `json:"executorSignature"`
 	LeaseTtlSec         OptInt                          `json:"leaseTtlSec"`
 	ProfileId           OptUUID                         `json:"profileId"`
+	ProjectId           NilUUID                         `json:"projectId"`
 }
 
 // GetExecutorFingerprint returns the value of ExecutorFingerprint.
@@ -4075,6 +4076,11 @@ func (s *ClaimTaskReq) GetProfileId() OptUUID {
 	return s.ProfileId
 }
 
+// GetProjectId returns the value of ProjectId.
+func (s *ClaimTaskReq) GetProjectId() NilUUID {
+	return s.ProjectId
+}
+
 // SetExecutorFingerprint sets the value of ExecutorFingerprint.
 func (s *ClaimTaskReq) SetExecutorFingerprint(val OptString) {
 	s.ExecutorFingerprint = val
@@ -4098,6 +4104,11 @@ func (s *ClaimTaskReq) SetLeaseTtlSec(val OptInt) {
 // SetProfileId sets the value of ProfileId.
 func (s *ClaimTaskReq) SetProfileId(val OptUUID) {
 	s.ProfileId = val
+}
+
+// SetProjectId sets the value of ProjectId.
+func (s *ClaimTaskReq) SetProjectId(val NilUUID) {
+	s.ProjectId = val
 }
 
 type ClaimTaskReqExecutorManifest map[string]jx.Raw
@@ -6315,6 +6326,163 @@ type CreateGroupUnauthorized ProblemDetails
 
 func (*CreateGroupUnauthorized) createGroupRes() {}
 
+type CreateProjectBadRequest ProblemDetails
+
+func (*CreateProjectBadRequest) createProjectRes() {}
+
+type CreateProjectConflict ProblemDetails
+
+func (*CreateProjectConflict) createProjectRes() {}
+
+type CreateProjectCreated struct {
+	Archived       bool      `json:"archived"`
+	CreatedAt      time.Time `json:"createdAt"`
+	DefaultDiaryId NilUUID   `json:"defaultDiaryId"`
+	Description    NilString `json:"description"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	TeamId         uuid.UUID `json:"teamId"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
+
+// GetArchived returns the value of Archived.
+func (s *CreateProjectCreated) GetArchived() bool {
+	return s.Archived
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *CreateProjectCreated) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDefaultDiaryId returns the value of DefaultDiaryId.
+func (s *CreateProjectCreated) GetDefaultDiaryId() NilUUID {
+	return s.DefaultDiaryId
+}
+
+// GetDescription returns the value of Description.
+func (s *CreateProjectCreated) GetDescription() NilString {
+	return s.Description
+}
+
+// GetID returns the value of ID.
+func (s *CreateProjectCreated) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *CreateProjectCreated) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *CreateProjectCreated) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *CreateProjectCreated) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetArchived sets the value of Archived.
+func (s *CreateProjectCreated) SetArchived(val bool) {
+	s.Archived = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *CreateProjectCreated) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDefaultDiaryId sets the value of DefaultDiaryId.
+func (s *CreateProjectCreated) SetDefaultDiaryId(val NilUUID) {
+	s.DefaultDiaryId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *CreateProjectCreated) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetID sets the value of ID.
+func (s *CreateProjectCreated) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateProjectCreated) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *CreateProjectCreated) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *CreateProjectCreated) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*CreateProjectCreated) createProjectRes() {}
+
+type CreateProjectForbidden ProblemDetails
+
+func (*CreateProjectForbidden) createProjectRes() {}
+
+type CreateProjectNotFound ProblemDetails
+
+func (*CreateProjectNotFound) createProjectRes() {}
+
+type CreateProjectReq struct {
+	DefaultDiaryId OptNilUUID   `json:"defaultDiaryId"`
+	Description    OptNilString `json:"description"`
+	Name           string       `json:"name"`
+}
+
+// GetDefaultDiaryId returns the value of DefaultDiaryId.
+func (s *CreateProjectReq) GetDefaultDiaryId() OptNilUUID {
+	return s.DefaultDiaryId
+}
+
+// GetDescription returns the value of Description.
+func (s *CreateProjectReq) GetDescription() OptNilString {
+	return s.Description
+}
+
+// GetName returns the value of Name.
+func (s *CreateProjectReq) GetName() string {
+	return s.Name
+}
+
+// SetDefaultDiaryId sets the value of DefaultDiaryId.
+func (s *CreateProjectReq) SetDefaultDiaryId(val OptNilUUID) {
+	s.DefaultDiaryId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *CreateProjectReq) SetDescription(val OptNilString) {
+	s.Description = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateProjectReq) SetName(val string) {
+	s.Name = val
+}
+
+type CreateProjectServiceUnavailable ProblemDetails
+
+func (*CreateProjectServiceUnavailable) createProjectRes() {}
+
+type CreateProjectTooManyRequests ProblemDetails
+
+func (*CreateProjectTooManyRequests) createProjectRes() {}
+
+type CreateProjectUnauthorized ProblemDetails
+
+func (*CreateProjectUnauthorized) createProjectRes() {}
+
 type CreateRuntimeModelBadRequest ProblemDetails
 
 func (*CreateRuntimeModelBadRequest) createRuntimeModelRes() {}
@@ -7851,6 +8019,7 @@ type CreateTaskReq struct {
 	ExpiresInSec               OptInt                `json:"expiresInSec"`
 	Input                      CreateTaskReqInput    `json:"input"`
 	MaxAttempts                OptInt                `json:"maxAttempts"`
+	ProjectId                  OptNilUUID            `json:"projectId"`
 	References                 []TaskRef             `json:"references"`
 	RequiredExecutorTrustLevel OptExecutorTrustLevel `json:"requiredExecutorTrustLevel"`
 	RunningTimeoutSec          OptInt                `json:"runningTimeoutSec"`
@@ -7897,6 +8066,11 @@ func (s *CreateTaskReq) GetInput() CreateTaskReqInput {
 // GetMaxAttempts returns the value of MaxAttempts.
 func (s *CreateTaskReq) GetMaxAttempts() OptInt {
 	return s.MaxAttempts
+}
+
+// GetProjectId returns the value of ProjectId.
+func (s *CreateTaskReq) GetProjectId() OptNilUUID {
+	return s.ProjectId
 }
 
 // GetReferences returns the value of References.
@@ -7967,6 +8141,11 @@ func (s *CreateTaskReq) SetInput(val CreateTaskReqInput) {
 // SetMaxAttempts sets the value of MaxAttempts.
 func (s *CreateTaskReq) SetMaxAttempts(val OptInt) {
 	s.MaxAttempts = val
+}
+
+// SetProjectId sets the value of ProjectId.
+func (s *CreateTaskReq) SetProjectId(val OptNilUUID) {
+	s.ProjectId = val
 }
 
 // SetReferences sets the value of References.
@@ -23832,6 +24011,127 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetProjectBadRequest ProblemDetails
+
+func (*GetProjectBadRequest) getProjectRes() {}
+
+type GetProjectConflict ProblemDetails
+
+func (*GetProjectConflict) getProjectRes() {}
+
+type GetProjectForbidden ProblemDetails
+
+func (*GetProjectForbidden) getProjectRes() {}
+
+type GetProjectNotFound ProblemDetails
+
+func (*GetProjectNotFound) getProjectRes() {}
+
+type GetProjectOK struct {
+	Archived       bool      `json:"archived"`
+	CreatedAt      time.Time `json:"createdAt"`
+	DefaultDiaryId NilUUID   `json:"defaultDiaryId"`
+	Description    NilString `json:"description"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	TeamId         uuid.UUID `json:"teamId"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
+
+// GetArchived returns the value of Archived.
+func (s *GetProjectOK) GetArchived() bool {
+	return s.Archived
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *GetProjectOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDefaultDiaryId returns the value of DefaultDiaryId.
+func (s *GetProjectOK) GetDefaultDiaryId() NilUUID {
+	return s.DefaultDiaryId
+}
+
+// GetDescription returns the value of Description.
+func (s *GetProjectOK) GetDescription() NilString {
+	return s.Description
+}
+
+// GetID returns the value of ID.
+func (s *GetProjectOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *GetProjectOK) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *GetProjectOK) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *GetProjectOK) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetArchived sets the value of Archived.
+func (s *GetProjectOK) SetArchived(val bool) {
+	s.Archived = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *GetProjectOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDefaultDiaryId sets the value of DefaultDiaryId.
+func (s *GetProjectOK) SetDefaultDiaryId(val NilUUID) {
+	s.DefaultDiaryId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *GetProjectOK) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetID sets the value of ID.
+func (s *GetProjectOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *GetProjectOK) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *GetProjectOK) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *GetProjectOK) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*GetProjectOK) getProjectRes() {}
+
+type GetProjectServiceUnavailable ProblemDetails
+
+func (*GetProjectServiceUnavailable) getProjectRes() {}
+
+type GetProjectTooManyRequests ProblemDetails
+
+func (*GetProjectTooManyRequests) getProjectRes() {}
+
+type GetProjectUnauthorized ProblemDetails
+
+func (*GetProjectUnauthorized) getProjectRes() {}
+
 type GetPublicEntryBadRequest ProblemDetails
 
 func (*GetPublicEntryBadRequest) getPublicEntryRes() {}
@@ -28070,6 +28370,141 @@ func (s *ListProblemTypesOKItem) SetTitle(val OptString) {
 func (s *ListProblemTypesOKItem) SetType(val OptURI) {
 	s.Type = val
 }
+
+type ListProjectsBadRequest ProblemDetails
+
+func (*ListProjectsBadRequest) listProjectsRes() {}
+
+type ListProjectsConflict ProblemDetails
+
+func (*ListProjectsConflict) listProjectsRes() {}
+
+type ListProjectsForbidden ProblemDetails
+
+func (*ListProjectsForbidden) listProjectsRes() {}
+
+type ListProjectsNotFound ProblemDetails
+
+func (*ListProjectsNotFound) listProjectsRes() {}
+
+type ListProjectsOK struct {
+	Items []ListProjectsOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListProjectsOK) GetItems() []ListProjectsOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListProjectsOK) SetItems(val []ListProjectsOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListProjectsOK) listProjectsRes() {}
+
+type ListProjectsOKItemsItem struct {
+	Archived       bool      `json:"archived"`
+	CreatedAt      time.Time `json:"createdAt"`
+	DefaultDiaryId NilUUID   `json:"defaultDiaryId"`
+	Description    NilString `json:"description"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	TeamId         uuid.UUID `json:"teamId"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
+
+// GetArchived returns the value of Archived.
+func (s *ListProjectsOKItemsItem) GetArchived() bool {
+	return s.Archived
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ListProjectsOKItemsItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDefaultDiaryId returns the value of DefaultDiaryId.
+func (s *ListProjectsOKItemsItem) GetDefaultDiaryId() NilUUID {
+	return s.DefaultDiaryId
+}
+
+// GetDescription returns the value of Description.
+func (s *ListProjectsOKItemsItem) GetDescription() NilString {
+	return s.Description
+}
+
+// GetID returns the value of ID.
+func (s *ListProjectsOKItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *ListProjectsOKItemsItem) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *ListProjectsOKItemsItem) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *ListProjectsOKItemsItem) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetArchived sets the value of Archived.
+func (s *ListProjectsOKItemsItem) SetArchived(val bool) {
+	s.Archived = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ListProjectsOKItemsItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDefaultDiaryId sets the value of DefaultDiaryId.
+func (s *ListProjectsOKItemsItem) SetDefaultDiaryId(val NilUUID) {
+	s.DefaultDiaryId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *ListProjectsOKItemsItem) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetID sets the value of ID.
+func (s *ListProjectsOKItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *ListProjectsOKItemsItem) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *ListProjectsOKItemsItem) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *ListProjectsOKItemsItem) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+type ListProjectsServiceUnavailable ProblemDetails
+
+func (*ListProjectsServiceUnavailable) listProjectsRes() {}
+
+type ListProjectsTooManyRequests ProblemDetails
+
+func (*ListProjectsTooManyRequests) listProjectsRes() {}
+
+type ListProjectsUnauthorized ProblemDetails
+
+func (*ListProjectsUnauthorized) listProjectsRes() {}
 
 type ListRuntimeModelsServiceUnavailable ProblemDetails
 
@@ -35003,52 +35438,6 @@ func (o OptClaimCondition) Or(d ClaimCondition) ClaimCondition {
 	return d
 }
 
-// NewOptClaimTaskReq returns new OptClaimTaskReq with value set to v.
-func NewOptClaimTaskReq(v ClaimTaskReq) OptClaimTaskReq {
-	return OptClaimTaskReq{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptClaimTaskReq is optional ClaimTaskReq.
-type OptClaimTaskReq struct {
-	Value ClaimTaskReq
-	Set   bool
-}
-
-// IsSet returns true if OptClaimTaskReq was set.
-func (o OptClaimTaskReq) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptClaimTaskReq) Reset() {
-	var v ClaimTaskReq
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptClaimTaskReq) SetTo(v ClaimTaskReq) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptClaimTaskReq) Get() (v ClaimTaskReq, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptClaimTaskReq) Or(d ClaimTaskReq) ClaimTaskReq {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptClaimTaskReqExecutorManifest returns new OptClaimTaskReqExecutorManifest with value set to v.
 func NewOptClaimTaskReqExecutorManifest(v ClaimTaskReqExecutorManifest) OptClaimTaskReqExecutorManifest {
 	return OptClaimTaskReqExecutorManifest{
@@ -39997,6 +40386,52 @@ func (o OptUpdateDiaryReqVisibility) Get() (v UpdateDiaryReqVisibility, ok bool)
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateDiaryReqVisibility) Or(d UpdateDiaryReqVisibility) UpdateDiaryReqVisibility {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateProjectReq returns new OptUpdateProjectReq with value set to v.
+func NewOptUpdateProjectReq(v UpdateProjectReq) OptUpdateProjectReq {
+	return OptUpdateProjectReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateProjectReq is optional UpdateProjectReq.
+type OptUpdateProjectReq struct {
+	Value UpdateProjectReq
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateProjectReq was set.
+func (o OptUpdateProjectReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateProjectReq) Reset() {
+	var v UpdateProjectReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateProjectReq) SetTo(v UpdateProjectReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateProjectReq) Get() (v UpdateProjectReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateProjectReq) Or(d UpdateProjectReq) UpdateProjectReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -53186,6 +53621,7 @@ type Task struct {
 	InputSchemaCid             string                         `json:"inputSchemaCid"`
 	MaxAttempts                float64                        `json:"maxAttempts"`
 	OutputKind                 TaskOutputKind                 `json:"outputKind"`
+	ProjectId                  NilUUID                        `json:"projectId"`
 	ProposedByAgentId          NilUUID                        `json:"proposedByAgentId"`
 	ProposedByHumanId          NilUUID                        `json:"proposedByHumanId"`
 	QueuedAt                   time.Time                      `json:"queuedAt"`
@@ -53282,6 +53718,11 @@ func (s *Task) GetMaxAttempts() float64 {
 // GetOutputKind returns the value of OutputKind.
 func (s *Task) GetOutputKind() TaskOutputKind {
 	return s.OutputKind
+}
+
+// GetProjectId returns the value of ProjectId.
+func (s *Task) GetProjectId() NilUUID {
+	return s.ProjectId
 }
 
 // GetProposedByAgentId returns the value of ProposedByAgentId.
@@ -53422,6 +53863,11 @@ func (s *Task) SetMaxAttempts(val float64) {
 // SetOutputKind sets the value of OutputKind.
 func (s *Task) SetOutputKind(val TaskOutputKind) {
 	s.OutputKind = val
+}
+
+// SetProjectId sets the value of ProjectId.
+func (s *Task) SetProjectId(val NilUUID) {
+	s.ProjectId = val
 }
 
 // SetProposedByAgentId sets the value of ProposedByAgentId.
@@ -56924,6 +57370,174 @@ func (*UpdateEntryRelationStatusTooManyRequests) updateEntryRelationStatusRes() 
 type UpdateEntryRelationStatusUnauthorized ProblemDetails
 
 func (*UpdateEntryRelationStatusUnauthorized) updateEntryRelationStatusRes() {}
+
+type UpdateProjectBadRequest ProblemDetails
+
+func (*UpdateProjectBadRequest) updateProjectRes() {}
+
+type UpdateProjectConflict ProblemDetails
+
+func (*UpdateProjectConflict) updateProjectRes() {}
+
+type UpdateProjectForbidden ProblemDetails
+
+func (*UpdateProjectForbidden) updateProjectRes() {}
+
+type UpdateProjectNotFound ProblemDetails
+
+func (*UpdateProjectNotFound) updateProjectRes() {}
+
+type UpdateProjectOK struct {
+	Archived       bool      `json:"archived"`
+	CreatedAt      time.Time `json:"createdAt"`
+	DefaultDiaryId NilUUID   `json:"defaultDiaryId"`
+	Description    NilString `json:"description"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	TeamId         uuid.UUID `json:"teamId"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
+
+// GetArchived returns the value of Archived.
+func (s *UpdateProjectOK) GetArchived() bool {
+	return s.Archived
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *UpdateProjectOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDefaultDiaryId returns the value of DefaultDiaryId.
+func (s *UpdateProjectOK) GetDefaultDiaryId() NilUUID {
+	return s.DefaultDiaryId
+}
+
+// GetDescription returns the value of Description.
+func (s *UpdateProjectOK) GetDescription() NilString {
+	return s.Description
+}
+
+// GetID returns the value of ID.
+func (s *UpdateProjectOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *UpdateProjectOK) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *UpdateProjectOK) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *UpdateProjectOK) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetArchived sets the value of Archived.
+func (s *UpdateProjectOK) SetArchived(val bool) {
+	s.Archived = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *UpdateProjectOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDefaultDiaryId sets the value of DefaultDiaryId.
+func (s *UpdateProjectOK) SetDefaultDiaryId(val NilUUID) {
+	s.DefaultDiaryId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *UpdateProjectOK) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetID sets the value of ID.
+func (s *UpdateProjectOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *UpdateProjectOK) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *UpdateProjectOK) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *UpdateProjectOK) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*UpdateProjectOK) updateProjectRes() {}
+
+type UpdateProjectReq struct {
+	Archived       OptBool      `json:"archived"`
+	DefaultDiaryId OptNilUUID   `json:"defaultDiaryId"`
+	Description    OptNilString `json:"description"`
+	Name           OptString    `json:"name"`
+}
+
+// GetArchived returns the value of Archived.
+func (s *UpdateProjectReq) GetArchived() OptBool {
+	return s.Archived
+}
+
+// GetDefaultDiaryId returns the value of DefaultDiaryId.
+func (s *UpdateProjectReq) GetDefaultDiaryId() OptNilUUID {
+	return s.DefaultDiaryId
+}
+
+// GetDescription returns the value of Description.
+func (s *UpdateProjectReq) GetDescription() OptNilString {
+	return s.Description
+}
+
+// GetName returns the value of Name.
+func (s *UpdateProjectReq) GetName() OptString {
+	return s.Name
+}
+
+// SetArchived sets the value of Archived.
+func (s *UpdateProjectReq) SetArchived(val OptBool) {
+	s.Archived = val
+}
+
+// SetDefaultDiaryId sets the value of DefaultDiaryId.
+func (s *UpdateProjectReq) SetDefaultDiaryId(val OptNilUUID) {
+	s.DefaultDiaryId = val
+}
+
+// SetDescription sets the value of Description.
+func (s *UpdateProjectReq) SetDescription(val OptNilString) {
+	s.Description = val
+}
+
+// SetName sets the value of Name.
+func (s *UpdateProjectReq) SetName(val OptString) {
+	s.Name = val
+}
+
+type UpdateProjectServiceUnavailable ProblemDetails
+
+func (*UpdateProjectServiceUnavailable) updateProjectRes() {}
+
+type UpdateProjectTooManyRequests ProblemDetails
+
+func (*UpdateProjectTooManyRequests) updateProjectRes() {}
+
+type UpdateProjectUnauthorized ProblemDetails
+
+func (*UpdateProjectUnauthorized) updateProjectRes() {}
 
 type UpdateRenderedPackBadRequest ProblemDetails
 

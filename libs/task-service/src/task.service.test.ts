@@ -1182,6 +1182,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
         claimAgentId: AGENT_ID,
         claimExpiresAt: expect.any(Date) as Date,
       }),
+      null,
     );
     const claimInput = mocks.taskRepository.claimIfQueued.mock.calls[0]?.[1];
     const claimExpiresAtMs = claimInput?.claimExpiresAt?.getTime();
@@ -2797,5 +2798,142 @@ describe('createTaskService.complete — completion signature', () => {
       'progress',
       expect.any(String),
     );
+  });
+});
+
+describe('project task routing', () => {
+  it.each([undefined, null, OTHER_TEAM_ID])(
+    'rejects claim project %s for project-scoped work',
+    async (projectId) => {
+      const row = {
+        ...makeJudgeTask(JUDGE_TASK, 'queued'),
+        projectId: PROFILE_ID,
+      };
+      const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: row } });
+      const service = createTaskService(
+        mocks as unknown as Parameters<typeof createTaskService>[0],
+      );
+      await expect(
+        service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+          projectId,
+        } as never),
+      ).rejects.toThrow(/project/i);
+      expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects a project worker claiming General work', async () => {
+    const mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: {
+          ...makeJudgeTask(JUDGE_TASK, 'queued'),
+          projectId: null,
+        } as DbTask,
+      },
+    });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+        projectId: PROFILE_ID,
+      } as never),
+    ).rejects.toThrow(/project/i);
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+  it('passes the matching project into the atomic claim transition', async () => {
+    const mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: {
+          ...makeJudgeTask(JUDGE_TASK, 'queued'),
+          projectId: PROFILE_ID,
+        } as DbTask,
+      },
+    });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+      projectId: PROFILE_ID,
+    } as never);
+    expect(mocks.taskRepository.claimIfQueued).toHaveBeenCalledWith(
+      JUDGE_TASK,
+      expect.any(Object),
+      PROFILE_ID,
+    );
+  });
+  it('validates a project before creating a task', async () => {
+    const mocks = makeMocks();
+    const projectRepository = {
+      findById: vi.fn().mockResolvedValue({
+        id: PROFILE_ID,
+        teamId: OTHER_TEAM_ID,
+        archived: false,
+      }),
+    };
+    const service = createTaskService({
+      ...mocks,
+      projectRepository,
+    } as unknown as Parameters<typeof createTaskService>[0]);
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        projectId: PROFILE_ID,
+      } as never),
+    ).rejects.toThrow(/project/i);
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('project creation identity', () => {
+  it('keeps the input CID stable but rejects changing project on idempotent replay', async () => {
+    const mocks = makeMocks();
+    const projectRepository = {
+      findById: vi.fn().mockImplementation(async (id: string) => ({
+        id,
+        teamId: TEAM_ID,
+        archived: false,
+      })),
+    };
+    const service = createTaskService({
+      ...mocks,
+      projectRepository,
+    } as unknown as Parameters<typeof createTaskService>[0]);
+    const input = {
+      ...fulfillCreateInput(),
+      projectId: PROFILE_ID,
+      idempotencyKey: 'project-replay',
+    };
+    await service.create(input as never);
+    const row = mocks.taskRepository.create.mock.calls[0][0] as {
+      projectId: string;
+      input: unknown;
+      inputCid: string;
+    };
+    expect(row.projectId).toBe(PROFILE_ID);
+    expect(row.inputCid).toBe(await computeJsonCid(row.input));
+    await expect(
+      service.create({ ...input, projectId: null } as never),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
+  });
+
+  it('rejects new work in an archived project', async () => {
+    const mocks = makeMocks();
+    const projectRepository = {
+      findById: vi
+        .fn()
+        .mockResolvedValue({ id: PROFILE_ID, teamId: TEAM_ID, archived: true }),
+    };
+    const service = createTaskService({
+      ...mocks,
+      projectRepository,
+    } as unknown as Parameters<typeof createTaskService>[0]);
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        projectId: PROFILE_ID,
+      } as never),
+    ).rejects.toThrow(/archived/i);
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 });

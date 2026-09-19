@@ -48,6 +48,7 @@ const MOCK_TASK = {
   tags: ['observability'],
   teamId: TEAM_ID,
   diaryId: DIARY_ID,
+  projectId: null,
   outputKind: 'artifact' as const,
   input: { brief: 'Ship a task worker.' },
   inputSchemaCid: 'bafy1',
@@ -445,6 +446,16 @@ describe('GET /tasks', () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
   });
 
+  it('rejects conflicting project and General filters', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks?general=true&projectId=${PROFILE_ID}`,
+      headers: TEAM_AUTH_HEADERS,
+    });
+    expect(response.statusCode).toBe(400);
+    expect(mocks.taskService.list).not.toHaveBeenCalled();
+  });
+
   it('returns 200 with task list and derives teamId from the header', async () => {
     const response = await app.inject({
       method: 'GET',
@@ -840,12 +851,23 @@ describe('POST /tasks/:id/claim', () => {
     });
   });
 
-  it('returns 200 with task and attempt', async () => {
+  it('requires an explicit project declaration before claiming', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
       headers: TEAM_AUTH_HEADERS,
       payload: {},
+    });
+    expect(response.statusCode).toBe(400);
+    expect(mocks.taskService.claim).not.toHaveBeenCalled();
+  });
+
+  it('returns 200 with task and attempt', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tasks/${TASK_ID}/claim`,
+      headers: TEAM_AUTH_HEADERS,
+      payload: { projectId: null },
     });
 
     expect(response.statusCode).toBe(200);
@@ -873,7 +895,7 @@ describe('POST /tasks/:id/claim', () => {
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
       headers: TEAM_AUTH_HEADERS,
-      payload: {},
+      payload: { projectId: null },
     });
 
     expect(response.statusCode).toBe(409);
@@ -915,7 +937,7 @@ describe('team-bound agent key ceiling (task by-id routes)', () => {
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
       headers: TEAM_AUTH_HEADERS,
-      payload: {},
+      payload: { projectId: null },
     });
 
     expect(response.statusCode).toBe(403);
@@ -938,7 +960,7 @@ describe('team-bound agent key ceiling (task by-id routes)', () => {
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
       headers: { authorization: 'Bearer test-token' },
-      payload: {},
+      payload: { projectId: null },
     });
 
     expect(response.statusCode).toBe(200);

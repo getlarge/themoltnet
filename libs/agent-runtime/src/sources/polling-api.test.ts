@@ -70,12 +70,17 @@ describe('PollingApiTaskSource', () => {
     });
     expect(list).toHaveBeenCalledWith(
       {
+        general: true,
         status: 'queued',
         limit: 10,
       },
       { teamId: 'team-1' },
     );
-    expect(claim).toHaveBeenCalledWith(task.id, {});
+    expect(claim).toHaveBeenCalledWith(
+      task.id,
+      { projectId: null },
+      { teamId: 'team-1' },
+    );
     expect(pollingTelemetry.recordCompletedRuntimePhase).toHaveBeenCalledWith(
       'moltnet.task_source.list',
       expect.objectContaining({ 'moltnet.task_source.candidates': 1 }),
@@ -187,12 +192,24 @@ describe('PollingApiTaskSource', () => {
     expect(result?.task.id).toBe(b.id);
     expect(claim).toHaveBeenCalledTimes(2);
     expect(createClaimAttestation).not.toHaveBeenCalled();
-    expect(claim).toHaveBeenNthCalledWith(1, a.id, {
-      executorFingerprint: 'bafkrei-registered',
-    });
-    expect(claim).toHaveBeenNthCalledWith(2, b.id, {
-      executorFingerprint: 'bafkrei-registered',
-    });
+    expect(claim).toHaveBeenNthCalledWith(
+      1,
+      a.id,
+      {
+        projectId: null,
+        executorFingerprint: 'bafkrei-registered',
+      },
+      { teamId: 't' },
+    );
+    expect(claim).toHaveBeenNthCalledWith(
+      2,
+      b.id,
+      {
+        projectId: null,
+        executorFingerprint: 'bafkrei-registered',
+      },
+      { teamId: 't' },
+    );
   });
 
   it('returns null on empty queue when stopWhenEmpty is true', async () => {
@@ -306,6 +323,7 @@ describe('PollingApiTaskSource', () => {
     await expect(src.claim()).resolves.toBeNull();
     expect(list).toHaveBeenCalledWith(
       {
+        general: true,
         status: 'queued',
         correlationId: 'run-1721',
         limit: 10,
@@ -446,7 +464,9 @@ describe('PollingApiTaskSource', () => {
       task.id,
       expect.objectContaining({
         profileId,
+        projectId: null,
       }),
+      { teamId: 't' },
     );
   });
 
@@ -478,9 +498,14 @@ describe('PollingApiTaskSource', () => {
     const result = await src.claim();
 
     expect(result?.profileId).toBe(firstProfile);
-    expect(claim).toHaveBeenCalledWith(task.id, {
-      profileId: firstProfile,
-    });
+    expect(claim).toHaveBeenCalledWith(
+      task.id,
+      {
+        projectId: null,
+        profileId: firstProfile,
+      },
+      { teamId: 't' },
+    );
   });
 
   it('claims pinned tasks with the first configured allowed profile', async () => {
@@ -511,9 +536,14 @@ describe('PollingApiTaskSource', () => {
     const result = await src.claim();
 
     expect(result?.profileId).toBe(secondProfile);
-    expect(claim).toHaveBeenCalledWith(pinned.id, {
-      profileId: secondProfile,
-    });
+    expect(claim).toHaveBeenCalledWith(
+      pinned.id,
+      {
+        projectId: null,
+        profileId: secondProfile,
+      },
+      { teamId: 't' },
+    );
   });
 
   it('continues pagination when multiple profiles are configured', async () => {
@@ -632,9 +662,14 @@ describe('PollingApiTaskSource', () => {
       }),
       { teamId: 't' },
     );
-    expect(claim).toHaveBeenCalledWith(task.id, {
-      profileId: secondProfile,
-    });
+    expect(claim).toHaveBeenCalledWith(
+      task.id,
+      {
+        projectId: null,
+        profileId: secondProfile,
+      },
+      { teamId: 't' },
+    );
   });
 
   it('issues one list call with all task types when multiple are configured', async () => {
@@ -727,9 +762,14 @@ describe('PollingApiTaskSource', () => {
     expect(result?.task.id).toBe(unrestricted.id);
     // The pinned-for-other-profile task must never have been claimed.
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith(unrestricted.id, {
-      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-    });
+    expect(claim).toHaveBeenCalledWith(
+      unrestricted.id,
+      {
+        projectId: null,
+        profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      },
+      { teamId: 't' },
+    );
   });
 
   it('keeps pinned candidates whose allowedProfiles includes the selected profile', async () => {
@@ -790,7 +830,11 @@ describe('PollingApiTaskSource', () => {
     const result = await src.claim();
     expect(result?.task.id).toBe(matching.id);
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith(matching.id, {});
+    expect(claim).toHaveBeenCalledWith(
+      matching.id,
+      { projectId: null },
+      { teamId: 't' },
+    );
   });
 
   it('continues scanning pages after locally unclaimable continuations', async () => {
@@ -845,7 +889,11 @@ describe('PollingApiTaskSource', () => {
       { teamId: 't' },
     );
     expect(claim).toHaveBeenCalledOnce();
-    expect(claim).toHaveBeenCalledWith(claimable.id, {});
+    expect(claim).toHaveBeenCalledWith(
+      claimable.id,
+      { projectId: null },
+      { teamId: 't' },
+    );
   });
 
   it('claims continuations when a durable remote session exists and the local session is missing', async () => {
@@ -904,7 +952,11 @@ describe('PollingApiTaskSource', () => {
       '99999999-9999-4999-8999-999999999999',
       1,
     );
-    expect(claim).toHaveBeenCalledWith(continuation.id, {});
+    expect(claim).toHaveBeenCalledWith(
+      continuation.id,
+      { projectId: null },
+      { teamId: 't' },
+    );
   });
 
   it('skips remote-only fork continuations when the source branch is not recoverable', async () => {
@@ -999,7 +1051,11 @@ describe('PollingApiTaskSource', () => {
     const result = await src.claim();
 
     expect(result?.task.id).toBe(fork.id);
-    expect(claim).toHaveBeenCalledWith(fork.id, {});
+    expect(claim).toHaveBeenCalledWith(
+      fork.id,
+      { projectId: null },
+      { teamId: 't' },
+    );
   });
 
   it('drains only after all visible pages are locally unclaimable', async () => {
@@ -1261,4 +1317,30 @@ describe('isContinuationClaimableByThisDaemon', () => {
       ),
     ).resolves.toEqual({ claimable: true });
   });
+});
+
+it('filters and claims only the selected project', async () => {
+  const task = {
+    ...makeFulfillBriefTask({ status: 'queued' }),
+    projectId: 'project',
+  };
+  const list = vi.fn().mockResolvedValue({ items: [task], total: 1 });
+  const claim = vi.fn().mockResolvedValue({ task, attempt: { attemptN: 1 } });
+  const source = new PollingApiTaskSource({
+    agent: makeAgent(list, claim),
+    teamId: 'team',
+    projectId: 'project',
+    logger: silentLogger,
+  } as never);
+  await source.claim();
+  expect(list).toHaveBeenCalledWith(
+    expect.objectContaining({ projectId: 'project' }),
+    expect.anything(),
+  );
+  expect(claim).toHaveBeenCalledWith(
+    task.id,
+    expect.objectContaining({ projectId: 'project' }),
+    expect.anything(),
+  );
+  await source.close();
 });

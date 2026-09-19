@@ -53,6 +53,9 @@ export const CreateTaskBodySchema = Type.Object(
       }),
     ),
     diaryId: Type.String({ format: 'uuid' }),
+    projectId: Type.Optional(
+      Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    ),
     input: Type.Record(Type.String(), Type.Unknown()),
     references: Type.Optional(
       Type.Array(Type.Unsafe<TaskRefType>(Type.Ref(TaskRef.$id))),
@@ -168,6 +171,8 @@ export const ListTasksQuerySchema = Type.Object(
     profileId: Type.Optional(Type.String({ format: 'uuid' })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
+    projectId: Type.Optional(Type.String({ format: 'uuid' })),
+    general: Type.Optional(Type.Boolean()),
     proposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
     proposedByHumanId: Type.Optional(Type.String({ format: 'uuid' })),
     claimedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -227,6 +232,7 @@ export const TaskActivityAnalyticsQuerySchema = Type.Object(
 
 export const ClaimTaskBodySchema = Type.Object(
   {
+    projectId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     leaseTtlSec: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 3600, default: 300 }),
     ),
