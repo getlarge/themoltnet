@@ -143,3 +143,58 @@ it('explains diary loading failures and retries only the catalogue', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Retry diaries' }));
   expect(await screen.findByRole('option', { name: 'Notes' })).toBeDefined();
 });
+
+it('navigates project pages and resets pagination when filtering archives', async () => {
+  api.listProjects.mockImplementation(async ({ query }) => ({
+    data: {
+      items: [
+        {
+          id: String(query.offset ?? 0),
+          name: query.offset ? 'Second page' : 'First page',
+          archived: false,
+          defaultDiaryId: null,
+        },
+      ],
+      nextOffset: query.offset ? null : 50,
+    },
+  }));
+  show();
+  await screen.findByText('First page');
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole('button', { name: 'Next projects' })
+        .hasAttribute('disabled'),
+    ).toBe(false),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next projects' }));
+  await screen.findByText('Second page');
+  expect(api.listProjects).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      query: { includeArchived: false, limit: 50, offset: 50 },
+    }),
+  );
+  expect(
+    screen
+      .getByRole('button', { name: 'Next projects' })
+      .hasAttribute('disabled'),
+  ).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Previous projects' }));
+  await screen.findByText('First page');
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole('button', { name: 'Next projects' })
+        .hasAttribute('disabled'),
+    ).toBe(false),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Next projects' }));
+  await screen.findByText('Second page');
+  fireEvent.click(screen.getByLabelText('Show archived projects'));
+  await screen.findByText('First page');
+  expect(api.listProjects).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      query: { includeArchived: true, limit: 50, offset: 0 },
+    }),
+  );
+});
