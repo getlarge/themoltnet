@@ -191,7 +191,10 @@ test.describe.serial('Local runtime page', () => {
   }
   async function connectConsole(page: Page) {
     const popup = page.context().waitForEvent('page');
-    await page.getByRole('button', { name: 'Connect', exact: true }).click();
+    await page
+      .getByRole('region', { name: 'Agent Server connection' })
+      .getByRole('button', { name: 'Connect', exact: true })
+      .click();
     const approval = await popup;
     await approval
       .getByRole('button', { name: 'Approve', exact: true })
@@ -530,7 +533,9 @@ test.describe.serial('Local runtime page', () => {
     });
     await waitForAgentServerHealth(() => agentServerStderr);
     await expect(
-      page.getByRole('button', { name: 'Connect', exact: true }),
+      page
+        .getByRole('region', { name: 'Agent Server connection' })
+        .getByRole('button', { name: 'Connect', exact: true }),
     ).toBeVisible({ timeout: 30_000 });
     await connectConsole(page);
     expect(

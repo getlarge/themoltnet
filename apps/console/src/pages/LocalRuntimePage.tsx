@@ -47,7 +47,9 @@ export function LocalRuntimePage() {
 
   return (
     <Stack gap={5}>
-      <ConnectionStrip runtime={runtime} />
+      <section aria-label="Agent Server connection">
+        <ConnectionStrip runtime={runtime} />
+      </section>
       {runtime.actionError ? (
         <div role="alert">
           <Text variant="caption" color="error">
