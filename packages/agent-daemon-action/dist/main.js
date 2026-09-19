@@ -23552,7 +23552,7 @@ var createTeam = (options) => (options.client ?? client).post({
 	}
 });
 /**
-* Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
+* Join using an invitation and a credential/session with team:join. Key issuance requires Idempotency-Key; secrets are returned once and completed replays return 409.
 */
 var joinTeam = (options) => (options.client ?? client).post({
 	security: [
@@ -30901,14 +30901,7 @@ _Object_({
 _Object_({
 	code: String$1({ minLength: 1 }),
 	issueAgentKey: Optional(Literal(true)),
-	expectedTeamId: Optional(UuidSchema),
-	proof: Optional(_Object_({
-		subjectId: UuidSchema,
-		signature: String$1({
-			minLength: 1,
-			maxLength: 256
-		})
-	}, { description: "Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key." }))
+	expectedTeamId: Optional(UuidSchema)
 });
 _Object_({ role: Union([
 	Literal("manager"),
