@@ -37,6 +37,7 @@ import {
 
 // Custom vector type for pgvector (384 dimensions for e5-small-v2)
 // Drizzle doesn't have native vector support, so we use customType
+import { defineProjectsTable } from './schema/projects.js';
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
 import { defineRuntimePoliciesTable } from './schema/runtime-policies.js';
 import {
@@ -2008,42 +2009,5 @@ export type TaskAttemptActivityStats =
 export type NewTaskAttemptActivityStats =
   typeof taskAttemptActivityStats.$inferInsert;
 
-/** Shared team catalogue; source folders and setup commands remain machine-local. */
-export const projects = pgTable(
-  'projects',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-    teamId: uuid('team_id')
-      .notNull()
-      .references(() => teams.id, { onDelete: 'restrict' }),
-    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
-      onDelete: 'restrict',
-    }),
-    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
-      onDelete: 'restrict',
-    }),
-    name: varchar('name', { length: 255 }).notNull(),
-    description: text('description'),
-    defaultDiaryId: uuid('default_diary_id').references(() => diaries.id, {
-      onDelete: 'set null',
-    }),
-    archived: boolean('archived').default(false).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    uniqueIndex('projects_team_name_idx').on(table.teamId, table.name),
-    index('projects_default_diary_idx')
-      .on(table.defaultDiaryId)
-      .where(sql`${table.defaultDiaryId} IS NOT NULL`),
-    check(
-      'projects_creator_xor',
-      sql`(${table.creatorAgentId} IS NOT NULL) <> (${table.creatorHumanId} IS NOT NULL)`,
-    ),
-  ],
-);
+export const projects = defineProjectsTable({ agents, humans, teams, diaries });
 export type Project = typeof projects.$inferSelect;

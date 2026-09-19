@@ -28,6 +28,8 @@ const headers = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 const project = {
   id: ID,
   teamId: TEAM,
+  creatorAgentId: VALID_AUTH_CONTEXT.agentId,
+  creatorHumanId: null,
   name: 'Research',
   description: null,
   defaultDiaryId: null,
@@ -70,6 +72,26 @@ describe('shared team projects', () => {
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM });
+  });
+  it('returns bounded pages and an explicit next offset', async () => {
+    repository.listByTeamId.mockResolvedValue([
+      project,
+      { ...project, id: DIARY },
+    ]);
+    const response = await app.inject({
+      method: 'GET',
+      url: `/teams/${TEAM}/projects?limit=1&offset=2`,
+      headers,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      items: [{ id: ID }],
+      nextOffset: 3,
+    });
+    expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, false, {
+      limit: 2,
+      offset: 2,
+    });
   });
   it('lets team managers create projects including in personal teams', async () => {
     const response = await app.inject({
@@ -146,7 +168,10 @@ describe('shared team projects', () => {
       (await app.inject({ url: `/teams/${TEAM}/projects`, headers }))
         .statusCode,
     ).toBe(200);
-    expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, false);
+    expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, false, {
+      limit: 51,
+      offset: 0,
+    });
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(false);
     expect(
       (await app.inject({ url: `/teams/${TEAM}/projects/${ID}`, headers }))
@@ -188,7 +213,10 @@ describe('shared team projects', () => {
       url: `/teams/${TEAM}/projects?includeArchived=true`,
       headers,
     });
-    expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, true);
+    expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, true, {
+      limit: 51,
+      offset: 0,
+    });
   });
   it.each(['GET', 'POST', 'PATCH'] as const)(
     'rejects a bound credential from another team for %s',

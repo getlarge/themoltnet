@@ -3,10 +3,12 @@ import {
   type CreateProjectData,
   type CreateProjectResponse,
   getProject,
+  type GetProjectResponse,
   listProjects,
   type ListProjectsResponse,
   updateProject,
   type UpdateProjectData,
+  type UpdateProjectResponse,
 } from '@moltnet/api-client';
 
 import { type AgentContext, unwrapResult } from '../agent-context.js';
@@ -19,16 +21,16 @@ export interface ProjectsNamespace {
   ): Promise<CreateProjectResponse>;
   list(
     teamId: string,
-    options?: { includeArchived?: boolean },
+    options?: { includeArchived?: boolean; limit?: number; offset?: number },
   ): Promise<ListProjectsResponse>;
-  get(teamId: string, projectId: string): Promise<CreateProjectResponse>;
+  get(teamId: string, projectId: string): Promise<GetProjectResponse>;
   update(
     teamId: string,
     projectId: string,
     body: UpdateProjectData['body'],
-  ): Promise<CreateProjectResponse>;
-  archive(teamId: string, projectId: string): Promise<CreateProjectResponse>;
-  unarchive(teamId: string, projectId: string): Promise<CreateProjectResponse>;
+  ): Promise<UpdateProjectResponse>;
+  archive(teamId: string, projectId: string): Promise<UpdateProjectResponse>;
+  unarchive(teamId: string, projectId: string): Promise<UpdateProjectResponse>;
 }
 
 export function createProjectsNamespace({
@@ -55,7 +57,10 @@ export function createProjectsNamespace({
           auth,
           path: { id: teamId },
           headers: headers(teamId),
-          query: { includeArchived: options?.includeArchived ?? false },
+          query: {
+            ...options,
+            includeArchived: options?.includeArchived ?? false,
+          },
         }),
       );
     },

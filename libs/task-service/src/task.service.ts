@@ -186,19 +186,24 @@ export function createTaskService(deps: TaskServiceDeps) {
       const initialRow = await findTaskForTeam(taskId, teamId);
       if (!initialRow)
         throw new TaskServiceError('not_found', 'Task not found');
-      let claimAuthorized = false;
-      if (initialRow?.status === 'waiting') {
-        const canClaimWaiting = await permissionChecker.canClaimTask(
-          taskId,
-          callerId,
-          callerNs,
+      const canClaim = await permissionChecker.canClaimTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canClaim)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to claim this task',
         );
-        if (!canClaimWaiting)
-          throw new TaskServiceError(
-            'forbidden',
-            'Not authorized to claim this task',
-          );
-        claimAuthorized = true;
+      if (
+        (initialRow.projectId ?? null) !==
+        (executorAttestation.projectId ?? null)
+      ) {
+        throw new TaskServiceError(
+          'project_mismatch',
+          'Run project does not match task project',
+        );
       }
       let row =
         initialRow?.status === 'waiting'
@@ -228,28 +233,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         );
       }
 
-      if (!claimAuthorized) {
-        const canClaim = await permissionChecker.canClaimTask(
-          taskId,
-          callerId,
-          callerNs,
-        );
-        if (!canClaim)
-          throw new TaskServiceError(
-            'forbidden',
-            'Not authorized to claim this task',
-          );
-      }
-
-      if (
-        (initialRow.projectId ?? null) !==
-        (executorAttestation.projectId ?? null)
-      ) {
-        throw new TaskServiceError(
-          'conflict',
-          'Run project does not match task project',
-        );
-      }
       const allowedProfiles = (row.allowedProfiles ?? []) as {
         profileId: string;
       }[];

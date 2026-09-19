@@ -1,4 +1,4 @@
-import type { ProjectRepository, TaskRepository } from '@moltnet/database';
+import type { ProjectRepository } from '@moltnet/database';
 
 import { TaskServiceError } from './task-service.shared.js';
 
@@ -14,17 +14,16 @@ export async function resolveTaskProject(
     continuationTaskId?: string;
   },
   repositories: {
-    taskRepository: Pick<TaskRepository, 'findByIdInTeam'>;
+    resolveTask: (
+      id: string,
+    ) => Promise<{ teamId: string; projectId?: string | null } | null>;
     projectRepository: Pick<ProjectRepository, 'findById'>;
   },
 ): Promise<string | null> {
   let projectId = input.projectId ?? null;
   if (input.continuationTaskId) {
-    const parent = await repositories.taskRepository.findByIdInTeam(
-      input.continuationTaskId,
-      input.teamId,
-    );
-    if (!parent)
+    const parent = await repositories.resolveTask(input.continuationTaskId);
+    if (!parent || parent.teamId !== input.teamId)
       throw new TaskServiceError(
         'invalid',
         'Continuation parent task not found in this team',

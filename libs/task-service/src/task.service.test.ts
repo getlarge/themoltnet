@@ -37,6 +37,7 @@ const RUN_TASK = '11111111-1111-1111-1111-111111111111';
 const JUDGE_TASK = '22222222-2222-2222-2222-222222222222';
 const CORRELATION = '99999999-9999-9999-9999-999999999999';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const OTHER_PROJECT_ID = '55555555-5555-4555-8555-555555555555';
 const PROJECT_ID = '44444444-4444-4444-8444-444444444444';
 const PROFILE_DEFINITION_CID = 'bafkreiprofile';
 const OTHER_TEAM_ID = '00000000-0000-0000-0000-000000000002';
@@ -847,7 +848,7 @@ function judgeCreateInput() {
       successCriteria: rubric(),
     },
     callerId: AGENT_ID,
-    callerNs: 'agent' as const,
+    callerNs: KetoNamespace.Agent,
     callerIsAgent: true,
   };
 }
@@ -863,7 +864,7 @@ function fulfillCreateInput() {
       brief: 'Implement the feature.',
     },
     callerId: AGENT_ID,
-    callerNs: 'agent' as const,
+    callerNs: KetoNamespace.Agent,
     callerIsAgent: true,
   };
 }
@@ -1424,7 +1425,7 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
     });
     expect(
       mocks.permissionChecker.checkTaskCreatePermissions,
-    ).toHaveBeenCalledWith(TEAM_ID, DIARY_ID, AGENT_ID, 'agent');
+    ).toHaveBeenCalledWith(TEAM_ID, DIARY_ID, AGENT_ID, KetoNamespace.Agent);
     expect(mocks.diaryRepository.findById).toHaveBeenCalledWith(DIARY_ID);
     expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
@@ -2211,7 +2212,7 @@ describe('createTaskService.create — conditional claimability', () => {
     expect(mocks.permissionChecker.canViewTasks).toHaveBeenCalledWith(
       [RUN_TASK],
       AGENT_ID,
-      'agent',
+      KetoNamespace.Agent,
     );
   });
 
@@ -2242,7 +2243,7 @@ describe('createTaskService.create — conditional claimability', () => {
     expect(mocks.permissionChecker.canViewTasks).toHaveBeenCalledWith(
       [hiddenTaskId],
       AGENT_ID,
-      'agent',
+      KetoNamespace.Agent,
     );
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
@@ -2821,7 +2822,7 @@ describe('project task routing', () => {
     ).rejects.toMatchObject({ code: 'forbidden' });
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
-  it.each([undefined, null, OTHER_TEAM_ID])(
+  it.each([undefined, null, OTHER_PROJECT_ID])(
     'rejects claim project %s for project-scoped work',
     async (projectId) => {
       const row = {
@@ -2835,9 +2836,9 @@ describe('project task routing', () => {
       await expect(
         service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
           projectId,
-        } as never),
+        }),
       ).rejects.toMatchObject({
-        code: 'conflict',
+        code: 'project_mismatch',
         message: 'Run project does not match task project',
       });
       expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
@@ -2858,11 +2859,27 @@ describe('project task routing', () => {
     await expect(
       service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
         projectId: PROJECT_ID,
-      } as never),
+      }),
     ).rejects.toMatchObject({
-      code: 'conflict',
+      code: 'project_mismatch',
       message: 'Run project does not match task project',
     });
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+  it('rejects mismatched projects before expiring or promoting a task', async () => {
+    const row = {
+      ...makeJudgeTask(JUDGE_TASK, 'waiting'),
+      projectId: PROJECT_ID,
+      expiresAt: new Date(0),
+    };
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: row } });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent),
+    ).rejects.toMatchObject({ code: 'project_mismatch' });
+    expect(mocks.taskRepository.updateStatus).not.toHaveBeenCalled();
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
   it('passes the matching project into the atomic claim transition', async () => {
@@ -2879,7 +2896,7 @@ describe('project task routing', () => {
     );
     await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
       projectId: PROJECT_ID,
-    } as never);
+    });
     expect(mocks.taskRepository.claimIfQueued).toHaveBeenCalledWith(
       JUDGE_TASK,
       expect.any(Object),
@@ -2903,7 +2920,7 @@ describe('project task routing', () => {
       service.create({
         ...fulfillCreateInput(),
         projectId: PROJECT_ID,
-      } as never),
+      }),
     ).rejects.toMatchObject({ code: 'invalid' });
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
@@ -2928,7 +2945,7 @@ describe('project creation identity', () => {
       projectId: PROJECT_ID,
       idempotencyKey: 'project-replay',
     };
-    await service.create(input as never);
+    await service.create(input);
     const row = mocks.taskRepository.create.mock.calls[0][0] as {
       projectId: string;
       input: unknown;
@@ -2937,7 +2954,7 @@ describe('project creation identity', () => {
     expect(row.projectId).toBe(PROJECT_ID);
     expect(row.inputCid).toBe(await computeJsonCid(row.input));
     await expect(
-      service.create({ ...input, projectId: null } as never),
+      service.create({ ...input, projectId: null }),
     ).rejects.toMatchObject({ code: 'conflict' });
     expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
   });
@@ -2957,7 +2974,7 @@ describe('project creation identity', () => {
       service.create({
         ...fulfillCreateInput(),
         projectId: PROJECT_ID,
-      } as never),
+      }),
     ).rejects.toMatchObject({ code: 'invalid' });
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });

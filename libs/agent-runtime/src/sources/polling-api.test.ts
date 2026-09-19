@@ -70,7 +70,7 @@ describe('PollingApiTaskSource', () => {
     });
     expect(list).toHaveBeenCalledWith(
       {
-        general: true,
+        projectId: 'none',
         status: 'queued',
         limit: 10,
       },
@@ -323,7 +323,7 @@ describe('PollingApiTaskSource', () => {
     await expect(src.claim()).resolves.toBeNull();
     expect(list).toHaveBeenCalledWith(
       {
-        general: true,
+        projectId: 'none',
         status: 'queued',
         correlationId: 'run-1721',
         limit: 10,
@@ -1343,4 +1343,35 @@ it('filters and claims only the selected project', async () => {
     expect.anything(),
   );
   await source.close();
+});
+
+it('warns when a routed claim has a project mismatch', async () => {
+  const task = makeFulfillBriefTask({ status: 'queued' });
+  const logger = { ...silentLogger, warn: vi.fn(), info: vi.fn() };
+  logger.child = () => logger;
+  const list = vi
+    .fn<TasksNamespace['list']>()
+    .mockResolvedValueOnce({ items: [task], total: 1 })
+    .mockResolvedValue({ items: [], total: 0 });
+  const claim = vi.fn<TasksNamespace['claim']>().mockRejectedValue(
+    new MoltNetError('mismatch', {
+      code: 'PROJECT_MISMATCH',
+      statusCode: 409,
+    }),
+  );
+  const source = new PollingApiTaskSource({
+    agent: makeAgent(list, claim),
+    teamId: 'team',
+    stopWhenEmpty: true,
+    logger,
+  });
+  await source.claim();
+  expect(logger.info).toHaveBeenCalledWith(
+    { projectId: null },
+    'polling-api.started',
+  );
+  expect(logger.warn).toHaveBeenCalledWith(
+    expect.objectContaining({ taskId: task.id }),
+    'polling-api.project_mismatch',
+  );
 });

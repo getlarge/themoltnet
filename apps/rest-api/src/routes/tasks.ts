@@ -104,6 +104,8 @@ function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
     case 'not_found':
       return createProblem('not-found', error.message);
+    case 'project_mismatch':
+      return createProblem('project-mismatch', error.message);
     case 'conflict':
       return createProblem('conflict', error.message);
     case 'forbidden':
@@ -400,14 +402,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
-      if (request.query.general && request.query.projectId) {
-        throw createValidationProblem([
-          {
-            field: 'projectId',
-            message: 'Choose either a project or General work',
-          },
-        ]);
-      }
+
       try {
         return await fastify.taskService.list({
           teamId,
@@ -420,7 +415,8 @@ export function taskRoutes(fastify: FastifyInstance) {
           profileId: request.query.profileId,
           correlationId: request.query.correlationId,
           diaryId: request.query.diaryId,
-          projectId: request.query.general ? null : request.query.projectId,
+          projectId:
+            request.query.projectId === 'none' ? null : request.query.projectId,
           proposedByAgentId: request.query.proposedByAgentId,
           proposedByHumanId: request.query.proposedByHumanId,
           claimedByAgentId: request.query.claimedByAgentId,

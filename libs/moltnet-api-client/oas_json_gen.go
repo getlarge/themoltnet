@@ -5044,6 +5044,8 @@ func (s *BeginRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotBadRequestCodeNOTFOUND
 	case BeginRuntimeSlotBadRequestCodeCONFLICT:
 		*s = BeginRuntimeSlotBadRequestCodeCONFLICT
+	case BeginRuntimeSlotBadRequestCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotBadRequestCodePROJECTMISMATCH
 	case BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED:
@@ -5424,6 +5426,8 @@ func (s *BeginRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotConflictCodeNOTFOUND
 	case BeginRuntimeSlotConflictCodeCONFLICT:
 		*s = BeginRuntimeSlotConflictCodeCONFLICT
+	case BeginRuntimeSlotConflictCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotConflictCodePROJECTMISMATCH
 	case BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotConflictCodeVALIDATIONFAILED:
@@ -5789,6 +5793,8 @@ func (s *BeginRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotForbiddenCodeNOTFOUND
 	case BeginRuntimeSlotForbiddenCodeCONFLICT:
 		*s = BeginRuntimeSlotForbiddenCodeCONFLICT
+	case BeginRuntimeSlotForbiddenCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotForbiddenCodePROJECTMISMATCH
 	case BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED:
@@ -6154,6 +6160,8 @@ func (s *BeginRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotNotFoundCodeNOTFOUND
 	case BeginRuntimeSlotNotFoundCodeCONFLICT:
 		*s = BeginRuntimeSlotNotFoundCodeCONFLICT
+	case BeginRuntimeSlotNotFoundCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotNotFoundCodePROJECTMISMATCH
 	case BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED:
@@ -7372,6 +7380,8 @@ func (s *BeginRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotUnauthorizedCodeNOTFOUND
 	case BeginRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = BeginRuntimeSlotUnauthorizedCodeCONFLICT
+	case BeginRuntimeSlotUnauthorizedCodePROJECTMISMATCH:
+		*s = BeginRuntimeSlotUnauthorizedCodePROJECTMISMATCH
 	case BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = BeginRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
@@ -11619,6 +11629,8 @@ func (s *ConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ConflictProblemDetailsCodeNOTFOUND
 	case ConflictProblemDetailsCodeCONFLICT:
 		*s = ConflictProblemDetailsCodeCONFLICT
+	case ConflictProblemDetailsCodePROJECTMISMATCH:
+		*s = ConflictProblemDetailsCodePROJECTMISMATCH
 	case ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = ConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ConflictProblemDetailsCodeVALIDATIONFAILED:
@@ -16256,6 +16268,14 @@ func (s *CreateProjectCreated) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
 		e.FieldStart("defaultDiaryId")
 		s.DefaultDiaryId.Encode(e)
 	}
@@ -16281,15 +16301,17 @@ func (s *CreateProjectCreated) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateProjectCreated = [8]string{
+var jsonFieldsNameOfCreateProjectCreated = [10]string{
 	0: "archived",
 	1: "createdAt",
-	2: "defaultDiaryId",
-	3: "description",
-	4: "id",
-	5: "name",
-	6: "teamId",
-	7: "updatedAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
 }
 
 // Decode decodes CreateProjectCreated from json.
@@ -16297,7 +16319,7 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CreateProjectCreated to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -16325,8 +16347,28 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "defaultDiaryId":
+		case "creatorAgentId":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.DefaultDiaryId.Decode(d); err != nil {
 					return err
@@ -16336,7 +16378,7 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
 			}
 		case "description":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -16346,7 +16388,7 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -16358,7 +16400,7 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -16370,7 +16412,7 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "teamId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -16382,7 +16424,7 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -16402,8 +16444,9 @@ func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -32827,6 +32870,8 @@ func (s *DownloadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionBadRequestCodeNOTFOUND
 	case DownloadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = DownloadRuntimeSessionBadRequestCodeCONFLICT
+	case DownloadRuntimeSessionBadRequestCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionBadRequestCodePROJECTMISMATCH
 	case DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
@@ -33192,6 +33237,8 @@ func (s *DownloadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionForbiddenCodeNOTFOUND
 	case DownloadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = DownloadRuntimeSessionForbiddenCodeCONFLICT
+	case DownloadRuntimeSessionForbiddenCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionForbiddenCodePROJECTMISMATCH
 	case DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
@@ -33557,6 +33604,8 @@ func (s *DownloadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionNotFoundCodeNOTFOUND
 	case DownloadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = DownloadRuntimeSessionNotFoundCodeCONFLICT
+	case DownloadRuntimeSessionNotFoundCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionNotFoundCodePROJECTMISMATCH
 	case DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
@@ -33922,6 +33971,8 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) err
 		*s = DownloadRuntimeSessionServiceUnavailableCodeNOTFOUND
 	case DownloadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case DownloadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH
 	case DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
@@ -34287,6 +34338,8 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionUnauthorizedCodeNOTFOUND
 	case DownloadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = DownloadRuntimeSessionUnauthorizedCodeCONFLICT
+	case DownloadRuntimeSessionUnauthorizedCodePROJECTMISMATCH:
+		*s = DownloadRuntimeSessionUnauthorizedCodePROJECTMISMATCH
 	case DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
@@ -34679,6 +34732,8 @@ func (s *DownloadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactBadRequestCodeNOTFOUND
 	case DownloadTaskArtifactBadRequestCodeCONFLICT:
 		*s = DownloadTaskArtifactBadRequestCodeCONFLICT
+	case DownloadTaskArtifactBadRequestCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactBadRequestCodePROJECTMISMATCH
 	case DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED:
@@ -35071,6 +35126,8 @@ func (s *DownloadTaskArtifactByCidBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidBadRequestCodeNOTFOUND
 	case DownloadTaskArtifactByCidBadRequestCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidBadRequestCodeCONFLICT
+	case DownloadTaskArtifactByCidBadRequestCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidBadRequestCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED:
@@ -35436,6 +35493,8 @@ func (s *DownloadTaskArtifactByCidForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidForbiddenCodeNOTFOUND
 	case DownloadTaskArtifactByCidForbiddenCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidForbiddenCodeCONFLICT
+	case DownloadTaskArtifactByCidForbiddenCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidForbiddenCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED:
@@ -35801,6 +35860,8 @@ func (s *DownloadTaskArtifactByCidNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidNotFoundCodeNOTFOUND
 	case DownloadTaskArtifactByCidNotFoundCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidNotFoundCodeCONFLICT
+	case DownloadTaskArtifactByCidNotFoundCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidNotFoundCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED:
@@ -36166,6 +36227,8 @@ func (s *DownloadTaskArtifactByCidServiceUnavailableCode) Decode(d *jx.Decoder) 
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND
 	case DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT
+	case DownloadTaskArtifactByCidServiceUnavailableCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED:
@@ -36531,6 +36594,8 @@ func (s *DownloadTaskArtifactByCidUnauthorizedCode) Decode(d *jx.Decoder) error 
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND
 	case DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT
+	case DownloadTaskArtifactByCidUnauthorizedCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodePROJECTMISMATCH
 	case DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED:
@@ -36896,6 +36961,8 @@ func (s *DownloadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactForbiddenCodeNOTFOUND
 	case DownloadTaskArtifactForbiddenCodeCONFLICT:
 		*s = DownloadTaskArtifactForbiddenCodeCONFLICT
+	case DownloadTaskArtifactForbiddenCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactForbiddenCodePROJECTMISMATCH
 	case DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED:
@@ -37261,6 +37328,8 @@ func (s *DownloadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactNotFoundCodeNOTFOUND
 	case DownloadTaskArtifactNotFoundCodeCONFLICT:
 		*s = DownloadTaskArtifactNotFoundCodeCONFLICT
+	case DownloadTaskArtifactNotFoundCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactNotFoundCodePROJECTMISMATCH
 	case DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED:
@@ -37626,6 +37695,8 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = DownloadTaskArtifactServiceUnavailableCodeNOTFOUND
 	case DownloadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = DownloadTaskArtifactServiceUnavailableCodeCONFLICT
+	case DownloadTaskArtifactServiceUnavailableCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactServiceUnavailableCodePROJECTMISMATCH
 	case DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
@@ -37991,6 +38062,8 @@ func (s *DownloadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactUnauthorizedCodeNOTFOUND
 	case DownloadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = DownloadTaskArtifactUnauthorizedCodeCONFLICT
+	case DownloadTaskArtifactUnauthorizedCodePROJECTMISMATCH:
+		*s = DownloadTaskArtifactUnauthorizedCodePROJECTMISMATCH
 	case DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = DownloadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
@@ -40490,6 +40563,8 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) Decode(d *jx.Decoder) er
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptBadRequestCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED:
@@ -40855,6 +40930,8 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) Decode(d *jx.Decoder) err
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptForbiddenCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED:
@@ -41220,6 +41297,8 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) Decode(d *jx.Decoder) erro
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptNotFoundCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED:
@@ -42423,6 +42502,8 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) Decode(d *jx.Decoder) 
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeNOTFOUND
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeCONFLICT
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodePROJECTMISMATCH:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodePROJECTMISMATCH
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED:
@@ -42815,6 +42896,8 @@ func (s *FinishRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotBadRequestCodeNOTFOUND
 	case FinishRuntimeSlotBadRequestCodeCONFLICT:
 		*s = FinishRuntimeSlotBadRequestCodeCONFLICT
+	case FinishRuntimeSlotBadRequestCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotBadRequestCodePROJECTMISMATCH
 	case FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED:
@@ -43195,6 +43278,8 @@ func (s *FinishRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotConflictCodeNOTFOUND
 	case FinishRuntimeSlotConflictCodeCONFLICT:
 		*s = FinishRuntimeSlotConflictCodeCONFLICT
+	case FinishRuntimeSlotConflictCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotConflictCodePROJECTMISMATCH
 	case FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotConflictCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotConflictCodeVALIDATIONFAILED:
@@ -43560,6 +43645,8 @@ func (s *FinishRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotForbiddenCodeNOTFOUND
 	case FinishRuntimeSlotForbiddenCodeCONFLICT:
 		*s = FinishRuntimeSlotForbiddenCodeCONFLICT
+	case FinishRuntimeSlotForbiddenCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotForbiddenCodePROJECTMISMATCH
 	case FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED:
@@ -43925,6 +44012,8 @@ func (s *FinishRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotNotFoundCodeNOTFOUND
 	case FinishRuntimeSlotNotFoundCodeCONFLICT:
 		*s = FinishRuntimeSlotNotFoundCodeCONFLICT
+	case FinishRuntimeSlotNotFoundCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotNotFoundCodePROJECTMISMATCH
 	case FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED:
@@ -44999,6 +45088,8 @@ func (s *FinishRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotUnauthorizedCodeNOTFOUND
 	case FinishRuntimeSlotUnauthorizedCodeCONFLICT:
 		*s = FinishRuntimeSlotUnauthorizedCodeCONFLICT
+	case FinishRuntimeSlotUnauthorizedCodePROJECTMISMATCH:
+		*s = FinishRuntimeSlotUnauthorizedCodePROJECTMISMATCH
 	case FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = FinishRuntimeSlotUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED:
@@ -50249,6 +50340,14 @@ func (s *GetProjectOK) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
 		e.FieldStart("defaultDiaryId")
 		s.DefaultDiaryId.Encode(e)
 	}
@@ -50274,15 +50373,17 @@ func (s *GetProjectOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetProjectOK = [8]string{
+var jsonFieldsNameOfGetProjectOK = [10]string{
 	0: "archived",
 	1: "createdAt",
-	2: "defaultDiaryId",
-	3: "description",
-	4: "id",
-	5: "name",
-	6: "teamId",
-	7: "updatedAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
 }
 
 // Decode decodes GetProjectOK from json.
@@ -50290,7 +50391,7 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode GetProjectOK to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -50318,8 +50419,28 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "defaultDiaryId":
+		case "creatorAgentId":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.DefaultDiaryId.Decode(d); err != nil {
 					return err
@@ -50329,7 +50450,7 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
 			}
 		case "description":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -50339,7 +50460,7 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -50351,7 +50472,7 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -50363,7 +50484,7 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "teamId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -50375,7 +50496,7 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -50395,8 +50516,9 @@ func (s *GetProjectOK) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -52286,6 +52408,8 @@ func (s *GetRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionBadRequestCodeNOTFOUND
 	case GetRuntimeSessionBadRequestCodeCONFLICT:
 		*s = GetRuntimeSessionBadRequestCodeCONFLICT
+	case GetRuntimeSessionBadRequestCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionBadRequestCodePROJECTMISMATCH
 	case GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionBadRequestCodeVALIDATIONFAILED:
@@ -52651,6 +52775,8 @@ func (s *GetRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionForbiddenCodeNOTFOUND
 	case GetRuntimeSessionForbiddenCodeCONFLICT:
 		*s = GetRuntimeSessionForbiddenCodeCONFLICT
+	case GetRuntimeSessionForbiddenCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionForbiddenCodePROJECTMISMATCH
 	case GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionForbiddenCodeVALIDATIONFAILED:
@@ -53016,6 +53142,8 @@ func (s *GetRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionNotFoundCodeNOTFOUND
 	case GetRuntimeSessionNotFoundCodeCONFLICT:
 		*s = GetRuntimeSessionNotFoundCodeCONFLICT
+	case GetRuntimeSessionNotFoundCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionNotFoundCodePROJECTMISMATCH
 	case GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionNotFoundCodeVALIDATIONFAILED:
@@ -53899,6 +54027,8 @@ func (s *GetRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionUnauthorizedCodeNOTFOUND
 	case GetRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = GetRuntimeSessionUnauthorizedCodeCONFLICT
+	case GetRuntimeSessionUnauthorizedCodePROJECTMISMATCH:
+		*s = GetRuntimeSessionUnauthorizedCodePROJECTMISMATCH
 	case GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = GetRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
@@ -57195,6 +57325,8 @@ func (s *InjectionConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = InjectionConflictProblemDetailsCodeNOTFOUND
 	case InjectionConflictProblemDetailsCodeCONFLICT:
 		*s = InjectionConflictProblemDetailsCodeCONFLICT
+	case InjectionConflictProblemDetailsCodePROJECTMISMATCH:
+		*s = InjectionConflictProblemDetailsCodePROJECTMISMATCH
 	case InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case InjectionConflictProblemDetailsCodeVALIDATIONFAILED:
@@ -62179,10 +62311,15 @@ func (s *ListProjectsOK) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
+	{
+		e.FieldStart("nextOffset")
+		s.NextOffset.Encode(e)
+	}
 }
 
-var jsonFieldsNameOfListProjectsOK = [1]string{
+var jsonFieldsNameOfListProjectsOK = [2]string{
 	0: "items",
+	1: "nextOffset",
 }
 
 // Decode decodes ListProjectsOK from json.
@@ -62212,6 +62349,16 @@ func (s *ListProjectsOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
+		case "nextOffset":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.NextOffset.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"nextOffset\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -62222,7 +62369,7 @@ func (s *ListProjectsOK) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000001,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -62286,6 +62433,14 @@ func (s *ListProjectsOKItemsItem) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
 		e.FieldStart("defaultDiaryId")
 		s.DefaultDiaryId.Encode(e)
 	}
@@ -62311,15 +62466,17 @@ func (s *ListProjectsOKItemsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListProjectsOKItemsItem = [8]string{
+var jsonFieldsNameOfListProjectsOKItemsItem = [10]string{
 	0: "archived",
 	1: "createdAt",
-	2: "defaultDiaryId",
-	3: "description",
-	4: "id",
-	5: "name",
-	6: "teamId",
-	7: "updatedAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
 }
 
 // Decode decodes ListProjectsOKItemsItem from json.
@@ -62327,7 +62484,7 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ListProjectsOKItemsItem to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -62355,8 +62512,28 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "defaultDiaryId":
+		case "creatorAgentId":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.DefaultDiaryId.Decode(d); err != nil {
 					return err
@@ -62366,7 +62543,7 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
 			}
 		case "description":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -62376,7 +62553,7 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -62388,7 +62565,7 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -62400,7 +62577,7 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "teamId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -62412,7 +62589,7 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -62432,8 +62609,9 @@ func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -63373,6 +63551,8 @@ func (s *ListRuntimeSlotsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsBadRequestCodeNOTFOUND
 	case ListRuntimeSlotsBadRequestCodeCONFLICT:
 		*s = ListRuntimeSlotsBadRequestCodeCONFLICT
+	case ListRuntimeSlotsBadRequestCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsBadRequestCodePROJECTMISMATCH
 	case ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED:
@@ -63738,6 +63918,8 @@ func (s *ListRuntimeSlotsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsForbiddenCodeNOTFOUND
 	case ListRuntimeSlotsForbiddenCodeCONFLICT:
 		*s = ListRuntimeSlotsForbiddenCodeCONFLICT
+	case ListRuntimeSlotsForbiddenCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsForbiddenCodePROJECTMISMATCH
 	case ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED:
@@ -64103,6 +64285,8 @@ func (s *ListRuntimeSlotsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsNotFoundCodeNOTFOUND
 	case ListRuntimeSlotsNotFoundCodeCONFLICT:
 		*s = ListRuntimeSlotsNotFoundCodeCONFLICT
+	case ListRuntimeSlotsNotFoundCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsNotFoundCodePROJECTMISMATCH
 	case ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED:
@@ -65412,6 +65596,8 @@ func (s *ListRuntimeSlotsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsUnauthorizedCodeNOTFOUND
 	case ListRuntimeSlotsUnauthorizedCodeCONFLICT:
 		*s = ListRuntimeSlotsUnauthorizedCodeCONFLICT
+	case ListRuntimeSlotsUnauthorizedCodePROJECTMISMATCH:
+		*s = ListRuntimeSlotsUnauthorizedCodePROJECTMISMATCH
 	case ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListRuntimeSlotsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED:
@@ -66146,6 +66332,8 @@ func (s *ListTaskArtifactsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsBadRequestCodeNOTFOUND
 	case ListTaskArtifactsBadRequestCodeCONFLICT:
 		*s = ListTaskArtifactsBadRequestCodeCONFLICT
+	case ListTaskArtifactsBadRequestCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsBadRequestCodePROJECTMISMATCH
 	case ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsBadRequestCodeVALIDATIONFAILED:
@@ -66511,6 +66699,8 @@ func (s *ListTaskArtifactsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsForbiddenCodeNOTFOUND
 	case ListTaskArtifactsForbiddenCodeCONFLICT:
 		*s = ListTaskArtifactsForbiddenCodeCONFLICT
+	case ListTaskArtifactsForbiddenCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsForbiddenCodePROJECTMISMATCH
 	case ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsForbiddenCodeVALIDATIONFAILED:
@@ -66876,6 +67066,8 @@ func (s *ListTaskArtifactsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsNotFoundCodeNOTFOUND
 	case ListTaskArtifactsNotFoundCodeCONFLICT:
 		*s = ListTaskArtifactsNotFoundCodeCONFLICT
+	case ListTaskArtifactsNotFoundCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsNotFoundCodePROJECTMISMATCH
 	case ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsNotFoundCodeVALIDATIONFAILED:
@@ -67731,6 +67923,8 @@ func (s *ListTaskArtifactsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsUnauthorizedCodeNOTFOUND
 	case ListTaskArtifactsUnauthorizedCodeCONFLICT:
 		*s = ListTaskArtifactsUnauthorizedCodeCONFLICT
+	case ListTaskArtifactsUnauthorizedCodePROJECTMISMATCH:
+		*s = ListTaskArtifactsUnauthorizedCodePROJECTMISMATCH
 	case ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = ListTaskArtifactsUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED:
@@ -84633,6 +84827,8 @@ func (s *ProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ProblemDetailsCodeNOTFOUND
 	case ProblemDetailsCodeCONFLICT:
 		*s = ProblemDetailsCodeCONFLICT
+	case ProblemDetailsCodePROJECTMISMATCH:
+		*s = ProblemDetailsCodePROJECTMISMATCH
 	case ProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = ProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ProblemDetailsCodeVALIDATIONFAILED:
@@ -105624,6 +105820,8 @@ func (s *StageTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactBadRequestCodeNOTFOUND
 	case StageTaskArtifactBadRequestCodeCONFLICT:
 		*s = StageTaskArtifactBadRequestCodeCONFLICT
+	case StageTaskArtifactBadRequestCodePROJECTMISMATCH:
+		*s = StageTaskArtifactBadRequestCodePROJECTMISMATCH
 	case StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactBadRequestCodeVALIDATIONFAILED:
@@ -105989,6 +106187,8 @@ func (s *StageTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactForbiddenCodeNOTFOUND
 	case StageTaskArtifactForbiddenCodeCONFLICT:
 		*s = StageTaskArtifactForbiddenCodeCONFLICT
+	case StageTaskArtifactForbiddenCodePROJECTMISMATCH:
+		*s = StageTaskArtifactForbiddenCodePROJECTMISMATCH
 	case StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactForbiddenCodeVALIDATIONFAILED:
@@ -106354,6 +106554,8 @@ func (s *StageTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactNotFoundCodeNOTFOUND
 	case StageTaskArtifactNotFoundCodeCONFLICT:
 		*s = StageTaskArtifactNotFoundCodeCONFLICT
+	case StageTaskArtifactNotFoundCodePROJECTMISMATCH:
+		*s = StageTaskArtifactNotFoundCodePROJECTMISMATCH
 	case StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactNotFoundCodeVALIDATIONFAILED:
@@ -106849,6 +107051,8 @@ func (s *StageTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactServiceUnavailableCodeNOTFOUND
 	case StageTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = StageTaskArtifactServiceUnavailableCodeCONFLICT
+	case StageTaskArtifactServiceUnavailableCodePROJECTMISMATCH:
+		*s = StageTaskArtifactServiceUnavailableCodePROJECTMISMATCH
 	case StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
@@ -107214,6 +107418,8 @@ func (s *StageTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactUnauthorizedCodeNOTFOUND
 	case StageTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = StageTaskArtifactUnauthorizedCodeCONFLICT
+	case StageTaskArtifactUnauthorizedCodePROJECTMISMATCH:
+		*s = StageTaskArtifactUnauthorizedCodePROJECTMISMATCH
 	case StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
@@ -117247,6 +117453,14 @@ func (s *UpdateProjectOK) encodeFields(e *jx.Encoder) {
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
+		e.FieldStart("creatorAgentId")
+		s.CreatorAgentId.Encode(e)
+	}
+	{
+		e.FieldStart("creatorHumanId")
+		s.CreatorHumanId.Encode(e)
+	}
+	{
 		e.FieldStart("defaultDiaryId")
 		s.DefaultDiaryId.Encode(e)
 	}
@@ -117272,15 +117486,17 @@ func (s *UpdateProjectOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateProjectOK = [8]string{
+var jsonFieldsNameOfUpdateProjectOK = [10]string{
 	0: "archived",
 	1: "createdAt",
-	2: "defaultDiaryId",
-	3: "description",
-	4: "id",
-	5: "name",
-	6: "teamId",
-	7: "updatedAt",
+	2: "creatorAgentId",
+	3: "creatorHumanId",
+	4: "defaultDiaryId",
+	5: "description",
+	6: "id",
+	7: "name",
+	8: "teamId",
+	9: "updatedAt",
 }
 
 // Decode decodes UpdateProjectOK from json.
@@ -117288,7 +117504,7 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode UpdateProjectOK to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -117316,8 +117532,28 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
-		case "defaultDiaryId":
+		case "creatorAgentId":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.CreatorAgentId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorAgentId\"")
+			}
+		case "creatorHumanId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.CreatorHumanId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creatorHumanId\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.DefaultDiaryId.Decode(d); err != nil {
 					return err
@@ -117327,7 +117563,7 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
 			}
 		case "description":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -117337,7 +117573,7 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -117349,7 +117585,7 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -117361,7 +117597,7 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "teamId":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -117373,7 +117609,7 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -117393,8 +117629,9 @@ func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -122227,6 +122464,8 @@ func (s *UploadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionBadRequestCodeNOTFOUND
 	case UploadRuntimeSessionBadRequestCodeCONFLICT:
 		*s = UploadRuntimeSessionBadRequestCodeCONFLICT
+	case UploadRuntimeSessionBadRequestCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionBadRequestCodePROJECTMISMATCH
 	case UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED:
@@ -122592,6 +122831,8 @@ func (s *UploadRuntimeSessionConflictCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionConflictCodeNOTFOUND
 	case UploadRuntimeSessionConflictCodeCONFLICT:
 		*s = UploadRuntimeSessionConflictCodeCONFLICT
+	case UploadRuntimeSessionConflictCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionConflictCodePROJECTMISMATCH
 	case UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionConflictCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionConflictCodeVALIDATIONFAILED:
@@ -122957,6 +123198,8 @@ func (s *UploadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionForbiddenCodeNOTFOUND
 	case UploadRuntimeSessionForbiddenCodeCONFLICT:
 		*s = UploadRuntimeSessionForbiddenCodeCONFLICT
+	case UploadRuntimeSessionForbiddenCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionForbiddenCodePROJECTMISMATCH
 	case UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED:
@@ -123322,6 +123565,8 @@ func (s *UploadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionNotFoundCodeNOTFOUND
 	case UploadRuntimeSessionNotFoundCodeCONFLICT:
 		*s = UploadRuntimeSessionNotFoundCodeCONFLICT
+	case UploadRuntimeSessionNotFoundCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionNotFoundCodePROJECTMISMATCH
 	case UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED:
@@ -124129,6 +124374,8 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = UploadRuntimeSessionServiceUnavailableCodeNOTFOUND
 	case UploadRuntimeSessionServiceUnavailableCodeCONFLICT:
 		*s = UploadRuntimeSessionServiceUnavailableCodeCONFLICT
+	case UploadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionServiceUnavailableCodePROJECTMISMATCH
 	case UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED:
@@ -124494,6 +124741,8 @@ func (s *UploadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionUnauthorizedCodeNOTFOUND
 	case UploadRuntimeSessionUnauthorizedCodeCONFLICT:
 		*s = UploadRuntimeSessionUnauthorizedCodeCONFLICT
+	case UploadRuntimeSessionUnauthorizedCodePROJECTMISMATCH:
+		*s = UploadRuntimeSessionUnauthorizedCodePROJECTMISMATCH
 	case UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadRuntimeSessionUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED:
@@ -124886,6 +125135,8 @@ func (s *UploadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactBadRequestCodeNOTFOUND
 	case UploadTaskArtifactBadRequestCodeCONFLICT:
 		*s = UploadTaskArtifactBadRequestCodeCONFLICT
+	case UploadTaskArtifactBadRequestCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactBadRequestCodePROJECTMISMATCH
 	case UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactBadRequestCodeVALIDATIONFAILED:
@@ -125251,6 +125502,8 @@ func (s *UploadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactForbiddenCodeNOTFOUND
 	case UploadTaskArtifactForbiddenCodeCONFLICT:
 		*s = UploadTaskArtifactForbiddenCodeCONFLICT
+	case UploadTaskArtifactForbiddenCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactForbiddenCodePROJECTMISMATCH
 	case UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactForbiddenCodeVALIDATIONFAILED:
@@ -125616,6 +125869,8 @@ func (s *UploadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactNotFoundCodeNOTFOUND
 	case UploadTaskArtifactNotFoundCodeCONFLICT:
 		*s = UploadTaskArtifactNotFoundCodeCONFLICT
+	case UploadTaskArtifactNotFoundCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactNotFoundCodePROJECTMISMATCH
 	case UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactNotFoundCodeVALIDATIONFAILED:
@@ -126274,6 +126529,8 @@ func (s *UploadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactServiceUnavailableCodeNOTFOUND
 	case UploadTaskArtifactServiceUnavailableCodeCONFLICT:
 		*s = UploadTaskArtifactServiceUnavailableCodeCONFLICT
+	case UploadTaskArtifactServiceUnavailableCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactServiceUnavailableCodePROJECTMISMATCH
 	case UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
@@ -126639,6 +126896,8 @@ func (s *UploadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactUnauthorizedCodeNOTFOUND
 	case UploadTaskArtifactUnauthorizedCodeCONFLICT:
 		*s = UploadTaskArtifactUnauthorizedCodeCONFLICT
+	case UploadTaskArtifactUnauthorizedCodePROJECTMISMATCH:
+		*s = UploadTaskArtifactUnauthorizedCodePROJECTMISMATCH
 	case UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
 		*s = UploadTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
 	case UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
@@ -127448,6 +127707,8 @@ func (s *ValidationProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ValidationProblemDetailsCodeNOTFOUND
 	case ValidationProblemDetailsCodeCONFLICT:
 		*s = ValidationProblemDetailsCodeCONFLICT
+	case ValidationProblemDetailsCodePROJECTMISMATCH:
+		*s = ValidationProblemDetailsCodePROJECTMISMATCH
 	case ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
 		*s = ValidationProblemDetailsCodeUNSUPPORTEDMEDIATYPE
 	case ValidationProblemDetailsCodeVALIDATIONFAILED:

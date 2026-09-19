@@ -17,7 +17,11 @@ export interface ProjectRepository {
     defaultDiaryId?: string | null;
   }): Promise<Project>;
   findById(id: string): Promise<Project | null>;
-  listByTeamId(teamId: string, includeArchived?: boolean): Promise<Project[]>;
+  listByTeamId(
+    teamId: string,
+    includeArchived?: boolean,
+    page?: { limit: number; offset: number },
+  ): Promise<Project[]>;
   update(
     id: string,
     teamId: string,
@@ -33,6 +37,7 @@ export function createProjectRepository(db: Database): ProjectRepository {
           .insert(projects)
           .values({
             ...fields,
+            name: fields.name.trim(),
             creatorAgentId: creator.kind === 'agent' ? creator.id : null,
             creatorHumanId: creator.kind === 'human' ? creator.id : null,
           })
@@ -58,7 +63,11 @@ export function createProjectRepository(db: Database): ProjectRepository {
         .limit(1);
       return project ?? null;
     },
-    async listByTeamId(teamId, includeArchived = false) {
+    async listByTeamId(
+      teamId,
+      includeArchived = false,
+      page = { limit: 50, offset: 0 },
+    ) {
       return getExecutor(db)
         .select()
         .from(projects)
@@ -68,7 +77,9 @@ export function createProjectRepository(db: Database): ProjectRepository {
             includeArchived ? undefined : eq(projects.archived, false),
           ),
         )
-        .orderBy(asc(projects.name), asc(projects.id));
+        .orderBy(asc(projects.name), asc(projects.id))
+        .limit(page.limit)
+        .offset(page.offset);
     },
     async update(id, teamId, changes) {
       try {
@@ -76,7 +87,7 @@ export function createProjectRepository(db: Database): ProjectRepository {
         const [project] = await getExecutor(db)
           .update(projects)
           .set({
-            name: changes.name,
+            name: changes.name?.trim(),
             description: changes.description,
             defaultDiaryId: changes.defaultDiaryId,
             archived: changes.archived,

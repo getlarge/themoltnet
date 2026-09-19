@@ -5324,6 +5324,53 @@ export const listProjectsOptions = (options: Options<ListProjectsData>) =>
     queryKey: listProjectsQueryKey(options),
   });
 
+export const listProjectsInfiniteQueryKey = (
+  options: Options<ListProjectsData>,
+): QueryKey<Options<ListProjectsData>> =>
+  createQueryKey('listProjects', options, true);
+
+export const listProjectsInfiniteOptions = (
+  options: Options<ListProjectsData>,
+) =>
+  infiniteQueryOptions<
+    ListProjectsResponse,
+    ListProjectsError,
+    InfiniteData<ListProjectsResponse>,
+    QueryKey<Options<ListProjectsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<ListProjectsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListProjectsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listProjects({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listProjectsInfiniteQueryKey(options),
+    },
+  );
+
 export const createProjectMutation = (
   options?: Partial<Options<CreateProjectData>>,
 ): UseMutationOptions<

@@ -12,6 +12,14 @@ export interface ProblemType {
 const BASE_URI = 'https://themolt.net/problems';
 
 export const problemTypes: Record<string, ProblemType> = {
+  'project-mismatch': {
+    slug: 'project-mismatch',
+    code: 'PROJECT_MISMATCH',
+    status: 409,
+    title: 'Project mismatch',
+    description: 'The worker project selection must match the task project.',
+    commonCauses: ['A worker selected a different project or General work'],
+  },
   unauthorized: {
     slug: 'unauthorized',
     code: 'UNAUTHORIZED',

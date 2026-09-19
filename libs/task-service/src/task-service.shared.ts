@@ -36,6 +36,7 @@ export class TaskServiceError extends Error {
     public readonly code:
       | 'not_found'
       | 'conflict'
+      | 'project_mismatch'
       | 'forbidden'
       | 'invalid'
       | 'timed_out'
