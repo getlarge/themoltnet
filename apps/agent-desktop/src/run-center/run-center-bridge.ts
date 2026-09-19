@@ -98,11 +98,9 @@ export function listProviders(): Promise<Record<string, AgentServerProvider>> {
 }
 
 export const runCenterActions: RunCenterActions = {
+  signInOperator: () => invoke('desktop_operator_sign_in'),
   enrollTeam: (identity, request) =>
     invoke('desktop_enroll_team', { identity, request }),
-  createIdentity: (name, invitation) =>
-    invoke('desktop_create_identity', { name, invitation }),
-  openTeamInvites: (teamId) => invoke('desktop_team_invites', { teamId }),
   catalogue: (identity) =>
     invoke<AgentServerCatalogue>('desktop_catalogue', { identity }),
 

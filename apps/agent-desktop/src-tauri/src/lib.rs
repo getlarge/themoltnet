@@ -166,6 +166,23 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 }
 
 #[tauri::command]
+async fn desktop_operator_sign_in(state: State<'_, AppState>) -> Result<(), String> {
+    let token = state
+        .lifecycle
+        .lock()
+        .map_err(|_| "desktop lifecycle lock was poisoned")?
+        .control_token()
+        .cloned()
+        .ok_or("the Agent Server is not running")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        control::post(&token, "/v1/operator/sign-in", "{}")
+    })
+    .await
+    .map_err(|_| "Sign-in task failed")??;
+    Ok(())
+}
+
+#[tauri::command]
 async fn desktop_enroll_team(
     state: State<'_, AppState>,
     identity: String,
@@ -182,27 +199,6 @@ async fn desktop_enroll_team(
     })
     .await?;
     control::enrollment_metadata(&body)
-}
-
-#[tauri::command]
-async fn desktop_create_identity(
-    state: State<'_, AppState>,
-    name: String,
-    invitation: String,
-) -> Result<(), String> {
-    let payload =
-        serde_json::json!({ "kind": "managed", "name": name, "enrollmentToken": invitation })
-            .to_string();
-    with_control_token(&state, move |token| {
-        control::post(token, "/v1/agents", &payload)
-    })
-    .await?;
-    Ok(())
-}
-
-#[tauri::command]
-fn desktop_team_invites(team_id: Option<String>) -> Result<(), String> {
-    lifecycle::open_team_invites(team_id.as_deref())
 }
 
 /// Run `operation` with the grant for the currently running server.
@@ -658,8 +654,7 @@ pub fn run() {
             desktop_catalogue,
             desktop_control_status,
             desktop_enroll_team,
-            desktop_create_identity,
-            desktop_team_invites,
+            desktop_operator_sign_in,
             desktop_start_run,
             desktop_stop_run,
             desktop_run_logs,

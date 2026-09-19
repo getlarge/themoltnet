@@ -21,7 +21,6 @@ export async function enrollTeamAgent(
     code: string;
     idempotencyKey?: string;
     expectedTeamId?: string;
-    proofAuthenticated?: boolean;
     signal: AbortSignal;
   },
 ) {
@@ -38,13 +37,7 @@ export async function enrollTeamAgent(
     );
   }
   // Bind DBOS replay to the original code without persisting that bearer secret.
-  const codeHash = createHash('sha256')
-    .update(
-      input.proofAuthenticated
-        ? JSON.stringify(['proof:v1', input.code, input.expectedTeamId ?? null])
-        : input.code,
-    )
-    .digest('hex');
+  const codeHash = createHash('sha256').update(input.code).digest('hex');
   let grant = await teamInviteWorkflow.findEnrollment(
     input.subjectId,
     input.idempotencyKey,

@@ -153,3 +153,5 @@ export type {
   TalosCredentialBinding,
 } from './types.js';
 export type { OAuth2Client } from '@ory/client-fetch';
+
+export * from './provisioning.js';

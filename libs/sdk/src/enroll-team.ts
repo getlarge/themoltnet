@@ -13,23 +13,28 @@ import type { TeamAgentKey } from '@moltnet/api-client';
 import type { Agent } from './agent.js';
 import { prepareCredentialPersistence } from './credential-persistence.js';
 import type { SecretReference } from './credentials.js';
-import {
-  EnrollmentRequestError,
-  type EnrollmentSigner,
-  requestProofEnrollment,
-} from './enrollment-proof.js';
 import { MoltNetError } from './errors.js';
 import type { SecretProvider } from './secrets.js';
 
 export interface EnrollTeamOptions {
+  /** Native human-authorized issuance. The callback and its bearer stay in the controller. */
+  provision?: () => Promise<{
+    teamId: string;
+    role: 'member';
+    agentKey: { key: TeamAgentKey; secret: string };
+  }>;
+  /** Non-secret target retained before a native one-time exchange. */
+  provisioningContext?: {
+    teamId: string;
+    operation: 'enroll' | 'renew';
+    scopes: string[];
+  };
   /** Existing authenticated agent; no destination-team context is required. */
   agent?: Pick<Agent, 'teams'>;
-  /** Local signing works without a valid API credential. Takes precedence over agent. */
-  signer?: EnrollmentSigner;
   apiUrl?: string;
   /** Explicitly replace exactly this team slot, with a writer-lock comparison. */
   replacement?: { teamId: string };
-  code: string;
+  code?: string;
   idempotencyKey: string;
   configDir?: string;
   secretProvider: SecretProvider;
@@ -68,10 +73,12 @@ export async function enrollTeam(
   ) {
     throw new Error('Enrollment requires a writable secret provider');
   }
-  if (!options.signer && !options.agent)
-    throw new Error('Enrollment requires a signer or authenticated agent');
-  if (options.replacement && !options.signer)
-    throw new Error('Replacement requires proof enrollment');
+  if (!options.provision && !options.agent)
+    throw new Error(
+      'Enrollment requires human provisioning or an authenticated agent',
+    );
+  if (options.replacement && !options.provision)
+    throw new Error('Replacement requires human approval');
   const dir = await resolveConfigDir(options.configDir);
   if (!dir) throw new Error('Select an existing identity before enrollment');
   const config = await readConfig(dir);
@@ -111,8 +118,9 @@ export async function enrollTeam(
     subjectId: config.subject_id,
     code: options.code,
     idempotencyKey: options.idempotencyKey,
-    expectedTeamId: replacementTeam,
-    mode: options.signer ? 'proof' : 'authenticated',
+    expectedTeamId: replacementTeam ?? options.provisioningContext?.teamId,
+    provisioning: options.provisioningContext,
+    mode: options.provision ? 'human-pkce' : 'authenticated',
     observedReference,
     observedCredentialHash:
       observedSecret === null
@@ -122,28 +130,17 @@ export async function enrollTeam(
   });
   let result;
   try {
-    result = options.signer
-      ? await requestProofEnrollment({
-          signer: options.signer,
-          subjectId: config.subject_id,
-          code: options.code,
-          idempotencyKey: options.idempotencyKey,
-          expectedTeamId: replacementTeam,
-          apiUrl: options.apiUrl ?? config.endpoints?.api,
-        })
-      : await options.agent!.teams.join(options.code, {
+    result = options.provision
+      ? await options.provision()
+      : await options.agent!.teams.join(options.code ?? '', {
           issueAgentKey: true,
           idempotencyKey: options.idempotencyKey,
         });
   } catch (error) {
     throw new EnrollmentRecoveryError(
       await recovery.retain(),
-      error instanceof EnrollmentRequestError || error instanceof MoltNetError
-        ? error.issuedKeyId
-        : undefined,
-      error instanceof EnrollmentRequestError || error instanceof MoltNetError
-        ? error.statusCode
-        : undefined,
+      error instanceof MoltNetError ? error.issuedKeyId : undefined,
+      error instanceof MoltNetError ? error.statusCode : undefined,
     );
   }
   const issued = result.agentKey;
@@ -178,7 +175,9 @@ export async function enrollTeam(
             current.subject_id !== config.subject_id ||
             issued.key.agentId !== config.subject_id ||
             issued.key.bindingScope !== 'team' ||
-            issued.key.teamId !== result.teamId
+            issued.key.teamId !== result.teamId ||
+            (options.provisioningContext &&
+              result.teamId !== options.provisioningContext.teamId)
           ) {
             throw new Error(
               'Enrollment credential is not bound to the selected identity and team',

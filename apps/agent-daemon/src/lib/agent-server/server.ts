@@ -1,23 +1,12 @@
-/**
- * HTTP surface of `moltnet-agent server` (#2061), built on the shared
- * loopback-companion security profile (#2066): loopback Host enforcement,
- * exact-origin CORS, Fetch-Metadata guards, strict JSON parsing.
- *
- * Everything under `/v1` except the pairing bootstrap requires a paired
- * origin: the `x-moltnet-agent-server-token` header must verify against the
- * origin-bound token issued by the one-click pairing ceremony.
- */
 import { constants as fsConstants } from 'node:fs';
 import { type FileHandle, open } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
 
 import rateLimit from '@fastify/rate-limit';
 import {
-  assertNavigationRequest,
   isLoopbackViolation,
   OriginAllowlist,
   registerLoopbackSecurity,
-  rejectExplicitCrossSite,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
@@ -43,6 +32,7 @@ import {
 import { safeErrorContext } from '../safe-error-context.js';
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
+import { readIdentityDefaultBinding } from './identity-binding.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
@@ -52,15 +42,13 @@ import {
   reconcileManagedRegistration,
   requireActivation,
 } from './identity.js';
-import { readIdentityDefaultBinding } from './identity-binding.js';
 import { AgentServerModelDiscoveryError } from './model-discovery.js';
 import {
-  AgentServerPairingError,
   NATIVE_CLIENT_ORIGIN,
-  type PairingService,
-  renderPairingApprovalPage,
-  renderPairingResultPage,
-} from './pairing.js';
+  NativeGrantError,
+  type NativeGrantService,
+} from './native-grant-service.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import { AGENT_SERVER_SCHEMAS, AgentServerRouteSchemas } from './protocol.js';
 import {
   AgentServerSubscriptionError,
@@ -84,6 +72,15 @@ import {
   TeamCredentialError,
   verifyTeamActivation,
 } from './team-credentials.js';
+
+/**
+ * HTTP surface of `moltnet-agent server` (#2061), built on the shared
+ * loopback-companion security profile (#2066): loopback Host enforcement,
+ * exact-origin CORS, Fetch-Metadata guards, strict JSON parsing.
+ *
+ * Control routes require a native process grant or an OAuth token bound to
+ * the native operator and this server instance. Origin checks apply to both.
+ */
 
 export const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const BODY_LIMIT = 64 * 1024;
@@ -168,7 +165,9 @@ export interface BuildAgentServerOptions {
   secrets: FileSecretProvider;
   secretProviders: SecretProviderRegistry;
   externalSecretProviders: SecretProviderRegistry;
-  pairing: PairingService;
+  pairing: NativeGrantService;
+  operatorOAuth?: OperatorOAuth;
+  operatorApiUrl?: string;
   runs: RunManager;
   subscriptions: ProviderLoginService;
   providers: ProviderConfigurationService;
@@ -331,6 +330,8 @@ export function buildAgentServer(
   options: BuildAgentServerOptions,
 ): FastifyInstance {
   const { pairing } = options;
+  const oauth = options.operatorOAuth;
+
   const fastifyOptions = {
     bodyLimit: BODY_LIMIT,
     ...(options.tls ? { https: options.tls } : {}),
@@ -346,7 +347,7 @@ export function buildAgentServer(
   // process-scoped token does. The reserved origin uses a scheme no browser
   // can present, and `OriginAllowlist` only accepts https/loopback-http, so it
   // is admitted through the predicate rather than the allowlist. Admitting it
-  // only lets the request reach the token check in `requirePairedOrigin`.
+  // only lets the request reach the token check in `requireAuthorizedOrigin`.
   const browserOrigins = new OriginAllowlist(options.allowedOrigins);
   registerLoopbackSecurity(app, {
     isOriginAllowed: (origin) =>
@@ -376,7 +377,7 @@ export function buildAgentServer(
           pairing.verify(origin, presented);
           authenticated = true;
         } catch (error) {
-          if (!(error instanceof AgentServerPairingError)) throw error;
+          if (!(error instanceof NativeGrantError)) throw error;
         }
       }
       return authenticated
@@ -385,35 +386,31 @@ export function buildAgentServer(
     },
   });
 
-  app.addContentTypeParser(
-    'application/x-www-form-urlencoded',
-    { parseAs: 'buffer' },
-    (_request, body, done) => {
-      try {
-        const form = new TextDecoder('utf-8', { fatal: true }).decode(
-          typeof body === 'string' ? Buffer.from(body) : body,
-        );
-        done(null, new URLSearchParams(form));
-      } catch {
-        done(
-          new AgentServerHttpError(400, 'invalid_body', 'Form body is invalid'),
-          undefined,
-        );
-      }
-    },
-  );
-
-  const requirePairedOrigin = (request: FastifyRequest): string => {
+  const requireAuthorizedOrigin = async (
+    request: FastifyRequest,
+  ): Promise<string> => {
     const origin = requireOriginHeader(request.headers);
     const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
     if (typeof token !== 'string' || token.length === 0) {
       throw new AgentServerHttpError(
         401,
-        'pairing_required',
-        'Pairing token is required',
+        'authorization_required',
+        'Local control token is required',
       );
     }
-    pairing.verify(origin, token);
+    if (origin === NATIVE_CLIENT_ORIGIN) pairing.verify(origin, token);
+    else {
+      try {
+        if (!oauth) throw new Error('OAuth unavailable');
+        await oauth.verifyBrowser(token);
+      } catch {
+        throw new AgentServerHttpError(
+          401,
+          'authorization_required',
+          'Sign in to authorize local control',
+        );
+      }
+    }
     return origin;
   };
 
@@ -423,13 +420,113 @@ export function buildAgentServer(
       { schema: AgentServerRouteSchemas.health },
       async () => ({ status: 'ok' }),
     );
-    registerPairingRoutes(app, pairing);
-    registerStatusRoute(app, options, requirePairedOrigin);
-    registerAgentRoutes(app, options, requirePairedOrigin);
-    registerProviderRoutes(app, options, requirePairedOrigin);
-    registerSubscriptionRoutes(app, options, requirePairedOrigin);
-    registerRunRoutes(app, options, requirePairedOrigin);
-    registerCatalogueRoute(app, options, requirePairedOrigin);
+    for (const [method, url, operationId] of [
+      ['POST', '/v1/pairings', 'startAgentServerPairing'],
+      ['POST', '/v1/pairings/:pairingId/claim', 'claimAgentServerPairing'],
+    ] as const) {
+      app.route({
+        method,
+        url,
+        schema: {
+          operationId,
+          deprecated: true,
+          tags: ['compatibility'],
+          response: {
+            410: {
+              type: 'object',
+              properties: {
+                code: { type: 'string' },
+                message: { type: 'string' },
+              },
+              required: ['code', 'message'],
+            },
+          },
+        },
+        handler: async (_request, reply) =>
+          reply
+            .code(410)
+            .send({
+              code: 'pairing_replaced',
+              message:
+                'Sign in through Desktop, then connect Console using OAuth PKCE.',
+            }),
+      });
+    }
+    app.get('/oauth/metadata', async () => {
+      if (!oauth)
+        throw new AgentServerHttpError(
+          503,
+          'oauth_unavailable',
+          'Local OAuth is not configured',
+        );
+      return oauth.metadata();
+    });
+    app.post(
+      '/v1/operator/sign-in',
+      {
+        schema: {
+          operationId: 'signInAgentServerOperator',
+          response: {
+            200: {
+              type: 'object',
+              properties: { state: { type: 'string' } },
+              required: ['state'],
+            },
+          },
+        },
+      },
+      async (request) => {
+        if (
+          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+          !oauth
+        )
+          throw new AgentServerHttpError(
+            403,
+            'native_required',
+            'Native administration required',
+          );
+        await oauth.authorize(
+          undefined,
+          requestOperationSignal(request, options.shutdownSignal),
+        );
+        return { state: 'authorized' };
+      },
+    );
+    app.post('/v1/operator/cancel', async (request) => {
+      if (
+        (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+        !oauth
+      )
+        throw new AgentServerHttpError(
+          403,
+          'native_required',
+          'Native administration required',
+        );
+      oauth.cancel();
+      return { state: 'cancelled' };
+    });
+    app.delete('/v1/operator', async (request) => {
+      if (
+        (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+        !oauth
+      )
+        throw new AgentServerHttpError(
+          403,
+          'native_required',
+          'Native administration required',
+        );
+      oauth.removeOperator();
+      return { state: 'removed' };
+    });
+    registerStatusRoute(app, options, requireAuthorizedOrigin);
+    registerAgentRoutes(app, options, requireAuthorizedOrigin);
+    registerProviderRoutes(app, options, requireAuthorizedOrigin);
+    registerSubscriptionRoutes(app, options, requireAuthorizedOrigin);
+    registerRunRoutes(app, options, requireAuthorizedOrigin);
+    registerCatalogueRoute(app, options, requireAuthorizedOrigin);
+  });
+  app.addHook('preClose', async () => {
+    options.operatorOAuth?.cancel();
   });
   app.addHook('onClose', () => {
     options.subscriptions.close();
@@ -464,88 +561,18 @@ export function buildAgentServer(
   return app;
 }
 
-type PairedOriginGuard = (request: FastifyRequest) => string;
+type AuthorizedOriginGuard = (request: FastifyRequest) => Promise<string>;
 
-function registerPairingRoutes(
-  app: FastifyInstance,
-  pairing: PairingService,
-): void {
-  app.post(
-    '/v1/pairings',
-    { schema: AgentServerRouteSchemas.startPairing },
-    async (request, reply) => {
-      const origin = requireOriginHeader(request.headers);
-      return reply.code(201).send(pairing.start(origin));
-    },
-  );
-  app.get(
-    '/pairings/:pairingId',
-    { schema: { hide: true } },
-    async (request, reply) => {
-      assertNavigationRequest(request.headers);
-      const { pairingId } = request.params as { pairingId: string };
-      const approval = pairing.approval(pairingId);
-      return reply.type('text/html; charset=utf-8').send(
-        renderPairingApprovalPage({
-          pairingId,
-          origin: approval.origin,
-          confirmToken: approval.confirmToken,
-        }),
-      );
-    },
-  );
-  app.post(
-    '/pairings/:pairingId/confirm',
-    { schema: { hide: true } },
-    async (request, reply) => {
-      rejectExplicitCrossSite(request.headers);
-      const { pairingId } = request.params as { pairingId: string };
-      if (!(request.body instanceof URLSearchParams)) {
-        throw new AgentServerHttpError(
-          400,
-          'invalid_body',
-          'Confirmation form is invalid',
-        );
-      }
-      const { origin } = pairing.confirm(
-        pairingId,
-        request.body.get('confirmToken') ?? '',
-      );
-      return reply.type('text/html; charset=utf-8').send(
-        renderPairingResultPage({
-          title: 'Connection approved',
-          message: `${origin} can now manage local MoltNet agents on this machine.`,
-        }),
-      );
-    },
-  );
-  app.post(
-    '/v1/pairings/:pairingId/claim',
-    { schema: AgentServerRouteSchemas.claimPairing },
-    async (request) => {
-      const origin = requireOriginHeader(request.headers);
-      const { pairingId } = request.params as { pairingId: string };
-      return pairing.claim(pairingId, origin);
-    },
-  );
-}
-
-/**
- * The catalogue the desktop composes runs from, scoped to one local identity.
- *
- * Requires a paired client like every other /v1 route: it reaches the MoltNet
- * API with that identity's credentials, so an unpaired caller must not read it.
- */
 function registerCatalogueRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   app.get(
     '/v1/catalogue',
     { schema: AgentServerRouteSchemas.catalogue, attachValidation: true },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { identity } = (request.query ?? {}) as { identity?: string };
       if (!identity || identity.trim().length === 0) {
         throw new AgentServerHttpError(
@@ -638,14 +665,14 @@ function machineCapabilities(
 function registerStatusRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   const { store, runs } = options;
   app.get(
     '/v1/status',
     { schema: AgentServerRouteSchemas.status },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const selected = selectedIdentity(store, options.activeIdentity);
       return {
         version: options.version,
@@ -668,14 +695,14 @@ function registerStatusRoute(
 function registerAgentRoutes(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   const { store } = options;
   app.get(
     '/v1/agents',
     { schema: AgentServerRouteSchemas.listAgents },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       return store
         .listActivations()
         .map((activation) => publicAgentView(store, activation));
@@ -685,7 +712,7 @@ function registerAgentRoutes(
     '/v1/agents',
     { schema: AgentServerRouteSchemas.createAgent, attachValidation: true },
     async (request, reply) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const body = requireBody<Record<string, unknown>>(request);
       const signal = requestOperationSignal(request, options.shutdownSignal);
       const kind = requireString(body, 'kind');
@@ -732,9 +759,21 @@ function registerAgentRoutes(
     '/v1/agents/:agentName/teams',
     { schema: AgentServerRouteSchemas.enrollTeam },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { agentName } = request.params as { agentName: string };
+      if (
+        request.headers.origin !== NATIVE_CLIENT_ORIGIN ||
+        !options.operatorOAuth ||
+        !options.operatorApiUrl
+      )
+        throw new AgentServerHttpError(
+          403,
+          'native_required',
+          'Native OAuth enrollment required',
+        );
       return enrollIdentityTeam({
+        oauth: options.operatorOAuth,
+        apiUrl: options.operatorApiUrl,
         store,
         alias: agentName,
         managed: options.secretProviders,
@@ -747,7 +786,7 @@ function registerAgentRoutes(
     '/v1/agents/:agentName/reconcile',
     { schema: AgentServerRouteSchemas.reconcileAgent, attachValidation: true },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { agentName } = request.params as { agentName: string };
       const action = requireString(
         requireBody<Record<string, unknown>>(request),
@@ -803,13 +842,13 @@ function identityViews(store: AgentServerStore) {
 function registerProviderRoutes(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   app.get(
     '/v1/providers',
     { schema: AgentServerRouteSchemas.listProviders },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       return options.providers.list();
     },
   );
@@ -817,7 +856,7 @@ function registerProviderRoutes(
     '/v1/providers/:providerId/discover-models',
     { schema: AgentServerRouteSchemas.discoverModels },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { providerId } = request.params as {
         providerId: string;
       };
@@ -830,7 +869,7 @@ function registerProviderRoutes(
     '/v1/providers/:providerId',
     { schema: AgentServerRouteSchemas.putProvider, attachValidation: true },
     async (request, reply) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { providerId } = request.params as {
         providerId: string;
       };
@@ -851,7 +890,7 @@ function registerProviderRoutes(
     '/v1/providers/:providerId',
     { schema: AgentServerRouteSchemas.deleteProvider, attachValidation: true },
     async (request, reply) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { providerId } = request.params as {
         providerId: string;
       };
@@ -887,13 +926,13 @@ async function runViews(
 function registerSubscriptionRoutes(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   app.get(
     '/v1/subscriptions',
     { schema: AgentServerRouteSchemas.listSubscriptions },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       return options.subscriptions.list();
     },
   );
@@ -902,7 +941,7 @@ function registerSubscriptionRoutes(
     '/v1/subscriptions/:providerId/login',
     { schema: AgentServerRouteSchemas.startSubscriptionLogin },
     async (request, reply) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { providerId } = request.params as { providerId: string };
       const login = await options.subscriptions.start(providerId);
       return reply.code(201).send(login);
@@ -913,7 +952,7 @@ function registerSubscriptionRoutes(
     '/v1/subscriptions/:providerId/login',
     { schema: AgentServerRouteSchemas.getSubscriptionLogin },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { providerId } = request.params as { providerId: string };
       return options.subscriptions.status(providerId);
     },
@@ -923,7 +962,7 @@ function registerSubscriptionRoutes(
     '/v1/subscriptions/:providerId/login',
     { schema: AgentServerRouteSchemas.cancelSubscriptionLogin },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { providerId } = request.params as { providerId: string };
       return options.subscriptions.cancel(providerId);
     },
@@ -933,14 +972,14 @@ function registerSubscriptionRoutes(
 function registerRunRoutes(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   const { runs } = options;
   app.get(
     '/v1/runs',
     { schema: AgentServerRouteSchemas.listRuns },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       return runViews(runs);
     },
   );
@@ -948,7 +987,7 @@ function registerRunRoutes(
     '/v1/runs',
     { schema: AgentServerRouteSchemas.startRun, attachValidation: true },
     async (request, reply) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const body = requireBody<Record<string, unknown>>(request);
       const diaryId = optionalString(body, 'diaryId');
       const record = await runs.start(
@@ -971,18 +1010,18 @@ function registerRunRoutes(
     '/v1/runs/:runId',
     { schema: AgentServerRouteSchemas.stopRun },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { runId } = request.params as { runId: string };
       return runs.stop(runId);
     },
   );
-  registerRunLogRoute(app, options, requirePairedOrigin);
+  registerRunLogRoute(app, options, requireAuthorizedOrigin);
 }
 
 function registerRunLogRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
-  requirePairedOrigin: PairedOriginGuard,
+  requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   const { runs, store } = options;
   app.get(
@@ -1034,7 +1073,7 @@ function registerRunLogRoute(
     '/v1/runs/:runId/logs',
     { schema: AgentServerRouteSchemas.streamRunLogs },
     async (request, reply) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { runId } = request.params as { runId: string };
       const record = runs.status(runId);
       store.resolveRunLogPath(record.id);
@@ -1083,6 +1122,10 @@ function registerRunLogRoute(
         });
       };
       const push = async (): Promise<void> => {
+        // Revalidate before forwarding more output: browser authority expires
+        // normally even when a stream was opened before expiry or removal.
+        if (request.headers.origin !== NATIVE_CLIENT_ORIGIN)
+          await requireAuthorizedOrigin(request);
         const logPath = store.resolveRunLogPath(record.id);
         const handle = await open(
           logPath,
@@ -1188,16 +1231,10 @@ function normalizeAgentServerError(error: unknown): {
       message: error.message,
     };
   }
-  if (error instanceof AgentServerPairingError) {
-    const statusCode =
-      error.code === 'pairing_not_found'
-        ? 404
-        : error.code === 'pairing_token_invalid' ||
-            error.code === 'pairing_not_approved'
-          ? 401
-          : 403;
-    return { statusCode, code: error.code, message: error.message };
+  if (error instanceof NativeGrantError) {
+    return { statusCode: 401, code: error.code, message: error.message };
   }
+
   if (error instanceof AgentServerStoreError) {
     return {
       statusCode:

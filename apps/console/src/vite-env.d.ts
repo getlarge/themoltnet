@@ -2,6 +2,8 @@
 
 interface MoltNetConfig {
   kratosUrl: string;
+  oauthIssuer?: string;
+  oauthPublicUrl?: string;
   apiBaseUrl: string;
   consoleUrl: string;
   docsUrl?: string;
@@ -14,6 +16,8 @@ interface Window {
 }
 
 interface ImportMetaEnv {
+  readonly VITE_OAUTH_PUBLIC_URL?: string;
+  readonly VITE_OAUTH_ISSUER?: string;
   readonly VITE_KRATOS_URL?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_CONSOLE_URL?: string;

@@ -98,12 +98,11 @@ export interface SavePresetInput extends Omit<
  * shipped Server panel. Nothing here duplicates it.
  */
 export interface RunCenterActions {
+  signInOperator?: () => Promise<void>;
   enrollTeam?: (
     identity: string,
     request: EnrollAgentServerTeamData['body'],
   ) => Promise<EnrollAgentServerTeamResponses[200]>;
-  createIdentity?: (name: string, invitation: string) => Promise<void>;
-  openTeamInvites?: (teamId?: string) => Promise<void>;
   refresh?: () => Promise<void>;
   /** Teams, diaries and profiles the selected identity can serve. */
   catalogue: (identity: string) => Promise<AgentServerCatalogue>;

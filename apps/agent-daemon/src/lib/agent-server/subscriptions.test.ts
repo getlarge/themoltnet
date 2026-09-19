@@ -25,7 +25,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { OAuthProviderService } from '../oauth-provider.js';
 import { ProviderConfigurationService } from '../provider-configuration.js';
-import { PairingService } from './pairing.js';
+import { NativeGrantService } from './native-grant-service.js';
 import {
   type LoginCallbacksLike,
   ProviderLoginService,
@@ -103,7 +103,7 @@ async function fixture(options: {
     secrets,
     secretProviders,
     externalSecretProviders,
-    pairing: new PairingService(),
+    pairing: new NativeGrantService(),
     runs,
     subscriptions,
     providers: new ProviderConfigurationService({

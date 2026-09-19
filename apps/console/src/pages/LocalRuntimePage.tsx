@@ -24,12 +24,12 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
 import { CreateInviteDialog } from '../components/teams/CreateInviteDialog.js';
+import { ApiKeyProviderForm } from '../runtime-local/ApiKeyProviderForm.js';
+import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
 import type {
   AgentServerRunView,
   StartRunBody,
 } from '../runtime-local/agent-server-client.js';
-import { ApiKeyProviderForm } from '../runtime-local/ApiKeyProviderForm.js';
-import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
 import {
   type LocalRuntimeController,
   useLocalRuntime,
@@ -87,7 +87,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
             size="sm"
             onClick={() => runtime.disconnect()}
           >
-            Forget pairing
+            Disconnect
           </Button>
         </Stack>
       </Card>
@@ -176,44 +176,29 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
       </Card>
     );
   }
-  if (runtime.status === 'unpaired' || runtime.status === 'pairing') {
-    const pairing = runtime.status === 'pairing';
+  if (runtime.status === 'unauthorized' || runtime.status === 'authorizing') {
+    const authorizing = runtime.status === 'authorizing';
     return (
       <Card padding="sm">
         <Stack direction="row" gap={3} align="center" justify="space-between">
           <Stack direction="row" gap={3} align="center">
             <Badge variant="warning">
-              {pairing ? 'Awaiting approval' : 'Not paired'}
+              {authorizing ? 'Awaiting approval' : 'Sign-in required'}
             </Badge>
             <Text variant="caption" color="muted">
-              {pairing
+              {authorizing
                 ? 'Approve the connection in the tab that just opened.'
-                : 'Pair this console with the supervisor running on this machine.'}
+                : 'Sign in to control the local agents on this computer.'}
             </Text>
           </Stack>
           <Button
             size="sm"
             variant="accent"
-            disabled={pairing}
-            onClick={() => void runtime.pair()}
+            disabled={authorizing}
+            onClick={() => void runtime.authorize()}
           >
-            {pairing ? 'Waiting…' : 'Connect'}
+            {authorizing ? 'Waiting…' : 'Connect'}
           </Button>
-          {pairing && runtime.pairingApprovalUrl ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() =>
-                window.open(
-                  runtime.pairingApprovalUrl ?? '',
-                  '_blank',
-                  'popup,noopener,noreferrer',
-                )
-              }
-            >
-              Open approval
-            </Button>
-          ) : null}
         </Stack>
       </Card>
     );

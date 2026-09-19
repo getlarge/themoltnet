@@ -243,17 +243,6 @@ export const AgentServerStatusSchema = Type.Object(
   { $id: 'AgentServerStatus' },
 );
 
-export const PairingStartedSchema = Type.Object(
-  { pairingId: Type.String(), approvalPath: Type.String() },
-  { $id: 'PairingStarted' },
-);
-
-export const PairingClaimedSchema = Type.Object(
-  { token: Type.String() },
-  { $id: 'PairingClaimed' },
-);
-
-export const PairingParamsSchema = Type.Object({ pairingId: Type.String() });
 export const ProviderParamsSchema = Type.Object({ providerId: Type.String() });
 export const AgentParamsSchema = Type.Object({ agentName: Type.String() });
 export const RunParamsSchema = Type.Object({ runId: Type.String() });
@@ -333,8 +322,6 @@ export const AGENT_SERVER_SCHEMAS = [
   AgentServerSubscriptionSchema,
   AgentServerSubscriptionLoginSchema,
   AgentServerStatusSchema,
-  PairingStartedSchema,
-  PairingClaimedSchema,
   ReconcileAgentResultSchema,
   DiscoverModelsSchema,
   CancelledSubscriptionSchema,
@@ -349,17 +336,6 @@ export const AgentServerRouteSchemas = {
     operationId: 'getAgentServerHealth',
     tags: ['system'],
     response: { 200: schemaRef(AgentServerHealthSchema) },
-  },
-  startPairing: {
-    operationId: 'startAgentServerPairing',
-    tags: ['pairing'],
-    response: { 201: schemaRef(PairingStartedSchema), ...problemResponse },
-  },
-  claimPairing: {
-    operationId: 'claimAgentServerPairing',
-    tags: ['pairing'],
-    params: PairingParamsSchema,
-    response: { 200: schemaRef(PairingClaimedSchema), ...problemResponse },
   },
   status: {
     operationId: 'getAgentServerStatus',
@@ -390,7 +366,7 @@ export const AgentServerRouteSchemas = {
     params: AgentParamsSchema,
     body: Type.Intersect([
       Type.Object({
-        code: Type.String({ minLength: 1, maxLength: 4096 }),
+        teamId: Type.String({ format: 'uuid' }),
         idempotencyKey: Type.String({ minLength: 1, maxLength: 256 }),
       }),
       Type.Union([

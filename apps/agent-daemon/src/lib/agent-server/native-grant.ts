@@ -1,4 +1,4 @@
-import type { PairingService } from './pairing.js';
+import type { NativeGrantService } from './native-grant-service.js';
 
 /**
  * Environment variable the supervising desktop app uses to hand this server
@@ -24,7 +24,7 @@ const MIN_TOKEN_LENGTH = 32;
  * @returns whether a native grant was issued.
  */
 export function applyNativeClientGrant(options: {
-  pairing: PairingService;
+  pairing: NativeGrantService;
   env: NodeJS.ProcessEnv;
 }): boolean {
   const { pairing, env } = options;

@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { credentialLabel, expiryLabel } from './credential-health.js';
 import type {
@@ -36,10 +36,9 @@ export function TeamsView({
       '',
   );
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
-  const [mode, setMode] = useState<'enroll' | 'new' | 'replace'>('enroll');
+  const [mode, setMode] = useState<'enroll' | 'replace'>('enroll');
   const [team, setTeam] = useState<AgentServerCatalogueTeam | null>(null);
-  const [name, setName] = useState('');
-  const [invitation, setInvitation] = useState('');
+  const [destinationTeamId, setDestinationTeamId] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -49,11 +48,6 @@ export function TeamsView({
     error: boolean;
   } | null>(null);
   const inFlight = useRef(false);
-  const invitationId = useId();
-  useEffect(() => {
-    if (mode === 'replace' && team)
-      document.getElementById(invitationId)?.focus();
-  }, [mode, team, invitationId]);
   const [refreshVersion, setRefreshVersion] = useState(0);
   useEffect(() => {
     let current = true;
@@ -101,25 +95,21 @@ export function TeamsView({
   }, [data.status, identity]);
 
   const submit = async () => {
-    if (inFlight.current || !invitation.trim()) return;
+    if (inFlight.current || (mode !== 'replace' && !destinationTeamId.trim()))
+      return;
     inFlight.current = true;
-    const code = invitation.trim();
-    setInvitation('');
+    const teamId = mode === 'replace' ? team!.teamId : destinationTeamId.trim();
     setConfirm(false);
     setBusy(true);
     setFeedback(null);
     try {
-      if (mode === 'new') {
-        if (!actions.createIdentity) throw new Error('Creation unavailable');
-        await actions.createIdentity(name.trim(), code);
-        setIdentity(name.trim());
-      } else {
+      {
         if (!actions.enrollTeam) throw new Error('Enrollment unavailable');
         const result = await actions.enrollTeam(identity, {
-          code,
+          teamId,
           idempotencyKey: crypto.randomUUID(),
           ...(mode === 'replace' && team
-            ? { mode: 'replace', teamId: team.teamId }
+            ? { mode: 'replace' }
             : { mode: 'enroll' }),
         });
         if (result.state === 'recovery_required') {
@@ -150,23 +140,12 @@ export function TeamsView({
       setFeedback({
         title: 'Enrollment could not be confirmed',
         message:
-          'Refresh team access before retrying. Check the invitation and selected team; if issuance completed, inspect local recovery status before using a fresh invitation.',
+          'Refresh team access before retrying. Check the selected team; if issuance completed, inspect local recovery status before using a fresh approval.',
         error: true,
       });
     } finally {
       inFlight.current = false;
       setBusy(false);
-    }
-  };
-  const openConsole = async (teamId?: string) => {
-    try {
-      await actions.openTeamInvites?.(teamId);
-    } catch {
-      setFeedback({
-        title: 'Console could not open',
-        message: 'Open Console and select the team’s Invites tab.',
-        error: true,
-      });
     }
   };
   return (
@@ -192,9 +171,38 @@ export function TeamsView({
           </Button>
         </Stack>
         <Text color="secondary">
-          Enroll this identity with an invitation from your team’s Console.
+          Approve team access in Console. The credential is saved automatically
+          on this computer.
         </Text>
       </Stack>
+      <Button
+        variant="secondary"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setFeedback(null);
+          try {
+            if (!actions.signInOperator)
+              throw new Error('Native sign-in unavailable');
+            await actions.signInOperator();
+            setFeedback({
+              title: 'Local operator signed in',
+              message: 'You can now connect Console to local agents.',
+              error: false,
+            });
+          } catch {
+            setFeedback({
+              title: 'Sign-in did not complete',
+              message: 'Try again and approve in Console.',
+              error: true,
+            });
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Sign in for local control
+      </Button>
       <Select
         label="Identity"
         value={identity}
@@ -203,7 +211,7 @@ export function TeamsView({
           setIdentity(event.target.value);
           setTeam(null);
           setMode('enroll');
-          setInvitation('');
+          setDestinationTeamId('');
         }}
       >
         <option value="">Select an identity…</option>
@@ -271,16 +279,10 @@ export function TeamsView({
                 onClick={() => {
                   setTeam(entry);
                   setMode('replace');
-                  setInvitation('');
+                  setDestinationTeamId('');
                 }}
               >
                 Renew
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => void openConsole(entry.teamId)}
-              >
-                Renew in Console
               </Button>
             </Stack>
           </Stack>
@@ -308,70 +310,40 @@ export function TeamsView({
             >
               Enroll into a team
             </Button>
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={() => {
-                setMode('new');
-                setTeam(null);
-                setInvitation('');
-              }}
-            >
-              Create a new identity
-            </Button>
           </Stack>
           <Text as="h2" variant="h4">
-            {mode === 'new'
-              ? 'Create an identity'
-              : mode === 'replace'
-                ? `Renew ${team?.teamName ?? 'team access'}`
-                : 'Enroll into a team'}
+            {mode === 'replace'
+              ? `Renew ${team?.teamName ?? 'team access'}`
+              : 'Enroll into a team'}
           </Text>
-          {mode === 'new' ? (
+          {mode === 'enroll' ? (
             <Input
-              label="Identity name"
-              value={name}
+              label="Team ID"
+              value={destinationTeamId}
               disabled={busy}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => setDestinationTeamId(event.target.value)}
             />
           ) : null}
-          <Input
-            id={invitationId}
-            label="Single-use invitation"
-            type="password"
-            autoComplete="off"
-            value={invitation}
-            disabled={busy}
-            onChange={(event) => setInvitation(event.target.value)}
-          />
           <Text variant="caption" color="secondary">
-            Create an invitation in Console, then paste it here. The invitation
-            is cleared when submitted.
+            Console will show the selected identity, team and permissions before
+            you approve.
           </Text>
           <Stack direction="row" gap={2} wrap>
             <Button
               disabled={
                 busy ||
-                !invitation.trim() ||
-                (mode === 'new' ? !name.trim() : !identity)
+                (mode === 'enroll' && !destinationTeamId.trim()) ||
+                !identity
               }
               onClick={() =>
                 mode === 'replace' ? setConfirm(true) : void submit()
               }
             >
               {busy
-                ? 'Enrolling…'
+                ? 'Waiting for approval…'
                 : mode === 'replace'
                   ? 'Replace team credential'
-                  : mode === 'new'
-                    ? 'Create and enroll'
-                    : 'Enroll'}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => void openConsole(team?.teamId)}
-            >
-              Get an invitation in Console
+                  : 'Approve in Console'}
             </Button>
           </Stack>
         </Stack>

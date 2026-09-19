@@ -51,9 +51,7 @@ describe('agent server client', () => {
   it('never sends browser credentials and attaches the pairing token', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        jsonResponse({ pairingId: 'p1', approvalPath: '/pairings/p1' }, 201),
-      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(
         jsonResponse({
           version: 'test',
@@ -72,7 +70,7 @@ describe('agent server client', () => {
       fetch: fetchMock,
     });
 
-    await client.startPairing();
+    await client.health();
     token = 'paired-token';
     await expect(client.status()).resolves.toMatchObject({
       runtimeSettings: {
