@@ -60,11 +60,13 @@ async function fixture(activated = true) {
       apiUrl: 'https://api.themolt.net',
     });
   const registry = new SecretProviderRegistry().register(provider);
+  const authorize = vi.fn<OperatorOAuth['authorize']>();
   return {
+    authorize,
     store,
     keys,
     options: {
-      oauth: { authorize: vi.fn() } as unknown as OperatorOAuth,
+      oauth: { authorize } as unknown as OperatorOAuth,
       apiUrl: 'https://api.themolt.net',
       store,
       alias: 'agent',
@@ -77,7 +79,7 @@ async function fixture(activated = true) {
 describe('local team enrollment boundary', () => {
   it('requests human approval without resolving an API key and returns only metadata', async () => {
     const f = await fixture();
-    vi.mocked(f.options.oauth.authorize).mockResolvedValue('human-approval');
+    f.authorize.mockResolvedValue('human-approval');
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({ key: { id: 'new-key' }, secret: 'captured' }),
@@ -109,15 +111,9 @@ describe('local team enrollment boundary', () => {
       },
     });
     expect(call).toHaveBeenCalledOnce();
-    expect(f.options.oauth.authorize).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scopes: expect.arrayContaining([
-          'team:read',
-          'diary:read',
-          'task:execute',
-        ]),
-      }),
-      undefined,
+    expect(f.authorize).toHaveBeenCalledOnce();
+    expect(f.authorize.mock.calls[0]?.[0]?.scopes).toEqual(
+      expect.arrayContaining(['team:read', 'diary:read', 'task:execute']),
     );
     expect(result).toEqual({
       state: 'persisted',
