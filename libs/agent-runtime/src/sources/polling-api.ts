@@ -348,7 +348,14 @@ export class PollingApiTaskSource implements TaskSource {
       this.startedAtMs + Math.max(0, opts.waitForFirstTaskMs ?? 0);
     // Bind teamId once so every log line from this source carries it.
     const base = opts.logger ?? pino({ name: 'polling-api-source' });
-    this.logger = base.child({ teamId: opts.teamId });
+    this.logger = base.child({
+      teamId: opts.teamId,
+      projectId: opts.projectId ?? null,
+    });
+    this.logger.info(
+      { projectId: opts.projectId ?? null },
+      'polling-api.started',
+    );
   }
 
   async claim(): Promise<ClaimedTask | null> {
@@ -438,6 +445,7 @@ export class PollingApiTaskSource implements TaskSource {
       if (exhausted.has(key)) continue;
       if (this.aborted()) break;
       const spanAttributes = {
+        'moltnet.task_source.project_id': this.opts.projectId ?? 'none',
         'moltnet.task_source.profile_bound': Boolean(profile.profileId),
         'moltnet.task_source.page_size': this.listLimit,
       };
@@ -450,9 +458,7 @@ export class PollingApiTaskSource implements TaskSource {
         const result = await this.opts.agent.tasks.list(
           {
             status: 'queued' satisfies TaskStatus,
-            ...(this.opts.projectId
-              ? { projectId: this.opts.projectId }
-              : { general: true }),
+            projectId: this.opts.projectId ?? 'none',
             ...(taskTypes ? { taskTypes } : {}),
             ...(this.opts.correlationId
               ? { correlationId: this.opts.correlationId }
@@ -490,6 +496,14 @@ export class PollingApiTaskSource implements TaskSource {
             'polling-api.list_ok',
           );
         }
+        const dropped = result.items.filter(
+          (item) => (item.projectId ?? null) !== (this.opts.projectId ?? null),
+        ).length;
+        if (dropped)
+          this.logger.warn(
+            { dropped, projectId: this.opts.projectId ?? null },
+            'polling-api.project_filter_dropped',
+          );
         for (const item of result.items) {
           if ((item.projectId ?? null) !== (this.opts.projectId ?? null))
             continue;
@@ -606,6 +620,7 @@ export class PollingApiTaskSource implements TaskSource {
           {
             'moltnet.task.id': task.id,
             'moltnet.task.type': task.taskType,
+            'moltnet.task_source.project_id': this.opts.projectId ?? 'none',
             'moltnet.task_source.profile_bound': Boolean(profile.profileId),
           },
           () =>
@@ -639,6 +654,13 @@ export class PollingApiTaskSource implements TaskSource {
         };
       } catch (err) {
         const status = statusOf(err);
+        if (err instanceof MoltNetError && err.code === 'PROJECT_MISMATCH') {
+          this.logger.warn(
+            { taskId: task.id, projectId: this.opts.projectId ?? null },
+            'polling-api.project_mismatch',
+          );
+          continue;
+        }
         // 409: another claimer won the race. Expected under load.
         // 403: lost permission (rare — diary grants changed mid-list).
         // 404: task vanished (cancelled). Move on.

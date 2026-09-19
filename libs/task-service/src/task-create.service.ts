@@ -202,6 +202,10 @@ export function createTaskCreateService(
         );
       }
 
+      const projectContext = makeAsyncValidationContext(
+        input.callerId,
+        input.callerNs,
+      );
       const projectId = await resolveTaskProject(
         {
           teamId: input.teamId,
@@ -212,7 +216,10 @@ export function createTaskCreateService(
                   .continueFrom?.taskId
               : undefined,
         },
-        { taskRepository, projectRepository },
+        {
+          resolveTask: (id) => projectContext.resolveTask(id),
+          projectRepository,
+        },
       );
 
       // Profile existence is team-sensitive. Resolve it only after the
@@ -357,11 +364,7 @@ export function createTaskCreateService(
         : true;
       const deferReadinessChecks =
         input.claimCondition !== undefined && !conditionSatisfied;
-      const asyncCtx = makeAsyncValidationContext(
-        input.callerId,
-        input.callerNs,
-        { deferReadinessChecks },
-      );
+      const asyncCtx = { ...projectContext, deferReadinessChecks };
       const asyncErrors = await validateTaskInputAsync(
         input.taskType,
         normalizedInput,

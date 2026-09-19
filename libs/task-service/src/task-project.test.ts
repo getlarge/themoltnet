@@ -1,15 +1,13 @@
-import type { Project, Task } from '@moltnet/database';
+import type { Project } from '@moltnet/database';
 import { describe, expect, it, vi } from 'vitest';
 
 import { resolveTaskProject } from './task-project.js';
 
 function fixtures(parentProject: string | null = 'project') {
   return {
-    taskRepository: {
-      findByIdInTeam: vi
-        .fn()
-        .mockResolvedValue({ projectId: parentProject } as Task),
-    },
+    resolveTask: vi
+      .fn()
+      .mockResolvedValue({ teamId: 'team', projectId: parentProject }),
     projectRepository: {
       findById: vi
         .fn()
@@ -29,10 +27,7 @@ describe('task project selection', () => {
           repos,
         ),
       ).resolves.toBe(projectId);
-      expect(repos.taskRepository.findByIdInTeam).toHaveBeenCalledWith(
-        'parent',
-        'team',
-      );
+      expect(repos.resolveTask).toHaveBeenCalledWith('parent');
     },
   );
   it('rejects an explicit General override of a project continuation', async () => {
@@ -48,7 +43,7 @@ describe('task project selection', () => {
   });
   it('rejects a parent outside the selected team', async () => {
     const repos = fixtures();
-    repos.taskRepository.findByIdInTeam.mockResolvedValue(null);
+    repos.resolveTask.mockResolvedValue(null);
     await expect(
       resolveTaskProject(
         { teamId: 'team', continuationTaskId: 'parent' },

@@ -162,6 +162,7 @@ export class FakeTasks implements TaskClient {
       tags: [],
       teamId: body.teamId,
       diaryId: body.diaryId,
+      projectId: body.projectId ?? null,
       outputKind: 'artifact',
       input: body.input,
       inputSchemaCid: 'cid',

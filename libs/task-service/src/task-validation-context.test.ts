@@ -140,3 +140,15 @@ describe('createAsyncValidationContextFactory', () => {
     await expect(ctx.resolveRenderedPack(RENDERED_PACK_ID)).resolves.toBeNull();
   });
 });
+
+it('reuses concurrent and sequential project parent reads within one validation context', async () => {
+  const { ctx, deps } = makeContext();
+  const [first, second] = await Promise.all([
+    ctx.resolveTask(TASK_ID),
+    ctx.resolveTask(TASK_ID),
+  ]);
+  expect(await ctx.resolveTask(TASK_ID)).toBe(first);
+  expect(second).toBe(first);
+  expect(deps.taskRepository.findById).toHaveBeenCalledTimes(1);
+  expect(deps.permissionChecker.canViewTask).toHaveBeenCalledTimes(1);
+});

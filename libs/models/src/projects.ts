@@ -3,6 +3,8 @@ import { type Static, Type } from 'typebox';
 export const ProjectResponseSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   teamId: Type.String({ format: 'uuid' }),
+  creatorAgentId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+  creatorHumanId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
   name: Type.String(),
   description: Type.Union([Type.String(), Type.Null()]),
   defaultDiaryId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),

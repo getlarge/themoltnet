@@ -1,6 +1,6 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { UniqueViolationError } from '@moltnet/database';
+import { type Project, UniqueViolationError } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   ConflictProblemDetailsSchema,
@@ -20,6 +20,14 @@ import {
 } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
+
+function serializeProject(project: Project) {
+  return {
+    ...project,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+  };
+}
 
 export async function projectRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -145,11 +153,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
           creator: authContextToCreator(request),
         }),
       );
-      return reply.status(201).send({
-        ...project,
-        createdAt: project.createdAt.toISOString(),
-        updatedAt: project.updatedAt.toISOString(),
-      });
+      return reply.status(201).send(serializeProject(project));
     },
   );
   server.get(
@@ -166,25 +170,32 @@ export async function projectRoutes(fastify: FastifyInstance) {
         params: TeamParamsSchema,
         querystring: Type.Object({
           includeArchived: Type.Optional(Type.Boolean()),
+          limit: Type.Optional(
+            Type.Integer({ minimum: 1, maximum: 100, default: 50 }),
+          ),
+          offset: Type.Optional(Type.Integer({ minimum: 0, default: 0 })),
         }),
         response: {
-          200: Type.Object({ items: Type.Array(ProjectResponseSchema) }),
+          200: Type.Object({
+            items: Type.Array(ProjectResponseSchema),
+            nextOffset: Type.Union([Type.Integer(), Type.Null()]),
+          }),
           ...errors,
         },
       },
     },
     async (request) => {
       await authorize(request, request.params.id);
+      const limit = request.query.limit ?? 50;
+      const offset = request.query.offset ?? 0;
       const items = await fastify.projectRepository.listByTeamId(
         request.params.id,
         request.query.includeArchived ?? false,
+        { limit: limit + 1, offset },
       );
       return {
-        items: items.map((project) => ({
-          ...project,
-          createdAt: project.createdAt.toISOString(),
-          updatedAt: project.updatedAt.toISOString(),
-        })),
+        items: items.slice(0, limit).map(serializeProject),
+        nextOffset: items.length > limit ? offset + limit : null,
       };
     },
   );
@@ -206,11 +217,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
     async (request) => {
       await authorize(request, request.params.id);
       const project = await find(request.params.id, request.params.projectId);
-      return {
-        ...project,
-        createdAt: project.createdAt.toISOString(),
-        updatedAt: project.updatedAt.toISOString(),
-      };
+      return serializeProject(project);
     },
   );
   server.patch(
@@ -240,11 +247,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
         fastify.projectRepository.update(projectId, teamId, request.body),
       );
       if (!project) throw createProblem('not-found');
-      return {
-        ...project,
-        createdAt: project.createdAt.toISOString(),
-        updatedAt: project.updatedAt.toISOString(),
-      };
+      return serializeProject(project);
     },
   );
 }

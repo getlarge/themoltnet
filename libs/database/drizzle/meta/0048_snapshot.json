@@ -2067,6 +2067,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "creator_agent_id": {
+          "name": "creator_agent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creator_human_id": {
+          "name": "creator_human_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "name": {
           "name": "name",
           "type": "varchar(255)",
@@ -2118,13 +2130,29 @@
               "nulls": "last"
             },
             {
-              "expression": "name",
+              "expression": "lower(btrim(\"name\"))",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "projects_default_diary_idx": {
+          "name": "projects_default_diary_idx",
+          "columns": [
+            {
+              "expression": "default_diary_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
+          "where": "\"projects\".\"default_diary_id\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2137,6 +2165,32 @@
           "tableTo": "teams",
           "columnsFrom": [
             "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "projects_creator_agent_id_agents_id_fk": {
+          "name": "projects_creator_agent_id_agents_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "creator_agent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "projects_creator_human_id_humans_id_fk": {
+          "name": "projects_creator_human_id_humans_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "humans",
+          "columnsFrom": [
+            "creator_human_id"
           ],
           "columnsTo": [
             "id"
@@ -2161,7 +2215,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "projects_creator_xor": {
+          "name": "projects_creator_xor",
+          "value": "(\"projects\".\"creator_agent_id\" IS NOT NULL) <> (\"projects\".\"creator_human_id\" IS NOT NULL)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.rendered_packs": {
@@ -5925,6 +5984,12 @@
           "notNull": true,
           "default": "'{}'::text[]"
         },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "team_id": {
           "name": "team_id",
           "type": "uuid",
@@ -6139,6 +6204,28 @@
           "method": "btree",
           "with": {}
         },
+        "tasks_project_created_idx": {
+          "name": "tasks_project_created_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tasks\".\"project_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "tasks_type_status_idx": {
           "name": "tasks_type_status_idx",
           "columns": [
@@ -6328,6 +6415,19 @@
         }
       },
       "foreignKeys": {
+        "tasks_project_id_projects_id_fk": {
+          "name": "tasks_project_id_projects_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
         "tasks_team_id_teams_id_fk": {
           "name": "tasks_team_id_teams_id_fk",
           "tableFrom": "tasks",

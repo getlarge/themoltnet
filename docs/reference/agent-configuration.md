@@ -876,3 +876,18 @@ public input even if it was previously read: callers can mutate configuration
 objects between calls. Filesystem results are never cached across selections.
 Legacy `contexts.json` migration belongs to native CLI activation; a `contexts`
 key in this format is an unknown field, not a migration signal.
+
+### Shared project catalogue
+
+Projects have stable IDs. Names are trimmed and unique within a team ignoring
+case, including archived projects: archiving preserves a project's name for
+unambiguous historical references. Unarchive the same project or choose a new
+name instead of reusing an archived name. Creator agent/human IDs are returned
+by the API. Catalogue listing accepts `limit` (1–100, default 50) and `offset`,
+and returns `nextOffset` until all pages have been read.
+
+Task listing uses one project filter: omit `projectId` for all projects, pass a
+project UUID for that project, or `projectId=none` for General tasks. Claims use
+a UUID or JSON `null`; an omitted claim declaration means General. A mismatched
+claim returns `409 PROJECT_MISMATCH` before any task state change. Polling
+workers log that condition as a warning separately from ordinary claim races.

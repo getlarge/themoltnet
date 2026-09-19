@@ -625,6 +625,9 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
   });
 
   it('retries deferred project scans after the schema migration has committed', async () => {
+    await pool.query(
+      "DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = '0048_new_phalanx'",
+    );
     await pool.query('DROP INDEX tasks_project_created_idx');
     await runMigrations(databaseUrl);
     await runMigrations(databaseUrl);
@@ -636,6 +639,70 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
     );
     expect(indexes.rows).toEqual([{ indisvalid: true }]);
+  });
+
+  it('repairs an interrupted project index before recording completion', async () => {
+    await pool.query(
+      "DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = '0048_new_phalanx'",
+    );
+    await pool.query('DROP INDEX tasks_project_created_idx');
+    const blocker = await pool.connect();
+    const builder = await pool.connect();
+    try {
+      await blocker.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+      await blocker.query('SELECT * FROM agents LIMIT 1');
+      await builder.query("SET lock_timeout = '100ms'");
+      await expect(
+        builder.query(
+          'CREATE INDEX CONCURRENTLY tasks_project_created_idx ON tasks (project_id, created_at) WHERE project_id IS NOT NULL',
+        ),
+      ).rejects.toThrow(/lock timeout/);
+      const invalid = await pool.query(
+        "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
+      );
+      expect(invalid.rows).toEqual([{ indisvalid: false }]);
+      await blocker.query('ROLLBACK');
+      await expect(runMigrations(databaseUrl)).resolves.toBeUndefined();
+      const repaired = await pool.query(
+        "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
+      );
+      expect(repaired.rows).toEqual([{ indisvalid: true }]);
+    } finally {
+      await blocker.query('ROLLBACK');
+      blocker.release();
+      builder.release(true);
+    }
+  });
+
+  it('completes the project index despite an older transaction and skips applied steps', async () => {
+    await pool.query(
+      "DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = '0048_new_phalanx'",
+    );
+    await pool.query('DROP INDEX tasks_project_created_idx');
+    const blocker = await pool.connect();
+    try {
+      await blocker.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+      await blocker.query('SELECT * FROM agents LIMIT 1');
+      const release = setTimeout(() => {
+        void blocker.query('COMMIT');
+      }, 6500);
+      try {
+        await expect(runMigrations(databaseUrl)).resolves.toBeUndefined();
+      } finally {
+        clearTimeout(release);
+        await blocker.query('ROLLBACK');
+      }
+      const first = await pool.query(
+        'SELECT applied_at FROM drizzle.__moltnet_post_migrations',
+      );
+      await runMigrations(databaseUrl);
+      const second = await pool.query(
+        'SELECT applied_at FROM drizzle.__moltnet_post_migrations',
+      );
+      expect(second.rows).toEqual(first.rows);
+    } finally {
+      blocker.release();
+    }
   });
 
   it('persists project attribution and scopes catalogue mutations to the owning team', async () => {
@@ -650,9 +717,9 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       creatorAgentId: AGENT_ID,
       creatorHumanId: null,
     });
-    await expect(catalogue.create(input)).rejects.toBeInstanceOf(
-      UniqueViolationError,
-    );
+    await expect(
+      catalogue.create({ ...input, name: ' CATALOGUE-CONTRACT ' }),
+    ).rejects.toBeInstanceOf(UniqueViolationError);
     expect(
       await catalogue.update(project.id, AGENT_ID, { name: 'transferred' }),
     ).toBeNull();

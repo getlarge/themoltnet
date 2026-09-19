@@ -21691,6 +21691,14 @@ func (s *Server) handleListProjectsRequest(args [1]string, argsEscaped bool, w h
 					In:   "query",
 				}: params.IncludeArchived,
 				{
+					Name: "limit",
+					In:   "query",
+				}: params.Limit,
+				{
+					Name: "offset",
+					In:   "query",
+				}: params.Offset,
+				{
 					Name: "id",
 					In:   "path",
 				}: params.ID,
@@ -24468,14 +24476,6 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					Name: "diaryId",
 					In:   "query",
 				}: params.DiaryId,
-				{
-					Name: "projectId",
-					In:   "query",
-				}: params.ProjectId,
-				{
-					Name: "general",
-					In:   "query",
-				}: params.General,
 				{
 					Name: "proposedByAgentId",
 					In:   "query",

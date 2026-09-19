@@ -171,8 +171,9 @@ export const ListTasksQuerySchema = Type.Object(
     profileId: Type.Optional(Type.String({ format: 'uuid' })),
     correlationId: Type.Optional(Type.String({ format: 'uuid' })),
     diaryId: Type.Optional(Type.String({ format: 'uuid' })),
-    projectId: Type.Optional(Type.String({ format: 'uuid' })),
-    general: Type.Optional(Type.Boolean()),
+    projectId: Type.Optional(
+      Type.Union([Type.String({ format: 'uuid' }), Type.Literal('none')]),
+    ),
     proposedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),
     proposedByHumanId: Type.Optional(Type.String({ format: 'uuid' })),
     claimedByAgentId: Type.Optional(Type.String({ format: 'uuid' })),

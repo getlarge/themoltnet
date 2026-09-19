@@ -17067,6 +17067,40 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 			return res, errors.Wrap(err, "encode query")
 		}
 	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "offset" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "offset",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Offset.Get(); ok {
+				return e.EncodeValue(conv.IntToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
 	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
@@ -19446,40 +19480,6 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.DiaryId.Get(); ok {
 				return e.EncodeValue(conv.UUIDToString(val))
-			}
-			return nil
-		}); err != nil {
-			return res, errors.Wrap(err, "encode query")
-		}
-	}
-	{
-		// Encode "projectId" parameter.
-		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "projectId",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.ProjectId.Get(); ok {
-				return e.EncodeValue(conv.UUIDToString(val))
-			}
-			return nil
-		}); err != nil {
-			return res, errors.Wrap(err, "encode query")
-		}
-	}
-	{
-		// Encode "general" parameter.
-		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "general",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.General.Get(); ok {
-				return e.EncodeValue(conv.BoolToString(val))
 			}
 			return nil
 		}); err != nil {
