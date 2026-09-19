@@ -126,6 +126,12 @@ still runs.
 own credential, not on a derived one: the local seed signer calls the
 signing-request endpoints. The daemon refuses to start without it.
 
+That list is the **startup floor**: without any of it the daemon refuses to
+start. New keys are issued with `diary:read` and `team:read` as well, which the
+local Agent Server uses to name the teams and diaries a run is composed from.
+New keys also include `team:join` to redeem invitations. Keys without these
+additional scopes can still run tasks.
+
 Agent OAuth and direct agent-key credentials deliberately exclude
 `human:profile`; the TypeScript SDK requests the full agent grant by default and
 accepts an explicit narrower set. Human sessions include `human:profile`. MCP

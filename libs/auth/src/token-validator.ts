@@ -674,8 +674,13 @@ export function createTokenValidator(
                   bindingScope: 'team',
                   keyId: result.key_id,
                   boundTeamId: binding.teamId,
+                  expiresAt: result.expire_time?.toISOString() ?? null,
                 }
-              : { bindingScope: 'identity', keyId: result.key_id },
+              : {
+                  bindingScope: 'identity',
+                  keyId: result.key_id,
+                  expiresAt: result.expire_time?.toISOString() ?? null,
+                },
         } satisfies AgentAuthContext,
         expiresAtMs: result.expire_time?.getTime(),
         invalidationTag: `talos-key:${result.key_id}`,

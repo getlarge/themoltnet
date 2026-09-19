@@ -114,6 +114,7 @@ const HUMAN_AUTH_CONTEXT: AuthContext = {
 const TEAM_BOUND_AUTH_CONTEXT: AuthContext = {
   ...VALID_AUTH_CONTEXT,
   credentialBinding: {
+    expiresAt: null,
     bindingScope: 'team',
     keyId: '01JKEY00000000000000000001',
     boundTeamId: TEAM_ID,

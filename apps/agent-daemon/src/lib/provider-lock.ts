@@ -7,6 +7,19 @@ import { lock } from 'proper-lockfile';
 const DEFAULT_LOCK_TIMEOUT_MS = 30_000;
 const LOCK_WAIT_WARNING_MS = 1_000;
 
+/**
+ * When to warn that we are waiting on another process.
+ *
+ * A fixed 1s threshold is silently useless to a caller whose whole budget is
+ * shorter than that: the timeout wins the race and the operation fails with no
+ * word of *why* it failed, which is the one thing the caller needs. So the
+ * threshold scales down with the budget, and never sits so close to the
+ * deadline that whether it fires depends on timer drift.
+ */
+function warningThresholdMs(timeoutMs: number): number {
+  return Math.min(LOCK_WAIT_WARNING_MS, Math.floor(timeoutMs / 2));
+}
+
 export interface ProviderLockLogger {
   warn(context: Record<string, unknown>, message: string): void;
 }
@@ -68,6 +81,7 @@ async function withNamedProviderLock<T>(
   let compromised: Error | undefined;
   const startedAt = Date.now();
   const timeoutMs = options.timeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
+  const warnAfterMs = warningThresholdMs(timeoutMs);
   const lockfilePath = join(locksDir, `${name}.lock`);
   let warned = false;
   let release: Awaited<ReturnType<typeof lock>>;
@@ -86,7 +100,7 @@ async function withNamedProviderLock<T>(
         `timed out waiting for provider lock "${name}"`,
       );
     }
-    if (!warned && elapsedMs >= LOCK_WAIT_WARNING_MS) {
+    if (!warned && elapsedMs >= warnAfterMs) {
       warned = true;
       options.logger?.warn(
         { code: 'provider_lock_contended', elapsedMs, lockName: name },

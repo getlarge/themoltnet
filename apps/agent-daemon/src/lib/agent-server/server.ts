@@ -15,6 +15,7 @@ import rateLimit from '@fastify/rate-limit';
 import {
   assertNavigationRequest,
   isLoopbackViolation,
+  OriginAllowlist,
   registerLoopbackSecurity,
   rejectExplicitCrossSite,
   requireOriginHeader,
@@ -40,16 +41,22 @@ import {
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
+import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
   createManagedAgent,
+  loadAgentActivation,
   publicAgentView,
   reconcileManagedRegistration,
+  requireActivation,
 } from './identity.js';
+import { readIdentityDefaultBinding } from './identity-binding.js';
 import { AgentServerModelDiscoveryError } from './model-discovery.js';
 import {
   AgentServerPairingError,
+  NATIVE_CLIENT_ORIGIN,
   type PairingService,
   renderPairingApprovalPage,
   renderPairingResultPage,
@@ -59,13 +66,24 @@ import {
   AgentServerSubscriptionError,
   type ProviderLoginService,
 } from './provider-login.js';
-import { AgentServerRunError, type RunManager } from './runs.js';
+import type { MachineCapabilities } from './readiness.js';
+import {
+  AgentServerRunError,
+  BUILT_IN_RUNTIME_KIND,
+  type RunManager,
+} from './runs.js';
+import type { RuntimeRegistry } from './runtime-registry.js';
 import {
   type AgentServerStore,
   AgentServerStoreError,
   type ProviderModelEntry,
   type ProviderModelModality,
 } from './store.js';
+import {
+  requireCredentialSnapshot,
+  TeamCredentialError,
+  verifyTeamActivation,
+} from './team-credentials.js';
 
 export const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const BODY_LIMIT = 64 * 1024;
@@ -165,6 +183,13 @@ export interface BuildAgentServerOptions {
   runtimeSettings?: LocalOperationalSettings;
   /** Environment-selected identity, ahead of the persisted default. */
   activeIdentity?: string;
+  /**
+   * Builds the catalogue's view of the MoltNet API for a local identity.
+   * Overridable so the surface can be tested without a credential.
+   */
+  catalogueAgentFor?: (alias: string) => Promise<CatalogueAgentPort>;
+  /** Locally registered custom runtime kinds, for profile readiness. */
+  runtimeRegistry?: RuntimeRegistry;
   version: string;
   logger?: FastifyBaseLogger;
   /** Abort in-flight identity operations during supervisor shutdown. */
@@ -317,8 +342,15 @@ export function buildAgentServer(
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
 
+  // The native client is not a browser: CORS does not constrain it, its
+  // process-scoped token does. The reserved origin uses a scheme no browser
+  // can present, and `OriginAllowlist` only accepts https/loopback-http, so it
+  // is admitted through the predicate rather than the allowlist. Admitting it
+  // only lets the request reach the token check in `requirePairedOrigin`.
+  const browserOrigins = new OriginAllowlist(options.allowedOrigins);
   registerLoopbackSecurity(app, {
-    allowedOrigins: options.allowedOrigins,
+    isOriginAllowed: (origin) =>
+      origin === NATIVE_CLIENT_ORIGIN || browserOrigins.has(origin),
     ...(options.selfOrigin ? { selfOrigins: [options.selfOrigin] } : {}),
     allowedHeaders: [AGENT_SERVER_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -331,9 +363,25 @@ export function buildAgentServer(
       new AgentServerHttpError(429, 'rate_limited', 'Too many requests'),
     keyGenerator: (request) => {
       const origin = request.headers.origin;
-      return isConfiguredOrigin(origin, options)
+      if (!isConfiguredOrigin(origin, options)) return `ip:${request.ip}`;
+      // Claiming an origin is free; proving the grant is not. An unauthenticated
+      // caller asserting the native origin must not share the desktop client's
+      // budget, or any local process could deny it service without ever holding
+      // the token. Verify before choosing the authenticated bucket: arbitrary
+      // non-empty values must stay in the bounded pre-auth bucket.
+      const presented = request.headers[AGENT_SERVER_TOKEN_HEADER];
+      let authenticated = false;
+      if (typeof presented === 'string' && presented.length > 0) {
+        try {
+          pairing.verify(origin, presented);
+          authenticated = true;
+        } catch (error) {
+          if (!(error instanceof AgentServerPairingError)) throw error;
+        }
+      }
+      return authenticated
         ? `origin:${origin}`
-        : `ip:${request.ip}`;
+        : `unauth:${origin}:${request.ip}`;
     },
   });
 
@@ -382,6 +430,7 @@ export function buildAgentServer(
     registerProviderRoutes(app, options, requirePairedOrigin);
     registerSubscriptionRoutes(app, options, requirePairedOrigin);
     registerRunRoutes(app, options, requirePairedOrigin);
+    registerCatalogueRoute(app, options, requirePairedOrigin);
   });
   app.addHook('onClose', () => {
     options.subscriptions.close();
@@ -482,6 +531,111 @@ function registerPairingRoutes(
   );
 }
 
+/**
+ * The catalogue the desktop composes runs from, scoped to one local identity.
+ *
+ * Requires a paired client like every other /v1 route: it reaches the MoltNet
+ * API with that identity's credentials, so an unpaired caller must not read it.
+ */
+function registerCatalogueRoute(
+  app: FastifyInstance,
+  options: BuildAgentServerOptions,
+  requirePairedOrigin: PairedOriginGuard,
+): void {
+  app.get(
+    '/v1/catalogue',
+    { schema: AgentServerRouteSchemas.catalogue, attachValidation: true },
+    async (request) => {
+      requirePairedOrigin(request);
+      const { identity } = (request.query ?? {}) as { identity?: string };
+      if (!identity || identity.trim().length === 0) {
+        throw new AgentServerHttpError(
+          400,
+          'invalid_query',
+          '"identity" is required',
+        );
+      }
+      const alias = identity.trim();
+      // Throws a typed not-found when the alias is not activated here.
+      requireActivation(options.store, alias);
+      const agent = await (options.catalogueAgentFor
+        ? options.catalogueAgentFor(alias)
+        : defaultCatalogueAgent(options, alias));
+      return buildCatalogue({
+        agent,
+        machine: machineCapabilities(options),
+        identityDefault: readIdentityDefaultBinding(
+          options.store.identityDir(alias),
+        ),
+      });
+    },
+  );
+}
+
+/** Resolve and verify each indexed team independently with its exact key. */
+async function defaultCatalogueAgent(
+  options: BuildAgentServerOptions,
+  alias: string,
+): Promise<CatalogueAgentPort> {
+  const { config } = await loadAgentActivation(options.store, alias);
+  return {
+    teamIds: Object.keys(config.agent_key_refs ?? {}),
+    lastVerified: (teamId) =>
+      requireActivation(options.store, alias).credentialHealth?.[teamId],
+    readTeam: async (teamId) => {
+      const activated = await verifyTeamActivation(
+        options.store,
+        alias,
+        options.secretProviders,
+        options.externalSecretProviders,
+        undefined,
+        options.shutdownSignal,
+        teamId,
+      );
+      const { client, metadata } = requireCredentialSnapshot(activated);
+      const [team, diaries, profiles] = await Promise.all([
+        client.teams.get(teamId),
+        client.diaries.list(),
+        client.runtimeProfiles.list({ teamId }),
+      ]);
+      return {
+        team,
+        diaries: diaries.items,
+        profiles: profiles.items,
+        credential: metadata,
+      };
+    },
+  };
+}
+
+/** What this machine can execute right now: provider keys and runtime kinds. */
+function machineCapabilities(
+  options: BuildAgentServerOptions,
+): MachineCapabilities {
+  const providerEnv = new Map<string, boolean>();
+  for (const provider of Object.values(options.providers.list())) {
+    // Several providers can share an environment name. Availability is the
+    // union: one configured key satisfies the variable, and iteration order
+    // must not decide the answer.
+    const configured = providerEnv.get(provider.envName) === true;
+    providerEnv.set(provider.envName, configured || provider.hasApiKey);
+  }
+  const runtimeKinds = new Set<string>([BUILT_IN_RUNTIME_KIND]);
+  for (const entry of options.runtimeRegistry?.list() ?? []) {
+    // `resolve` re-hashes the module and its lockfile and throws when either
+    // drifted — the same check run start performs. Using `list` here would
+    // advertise a modified runtime as ready and fail at start instead.
+    try {
+      if (options.runtimeRegistry?.resolve(entry.kind)) {
+        runtimeKinds.add(entry.kind);
+      }
+    } catch {
+      // Drifted or missing: not available until it is registered again.
+    }
+  }
+  return { providerEnv, runtimeKinds };
+}
+
 function registerStatusRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
@@ -573,6 +727,21 @@ function registerAgentRoutes(
         'invalid_body',
         '"kind" must be "managed" or "external"',
       );
+    },
+  );
+  app.post(
+    '/v1/agents/:agentName/teams',
+    { schema: AgentServerRouteSchemas.enrollTeam },
+    async (request) => {
+      requirePairedOrigin(request);
+      const { agentName } = request.params as { agentName: string };
+      return enrollIdentityTeam({
+        store,
+        alias: agentName,
+        managed: options.secretProviders,
+        external: options.externalSecretProviders,
+        input: request.body as TeamEnrollmentInput,
+      });
     },
   );
   app.post(
@@ -938,7 +1107,9 @@ function isConfiguredOrigin(
 ): origin is string {
   return (
     typeof origin === 'string' &&
-    (options.allowedOrigins.includes(origin) || origin === options.selfOrigin)
+    (origin === NATIVE_CLIENT_ORIGIN ||
+      options.allowedOrigins.includes(origin) ||
+      origin === options.selfOrigin)
   );
 }
 
@@ -947,6 +1118,12 @@ function normalizeAgentServerError(error: unknown): {
   code: string;
   message: string;
 } {
+  if (error instanceof TeamCredentialError)
+    return {
+      statusCode: 400,
+      code: error.blocker.code,
+      message: error.blocker.message,
+    };
   if (error instanceof AgentServerHttpError) {
     return {
       statusCode: error.statusCode,

@@ -18,6 +18,12 @@ import type {
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
+  EnrollAgentServerTeamData,
+  EnrollAgentServerTeamErrors,
+  EnrollAgentServerTeamResponses,
+  GetAgentServerCatalogueData,
+  GetAgentServerCatalogueErrors,
+  GetAgentServerCatalogueResponses,
   GetAgentServerHealthData,
   GetAgentServerHealthResponses,
   GetAgentServerStatusData,
@@ -132,6 +138,36 @@ export const reconcileAgentServerAgent = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+export const enrollAgentServerTeam = <ThrowOnError extends boolean = false>(
+  options: Options<EnrollAgentServerTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    EnrollAgentServerTeamResponses,
+    EnrollAgentServerTeamErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/agents/{agentName}/teams',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
+  options: Options<GetAgentServerCatalogueData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetAgentServerCatalogueResponses,
+    GetAgentServerCatalogueErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/catalogue',
+    ...options,
   });
 
 export const startAgentServerPairing = <ThrowOnError extends boolean = false>(

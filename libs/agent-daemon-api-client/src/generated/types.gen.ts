@@ -17,6 +17,62 @@ export type AgentServerAgent = {
   teamId?: string;
 };
 
+export type AgentServerCatalogue = {
+  defaultTeamId: string | null;
+  profiles: Array<AgentServerCatalogueProfile>;
+  teams: Array<AgentServerCatalogueTeam>;
+};
+
+export type AgentServerCatalogueProfile = {
+  defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
+  definitionCid: string;
+  description: string | null;
+  id: string;
+  maxTurns: number;
+  model: string;
+  name: string;
+  provider: string;
+  requiredEnv: Array<string>;
+  requiredExecutables: Array<string>;
+  requiredTools: Array<string>;
+  revision: number;
+  runtimeKind: string;
+  teamId: string;
+  /**
+   * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+   */
+  toolEnforcement: 'off' | 'watch' | 'enforce';
+} & {
+  blockers: Array<{
+    code: string;
+    message: string;
+    remedy: string;
+  }>;
+  ready: boolean;
+};
+
+export type AgentServerCatalogueTeam = {
+  available: boolean;
+  blockers: Array<{
+    code: string;
+    message: string;
+    remedy: string;
+  }>;
+  credential?: {
+    expiresAt?: string | null;
+    keyId: string;
+    scopes: Array<string>;
+    verifiedAt: string;
+  };
+  defaultDiaryId: string | null;
+  diaries: Array<{
+    id: string;
+    name: string;
+  }>;
+  teamId: string;
+  teamName: string;
+};
+
 export type AgentServerHealth = {
   status: 'ok';
 };
@@ -51,6 +107,12 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
+  credential?: {
+    expiresAt?: string | null;
+    keyId: string;
+    scopes: Array<string>;
+    verifiedAt: string;
+  };
   diaryId?: string;
   endedAt?: string;
   exitCode?: number | null;
@@ -246,6 +308,87 @@ export type ReconcileAgentServerAgentResponses = {
 
 export type ReconcileAgentServerAgentResponse =
   ReconcileAgentServerAgentResponses[keyof ReconcileAgentServerAgentResponses];
+
+export type EnrollAgentServerTeamData = {
+  body?: {
+    code: string;
+    idempotencyKey: string;
+  } & (
+    | {
+        mode: 'enroll';
+      }
+    | {
+        mode: 'replace';
+        teamId: string;
+      }
+  );
+  path: {
+    agentName: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/teams';
+};
+
+export type EnrollAgentServerTeamErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type EnrollAgentServerTeamError =
+  EnrollAgentServerTeamErrors[keyof EnrollAgentServerTeamErrors];
+
+export type EnrollAgentServerTeamResponses = {
+  /**
+   * Default Response
+   */
+  200:
+    | {
+        keyId: string;
+        state: 'persisted';
+        teamId: string;
+      }
+    | {
+        issuedKeyId?: string;
+        message: string;
+        recoveryId: string;
+        secretCaptured: boolean;
+        state: 'recovery_required';
+      };
+};
+
+export type EnrollAgentServerTeamResponse =
+  EnrollAgentServerTeamResponses[keyof EnrollAgentServerTeamResponses];
+
+export type GetAgentServerCatalogueData = {
+  body?: never;
+  path?: never;
+  query: {
+    identity: string;
+  };
+  url: '/v1/catalogue';
+};
+
+export type GetAgentServerCatalogueErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type GetAgentServerCatalogueError =
+  GetAgentServerCatalogueErrors[keyof GetAgentServerCatalogueErrors];
+
+export type GetAgentServerCatalogueResponses = {
+  /**
+   * Default Response
+   */
+  200: AgentServerCatalogue;
+};
+
+export type GetAgentServerCatalogueResponse =
+  GetAgentServerCatalogueResponses[keyof GetAgentServerCatalogueResponses];
 
 export type StartAgentServerPairingData = {
   body?: never;

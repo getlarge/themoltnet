@@ -56850,16 +56850,30 @@ func (s *JoinTeamReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.Code)
 	}
 	{
+		if s.ExpectedTeamId.Set {
+			e.FieldStart("expectedTeamId")
+			s.ExpectedTeamId.Encode(e)
+		}
+	}
+	{
 		if s.IssueAgentKey.Set {
 			e.FieldStart("issueAgentKey")
 			s.IssueAgentKey.Encode(e)
 		}
 	}
+	{
+		if s.Proof.Set {
+			e.FieldStart("proof")
+			s.Proof.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfJoinTeamReq = [2]string{
+var jsonFieldsNameOfJoinTeamReq = [4]string{
 	0: "code",
-	1: "issueAgentKey",
+	1: "expectedTeamId",
+	2: "issueAgentKey",
+	3: "proof",
 }
 
 // Decode decodes JoinTeamReq from json.
@@ -56883,6 +56897,16 @@ func (s *JoinTeamReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"code\"")
 			}
+		case "expectedTeamId":
+			if err := func() error {
+				s.ExpectedTeamId.Reset()
+				if err := s.ExpectedTeamId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expectedTeamId\"")
+			}
 		case "issueAgentKey":
 			if err := func() error {
 				s.IssueAgentKey.Reset()
@@ -56892,6 +56916,16 @@ func (s *JoinTeamReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"issueAgentKey\"")
+			}
+		case "proof":
+			if err := func() error {
+				s.Proof.Reset()
+				if err := s.Proof.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"proof\"")
 			}
 		default:
 			return d.Skip()
@@ -56977,6 +57011,119 @@ func (s JoinTeamReqIssueAgentKey) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *JoinTeamReqIssueAgentKey) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *JoinTeamReqProof) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *JoinTeamReqProof) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("signature")
+		e.Str(s.Signature)
+	}
+	{
+		e.FieldStart("subjectId")
+		json.EncodeUUID(e, s.SubjectId)
+	}
+}
+
+var jsonFieldsNameOfJoinTeamReqProof = [2]string{
+	0: "signature",
+	1: "subjectId",
+}
+
+// Decode decodes JoinTeamReqProof from json.
+func (s *JoinTeamReqProof) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode JoinTeamReqProof to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "signature":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Signature = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signature\"")
+			}
+		case "subjectId":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.SubjectId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subjectId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode JoinTeamReqProof")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfJoinTeamReqProof) {
+					name = jsonFieldsNameOfJoinTeamReqProof[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *JoinTeamReqProof) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *JoinTeamReqProof) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -76072,6 +76219,39 @@ func (s *OptJoinTeamReqIssueAgentKey) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes JoinTeamReqProof as json.
+func (o OptJoinTeamReqProof) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes JoinTeamReqProof from json.
+func (o *OptJoinTeamReqProof) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptJoinTeamReqProof to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptJoinTeamReqProof) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptJoinTeamReqProof) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateRuntimeProfileBodyDefaultWorkspaceMode as json.
 func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -84566,14 +84746,21 @@ func (s *ProvenanceGraphIdentityNode) encodeFields(e *jx.Encoder) {
 		s.BindingScope.Encode(e)
 	}
 	{
+		if s.ExpiresAt.Set {
+			e.FieldStart("expiresAt")
+			s.ExpiresAt.Encode(e, json.EncodeDateTime)
+		}
+	}
+	{
 		e.FieldStart("keyId")
 		e.Str(s.KeyId)
 	}
 }
 
-var jsonFieldsNameOfProvenanceGraphIdentityNode = [2]string{
+var jsonFieldsNameOfProvenanceGraphIdentityNode = [3]string{
 	0: "bindingScope",
-	1: "keyId",
+	1: "expiresAt",
+	2: "keyId",
 }
 
 // Decode decodes ProvenanceGraphIdentityNode from json.
@@ -84595,8 +84782,18 @@ func (s *ProvenanceGraphIdentityNode) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"bindingScope\"")
 			}
+		case "expiresAt":
+			if err := func() error {
+				s.ExpiresAt.Reset()
+				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAt\"")
+			}
 		case "keyId":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.KeyId = string(v)
@@ -84617,7 +84814,7 @@ func (s *ProvenanceGraphIdentityNode) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000101,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -86609,15 +86806,22 @@ func (s *ProvenanceGraphTeamNode) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.BoundTeamId)
 	}
 	{
+		if s.ExpiresAt.Set {
+			e.FieldStart("expiresAt")
+			s.ExpiresAt.Encode(e, json.EncodeDateTime)
+		}
+	}
+	{
 		e.FieldStart("keyId")
 		e.Str(s.KeyId)
 	}
 }
 
-var jsonFieldsNameOfProvenanceGraphTeamNode = [3]string{
+var jsonFieldsNameOfProvenanceGraphTeamNode = [4]string{
 	0: "bindingScope",
 	1: "boundTeamId",
-	2: "keyId",
+	2: "expiresAt",
+	3: "keyId",
 }
 
 // Decode decodes ProvenanceGraphTeamNode from json.
@@ -86651,8 +86855,18 @@ func (s *ProvenanceGraphTeamNode) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"boundTeamId\"")
 			}
+		case "expiresAt":
+			if err := func() error {
+				s.ExpiresAt.Reset()
+				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expiresAt\"")
+			}
 		case "keyId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.KeyId = string(v)
@@ -86673,7 +86887,7 @@ func (s *ProvenanceGraphTeamNode) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00001011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -126530,6 +126744,12 @@ func (s WhoamiCredentialBinding) encodeFields(e *jx.Encoder) {
 				json.EncodeUUID(e, s.BoundTeamId)
 			}
 			{
+				if s.ExpiresAt.Set {
+					e.FieldStart("expiresAt")
+					s.ExpiresAt.Encode(e, json.EncodeDateTime)
+				}
+			}
+			{
 				e.FieldStart("keyId")
 				e.Str(s.KeyId)
 			}
@@ -126539,6 +126759,12 @@ func (s WhoamiCredentialBinding) encodeFields(e *jx.Encoder) {
 		e.Str("identity")
 		{
 			s := s.ProvenanceGraphIdentityNode
+			{
+				if s.ExpiresAt.Set {
+					e.FieldStart("expiresAt")
+					s.ExpiresAt.Encode(e, json.EncodeDateTime)
+				}
+			}
 			{
 				e.FieldStart("keyId")
 				e.Str(s.KeyId)

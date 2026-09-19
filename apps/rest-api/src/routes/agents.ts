@@ -215,6 +215,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         ...(authContext.credentialBinding && {
           credentialBinding: {
             keyId: authContext.credentialBinding.keyId,
+            expiresAt: authContext.credentialBinding.expiresAt,
             bindingScope: authContext.credentialBinding.bindingScope,
             ...(authContext.credentialBinding.bindingScope === 'team' && {
               boundTeamId: authContext.credentialBinding.boundTeamId,

@@ -27049,8 +27049,13 @@ func (s *JoinTeamOKRole) UnmarshalText(data []byte) error {
 }
 
 type JoinTeamReq struct {
-	Code          string                      `json:"code"`
-	IssueAgentKey OptJoinTeamReqIssueAgentKey `json:"issueAgentKey"`
+	Code string `json:"code"`
+	// UUID v4 identifier.
+	ExpectedTeamId OptUUID                     `json:"expectedTeamId"`
+	IssueAgentKey  OptJoinTeamReqIssueAgentKey `json:"issueAgentKey"`
+	// Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey
+	// and Idempotency-Key.
+	Proof OptJoinTeamReqProof `json:"proof"`
 }
 
 // GetCode returns the value of Code.
@@ -27058,9 +27063,19 @@ func (s *JoinTeamReq) GetCode() string {
 	return s.Code
 }
 
+// GetExpectedTeamId returns the value of ExpectedTeamId.
+func (s *JoinTeamReq) GetExpectedTeamId() OptUUID {
+	return s.ExpectedTeamId
+}
+
 // GetIssueAgentKey returns the value of IssueAgentKey.
 func (s *JoinTeamReq) GetIssueAgentKey() OptJoinTeamReqIssueAgentKey {
 	return s.IssueAgentKey
+}
+
+// GetProof returns the value of Proof.
+func (s *JoinTeamReq) GetProof() OptJoinTeamReqProof {
+	return s.Proof
 }
 
 // SetCode sets the value of Code.
@@ -27068,9 +27083,19 @@ func (s *JoinTeamReq) SetCode(val string) {
 	s.Code = val
 }
 
+// SetExpectedTeamId sets the value of ExpectedTeamId.
+func (s *JoinTeamReq) SetExpectedTeamId(val OptUUID) {
+	s.ExpectedTeamId = val
+}
+
 // SetIssueAgentKey sets the value of IssueAgentKey.
 func (s *JoinTeamReq) SetIssueAgentKey(val OptJoinTeamReqIssueAgentKey) {
 	s.IssueAgentKey = val
+}
+
+// SetProof sets the value of Proof.
+func (s *JoinTeamReq) SetProof(val OptJoinTeamReqProof) {
+	s.Proof = val
 }
 
 type JoinTeamReqIssueAgentKey bool
@@ -27084,6 +27109,34 @@ func (JoinTeamReqIssueAgentKey) AllValues() []JoinTeamReqIssueAgentKey {
 	return []JoinTeamReqIssueAgentKey{
 		JoinTeamReqIssueAgentKeyTrue,
 	}
+}
+
+// Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey
+// and Idempotency-Key.
+type JoinTeamReqProof struct {
+	Signature string `json:"signature"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID `json:"subjectId"`
+}
+
+// GetSignature returns the value of Signature.
+func (s *JoinTeamReqProof) GetSignature() string {
+	return s.Signature
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *JoinTeamReqProof) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// SetSignature sets the value of Signature.
+func (s *JoinTeamReqProof) SetSignature(val string) {
+	s.Signature = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *JoinTeamReqProof) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
 }
 
 type JoinTeamServiceUnavailable ProblemDetails
@@ -36613,6 +36666,52 @@ func (o OptJoinTeamReqIssueAgentKey) Or(d JoinTeamReqIssueAgentKey) JoinTeamReqI
 	return d
 }
 
+// NewOptJoinTeamReqProof returns new OptJoinTeamReqProof with value set to v.
+func NewOptJoinTeamReqProof(v JoinTeamReqProof) OptJoinTeamReqProof {
+	return OptJoinTeamReqProof{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptJoinTeamReqProof is optional JoinTeamReqProof.
+type OptJoinTeamReqProof struct {
+	Value JoinTeamReqProof
+	Set   bool
+}
+
+// IsSet returns true if OptJoinTeamReqProof was set.
+func (o OptJoinTeamReqProof) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptJoinTeamReqProof) Reset() {
+	var v JoinTeamReqProof
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptJoinTeamReqProof) SetTo(v JoinTeamReqProof) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptJoinTeamReqProof) Get() (v JoinTeamReqProof, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptJoinTeamReqProof) Or(d JoinTeamReqProof) JoinTeamReqProof {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptListAgentKeysStatus returns new OptListAgentKeysStatus with value set to v.
 func NewOptListAgentKeysStatus(v ListAgentKeysStatus) OptListAgentKeysStatus {
 	return OptListAgentKeysStatus{
@@ -43250,12 +43349,18 @@ func (s *ProvenanceGraphHumanNodeType) UnmarshalText(data []byte) error {
 // Ref: #/components/schemas/ProvenanceGraphIdentityNode
 type ProvenanceGraphIdentityNode struct {
 	BindingScope ProvenanceGraphIdentityNodeBindingScope `json:"bindingScope"`
+	ExpiresAt    OptNilDateTime                          `json:"expiresAt"`
 	KeyId        string                                  `json:"keyId"`
 }
 
 // GetBindingScope returns the value of BindingScope.
 func (s *ProvenanceGraphIdentityNode) GetBindingScope() ProvenanceGraphIdentityNodeBindingScope {
 	return s.BindingScope
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ProvenanceGraphIdentityNode) GetExpiresAt() OptNilDateTime {
+	return s.ExpiresAt
 }
 
 // GetKeyId returns the value of KeyId.
@@ -43266,6 +43371,11 @@ func (s *ProvenanceGraphIdentityNode) GetKeyId() string {
 // SetBindingScope sets the value of BindingScope.
 func (s *ProvenanceGraphIdentityNode) SetBindingScope(val ProvenanceGraphIdentityNodeBindingScope) {
 	s.BindingScope = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ProvenanceGraphIdentityNode) SetExpiresAt(val OptNilDateTime) {
+	s.ExpiresAt = val
 }
 
 // SetKeyId sets the value of KeyId.
@@ -44221,6 +44331,7 @@ func (s *ProvenanceGraphSupersededNodeReason) UnmarshalText(data []byte) error {
 type ProvenanceGraphTeamNode struct {
 	BindingScope ProvenanceGraphTeamNodeBindingScope `json:"bindingScope"`
 	BoundTeamId  uuid.UUID                           `json:"boundTeamId"`
+	ExpiresAt    OptNilDateTime                      `json:"expiresAt"`
 	KeyId        string                              `json:"keyId"`
 }
 
@@ -44232,6 +44343,11 @@ func (s *ProvenanceGraphTeamNode) GetBindingScope() ProvenanceGraphTeamNodeBindi
 // GetBoundTeamId returns the value of BoundTeamId.
 func (s *ProvenanceGraphTeamNode) GetBoundTeamId() uuid.UUID {
 	return s.BoundTeamId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ProvenanceGraphTeamNode) GetExpiresAt() OptNilDateTime {
+	return s.ExpiresAt
 }
 
 // GetKeyId returns the value of KeyId.
@@ -44247,6 +44363,11 @@ func (s *ProvenanceGraphTeamNode) SetBindingScope(val ProvenanceGraphTeamNodeBin
 // SetBoundTeamId sets the value of BoundTeamId.
 func (s *ProvenanceGraphTeamNode) SetBoundTeamId(val uuid.UUID) {
 	s.BoundTeamId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ProvenanceGraphTeamNode) SetExpiresAt(val OptNilDateTime) {
+	s.ExpiresAt = val
 }
 
 // SetKeyId sets the value of KeyId.

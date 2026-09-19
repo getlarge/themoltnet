@@ -1,3 +1,4 @@
+import { RuntimeProfile } from '@moltnet/runtime-profiles';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
@@ -80,6 +81,88 @@ export const AgentServerProviderSchema = Type.Object(
   { $id: 'AgentServerProvider' },
 );
 
+const CredentialMetadataSchema = Type.Object({
+  keyId: Type.String(),
+  expiresAt: Type.Optional(Type.Union([DateTime, Type.Null()])),
+  verifiedAt: DateTime,
+  scopes: StringList,
+});
+
+export const AgentServerCatalogueTeamSchema = Type.Object(
+  {
+    teamId: Type.String(),
+    teamName: Type.String(),
+    available: Type.Boolean(),
+    credential: Type.Optional(CredentialMetadataSchema),
+    blockers: Type.Array(
+      Type.Object({
+        code: Type.String(),
+        message: Type.String(),
+        remedy: Type.String(),
+      }),
+    ),
+    diaries: Type.Array(
+      Type.Object({ id: Type.String(), name: Type.String() }),
+    ),
+    /** Null when the operator must choose: several diaries, no binding. */
+    defaultDiaryId: Type.Union([Type.String(), Type.Null()]),
+  },
+  { $id: 'AgentServerCatalogueTeam' },
+);
+
+/**
+ * Composed from the canonical `RuntimeProfile` schema rather than restated, so
+ * the wire contract cannot drift from the profile the API serves — and so the
+ * constrained fields keep their real unions instead of degrading to `string`.
+ */
+export const AgentServerCatalogueProfileSchema = Type.Intersect(
+  [
+    Type.Pick(RuntimeProfile, [
+      'id',
+      'name',
+      'teamId',
+      'description',
+      'provider',
+      'model',
+      'runtimeKind',
+      'toolEnforcement',
+      'defaultWorkspaceMode',
+      'maxTurns',
+      'revision',
+      'definitionCid',
+      'requiredEnv',
+      'requiredTools',
+      'requiredExecutables',
+    ]),
+    Type.Object({
+      /** Whether this machine can execute the profile right now. */
+      ready: Type.Boolean(),
+      blockers: Type.Array(
+        Type.Object({
+          code: Type.String(),
+          message: Type.String(),
+          remedy: Type.String(),
+        }),
+      ),
+    }),
+  ],
+  { $id: 'AgentServerCatalogueProfile' },
+);
+
+export const AgentServerCatalogueSchema = Type.Object(
+  {
+    teams: Type.Array(schemaRef(AgentServerCatalogueTeamSchema)),
+    defaultTeamId: Type.Union([Type.String(), Type.Null()]),
+    profiles: Type.Array(schemaRef(AgentServerCatalogueProfileSchema)),
+  },
+  { $id: 'AgentServerCatalogue' },
+);
+
+export const CatalogueQuerySchema = Type.Object({
+  /** Local alias of the identity whose teams and profiles are listed. */
+  identity: Type.String({ minLength: 1 }),
+});
+
 export const AgentServerRunRecordSchema = Type.Object(
   {
     id: Type.String(),
@@ -97,6 +180,7 @@ export const AgentServerRunRecordSchema = Type.Object(
     ]),
     pid: Type.Optional(Type.Number()),
     exitCode: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+    credential: Type.Optional(CredentialMetadataSchema),
     startedAt: DateTime,
     endedAt: Type.Optional(DateTime),
   },
@@ -237,6 +321,9 @@ export const AGENT_SERVER_SCHEMAS = [
   AgentServerIdentitySchema,
   AgentServerTaskTypeSchema,
   AgentServerProviderSchema,
+  AgentServerCatalogueTeamSchema,
+  AgentServerCatalogueProfileSchema,
+  AgentServerCatalogueSchema,
   AgentServerRunRecordSchema,
   AgentServerRunSchema,
   AgentServerSubscriptionSchema,
@@ -291,6 +378,42 @@ export const AgentServerRouteSchemas = {
     security: pairedSecurity,
     body: CreateAgentSchema,
     response: { 201: schemaRef(AgentServerAgentSchema), ...problemResponse },
+  },
+  enrollTeam: {
+    operationId: 'enrollAgentServerTeam',
+    tags: ['agents'],
+    security: pairedSecurity,
+    params: AgentParamsSchema,
+    body: Type.Intersect([
+      Type.Object({
+        code: Type.String({ minLength: 1, maxLength: 4096 }),
+        idempotencyKey: Type.String({ minLength: 1, maxLength: 256 }),
+      }),
+      Type.Union([
+        Type.Object({ mode: Type.Literal('enroll') }),
+        Type.Object({
+          mode: Type.Literal('replace'),
+          teamId: Type.String({ minLength: 1 }),
+        }),
+      ]),
+    ]),
+    response: {
+      200: Type.Union([
+        Type.Object({
+          state: Type.Literal('persisted'),
+          teamId: Type.String(),
+          keyId: Type.String(),
+        }),
+        Type.Object({
+          state: Type.Literal('recovery_required'),
+          secretCaptured: Type.Boolean(),
+          issuedKeyId: Type.Optional(Type.String()),
+          recoveryId: Type.String(),
+          message: Type.String(),
+        }),
+      ]),
+      ...problemResponse,
+    },
   },
   reconcileAgent: {
     operationId: 'reconcileAgentServerAgent',
@@ -373,6 +496,16 @@ export const AgentServerRouteSchemas = {
     params: ProviderParamsSchema,
     response: {
       200: schemaRef(CancelledSubscriptionSchema),
+      ...problemResponse,
+    },
+  },
+  catalogue: {
+    operationId: 'getAgentServerCatalogue',
+    tags: ['catalogue'],
+    security: pairedSecurity,
+    querystring: CatalogueQuerySchema,
+    response: {
+      200: schemaRef(AgentServerCatalogueSchema),
       ...problemResponse,
     },
   },
