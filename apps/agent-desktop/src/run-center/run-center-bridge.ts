@@ -54,6 +54,13 @@ export function listPresets(): RunPreset[] {
 
 /** Provider credentials. The key crosses to native code and no further. */
 export const providerActions: ProviderActions = {
+  discoverModels: async (providerId) => {
+    const result = await invoke<{ models: AgentServerProvider['models'] }>(
+      'desktop_discover_provider_models',
+      { providerId },
+    );
+    return result.models;
+  },
   putProvider: (providerId, config) =>
     invoke<AgentServerProvider>('desktop_put_provider', {
       providerId,

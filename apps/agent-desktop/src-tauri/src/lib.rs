@@ -385,6 +385,23 @@ fn desktop_put_provider(
         .map_err(|error| format!("the Agent Server returned an unreadable provider: {error}"))
 }
 
+/// Discover models through the server, using its protected provider credentials.
+#[tauri::command]
+fn desktop_discover_provider_models(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, |token| {
+        control::post(
+            token,
+            &format!("/v1/providers/{}/discover-models", urlencode(&provider_id)),
+            "{}",
+        )
+    })?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned unreadable models: {error}"))
+}
+
 /// Remove a provider and the API key held for it on this machine.
 #[tauri::command]
 fn desktop_delete_provider(state: State<'_, AppState>, provider_id: String) -> Result<(), String> {
@@ -635,6 +652,7 @@ pub fn run() {
             desktop_run_logs,
             desktop_providers,
             desktop_put_provider,
+            desktop_discover_provider_models,
             desktop_delete_provider,
             desktop_subscriptions,
             desktop_start_subscription_login,

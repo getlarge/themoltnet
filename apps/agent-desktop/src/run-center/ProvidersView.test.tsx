@@ -36,6 +36,7 @@ function renderView(
   const actions: ProviderActions = {
     putProvider,
     deleteProvider,
+    discoverModels: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
   render(
@@ -215,6 +216,7 @@ function renderWithSubscriptions(
         actions={{
           putProvider: vi.fn(),
           deleteProvider: vi.fn(),
+          discoverModels: vi.fn(),
         }}
         subscriptions={subscriptions}
         subscriptionActions={actions}

@@ -23,6 +23,7 @@ import {
 } from '@themoltnet/design-system';
 import { useState } from 'react';
 
+import { ProviderForm } from './ProviderForm.js';
 import type {
   AgentServerProvider,
   AgentServerSubscription,
@@ -51,6 +52,7 @@ export function ProvidersView({
   subscriptionActions,
   onChanged,
 }: ProvidersViewProps) {
+  const [configuring, setConfiguring] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [busy, setBusy] = useState(false);
@@ -157,8 +159,8 @@ export function ProvidersView({
           Providers
         </Text>
         <Text variant="caption" color="secondary">
-          Model credentials held on this Mac. A runtime profile names the
-          provider it needs; without a key here, a run using it cannot start.
+          Connect local models or a cloud provider, then choose the models your
+          runtime profiles can use. Credentials are stored on this Mac.
         </Text>
       </Stack>
 
@@ -168,11 +170,28 @@ export function ProvidersView({
         </InlineNotice>
       ) : null}
 
-      {entries.length === 0 ? (
+      {configuring !== null ? (
+        <ControlSurface padding="lg">
+          <ProviderForm
+            key={configuring}
+            providers={providers}
+            actions={actions}
+            existingId={configuring || undefined}
+            onChanged={onChanged}
+            onDone={() => setConfiguring(null)}
+          />
+        </ControlSurface>
+      ) : (
+        <Stack direction="row">
+          <Button onClick={() => setConfiguring('')}>Add provider</Button>
+        </Stack>
+      )}
+
+      {entries.length === 0 && configuring === null ? (
         <ControlSurface padding="lg">
           <EmptyState
             title="No providers configured on this machine"
-            description="Add the key for the provider your runtime profiles use. Keys stay on this Mac; MoltNet never sends them anywhere else."
+            description="Add Ollama, Ollama Cloud, or another OpenAI-compatible provider to use its models from Desktop."
           />
         </ControlSurface>
       ) : (
@@ -189,14 +208,14 @@ export function ProvidersView({
                 >
                   <Stack gap={1} style={{ minWidth: 0 }}>
                     <Text as="h2" variant="bodyLarge" weight="semibold" mono>
-                      {provider.api}
+                      {providerId}
                     </Text>
                     <Text variant="caption" color="muted" mono>
                       {provider.envName}
                     </Text>
                   </Stack>
-                  <Badge variant={provider.hasApiKey ? 'success' : 'warning'}>
-                    {provider.hasApiKey ? 'key configured' : 'no key'}
+                  <Badge variant={provider.hasApiKey ? 'success' : 'default'}>
+                    {provider.hasApiKey ? 'key configured' : 'no key stored'}
                   </Badge>
                 </Stack>
 
@@ -238,6 +257,14 @@ export function ProvidersView({
                     <Button
                       variant="secondary"
                       size="sm"
+                      disabled={busy || configuring !== null}
+                      onClick={() => setConfiguring(providerId)}
+                    >
+                      Configure models for {providerId}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={busy}
                       onClick={() => {
                         setApiKey('');
@@ -246,8 +273,8 @@ export function ProvidersView({
                       }}
                     >
                       {provider.hasApiKey
-                        ? `Replace key for ${provider.api}`
-                        : `Add key for ${provider.api}`}
+                        ? `Replace key for ${providerId}`
+                        : `Add key for ${providerId}`}
                     </Button>
                     <Button
                       variant="ghost"
@@ -255,7 +282,7 @@ export function ProvidersView({
                       disabled={busy}
                       onClick={() => setRemoving(providerId)}
                     >
-                      Remove {provider.api}
+                      Remove {providerId}
                     </Button>
                   </Stack>
                 )}
