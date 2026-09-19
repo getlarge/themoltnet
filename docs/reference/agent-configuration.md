@@ -816,3 +816,60 @@ removing the indexed slot causes migration to verify it again. Plans are bound
 to the original document; regenerate a plan after another writer changes it.
 Activation refresh verifies the selected key's subject and team binding, and
 older activation caches require refresh after upgrading these readers.
+
+## Project binding format compatibility
+
+`~/.config/moltnet/projects.json` contains machine-local project registrations.
+An explicit alternative file supports CI and cloud workers. The format uses
+`version: 1` and a `bindings` array; it contains no credentials. Readers reject
+unknown or mis-cased fields at every level. A format change, including adding an
+optional field, requires a new version. Writers must not upgrade an existing
+file automatically. Upgrade the CLI and daemon/SDK together before an explicit
+format migration, or use separate configuration files during a transition. Older
+readers report a newer-version error with upgrade guidance and leave the file
+untouched. Invalid versions and malformed configuration are separate errors.
+
+API endpoints use an explicit portable syntax: lowercase HTTP(S) scheme and
+host, canonical IP addresses, no credentials/query/fragment, no dot path
+segments, and no default or zero-padded ports. Omit `:443` for HTTPS and `:80`
+for HTTP. Path segments use ASCII letters, digits, `.`, `_`, `~`, and `-`; a
+single trailing slash is ignored for selection. HTTP is restricted to
+`localhost`, IPv4 loopback addresses, and `[::1]`. Use HTTPS for remote hosts.
+
+The same endpoint syntax applies to selection options, including CLI
+`--api-url`; use `https://api.themolt.net`, not `https://API.themolt.net:443`.
+
+On POSIX systems the file must belong to root or the current user and must not
+be writable by group or others. Both readers reject symbolic links, non-regular
+files, and files larger than 1 MiB. Windows uses filesystem ACLs rather than
+POSIX ownership/mode checks; readers do not inspect Windows ACLs. Store the file
+in an operator-controlled directory (parent-directory ownership is not checked).
+Read-only root-owned configuration supports non-root container workers. Writers
+sync the file before replacement and the parent directory afterward on POSIX.
+The Go/TypeScript writer-lock test needs Node.js and installed `tsx`.
+
+The reserved hook phases are `afterCreate` and `beforeRun`. Each command uses an
+absolute executable path or a bare PATH name, an explicit string `args` array,
+and an integer `timeoutMs` from 1 through 600000. Relative executable paths such
+as `./setup` are rejected. Supporting the format does not imply a runtime can
+execute hooks: a runtime must reject unsupported preparation before claiming
+work. Hook execution is provided by the workspace lifecycle layer.
+
+Resolution errors identify ambiguous candidates. Validation errors identify the
+binding index and name where available; file reads include the configuration
+path. Programmatic error categories are `version`, `validation`, `selection`,
+and `io`. Selection returns a copy and accepts only `source`, `strategy`, and
+`diaryId` overrides; an omitted or undefined override preserves the saved value.
+Only own override properties apply; inherited properties are ignored. Malformed
+Unicode strings are rejected by both readers. Missing source registrations fail
+native selection even when other bindings exist; remove stale registrations or
+select an available binding explicitly. Empty diary IDs are invalid. A `none`
+override clears source and hooks.
+
+Path canonicalization follows the local filesystem, including macOS case and
+Unicode normalization aliases. Both runtimes test case aliases and traverse-only
+ancestors; Go additionally tests normalization aliases. Resolvers validate each
+public input even if it was previously read: callers can mutate configuration
+objects between calls. Filesystem results are never cached across selections.
+Legacy `contexts.json` migration belongs to native CLI activation; a `contexts`
+key in this format is an unknown field, not a migration signal.

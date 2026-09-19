@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -139,18 +140,7 @@ type GitHubSection struct {
 }
 
 // GetConfigDir returns ~/.config/moltnet.
-func GetConfigDir() (string, error) {
-	// Honour HOME explicitly so CLI tests and containerized deployments can
-	// relocate the user-local store without changing the process user record.
-	if home := os.Getenv("HOME"); home != "" {
-		return filepath.Join(home, ".config", "moltnet"), nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("get home dir: %w", err)
-	}
-	return filepath.Join(home, ".config", "moltnet"), nil
-}
+func GetConfigDir() (string, error) { return configdir.Dir() }
 
 // GetConfigPath returns the credentials path for the selected central identity.
 func GetConfigPath() (string, error) {

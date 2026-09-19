@@ -1,19 +1,10 @@
-import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import {
-  chmod,
-  link,
-  mkdir,
-  open,
-  readFile,
-  rename,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import { link, mkdir, open, readFile, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, join, sep } from 'node:path';
 
 import { withConfigLock } from './config-lock.js';
+import { writeFileAtomic } from './write-file-atomic.js';
 
 export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
@@ -285,17 +276,10 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
-    const temp = `${selectorPath}.${process.pid}.${randomUUID()}.tmp`;
-    try {
-      await writeFile(
-        temp,
-        JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
-        { mode: 0o600 },
-      );
-      await rename(temp, selectorPath);
-    } finally {
-      await rm(temp, { force: true });
-    }
+    await writeFileAtomic(
+      selectorPath,
+      JSON.stringify({ version: 1, default_identity: alias }, null, 2) + '\n',
+    );
   });
 }
 
@@ -398,18 +382,13 @@ async function writeConfigUnlocked(
   // committed or untouched; callers rely on this when rolling back secrets.
   // An exclusive write commits with link(), which fails if the target exists;
   // a normal write replaces the target with rename().
-  const tempPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
-  try {
-    await writeFile(tempPath, contents, { mode: 0o600 });
-    await chmod(tempPath, 0o600);
-    if (options.exclusive) {
-      await linkExclusive(tempPath, filePath, contents);
-    } else {
-      await rename(tempPath, filePath);
-    }
-  } finally {
-    await rm(tempPath, { force: true }).catch(() => undefined);
-  }
+  await writeFileAtomic(
+    filePath,
+    contents,
+    options.exclusive
+      ? (temporary, target) => linkExclusive(temporary, target, contents)
+      : undefined,
+  );
   // Seed the selector when none is set, as the Go CLI and the daemon store both
   // do. Without it a first identity created from JS is unreachable by every
   // other consumer unless the operator exports MOLTNET_ACTIVE_IDENTITY by hand.
