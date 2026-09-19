@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
@@ -54,6 +55,7 @@ type resolvedContextBinding struct {
 	// when neither applies.
 	Source  string
 	Binding *contextBinding
+	Project *projectconfig.Binding
 }
 
 func (r resolvedContextBinding) teamID() string {
@@ -234,18 +236,41 @@ func identityDefaultBinding(agentDir string) (contextBinding, bool) {
 // resolveContextBinding resolves the team/diary for directory: the binding
 // stored for its location if there is one, otherwise the identity default.
 func resolveContextBinding(agentDir, directory string) (resolvedContextBinding, error) {
-	key, err := contextLocationKey(directory)
+	return resolveContextBindingWithProjectOptions(agentDir, directory, "", "")
+}
+
+// Local project selection is independent of credentials and never prepares a workspace.
+func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bindingName string) (resolvedContextBinding, error) {
+	canonical, err := canonicalDirectory(directory)
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
-	store, err := readContextStore(agentDir)
+	legacy, err := readContextStore(agentDir)
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
-	if binding, ok := store.Contexts[key]; ok {
-		copy := binding
-		return resolvedContextBinding{Key: key, Source: contextSourceLocation, Binding: &copy}, nil
+	if len(legacy.Contexts) > 0 {
+		return resolvedContextBinding{}, fmt.Errorf("legacy contexts require migration: register each checkout with 'moltnet projects bindings set', then run 'moltnet context reset --identity <alias>'; Git remotes cannot identify a unique checkout")
 	}
+	if configPath == "" {
+		configPath, err = projectconfig.Path()
+		if err != nil {
+			return resolvedContextBinding{}, err
+		}
+	}
+	config, err := projectconfig.Read(configPath)
+	if err != nil {
+		return resolvedContextBinding{}, err
+	}
+	project, err := projectconfig.Resolve(config, projectconfig.Options{ConfigPath: configPath, CWD: canonical, Native: true, Binding: bindingName})
+	if err != nil {
+		return resolvedContextBinding{}, err
+	}
+	if project != nil {
+		binding := contextBinding{TeamID: project.TeamID, DiaryID: project.DiaryID}
+		return resolvedContextBinding{Key: "project:" + project.APIURL + ":" + project.TeamID + ":" + project.ProjectID + ":" + project.Name, Source: contextSourceLocation, Binding: &binding, Project: project}, nil
+	}
+	key := "dir:" + canonical
 	if binding, ok := identityDefaultBinding(agentDir); ok {
 		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding}, nil
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"io"
 	"maps"
 	"net/http"
@@ -1208,16 +1209,20 @@ func useActivationTestLocation(t *testing.T) {
 // the one bound. The fixture server reports diary …0001 as owned by team
 // …0011; without a mismatch case, disabling the check went unnoticed.
 func TestAgentsActivationRefreshRejectsDiaryFromAnotherTeam(t *testing.T) {
-	dir := setupActivationCacheFixture(t)
-	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
+	setupActivationCacheFixture(t)
 	useActivationTestLocation(t)
-	if _, err := setContextBinding(agentDir, "", contextBinding{
-		TeamID:  "00000000-0000-4000-8000-000000000099",
-		DiaryID: "00000000-0000-4000-8000-000000000001",
+	writeProjectTestBinding(t, "", contextTestDiary)
+	path, err := projectconfig.Path()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := projectconfig.Update(path, func(config *projectconfig.Config) error {
+		config.Bindings[0].TeamID = "00000000-0000-4000-8000-000000000099"
+		return nil
 	}); err != nil {
 		t.Fatal(err)
 	}
-	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", false)
+	err = runAgentsActivationRefreshCmd(io.Discard, "test-agent", false)
 	if err == nil || !strings.Contains(err.Error(), "belongs to team") {
 		t.Fatalf("refresh must reject a diary from another team, got: %v", err)
 	}
