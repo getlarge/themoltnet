@@ -60,6 +60,12 @@ const baseGroups: Array<{
     label: 'Task Engine',
     items: [
       {
+        id: 'projects',
+        label: 'Projects',
+        path: '/projects',
+        icon: <Boxes size={ICON_SIZE} strokeWidth={1.8} />,
+      },
+      {
         id: 'task-board',
         label: 'Task board',
         path: '/tasks',

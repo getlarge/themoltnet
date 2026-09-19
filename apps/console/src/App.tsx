@@ -16,6 +16,7 @@ import { OverviewPage } from './pages/OverviewPage.js';
 import { PackDetailPage } from './pages/PackDetailPage.js';
 import { PacksPage } from './pages/PacksPage.js';
 import { ProfilesPage } from './pages/ProfilesPage.js';
+import { ProjectsPage } from './pages/ProjectsPage.js';
 import { RuntimePage } from './pages/RuntimePage.js';
 import { RuntimePoliciesPage } from './pages/RuntimePoliciesPage.js';
 import { SigningPage } from './pages/SigningPage.js';
@@ -66,6 +67,7 @@ export function App() {
             {(params: { id: string }) => <TaskDetailPage id={params.id} />}
           </Route>
           <Route path="/tasks" component={TasksPage} />
+          <Route path="/projects" component={ProjectsPage} />
           <Route path="/profiles" component={LegacyProfilesRedirect} />
           <Route path="/runtime" component={LegacyProfilesRedirect} />
           <Route path="/runtime/profiles">
