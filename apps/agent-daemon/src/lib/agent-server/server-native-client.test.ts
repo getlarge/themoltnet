@@ -13,6 +13,7 @@ import {
 } from './native-grant-service.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
+  authorize,
   cleanupAll,
   CONSOLE_ORIGIN,
   fixture,
@@ -118,6 +119,25 @@ describe('native desktop client', () => {
     // Assert: the valid desktop request has an independent budget.
     expect(guessed.statusCode).toBe(401);
     expect(authorized.statusCode).toBe(200);
+  });
+
+  it('separates authorized Console requests from guesses and enforces their limit', async () => {
+    const { app } = await fixture({ rateLimitMax: 1 });
+    const token = await authorize(app);
+    const request = (presented: string) =>
+      app.inject({
+        method: 'GET',
+        url: '/v1/status',
+        headers: {
+          host: HOST,
+          origin: CONSOLE_ORIGIN,
+          [AGENT_SERVER_TOKEN_HEADER]: presented,
+        },
+      });
+    expect((await request('guessed')).statusCode).toBe(401);
+    expect((await request(token)).statusCode).toBe(200);
+    expect((await request('another-guess')).statusCode).toBe(429);
+    expect((await request(token)).statusCode).toBe(429);
   });
 
   it('does not let a browser origin reuse the native token', async () => {

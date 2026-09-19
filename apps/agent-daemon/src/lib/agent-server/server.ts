@@ -362,7 +362,7 @@ export function buildAgentServer(
     timeWindow: RATE_LIMIT_WINDOW_MS,
     errorResponseBuilder: () =>
       new AgentServerHttpError(429, 'rate_limited', 'Too many requests'),
-    keyGenerator: (request) => {
+    keyGenerator: async (request) => {
       const origin = request.headers.origin;
       if (!isConfiguredOrigin(origin, options)) return `ip:${request.ip}`;
       // Claiming an origin is free; proving the grant is not. An unauthenticated
@@ -374,10 +374,19 @@ export function buildAgentServer(
       let authenticated = false;
       if (typeof presented === 'string' && presented.length > 0) {
         try {
-          pairing.verify(origin, presented);
+          if (origin === NATIVE_CLIENT_ORIGIN)
+            pairing.verify(origin, presented);
+          else {
+            if (!oauth) return `unauth:${origin}:${request.ip}`;
+            await oauth.verifyBrowser(presented);
+          }
           authenticated = true;
         } catch (error) {
-          if (!(error instanceof NativeGrantError)) throw error;
+          if (
+            origin === NATIVE_CLIENT_ORIGIN &&
+            !(error instanceof NativeGrantError)
+          )
+            throw error;
         }
       }
       return authenticated

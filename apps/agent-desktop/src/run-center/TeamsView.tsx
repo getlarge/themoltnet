@@ -413,6 +413,7 @@ export function TeamsView({
         <aside
           className="run-center__toast"
           role="status"
+          aria-label="Approval completed"
           aria-live="polite"
           aria-atomic="true"
         >

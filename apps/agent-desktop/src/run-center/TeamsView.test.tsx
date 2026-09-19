@@ -94,13 +94,15 @@ describe('desktop team enrollment', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Sign in for local control' }),
     );
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Local operator signed in',
-    );
+    expect(
+      await screen.findByRole('status', { name: 'Approval completed' }),
+    ).toHaveTextContent('Local operator signed in');
     fireEvent.click(
       screen.getByRole('button', { name: 'Dismiss notification' }),
     );
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Approval completed' }),
+    ).not.toBeInTheDocument();
   });
   it('shows the persisted operator state without offering another sign-in', async () => {
     const { data, actions } = fixture();
