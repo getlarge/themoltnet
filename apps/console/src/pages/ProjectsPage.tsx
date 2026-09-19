@@ -40,6 +40,7 @@ function TeamProjects({
   const theme = useTheme();
   const cache = useQueryClient();
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<GetProjectResponse | 'new' | null>(
     null,
   );
@@ -81,19 +82,20 @@ function TeamProjects({
     },
   });
   const query = useQuery({
-    queryKey: ['projects', teamId, includeArchived],
+    queryKey: ['projects', teamId, includeArchived, offset],
     enabled: Boolean(teamId),
     queryFn: async () => {
       const result = await listProjects({
         client: getApiClient(),
         path: { id: teamId! },
-        query: { includeArchived },
+        query: { includeArchived, limit: 50, offset },
         headers: { 'x-moltnet-team-id': teamId! },
       });
       if (!result.data) throw new Error('Projects could not be loaded.');
-      return result.data.items;
+      return result.data;
     },
   });
+  const nextOffset = query.data?.nextOffset ?? null;
   function edit(project: GetProjectResponse | 'new', target: HTMLElement) {
     focusTarget.current = target;
     setEditing(project);
@@ -202,7 +204,10 @@ function TeamProjects({
               <input
                 type="checkbox"
                 checked={includeArchived}
-                onChange={(event) => setIncludeArchived(event.target.checked)}
+                onChange={(event) => {
+                  setIncludeArchived(event.target.checked);
+                  setOffset(0);
+                }}
               />{' '}
               Show archived projects
             </label>
@@ -301,11 +306,15 @@ function TeamProjects({
                   Retry
                 </Button>
               </Stack>
-            ) : query.data?.length === 0 ? (
-              <Text color="muted">No projects in this team yet.</Text>
+            ) : query.data?.items.length === 0 ? (
+              <Text color="muted">
+                {offset > 0
+                  ? 'No projects on this page.'
+                  : 'No projects in this team yet.'}
+              </Text>
             ) : (
               <Stack gap={0}>
-                {query.data?.map((project) => (
+                {query.data?.items.map((project) => (
                   <Stack
                     key={project.id}
                     direction="row"
@@ -369,6 +378,28 @@ function TeamProjects({
                   </Stack>
                 ))}
               </Stack>
+            )}
+            {(offset > 0 || nextOffset !== null) && (
+              <nav aria-label="Project pages">
+                <Stack direction="row" gap={3} wrap>
+                  <Button
+                    variant="secondary"
+                    disabled={offset === 0 || query.isFetching}
+                    onClick={() => setOffset(Math.max(0, offset - 50))}
+                  >
+                    Previous projects
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={nextOffset === null || query.isFetching}
+                    onClick={() => {
+                      if (nextOffset !== null) setOffset(nextOffset);
+                    }}
+                  >
+                    Next projects
+                  </Button>
+                </Stack>
+              </nav>
             )}
           </>
         )}
