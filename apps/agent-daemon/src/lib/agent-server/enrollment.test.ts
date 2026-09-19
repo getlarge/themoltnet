@@ -77,12 +77,22 @@ async function fixture(activated = true) {
 describe('local team enrollment boundary', () => {
   it('requests human approval without resolving an API key and returns only metadata', async () => {
     const f = await fixture();
+    vi.mocked(f.options.oauth.authorize).mockResolvedValue('human-approval');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({ key: { id: 'new-key' }, secret: 'captured' }),
+      ),
+    );
     const call = vi
       .spyOn(SdkNode, 'enrollTeam')
       .mockImplementation(async (options) => {
         expect(options.agent).toBeUndefined();
         expect(options.replacement).toEqual({ teamId: 'team' });
         expect(options.provision).toBeTypeOf('function');
+        expect(options.provisioningContext?.scopes).toEqual(
+          expect.arrayContaining(['team:read', 'diary:read', 'task:execute']),
+        );
+        await options.provision!();
         return {
           teamId: 'team',
           key: { id: 'new-key' },
@@ -99,6 +109,16 @@ describe('local team enrollment boundary', () => {
       },
     });
     expect(call).toHaveBeenCalledOnce();
+    expect(f.options.oauth.authorize).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scopes: expect.arrayContaining([
+          'team:read',
+          'diary:read',
+          'task:execute',
+        ]),
+      }),
+      undefined,
+    );
     expect(result).toEqual({
       state: 'persisted',
       teamId: 'team',

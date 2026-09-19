@@ -268,7 +268,7 @@ test.describe.serial('Local runtime page', () => {
       await rm(agentServerRoot, { recursive: true, force: true });
   });
 
-  test('a learner pairs the console, enrols an agent, configures a provider, and runs a daemon', async ({
+  test('a learner authorizes Console, enrolls an agent, configures a provider, and runs a daemon', async ({
     page,
   }) => {
     test.setTimeout(300_000);

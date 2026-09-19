@@ -1,7 +1,6 @@
 import { basename, dirname } from 'node:path';
 
 import { isLoopbackHostname } from '@moltnet/loopback-companion';
-import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import { type SecretProviderRegistry } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
@@ -13,6 +12,7 @@ import {
 import { loadEnrollmentIdentity } from './identity.js';
 import type { OperatorOAuth } from './operator-oauth.js';
 import type { AgentServerStore } from './store.js';
+import { AGENT_SERVER_REQUIRED_SCOPES } from './team-credentials.js';
 
 export type TeamEnrollmentInput = {
   teamId: string;
@@ -67,7 +67,7 @@ export async function enrollIdentityTeam(options: {
       provisioningContext: {
         teamId: options.input.teamId,
         operation: replacement ? 'renew' : 'enroll',
-        scopes: [...DAEMON_MINIMUM_SCOPES],
+        scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
       },
       replacement,
       provision: async () => {
@@ -76,7 +76,7 @@ export async function enrollIdentityTeam(options: {
             agentId: config.subject_id,
             teamId: options.input.teamId,
             operation: replacement ? 'renew' : 'enroll',
-            scopes: [...DAEMON_MINIMUM_SCOPES],
+            scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
             idempotencyKey: options.input.idempotencyKey,
           },
           options.signal,

@@ -498,7 +498,10 @@ describe('Hook routes', () => {
       { approved: ['moltnet:local-control'], granted: [] },
       { approved: 'diary:manage', granted: [] },
       { approved: 'moltnet:local-control', granted: undefined },
-      { approved: 'moltnet:local-control', granted: 'moltnet:local-control' },
+      {
+        approved: 'moltnet:local-control',
+        granted: { scope: 'moltnet:local-control' },
+      },
       { approved: 'moltnet:local-control', granted: ['moltnet:provision'] },
       {
         approved: 'moltnet:local-control',
