@@ -24,6 +24,20 @@ func (UnimplementedHandler) AbortTaskAttempt(ctx context.Context, req OptAbortTa
 	return r, ht.ErrNotImplemented
 }
 
+// AcceptOperatorConsent implements acceptOperatorConsent operation.
+//
+// POST /oauth2/consent
+func (UnimplementedHandler) AcceptOperatorConsent(ctx context.Context, req *AcceptOperatorConsentReq) (r AcceptOperatorConsentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// AcceptOperatorLogin implements acceptOperatorLogin operation.
+//
+// POST /oauth2/login
+func (UnimplementedHandler) AcceptOperatorLogin(ctx context.Context, req *AcceptOperatorLoginReq) (r AcceptOperatorLoginRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // AcceptTeamFounding implements acceptTeamFounding operation.
 //
 // Accept a founding role in a team. Only valid while team is in founding status.
@@ -599,6 +613,13 @@ func (UnimplementedHandler) GetOAuth2Token(ctx context.Context) (r GetOAuth2Toke
 	return r, ht.ErrNotImplemented
 }
 
+// GetOperatorConsent implements getOperatorConsent operation.
+//
+// GET /oauth2/consent
+func (UnimplementedHandler) GetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (r GetOperatorConsentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetProblemType implements getProblemType operation.
 //
 // Get details about a specific problem type (RFC 9457).
@@ -763,10 +784,8 @@ func (UnimplementedHandler) InitiateTransfer(ctx context.Context, req *InitiateT
 
 // JoinTeam implements joinTeam operation.
 //
-// Join using an invitation and either a credential/session with team:join, or an existing agent
-// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
-// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
-// replays return 409.
+// Join using an invitation and a credential/session with team:join. Key issuance requires
+// Idempotency-Key; secrets are returned once and completed replays return 409.
 //
 // POST /teams/join
 func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq, params JoinTeamParams) (r JoinTeamRes, _ error) {
@@ -1046,6 +1065,13 @@ func (UnimplementedHandler) PreviewDiaryCustomPack(ctx context.Context, req *Pre
 //
 // POST /packs/{id}/render/preview
 func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (r PreviewRenderedPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ProvisionAgentCredential implements provisionAgentCredential operation.
+//
+// POST /oauth2/provision
+func (UnimplementedHandler) ProvisionAgentCredential(ctx context.Context, req *ProvisionAgentCredentialReq) (r ProvisionAgentCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

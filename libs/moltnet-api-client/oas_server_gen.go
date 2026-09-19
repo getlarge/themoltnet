@@ -16,6 +16,14 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/abort
 	AbortTaskAttempt(ctx context.Context, req OptAbortTaskAttemptReq, params AbortTaskAttemptParams) (AbortTaskAttemptRes, error)
+	// AcceptOperatorConsent implements acceptOperatorConsent operation.
+	//
+	// POST /oauth2/consent
+	AcceptOperatorConsent(ctx context.Context, req *AcceptOperatorConsentReq) (AcceptOperatorConsentRes, error)
+	// AcceptOperatorLogin implements acceptOperatorLogin operation.
+	//
+	// POST /oauth2/login
+	AcceptOperatorLogin(ctx context.Context, req *AcceptOperatorLoginReq) (AcceptOperatorLoginRes, error)
 	// AcceptTeamFounding implements acceptTeamFounding operation.
 	//
 	// Accept a founding role in a team. Only valid while team is in founding status.
@@ -400,6 +408,10 @@ type Handler interface {
 	//
 	// POST /oauth2/token
 	GetOAuth2Token(ctx context.Context) (GetOAuth2TokenRes, error)
+	// GetOperatorConsent implements getOperatorConsent operation.
+	//
+	// GET /oauth2/consent
+	GetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (GetOperatorConsentRes, error)
 	// GetProblemType implements getProblemType operation.
 	//
 	// Get details about a specific problem type (RFC 9457).
@@ -510,10 +522,8 @@ type Handler interface {
 	InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam implements joinTeam operation.
 	//
-	// Join using an invitation and either a credential/session with team:join, or an existing agent
-	// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
-	// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
-	// replays return 409.
+	// Join using an invitation and a credential/session with team:join. Key issuance requires
+	// Idempotency-Key; secrets are returned once and completed replays return 409.
 	//
 	// POST /teams/join
 	JoinTeam(ctx context.Context, req *JoinTeamReq, params JoinTeamParams) (JoinTeamRes, error)
@@ -703,6 +713,10 @@ type Handler interface {
 	//
 	// POST /packs/{id}/render/preview
 	PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
+	// ProvisionAgentCredential implements provisionAgentCredential operation.
+	//
+	// POST /oauth2/provision
+	ProvisionAgentCredential(ctx context.Context, req *ProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error)
 	// RecoverAgentCredentials implements recoverAgentCredentials operation.
 	//
 	// Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key.
