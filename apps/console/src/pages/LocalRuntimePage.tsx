@@ -47,7 +47,9 @@ export function LocalRuntimePage() {
 
   return (
     <Stack gap={5}>
-      <ConnectionStrip runtime={runtime} />
+      <section aria-label="Agent Server connection">
+        <ConnectionStrip runtime={runtime} />
+      </section>
       {runtime.actionError ? (
         <div role="alert">
           <Text variant="caption" color="error">
@@ -87,7 +89,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
             size="sm"
             onClick={() => runtime.disconnect()}
           >
-            Forget pairing
+            Disconnect
           </Button>
         </Stack>
       </Card>
@@ -176,44 +178,29 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
       </Card>
     );
   }
-  if (runtime.status === 'unpaired' || runtime.status === 'pairing') {
-    const pairing = runtime.status === 'pairing';
+  if (runtime.status === 'unauthorized' || runtime.status === 'authorizing') {
+    const authorizing = runtime.status === 'authorizing';
     return (
       <Card padding="sm">
         <Stack direction="row" gap={3} align="center" justify="space-between">
           <Stack direction="row" gap={3} align="center">
             <Badge variant="warning">
-              {pairing ? 'Awaiting approval' : 'Not paired'}
+              {authorizing ? 'Awaiting approval' : 'Sign-in required'}
             </Badge>
             <Text variant="caption" color="muted">
-              {pairing
+              {authorizing
                 ? 'Approve the connection in the tab that just opened.'
-                : 'Pair this console with the supervisor running on this machine.'}
+                : 'Sign in to control the local agents on this computer.'}
             </Text>
           </Stack>
           <Button
             size="sm"
             variant="accent"
-            disabled={pairing}
-            onClick={() => void runtime.pair()}
+            disabled={authorizing}
+            onClick={() => void runtime.authorize()}
           >
-            {pairing ? 'Waiting…' : 'Connect'}
+            {authorizing ? 'Waiting…' : 'Connect'}
           </Button>
-          {pairing && runtime.pairingApprovalUrl ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() =>
-                window.open(
-                  runtime.pairingApprovalUrl ?? '',
-                  '_blank',
-                  'popup,noopener,noreferrer',
-                )
-              }
-            >
-              Open approval
-            </Button>
-          ) : null}
         </Stack>
       </Card>
     );
@@ -778,12 +765,6 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
     setAgent(preferred?.agentName ?? agents[0]?.agentName ?? '');
   }, [agent, agents, runtime.data?.selectedIdentity]);
 
-  const selectedAgent = agents.find((entry) => entry.agentName === agent);
-  const boundElsewhere =
-    selectedAgent?.kind === 'managed' &&
-    Boolean(selectedAgent.teamId) &&
-    selectedAgent.teamId !== selectedTeam?.id;
-
   const start = async () => {
     if (!selectedTeam?.id) return;
     setBusy(true);
@@ -836,11 +817,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             ) : null}
             {agents.map((entry) => (
               <option key={entry.agentName} value={entry.agentName}>
-                {entry.kind === 'managed' &&
-                entry.teamId &&
-                entry.teamId !== selectedTeam?.id
-                  ? `${entry.agentName} · another team`
-                  : entry.agentName}
+                {entry.agentName}
               </option>
             ))}
           </Select>
@@ -891,16 +868,6 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             <option value="drain">Stop when queue is empty</option>
           </Select>
         </FieldGrid>
-        {boundElsewhere ? (
-          <Text variant="caption" color="error">
-            {agent} has a key bound to team{' '}
-            <Text as="span" mono>
-              {selectedAgent?.teamId}
-            </Text>{' '}
-            and cannot poll {selectedTeam?.name}. Create a new agent with an
-            invitation code from {selectedTeam?.name} instead.
-          </Text>
-        ) : null}
         <Stack direction="row" justify="space-between" align="center" wrap>
           <Text variant="caption" color="muted">
             The daemon stays on this machine. You can inspect or stop it below.
@@ -911,11 +878,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             loading={busy}
             loadingLabel="Starting run"
             disabled={
-              !agent ||
-              !profile.trim() ||
-              !taskType ||
-              !selectedTeam?.id ||
-              boundElsewhere
+              !agent || !profile.trim() || !taskType || !selectedTeam?.id
             }
             onClick={() => void start()}
           >

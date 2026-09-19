@@ -1,15 +1,5 @@
-/**
- * Shared harness for the AgentServer HTTP suites.
- *
- * `fixture()` stands up a real Fastify instance over a temp store with a fake
- * spawn, so the suites exercise the actual routing, security profile and
- * serialization rather than a stub. It lives here because four suites need it
- * and a single file holding all four could not be reviewed as a diff.
- *
- * The `afterEach` below registers per importing test file: vitest isolates
- * modules per file, so each suite gets its own cleanup list.
- */
 import type { ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { mkdtempSync, readFileSync, rmSync, type symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -26,7 +16,8 @@ import type { FastifyInstance } from 'fastify';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
 import { type ActivatedAgent } from './identity.js';
-import { PairingService } from './pairing.js';
+import { NativeGrantService } from './native-grant-service.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
 import { RuntimeRegistry } from './runtime-registry.js';
@@ -38,6 +29,18 @@ import {
   captureTeamCredential,
   verifyTeamActivation,
 } from './team-credentials.js';
+
+/**
+ * Shared harness for the AgentServer HTTP suites.
+ *
+ * `fixture()` stands up a real Fastify instance over a temp store with a fake
+ * spawn, so the suites exercise the actual routing, security profile and
+ * serialization rather than a stub. It lives here because four suites need it
+ * and a single file holding all four could not be reviewed as a diff.
+ *
+ * The `afterEach` below registers per importing test file: vitest isolates
+ * modules per file, so each suite gets its own cleanup list.
+ */
 
 export const CONSOLE_ORIGIN = 'https://console.themolt.net';
 export const HOST = '127.0.0.1:17374';
@@ -71,6 +74,7 @@ export interface Fixture {
   children: FakeChild[];
 }
 
+const browserTokens = new WeakMap<FastifyInstance, string>();
 const cleanups: (() => Promise<void> | void)[] = [];
 
 /**
@@ -99,7 +103,7 @@ export async function fixture(
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
-    pairing?: PairingService;
+    pairing?: NativeGrantService;
     catalogueAgentFor?: BuildAgentServerOptions['catalogueAgentFor'];
     externalSecrets?: Record<string, string>;
     realCredentialPreflight?: boolean;
@@ -246,12 +250,19 @@ export async function fixture(
     ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
     ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
   });
+  const browserToken = randomUUID();
   const app = buildAgentServer({
+    operatorOAuth: {
+      cancel: () => undefined,
+      verifyBrowser: async (token: string) => {
+        if (token !== browserToken) throw new Error('Invalid browser token');
+      },
+    } as unknown as OperatorOAuth,
     store,
     secrets,
     secretProviders,
     externalSecretProviders,
-    pairing: options.pairing ?? new PairingService(),
+    pairing: options.pairing ?? new NativeGrantService(),
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }
       : {}),
@@ -276,6 +287,7 @@ export async function fixture(
     version: 'test',
     ...serverOptions,
   });
+  browserTokens.set(app, browserToken);
   await app.ready();
   cleanups.push(async () => {
     await app.close();
@@ -355,73 +367,9 @@ export function writeCentralIdentity(
   });
 }
 
-export async function pair(app: FastifyInstance): Promise<string> {
-  const started = await app.inject({
-    method: 'POST',
-    url: '/v1/pairings',
-    headers: { host: HOST, origin: CONSOLE_ORIGIN },
-  });
-  if (started.statusCode !== 201) {
-    throw new Error(
-      `Pairing start expected 201, got ${started.statusCode}: ${started.body}`,
-    );
-  }
-  const { pairingId } = started.json<{ pairingId: string }>();
-
-  const approval = await app.inject({
-    method: 'GET',
-    url: `/pairings/${pairingId}`,
-    headers: {
-      host: HOST,
-      'sec-fetch-site': 'none',
-      'sec-fetch-mode': 'navigate',
-      'sec-fetch-dest': 'document',
-    },
-  });
-  if (approval.statusCode !== 200) {
-    throw new Error(`Approval page expected 200, got ${approval.statusCode}`);
-  }
-  // Match the element the operator actually reads, not a bare substring: the
-  // origin appearing anywhere in the page (a hidden field, a redirect URL)
-  // would not tell them what they are approving.
-  if (!approval.body.includes(`<code>${CONSOLE_ORIGIN}</code>`)) {
-    throw new Error(
-      `Approval page did not present ${CONSOLE_ORIGIN} to the operator`,
-    );
-  }
-  const confirmToken = approval.body.match(
-    /name="confirmToken" value="([^"]+)"/u,
-  )?.[1];
-  if (confirmToken === undefined) {
-    throw new Error('Approval page carried no confirmToken');
-  }
-
-  const confirmed = await app.inject({
-    method: 'POST',
-    url: `/pairings/${pairingId}/confirm`,
-    headers: {
-      host: HOST,
-      'content-type': 'application/x-www-form-urlencoded',
-    },
-    payload: new URLSearchParams({
-      confirmToken: confirmToken ?? '',
-    }).toString(),
-  });
-  if (confirmed.statusCode !== 200) {
-    throw new Error(
-      `Confirm expected 200, got ${confirmed.statusCode}: ${confirmed.body}`,
-    );
-  }
-
-  const claimed = await app.inject({
-    method: 'POST',
-    url: `/v1/pairings/${pairingId}/claim`,
-    headers: { host: HOST, origin: CONSOLE_ORIGIN },
-  });
-  if (claimed.statusCode !== 200) {
-    throw new Error(
-      `Claim expected 200, got ${claimed.statusCode}: ${claimed.body}`,
-    );
-  }
-  return claimed.json<{ token: string }>().token;
+/** HTTP route tests inject verified OAuth; cryptographic checks live in operator-oauth tests. */
+export async function authorize(app: FastifyInstance): Promise<string> {
+  const token = browserTokens.get(app);
+  if (!token) throw new Error('Missing browser authorization fixture');
+  return token;
 }

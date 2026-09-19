@@ -6,6 +6,12 @@ import type {
   AbortTaskAttemptData,
   AbortTaskAttemptErrors,
   AbortTaskAttemptResponses,
+  AcceptOperatorConsentData,
+  AcceptOperatorConsentErrors,
+  AcceptOperatorConsentResponses,
+  AcceptOperatorLoginData,
+  AcceptOperatorLoginErrors,
+  AcceptOperatorLoginResponses,
   AcceptTeamFoundingData,
   AcceptTeamFoundingErrors,
   AcceptTeamFoundingResponses,
@@ -192,6 +198,9 @@ import type {
   GetOAuth2TokenData,
   GetOAuth2TokenErrors,
   GetOAuth2TokenResponses,
+  GetOperatorConsentData,
+  GetOperatorConsentErrors,
+  GetOperatorConsentResponses,
   GetProblemTypeData,
   GetProblemTypeResponses,
   GetPublicEntryData,
@@ -337,6 +346,9 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackErrors,
   PreviewRenderedPackResponses,
+  ProvisionAgentCredentialData,
+  ProvisionAgentCredentialErrors,
+  ProvisionAgentCredentialResponses,
   RecoverAgentCredentialsData,
   RecoverAgentCredentialsErrors,
   RecoverAgentCredentialsResponses,
@@ -1957,6 +1969,88 @@ export const getLlmsTxt = <ThrowOnError extends boolean = false>(
   (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
     url: '/llms.txt',
     ...options,
+  });
+
+export const getOperatorConsent = <ThrowOnError extends boolean = false>(
+  options: Options<GetOperatorConsentData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetOperatorConsentResponses,
+    GetOperatorConsentErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/oauth2/consent',
+    ...options,
+  });
+
+export const acceptOperatorConsent = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptOperatorConsentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptOperatorConsentResponses,
+    AcceptOperatorConsentErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/oauth2/consent',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const acceptOperatorLogin = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptOperatorLoginData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptOperatorLoginResponses,
+    AcceptOperatorLoginErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/oauth2/login',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const provisionAgentCredential = <ThrowOnError extends boolean = false>(
+  options?: Options<ProvisionAgentCredentialData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    ProvisionAgentCredentialResponses,
+    ProvisionAgentCredentialErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/oauth2/provision',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
   });
 
 /**
@@ -3811,7 +3905,7 @@ export const createTeam = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
+ * Join using an invitation and a credential/session with team:join. Key issuance requires Idempotency-Key; secrets are returned once and completed replays return 409.
  */
 export const joinTeam = <ThrowOnError extends boolean = false>(
   options: Options<JoinTeamData, ThrowOnError>,

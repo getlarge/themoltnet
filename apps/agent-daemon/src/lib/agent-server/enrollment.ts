@@ -1,32 +1,44 @@
 import { basename, dirname } from 'node:path';
 
-import { cryptoService } from '@moltnet/crypto-service';
-import {
-  resolveIdentitySeed,
-  type SecretProviderRegistry,
-} from '@themoltnet/sdk';
+import { isLoopbackHostname } from '@moltnet/loopback-companion';
+import { type SecretProviderRegistry } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
   EnrollmentRecoveryError,
   enrollTeam,
+  type EnrollTeamResult,
 } from '@themoltnet/sdk/node';
 
 import { loadEnrollmentIdentity } from './identity.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import type { AgentServerStore } from './store.js';
+import { AGENT_SERVER_REQUIRED_SCOPES } from './team-credentials.js';
 
 export type TeamEnrollmentInput = {
-  code: string;
+  teamId: string;
   idempotencyKey: string;
 } & ({ mode: 'enroll' } | { mode: 'replace'; teamId: string });
 
-/** Native/paired callers receive metadata only; signing and storage stay local. */
+/** Native callers receive metadata only; approval and storage stay local. */
 export async function enrollIdentityTeam(options: {
   store: AgentServerStore;
   alias: string;
   managed: SecretProviderRegistry;
   external: SecretProviderRegistry;
   input: TeamEnrollmentInput;
+  oauth: OperatorOAuth;
+  apiUrl: string;
+  signal?: AbortSignal;
 }) {
+  const apiUrl = new URL(options.apiUrl);
+  if (
+    apiUrl.username ||
+    apiUrl.password ||
+    apiUrl.hash ||
+    (apiUrl.protocol !== 'https:' &&
+      !(apiUrl.protocol === 'http:' && isLoopbackHostname(apiUrl.hostname)))
+  )
+    throw new Error('Provisioning requires a configured secure API endpoint');
   const { activation, config } = await loadEnrollmentIdentity(
     options.store,
     options.alias,
@@ -45,22 +57,60 @@ export async function enrollIdentityTeam(options: {
   const provider = providerName ? registry.get(providerName) : undefined;
   if (!provider?.capabilities.write)
     throw new Error('Enrollment requires a writable identity secret provider');
-  const seed = await resolveIdentitySeed(config, registry);
   const configPath =
     activation.source === 'managed'
       ? options.store.agentPath(options.alias)
       : activation.configPath;
   try {
     const result = await enrollTeam({
-      code: options.input.code,
       idempotencyKey: options.input.idempotencyKey,
+      provisioningContext: {
+        teamId: options.input.teamId,
+        operation: replacement ? 'renew' : 'enroll',
+        scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
+      },
       replacement,
-      signer: { sign: (message) => cryptoService.sign(message, seed) },
+      provision: async () => {
+        const token = await options.oauth.authorize(
+          {
+            agentId: config.subject_id,
+            teamId: options.input.teamId,
+            operation: replacement ? 'renew' : 'enroll',
+            scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
+            idempotencyKey: options.input.idempotencyKey,
+          },
+          options.signal,
+        );
+        const response = await fetch(
+          new URL('/oauth2/provision', options.apiUrl),
+          {
+            method: 'POST',
+            redirect: 'error',
+            signal: options.signal
+              ? AbortSignal.any([options.signal, AbortSignal.timeout(30_000)])
+              : AbortSignal.timeout(30_000),
+            headers: {
+              authorization: `Bearer ${token}`,
+              'content-type': 'application/json',
+            },
+            body: '{}',
+          },
+        );
+        if (!response.ok)
+          throw new Error(
+            'Provisioning unavailable; inspect recovery before fresh approval',
+          );
+        const agentKey = (await response.json()) as {
+          key: EnrollTeamResult['key'];
+          secret: string;
+        };
+        return { teamId: options.input.teamId, role: 'member', agentKey };
+      },
       configDir: dirname(configPath),
       secretProvider: provider,
-      apiUrl: activation.apiUrl ?? config.endpoints?.api,
+      apiUrl: options.apiUrl,
     });
-    // Proof enrollment authenticates the local signing identity before issuance.
+    // Human approval authorizes issuance for the selected identity and team.
     // Future catalogue/run access still performs live, exact-slot verification.
     if (!options.store.readActivation(options.alias))
       options.store.writeActivation(activation);
@@ -83,7 +133,7 @@ export async function enrollIdentityTeam(options: {
           : {}),
         message: error.secretCaptured
           ? 'The credential was captured locally but persistence is incomplete. Recover the captured credential before retrying enrollment.'
-          : 'No credential secret was captured. Retained retry context can identify the issuance; a completed issuance requires a fresh invitation if its secret is lost.',
+          : 'No credential secret was captured. Retained retry context can identify the issuance; a completed issuance requires a fresh approval if its secret is lost.',
       };
     }
     throw new Error('Team enrollment could not be completed');

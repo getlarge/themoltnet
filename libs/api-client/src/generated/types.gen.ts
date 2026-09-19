@@ -6788,6 +6788,215 @@ export type GetLlmsTxtResponses = {
 
 export type GetLlmsTxtResponse = GetLlmsTxtResponses[keyof GetLlmsTxtResponses];
 
+export type GetOperatorConsentData = {
+  body?: never;
+  path?: never;
+  query: {
+    challenge: string;
+  };
+  url: '/oauth2/consent';
+};
+
+export type GetOperatorConsentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type GetOperatorConsentError =
+  GetOperatorConsentErrors[keyof GetOperatorConsentErrors];
+
+export type GetOperatorConsentResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    agent?: string;
+    agentId?: string;
+    instance: string;
+    operation: string;
+    permissions: Array<string>;
+    team?: string;
+    teamId?: string;
+  };
+};
+
+export type GetOperatorConsentResponse =
+  GetOperatorConsentResponses[keyof GetOperatorConsentResponses];
+
+export type AcceptOperatorConsentData = {
+  body: {
+    approve: boolean;
+    challenge: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/oauth2/consent';
+};
+
+export type AcceptOperatorConsentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type AcceptOperatorConsentError =
+  AcceptOperatorConsentErrors[keyof AcceptOperatorConsentErrors];
+
+export type AcceptOperatorConsentResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    redirect_to: string;
+  };
+};
+
+export type AcceptOperatorConsentResponse =
+  AcceptOperatorConsentResponses[keyof AcceptOperatorConsentResponses];
+
+export type AcceptOperatorLoginData = {
+  body: {
+    challenge: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/oauth2/login';
+};
+
+export type AcceptOperatorLoginErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type AcceptOperatorLoginError =
+  AcceptOperatorLoginErrors[keyof AcceptOperatorLoginErrors];
+
+export type AcceptOperatorLoginResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    redirect_to: string;
+  };
+};
+
+export type AcceptOperatorLoginResponse =
+  AcceptOperatorLoginResponses[keyof AcceptOperatorLoginResponses];
+
+export type ProvisionAgentCredentialData = {
+  body?: {
+    [key: string]: never;
+  };
+  path?: never;
+  query?: never;
+  url: '/oauth2/provision';
+};
+
+export type ProvisionAgentCredentialErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ProvisionAgentCredentialError =
+  ProvisionAgentCredentialErrors[keyof ProvisionAgentCredentialErrors];
+
+export type ProvisionAgentCredentialResponses = {
+  /**
+   * Default Response
+   */
+  201: AgentKeyWithSecret;
+};
+
+export type ProvisionAgentCredentialResponse =
+  ProvisionAgentCredentialResponses[keyof ProvisionAgentCredentialResponses];
+
 export type GetOAuth2TokenData = {
   body?: never;
   path?: never;
@@ -15726,16 +15935,6 @@ export type JoinTeamData = {
      */
     expectedTeamId?: string;
     issueAgentKey?: true;
-    /**
-     * Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key.
-     */
-    proof?: {
-      signature: string;
-      /**
-       * UUID v4 identifier
-       */
-      subjectId: string;
-    };
   };
   headers?: {
     'idempotency-key'?: string;

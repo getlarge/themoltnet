@@ -7,7 +7,10 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
+import {
+  NATIVE_CLIENT_ORIGIN,
+  NativeGrantService,
+} from './native-grant-service.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   cleanupAll,
@@ -21,7 +24,7 @@ afterEach(cleanupAll);
 describe('native desktop client', () => {
   it('authorizes the native origin with the supervisor token', async () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     pairing.grantNative('supervisor-token');
     const { app } = await fixture({ pairing });
 
@@ -43,7 +46,7 @@ describe('native desktop client', () => {
   it.each([undefined, 'guessed'])(
     'rejects enrollment without the native grant (%s)',
     async (token) => {
-      const pairing = new PairingService();
+      const pairing = new NativeGrantService();
       pairing.grantNative('supervisor-token');
       const { app } = await fixture({ pairing });
       const response = await app.inject({
@@ -56,7 +59,7 @@ describe('native desktop client', () => {
         },
         payload: {
           mode: 'enroll',
-          code: 'invite-sentinel',
+          teamId: 'aaaaaaaa-0000-4000-8000-000000000001',
           idempotencyKey: 'request',
         },
       });
@@ -67,7 +70,7 @@ describe('native desktop client', () => {
 
   it('rejects the native origin with a wrong token', async () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     pairing.grantNative('supervisor-token');
     const { app } = await fixture({ pairing });
 
@@ -88,7 +91,7 @@ describe('native desktop client', () => {
 
   it('does not let a guessed token exhaust the native client rate limit', async () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     pairing.grantNative('supervisor-token');
     const { app } = await fixture({ pairing, rateLimitMax: 1 });
 
@@ -119,7 +122,7 @@ describe('native desktop client', () => {
 
   it('does not let a browser origin reuse the native token', async () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     pairing.grantNative('supervisor-token');
     const { app } = await fixture({ pairing });
 
@@ -150,7 +153,7 @@ describe('native desktop client', () => {
     });
 
     // `pairing_invalid` is forbidden, not malformed — the existing mapping.
-    expect(response.statusCode).toBe(403);
+    expect(response.statusCode).toBe(410);
   });
 
   it('leaves the native origin unauthorized when no token was supplied', async () => {

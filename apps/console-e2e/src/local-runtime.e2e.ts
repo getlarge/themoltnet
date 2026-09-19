@@ -1,15 +1,12 @@
-/**
- * Local runtime page E2E — the course-flow journey (#2061).
- *
- * Runs the real `moltnet-agent server` supervisor on the host (the Console
- * only ever talks to `http://127.0.0.1:17374`) and drives the page the way
- * a learner would: pair → provide a team invitation code → create a managed
- * agent → configure a provider from discovered models → start a daemon
- * run → stop it. Model discovery hits a tiny local stub so the journey is
- * network-free beyond the e2e stack itself.
- */
 import { type ChildProcess, spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
@@ -17,11 +14,19 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import {
+  createClient as createLocalClient,
+  enrollAgentServerTeam,
+  getAgentServerCatalogue,
+  signInAgentServerOperator,
+} from '@moltnet/agent-daemon-api-client';
+import {
   createRuntimeProfile,
   createTeam,
   createTeamInvite,
+  listAgentKeys,
+  revokeAgentKey,
 } from '@moltnet/api-client';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 import {
   CONSOLE_URL,
@@ -35,6 +40,21 @@ import {
   submitKratosForm,
   waitForVerificationCode,
 } from './helpers/index.js';
+import {
+  CONSOLE_CLIENT_ID,
+  NATIVE_CLIENT_ID,
+} from './helpers/operator-clients.js';
+
+/**
+ * Local runtime page E2E — the course-flow journey (#2061).
+ *
+ * Runs the real `moltnet-agent server` supervisor on the host (the Console
+ * only ever talks to `http://127.0.0.1:17374`) and drives the page the way
+ * a learner would: approve PKCE → create a managed
+ * agent → configure a provider from discovered models → start a daemon
+ * run → stop it. Model discovery hits a tiny local stub so the journey is
+ * network-free beyond the e2e stack itself.
+ */
 
 /** The Console image and host-side Agent Server must use the same loopback URL. */
 const AGENT_SERVER_URL =
@@ -53,13 +73,16 @@ const STDERR_TAIL_BYTES = 16 * 1024;
  * an explicit dependency on that bundle so source-tree resolution cannot hide
  * packaging or runtime regressions.
  */
-function spawnAgentServer(args: string[]): ChildProcess {
+function spawnAgentServer(
+  args: string[],
+  env: NodeJS.ProcessEnv,
+): ChildProcess {
   const bundleRoot = process.env['MOLTNET_AGENT_BUNDLE'] ?? DAEMON_BUNDLE_ROOT;
   const bundledEntry = join(bundleRoot, 'bin/moltnet-agent');
   if (existsSync(bundledEntry)) {
     return spawn(bundledEntry, ['server', ...args], {
       cwd: tmpdir(),
-      env: process.env,
+      env,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   }
@@ -133,6 +156,51 @@ test.describe.serial('Local runtime page', () => {
   let modelStub: { server: Server; url: string };
   let teamId: string;
   let profileId: string;
+  const nativeToken = randomBytes(32).toString('base64url');
+  const localClient = createLocalClient({
+    baseUrl: AGENT_SERVER_URL,
+    headers: {
+      origin: 'moltnet-agent-desktop://native',
+      'x-moltnet-agent-server-token': nativeToken,
+    },
+  });
+  let serverEnv: NodeJS.ProcessEnv;
+  let serverArgs: string[];
+  async function nativeApproval(page: Page, start: () => Promise<unknown>) {
+    const marker = join(agentServerRoot, 'authorization-url');
+    rmSync(marker, { force: true });
+    const pending = start();
+    // Attach immediately so a transport failure cannot become unhandled while the browser navigates.
+    const settled = pending.then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
+    await expect.poll(() => existsSync(marker)).toBe(true);
+    const approval = await page.context().newPage();
+    await approval.goto(readFileSync(marker, 'utf8'));
+    await approval
+      .getByRole('button', { name: 'Approve', exact: true })
+      .click();
+    await expect(
+      approval.getByText('Approval received. Return to Desktop.'),
+    ).toBeVisible();
+    const result = await settled;
+    await approval.close();
+    if ('error' in result) throw result.error;
+    return result.value;
+  }
+  async function connectConsole(page: Page) {
+    const popup = page.context().waitForEvent('page');
+    await page
+      .getByRole('region', { name: 'Agent Server connection' })
+      .getByRole('button', { name: 'Connect', exact: true })
+      .click();
+    const approval = await popup;
+    await approval
+      .getByRole('button', { name: 'Approve', exact: true })
+      .click();
+    await expect(page.getByText('LLM providers')).toBeVisible();
+  }
 
   test.beforeAll(async () => {
     if (!(await isPortFree(AGENT_SERVER_PORT))) {
@@ -144,7 +212,26 @@ test.describe.serial('Local runtime page', () => {
     agentServerRoot = await mkdtemp(
       join(tmpdir(), 'moltnet-agent-server-console-e2e-'),
     );
-    agentServer = spawnAgentServer([
+    const browserBin = join(agentServerRoot, 'browser-bin');
+    mkdirSync(browserBin);
+    const launcher = `#!/usr/bin/env node\nrequire('node:fs').writeFileSync(process.env.MOLTNET_E2E_APPROVAL_URL_FILE, process.argv[2]);\n`;
+    writeFileSync(
+      join(browserBin, process.platform === 'darwin' ? 'open' : 'xdg-open'),
+      launcher,
+      { mode: 0o700 },
+    );
+    serverEnv = {
+      ...process.env,
+      PATH: `${browserBin}:${process.env.PATH}`,
+      MOLTNET_E2E_APPROVAL_URL_FILE: join(agentServerRoot, 'authorization-url'),
+      MOLTNET_AGENT_SERVER_NATIVE_TOKEN: nativeToken,
+      MOLTNET_OPERATOR_OAUTH_ISSUER: 'http://hydra:4444',
+      MOLTNET_OPERATOR_OAUTH_PUBLIC_URL: 'http://localhost:4444',
+      MOLTNET_NATIVE_OAUTH_CLIENT_ID: NATIVE_CLIENT_ID,
+      MOLTNET_CONSOLE_OAUTH_CLIENT_ID: CONSOLE_CLIENT_ID,
+      MOLTNET_OPERATOR_API_URL: REST_API_URL,
+    };
+    serverArgs = [
       '--port',
       String(AGENT_SERVER_PORT),
       '--root',
@@ -153,7 +240,8 @@ test.describe.serial('Local runtime page', () => {
       CONSOLE_URL,
       '--api-url',
       REST_API_URL,
-    ]);
+    ];
+    agentServer = spawnAgentServer(serverArgs, serverEnv);
     agentServer.stderr?.on('data', (chunk: Buffer) => {
       agentServerStderr = appendStderrTail(agentServerStderr, chunk);
     });
@@ -183,9 +271,8 @@ test.describe.serial('Local runtime page', () => {
       await rm(agentServerRoot, { recursive: true, force: true });
   });
 
-  test('a learner pairs the console, enrols an agent, configures a provider, and runs a daemon', async ({
+  test('a learner authorizes Console, enrolls an agent, configures a provider, and runs a daemon', async ({
     page,
-    context,
   }) => {
     test.setTimeout(300_000);
     let humanClient!: ReturnType<typeof createCookieSessionApiClient>;
@@ -210,31 +297,16 @@ test.describe.serial('Local runtime page', () => {
       teamId = team.data.id;
     });
 
-    await test.step('pair the Console to the local supervisor', async () => {
+    await test.step('native operator approval followed by Console PKCE', async () => {
+      const signedIn = await nativeApproval(page, () =>
+        signInAgentServerOperator({ client: localClient }),
+      );
+      expect(signedIn).toMatchObject({ response: { status: 200 } });
       await page.goto(`${CONSOLE_URL}/runtime/local`);
-      const teamSelect = page.locator('select[aria-label="Select team"]');
-      await expect(teamSelect).toBeVisible();
-      await teamSelect.selectOption({ label: teamName });
-
-      const connect = page.getByRole('button', { name: 'Connect' });
-      await expect(connect).toBeVisible();
-      const approvalPagePromise = context.waitForEvent('page');
-      await connect.click();
-      const approval = await approvalPagePromise;
-      await approval.waitForLoadState();
-      await expect(approval).toHaveURL(
-        new RegExp(`^${AGENT_SERVER_URL}/pairings/`),
-      );
-      await expect(approval.getByText(CONSOLE_URL)).toBeVisible();
-      await approval.getByRole('button', { name: 'Approve' }).click();
-      await expect(approval.getByText('Connection approved')).toBeVisible();
-      await approval.close();
-
-      await expect(page.getByRole('button', { name: 'Connect' })).toHaveCount(
-        0,
-      );
-      await expect(page.getByText('LLM providers')).toBeVisible();
-      await expect(page.getByText('Not paired')).toHaveCount(0);
+      await page
+        .locator('select[aria-label="Select team"]')
+        .selectOption({ label: teamName });
+      await connectConsole(page);
     });
 
     await test.step('create a managed agent from an invitation', async () => {
@@ -253,6 +325,74 @@ test.describe.serial('Local runtime page', () => {
       const agentRow = page.getByText(agentName, { exact: true }).first();
       await expect(agentRow).toBeVisible({ timeout: 30_000 });
       await expect(page.getByLabel('Agent name')).toHaveValue('');
+    });
+
+    await test.step('enroll and renew through approval, Talos, protected storage and refreshed health', async () => {
+      const team = await createTeam({
+        client: humanClient,
+        body: { name: `${teamName}-pkce` },
+      });
+      expect(team.response.status).toBe(201);
+      const destination = team.data!.id;
+      const enroll = await nativeApproval(page, () =>
+        enrollAgentServerTeam({
+          client: localClient,
+          path: { agentName },
+          body: {
+            mode: 'enroll',
+            teamId: destination,
+            idempotencyKey: randomUUID(),
+          },
+        }),
+      );
+      expect(enroll).toMatchObject({
+        data: { state: 'persisted', teamId: destination },
+      });
+      const configPath = join(
+        agentServerRoot,
+        'identities',
+        agentName,
+        'moltnet.json',
+      );
+      const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+        agent_key_refs: Record<string, { provider: string }>;
+      };
+      expect(config.agent_key_refs[destination]).toMatchObject({
+        provider: 'file',
+      });
+      const firstKey = (enroll as { data: { keyId: string } }).data.keyId;
+      const revoked = await revokeAgentKey({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': destination },
+        path: { keyId: firstKey },
+        body: { reason: 'superseded' },
+      });
+      expect(revoked.response.status).toBe(204);
+      const renewal = await nativeApproval(page, () =>
+        enrollAgentServerTeam({
+          client: localClient,
+          path: { agentName },
+          body: {
+            mode: 'replace',
+            teamId: destination,
+            idempotencyKey: randomUUID(),
+          },
+        }),
+      );
+      expect(renewal).toMatchObject({
+        data: { state: 'persisted', teamId: destination },
+      });
+      expect((renewal as { data: { keyId: string } }).data.keyId).not.toBe(
+        firstKey,
+      );
+      const health = await getAgentServerCatalogue({
+        client: localClient,
+        query: { identity: agentName },
+      });
+      expect(
+        health.data?.teams.find((t) => t.teamId === destination),
+      ).toMatchObject({ available: true });
+      expect(JSON.stringify(enroll)).not.toContain('ory_ak_');
     });
 
     await test.step('configure the provider and runtime profile', async () => {
@@ -291,6 +431,7 @@ test.describe.serial('Local runtime page', () => {
 
     await test.step('start the daemon and verify a clean stop', async () => {
       await page.reload();
+      await connectConsole(page);
       await expect(page.getByText('Runs', { exact: true })).toBeVisible();
       const teamSelect = page.locator('select[aria-label="Select team"]');
       await teamSelect.selectOption({ label: teamName });
@@ -320,6 +461,50 @@ test.describe.serial('Local runtime page', () => {
       await expect(page.getByText('running', { exact: true })).toBeVisible();
       await expect(page.getByText('failed', { exact: true })).toHaveCount(0);
 
+      // Renewal changes future credentials without stopping the predecessor worker.
+      const identity = JSON.parse(
+        readFileSync(
+          join(agentServerRoot, 'identities', agentName, 'moltnet.json'),
+          'utf8',
+        ),
+      ) as { subject_id: string };
+      const before = await listAgentKeys({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': teamId },
+        query: {
+          agentId: identity.subject_id,
+          bindingScope: 'team',
+          status: 'active',
+        },
+      });
+      expect(before.response.status).toBe(200);
+      const renewed = await nativeApproval(page, () =>
+        enrollAgentServerTeam({
+          client: localClient,
+          path: { agentName },
+          body: { mode: 'replace', teamId, idempotencyKey: randomUUID() },
+        }),
+      );
+      expect(renewed).toMatchObject({ data: { state: 'persisted', teamId } });
+      const after = await listAgentKeys({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': teamId },
+        query: {
+          agentId: identity.subject_id,
+          bindingScope: 'team',
+          status: 'active',
+        },
+      });
+      expect(after.response.status).toBe(200);
+      for (const key of before.data!.items)
+        expect(after.data!.items).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: key.id, status: 'active' }),
+          ]),
+        );
+      await expect(page.getByText('running', { exact: true })).toBeVisible();
+      await expect(logPanel).not.toContainText('[fatal]');
+
       await page.getByRole('button', { name: 'Stop' }).click();
       await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, {
         timeout: 30_000,
@@ -331,15 +516,30 @@ test.describe.serial('Local runtime page', () => {
     });
   });
 
-  test('pairing is per browser context: a fresh one must connect again', async ({
+  test('server restart requires Console PKCE again while preserving the native operator', async ({
     page,
   }) => {
     await loginViaBrowser(page, user);
     await page.goto(`${CONSOLE_URL}/runtime/local`);
-    // The pairing token lives in the browser, never on the server: a new
-    // context finds the same supervisor but starts from "Not paired".
-    await expect(page.getByText('Not paired')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Connect' })).toBeVisible();
-    await expect(page.getByText('LLM providers')).toHaveCount(0);
+    await connectConsole(page);
+    const stopped = new Promise<void>((resolve) => {
+      agentServer.once('exit', () => resolve());
+    });
+    agentServer.kill('SIGTERM');
+    await stopped;
+    agentServer = spawnAgentServer(serverArgs, serverEnv);
+    agentServer.stderr?.on('data', (chunk: Buffer) => {
+      agentServerStderr = appendStderrTail(agentServerStderr, chunk);
+    });
+    await waitForAgentServerHealth(() => agentServerStderr);
+    await expect(
+      page
+        .getByRole('region', { name: 'Agent Server connection' })
+        .getByRole('button', { name: 'Connect', exact: true }),
+    ).toBeVisible({ timeout: 30_000 });
+    await connectConsole(page);
+    expect(
+      JSON.parse(readFileSync(join(agentServerRoot, 'operator.json'), 'utf8')),
+    ).toHaveProperty('subject');
   });
 });

@@ -1,10 +1,3 @@
-/**
- * @moltnet/rest-api — App Factory
- *
- * Creates and configures the Fastify application with all routes.
- * Services are injected via the options parameter.
- */
-
 import swagger from '@fastify/swagger';
 import {
   authPlugin,
@@ -32,7 +25,7 @@ import type { Redis } from 'ioredis';
 import { Type } from 'typebox';
 
 import pkg from '../package.json' with { type: 'json' };
-import type { PackGcConfig } from './config.js';
+import { loadOperatorOAuthClients, type PackGcConfig } from './config.js';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import {
@@ -51,6 +44,7 @@ import { groupRoutes } from './routes/groups.js';
 import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2GrantCachePlugin, oauth2Routes } from './routes/oauth2.js';
+import { oauth2ApprovalRoutes } from './routes/oauth2-approval.js';
 import { packRoutes } from './routes/packs.js';
 import { previewSignChallengeRoutes } from './routes/preview-sign-challenges.js';
 import { problemRoutes } from './routes/problems.js';
@@ -98,6 +92,13 @@ import type {
   TeamRepository,
   TransactionRunner,
 } from './types.js';
+
+/**
+ * @moltnet/rest-api — App Factory
+ *
+ * Creates and configures the Fastify application with all routes.
+ * Services are injected via the options parameter.
+ */
 
 export interface SecurityOptions {
   /** Comma-separated list of allowed CORS origins */
@@ -478,6 +479,10 @@ export async function registerApiRoutes(
     // are shared across instances. Falls back to a process-local store when
     // Redis is unconfigured (issue #1860).
     redis: options.rateLimitRedis,
+  });
+  await app.register(oauth2ApprovalRoutes, {
+    ory: options.oryClients,
+    clients: loadOperatorOAuthClients(),
   });
   await app.register(hookRoutes);
   await app.register(healthRoutes, {

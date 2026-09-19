@@ -8,13 +8,14 @@ import type {
   CancelAgentServerSubscriptionLoginResponses,
   ClaimAgentServerPairingData,
   ClaimAgentServerPairingErrors,
-  ClaimAgentServerPairingResponses,
   CreateAgentServerAgentData,
   CreateAgentServerAgentErrors,
   CreateAgentServerAgentResponses,
   DeleteAgentServerProviderData,
   DeleteAgentServerProviderErrors,
   DeleteAgentServerProviderResponses,
+  DeleteV1OperatorData,
+  DeleteV1OperatorResponses,
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
@@ -32,6 +33,8 @@ import type {
   GetAgentServerSubscriptionLoginData,
   GetAgentServerSubscriptionLoginErrors,
   GetAgentServerSubscriptionLoginResponses,
+  GetOauthMetadataData,
+  GetOauthMetadataResponses,
   ListAgentServerAgentsData,
   ListAgentServerAgentsErrors,
   ListAgentServerAgentsResponses,
@@ -44,15 +47,18 @@ import type {
   ListAgentServerSubscriptionsData,
   ListAgentServerSubscriptionsErrors,
   ListAgentServerSubscriptionsResponses,
+  PostV1OperatorCancelData,
+  PostV1OperatorCancelResponses,
   PutAgentServerProviderData,
   PutAgentServerProviderErrors,
   PutAgentServerProviderResponses,
   ReconcileAgentServerAgentData,
   ReconcileAgentServerAgentErrors,
   ReconcileAgentServerAgentResponses,
+  SignInAgentServerOperatorData,
+  SignInAgentServerOperatorResponses,
   StartAgentServerPairingData,
   StartAgentServerPairingErrors,
-  StartAgentServerPairingResponses,
   StartAgentServerRunData,
   StartAgentServerRunErrors,
   StartAgentServerRunResponses,
@@ -92,6 +98,15 @@ export const getAgentServerHealth = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/health', ...options });
+
+export const getOauthMetadata = <ThrowOnError extends boolean = false>(
+  options?: Options<GetOauthMetadataData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetOauthMetadataResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/oauth/metadata', ...options });
 
 export const listAgentServerAgents = <ThrowOnError extends boolean = false>(
   options?: Options<ListAgentServerAgentsData, ThrowOnError>,
@@ -170,20 +185,53 @@ export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
+export const deleteV1Operator = <ThrowOnError extends boolean = false>(
+  options?: Options<DeleteV1OperatorData, ThrowOnError>,
+) =>
+  (options?.client ?? client).delete<
+    DeleteV1OperatorResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/v1/operator', ...options });
+
+export const postV1OperatorCancel = <ThrowOnError extends boolean = false>(
+  options?: Options<PostV1OperatorCancelData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    PostV1OperatorCancelResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/v1/operator/cancel', ...options });
+
+export const signInAgentServerOperator = <ThrowOnError extends boolean = false>(
+  options?: Options<SignInAgentServerOperatorData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    SignInAgentServerOperatorResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/v1/operator/sign-in', ...options });
+
+/**
+ * @deprecated
+ */
 export const startAgentServerPairing = <ThrowOnError extends boolean = false>(
   options?: Options<StartAgentServerPairingData, ThrowOnError>,
 ) =>
   (options?.client ?? client).post<
-    StartAgentServerPairingResponses,
+    unknown,
     StartAgentServerPairingErrors,
     ThrowOnError
   >({ url: '/v1/pairings', ...options });
 
+/**
+ * @deprecated
+ */
 export const claimAgentServerPairing = <ThrowOnError extends boolean = false>(
   options: Options<ClaimAgentServerPairingData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    ClaimAgentServerPairingResponses,
+    unknown,
     ClaimAgentServerPairingErrors,
     ThrowOnError
   >({ url: '/v1/pairings/{pairingId}/claim', ...options });

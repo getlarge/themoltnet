@@ -25,7 +25,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { OAuthProviderService } from '../oauth-provider.js';
 import { ProviderConfigurationService } from '../provider-configuration.js';
-import { PairingService } from './pairing.js';
+import { NativeGrantService } from './native-grant-service.js';
 import {
   type LoginCallbacksLike,
   ProviderLoginService,
@@ -34,7 +34,7 @@ import { RunManager, type SpawnImpl } from './runs.js';
 import { AGENT_SERVER_TOKEN_HEADER, buildAgentServer } from './server.js';
 import { AgentServerStore } from './store.js';
 
-const CONSOLE_ORIGIN = 'https://console.themolt.net';
+const NATIVE_ORIGIN = 'moltnet-agent-desktop://native';
 const HOST = '127.0.0.1:17374';
 
 const cleanups: (() => Promise<void> | void)[] = [];
@@ -98,12 +98,15 @@ async function fixture(options: {
     spawnImpl: (() =>
       new EventEmitter() as unknown as ChildProcess) as SpawnImpl,
   });
+  const token = 'native-test-token';
+  const pairing = new NativeGrantService();
+  pairing.grantNative(token);
   const app = buildAgentServer({
     store,
     secrets,
     secretProviders,
     externalSecretProviders,
-    pairing: new PairingService(),
+    pairing,
     runs,
     subscriptions,
     providers: new ProviderConfigurationService({
@@ -112,7 +115,7 @@ async function fixture(options: {
       secretProviders,
       ...(options.discoverFetch ? { fetchImpl: options.discoverFetch } : {}),
     }),
-    allowedOrigins: [CONSOLE_ORIGIN],
+    allowedOrigins: ['https://console.themolt.net'],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
     version: 'test',
@@ -123,49 +126,13 @@ async function fixture(options: {
     rmSync(temp, { recursive: true, force: true });
   });
 
-  // Pair once so /v1 routes are reachable.
-  const started = await app.inject({
-    method: 'POST',
-    url: '/v1/pairings',
-    headers: { host: HOST, origin: CONSOLE_ORIGIN },
-  });
-  const { pairingId } = started.json<{ pairingId: string }>();
-  const approval = await app.inject({
-    method: 'GET',
-    url: `/pairings/${pairingId}`,
-    headers: {
-      host: HOST,
-      'sec-fetch-site': 'none',
-      'sec-fetch-mode': 'navigate',
-      'sec-fetch-dest': 'document',
-    },
-  });
-  const confirmToken = approval.body.match(
-    /name="confirmToken" value="([^"]+)"/u,
-  )?.[1];
-  await app.inject({
-    method: 'POST',
-    url: `/pairings/${pairingId}/confirm`,
-    headers: {
-      host: HOST,
-      'content-type': 'application/x-www-form-urlencoded',
-    },
-    payload: new URLSearchParams({
-      confirmToken: confirmToken ?? '',
-    }).toString(),
-  });
-  const claimed = await app.inject({
-    method: 'POST',
-    url: `/v1/pairings/${pairingId}/claim`,
-    headers: { host: HOST, origin: CONSOLE_ORIGIN },
-  });
-  return { app, token: claimed.json<{ token: string }>().token };
+  return { app, token };
 }
 
 function authedHeaders(token: string): Record<string, string> {
   return {
     host: HOST,
-    origin: CONSOLE_ORIGIN,
+    origin: NATIVE_ORIGIN,
     [AGENT_SERVER_TOKEN_HEADER]: token,
   };
 }

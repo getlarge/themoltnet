@@ -138,13 +138,6 @@ export const AgentServerStatusSchema = Type.Object({
   runs: Type.Array(AgentServerRunViewSchema),
 });
 
-export const PairingStartedSchema = Type.Object({
-  pairingId: Type.String(),
-  approvalPath: Type.String(),
-});
-
-export const PairingClaimedSchema = Type.Object({ token: Type.String() });
-
 export const DiscoverModelsSchema = Type.Object({
   // The daemon resolves input modalities during discovery; the console saves
   // what it was handed rather than re-deriving them here.

@@ -732,3 +732,12 @@ export function resolveOryUrls(config: OryConfig): ResolvedOryUrls {
     talosAdminUrl: config.ORY_TALOS_ADMIN_URL ?? fallback,
   };
 }
+
+export function loadOperatorOAuthClients(
+  env: Record<string, string | undefined> = process.env,
+) {
+  return {
+    nativeClientId: env.MOLTNET_NATIVE_OAUTH_CLIENT_ID,
+    consoleClientId: env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID,
+  };
+}

@@ -156,39 +156,47 @@ fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Valu
 }
 
 #[tauri::command]
-fn desktop_enroll_team(
+async fn desktop_operator_sign_in(state: State<'_, AppState>) -> Result<(), String> {
+    let token = state
+        .lifecycle
+        .lock()
+        .map_err(|_| "desktop lifecycle lock was poisoned")?
+        .control_token()
+        .cloned()
+        .ok_or("the Agent Server is not running")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        control::post(&token, "/v1/operator/sign-in", "{}")
+    })
+    .await
+    .map_err(|_| "Sign-in task failed")??;
+    Ok(())
+}
+
+#[tauri::command]
+async fn desktop_enroll_team(
     state: State<'_, AppState>,
     identity: String,
     request: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let payload =
         serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
-    let body = with_control_token(&state, |token| {
+    let token = state
+        .lifecycle
+        .lock()
+        .map_err(|_| "desktop lifecycle lock was poisoned")?
+        .control_token()
+        .cloned()
+        .ok_or("the Agent Server is not running")?;
+    let body = tauri::async_runtime::spawn_blocking(move || {
         control::post(
-            token,
+            &token,
             &format!("/v1/agents/{}/teams", urlencode(&identity)),
             &payload,
         )
-    })?;
+    })
+    .await
+    .map_err(|_| "Enrollment task failed")??;
     control::enrollment_metadata(&body)
-}
-
-#[tauri::command]
-fn desktop_create_identity(
-    state: State<'_, AppState>,
-    name: String,
-    invitation: String,
-) -> Result<(), String> {
-    let payload =
-        serde_json::json!({ "kind": "managed", "name": name, "enrollmentToken": invitation })
-            .to_string();
-    with_control_token(&state, |token| control::post(token, "/v1/agents", &payload))?;
-    Ok(())
-}
-
-#[tauri::command]
-fn desktop_team_invites(team_id: Option<String>) -> Result<(), String> {
-    lifecycle::open_team_invites(team_id.as_deref())
 }
 
 /// Run `operation` with the grant for the currently running server.
@@ -203,7 +211,9 @@ fn with_control_token(
     let token = lifecycle
         .control_token()
         .ok_or_else(|| "the Agent Server is not running".to_string())?;
-    operation(token)
+    let owned_token = token.clone();
+    drop(lifecycle);
+    operation(&owned_token)
 }
 
 /// Percent-encode a query value. Identity aliases are already constrained, but
@@ -584,8 +594,7 @@ pub fn run() {
             desktop_catalogue,
             desktop_control_status,
             desktop_enroll_team,
-            desktop_create_identity,
-            desktop_team_invites,
+            desktop_operator_sign_in,
             desktop_start_run,
             desktop_stop_run,
             desktop_providers,
