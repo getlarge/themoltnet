@@ -236,7 +236,11 @@ export async function oauth2ApprovalRoutes(
     async (request) => {
       const result = await consent(request, request.query.challenge);
       return {
-        operation: result.grant?.operation ?? 'local-control',
+        operation:
+          result.grant?.operation ??
+          (result.consent.client?.client_id === options.clients.nativeClientId
+            ? 'operator-sign-in'
+            : 'local-control'),
         agent: result.agent,
         team: result.team,
         agentId: result.grant?.agentId,
