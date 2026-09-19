@@ -102,8 +102,9 @@ and the custom authorization implementation are removed.
 
 CI is the validation runner. No local test, lint, typecheck or E2E suite was
 run. OpenAPI generation, TypeScript/Go client generation, Nx reference
-synchronization, formatting and static review completed locally. CI results are
-pending.
+synchronization, formatting and static review completed locally. A targeted REST
+API build supplied the disposable local demo. CI validation is tracked in the
+[PR checks](https://github.com/getlarge/themoltnet/pull/2371/checks).
 
 The browser suite covers native approval, callback, API/Talos issuance,
 protected storage, refreshed credential health, renewal while a predecessor
@@ -113,20 +114,49 @@ origin/window, cancellation during signing-key retrieval, protected recovery and
 writer conflicts. These are coverage descriptions, not claims of passing
 execution.
 
+A disposable local stack on macOS exercised the native controller against real
+Hydra, Kratos, the REST API and Talos. Backend diagnostics used the test human
+and Ory Admin approval; these are not a substitute for browser-driven approval.
+Observed results:
+
+| Operation                            | Result                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Native PKCE sign-in                  | HTTP 200; operator persisted as issuer and subject                                                    |
+| Existing-agent enrollment            | HTTP 200; issued credential persisted in protected storage                                            |
+| Renewal after predecessor revocation | Revocation HTTP 204, renewal HTTP 200; replacement persisted and catalogue available with no blockers |
+| Console-client PKCE local control    | HTTP 200 with the approved operator and instance                                                      |
+| Reuse after Agent Server restart     | HTTP 401                                                                                              |
+| Fresh authorization after restart    | HTTP 200                                                                                              |
+
+The demo exposed two Ory integration details. Hydra can deliver an empty
+`granted_scopes` list to its authorization-code hook
+([upstream issue](https://github.com/ory/hydra/issues/3620)). For the two
+administrative clients, the consent handler therefore records the validated
+scope in server-owned session data; the hook verifies it and rejects any
+nonempty scope list that differs. DCR policy is unchanged. Hydra's issuance work
+can also make `exp - iat` exceed the configured lifespan. Verification checks
+expiry and caps token age at five minutes for native approval and fifteen
+minutes for Console, without requiring those timestamps to have an exact span.
+
+Desktop enrollment and renewal request the same eight scopes that local
+credential verification requires: `agent:profile`, `crypto:sign`,
+`runtime:read`, `task:read`, `task:claim`, `task:execute`, `team:read`, and
+`diary:read`. Console displays that scope set before approval.
+
 Line measurements and CI evidence are recorded after the implementation and
 generated-contract commits below. Dependencies add the existing catalogued
 `jose` runtime dependency to Agent Server and the private workspace native API
 client to Console E2E. No dependency versions were upgraded.
 
-Measured with `git diff --numstat 0547a375b` through the implementation and
-generated contracts, excluding this report. Categories are mutually exclusive:
-generated paths first; package/configuration files next; test files and E2E
-fixtures next; remaining handwritten runtime code last. Counts include the
-retained token-request partitioning fix.
+Measured with `git diff --numstat 0547a375b` through commit `89168b5ed`,
+excluding this report. Categories are mutually exclusive: generated paths first;
+package/configuration files next; test files and E2E fixtures next; remaining
+handwritten runtime code last. Counts include the retained token-request
+partitioning fix.
 
 | Category                       |  Added | Removed |    Net |
 | ------------------------------ | -----: | ------: | -----: |
-| Production source              |  1,796 |   1,155 |   +641 |
-| Tests and fixtures             |  1,156 |   1,273 |   -117 |
+| Production source              |  1,834 |   1,155 |   +679 |
+| Tests and fixtures             |  1,375 |   1,573 |   -198 |
 | Configuration and dependencies |     17 |       3 |    +14 |
-| Generated contracts            | 10,944 |   4,715 | +6,229 |
+| Generated contracts and bundle | 10,946 |   4,724 | +6,222 |
