@@ -15,7 +15,14 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import {
   desktopBridge,
@@ -67,7 +74,7 @@ function errorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function ServerPanel() {
+export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
   const theme = useTheme();
   const [status, setStatus] = useState<DesktopStatus>(INITIAL_STATUS);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
@@ -285,6 +292,7 @@ export function ServerPanel() {
               <Text color="secondary" aria-live="polite" aria-atomic="true">
                 {status.message}
               </Text>
+              {notice}
             </Stack>
 
             <ol

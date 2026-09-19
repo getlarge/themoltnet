@@ -25,7 +25,13 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { ServerPanel } from '../App.js';
 import { desktopBridge } from '../bridge.js';
@@ -50,6 +56,7 @@ export interface RunCenterAppProps {
   now?: number;
   initialScreen?: RunCenterScreen;
   initialRunsRoute?: RunsRoute;
+  notice?: ReactNode;
 }
 
 const SERVER_TONE: Record<
@@ -75,6 +82,7 @@ export function RunCenterApp({
   now = Date.now(),
   initialScreen = 'runs',
   initialRunsRoute = { kind: 'list' },
+  notice,
 }: RunCenterAppProps) {
   const theme = useTheme();
   const [screen, setScreen] = useState<RunCenterScreen>(initialScreen);
@@ -117,7 +125,9 @@ export function RunCenterApp({
   const missingKeys = Object.entries(data.providers).filter(
     ([id, provider]) => !provider.hasApiKey && !connectedSubscriptions.has(id),
   ).length;
-  const serverTone = SERVER_TONE[data.server.state] ?? SERVER_TONE.checking;
+  const serverTone = notice
+    ? { label: 'Connection needs attention', variant: 'warning' }
+    : (SERVER_TONE[data.server.state] ?? SERVER_TONE.checking);
   const serverNeedsUser = ['needs_trust', 'needs_install', 'failed'].includes(
     data.server.state,
   );
@@ -152,7 +162,10 @@ export function RunCenterApp({
       label: 'Server',
       href: '#server',
       current: screen === 'server',
-      badge: serverNeedsUser ? <Badge variant="warning">!</Badge> : undefined,
+      badge:
+        serverNeedsUser || notice ? (
+          <Badge variant="warning">!</Badge>
+        ) : undefined,
     },
   ];
 
@@ -253,7 +266,7 @@ export function RunCenterApp({
             <TeamsView data={data} actions={actions} now={now} />
           ) : null}
           <div hidden={screen !== 'server'}>
-            <ServerPanel />
+            <ServerPanel notice={notice} />
           </div>
           {screen === 'providers' ? (
             <ProvidersView
