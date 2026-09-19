@@ -5136,14 +5136,6 @@ func (s *CreateProjectBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CreateProjectConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *CreateProjectForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -16029,14 +16021,6 @@ func (s *GetProjectBadRequest) Validate() error {
 	return nil
 }
 
-func (s *GetProjectConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *GetProjectForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -18915,14 +18899,6 @@ func (s *ListPendingTransfersUnauthorized) Validate() error {
 }
 
 func (s *ListProjectsBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ListProjectsConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -35438,14 +35414,6 @@ func (s *UpdateEntryRelationStatusUnauthorized) Validate() error {
 }
 
 func (s *UpdateProjectBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *UpdateProjectConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

@@ -1078,7 +1078,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           callerNs,
           request.body.leaseTtlSec,
           {
-            projectId: request.body.projectId,
+            projectId: request.body.projectId ?? null,
             executorManifest: request.body.executorManifest,
             executorFingerprint: request.body.executorFingerprint,
             executorSignature: request.body.executorSignature,

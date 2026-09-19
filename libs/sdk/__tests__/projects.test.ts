@@ -19,6 +19,7 @@ describe('projects namespace', () => {
     await projects.get('team', 'project');
     await projects.update('team', 'project', { name: 'Renamed' });
     await projects.archive('team', 'project');
+    await projects.unarchive('team', 'project');
     const requests = fetch.mock.calls.map(([request]) => request as Request);
     expect(requests.map((r) => [r.method, new URL(r.url).pathname])).toEqual([
       ['POST', '/teams/team/projects'],
@@ -26,8 +27,10 @@ describe('projects namespace', () => {
       ['GET', '/teams/team/projects/project'],
       ['PATCH', '/teams/team/projects/project'],
       ['PATCH', '/teams/team/projects/project'],
+      ['PATCH', '/teams/team/projects/project'],
     ]);
     expect(await requests[4].json()).toEqual({ archived: true });
+    expect(await requests[5].json()).toEqual({ archived: false });
     expect(
       requests.every((r) => r.headers.get('x-moltnet-team-id') === 'team'),
     ).toBe(true);

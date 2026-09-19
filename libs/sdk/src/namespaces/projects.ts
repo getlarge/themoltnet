@@ -1,16 +1,41 @@
 import {
   createProject,
   type CreateProjectData,
+  type CreateProjectResponse,
   getProject,
   listProjects,
+  type ListProjectsResponse,
   updateProject,
   type UpdateProjectData,
 } from '@moltnet/api-client';
 
 import { type AgentContext, unwrapResult } from '../agent-context.js';
+import { requiredTeamHeaders } from './team-headers.js';
 
-export function createProjectsNamespace({ client, auth }: AgentContext) {
-  const headers = (teamId: string) => ({ 'x-moltnet-team-id': teamId });
+export interface ProjectsNamespace {
+  create(
+    teamId: string,
+    body: CreateProjectData['body'],
+  ): Promise<CreateProjectResponse>;
+  list(
+    teamId: string,
+    options?: { includeArchived?: boolean },
+  ): Promise<ListProjectsResponse>;
+  get(teamId: string, projectId: string): Promise<CreateProjectResponse>;
+  update(
+    teamId: string,
+    projectId: string,
+    body: UpdateProjectData['body'],
+  ): Promise<CreateProjectResponse>;
+  archive(teamId: string, projectId: string): Promise<CreateProjectResponse>;
+  unarchive(teamId: string, projectId: string): Promise<CreateProjectResponse>;
+}
+
+export function createProjectsNamespace({
+  client,
+  auth,
+}: AgentContext): ProjectsNamespace {
+  const headers = (teamId: string) => requiredTeamHeaders({ teamId });
   return {
     async create(teamId: string, body: CreateProjectData['body']) {
       return unwrapResult(
@@ -23,14 +48,14 @@ export function createProjectsNamespace({ client, auth }: AgentContext) {
         }),
       );
     },
-    async list(teamId: string, includeArchived = false) {
+    async list(teamId, options) {
       return unwrapResult(
         await listProjects({
           client,
           auth,
           path: { id: teamId },
           headers: headers(teamId),
-          query: { includeArchived },
+          query: { includeArchived: options?.includeArchived ?? false },
         }),
       );
     },
@@ -70,6 +95,16 @@ export function createProjectsNamespace({ client, auth }: AgentContext) {
         }),
       );
     },
+    async unarchive(teamId: string, projectId: string) {
+      return unwrapResult(
+        await updateProject({
+          client,
+          auth,
+          path: { id: teamId, projectId },
+          headers: headers(teamId),
+          body: { archived: false },
+        }),
+      );
+    },
   };
 }
-export type ProjectsNamespace = ReturnType<typeof createProjectsNamespace>;

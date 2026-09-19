@@ -186,15 +186,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       const initialRow = await findTaskForTeam(taskId, teamId);
       if (!initialRow)
         throw new TaskServiceError('not_found', 'Task not found');
-      if (
-        (initialRow.projectId ?? null) !==
-        (executorAttestation.projectId ?? null)
-      ) {
-        throw new TaskServiceError(
-          'conflict',
-          'Run project does not match task project',
-        );
-      }
       let claimAuthorized = false;
       if (initialRow?.status === 'waiting') {
         const canClaimWaiting = await permissionChecker.canClaimTask(
@@ -250,6 +241,15 @@ export function createTaskService(deps: TaskServiceDeps) {
           );
       }
 
+      if (
+        (initialRow.projectId ?? null) !==
+        (executorAttestation.projectId ?? null)
+      ) {
+        throw new TaskServiceError(
+          'conflict',
+          'Run project does not match task project',
+        );
+      }
       const allowedProfiles = (row.allowedProfiles ?? []) as {
         profileId: string;
       }[];
@@ -427,7 +427,10 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Task is not queued or is already being claimed',
         );
       }
-      logger.info({ taskId, attemptN, callerId }, 'task.claimed');
+      logger.info(
+        { taskId, attemptN, callerId, projectId: row.projectId ?? null },
+        'task.claimed',
+      );
       return {
         task: dbTaskToWire(claimedState.task),
         attempt: dbAttemptToWire({

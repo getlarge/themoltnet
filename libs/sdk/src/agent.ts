@@ -888,7 +888,7 @@ export interface TasksNamespace {
 
   claim(
     id: string,
-    body: ClaimTaskData['body'],
+    body?: ClaimTaskData['body'],
     options?: TaskRequestOptions,
   ): Promise<ClaimTaskResponse & { traceHeaders: Record<string, string> }>;
 

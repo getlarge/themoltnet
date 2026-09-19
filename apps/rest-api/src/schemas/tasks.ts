@@ -232,7 +232,9 @@ export const TaskActivityAnalyticsQuerySchema = Type.Object(
 
 export const ClaimTaskBodySchema = Type.Object(
   {
-    projectId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    projectId: Type.Optional(
+      Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    ),
     leaseTtlSec: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 3600, default: 300 }),
     ),

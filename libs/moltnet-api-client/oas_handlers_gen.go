@@ -3058,7 +3058,7 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 		}
 
 		type (
-			Request  = *ClaimTaskReq
+			Request  = OptClaimTaskReq
 			Params   = ClaimTaskParams
 			Response = ClaimTaskRes
 		)

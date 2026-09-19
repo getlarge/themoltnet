@@ -4048,7 +4048,7 @@ type ClaimTaskReq struct {
 	ExecutorSignature   OptString                       `json:"executorSignature"`
 	LeaseTtlSec         OptInt                          `json:"leaseTtlSec"`
 	ProfileId           OptUUID                         `json:"profileId"`
-	ProjectId           NilUUID                         `json:"projectId"`
+	ProjectId           OptNilUUID                      `json:"projectId"`
 }
 
 // GetExecutorFingerprint returns the value of ExecutorFingerprint.
@@ -4077,7 +4077,7 @@ func (s *ClaimTaskReq) GetProfileId() OptUUID {
 }
 
 // GetProjectId returns the value of ProjectId.
-func (s *ClaimTaskReq) GetProjectId() NilUUID {
+func (s *ClaimTaskReq) GetProjectId() OptNilUUID {
 	return s.ProjectId
 }
 
@@ -4107,7 +4107,7 @@ func (s *ClaimTaskReq) SetProfileId(val OptUUID) {
 }
 
 // SetProjectId sets the value of ProjectId.
-func (s *ClaimTaskReq) SetProjectId(val NilUUID) {
+func (s *ClaimTaskReq) SetProjectId(val OptNilUUID) {
 	s.ProjectId = val
 }
 
@@ -4622,14 +4622,17 @@ func (*ConflictProblemDetails) completeTaskRes()                          {}
 func (*ConflictProblemDetails) createDiaryEntryRes()                      {}
 func (*ConflictProblemDetails) createDiaryGrantRes()                      {}
 func (*ConflictProblemDetails) createGroupRes()                           {}
+func (*ConflictProblemDetails) createProjectRes()                         {}
 func (*ConflictProblemDetails) createRuntimeModelRes()                    {}
 func (*ConflictProblemDetails) createRuntimePolicyRes()                   {}
 func (*ConflictProblemDetails) createRuntimeProfileRes()                  {}
 func (*ConflictProblemDetails) createTaskGrantRes()                       {}
 func (*ConflictProblemDetails) createTaskRes()                            {}
 func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
+func (*ConflictProblemDetails) getProjectRes()                            {}
 func (*ConflictProblemDetails) initiateTransferRes()                      {}
 func (*ConflictProblemDetails) joinTeamRes()                              {}
+func (*ConflictProblemDetails) listProjectsRes()                          {}
 func (*ConflictProblemDetails) previewDiaryCustomPackRes()                {}
 func (*ConflictProblemDetails) registerExecutorManifestRes()              {}
 func (*ConflictProblemDetails) rejectSigningRequestRes()                  {}
@@ -4641,6 +4644,7 @@ func (*ConflictProblemDetails) submitSignatureRes()                       {}
 func (*ConflictProblemDetails) suspendSigningCredentialRes()              {}
 func (*ConflictProblemDetails) updateContextPackRes()                     {}
 func (*ConflictProblemDetails) updateDiaryEntryByIdRes()                  {}
+func (*ConflictProblemDetails) updateProjectRes()                         {}
 func (*ConflictProblemDetails) updateRenderedPackRes()                    {}
 func (*ConflictProblemDetails) updateRuntimeModelRes()                    {}
 func (*ConflictProblemDetails) updateRuntimePolicyRes()                   {}
@@ -6329,10 +6333,6 @@ func (*CreateGroupUnauthorized) createGroupRes() {}
 type CreateProjectBadRequest ProblemDetails
 
 func (*CreateProjectBadRequest) createProjectRes() {}
-
-type CreateProjectConflict ProblemDetails
-
-func (*CreateProjectConflict) createProjectRes() {}
 
 type CreateProjectCreated struct {
 	Archived       bool      `json:"archived"`
@@ -24015,10 +24015,6 @@ type GetProjectBadRequest ProblemDetails
 
 func (*GetProjectBadRequest) getProjectRes() {}
 
-type GetProjectConflict ProblemDetails
-
-func (*GetProjectConflict) getProjectRes() {}
-
 type GetProjectForbidden ProblemDetails
 
 func (*GetProjectForbidden) getProjectRes() {}
@@ -28374,10 +28370,6 @@ func (s *ListProblemTypesOKItem) SetType(val OptURI) {
 type ListProjectsBadRequest ProblemDetails
 
 func (*ListProjectsBadRequest) listProjectsRes() {}
-
-type ListProjectsConflict ProblemDetails
-
-func (*ListProjectsConflict) listProjectsRes() {}
 
 type ListProjectsForbidden ProblemDetails
 
@@ -35432,6 +35424,52 @@ func (o OptClaimCondition) Get() (v ClaimCondition, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptClaimCondition) Or(d ClaimCondition) ClaimCondition {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptClaimTaskReq returns new OptClaimTaskReq with value set to v.
+func NewOptClaimTaskReq(v ClaimTaskReq) OptClaimTaskReq {
+	return OptClaimTaskReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptClaimTaskReq is optional ClaimTaskReq.
+type OptClaimTaskReq struct {
+	Value ClaimTaskReq
+	Set   bool
+}
+
+// IsSet returns true if OptClaimTaskReq was set.
+func (o OptClaimTaskReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptClaimTaskReq) Reset() {
+	var v ClaimTaskReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptClaimTaskReq) SetTo(v ClaimTaskReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptClaimTaskReq) Get() (v ClaimTaskReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptClaimTaskReq) Or(d ClaimTaskReq) ClaimTaskReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -57374,10 +57412,6 @@ func (*UpdateEntryRelationStatusUnauthorized) updateEntryRelationStatusRes() {}
 type UpdateProjectBadRequest ProblemDetails
 
 func (*UpdateProjectBadRequest) updateProjectRes() {}
-
-type UpdateProjectConflict ProblemDetails
-
-func (*UpdateProjectConflict) updateProjectRes() {}
 
 type UpdateProjectForbidden ProblemDetails
 

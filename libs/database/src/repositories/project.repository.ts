@@ -10,6 +10,7 @@ export type ProjectChanges = Partial<
 >;
 export interface ProjectRepository {
   create(input: {
+    creator: { kind: 'agent' | 'human'; id: string };
     teamId: string;
     name: string;
     description?: string | null;
@@ -26,10 +27,15 @@ export interface ProjectRepository {
 export function createProjectRepository(db: Database): ProjectRepository {
   return {
     async create(input) {
+      const { creator, ...fields } = input;
       try {
         const [project] = await getExecutor(db)
           .insert(projects)
-          .values(input)
+          .values({
+            ...fields,
+            creatorAgentId: creator.kind === 'agent' ? creator.id : null,
+            creatorHumanId: creator.kind === 'human' ? creator.id : null,
+          })
           .returning();
         return project;
       } catch (error) {

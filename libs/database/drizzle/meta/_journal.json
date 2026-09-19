@@ -350,6 +350,13 @@
       "when": 1789767915044,
       "tag": "0049_sour_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789823328958,
+      "tag": "0050_curious_emma_frost",
+      "breakpoints": true
     }
   ],
   "version": "7"

@@ -771,9 +771,6 @@
             ]
           }
         },
-        "required": [
-          "projectId"
-        ],
         "type": "object"
       },
       "ClaimTaskResponse": {
@@ -42249,14 +42246,10 @@
                     ]
                   }
                 },
-                "required": [
-                  "projectId"
-                ],
                 "type": "object"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -50123,7 +50116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -50333,7 +50326,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -50509,7 +50502,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -50727,7 +50720,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },

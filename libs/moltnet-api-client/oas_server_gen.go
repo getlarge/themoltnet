@@ -83,7 +83,7 @@ type Handler interface {
 	// Claim a queued task and start an attempt.
 	//
 	// POST /tasks/{id}/claim
-	ClaimTask(ctx context.Context, req *ClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
+	ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
 	// CompleteSigningCredentialRegistration implements completeSigningCredentialRegistration operation.
 	//
 	// POST /crypto/signing-credentials/registrations/{id}/complete

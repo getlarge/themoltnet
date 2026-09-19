@@ -1,7 +1,9 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { UniqueViolationError } from '@moltnet/database';
+import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  ConflictProblemDetailsSchema,
   CreateProjectSchema,
   ProblemDetailsSchema,
   ProjectResponseSchema,
@@ -11,7 +13,12 @@ import {
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
-import { createConflictProblem, createProblem } from '../problems/index.js';
+import {
+  createConflictProblem,
+  createProblem,
+  createValidationProblem,
+} from '../problems/index.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 export async function projectRoutes(fastify: FastifyInstance) {
@@ -26,7 +33,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
     401: Type.Ref(ProblemDetailsSchema.$id),
     403: Type.Ref(ProblemDetailsSchema.$id),
     404: Type.Ref(ProblemDetailsSchema.$id),
-    409: Type.Ref(ProblemDetailsSchema.$id),
+    409: Type.Ref(ConflictProblemDetailsSchema.$id),
   };
   const security: Record<string, string[]>[] = [
     { bearerAuth: [] },
@@ -38,9 +45,15 @@ export async function projectRoutes(fastify: FastifyInstance) {
     teamId: string,
     manage = false,
   ) {
+    if (
+      request.authContext?.currentTeamId &&
+      request.authContext.currentTeamId !== teamId
+    ) {
+      throw createProblem('forbidden');
+    }
     const { subjectId, subjectNs } = requireKetoSubject(request);
     const permitted = manage
-      ? await fastify.permissionChecker.canManageTeamMembers(
+      ? await fastify.permissionChecker.canWriteTeam(
           teamId,
           subjectId,
           subjectNs,
@@ -59,17 +72,31 @@ export async function projectRoutes(fastify: FastifyInstance) {
   ) {
     if (!diaryId) return;
     const { subjectId, subjectNs } = requireKetoSubject(request);
-    const diary = await fastify.diaryService.findDiary(
-      diaryId,
-      subjectId,
-      subjectNs,
-    );
-    if (!diary || diary.teamId !== teamId)
-      throw createProblem(
-        'validation-failed',
-        'Project default diary must belong to the project team',
+    const invalidDiary = () =>
+      createValidationProblem([
+        {
+          field: 'defaultDiaryId',
+          message:
+            'Project default diary must be accessible and belong to the project team',
+        },
+      ]);
+    try {
+      const diary = await fastify.diaryService.findDiary(
+        diaryId,
+        subjectId,
+        subjectNs,
       );
+      if (!diary || diary.teamId !== teamId) throw invalidDiary();
+    } catch (error) {
+      if (
+        error instanceof DiaryServiceError &&
+        (error.code === 'not_found' || error.code === 'forbidden')
+      )
+        throw invalidDiary();
+      throw error;
+    }
   }
+
   async function find(teamId: string, id: string) {
     const project = await fastify.projectRepository.findById(id);
     if (!project || project.teamId !== teamId) throw createProblem('not-found');
@@ -112,7 +139,11 @@ export async function projectRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found');
       await validateDiary(request, teamId, request.body.defaultDiaryId);
       const project = await mutation(() =>
-        fastify.projectRepository.create({ ...request.body, teamId }),
+        fastify.projectRepository.create({
+          ...request.body,
+          teamId,
+          creator: authContextToCreator(request),
+        }),
       );
       return reply.status(201).send({
         ...project,
@@ -126,6 +157,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
     {
       config: {
         auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+        rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
         operationId: 'listProjects',
@@ -161,6 +193,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
     {
       config: {
         auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+        rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
         operationId: 'getProject',

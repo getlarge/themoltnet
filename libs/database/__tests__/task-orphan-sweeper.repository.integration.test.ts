@@ -25,6 +25,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createDatabaseCapacityRepository } from '../src/repositories/database-capacity.repository.js';
+import { createProjectRepository } from '../src/repositories/project.repository.js';
 import { createRuntimeSessionRepository } from '../src/repositories/runtime-session.repository.js';
 import { createTaskRepository } from '../src/repositories/task.repository.js';
 import { createTaskArtifactRepository } from '../src/repositories/task-artifact.repository.js';
@@ -40,9 +41,11 @@ import {
   teams,
 } from '../src/schema.js';
 import { createDrizzleTransactionRunner } from '../src/transaction-context.js';
+import { UniqueViolationError } from '../src/unique-violation.js';
 
 describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let db: Database;
+  let databaseUrl: string;
   let pool: Pool;
   let repo: ReturnType<typeof createTaskRepository>;
   let capacityRepo: ReturnType<typeof createDatabaseCapacityRepository>;
@@ -66,7 +69,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       .withPassword('moltnet_secret')
       .start();
 
-    const databaseUrl = container.getConnectionUri();
+    databaseUrl = container.getConnectionUri();
     stopContainer = () => container.stop().then(() => undefined);
 
     await runMigrations(databaseUrl);
@@ -106,6 +109,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       await db.delete(taskAttempts);
       await db.delete(tasks);
       await db.delete(diaries);
+      await db.delete(projects);
       await db.delete(teams);
       await db.delete(agents);
     }
@@ -620,12 +624,63 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     await db.delete(tasks);
   });
 
+  it('retries deferred project scans after the schema migration has committed', async () => {
+    await pool.query('DROP INDEX tasks_project_created_idx');
+    await runMigrations(databaseUrl);
+    await runMigrations(databaseUrl);
+    const constraints = await pool.query(
+      "SELECT convalidated FROM pg_constraint WHERE conname = 'tasks_project_id_projects_id_fk'",
+    );
+    expect(constraints.rows).toEqual([{ convalidated: true }]);
+    const indexes = await pool.query(
+      "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
+    );
+    expect(indexes.rows).toEqual([{ indisvalid: true }]);
+  });
+
+  it('persists project attribution and scopes catalogue mutations to the owning team', async () => {
+    const catalogue = createProjectRepository(db);
+    const input = {
+      teamId: TEAM_ID,
+      name: 'catalogue-contract',
+      creator: { kind: 'agent' as const, id: AGENT_ID },
+    };
+    const project = await catalogue.create(input);
+    expect(project).toMatchObject({
+      creatorAgentId: AGENT_ID,
+      creatorHumanId: null,
+    });
+    await expect(catalogue.create(input)).rejects.toBeInstanceOf(
+      UniqueViolationError,
+    );
+    expect(
+      await catalogue.update(project.id, AGENT_ID, { name: 'transferred' }),
+    ).toBeNull();
+    expect(await catalogue.findById(project.id)).toMatchObject({
+      name: input.name,
+      teamId: TEAM_ID,
+    });
+    await catalogue.update(project.id, TEAM_ID, { archived: true });
+    expect(await catalogue.listByTeamId(TEAM_ID)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: project.id })]),
+    );
+    expect(await catalogue.listByTeamId(TEAM_ID, true)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: project.id, archived: true }),
+      ]),
+    );
+    await db.delete(projects).where(eq(projects.id, project.id));
+  });
+
   it('atomically separates General and project claims and admits only one matching worker', async () => {
     const projectId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa91';
     const taskId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa92';
-    await db
-      .insert(projects)
-      .values({ id: projectId, teamId: TEAM_ID, name: 'claim-routing' });
+    await db.insert(projects).values({
+      id: projectId,
+      teamId: TEAM_ID,
+      name: 'claim-routing',
+      creatorAgentId: AGENT_ID,
+    });
     await seedTask({ id: taskId, status: 'queued', claimExpiresAt: null });
     await db.update(tasks).set({ projectId }).where(eq(tasks.id, taskId));
     const claim = {
@@ -638,6 +693,8 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     const contenders = await Promise.all([
       repo.claimIfQueued(taskId, claim, projectId),
       repo.claimIfQueued(taskId, claim, projectId),
+      repo.claimIfQueued(taskId, claim, null),
+      repo.claimIfQueued(taskId, claim, TEAM_ID),
     ]);
     expect(contenders.filter(Boolean)).toHaveLength(1);
     expect(contenders.find(Boolean)).toMatchObject({

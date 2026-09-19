@@ -9535,8 +9535,10 @@ func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("projectId")
-		s.ProjectId.Encode(e)
+		if s.ProjectId.Set {
+			e.FieldStart("projectId")
+			s.ProjectId.Encode(e)
+		}
 	}
 }
 
@@ -9554,7 +9556,6 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ClaimTaskReq to nil")
 	}
-	var requiredBitSet [1]uint8
 	s.setDefaults()
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -9610,8 +9611,8 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"profileId\"")
 			}
 		case "projectId":
-			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
+				s.ProjectId.Reset()
 				if err := s.ProjectId.Decode(d); err != nil {
 					return err
 				}
@@ -9625,38 +9626,6 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "decode ClaimTaskReq")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00100000,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfClaimTaskReq) {
-					name = jsonFieldsNameOfClaimTaskReq[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
 	}
 
 	return nil
@@ -16265,44 +16234,6 @@ func (s *CreateProjectBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateProjectBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateProjectConflict as json.
-func (s *CreateProjectConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes CreateProjectConflict from json.
-func (s *CreateProjectConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateProjectConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = CreateProjectConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CreateProjectConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateProjectConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -50224,44 +50155,6 @@ func (s *GetProjectBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes GetProjectConflict as json.
-func (s *GetProjectConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes GetProjectConflict from json.
-func (s *GetProjectConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode GetProjectConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = GetProjectConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *GetProjectConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *GetProjectConflict) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes GetProjectForbidden as json.
 func (s *GetProjectForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -62189,44 +62082,6 @@ func (s *ListProjectsBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListProjectsBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes ListProjectsConflict as json.
-func (s *ListProjectsConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes ListProjectsConflict from json.
-func (s *ListProjectsConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ListProjectsConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = ListProjectsConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ListProjectsConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ListProjectsConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -76732,6 +76587,39 @@ func (s OptClaimCondition) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptClaimCondition) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ClaimTaskReq as json.
+func (o OptClaimTaskReq) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ClaimTaskReq from json.
+func (o *OptClaimTaskReq) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptClaimTaskReq to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptClaimTaskReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptClaimTaskReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -117261,44 +117149,6 @@ func (s *UpdateProjectBadRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateProjectBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateProjectConflict as json.
-func (s *UpdateProjectConflict) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes UpdateProjectConflict from json.
-func (s *UpdateProjectConflict) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateProjectConflict to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = UpdateProjectConflict(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *UpdateProjectConflict) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateProjectConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

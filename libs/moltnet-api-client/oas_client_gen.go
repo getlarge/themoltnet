@@ -104,7 +104,7 @@ type Invoker interface {
 	// Claim a queued task and start an attempt.
 	//
 	// POST /tasks/{id}/claim
-	ClaimTask(ctx context.Context, request *ClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
+	ClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
 	// CompleteSigningCredentialRegistration invokes completeSigningCredentialRegistration operation.
 	//
 	// POST /crypto/signing-credentials/registrations/{id}/complete
@@ -3010,12 +3010,12 @@ func (c *Client) sendClaimSigningRequest(ctx context.Context, request *ClaimSign
 // Claim a queued task and start an attempt.
 //
 // POST /tasks/{id}/claim
-func (c *Client) ClaimTask(ctx context.Context, request *ClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error) {
+func (c *Client) ClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error) {
 	res, err := c.sendClaimTask(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendClaimTask(ctx context.Context, request *ClaimTaskReq, params ClaimTaskParams) (res ClaimTaskRes, err error) {
+func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskReq, params ClaimTaskParams) (res ClaimTaskRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("claimTask"),
 		semconv.HTTPRequestMethodKey.String("POST"),

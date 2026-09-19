@@ -8166,7 +8166,7 @@ func decodeCreateProjectResponse(resp *http.Response) (res CreateProjectRes, _ e
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateProjectConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -20601,7 +20601,7 @@ func decodeGetProjectResponse(resp *http.Response) (res GetProjectRes, _ error) 
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response GetProjectConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -29548,7 +29548,7 @@ func decodeListProjectsResponse(resp *http.Response) (res ListProjectsRes, _ err
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ListProjectsConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -42608,7 +42608,7 @@ func decodeUpdateProjectResponse(resp *http.Response) (res UpdateProjectRes, _ e
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response UpdateProjectConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
