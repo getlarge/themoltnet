@@ -26,6 +26,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RunManager } from './runs.js';
 import {
+  AGENT_SERVER_TOKEN_HEADER,
+  readAgentServerLogDelta,
+} from './server.js';
+import {
   activateManaged,
   authorize,
   cleanupAll,
@@ -34,10 +38,6 @@ import {
   HOST,
   registerCleanup,
 } from './server-test-harness.js';
-import {
-  AGENT_SERVER_TOKEN_HEADER,
-  readAgentServerLogDelta,
-} from './server.js';
 
 afterEach(async () => {
   vi.restoreAllMocks();

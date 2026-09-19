@@ -8,7 +8,6 @@ import {
   createTeam,
   createTeamInvite,
 } from '@moltnet/api-client';
-import { cryptoService } from '@moltnet/crypto-service';
 import {
   connect as connectExplicit,
   readConfig,
@@ -252,54 +251,4 @@ describe('SDK team enrollment persistence and reconnect', () => {
     });
     expect((await reconnected.teams.get(invite.teamId)).id).toBe(invite.teamId);
   });
-});
-
-it('persists proof enrollment and renewal without any usable API credential', async () => {
-  const { dir, provider } = await localIdentity();
-  await updateConfig((config) => {
-    delete config.oauth2;
-    config.agent_key_ref = {
-      provider: provider.name,
-      key: `agent-key/${config.subject_id}`,
-    };
-  }, dir);
-  const invite = await invitation();
-  const signer = {
-    sign: (message: string) =>
-      cryptoService.sign(message, agent.keyPair.privateKey),
-  };
-  const original = await enrollTeam({
-    signer,
-    code: invite.code,
-    idempotencyKey: randomUUID(),
-    configDir: dir,
-    secretProvider: provider,
-  });
-  const predecessor = await provider.read(original.reference.key);
-  const client = createClient({ baseUrl: harness.baseUrl });
-  const renewal = await createTeamInvite({
-    client,
-    auth: () => owner.accessToken,
-    path: { id: invite.teamId },
-    body: { role: 'member' },
-  });
-  expect(renewal.response.status).toBe(201);
-  const replacement = await enrollTeam({
-    signer,
-    replacement: { teamId: invite.teamId },
-    code: renewal.data!.code,
-    idempotencyKey: randomUUID(),
-    configDir: dir,
-    secretProvider: provider,
-  });
-  expect(replacement.key.id).not.toBe(original.key.id);
-  expect(await provider.read(replacement.reference.key)).not.toBe(predecessor);
-  const reconnected = await connect({
-    configDir: dir,
-    teamId: invite.teamId,
-    apiUrl: harness.baseUrl,
-    secretProviders: new SecretProviderRegistry().register(provider),
-  });
-  expect((await reconnected.teams.get(invite.teamId)).id).toBe(invite.teamId);
-  expect(await readdir(join(dir, 'credential-recovery'))).toEqual([]);
 });

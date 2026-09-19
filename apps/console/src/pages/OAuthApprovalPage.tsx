@@ -131,7 +131,9 @@ export function OAuthApprovalPage() {
           </Stack>
         </>
       ) : !error ? (
-        <Text role="status">Loading approval…</Text>
+        <div role="status">
+          <Text>Loading approval…</Text>
+        </div>
       ) : null}
       {error ? (
         <InlineNotice tone="error" title="Approval unavailable">
@@ -147,7 +149,7 @@ export function LocalOAuthCallback() {
     if (delivered.current) return;
     delivered.current = true;
     const params = new URLSearchParams(window.location.search);
-    window.opener?.postMessage(
+    (window.opener as Window | null)?.postMessage(
       {
         type: 'moltnet-oauth-callback',
         code: params.get('code'),

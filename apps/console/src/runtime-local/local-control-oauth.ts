@@ -62,22 +62,31 @@ export async function authorizeLocalControl(
       cleanup();
       reject(new Error('Sign-in cancelled'));
     };
-    const receive = (event: MessageEvent) => {
+    const receive = (event: MessageEvent<unknown>) => {
+      const data = event.data;
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        !('type' in data) ||
+        !('state' in data)
+      )
+        return;
       if (
         event.source !== popup ||
         event.origin !== window.location.origin ||
-        event.data?.type !== 'moltnet-oauth-callback'
+        data.type !== 'moltnet-oauth-callback'
       )
         return;
-      if (event.data.state !== state) return;
+      if (data.state !== state) return;
       cleanup();
       if (
-        typeof event.data.code !== 'string' ||
-        !event.data.code ||
-        event.data.error
+        !('code' in data) ||
+        typeof data.code !== 'string' ||
+        !data.code ||
+        ('error' in data && data.error)
       )
         reject(new Error('Approval declined'));
-      else resolve(event.data.code);
+      else resolve(data.code);
     };
     const deadline = Date.now() + 300_000;
     const timer = setInterval(() => {

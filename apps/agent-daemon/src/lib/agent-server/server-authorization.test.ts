@@ -3,6 +3,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   authorize,
   cleanupAll,
@@ -11,7 +12,6 @@ import {
   HOST,
   writeCentralIdentity,
 } from './server-test-harness.js';
-import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 
 afterEach(cleanupAll);
 

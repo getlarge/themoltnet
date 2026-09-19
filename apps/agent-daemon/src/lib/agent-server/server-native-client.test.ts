@@ -11,13 +11,13 @@ import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
 } from './native-grant-service.js';
+import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   cleanupAll,
   CONSOLE_ORIGIN,
   fixture,
   HOST,
 } from './server-test-harness.js';
-import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 
 afterEach(cleanupAll);
 

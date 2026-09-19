@@ -25,7 +25,7 @@ import type { Redis } from 'ioredis';
 import { Type } from 'typebox';
 
 import pkg from '../package.json' with { type: 'json' };
-import type { PackGcConfig } from './config.js';
+import { loadOperatorOAuthClients, type PackGcConfig } from './config.js';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import {
@@ -43,8 +43,8 @@ import { entryRelationRoutes } from './routes/entry-relations.js';
 import { groupRoutes } from './routes/groups.js';
 import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
-import { oauth2ApprovalRoutes } from './routes/oauth2-approval.js';
 import { oauth2GrantCachePlugin, oauth2Routes } from './routes/oauth2.js';
+import { oauth2ApprovalRoutes } from './routes/oauth2-approval.js';
 import { packRoutes } from './routes/packs.js';
 import { previewSignChallengeRoutes } from './routes/preview-sign-challenges.js';
 import { problemRoutes } from './routes/problems.js';
@@ -482,10 +482,7 @@ export async function registerApiRoutes(
   });
   await app.register(oauth2ApprovalRoutes, {
     ory: options.oryClients,
-    clients: {
-      nativeClientId: process.env.MOLTNET_NATIVE_OAUTH_CLIENT_ID,
-      consoleClientId: process.env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID,
-    },
+    clients: loadOperatorOAuthClients(),
   });
   await app.register(hookRoutes);
   await app.register(healthRoutes, {

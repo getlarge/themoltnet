@@ -8,7 +8,7 @@ import { afterEach, vi } from 'vitest';
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation((query: string) => ({
+    value: (query: string) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
-    })),
+    }),
   });
 }
 
