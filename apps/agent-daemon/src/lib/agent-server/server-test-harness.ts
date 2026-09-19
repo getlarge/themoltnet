@@ -253,6 +253,7 @@ export async function fixture(
   const browserToken = randomUUID();
   const app = buildAgentServer({
     operatorOAuth: {
+      cancel: () => undefined,
       verifyBrowser: async (token: string) => {
         if (token !== browserToken) throw new Error('Invalid browser token');
       },

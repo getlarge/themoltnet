@@ -1,6 +1,5 @@
 /**
- * The pairing ceremony over HTTP: a browser origin proves itself once and
- * receives an origin-bound token that every other `/v1` route then demands.
+ * Browser routes require local OAuth; the native process grant remains separate.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
