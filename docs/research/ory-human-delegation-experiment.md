@@ -111,8 +111,12 @@ protected storage, refreshed credential health, renewal while a predecessor
 worker runs, Console PKCE and reconnection after server restart. Focused tests
 cover grant restrictions, permissions, state/verifier handling, callback
 origin/window, cancellation during signing-key retrieval, protected recovery and
-writer conflicts. These are coverage descriptions, not claims of passing
-execution.
+writer conflicts.
+[CI run 35454315088](https://github.com/getlarge/themoltnet/actions/runs/35454315088)
+passed the main checks and 64 browser cases, including the native enrollment,
+renewal and running-worker scenario. Its restart test exposed an ambiguous
+Connect locator; the test now targets the named Agent Server connection region.
+The PR checks track verification of that correction.
 
 A disposable local stack on macOS exercised the native controller against real
 Hydra, Kratos, the REST API and Talos. Backend diagnostics used the test human
@@ -148,7 +152,7 @@ generated-contract commits below. Dependencies add the existing catalogued
 `jose` runtime dependency to Agent Server and the private workspace native API
 client to Console E2E. No dependency versions were upgraded.
 
-Measured with `git diff --numstat 0547a375b` through commit `89168b5ed`,
+Measured with `git diff --numstat 0547a375b` through commit `70057cd3e`,
 excluding this report. Categories are mutually exclusive: generated paths first;
 package/configuration files next; test files and E2E fixtures next; remaining
 handwritten runtime code last. Counts include the retained token-request
@@ -156,7 +160,7 @@ partitioning fix.
 
 | Category                       |  Added | Removed |    Net |
 | ------------------------------ | -----: | ------: | -----: |
-| Production source              |  1,834 |   1,155 |   +679 |
-| Tests and fixtures             |  1,375 |   1,573 |   -198 |
+| Production source              |  1,837 |   1,156 |   +681 |
+| Tests and fixtures             |  1,380 |   1,573 |   -193 |
 | Configuration and dependencies |     17 |       3 |    +14 |
 | Generated contracts and bundle | 10,946 |   4,724 | +6,222 |
