@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.3.0...agent-desktop-v0.3.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **landing:** publish stable download pins ([f5f8fec](https://github.com/getlarge/themoltnet/commit/f5f8fec03d018726d8fe1f397a88611d37e8258b))
+* **landing:** publish stable download pins ([c4f43a1](https://github.com/getlarge/themoltnet/commit/c4f43a114c32d66fa2265c24e673238d288b6c54))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.2.0...agent-desktop-v0.3.0) (2026-09-18)
 
 
