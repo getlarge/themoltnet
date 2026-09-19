@@ -40,6 +40,7 @@ export async function prepareRuntimeProfile(input: {
   agent: Agent;
   agentName: string;
   profile: ResolvedRuntimeProfile;
+  stateRootDir?: string;
   prerequisiteEnv: NodeJS.ProcessEnv;
   runtimeAdapter: DaemonRuntimeAdapter;
   runtimeInstanceId: string;
@@ -72,7 +73,9 @@ export async function prepareRuntimeProfile(input: {
     rootDir: profile.mountPath,
     path: profile.source,
   };
-  const stateDirs = ensureDaemonStateDirs(sandbox.rootDir);
+  const stateDirs = ensureDaemonStateDirs(
+    input.stateRootDir ?? sandbox.rootDir,
+  );
   const slotIdentity: DaemonSlotIdentity = {
     agentName: input.agentName,
     runtimeProfileId: profile.id,

@@ -11,8 +11,16 @@ export const COMMON_REQUIRED_FLAGS = `\
 export const COMMON_OPTIONAL_FLAGS = `\
   --sandbox <path>            Deprecated. Remote runtime profiles define
                               sandbox policy.
-  --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
-                              CWD, with git root fallback when available.
+  --agent-root <path>         Explicit legacy identity bundle location.
+                              Omitted: use the central identity store.
+  --binding <name>            Select a saved local project location.
+  --project <uuid>            Select a project and its unambiguous binding.
+  --general                   Serve General work (projectId: null).
+  --config-file <path>        Explicit project bindings JSON.
+  --source <path>             Run-only source folder override.
+  --workspace-strategy <name> Run-only existing, git-worktree, or none strategy.
+  --state-dir <path>          Supervisor/session state, separate from source.
+                              Default: central daemon-state/<agent>.
   --git-author <"Name <email>">
                               Non-secret git identity projected into the
                               guest for host-brokered commit signing. Default:
@@ -192,8 +200,16 @@ Optional:
   --state <active|idle>       Limit scanned slots by state. Default: all.
   --limit <n>                 Max slots to scan, 1..200. Default: 100.
   --dry-run                   Report missing/stale sessions without uploading.
-  --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
-                              CWD, with git root fallback when available.
+  --agent-root <path>         Explicit legacy identity bundle location.
+                              Omitted: use the central identity store.
+  --binding <name>            Select a saved local project location.
+  --project <uuid>            Select a project and its unambiguous binding.
+  --general                   Serve General work (projectId: null).
+  --config-file <path>        Explicit project bindings JSON.
+  --source <path>             Run-only source folder override.
+  --workspace-strategy <name> Run-only existing, git-worktree, or none strategy.
+  --state-dir <path>          Supervisor/session state, separate from source.
+                              Default: central daemon-state/<agent>.
   --debug                     Accepted for consistency; no extra output yet.
 
 Example:

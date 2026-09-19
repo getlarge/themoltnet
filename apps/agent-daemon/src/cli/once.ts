@@ -47,6 +47,11 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
 import { prepareRuntimeProfile } from '../lib/prepare-runtime-profile.js';
+import {
+  applyProjectWorkspacePolicy,
+  projectRunOptionDefs,
+  resolveRunProjectSelection,
+} from '../lib/run-project-selection.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -79,6 +84,7 @@ export async function runOnce(
     args: argv,
     options: {
       ...runtimeCommandOptionDefs(),
+      ...projectRunOptionDefs(),
       'task-id': { type: 'string', short: 't' },
       team: { type: 'string' },
       sandbox: { type: 'string' },
@@ -118,6 +124,12 @@ export async function runOnce(
     return 1;
   }
   const cfg = loadConfig();
+  const selection = await resolveRunProjectSelection({
+    ...values,
+    agent: identity.agent,
+    cwd: process.cwd(),
+    apiUrl: cfg.apiUrl,
+  });
   const credentialSources = {
     profileRequirements: cfg.profileCredentialRequirements,
     bindings: cfg.credentialBindings,
@@ -142,8 +154,8 @@ export async function runOnce(
         const resolvedContext = await resolveAgentContext(identity.agent, {
           agentRootDir: explicitAgentRootDir,
           credentialSource: cfg.credentialSource,
-          envApiUrl: cfg.apiUrl,
-          teamId: values.team,
+          envApiUrl: selection.apiUrl,
+          teamId: selection.teamId,
         });
         // Authenticate and validate team binding before resolving signing
         // material, consistently with poll/drain.
@@ -151,7 +163,7 @@ export async function runOnce(
         const whoami = await validateStartupBinding({
           agent: resolvedContext.agent,
           credentialTeamId: resolvedContext.credentialTeamId,
-          teamId: values.team,
+          teamId: selection.teamId,
           expectedAgent: cfg.expectedAgent,
         });
         gate = 'resolve_signing_material';
@@ -199,23 +211,17 @@ export async function runOnce(
         throw error;
       }
     })();
-  // Where daemon state lives and what the sandbox mounts. `sync-sessions`
-  // already resolves it this way and states the principle: the cwd default
-  // seeds daemon state dirs, not identity discovery. Credential resolution
-  // keeps following `explicitAgentRootDir`, so this reintroduces no
-  // repository auto-discovery for identities.
-  //
-  // `ctx.agentRootDir` cannot serve here: when --agent-root is omitted it
-  // falls back to the central identity directory, which is outside any
-  // repository, and `dedicated_worktree` tasks discover their main worktree
-  // from the mount path.
-  const daemonRootDir = explicitAgentRootDir ?? process.cwd();
-  const profile = await resolveRuntimeProfile({
-    agent: ctx.agent,
-    profile: values.profile,
-    teamId: values.team,
-    cwd: daemonRootDir,
-  });
+  // Source selection is independent of the central identity and supervisor state.
+  const daemonRootDir = selection.source ?? process.cwd();
+  const profile = applyProjectWorkspacePolicy(
+    await resolveRuntimeProfile({
+      agent: ctx.agent,
+      profile: values.profile,
+      teamId: selection.teamId,
+      cwd: daemonRootDir,
+    }),
+    selection,
+  );
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.once',
     level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
@@ -248,6 +254,7 @@ export async function runOnce(
     agent: ctx.agent,
     agentName: identity.agent,
     profile,
+    stateRootDir: selection.stateRootDir,
     prerequisiteEnv: cfg.profilePrerequisiteEnv,
     runtimeAdapter,
     runtimeInstanceId,
@@ -562,6 +569,7 @@ export async function runOnce(
       source: new ApiTaskSource({
         agent: ctx.agent,
         taskId,
+        projectId: selection.projectId,
         teamId: profile.teamId,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,

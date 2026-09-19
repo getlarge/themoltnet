@@ -212,9 +212,12 @@ function resolveTaskWorkspaceMode(
       : null;
 
   if (isRuntimeProfileWorkspaceMode(requestedWorkspace)) {
-    if (allowed.has(requestedWorkspace)) {
-      return toDaemonWorkspaceMode(requestedWorkspace);
+    if (!allowed.has(requestedWorkspace)) {
+      throw new Error(
+        `Requested workspace mode ${requestedWorkspace} is not allowed by this run`,
+      );
     }
+    return toDaemonWorkspaceMode(requestedWorkspace);
   }
 
   if (profileDefault && allowed.has(profileDefault)) {

@@ -56,6 +56,11 @@ import {
   type PreparedRuntimeProfile,
   prepareRuntimeProfile,
 } from '../lib/prepare-runtime-profile.js';
+import {
+  applyProjectWorkspacePolicy,
+  projectRunOptionDefs,
+  resolveRunProjectSelection,
+} from '../lib/run-project-selection.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -94,6 +99,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     args: opts.argv,
     options: {
       ...runtimeCommandOptionDefs(),
+      ...projectRunOptionDefs(),
       team: { type: 'string' },
       'task-types': { type: 'string' },
       'correlation-id': { type: 'string' },
@@ -108,13 +114,18 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
   });
 
-  if (!values.team) {
+  if (
+    !values.team &&
+    !values.binding &&
+    !values.project &&
+    !values['config-file']
+  ) {
     console.error('Missing required flag: --team\n');
     console.error(opts.helpText);
     return 1;
   }
 
-  const teamId = values.team;
+  let teamId = values.team ?? '';
   const profileValues = parseProfileValues(values.profile);
   if (profileValues.length === 0) {
     console.error('Missing required flag: --profile\n');
@@ -190,6 +201,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
+  const selection = await resolveRunProjectSelection({
+    ...values,
+    agent: identity.agent,
+    cwd: process.cwd(),
+    apiUrl: cfg.apiUrl,
+  });
+  teamId = selection.teamId ?? '';
+  if (!teamId) throw new MissingRequiredOptionError('team');
   const credentialSources = {
     profileRequirements: cfg.profileCredentialRequirements,
     bindings: cfg.credentialBindings,
@@ -219,7 +238,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       const resolvedContext = await resolveAgentContext(identity.agent, {
         agentRootDir: explicitAgentRootDir,
         credentialSource: cfg.credentialSource,
-        envApiUrl: cfg.apiUrl,
+        envApiUrl: selection.apiUrl,
         teamId: teamId,
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
@@ -276,23 +295,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       throw error;
     }
   })();
-  // Where daemon state lives and what the sandbox mounts. `sync-sessions`
-  // already resolves it this way and states the principle: the cwd default
-  // seeds daemon state dirs, not identity discovery. Credential resolution
-  // keeps following `explicitAgentRootDir`, so this reintroduces no
-  // repository auto-discovery for identities.
-  //
-  // `ctx.agentRootDir` cannot serve here: when --agent-root is omitted it
-  // falls back to the central identity directory, which is outside any
-  // repository, and `dedicated_worktree` tasks discover their main worktree
-  // from the mount path.
-  const daemonRootDir = explicitAgentRootDir ?? process.cwd();
-  const resolvedProfiles = await resolveRuntimeProfiles({
-    agent: ctx.agent,
-    profiles: profileValues,
-    teamId,
-    cwd: daemonRootDir,
-  });
+  // Source selection is independent of the central identity and supervisor state.
+  const daemonRootDir = selection.source ?? process.cwd();
+  const resolvedProfiles = (
+    await resolveRuntimeProfiles({
+      agent: ctx.agent,
+      profiles: profileValues,
+      teamId,
+      cwd: daemonRootDir,
+    })
+  ).map((profile) => applyProjectWorkspacePolicy(profile, selection));
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: `agent-daemon.${opts.modeLabel}`,
     level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
@@ -328,6 +340,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         agentName: identity.agent,
         profile,
+        stateRootDir: selection.stateRootDir,
         prerequisiteEnv: cfg.profilePrerequisiteEnv,
         runtimeAdapter,
         runtimeInstanceId,
@@ -526,6 +539,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       source: new PollingApiTaskSource({
         agent: ctx.agent,
         teamId,
+        projectId: selection.projectId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
         correlationId: values['correlation-id'],
         profiles: profiles.map((profile) => ({
