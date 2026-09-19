@@ -387,3 +387,14 @@ it('resolves through a traverse-only ancestor', async () => {
     await chmod(source, 0o700);
   }
 });
+
+it('rejects malformed UTF-8 bytes instead of replacing a binding name', async () => {
+  const value = config();
+  value.bindings[0].name = 'broken';
+  const bytes = Buffer.from(JSON.stringify(value));
+  bytes[bytes.indexOf('broken')] = 0xff;
+  await writeFile(configPath, bytes, { mode: 0o600 });
+  await expect(readProjectConfig(configPath)).rejects.toMatchObject({
+    kind: 'validation',
+  });
+});

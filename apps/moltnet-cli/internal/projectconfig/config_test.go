@@ -326,3 +326,10 @@ func TestProjectTraverseOnlyAncestor(t *testing.T) {
 		t.Fatalf("traverse-only ancestor: %v", err)
 	}
 }
+
+func TestProjectRejectsInvalidUTF8Value(t *testing.T) {
+	c := &Config{Version: 1, Bindings: []Binding{{Name: string([]byte{0xff}), APIURL: "https://api.example", TeamID: "team", ProjectID: "project", Strategy: "none"}}}
+	if err := Validate(c); err == nil {
+		t.Fatal("accepted malformed UTF-8")
+	}
+}

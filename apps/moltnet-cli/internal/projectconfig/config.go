@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
@@ -99,7 +100,7 @@ func Path() (string, error) {
 	return filepath.Join(directory, "projects.json"), nil
 }
 func isNonEmptyString(s string) bool {
-	return strings.Trim(s, "\t\n\v\f\r \u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff") != "" && !strings.ContainsRune(s, 0)
+	return utf8.ValidString(s) && strings.Trim(s, "\t\n\v\f\r \u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff") != "" && !strings.ContainsRune(s, 0)
 }
 
 const maxConfigBytes = 1 << 20
@@ -215,7 +216,7 @@ func Validate(c *Config) (err error) {
 						return errors.New("hook args must be an array")
 					}
 					for _, arg := range h.Args {
-						if strings.ContainsRune(arg, 0) {
+						if !utf8.ValidString(arg) || strings.ContainsRune(arg, 0) {
 							return errors.New("hook args cannot contain NUL")
 						}
 					}

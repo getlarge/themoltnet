@@ -530,7 +530,7 @@
     },
     "error": true,
     "errorKind": "validation",
-    "name": "legacy context migration",
+    "name": "contexts is an unknown project configuration field",
     "options": {}
   },
   {

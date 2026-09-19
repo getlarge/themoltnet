@@ -328,7 +328,11 @@ export async function readProjectConfig(
         throw new Error('Project config exceeds 1 MiB');
       let value: unknown;
       try {
-        value = JSON.parse(buffer.subarray(0, size).toString('utf8'));
+        value = JSON.parse(
+          new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
+            buffer.subarray(0, size),
+          ),
+        );
       } catch (error) {
         throw contextualError(error, 'validation');
       }
