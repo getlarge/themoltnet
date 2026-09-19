@@ -13,11 +13,16 @@ import { invoke } from '@tauri-apps/api/core';
 
 import type {
   AgentServerCatalogue,
+  AgentServerProvider,
   AgentServerRun,
+  AgentServerSubscription,
+  AgentServerSubscriptionLogin,
+  ProviderActions,
   RunCenterActions,
   RunPreset,
   SavePresetInput,
   StartRunInput,
+  SubscriptionActions,
 } from './types.js';
 
 const PRESETS_KEY = 'moltnet.run-presets.v1';
@@ -45,6 +50,44 @@ function writePresets(presets: RunPreset[]): void {
 
 export function listPresets(): RunPreset[] {
   return readPresets();
+}
+
+/** Provider credentials. The key crosses to native code and no further. */
+export const providerActions: ProviderActions = {
+  putProvider: (providerId, config) =>
+    invoke<AgentServerProvider>('desktop_put_provider', {
+      providerId,
+      config,
+    }),
+  deleteProvider: async (providerId) => {
+    await invoke('desktop_delete_provider', { providerId });
+  },
+};
+
+/** Subscription sign-in. The provider page opens natively, not from here. */
+export const subscriptionActions: SubscriptionActions = {
+  startLogin: (providerId) =>
+    invoke<AgentServerSubscriptionLogin>('desktop_start_subscription_login', {
+      providerId,
+    }),
+  loginStatus: (providerId) =>
+    invoke<AgentServerSubscriptionLogin>('desktop_subscription_login_status', {
+      providerId,
+    }),
+  cancelLogin: async (providerId) => {
+    await invoke('desktop_cancel_subscription_login', { providerId });
+  },
+  openSignIn: async (url) => {
+    await invoke('desktop_open_sign_in', { url });
+  },
+};
+
+export function listSubscriptions(): Promise<AgentServerSubscription[]> {
+  return invoke<AgentServerSubscription[]>('desktop_subscriptions');
+}
+
+export function listProviders(): Promise<Record<string, AgentServerProvider>> {
+  return invoke<Record<string, AgentServerProvider>>('desktop_providers');
 }
 
 export const runCenterActions: RunCenterActions = {

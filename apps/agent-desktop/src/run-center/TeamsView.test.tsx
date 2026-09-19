@@ -54,6 +54,8 @@ function fixture() {
     catalogue: null,
     runs: [],
     presets: [],
+    providers: {},
+    subscriptions: [],
   };
   const actions: RunCenterActions = {
     catalogue: vi

@@ -992,10 +992,52 @@ fn agent_server_command(executable: &Path) -> Command {
     command
 }
 
+/// Open a provider sign-in page in the operator's browser.
+///
+/// The URL arrives from the local Agent Server, which got it from the
+/// provider's device-authorization endpoint. It is still untrusted input to
+/// `open`, which would happily launch a `file://` path or a custom-scheme
+/// handler, so only https is accepted.
+pub fn open_verification_url(url: &str) -> Result<(), String> {
+    if !is_https_url(url) {
+        return Err("the sign-in page must be a secure https address".into());
+    }
+    fixed_command("/usr/bin/open", &[url]).map(|_| ())
+}
+
+fn is_https_url(url: &str) -> bool {
+    let Some(rest) = url.strip_prefix("https://") else {
+        return false;
+    };
+    // A host is required, and neither whitespace nor a NUL may reach `open`.
+    !rest.is_empty()
+        && !rest.starts_with('/')
+        && !rest.contains(char::is_whitespace)
+        && !rest.contains('\0')
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::OsStr;
+
+    #[test]
+    fn only_https_sign_in_pages_may_be_opened() {
+        // `open` launches whatever a scheme is registered to, so a URL the
+        // server relays from a provider must not reach it unchecked.
+        assert!(is_https_url("https://console.anthropic.com/device"));
+        assert!(!is_https_url("http://example.test/device"));
+        assert!(!is_https_url("file:///etc/passwd"));
+        assert!(!is_https_url("x-evil://run"));
+        assert!(!is_https_url("https://"));
+        assert!(!is_https_url("https:///etc/passwd"));
+        assert!(!is_https_url("https://host /extra"));
+    }
+
+    #[test]
+    fn refuses_to_open_a_non_https_sign_in_page() {
+        assert!(open_verification_url("file:///etc/passwd").is_err());
+    }
 
     #[test]
     fn embedded_installer_has_a_pin_and_matching_trust_anchor() {

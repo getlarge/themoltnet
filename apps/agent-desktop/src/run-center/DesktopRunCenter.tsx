@@ -114,12 +114,15 @@ export function DesktopRunCenter() {
         </InlineNotice>
       ) : null}
       <RunCenterApp
+        onProvidersChanged={() => void refresh()}
         now={now}
         data={{
           server,
           status,
           catalogue,
           presets,
+          providers: status?.providers ?? {},
+          subscriptions: status?.subscriptions ?? [],
           runs: (status?.runs ?? []).map((run) => ({
             ...run,
             presetName: null,

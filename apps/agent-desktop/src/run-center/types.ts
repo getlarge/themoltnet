@@ -13,8 +13,11 @@ import type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
+  AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
+  AgentServerSubscription,
+  AgentServerSubscriptionLogin,
   EnrollAgentServerTeamData,
   EnrollAgentServerTeamResponses,
 } from '@moltnet/agent-daemon-api-client';
@@ -26,8 +29,11 @@ export type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
+  AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
+  AgentServerSubscription,
+  AgentServerSubscriptionLogin,
   DesktopStatus,
   LifecycleState,
 };
@@ -112,6 +118,39 @@ export interface RunCenterActions {
   ) => () => void;
 }
 
+/**
+ * Provider credential operations. Separate from `RunCenterActions` because
+ * this is machine setup rather than run composition, and because a surface
+ * that writes secrets deserves its own, small contract.
+ */
+export interface ProviderActions {
+  putProvider(
+    providerId: string,
+    config: {
+      api: string;
+      baseUrl: string;
+      envName: string;
+      models: AgentServerProvider['models'];
+      /** Write-only: the server never echoes it back. */
+      apiKey?: string;
+    },
+  ): Promise<AgentServerProvider>;
+  deleteProvider(providerId: string): Promise<void>;
+}
+
+/**
+ * Signing in to an existing LLM subscription, as an alternative to pasting an
+ * API key. This is the wider door: a subscription the operator already has is
+ * far more reachable than obtaining and handling a key.
+ */
+export interface SubscriptionActions {
+  startLogin(providerId: string): Promise<AgentServerSubscriptionLogin>;
+  loginStatus(providerId: string): Promise<AgentServerSubscriptionLogin>;
+  cancelLogin(providerId: string): Promise<void>;
+  /** Opens the provider page natively; only https is accepted. */
+  openSignIn(url: string): Promise<void>;
+}
+
 /** Everything the shell renders. */
 export interface RunCenterData {
   server: DesktopStatus;
@@ -119,4 +158,6 @@ export interface RunCenterData {
   runs: DesktopRun[];
   presets: RunPreset[];
   catalogue: AgentServerCatalogue | null;
+  providers: Record<string, AgentServerProvider>;
+  subscriptions: AgentServerSubscription[];
 }
