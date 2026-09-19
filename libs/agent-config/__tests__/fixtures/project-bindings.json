@@ -1,0 +1,645 @@
+[
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "name": "single binding",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "name": "explicit binding",
+    "options": {
+      "binding": "local"
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "wrong team",
+    "options": {
+      "binding": "local",
+      "teamId": "other"
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "wrong endpoint",
+    "options": {
+      "apiUrl": "https://other.example",
+      "binding": "local"
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "missing binding",
+    "options": {
+      "binding": "missing"
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "name": "canonical endpoint",
+    "options": {
+      "apiUrl": "https://api.example/"
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "name": "other",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "ambiguous bindings",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "default": true,
+          "name": "other",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "other",
+    "name": "default binding",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "default": true,
+          "name": "other",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "name": "explicit beats default",
+    "options": {
+      "binding": "local"
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "default": true,
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "default": true,
+          "name": "other",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "duplicate default",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "default": true,
+          "name": "other",
+          "projectId": "other",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "different projects require choice",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "name": "native ancestor",
+    "options": {
+      "cwd": "source/nested",
+      "native": true
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "name": "nested",
+          "projectId": "project",
+          "source": "source/nested",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "nested",
+    "name": "most specific ancestor",
+    "options": {
+      "cwd": "source/nested",
+      "native": true
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "default": true,
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": null,
+    "name": "native does not use default",
+    "options": {
+      "cwd": ".",
+      "native": true
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        },
+        {
+          "apiUrl": "https://api.example",
+          "name": "alias",
+          "projectId": "project",
+          "source": "alias",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "native alias ambiguity",
+    "options": {
+      "cwd": "source",
+      "native": true
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "strategy": "none",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "name": "no workspace",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "source required",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "automatic",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "unknown strategy",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "none",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "no source for none",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "secret": "no",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "expected": "local",
+    "name": "unknown fields",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "expectedSource": "source/nested",
+    "name": "relative override",
+    "options": {
+      "cwd": "source",
+      "overrides": {
+        "source": "nested",
+        "strategy": "isolated-directory"
+      }
+    }
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": false,
+    "expected": "local",
+    "expectedSource": "source",
+    "name": "config relative source",
+    "options": {}
+  },
+  {
+    "config": {
+      "contexts": {},
+      "version": 1
+    },
+    "error": true,
+    "name": "legacy context migration",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [],
+      "version": 2
+    },
+    "error": true,
+    "name": "unsupported version",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "default": null,
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "name": "reject explicit null default",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": null,
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "name": "reject explicit null source",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "diaryId": null,
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "name": "reject explicit null diaryId",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "hooks": null,
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "name": "reject explicit null hooks",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "diaryId": "",
+          "name": "local",
+          "projectId": "project",
+          "source": "./source",
+          "strategy": "existing",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "name": "reject empty optional diary",
+    "options": {}
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "apiUrl": "https://api.example",
+          "name": "local",
+          "projectId": "project",
+          "source": "",
+          "strategy": "none",
+          "teamId": "team"
+        }
+      ],
+      "version": 1
+    },
+    "error": true,
+    "name": "reject explicit empty source for none",
+    "options": {}
+  }
+]

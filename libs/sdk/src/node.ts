@@ -168,3 +168,15 @@ export {
   type RegisterIdentityErrorCode,
 } from './errors.js';
 export type { ConnectForRegistration } from './register-node.js';
+export {
+  getProjectConfigPath,
+  type ProjectBinding,
+  type ProjectConfig,
+  type ProjectSelectionOptions,
+  readProjectConfig,
+  resolveProjectBinding,
+  updateProjectConfig,
+  validateProjectConfig,
+  type WorkspaceHook,
+  type WorkspaceStrategy,
+} from '@moltnet/agent-config';
