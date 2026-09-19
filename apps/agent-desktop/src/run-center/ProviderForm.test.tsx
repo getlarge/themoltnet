@@ -47,6 +47,7 @@ describe('Desktop provider creation', () => {
     expect(putProvider).toHaveBeenNthCalledWith(1, 'ollama-local', {
       api: 'openai-completions',
       baseUrl: LOCAL.baseUrl,
+      envName: LOCAL.envName,
       models: [],
     });
     expect(discoverModels).toHaveBeenCalledWith('ollama-local');

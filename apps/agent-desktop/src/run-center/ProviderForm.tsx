@@ -67,7 +67,9 @@ export function ProviderForm({
       const provider = await actions.putProvider(providerId, {
         api: existing?.api ?? 'openai-completions',
         baseUrl: baseUrl.trim(),
-        ...(existing ? { envName: existing.envName } : {}),
+        envName:
+          existing?.envName ??
+          `${providerId.toUpperCase().replace(/[^A-Z0-9]/gu, '_')}_API_KEY`,
         models: saved?.models ?? [],
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
