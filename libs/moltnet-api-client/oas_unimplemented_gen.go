@@ -126,7 +126,7 @@ func (UnimplementedHandler) ClaimSigningRequest(ctx context.Context, req *ClaimS
 // Claim a queued task and start an attempt.
 //
 // POST /tasks/{id}/claim
-func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
+func (UnimplementedHandler) ClaimTask(ctx context.Context, req *ClaimTaskReq, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -216,6 +216,13 @@ func (UnimplementedHandler) CreateEntryRelation(ctx context.Context, req *Create
 //
 // POST /teams/{id}/groups
 func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (r CreateGroupRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateProject implements createProject operation.
+//
+// POST /teams/{id}/projects
+func (UnimplementedHandler) CreateProject(ctx context.Context, req *CreateProjectReq, params CreateProjectParams) (r CreateProjectRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -608,6 +615,13 @@ func (UnimplementedHandler) GetProblemType(ctx context.Context, params GetProble
 	return ht.ErrNotImplemented
 }
 
+// GetProject implements getProject operation.
+//
+// GET /teams/{id}/projects/{projectId}
+func (UnimplementedHandler) GetProject(ctx context.Context, params GetProjectParams) (r GetProjectRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetPublicEntry implements getPublicEntry operation.
 //
 // Get a single public diary entry by ID with author info. No authentication required.
@@ -891,6 +905,13 @@ func (UnimplementedHandler) ListPendingTransfers(ctx context.Context) (r ListPen
 //
 // GET /problems
 func (UnimplementedHandler) ListProblemTypes(ctx context.Context) (r []ListProblemTypesOKItem, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListProjects implements listProjects operation.
+//
+// GET /teams/{id}/projects
+func (UnimplementedHandler) ListProjects(ctx context.Context, params ListProjectsParams) (r ListProjectsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1293,6 +1314,13 @@ func (UnimplementedHandler) UpdateDiaryEntryById(ctx context.Context, req OptUpd
 //
 // PATCH /relations/{id}
 func (UnimplementedHandler) UpdateEntryRelationStatus(ctx context.Context, req *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (r UpdateEntryRelationStatusRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateProject implements updateProject operation.
+//
+// PATCH /teams/{id}/projects/{projectId}
+func (UnimplementedHandler) UpdateProject(ctx context.Context, req OptUpdateProjectReq, params UpdateProjectParams) (r UpdateProjectRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

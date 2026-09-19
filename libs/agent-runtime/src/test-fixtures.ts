@@ -9,6 +9,7 @@ export function makeFulfillBriefTask(overrides: Partial<Task> = {}): Task {
     tags: [],
     teamId: '22222222-2222-4222-8222-222222222222',
     diaryId: null,
+    projectId: null,
     outputKind: 'artifact',
     input: {
       brief: 'Test brief',

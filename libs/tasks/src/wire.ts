@@ -358,6 +358,7 @@ export const Task = Type.Object(
     title: Type.Union([Type.String(), Type.Null()]),
     tags: Type.Array(Type.String()),
     teamId: Uuid,
+    projectId: Type.Union([Uuid, Type.Null()]),
     diaryId: Type.Union([Uuid, Type.Null()]),
 
     // Discriminator

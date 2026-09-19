@@ -31,6 +31,7 @@ import { createTaskArtifactRepository } from '../src/repositories/task-artifact.
 import {
   agents,
   diaries,
+  projects,
   runtimeSessions,
   taskArtifacts,
   taskAttempts,
@@ -617,6 +618,34 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     });
 
     await db.delete(tasks);
+  });
+
+  it('atomically separates General and project claims and admits only one matching worker', async () => {
+    const projectId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa91';
+    const taskId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa92';
+    await db
+      .insert(projects)
+      .values({ id: projectId, teamId: TEAM_ID, name: 'claim-routing' });
+    await seedTask({ id: taskId, status: 'queued', claimExpiresAt: null });
+    await db.update(tasks).set({ projectId }).where(eq(tasks.id, taskId));
+    const claim = {
+      claimAgentId: AGENT_ID,
+      claimExpiresAt: new Date(Date.now() + 30_000),
+    };
+    expect(await repo.claimIfQueued(taskId, claim)).toBeNull();
+    expect(await repo.claimIfQueued(taskId, claim, null)).toBeNull();
+    expect(await repo.claimIfQueued(taskId, claim, TEAM_ID)).toBeNull();
+    const contenders = await Promise.all([
+      repo.claimIfQueued(taskId, claim, projectId),
+      repo.claimIfQueued(taskId, claim, projectId),
+    ]);
+    expect(contenders.filter(Boolean)).toHaveLength(1);
+    expect(contenders.find(Boolean)).toMatchObject({
+      projectId,
+      status: 'dispatched',
+    });
+    await db.delete(tasks);
+    await db.delete(projects).where(eq(projects.id, projectId));
   });
 
   it('does not claim queued tasks whose task lifetime elapsed', async () => {

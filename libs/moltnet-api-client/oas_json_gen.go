@@ -9534,14 +9534,19 @@ func (s *ClaimTaskReq) encodeFields(e *jx.Encoder) {
 			s.ProfileId.Encode(e)
 		}
 	}
+	{
+		e.FieldStart("projectId")
+		s.ProjectId.Encode(e)
+	}
 }
 
-var jsonFieldsNameOfClaimTaskReq = [5]string{
+var jsonFieldsNameOfClaimTaskReq = [6]string{
 	0: "executorFingerprint",
 	1: "executorManifest",
 	2: "executorSignature",
 	3: "leaseTtlSec",
 	4: "profileId",
+	5: "projectId",
 }
 
 // Decode decodes ClaimTaskReq from json.
@@ -9549,6 +9554,7 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode ClaimTaskReq to nil")
 	}
+	var requiredBitSet [1]uint8
 	s.setDefaults()
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -9603,12 +9609,54 @@ func (s *ClaimTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"profileId\"")
 			}
+		case "projectId":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.ProjectId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"projectId\"")
+			}
 		default:
 			return d.Skip()
 		}
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "decode ClaimTaskReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00100000,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfClaimTaskReq) {
+					name = jsonFieldsNameOfClaimTaskReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
 	}
 
 	return nil
@@ -16183,6 +16231,613 @@ func (s *CreateGroupUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateProjectBadRequest as json.
+func (s *CreateProjectBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectBadRequest from json.
+func (s *CreateProjectBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectConflict as json.
+func (s *CreateProjectConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectConflict from json.
+func (s *CreateProjectConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateProjectCreated) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateProjectCreated) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfCreateProjectCreated = [8]string{
+	0: "archived",
+	1: "createdAt",
+	2: "defaultDiaryId",
+	3: "description",
+	4: "id",
+	5: "name",
+	6: "teamId",
+	7: "updatedAt",
+}
+
+// Decode decodes CreateProjectCreated from json.
+func (s *CreateProjectCreated) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectCreated to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateProjectCreated")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateProjectCreated) {
+					name = jsonFieldsNameOfCreateProjectCreated[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectCreated) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectCreated) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectForbidden as json.
+func (s *CreateProjectForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectForbidden from json.
+func (s *CreateProjectForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectNotFound as json.
+func (s *CreateProjectNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectNotFound from json.
+func (s *CreateProjectNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateProjectReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateProjectReq) encodeFields(e *jx.Encoder) {
+	{
+		if s.DefaultDiaryId.Set {
+			e.FieldStart("defaultDiaryId")
+			s.DefaultDiaryId.Encode(e)
+		}
+	}
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+}
+
+var jsonFieldsNameOfCreateProjectReq = [3]string{
+	0: "defaultDiaryId",
+	1: "description",
+	2: "name",
+}
+
+// Decode decodes CreateProjectReq from json.
+func (s *CreateProjectReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "defaultDiaryId":
+			if err := func() error {
+				s.DefaultDiaryId.Reset()
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateProjectReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000100,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateProjectReq) {
+					name = jsonFieldsNameOfCreateProjectReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectServiceUnavailable as json.
+func (s *CreateProjectServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectServiceUnavailable from json.
+func (s *CreateProjectServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectTooManyRequests as json.
+func (s *CreateProjectTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectTooManyRequests from json.
+func (s *CreateProjectTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateProjectUnauthorized as json.
+func (s *CreateProjectUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateProjectUnauthorized from json.
+func (s *CreateProjectUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateProjectUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateProjectUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateProjectUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateProjectUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateRuntimeModelBadRequest as json.
 func (s *CreateRuntimeModelBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -19957,6 +20612,12 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ProjectId.Set {
+			e.FieldStart("projectId")
+			s.ProjectId.Encode(e)
+		}
+	}
+	{
 		if s.References != nil {
 			e.FieldStart("references")
 			e.ArrStart()
@@ -20000,7 +20661,7 @@ func (s *CreateTaskReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateTaskReq = [14]string{
+var jsonFieldsNameOfCreateTaskReq = [15]string{
 	0:  "allowedProfiles",
 	1:  "claimCondition",
 	2:  "correlationId",
@@ -20009,12 +20670,13 @@ var jsonFieldsNameOfCreateTaskReq = [14]string{
 	5:  "expiresInSec",
 	6:  "input",
 	7:  "maxAttempts",
-	8:  "references",
-	9:  "requiredExecutorTrustLevel",
-	10: "runningTimeoutSec",
-	11: "tags",
-	12: "taskType",
-	13: "title",
+	8:  "projectId",
+	9:  "references",
+	10: "requiredExecutorTrustLevel",
+	11: "runningTimeoutSec",
+	12: "tags",
+	13: "taskType",
+	14: "title",
 }
 
 // Decode decodes CreateTaskReq from json.
@@ -20116,6 +20778,16 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxAttempts\"")
 			}
+		case "projectId":
+			if err := func() error {
+				s.ProjectId.Reset()
+				if err := s.ProjectId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"projectId\"")
+			}
 		case "references":
 			if err := func() error {
 				s.References = make([]TaskRef, 0)
@@ -20173,7 +20845,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "taskType":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -20205,7 +20877,7 @@ func (s *CreateTaskReq) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b01001000,
-		0b00010000,
+		0b00100000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -49514,6 +50186,483 @@ func (s *GetOAuth2TokenUnauthorizedAdditional) UnmarshalJSON(data []byte) error 
 	return s.Decode(d)
 }
 
+// Encode encodes GetProjectBadRequest as json.
+func (s *GetProjectBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectBadRequest from json.
+func (s *GetProjectBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectConflict as json.
+func (s *GetProjectConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectConflict from json.
+func (s *GetProjectConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectForbidden as json.
+func (s *GetProjectForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectForbidden from json.
+func (s *GetProjectForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectNotFound as json.
+func (s *GetProjectNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectNotFound from json.
+func (s *GetProjectNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetProjectOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetProjectOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfGetProjectOK = [8]string{
+	0: "archived",
+	1: "createdAt",
+	2: "defaultDiaryId",
+	3: "description",
+	4: "id",
+	5: "name",
+	6: "teamId",
+	7: "updatedAt",
+}
+
+// Decode decodes GetProjectOK from json.
+func (s *GetProjectOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetProjectOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetProjectOK) {
+					name = jsonFieldsNameOfGetProjectOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectServiceUnavailable as json.
+func (s *GetProjectServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectServiceUnavailable from json.
+func (s *GetProjectServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectTooManyRequests as json.
+func (s *GetProjectTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectTooManyRequests from json.
+func (s *GetProjectTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetProjectUnauthorized as json.
+func (s *GetProjectUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetProjectUnauthorized from json.
+func (s *GetProjectUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetProjectUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetProjectUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetProjectUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetProjectUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes GetPublicEntryBadRequest as json.
 func (s *GetPublicEntryBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -61002,6 +62151,589 @@ func (s *ListProblemTypesOKItem) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ListProblemTypesOKItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsBadRequest as json.
+func (s *ListProjectsBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsBadRequest from json.
+func (s *ListProjectsBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsConflict as json.
+func (s *ListProjectsConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsConflict from json.
+func (s *ListProjectsConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsForbidden as json.
+func (s *ListProjectsForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsForbidden from json.
+func (s *ListProjectsForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsNotFound as json.
+func (s *ListProjectsNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsNotFound from json.
+func (s *ListProjectsNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ListProjectsOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ListProjectsOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("items")
+		e.ArrStart()
+		for _, elem := range s.Items {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfListProjectsOK = [1]string{
+	0: "items",
+}
+
+// Decode decodes ListProjectsOK from json.
+func (s *ListProjectsOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "items":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Items = make([]ListProjectsOKItemsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ListProjectsOKItemsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Items = append(s.Items, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"items\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ListProjectsOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfListProjectsOK) {
+					name = jsonFieldsNameOfListProjectsOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ListProjectsOKItemsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ListProjectsOKItemsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfListProjectsOKItemsItem = [8]string{
+	0: "archived",
+	1: "createdAt",
+	2: "defaultDiaryId",
+	3: "description",
+	4: "id",
+	5: "name",
+	6: "teamId",
+	7: "updatedAt",
+}
+
+// Decode decodes ListProjectsOKItemsItem from json.
+func (s *ListProjectsOKItemsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsOKItemsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ListProjectsOKItemsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfListProjectsOKItemsItem) {
+					name = jsonFieldsNameOfListProjectsOKItemsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsOKItemsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsOKItemsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsServiceUnavailable as json.
+func (s *ListProjectsServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsServiceUnavailable from json.
+func (s *ListProjectsServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsTooManyRequests as json.
+func (s *ListProjectsTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsTooManyRequests from json.
+func (s *ListProjectsTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListProjectsUnauthorized as json.
+func (s *ListProjectsUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListProjectsUnauthorized from json.
+func (s *ListProjectsUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListProjectsUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListProjectsUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListProjectsUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListProjectsUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -75004,39 +76736,6 @@ func (s *OptClaimCondition) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes ClaimTaskReq as json.
-func (o OptClaimTaskReq) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes ClaimTaskReq from json.
-func (o *OptClaimTaskReq) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptClaimTaskReq to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptClaimTaskReq) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptClaimTaskReq) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes ClaimTaskReqExecutorManifest as json.
 func (o OptClaimTaskReqExecutorManifest) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -78291,6 +79990,39 @@ func (s OptUpdateDiaryReqVisibility) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptUpdateDiaryReqVisibility) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectReq as json.
+func (o OptUpdateProjectReq) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateProjectReq from json.
+func (o *OptUpdateProjectReq) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateProjectReq to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateProjectReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateProjectReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -106861,6 +108593,10 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 		s.OutputKind.Encode(e)
 	}
 	{
+		e.FieldStart("projectId")
+		s.ProjectId.Encode(e)
+	}
+	{
 		e.FieldStart("proposedByAgentId")
 		s.ProposedByAgentId.Encode(e)
 	}
@@ -106914,7 +108650,7 @@ func (s *Task) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTask = [28]string{
+var jsonFieldsNameOfTask = [29]string{
 	0:  "acceptedAttemptN",
 	1:  "allowedProfiles",
 	2:  "cancelReason",
@@ -106932,17 +108668,18 @@ var jsonFieldsNameOfTask = [28]string{
 	14: "inputSchemaCid",
 	15: "maxAttempts",
 	16: "outputKind",
-	17: "proposedByAgentId",
-	18: "proposedByHumanId",
-	19: "queuedAt",
-	20: "references",
-	21: "requiredExecutorTrustLevel",
-	22: "runningTimeoutSec",
-	23: "status",
-	24: "tags",
-	25: "taskType",
-	26: "teamId",
-	27: "title",
+	17: "projectId",
+	18: "proposedByAgentId",
+	19: "proposedByHumanId",
+	20: "queuedAt",
+	21: "references",
+	22: "requiredExecutorTrustLevel",
+	23: "runningTimeoutSec",
+	24: "status",
+	25: "tags",
+	26: "taskType",
+	27: "teamId",
+	28: "title",
 }
 
 // Decode decodes Task from json.
@@ -107140,8 +108877,18 @@ func (s *Task) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"outputKind\"")
 			}
-		case "proposedByAgentId":
+		case "projectId":
 			requiredBitSet[2] |= 1 << 1
+			if err := func() error {
+				if err := s.ProjectId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"projectId\"")
+			}
+		case "proposedByAgentId":
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.ProposedByAgentId.Decode(d); err != nil {
 					return err
@@ -107151,7 +108898,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"proposedByAgentId\"")
 			}
 		case "proposedByHumanId":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				if err := s.ProposedByHumanId.Decode(d); err != nil {
 					return err
@@ -107161,7 +108908,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"proposedByHumanId\"")
 			}
 		case "queuedAt":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.QueuedAt = v
@@ -107173,7 +108920,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"queuedAt\"")
 			}
 		case "references":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				s.References = make([]TaskReferencesItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -107191,7 +108938,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"references\"")
 			}
 		case "requiredExecutorTrustLevel":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.RequiredExecutorTrustLevel.Decode(d); err != nil {
 					return err
@@ -107201,7 +108948,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutorTrustLevel\"")
 			}
 		case "runningTimeoutSec":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				if err := s.RunningTimeoutSec.Decode(d); err != nil {
 					return err
@@ -107211,7 +108958,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runningTimeoutSec\"")
 			}
 		case "status":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -107221,7 +108968,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "tags":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				s.Tags = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -107241,7 +108988,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "taskType":
-			requiredBitSet[3] |= 1 << 1
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.TaskType = string(v)
@@ -107253,7 +109000,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskType\"")
 			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 2
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -107265,7 +109012,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "title":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[3] |= 1 << 4
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -107287,7 +109034,7 @@ func (s *Task) Decode(d *jx.Decoder) error {
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b00001111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -115476,6 +117223,608 @@ func (s *UpdateEntryRelationStatusUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateEntryRelationStatusUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectBadRequest as json.
+func (s *UpdateProjectBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectBadRequest from json.
+func (s *UpdateProjectBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectConflict as json.
+func (s *UpdateProjectConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectConflict from json.
+func (s *UpdateProjectConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectForbidden as json.
+func (s *UpdateProjectForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectForbidden from json.
+func (s *UpdateProjectForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectNotFound as json.
+func (s *UpdateProjectNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectNotFound from json.
+func (s *UpdateProjectNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateProjectOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateProjectOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("archived")
+		e.Bool(s.Archived)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("defaultDiaryId")
+		s.DefaultDiaryId.Encode(e)
+	}
+	{
+		e.FieldStart("description")
+		s.Description.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("name")
+		e.Str(s.Name)
+	}
+	{
+		e.FieldStart("teamId")
+		json.EncodeUUID(e, s.TeamId)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfUpdateProjectOK = [8]string{
+	0: "archived",
+	1: "createdAt",
+	2: "defaultDiaryId",
+	3: "description",
+	4: "id",
+	5: "name",
+	6: "teamId",
+	7: "updatedAt",
+}
+
+// Decode decodes UpdateProjectOK from json.
+func (s *UpdateProjectOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "archived":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Bool()
+				s.Archived = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "defaultDiaryId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "id":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "name":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Name = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "teamId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TeamId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"teamId\"")
+			}
+		case "updatedAt":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateProjectOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUpdateProjectOK) {
+					name = jsonFieldsNameOfUpdateProjectOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateProjectReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateProjectReq) encodeFields(e *jx.Encoder) {
+	{
+		if s.Archived.Set {
+			e.FieldStart("archived")
+			s.Archived.Encode(e)
+		}
+	}
+	{
+		if s.DefaultDiaryId.Set {
+			e.FieldStart("defaultDiaryId")
+			s.DefaultDiaryId.Encode(e)
+		}
+	}
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		if s.Name.Set {
+			e.FieldStart("name")
+			s.Name.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateProjectReq = [4]string{
+	0: "archived",
+	1: "defaultDiaryId",
+	2: "description",
+	3: "name",
+}
+
+// Decode decodes UpdateProjectReq from json.
+func (s *UpdateProjectReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectReq to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "archived":
+			if err := func() error {
+				s.Archived.Reset()
+				if err := s.Archived.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"archived\"")
+			}
+		case "defaultDiaryId":
+			if err := func() error {
+				s.DefaultDiaryId.Reset()
+				if err := s.DefaultDiaryId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"defaultDiaryId\"")
+			}
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "name":
+			if err := func() error {
+				s.Name.Reset()
+				if err := s.Name.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"name\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateProjectReq")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectServiceUnavailable as json.
+func (s *UpdateProjectServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectServiceUnavailable from json.
+func (s *UpdateProjectServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectTooManyRequests as json.
+func (s *UpdateProjectTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectTooManyRequests from json.
+func (s *UpdateProjectTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateProjectUnauthorized as json.
+func (s *UpdateProjectUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateProjectUnauthorized from json.
+func (s *UpdateProjectUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateProjectUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateProjectUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateProjectUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateProjectUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

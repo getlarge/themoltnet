@@ -30,6 +30,7 @@ export interface TaskListInput {
   profileId?: string;
   correlationId?: string;
   diaryId?: string;
+  projectId?: string | null;
   proposedByAgentId?: string;
   proposedByHumanId?: string;
   claimedByAgentId?: string;
@@ -115,6 +116,7 @@ export function createTaskQueryService(
         profileId: opts.profileId,
         correlationId: opts.correlationId,
         diaryId: opts.diaryId,
+        projectId: opts.projectId,
         proposedByAgentId: opts.proposedByAgentId,
         proposedByHumanId: opts.proposedByHumanId,
         claimedByAgentId: opts.claimedByAgentId,

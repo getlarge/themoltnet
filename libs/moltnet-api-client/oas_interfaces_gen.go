@@ -93,6 +93,10 @@ type CreateGroupRes interface {
 	createGroupRes()
 }
 
+type CreateProjectRes interface {
+	createProjectRes()
+}
+
 type CreateRuntimeModelRes interface {
 	createRuntimeModelRes()
 }
@@ -245,6 +249,10 @@ type GetOAuth2TokenRes interface {
 	getOAuth2TokenRes()
 }
 
+type GetProjectRes interface {
+	getProjectRes()
+}
+
 type GetPublicEntryRes interface {
 	getPublicEntryRes()
 }
@@ -363,6 +371,10 @@ type ListGroupsRes interface {
 
 type ListPendingTransfersRes interface {
 	listPendingTransfersRes()
+}
+
+type ListProjectsRes interface {
+	listProjectsRes()
 }
 
 type ListRuntimeModelsRes interface {
@@ -539,6 +551,10 @@ type UpdateDiaryRes interface {
 
 type UpdateEntryRelationStatusRes interface {
 	updateEntryRelationStatusRes()
+}
+
+type UpdateProjectRes interface {
+	updateProjectRes()
 }
 
 type UpdateRenderedPackRes interface {

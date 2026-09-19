@@ -336,6 +336,20 @@
       "when": 1789714599156,
       "tag": "0047_single_use_team_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789767312353,
+      "tag": "0048_new_phalanx",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789767915044,
+      "tag": "0049_sour_songbird",
+      "breakpoints": true
     }
   ],
   "version": "7"

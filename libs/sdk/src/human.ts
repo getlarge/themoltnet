@@ -25,6 +25,10 @@ import { createEntriesNamespace } from './namespaces/entries.js';
 import { createLegreffierNamespace } from './namespaces/legreffier.js';
 import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
+import {
+  createProjectsNamespace,
+  type ProjectsNamespace,
+} from './namespaces/projects.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createSigningCredentialsNamespace } from './namespaces/signing-credentials.js';
@@ -74,6 +78,7 @@ export interface HumanClient {
   legreffier: LegreffierNamespace;
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
+  projects: ProjectsNamespace;
   tasks: TasksNamespace;
   crypto: CryptoNamespace;
 
@@ -150,6 +155,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
     legreffier: createLegreffierNamespace(context),
     problems: createProblemsNamespace(context),
     teams: createTeamsNamespace(context),
+    projects: createProjectsNamespace(context),
     tasks: createTasksNamespace(context),
     whoami: createWhoami(context),
     crypto,

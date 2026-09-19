@@ -200,6 +200,7 @@ export interface PollingApiTaskSourceOptions {
   agent: Agent;
   /** Required by the list endpoint — daemon scopes itself to one team. */
   teamId: string;
+  projectId?: string | null;
   /**
    * Whitelist of task types this daemon will execute. The list endpoint
    * accepts repeated `taskTypes` query params, so a configured whitelist is
@@ -449,6 +450,9 @@ export class PollingApiTaskSource implements TaskSource {
         const result = await this.opts.agent.tasks.list(
           {
             status: 'queued' satisfies TaskStatus,
+            ...(this.opts.projectId
+              ? { projectId: this.opts.projectId }
+              : { general: true }),
             ...(taskTypes ? { taskTypes } : {}),
             ...(this.opts.correlationId
               ? { correlationId: this.opts.correlationId }
@@ -487,6 +491,8 @@ export class PollingApiTaskSource implements TaskSource {
           );
         }
         for (const item of result.items) {
+          if ((item.projectId ?? null) !== (this.opts.projectId ?? null))
+            continue;
           if (seen.has(item.id)) continue;
           if (
             this.opts.taskTypes &&
@@ -603,10 +609,15 @@ export class PollingApiTaskSource implements TaskSource {
             'moltnet.task_source.profile_bound': Boolean(profile.profileId),
           },
           () =>
-            this.opts.agent.tasks.claim(task.id, {
-              ...(profile.profileId ? { profileId: profile.profileId } : {}),
-              ...attestation,
-            }),
+            this.opts.agent.tasks.claim(
+              task.id,
+              {
+                projectId: this.opts.projectId ?? null,
+                ...(profile.profileId ? { profileId: profile.profileId } : {}),
+                ...attestation,
+              },
+              { teamId: this.opts.teamId },
+            ),
         );
         if (this.opts.debug) {
           this.logger.debug(

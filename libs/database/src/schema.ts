@@ -1276,6 +1276,9 @@ export const tasks = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    projectId: uuid('project_id').references(() => projects.id, {
+      onDelete: 'restrict',
+    }),
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
@@ -2001,3 +2004,30 @@ export type TaskAttemptActivityStats =
   typeof taskAttemptActivityStats.$inferSelect;
 export type NewTaskAttemptActivityStats =
   typeof taskAttemptActivityStats.$inferInsert;
+
+/** Shared team catalogue; source folders and setup commands remain machine-local. */
+export const projects = pgTable(
+  'projects',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+    defaultDiaryId: uuid('default_diary_id').references(() => diaries.id, {
+      onDelete: 'set null',
+    }),
+    archived: boolean('archived').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('projects_team_name_idx').on(table.teamId, table.name),
+  ],
+);
+export type Project = typeof projects.$inferSelect;

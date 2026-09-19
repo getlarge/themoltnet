@@ -9,6 +9,7 @@ import type {
   ContextPackRepository,
   CorrelationSealRepository,
   DiaryRepository,
+  ProjectRepository,
   RenderedPackRepository,
   RuntimeProfileRepository,
   TaskArtifactRepository,
@@ -31,6 +32,7 @@ export interface CreateTaskInput {
   title?: string;
   tags?: string[];
   teamId: string;
+  projectId?: string | null;
   diaryId?: string;
   inputPayload: Record<string, unknown>;
   references?: unknown[];
@@ -50,6 +52,7 @@ export interface CreateTaskInput {
 }
 
 export interface ExecutorAttestationInput {
+  projectId?: string | null;
   executorManifest?: Record<string, unknown>;
   executorFingerprint?: string;
   executorSignature?: string;
@@ -97,6 +100,7 @@ export interface TaskServiceDeps {
   taskArtifactRepository: TaskArtifactRepository;
   taskInputArtifactObjectStore: TaskInputArtifactObjectStore;
   diaryRepository: DiaryRepository;
+  projectRepository: ProjectRepository;
   agentRepository: AgentRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
   runtimePolicyService: Pick<RuntimePolicyService, 'resolvePinnedAllowedTools'>;

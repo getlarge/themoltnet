@@ -187,6 +187,7 @@ export type ClaimTaskBody = {
   executorSignature?: string;
   leaseTtlSec?: number;
   profileId?: string;
+  projectId: string | null;
 };
 
 export type ClaimTaskResponse = {
@@ -585,6 +586,7 @@ export type CreateTaskBody = {
     [key: string]: unknown;
   };
   maxAttempts?: number;
+  projectId?: string | null;
   references?: Array<TaskRef>;
   requiredExecutorTrustLevel?: ExecutorTrustLevel;
   runningTimeoutSec?: number;
@@ -1121,9 +1123,11 @@ export type ListTasksQuery = {
    * Repeated excluded tags filter.
    */
   excludeTags?: Array<string>;
+  general?: boolean;
   hasAttempts?: boolean;
   limit?: number;
   profileId?: string;
+  projectId?: string;
   proposedByAgentId?: string;
   proposedByHumanId?: string;
   query?: string;
@@ -2501,6 +2505,7 @@ export type Task = {
   inputSchemaCid: string;
   maxAttempts: number;
   outputKind: 'artifact' | 'judgment';
+  projectId: string | null;
   proposedByAgentId: string | null;
   proposedByHumanId: string | null;
   queuedAt: string;
@@ -12855,6 +12860,8 @@ export type ListTasksData = {
     profileId?: string;
     correlationId?: string;
     diaryId?: string;
+    projectId?: string;
+    general?: boolean;
     proposedByAgentId?: string;
     proposedByHumanId?: string;
     claimedByAgentId?: string;
@@ -12915,6 +12922,7 @@ export type CreateTaskData = {
       [key: string]: unknown;
     };
     maxAttempts?: number;
+    projectId?: string | null;
     references?: Array<TaskRef>;
     requiredExecutorTrustLevel?: ExecutorTrustLevel;
     runningTimeoutSec?: number;
@@ -13675,7 +13683,7 @@ export type CancelTaskResponses = {
 export type CancelTaskResponse = CancelTaskResponses[keyof CancelTaskResponses];
 
 export type ClaimTaskData = {
-  body?: {
+  body: {
     executorFingerprint?: string;
     executorManifest?: {
       [key: string]: unknown;
@@ -13683,6 +13691,7 @@ export type ClaimTaskData = {
     executorSignature?: string;
     leaseTtlSec?: number;
     profileId?: string;
+    projectId: string | null;
   };
   headers?: {
     /**
@@ -16460,6 +16469,270 @@ export type UpdateTeamMemberRoleResponses = {
 
 export type UpdateTeamMemberRoleResponse =
   UpdateTeamMemberRoleResponses[keyof UpdateTeamMemberRoleResponses];
+
+export type ListProjectsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: {
+    includeArchived?: boolean;
+  };
+  url: '/teams/{id}/projects';
+};
+
+export type ListProjectsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ListProjectsError = ListProjectsErrors[keyof ListProjectsErrors];
+
+export type ListProjectsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      archived: boolean;
+      createdAt: string;
+      defaultDiaryId: string | null;
+      description: string | null;
+      id: string;
+      name: string;
+      teamId: string;
+      updatedAt: string;
+    }>;
+  };
+};
+
+export type ListProjectsResponse =
+  ListProjectsResponses[keyof ListProjectsResponses];
+
+export type CreateProjectData = {
+  body: {
+    defaultDiaryId?: string | null;
+    description?: string | null;
+    name: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/projects';
+};
+
+export type CreateProjectErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type CreateProjectError = CreateProjectErrors[keyof CreateProjectErrors];
+
+export type CreateProjectResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    archived: boolean;
+    createdAt: string;
+    defaultDiaryId: string | null;
+    description: string | null;
+    id: string;
+    name: string;
+    teamId: string;
+    updatedAt: string;
+  };
+};
+
+export type CreateProjectResponse =
+  CreateProjectResponses[keyof CreateProjectResponses];
+
+export type GetProjectData = {
+  body?: never;
+  path: {
+    id: string;
+    projectId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/projects/{projectId}';
+};
+
+export type GetProjectErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type GetProjectError = GetProjectErrors[keyof GetProjectErrors];
+
+export type GetProjectResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    archived: boolean;
+    createdAt: string;
+    defaultDiaryId: string | null;
+    description: string | null;
+    id: string;
+    name: string;
+    teamId: string;
+    updatedAt: string;
+  };
+};
+
+export type GetProjectResponse = GetProjectResponses[keyof GetProjectResponses];
+
+export type UpdateProjectData = {
+  body?: {
+    archived?: boolean;
+    defaultDiaryId?: string | null;
+    description?: string | null;
+    name?: string;
+  };
+  path: {
+    id: string;
+    projectId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/projects/{projectId}';
+};
+
+export type UpdateProjectErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type UpdateProjectError = UpdateProjectErrors[keyof UpdateProjectErrors];
+
+export type UpdateProjectResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    archived: boolean;
+    createdAt: string;
+    defaultDiaryId: string | null;
+    description: string | null;
+    id: string;
+    name: string;
+    teamId: string;
+    updatedAt: string;
+  };
+};
+
+export type UpdateProjectResponse =
+  UpdateProjectResponses[keyof UpdateProjectResponses];
 
 export type ListPendingTransfersData = {
   body?: never;

@@ -115,6 +115,11 @@ export {
   type NonceRepository,
 } from './repositories/nonce.repository.js';
 export {
+  createProjectRepository,
+  type ProjectChanges,
+  type ProjectRepository,
+} from './repositories/project.repository.js';
+export {
   createRenderedPackRepository,
   type RenderedPackRepository,
   type RenderedPackWithCreator,
