@@ -10,11 +10,9 @@ import {
   ConfirmDialog,
   ControlSurface,
   InlineNotice,
-  Logo,
   SignatureStatus,
   Stack,
   Text,
-  useReducedMotion,
   useTheme,
 } from '@themoltnet/design-system';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -69,9 +67,8 @@ function errorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function App() {
+export function ServerPanel() {
   const theme = useTheme();
-  const reducedMotion = useReducedMotion();
   const [status, setStatus] = useState<DesktopStatus>(INITIAL_STATUS);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [busy, setBusy] = useState(false);
@@ -257,22 +254,15 @@ export function App() {
   };
 
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      style={{
-        minHeight: '100vh',
-        padding: theme.spacing[6],
-        background: theme.color.bg.void,
-      }}
-    >
-      <Stack gap={6} style={{ maxWidth: '760px', margin: '0 auto' }}>
+    <>
+      <Stack gap={6}>
         <header>
           <Stack direction="row" gap={4} align="center">
-            <Logo size={52} glow={!reducedMotion} />
             <Stack gap={1} style={{ flex: 1 }}>
-              <Text variant="h2">MoltNet Agent</Text>
-              <Text color="secondary">
+              <Text as="h1" variant="h4">
+                Server
+              </Text>
+              <Text variant="caption" color="secondary">
                 Secure local runtime for MoltNet agents.
               </Text>
             </Stack>
@@ -499,6 +489,29 @@ export function App() {
         onCancel={() => setConfirmation(null)}
         onConfirm={() => void confirm()}
       />
+    </>
+  );
+}
+
+/**
+ * Entry component. Owns the window chrome so `ServerPanel` can also be
+ * rendered inside a shell that already provides `<main>` and its own padding.
+ */
+export function App() {
+  const theme = useTheme();
+  return (
+    <main
+      id="main-content"
+      tabIndex={-1}
+      style={{
+        minHeight: '100vh',
+        padding: theme.spacing[6],
+        background: theme.color.bg.void,
+      }}
+    >
+      <div style={{ margin: '0 auto', maxWidth: '760px' }}>
+        <ServerPanel />
+      </div>
     </main>
   );
 }

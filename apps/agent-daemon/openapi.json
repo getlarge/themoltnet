@@ -579,6 +579,21 @@
           "id": {
             "type": "string"
           },
+          "lastError": {
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "type": "object"
+          },
           "mode": {
             "anyOf": [
               {

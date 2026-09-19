@@ -44,6 +44,7 @@ import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
   ProvidersState,
+  RunFailure,
   RunRecord,
   RunSpec,
 } from './store.js';
@@ -94,6 +95,35 @@ const INHERITED_MOLTNET_ENV_NAMES = new Set([
 
 /** The runtime kind bundled with the agent; needs no registration. */
 export const BUILT_IN_RUNTIME_KIND = 'gondolin_pi';
+
+/** Enough tail to carry a reason without retaining the whole run's output. */
+const STDERR_MEMORY_LINES = 20;
+
+/**
+ * Turn a child's exit into something an operator can act on. The worker
+ * already writes a reason to stderr before dying, so the most recent line
+ * mentioning an error beats restating the exit code.
+ */
+function describeFailure(
+  recentStderr: readonly string[],
+  code: number | null,
+  signal: NodeJS.Signals | null,
+): RunFailure {
+  const reason = [...recentStderr]
+    .reverse()
+    .find((line) => /error|fatal|refus|cannot|failed/iu.test(line));
+  if (reason) return { code: 'run_failed', message: reason };
+  if (signal) {
+    return {
+      code: 'run_signalled',
+      message: `The worker was stopped by ${signal}.`,
+    };
+  }
+  return {
+    code: 'run_failed',
+    message: `The worker exited with code ${code ?? 'unknown'}. Open the log for detail.`,
+  };
+}
 
 export class AgentServerRunError extends Error {
   override name = 'AgentServerRunError';
@@ -453,6 +483,15 @@ export class RunManager {
       );
       this.active.set(id, { agent: spec.agent, child, stopRequested: false });
       child.stdout?.pipe(logLimiter, { end: false });
+      const recentStderr: string[] = [];
+      child.stderr?.on('data', (chunk: Buffer | string) => {
+        for (const line of String(chunk).split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          recentStderr.push(trimmed);
+          if (recentStderr.length > STDERR_MEMORY_LINES) recentStderr.shift();
+        }
+      });
       child.stderr?.pipe(logLimiter, { end: false });
 
       const record: RunRecord = {
@@ -485,6 +524,9 @@ export class RunManager {
         this.persistRunCompletion(id, spec.agent, {
           status,
           exitCode: code,
+          ...(status === 'failed'
+            ? { lastError: describeFailure(recentStderr, code, signal) }
+            : {}),
         });
       });
       child.once('error', (error) => {
@@ -495,7 +537,13 @@ export class RunManager {
           transition: 'spawn_failed',
           ...safeRunError(error),
         });
-        this.persistRunCompletion(id, spec.agent, { status: 'failed' });
+        this.persistRunCompletion(id, spec.agent, {
+          status: 'failed',
+          lastError: {
+            code: 'spawn_failed',
+            message: `The worker could not be started: ${error.message}`,
+          },
+        });
       });
 
       this.store.writeRun(record);
@@ -767,7 +815,10 @@ export class RunManager {
   private persistRunCompletion(
     id: string,
     agent: string,
-    update: Pick<RunRecord, 'status'> & { exitCode?: number | null },
+    update: Pick<RunRecord, 'status'> & {
+      exitCode?: number | null;
+      lastError?: RunFailure;
+    },
   ): void {
     try {
       const current = this.store.readRun(id);

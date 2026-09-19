@@ -180,6 +180,10 @@ export const AgentServerRunRecordSchema = Type.Object(
     ]),
     pid: Type.Optional(Type.Number()),
     exitCode: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+    /** Why the run stopped. Present only on a failed run. */
+    lastError: Type.Optional(
+      Type.Object({ code: Type.String(), message: Type.String() }),
+    ),
     credential: Type.Optional(CredentialMetadataSchema),
     startedAt: DateTime,
     endedAt: Type.Optional(DateTime),
