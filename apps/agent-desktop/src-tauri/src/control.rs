@@ -64,6 +64,11 @@ impl std::fmt::Debug for NativeToken {
 fn client(timeout: Duration) -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_global(Some(timeout))
+        .tls_config(
+            ureq::tls::TlsConfig::builder()
+                .root_certs(ureq::tls::RootCerts::PlatformVerifier)
+                .build(),
+        )
         // Let a 4xx return normally so the server's own problem message can be
         // read off the body. The brief asks for actionable errors, and "the
         // profile needs ANTHROPIC_API_KEY" beats "403".

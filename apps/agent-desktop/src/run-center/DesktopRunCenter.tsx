@@ -19,7 +19,7 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
   const [presets, setPresets] = useState(listPresets);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
   const refresh = useCallback(async (refreshCatalogue = true) => {
     try {
@@ -27,7 +27,7 @@ export function DesktopRunCenter() {
         'desktop_control_status',
       );
       setStatus(snapshot);
-      setError(false);
+      setError(null);
       const identity =
         snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName;
       if (refreshCatalogue) {
@@ -35,9 +35,15 @@ export function DesktopRunCenter() {
         else setCatalogue(null);
       }
       setPresets(listPresets());
-    } catch {
+    } catch (cause) {
       setCatalogue(null);
-      setError(true);
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : typeof cause === 'string'
+            ? cause
+            : 'Check the Server view. Previously displayed metadata may be stale.',
+      );
     }
   }, []);
   useEffect(() => {
@@ -108,12 +114,17 @@ export function DesktopRunCenter() {
   );
   return (
     <>
-      {error && ['running', 'update_available'].includes(server.state) ? (
-        <InlineNotice tone="warning" title="Local state could not be refreshed">
-          Check the Server view. Previously displayed metadata may be stale.
-        </InlineNotice>
-      ) : null}
       <RunCenterApp
+        notice={
+          error && ['running', 'update_available'].includes(server.state) ? (
+            <InlineNotice
+              tone="warning"
+              title="Local state could not be refreshed"
+            >
+              {error}
+            </InlineNotice>
+          ) : null
+        }
         onProvidersChanged={() => void refresh()}
         now={now}
         data={{
