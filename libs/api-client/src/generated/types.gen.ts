@@ -187,7 +187,7 @@ export type ClaimTaskBody = {
   executorSignature?: string;
   leaseTtlSec?: number;
   profileId?: string;
-  projectId: string | null;
+  projectId?: string | null;
 };
 
 export type ClaimTaskResponse = {
@@ -13683,7 +13683,7 @@ export type CancelTaskResponses = {
 export type CancelTaskResponse = CancelTaskResponses[keyof CancelTaskResponses];
 
 export type ClaimTaskData = {
-  body: {
+  body?: {
     executorFingerprint?: string;
     executorManifest?: {
       [key: string]: unknown;
@@ -13691,7 +13691,7 @@ export type ClaimTaskData = {
     executorSignature?: string;
     leaseTtlSec?: number;
     profileId?: string;
-    projectId: string | null;
+    projectId?: string | null;
   };
   headers?: {
     /**
@@ -16504,7 +16504,7 @@ export type ListProjectsErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -16574,7 +16574,7 @@ export type CreateProjectErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -16636,7 +16636,7 @@ export type GetProjectErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */
@@ -16702,7 +16702,7 @@ export type UpdateProjectErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
   /**
    * Default Response
    */

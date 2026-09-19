@@ -1,3 +1,4 @@
+import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -12,6 +13,8 @@ import {
 import {
   createMockServices,
   createTestApp,
+  HUMAN_AUTH_CONTEXT,
+  KEY_AUTH_CONTEXT,
   type MockServices,
   resetMockServices,
   TEST_BEARER_TOKEN,
@@ -36,6 +39,7 @@ const project = {
 describe('shared team projects', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
+  let authContext = VALID_AUTH_CONTEXT;
   const repository = {
     create: vi.fn(),
     findById: vi.fn(),
@@ -45,16 +49,24 @@ describe('shared team projects', () => {
   beforeAll(async () => {
     mocks = createMockServices();
     Object.assign(mocks, { projectRepository: repository });
-    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    app = await createTestApp(
+      mocks,
+      null,
+      undefined,
+      undefined,
+      () => authContext,
+    );
   });
   afterAll(async () => app.close());
   beforeEach(() => {
+    authContext = VALID_AUTH_CONTEXT;
     resetMockServices(mocks);
     Object.values(repository).forEach((mock) => mock.mockReset());
     repository.create.mockResolvedValue(project);
     repository.findById.mockResolvedValue(project);
     repository.listByTeamId.mockResolvedValue([project]);
     repository.update.mockResolvedValue(project);
+    mocks.permissionChecker.canWriteTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM });
@@ -71,7 +83,43 @@ describe('shared team projects', () => {
     expect(repository.create).toHaveBeenCalledWith({
       teamId: TEAM,
       name: 'Research',
+      creator: { kind: 'agent', id: VALID_AUTH_CONTEXT.agentId },
     });
+  });
+  it('attributes human-created projects to the internal human ID', async () => {
+    authContext = HUMAN_AUTH_CONTEXT;
+    const response = await app.inject({
+      method: 'POST',
+      url: `/teams/${TEAM}/projects`,
+      headers,
+      payload: { name: 'Research' },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        creator: { kind: 'human', id: HUMAN_AUTH_CONTEXT.humanId },
+      }),
+    );
+  });
+  it('rejects member updates without modifying the project', async () => {
+    mocks.permissionChecker.canWriteTeam.mockResolvedValue(false);
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM}/projects/${ID}`,
+      headers,
+      payload: { archived: true },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+  it('hides catalogue discovery from non-members', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(false);
+    const response = await app.inject({
+      url: `/teams/${TEAM}/projects`,
+      headers,
+    });
+    expect(response.statusCode).toBe(404);
+    expect(repository.listByTeamId).not.toHaveBeenCalled();
   });
   it('rejects an empty project update before writing', async () => {
     const response = await app.inject({
@@ -83,7 +131,7 @@ describe('shared team projects', () => {
     expect(repository.update).not.toHaveBeenCalled();
   });
   it('forbids members from administering projects', async () => {
-    mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(false);
+    mocks.permissionChecker.canWriteTeam.mockResolvedValue(false);
     const response = await app.inject({
       method: 'POST',
       url: `/teams/${TEAM}/projects`,
@@ -142,14 +190,48 @@ describe('shared team projects', () => {
     });
     expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, true);
   });
+  it.each(['GET', 'POST', 'PATCH'] as const)(
+    'rejects a bound credential from another team for %s',
+    async (method) => {
+      authContext = KEY_AUTH_CONTEXT;
+      const response = await app.inject({
+        method,
+        url: `/teams/${TEAM}/projects${method === 'PATCH' ? `/${ID}` : ''}`,
+        headers,
+        ...(method === 'GET' ? {} : { payload: { name: 'Research' } }),
+      });
+      expect(response.statusCode).toBe(403);
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.listByTeamId).not.toHaveBeenCalled();
+      expect(repository.update).not.toHaveBeenCalled();
+    },
+  );
+  it('reports an unavailable default diary as a field validation error', async () => {
+    mocks.diaryService.findDiary.mockRejectedValue(
+      new DiaryServiceError('not_found', 'Diary not found'),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: `/teams/${TEAM}/projects`,
+      headers,
+      payload: { name: 'Research', defaultDiaryId: DIARY },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      errors: [expect.objectContaining({ field: 'defaultDiaryId' })],
+    });
+    expect(repository.create).not.toHaveBeenCalled();
+  });
   it('never transfers a project through update', async () => {
-    await app.inject({
+    const response = await app.inject({
       method: 'PATCH',
       url: `/teams/${TEAM}/projects/${ID}`,
       headers,
       payload: { name: 'Renamed', teamId: ID },
     });
-    for (const call of repository.update.mock.calls)
-      expect(call[2]).not.toHaveProperty('teamId');
+    expect(response.statusCode).toBe(200);
+    expect(repository.update).toHaveBeenCalledWith(ID, TEAM, {
+      name: 'Renamed',
+    });
   });
 });

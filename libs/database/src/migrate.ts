@@ -41,6 +41,40 @@ export async function runMigrations(databaseUrl: string): Promise<void> {
 
   try {
     await migrate(db, { migrationsFolder });
+    // These scans must run after Drizzle commits the ADD COLUMN transaction,
+    // releasing its ACCESS EXCLUSIVE lock on tasks before inspecting old rows.
+    const client = await pool.connect();
+    try {
+      await client.query(
+        "SELECT pg_advisory_lock(hashtext('moltnet:project-migration'))",
+      );
+      await client.query("SET lock_timeout = '5s'");
+      const { rows } = await client.query<{ indisvalid: boolean }>(
+        "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('public.tasks_project_created_idx')",
+      );
+      // A cancelled concurrent build can leave an invalid index. Repair only
+      // this migration-owned index before retrying the resumable build.
+      if (rows[0] && !rows[0].indisvalid) {
+        await client.query(
+          'DROP INDEX CONCURRENTLY public.tasks_project_created_idx',
+        );
+      }
+      await client.query(
+        'CREATE INDEX CONCURRENTLY IF NOT EXISTS tasks_project_created_idx ON public.tasks (project_id, created_at) WHERE project_id IS NOT NULL',
+      );
+      await client.query(
+        'ALTER TABLE public.tasks VALIDATE CONSTRAINT tasks_project_id_projects_id_fk',
+      );
+    } finally {
+      try {
+        await client.query('RESET lock_timeout');
+        await client.query(
+          "SELECT pg_advisory_unlock(hashtext('moltnet:project-migration'))",
+        );
+      } finally {
+        client.release();
+      }
+    }
   } finally {
     // Swallow pool cleanup errors so they don't mask migration failures
     await pool.end().catch(() => {});

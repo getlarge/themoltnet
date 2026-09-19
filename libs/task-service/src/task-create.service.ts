@@ -22,6 +22,7 @@ import type { TSchema } from 'typebox';
 
 import { validateClaimConditionShape } from './claim-condition.js';
 import type { TaskConditionHelpers } from './task-conditions.js';
+import { resolveTaskProject } from './task-project.js';
 import {
   isUniqueViolation,
   normalizeTaskTags,
@@ -201,46 +202,18 @@ export function createTaskCreateService(
         );
       }
 
-      let projectId = input.projectId ?? null;
-      const continuation =
-        input.taskType === 'freeform'
-          ? (normalizedInput as { continueFrom?: { taskId: string } })
-              .continueFrom
-          : undefined;
-      if (continuation) {
-        const parent = await taskRepository.findByIdInTeam(
-          continuation.taskId,
-          input.teamId,
-        );
-        if (!parent)
-          throw new TaskServiceError(
-            'invalid',
-            'Continuation parent task not found in this team',
-          );
-        if (
-          input.projectId !== undefined &&
-          input.projectId !== (parent.projectId ?? null)
-        ) {
-          throw new TaskServiceError(
-            'invalid',
-            'Continuation project must match its parent',
-          );
-        }
-        projectId = parent.projectId ?? null;
-      }
-      if (projectId) {
-        const project = await projectRepository.findById(projectId);
-        if (!project || project.teamId !== input.teamId)
-          throw new TaskServiceError(
-            'invalid',
-            'Project must belong to the task team',
-          );
-        if (project.archived && !continuation)
-          throw new TaskServiceError(
-            'invalid',
-            'Project is archived; select an active project for new work',
-          );
-      }
+      const projectId = await resolveTaskProject(
+        {
+          teamId: input.teamId,
+          projectId: input.projectId,
+          continuationTaskId:
+            input.taskType === 'freeform'
+              ? (normalizedInput as { continueFrom?: { taskId: string } })
+                  .continueFrom?.taskId
+              : undefined,
+        },
+        { taskRepository, projectRepository },
+      );
 
       // Profile existence is team-sensitive. Resolve it only after the
       // batched Team.propose_tasks + Diary.read authorization succeeds so a

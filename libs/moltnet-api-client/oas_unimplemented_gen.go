@@ -126,7 +126,7 @@ func (UnimplementedHandler) ClaimSigningRequest(ctx context.Context, req *ClaimS
 // Claim a queued task and start an attempt.
 //
 // POST /tasks/{id}/claim
-func (UnimplementedHandler) ClaimTask(ctx context.Context, req *ClaimTaskReq, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
+func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

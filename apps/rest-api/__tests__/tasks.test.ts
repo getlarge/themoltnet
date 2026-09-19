@@ -851,15 +851,22 @@ describe('POST /tasks/:id/claim', () => {
     });
   });
 
-  it('requires an explicit project declaration before claiming', async () => {
+  it('treats an omitted project declaration as General work', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
       headers: TEAM_AUTH_HEADERS,
       payload: {},
     });
-    expect(response.statusCode).toBe(400);
-    expect(mocks.taskService.claim).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.claim).toHaveBeenCalledWith(
+      TASK_ID,
+      OWNER_ID,
+      KetoNamespace.Agent,
+      300,
+      expect.objectContaining({ projectId: null }),
+      TEAM_ID,
+    );
   });
 
   it('returns 200 with task and attempt', async () => {

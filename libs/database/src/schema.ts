@@ -1358,6 +1358,9 @@ export const tasks = pgTable(
   },
   (table) => [
     index('tasks_team_status_idx').on(table.teamId, table.status),
+    index('tasks_project_created_idx')
+      .on(table.projectId, table.createdAt)
+      .where(sql`${table.projectId} IS NOT NULL`),
     index('tasks_type_status_idx').on(table.taskType, table.status),
     index('tasks_tags_gin_idx').using('gin', table.tags),
     index('tasks_diary_idx')
@@ -2013,6 +2016,12 @@ export const projects = pgTable(
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
     name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
     defaultDiaryId: uuid('default_diary_id').references(() => diaries.id, {
@@ -2028,6 +2037,13 @@ export const projects = pgTable(
   },
   (table) => [
     uniqueIndex('projects_team_name_idx').on(table.teamId, table.name),
+    index('projects_default_diary_idx')
+      .on(table.defaultDiaryId)
+      .where(sql`${table.defaultDiaryId} IS NOT NULL`),
+    check(
+      'projects_creator_xor',
+      sql`(${table.creatorAgentId} IS NOT NULL) <> (${table.creatorHumanId} IS NOT NULL)`,
+    ),
   ],
 );
 export type Project = typeof projects.$inferSelect;

@@ -2415,7 +2415,7 @@ func encodeCreateProjectResponse(response CreateProjectRes, w http.ResponseWrite
 
 		return nil
 
-	case *CreateProjectConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -6204,7 +6204,7 @@ func encodeGetProjectResponse(response GetProjectRes, w http.ResponseWriter, spa
 
 		return nil
 
-	case *GetProjectConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -8858,7 +8858,7 @@ func encodeListProjectsResponse(response ListProjectsRes, w http.ResponseWriter,
 
 		return nil
 
-	case *ListProjectsConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -12762,7 +12762,7 @@ func encodeUpdateProjectResponse(response UpdateProjectRes, w http.ResponseWrite
 
 		return nil
 
-	case *UpdateProjectConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

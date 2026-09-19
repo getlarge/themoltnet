@@ -30,6 +30,7 @@ export interface TaskListInput {
   profileId?: string;
   correlationId?: string;
   diaryId?: string;
+  /** Omitted leaves projects unfiltered; null selects only General work. */
   projectId?: string | null;
   proposedByAgentId?: string;
   proposedByHumanId?: string;

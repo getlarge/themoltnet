@@ -32,6 +32,7 @@ export interface CreateTaskInput {
   title?: string;
   tags?: string[];
   teamId: string;
+  /** Omitted: inherit the continuation parent, or General for new work. Null: General. */
   projectId?: string | null;
   diaryId?: string;
   inputPayload: Record<string, unknown>;
@@ -52,6 +53,7 @@ export interface CreateTaskInput {
 }
 
 export interface ExecutorAttestationInput {
+  /** Omitted or null selects General; a UUID must match the task project. */
   projectId?: string | null;
   executorManifest?: Record<string, unknown>;
   executorFingerprint?: string;
