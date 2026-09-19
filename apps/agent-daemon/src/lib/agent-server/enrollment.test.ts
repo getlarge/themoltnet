@@ -8,6 +8,7 @@ import * as SdkNode from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { enrollIdentityTeam } from './enrollment.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import { AgentServerStore } from './store.js';
 
 const roots: string[] = [];
@@ -62,26 +63,26 @@ async function fixture(activated = true) {
   return {
     store,
     keys,
-    options: { store, alias: 'agent', managed: registry, external: registry },
+    options: {
+      oauth: { authorize: vi.fn() } as unknown as OperatorOAuth,
+      apiUrl: 'https://api.themolt.net',
+      store,
+      alias: 'agent',
+      managed: registry,
+      external: registry,
+    },
   };
 }
 
 describe('local team enrollment boundary', () => {
-  it('signs locally without resolving an API key and returns only metadata', async () => {
+  it('requests human approval without resolving an API key and returns only metadata', async () => {
     const f = await fixture();
     const call = vi
       .spyOn(SdkNode, 'enrollTeam')
       .mockImplementation(async (options) => {
         expect(options.agent).toBeUndefined();
         expect(options.replacement).toEqual({ teamId: 'team' });
-        const signature = await options.signer!.sign('local-proof');
-        expect(
-          await cryptoService.verify(
-            'local-proof',
-            signature,
-            f.keys.publicKey,
-          ),
-        ).toBe(true);
+        expect(options.provision).toBeTypeOf('function');
         return {
           teamId: 'team',
           key: { id: 'new-key' },
@@ -93,7 +94,7 @@ describe('local team enrollment boundary', () => {
       input: {
         mode: 'replace',
         teamId: 'team',
-        code: 'invitation-secret-sentinel',
+
         idempotencyKey: 'request',
       },
     });
@@ -115,7 +116,7 @@ describe('local team enrollment boundary', () => {
     expect(f.store.readActivation('agent')).toBeNull();
     await enrollIdentityTeam({
       ...f.options,
-      input: { mode: 'enroll', code: 'invite', idempotencyKey: 'request' },
+      input: { mode: 'enroll', teamId: 'team', idempotencyKey: 'request' },
     });
     expect(f.store.readActivation('agent')).toMatchObject({
       subjectId: 'subject',
@@ -144,7 +145,7 @@ describe('local team enrollment boundary', () => {
         ...f.options,
         input: {
           mode: 'enroll',
-          code: 'invitation-secret-sentinel',
+          teamId: 'team',
           idempotencyKey: 'request',
         },
       });

@@ -151,6 +151,7 @@
     "@themoltnet/sdk": "workspace:*",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",
+    "jose": "catalog:",
     "multiformats": "catalog:",
     "pino": "catalog:",
     "pino-opentelemetry-transport": "catalog:",

@@ -709,17 +709,6 @@ pub fn open_console() -> Result<(), String> {
     fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
 }
 
-pub fn open_team_invites(team_id: Option<&str>) -> Result<(), String> {
-    let url = match team_id {
-        Some(id) if !id.is_empty() && id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') => {
-            format!("https://console.themolt.net/teams/{id}?tab=invites")
-        }
-        Some(_) => return Err("Invalid team identifier".to_string()),
-        None => "https://console.themolt.net/teams".to_string(),
-    };
-    fixed_command("/usr/bin/open", &[&url]).map(|_| ())
-}
-
 pub fn open_logs(directory: &Path) -> Result<(), String> {
     prepare_private_directory(directory)?;
     let path = directory.to_string_lossy().into_owned();

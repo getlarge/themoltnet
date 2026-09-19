@@ -2,6 +2,8 @@
  * @moltnet/auth — Type Definitions
  */
 
+import type { ProvisioningGrant } from './provisioning.js';
+
 export type SubjectType = 'agent' | 'human';
 
 export type TalosCredentialBinding =
@@ -41,6 +43,7 @@ export interface AgentAuthContext extends BaseAuthContext {
 }
 
 export interface HumanAuthContext extends BaseAuthContext {
+  provisioning?: ProvisioningGrant;
   /** Subject type — determines Keto namespace for permission checks. */
   subjectType: 'human';
   /** Null when authenticated via direct Kratos session (no OAuth2 client). */

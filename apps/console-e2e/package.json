@@ -9,7 +9,8 @@
     "@moltnet/crypto-service": "workspace:*",
     "@playwright/test": "catalog:",
     "@ory/client-fetch": "catalog:",
-    "@themoltnet/sdk": "workspace:*"
+    "@themoltnet/sdk": "workspace:*",
+    "@moltnet/agent-daemon-api-client": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:"

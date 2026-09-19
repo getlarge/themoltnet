@@ -7,13 +7,15 @@
 
 export interface AppConfig {
   kratosUrl: string;
+  oauthIssuer: string;
+  oauthPublicUrl: string;
   apiBaseUrl: string;
   consoleUrl: string;
   /** Public documentation site. Optional; defaults to https://docs.themolt.net. */
   docsUrl: string;
   /** Local signer companion. Never receives browser credentials. */
   signerUrl: string;
-  /** Local Agent Server. Never receives browser credentials. */
+  /** Local Agent Server. Receives only the dedicated local-control grant. */
   agentServerUrl: string;
 }
 
@@ -41,6 +43,8 @@ export function getConfig(): AppConfig {
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {
       kratosUrl: injectedKratosUrl,
+      oauthIssuer: injected?.oauthIssuer || injectedKratosUrl,
+      oauthPublicUrl: injected?.oauthPublicUrl || injectedKratosUrl,
       apiBaseUrl: injectedApiBaseUrl,
       consoleUrl: injectedConsoleUrl,
       docsUrl,
@@ -58,6 +62,9 @@ export function getConfig(): AppConfig {
   }
 
   return {
+    oauthIssuer: import.meta.env.VITE_OAUTH_ISSUER || 'http://localhost:4444',
+    oauthPublicUrl:
+      import.meta.env.VITE_OAUTH_PUBLIC_URL || 'http://localhost:4444',
     kratosUrl:
       normalizeUrl(import.meta.env.VITE_KRATOS_URL) || 'http://localhost:4433',
     apiBaseUrl:

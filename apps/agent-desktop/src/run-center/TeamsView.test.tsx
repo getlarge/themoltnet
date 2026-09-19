@@ -66,8 +66,6 @@ function fixture() {
       teamId: 'team-a',
       keyId: 'new-key',
     }),
-    createIdentity: vi.fn().mockResolvedValue(undefined),
-    openTeamInvites: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue(undefined),
     startRun: vi.fn(),
     stopRun: vi.fn(),
@@ -90,14 +88,11 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
-  it('confirms the exact replacement, clears the invitation, and leaves active runs alone', async () => {
+  it('confirms the exact replacement and leaves active runs alone', async () => {
     const { data, actions } = fixture();
     show(data, actions);
     expect(await screen.findByText('Expired')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
-    fireEvent.change(screen.getByLabelText('Single-use invitation'), {
-      target: { value: 'single-use-sentinel' },
-    });
     fireEvent.click(
       screen.getByRole('button', { name: 'Replace team credential' }),
     );
@@ -109,10 +104,8 @@ describe('desktop team enrollment', () => {
       expect.objectContaining({
         mode: 'replace',
         teamId: 'team-a',
-        code: 'single-use-sentinel',
       }),
     );
-    expect(screen.getByLabelText('Single-use invitation')).toHaveValue('');
     expect(actions.refresh).toHaveBeenCalledOnce();
     expect(actions.stopRun).not.toHaveBeenCalled();
   });
@@ -128,10 +121,10 @@ describe('desktop team enrollment', () => {
     });
     show(data, actions);
     await screen.findByText('Research');
-    fireEvent.change(screen.getByLabelText('Single-use invitation'), {
+    fireEvent.change(screen.getByLabelText('Team ID'), {
       target: { value: 'single-use-sentinel' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Enroll' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in Console' }));
     await screen.findByText('Enrollment needs recovery');
     expect(
       screen.getByText(/No credential secret was captured/),
@@ -139,34 +132,8 @@ describe('desktop team enrollment', () => {
     expect(
       screen.queryByText('Credential saved for recovery'),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Single-use invitation')).toHaveValue('');
   });
 
-  it('opens only a team identifier in Console and creates a new identity through native registration', async () => {
-    const { data, actions } = fixture();
-    show(data, actions);
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Renew in Console' }),
-    );
-    expect(actions.openTeamInvites).toHaveBeenCalledWith('team-a');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create a new identity' }),
-    );
-    fireEvent.change(screen.getByLabelText('Identity name'), {
-      target: { value: 'new-agent' },
-    });
-    fireEvent.change(screen.getByLabelText('Single-use invitation'), {
-      target: { value: 'invite-sentinel' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Create and enroll' }));
-    await waitFor(() =>
-      expect(actions.createIdentity).toHaveBeenCalledWith(
-        'new-agent',
-        'invite-sentinel',
-      ),
-    );
-    expect(screen.getByLabelText('Single-use invitation')).toHaveValue('');
-  });
   it('refreshes unavailable team access after an external renewal', async () => {
     const { data, actions } = fixture();
     show(data, actions);

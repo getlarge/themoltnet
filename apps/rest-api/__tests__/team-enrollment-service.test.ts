@@ -65,14 +65,6 @@ describe('team enrollment request', () => {
     expect(keys.issueEnrollment).not.toHaveBeenCalled();
   });
 
-  it('binds proof replay to the expected team and authentication mode', async () => {
-    vi.mocked(teamInviteWorkflow.findEnrollment).mockResolvedValue(grant);
-    await expect(enroll({ proofAuthenticated: true })).rejects.toMatchObject({
-      statusCode: 409,
-    });
-    expect(keys.issueEnrollment).not.toHaveBeenCalled();
-  });
-
   it('uses the invite workflow and passes only its grant to Talos issuance', async () => {
     expect(await enroll()).toMatchObject({
       teamId: grant.teamId,

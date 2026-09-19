@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+  NATIVE_CLIENT_ORIGIN,
+  NativeGrantService,
+} from './native-grant-service.js';
 import { applyNativeClientGrant } from './native-grant.js';
-import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
 
 /** Shaped like what the supervisor generates: 32 bytes, base64url (43 chars). */
 const SUPERVISOR_TOKEN = 'qN7dK2xR9vL4mZ8wP1sT6yB3cF5gH0jA2eU4iO7kM9Q';
@@ -9,7 +12,7 @@ const SUPERVISOR_TOKEN = 'qN7dK2xR9vL4mZ8wP1sT6yB3cF5gH0jA2eU4iO7kM9Q';
 describe('applyNativeClientGrant', () => {
   it('grants the native origin when the supervisor supplied a token', () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     const env: NodeJS.ProcessEnv = {
       MOLTNET_AGENT_SERVER_NATIVE_TOKEN: SUPERVISOR_TOKEN,
     };
@@ -28,7 +31,7 @@ describe('applyNativeClientGrant', () => {
     // A spawned daemon run inherits this process environment. Leaving the
     // token there would hand every task-executing agent control of the Agent
     // Server that supervises it.
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     const env: NodeJS.ProcessEnv = {
       MOLTNET_AGENT_SERVER_NATIVE_TOKEN: SUPERVISOR_TOKEN,
       PATH: '/usr/bin',
@@ -43,7 +46,7 @@ describe('applyNativeClientGrant', () => {
 
   it('grants nothing when the variable is absent', () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
 
     // Act
     const granted = applyNativeClientGrant({ pairing, env: {} });
@@ -55,7 +58,7 @@ describe('applyNativeClientGrant', () => {
 
   it('grants nothing when the variable is empty', () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     const env: NodeJS.ProcessEnv = { MOLTNET_AGENT_SERVER_NATIVE_TOKEN: '' };
 
     // Act
@@ -68,7 +71,7 @@ describe('applyNativeClientGrant', () => {
 
   it('rejects a token too short to resist guessing', () => {
     // Arrange
-    const pairing = new PairingService();
+    const pairing = new NativeGrantService();
     const env: NodeJS.ProcessEnv = {
       MOLTNET_AGENT_SERVER_NATIVE_TOKEN: 'short',
     };

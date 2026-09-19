@@ -424,6 +424,68 @@ describe('Hook routes', () => {
       });
     });
 
+    it.each(['moltnet:local-control', 'moltnet:provision'])(
+      'preserves only validated administrative %s consent claims',
+      async (scope) => {
+        vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
+        try {
+          vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+            client_id: 'native-client',
+            metadata: {},
+          });
+          mocks.humanRepository.findByIdentityId.mockResolvedValue({
+            id: HUMAN_ID,
+            identityId: HUMAN_IDENTITY_ID,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          const provisioning = {
+            agentId: OWNER_ID,
+            teamId: HUMAN_ID,
+            operation: 'enroll',
+            scopes: ['task:execute'],
+            idempotencyKey: 'approved-request',
+          };
+          const response = await app.inject({
+            method: 'POST',
+            url: '/hooks/hydra/token-exchange',
+            headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+            payload: {
+              session: {
+                id_token: { subject: HUMAN_IDENTITY_ID },
+                extra: {
+                  'moltnet:identity_id': HUMAN_IDENTITY_ID,
+                  'moltnet:subject_type': 'human',
+                  'moltnet:instance': OWNER_ID,
+                  unapproved: 'must-not-survive',
+                  ...(scope === 'moltnet:provision'
+                    ? { 'moltnet:provisioning': provisioning }
+                    : {}),
+                },
+              },
+              request: {
+                client_id: 'native-client',
+                grant_types: ['authorization_code'],
+                granted_scopes: [scope],
+              },
+            },
+          });
+          expect(response.statusCode).toBe(200);
+          expect(response.json().session.access_token).toEqual({
+            'moltnet:identity_id': HUMAN_IDENTITY_ID,
+            'moltnet:human_id': HUMAN_ID,
+            'moltnet:subject_type': 'human',
+            'moltnet:instance': OWNER_ID,
+            ...(scope === 'moltnet:provision'
+              ? { 'moltnet:provisioning': provisioning }
+              : {}),
+          });
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      },
+    );
+
     it('denies a self-registered client granted a scope above the DCR cap', async () => {
       // Arrange: a DCR client (no MoltNet metadata) whose grant carries
       // key:manage — the scope that would let it mint agent keys.

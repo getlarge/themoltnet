@@ -1,10 +1,3 @@
-/**
- * @moltnet/rest-api — App Factory
- *
- * Creates and configures the Fastify application with all routes.
- * Services are injected via the options parameter.
- */
-
 import swagger from '@fastify/swagger';
 import {
   authPlugin,
@@ -44,12 +37,13 @@ import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentKeyRoutes } from './routes/agent-keys.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
-import { diaryRoutes } from './routes/diary.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
+import { diaryRoutes } from './routes/diary.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
 import { groupRoutes } from './routes/groups.js';
 import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { oauth2ApprovalRoutes } from './routes/oauth2-approval.js';
 import { oauth2GrantCachePlugin, oauth2Routes } from './routes/oauth2.js';
 import { packRoutes } from './routes/packs.js';
 import { previewSignChallengeRoutes } from './routes/preview-sign-challenges.js';
@@ -98,6 +92,13 @@ import type {
   TeamRepository,
   TransactionRunner,
 } from './types.js';
+
+/**
+ * @moltnet/rest-api — App Factory
+ *
+ * Creates and configures the Fastify application with all routes.
+ * Services are injected via the options parameter.
+ */
 
 export interface SecurityOptions {
   /** Comma-separated list of allowed CORS origins */
@@ -478,6 +479,13 @@ export async function registerApiRoutes(
     // are shared across instances. Falls back to a process-local store when
     // Redis is unconfigured (issue #1860).
     redis: options.rateLimitRedis,
+  });
+  await app.register(oauth2ApprovalRoutes, {
+    ory: options.oryClients,
+    clients: {
+      nativeClientId: process.env.MOLTNET_NATIVE_OAUTH_CLIENT_ID,
+      consoleClientId: process.env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID,
+    },
   });
   await app.register(hookRoutes);
   await app.register(healthRoutes, {
