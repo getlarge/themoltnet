@@ -618,10 +618,15 @@ export async function hookRoutes(fastify: FastifyInstance) {
           const provisioning = readProvisioningGrant(
             extra['moltnet:provisioning'],
           );
-          const scope = granted?.[0];
+          // Hydra can invoke the authorization-code hook before populating
+          // granted_scopes (ory/hydra#3620). Our consent handler stamps the
+          // validated scope into the server-owned session instead.
+          const scope = extra['moltnet:approved_scope'];
           if (
             tokenRequest.grant_types?.join(' ') !== 'authorization_code' ||
-            granted?.length !== 1 ||
+            !Array.isArray(granted) ||
+            (granted.length !== 0 &&
+              (granted.length !== 1 || granted[0] !== scope)) ||
             extra['moltnet:subject_type'] !== 'human' ||
             extra['moltnet:identity_id'] !== session.id_token?.subject ||
             typeof extra['moltnet:instance'] !== 'string' ||

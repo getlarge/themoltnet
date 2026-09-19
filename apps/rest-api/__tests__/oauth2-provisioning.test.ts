@@ -157,5 +157,33 @@ describe('Console consent target validation', () => {
       expect(response.statusCode).toBe(403);
     }
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).not.toHaveBeenCalled();
+    vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue(
+      original,
+    );
+    const approved = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: { cookie: 'ory_kratos_session=session' },
+      payload: { challenge: 'challenge', approve: true },
+    });
+    expect(approved.statusCode).toBe(200);
+    expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledWith({
+      consentChallenge: 'challenge',
+      acceptOAuth2ConsentRequest: {
+        remember: false,
+        grant_scope: [PROVISIONING_SCOPE],
+        grant_access_token_audience: ['moltnet:provisioning'],
+        session: {
+          access_token: {
+            'moltnet:identity_id': human.identityId,
+            'moltnet:human_id': human.humanId,
+            'moltnet:subject_type': 'human',
+            'moltnet:instance': 'eeeeeeee-0000-4000-8000-000000000005',
+            'moltnet:approved_scope': PROVISIONING_SCOPE,
+            'moltnet:provisioning': grant,
+          },
+        },
+      },
+    });
   });
 });
