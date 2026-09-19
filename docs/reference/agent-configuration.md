@@ -816,3 +816,41 @@ removing the indexed slot causes migration to verify it again. Plans are bound
 to the original document; regenerate a plan after another writer changes it.
 Activation refresh verifies the selected key's subject and team binding, and
 older activation caches require refresh after upgrading these readers.
+
+## Project binding format compatibility
+
+`~/.config/moltnet/projects.json` contains machine-local project registrations.
+An explicit alternative file supports CI and cloud workers. The format uses
+`version: 1` and a `bindings` array; it contains no credentials. Readers reject
+unknown or mis-cased fields at every level. A format change, including adding an
+optional field, requires a new version. Writers must not upgrade an existing
+file automatically. Upgrade the CLI and daemon/SDK together before an explicit
+format migration, or use separate configuration files during a transition. Older
+readers report a newer-version error with upgrade guidance and leave the file
+untouched. Invalid versions and malformed configuration are separate errors.
+
+API endpoints use an explicit portable syntax: lowercase HTTP(S) scheme and
+host, canonical IP addresses, no credentials/query/fragment, no dot path
+segments, and no default or zero-padded ports. Omit `:443` for HTTPS and `:80`
+for HTTP. Path segments use ASCII letters, digits, `.`, `_`, `~`, and `-`; a
+single trailing slash is ignored for selection. HTTP is restricted to
+`localhost`, IPv4 loopback addresses, and `[::1]`. Use HTTPS for remote hosts.
+
+On POSIX systems the file must belong to the current user and must not be
+writable by group or others. Both readers reject symbolic links, non-regular
+files, and files larger than 1 MiB. Windows uses filesystem ACLs rather than
+POSIX ownership/mode checks. Store the file in an operator-controlled directory.
+
+The reserved hook phases are `afterCreate` and `beforeRun`. Each command uses an
+absolute executable path or a bare PATH name, an explicit string `args` array,
+and an integer `timeoutMs` from 1 through 600000. Relative executable paths such
+as `./setup` are rejected. Supporting the format does not imply a runtime can
+execute hooks: a runtime must reject unsupported preparation before claiming
+work. Hook execution is provided by the workspace lifecycle layer.
+
+Resolution errors identify ambiguous candidates. Validation errors identify the
+binding index and name where available; file reads include the configuration
+path. Programmatic error categories are `version`, `validation`, `selection`,
+and `io`. Selection returns a copy and accepts only `source`, `strategy`, and
+`diaryId` overrides; an omitted or undefined override preserves the saved value.
+Empty diary IDs are invalid. A `none` override clears source and hooks.

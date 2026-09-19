@@ -1,10 +1,12 @@
 import {
+  chmod,
   mkdir,
   mkdtemp,
   readFile,
   realpath,
   rm,
   symlink,
+  writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -221,11 +223,15 @@ const fixtures = JSON.parse(
   options: Omit<ProjectSelectionOptions, 'cwd'> & { cwd?: string };
   expected?: string | null;
   expectedSource?: string;
+  expectedApiUrl?: string;
+  expectedStrategy?: string;
   error?: boolean;
+  errorKind?: string;
 }>;
 describe('shared Go/TypeScript fixtures', () => {
   it.each(fixtures)('$name', async (fixture) => {
     await symlink(join(root, 'source'), join(root, 'alias'));
+    await mkdir(join(root, 'source-other'));
     const options = {
       ...fixture.options,
       configPath,
@@ -234,12 +240,77 @@ describe('shared Go/TypeScript fixtures', () => {
     if (fixture.error) {
       await expect(
         resolveProjectBinding(fixture.config, options),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ kind: fixture.errorKind });
     } else {
       const selected = await resolveProjectBinding(fixture.config, options);
       expect(selected?.name ?? null).toBe(fixture.expected);
+      if (fixture.expectedApiUrl)
+        expect(selected?.apiUrl).toBe(fixture.expectedApiUrl);
+      if (fixture.expectedStrategy)
+        expect(selected?.strategy).toBe(fixture.expectedStrategy);
       if (fixture.expectedSource)
         expect(selected?.source).toBe(join(root, fixture.expectedSource));
     }
   });
+});
+
+it('rejects runtime override keys outside the contract and ignores undefined', async () => {
+  for (const key of ['apiUrl', 'teamId', 'projectId', 'hooks', '__proto__']) {
+    await expect(
+      resolveProjectBinding(config(), {
+        configPath,
+        cwd: root,
+        overrides: JSON.parse(`{"${key}":"other"}`),
+      }),
+    ).rejects.toThrow(/override/i);
+  }
+  const selected = await resolveProjectBinding(config(), {
+    configPath,
+    cwd: root,
+    overrides: { source: undefined },
+  });
+  expect(selected?.source).toBe(join(root, 'source'));
+});
+
+describe('project config read guards', () => {
+  it.each(['malformed', 'oversized', 'directory', 'symlink', 'writable'])(
+    'rejects %s with the file path',
+    async (kind) => {
+      if (kind === 'directory') await mkdir(configPath);
+      else if (kind === 'symlink') {
+        await writeFile(join(root, 'target'), JSON.stringify(config()));
+        await symlink(join(root, 'target'), configPath);
+      } else {
+        await writeFile(
+          configPath,
+          kind === 'malformed'
+            ? '{'
+            : kind === 'oversized'
+              ? ' '.repeat(1_048_577)
+              : JSON.stringify(config()),
+          { mode: 0o600 },
+        );
+        if (kind === 'writable') await chmod(configPath, 0o666);
+      }
+      if (kind === 'writable' && process.platform === 'win32') return;
+      await expect(readProjectConfig(configPath)).rejects.toThrow(configPath);
+    },
+  );
+  it('returns an empty configuration only for a missing file', async () => {
+    expect(await readProjectConfig(configPath)).toEqual({
+      version: 1,
+      bindings: [],
+    });
+  });
+});
+
+it('persists the canonical endpoint', async () => {
+  await updateProjectConfig(configPath, (current) => {
+    current.bindings = [
+      { ...config().bindings[0], apiUrl: 'https://api.example/' },
+    ];
+  });
+  expect((await readProjectConfig(configPath)).bindings[0].apiUrl).toBe(
+    'https://api.example',
+  );
 });

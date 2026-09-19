@@ -211,6 +211,12 @@ func writeLocked(path string, data []byte) (err error) {
 // ReadBoundedRegularFile reads at most limit bytes from a stable regular-file
 // handle and rejects lexical symlinks.
 func ReadBoundedRegularFile(path string, limit int64) ([]byte, error) {
+	return ReadBoundedRegularFileChecked(path, limit, nil)
+}
+
+// ReadBoundedRegularFileChecked applies an optional trust policy to the opened
+// file, after checking that it is the same regular file observed by Lstat.
+func ReadBoundedRegularFileChecked(path string, limit int64, validate func(os.FileInfo) error) ([]byte, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, err
@@ -232,6 +238,11 @@ func ReadBoundedRegularFile(path string, limit int64) ([]byte, error) {
 	}
 	if !os.SameFile(info, openedInfo) {
 		return nil, fmt.Errorf("%s changed while it was opened", path)
+	}
+	if validate != nil {
+		if err := validate(openedInfo); err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
 	}
 	data, err := io.ReadAll(io.LimitReader(file, limit+1))
 	if err != nil {
