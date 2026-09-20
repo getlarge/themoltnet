@@ -62,6 +62,14 @@ describe('Hook routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    // Schema rejection can leave a one-shot Ory response unconsumed. Tests
+    // are shuffled, so reset this app-owned mock as well as the repositories.
+    vi.mocked(app.oauth2Client.getOAuth2Client)
+      .mockReset()
+      .mockResolvedValue({
+        client_id: 'test-client-id',
+        metadata: { identity_id: OWNER_ID },
+      });
     mockStartWorkflow
       .mockReset()
       .mockReturnValue(
