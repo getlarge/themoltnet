@@ -1,5 +1,34 @@
 # Changelog
 
+## [3.3.0](https://github.com/getlarge/themoltnet/compare/cli-v3.2.0...cli-v3.3.0) (2026-09-20)
+
+
+### Features
+
+* **agent-config:** add shared project binding contract ([e016f0f](https://github.com/getlarge/themoltnet/commit/e016f0f898c1f7864f0f0e92410d0eff22373853))
+* **cli:** migrate contexts and restore project setup prompts ([b5cd377](https://github.com/getlarge/themoltnet/commit/b5cd3770493c68ee8e626ac04bf5258230e20d67))
+* **cli:** replace contexts with optional project setup ([e548cfe](https://github.com/getlarge/themoltnet/commit/e548cfe30271ed96777445a81feea9d63a57e429))
+* **cli:** select projects through registered local bindings ([7795ee1](https://github.com/getlarge/themoltnet/commit/7795ee1e6d88e7dea810f63778f647baf369eaf1))
+* **console:** shared team project administration ([d6ff645](https://github.com/getlarge/themoltnet/commit/d6ff6451e8953eed945f4bc150d9db48399cb118))
+* **projects:** team catalogue and project-scoped task claims ([2446284](https://github.com/getlarge/themoltnet/commit/2446284fcf9fcab5cfbfd99c7ef333bfb5dfcf18))
+
+
+### Bug Fixes
+
+* **agent-config:** enforce portable project binding semantics ([e4909e8](https://github.com/getlarge/themoltnet/commit/e4909e80e295f982a84757ebd27627566efb0234))
+* **cli:** constrain and preserve native project selection ([1c105de](https://github.com/getlarge/themoltnet/commit/1c105de07074838c0f794e91cd10a086cd97dff1))
+* **cli:** expose project catalogue pagination ([80f90ae](https://github.com/getlarge/themoltnet/commit/80f90ae556e0dc4efda7d38c2c78abf8f67ce654))
+* **cli:** make project registration and migration recoverable ([159612a](https://github.com/getlarge/themoltnet/commit/159612a0962021c8f9182345638f04adfe6b4073))
+* **cli:** preserve endpoint provenance and recovery controls ([dd4e885](https://github.com/getlarge/themoltnet/commit/dd4e885594d9e26c58c071c815e395b96a06750b))
+* **cli:** send project team selection in headers ([b743ca6](https://github.com/getlarge/themoltnet/commit/b743ca637a19bc4146560a2865b0b8a672c43325))
+* **cli:** support self-hosted identities and explain selection ([fc711fd](https://github.com/getlarge/themoltnet/commit/fc711fd9be592cba765b47631e9d200997b1df45))
+* **cli:** use team headers during project setup and migration ([53cd9ba](https://github.com/getlarge/themoltnet/commit/53cd9bad5e445637a5f173b48d5192ccd47b0d4a))
+* **config:** address native CI and third review findings ([03addfb](https://github.com/getlarge/themoltnet/commit/03addfbe7d719dc2682e79f0a2910b30e608090a))
+* **config:** complete project binding review follow-ups ([0d76a65](https://github.com/getlarge/themoltnet/commit/0d76a65fdd4e043bbab9efa3c1aabd3ed400704e))
+* **config:** reject malformed UTF-8 consistently ([63ea755](https://github.com/getlarge/themoltnet/commit/63ea755b035c2d11fe0d940a297d3900e2f87e3c))
+* **release:** recover cli v3.3.0 release cycle ([ca35484](https://github.com/getlarge/themoltnet/commit/ca354843b0d65c0aecbd7cc839092ffb90848e4a))
+* **release:** recover cli v3.3.0 release cycle ([3c53b52](https://github.com/getlarge/themoltnet/commit/3c53b52252e79bb6ae044f40c7ecc3ced5b0fd91))
+
 ## [3.2.0](https://github.com/getlarge/themoltnet/compare/cli-v3.1.0...cli-v3.2.0) (2026-09-18)
 
 
