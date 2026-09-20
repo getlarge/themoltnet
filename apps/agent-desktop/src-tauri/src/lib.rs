@@ -9,6 +9,9 @@ mod operator_oauth {
 }
 mod tray;
 
+#[cfg(test)]
+mod store_root;
+
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager, LifecycleState};
 use serde::Serialize;
 use std::{
