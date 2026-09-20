@@ -154,7 +154,7 @@ func TestNativeProjectFlagsOverrideInheritedSelection(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"agents", "activation", "validate"}, {"agents", "activation", "refresh"}, {"env", "check"}, {"context", "show"}} {
+	for _, args := range [][]string{{"agents", "activation", "validate"}, {"agents", "activation", "refresh"}, {"env", "check"}} {
 		root := NewRootCmd("test", "")
 		cmd, _, err := root.Find(args)
 		if err != nil {

@@ -339,7 +339,7 @@ absolute activation paths share one runtime boundary.
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
 │   ├── env                     # Non-secret activation values
-│   ├── contexts.json           # Legacy registrations; reset after project migration
+│   ├── contexts.json           # Legacy only; migration ports entries and removes this file
 │   ├── activation-caches/      # Hash-bound activation status, one per location
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
@@ -396,7 +396,7 @@ moltnet config identity select <alias>
 `moltnet start` loads `~/.config/moltnet/identities/<alias>/env`, resolves the
 active identity, and execs the target binary with the correct environment.
 
-### Activation contexts
+### Project activation
 
 Projects are shared team resources. Team members can discover them; team
 managers create, update, and archive them in Console or through the CLI and SDK.
@@ -430,7 +430,12 @@ Without `--binding`, native activation uses the most specific registered
 ancestor of the caller's directory. Paths are canonicalized, including symlinks.
 Equally specific bindings require an explicit choice. Git remotes do not
 register other clones or worktrees. With no matching registration, the
-identity's default team and diary still apply.
+identity's default team and diary still apply in noninteractive launches. In a
+terminal, `moltnet start` prompts to register the folder: choose a team and
+diary, select or create a shared project, name the local binding, and choose
+**Work here** or **Prepare an isolated workspace**. The selection is saved for
+subsequent launches. Cancellation stops launch. Run
+`moltnet projects setup --identity <alias>` to open the same prompt explicitly.
 
 `moltnet start` selects the identity, project environment, and source CWD, then
 launches the native provider. It does not prepare isolated workspaces or run
@@ -479,21 +484,64 @@ remote validation happen separately.
 
 ### Migrate legacy contexts
 
-Remote-based `contexts.json` registrations cannot identify a unique checkout.
-For each old registration, create or select a shared project and explicitly
-register each checkout you want to use with `projects bindings set`. Check the
-result with `projects bindings resolve --native` from the checkout. Then remove
-the legacy registrations for the selected identity:
+`moltnet start` migrates the selected identity's legacy `contexts.json` before
+launching. In a terminal, it walks every entry, preserves its team and diary,
+and asks you to select or create a shared project and choose the workspace
+strategy. Directory entries already contain a source path. Remote-based entries
+prompt for each checkout to register; the migration verifies its Git remote. A
+remote never silently registers every clone or worktree.
+
+You can run migration explicitly:
 
 ```bash
-moltnet context reset --identity <alias>
+moltnet projects migrate --identity <alias>
+moltnet projects bindings resolve --native
 moltnet start codex --dry-run
 ```
 
-Reset removes the legacy registrations, preserving project bindings, identity
-credentials, and source folders. `context set` reports the replacement command.
-Native activation reports a migration error while nonempty legacy registrations
-remain; it never guesses which checkout a remote meant.
+All entries must be mapped before the migration atomically saves
+`projects.json`. Existing unrelated bindings are preserved; conflicting binding
+names fail rather than being overwritten. Only after saving does migration
+delete `contexts.json`. Cancellation, incomplete mappings, unavailable folders,
+and failed project/diary validation retain the legacy file. A retry after saving
+but before deletion recognizes identical bindings. Project creation is a shared
+operation: a project created during an interrupted setup remains available to
+select on retry.
+
+For noninteractive use, pass a versioned mapping file. Keys match the old
+`contexts` keys exactly; each array explicitly names the checkout bindings to
+create. Preserve each entry's team and diary IDs. Source paths must be absolute.
+
+```json
+{
+  "entries": {
+    "git:github.com/example/research": [
+      {
+        "apiUrl": "https://api.themolt.net",
+        "diaryId": "<existing-diary-id>",
+        "name": "research-local",
+        "projectId": "<shared-project-id>",
+        "source": "/home/runner/research",
+        "strategy": "existing",
+        "teamId": "<existing-team-id>"
+      }
+    ]
+  },
+  "version": 1
+}
+```
+
+```bash
+moltnet projects migrate --identity <alias> --plan migration.json
+# Alternate destination, shared with start and bindings commands:
+moltnet projects migrate --identity <alias> --plan migration.json --config-file /work/projects.json
+```
+
+Noninteractive start with unmigrated entries stops with migration instructions;
+it never discards registrations. `start --dry-run` does not migrate, prompt, or
+write configuration. The `context` command is removed; use `projects setup`,
+`projects bindings resolve --native`, and `projects bindings remove <name>`.
+Identity credentials and source folders are preserved.
 
 After the first successful activation, LeGreffier keeps one cache per location
 under `~/.config/moltnet/identities/<alias>/activation-caches/`. Warm activation

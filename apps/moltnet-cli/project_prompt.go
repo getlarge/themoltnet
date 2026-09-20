@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,97 +18,16 @@ import (
 	"golang.org/x/term"
 )
 
-type contextCommandOptions struct {
-	Identity string
-	TeamID   string
-	DiaryID  string
-	JSON     bool
-}
-
-type contextShowResult struct {
-	ContextKey string `json:"contextKey"`
-	Identity   string `json:"identity"`
-	Source     string `json:"source,omitempty"`
-	TeamID     string `json:"teamId,omitempty"`
-	DiaryID    string `json:"diaryId,omitempty"`
-}
-
-func contextIdentity(identity string) (string, string, error) {
-	alias, err := resolveIdentityAlias(identity)
-	if err != nil {
-		return "", "", err
-	}
-	dir, err := identityDir(alias)
-	return alias, dir, err
-}
-
-func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
-	alias, agentDir, err := contextIdentity(opts.Identity)
-	if err != nil {
-		return err
-	}
-	resolved, err := resolveNativeProjectContext(agentDir, "", nativeProjectOptionsFromCommand(cmd))
-	if err != nil {
-		return err
-	}
-	resolved.writeSkippedEndpointNotice(cmd.ErrOrStderr())
-	result := contextShowResult{ContextKey: resolved.Key, Identity: alias, Source: resolved.Source}
-	if resolved.Binding != nil {
-		result.TeamID = resolved.Binding.TeamID
-		result.DiaryID = resolved.Binding.DiaryID
-	}
-	if opts.JSON {
-		return json.NewEncoder(cmd.OutOrStdout()).Encode(result)
-	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Location: %s\nIdentity: %s\n", result.ContextKey, result.Identity)
-	if resolved.Binding == nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none — run 'moltnet projects bindings set' to bind this location")
-		return nil
-	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Source:   %s\nTeam:     %s\nDiary:    %s\n", result.Source, result.TeamID, result.DiaryID)
-	return nil
-}
-
-func runContextSetCmd(_ *cobra.Command, _ contextCommandOptions) error {
-	return fmt.Errorf("contexts have been replaced: use 'moltnet projects bindings set' with an explicit project, source folder and workspace strategy")
-}
-
-func runContextResetCmd(cmd *cobra.Command, identity string) error {
-	alias, agentDir, err := contextIdentity(identity)
-	if err != nil {
-		return err
-	}
-	if err := updateContextStore(agentDir, func(store *contextStore) { store.Contexts = nil }); err != nil {
-		return err
-	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Reset legacy contexts for %s. Project registrations are unchanged.\n", alias)
-	return nil
-}
-
-func runContextClearCmd(cmd *cobra.Command, opts contextCommandOptions) error {
-	alias, agentDir, err := contextIdentity(opts.Identity)
-	if err != nil {
-		return err
-	}
-	key, removed, err := clearContextBinding(agentDir, "")
-	if err != nil {
-		return err
-	}
-	if !removed {
-		fmt.Fprintf(cmd.OutOrStdout(), "No binding for %s; nothing to clear (the identity default still applies)\n", key)
-		return nil
-	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Cleared %s for %s\n", key, alias)
-	return nil
-}
-
-func contextCommandInteractive(cmd *cobra.Command) bool {
+var projectCommandInteractive = func(cmd *cobra.Command) bool {
 	file, ok := cmd.InOrStdin().(*os.File)
 	return ok && term.IsTerminal(int(file.Fd()))
 }
 
-func guidedContextBinding(cmd *cobra.Command, agentDir string) (string, string, error) {
-	reader := bufio.NewReader(cmd.InOrStdin())
+func guidedTeamDiary(cmd *cobra.Command, agentDir string) (string, string, error) {
+	return guidedTeamDiaryWithReader(cmd, agentDir, bufio.NewReader(cmd.InOrStdin()))
+}
+
+func guidedTeamDiaryWithReader(cmd *cobra.Command, agentDir string, reader *bufio.Reader) (string, string, error) {
 	if identityDefault, ok := identityDefaultBinding(agentDir); ok {
 		choice, err := promptChoice(cmd.OutOrStdout(), reader, "This identity's default team and diary are set", 2, func(index int) string {
 			if index == 0 {
@@ -170,6 +88,10 @@ func guidedContextBinding(cmd *cobra.Command, agentDir string) (string, string, 
 		return "", "", fmt.Errorf("invalid configured team ID: %w", err)
 	}
 
+	client, err = newAuthenticatedClient(resolveAPIURLFromCredentials("", false, creds), credentialsPath, selectedTeam)
+	if err != nil {
+		return "", "", err
+	}
 	diariesResponse, err := client.ListDiaries(context.Background(), moltnetapi.ListDiariesParams{})
 	if err != nil {
 		return "", "", fmt.Errorf("list diaries: %w", formatTransportError(err))
@@ -218,7 +140,7 @@ func guidedContextBinding(cmd *cobra.Command, agentDir string) (string, string, 
 			return "", "", err
 		}
 		if createIndex != 0 {
-			return "", "", fmt.Errorf("context setup cancelled")
+			return "", "", fmt.Errorf("project setup cancelled")
 		}
 	}
 	created, err := client.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{

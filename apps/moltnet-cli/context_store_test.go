@@ -1,13 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -174,39 +172,6 @@ func TestResolveContextThroughSymlinkedDirectory(t *testing.T) {
 	}
 }
 
-func TestSetContextBindingConcurrentWritersKeepEveryBinding(t *testing.T) {
-	agentDir := t.TempDir()
-	const writers = 16
-	locations := make([]string, writers)
-	for index := range locations {
-		locations[index] = t.TempDir()
-	}
-	var group sync.WaitGroup
-	errs := make(chan error, writers)
-	for index := range locations {
-		group.Add(1)
-		go func(location string, index int) {
-			defer group.Done()
-			binding := contextBinding{TeamID: contextTestTeam, DiaryID: fmt.Sprintf("00000000-0000-4000-8000-%012d", index)}
-			if _, err := setContextBinding(agentDir, location, binding); err != nil {
-				errs <- err
-			}
-		}(locations[index], index)
-	}
-	group.Wait()
-	close(errs)
-	for err := range errs {
-		t.Fatal(err)
-	}
-	store, err := readContextStore(agentDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(store.Contexts) != writers {
-		t.Fatalf("store holds %d bindings after %d concurrent writers; updates were lost", len(store.Contexts), writers)
-	}
-}
-
 func TestReadContextStoreRejectsNewerVersion(t *testing.T) {
 	agentDir := t.TempDir()
 	if err := os.WriteFile(contextStorePath(agentDir), []byte(`{"version": 99}`), 0o600); err != nil {
@@ -215,54 +180,5 @@ func TestReadContextStoreRejectsNewerVersion(t *testing.T) {
 	_, err := readContextStore(agentDir)
 	if err == nil || !strings.Contains(err.Error(), "contexts.json") || !strings.Contains(err.Error(), "newer") {
 		t.Fatalf("a newer store must fail and name the file and cause, got: %v", err)
-	}
-}
-
-func useContextTestIdentity(t *testing.T) (string, string) {
-	t.Helper()
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := writeIdentitySelector("test-agent"); err != nil {
-		t.Fatal(err)
-	}
-	location := t.TempDir()
-	original := contextWorkingDirectory
-	contextWorkingDirectory = func() (string, error) { return location, nil }
-	t.Cleanup(func() { contextWorkingDirectory = original })
-	return agentDir, location
-}
-
-func TestContextShowUsesProjectRegistration(t *testing.T) {
-	_, location := useContextTestIdentity(t)
-	writeProjectTestBinding(t, location, contextTestDiary)
-	stdout, _, err := executeCommand(NewRootCmd("test", ""), "context", "show", "--json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var shown contextShowResult
-	if err := json.Unmarshal([]byte(stdout), &shown); err != nil {
-		t.Fatal(err)
-	}
-	if shown.Source != contextSourceLocation || shown.TeamID != contextTestTeam || shown.DiaryID != contextTestDiary {
-		t.Fatalf("unexpected selection: %+v", shown)
-	}
-}
-
-func TestContextClearReportsWhenNothingIsBound(t *testing.T) {
-	useContextTestIdentity(t)
-	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "context", "clear")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(stdout, "Cleared") || !strings.Contains(stdout, "nothing to clear") {
-		t.Fatalf("clear misreported an unbound location: %s", stdout)
 	}
 }

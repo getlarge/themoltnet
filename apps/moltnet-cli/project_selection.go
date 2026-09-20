@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -37,9 +38,7 @@ type contextBinding struct {
 	DiaryID string `json:"diaryId"`
 }
 
-// contextStore is the legacy location format retained for the explicit migration.
-// Its keys are normalized Git remotes or canonical directories. Native selection
-// uses projectconfig and does not interpret these keys as project bindings.
+// contextStore is read only for migration; new registrations use projectconfig.Config.
 type contextStore struct {
 	Version  int                       `json:"version"`
 	Contexts map[string]contextBinding `json:"contexts,omitempty"`
@@ -83,41 +82,18 @@ func readContextStore(agentDir string) (*contextStore, error) {
 		return nil, fmt.Errorf("read %s: %w", path, err)
 	}
 	var store contextStore
-	if err := json.Unmarshal(data, &store); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&store); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
+	}
+	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("parse %s: expected one JSON object", path)
 	}
 	if store.Version != contextStoreVersion {
 		return nil, fmt.Errorf("%s has version %d, but this CLI understands version %d; it was likely written by a newer moltnet release", path, store.Version, contextStoreVersion)
 	}
 	return &store, nil
-}
-
-// updateContextStore applies mutate as one read-modify-write under the store's
-// writer lock, so concurrent `context set` / `clear` runs cannot drop each
-// other's bindings.
-func updateContextStore(agentDir string, mutate func(*contextStore)) error {
-	lock, err := safefile.Acquire(contextStorePath(agentDir))
-	if err != nil {
-		return err
-	}
-	defer lock.Close()
-	store, err := readContextStore(agentDir)
-	if err != nil {
-		return err
-	}
-	mutate(store)
-	store.Version = contextStoreVersion
-	if len(store.Contexts) == 0 {
-		store.Contexts = nil
-	}
-	data, err := json.MarshalIndent(store, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := lock.Write(append(data, '\n')); err != nil {
-		return fmt.Errorf("write context store: %w", err)
-	}
-	return nil
 }
 
 // normalizeGitRemoteKey reduces a remote URL to a provider-neutral key, so
@@ -199,20 +175,6 @@ func gitRemoteKeyAt(directory string) (string, bool) {
 	return key, err == nil
 }
 
-// contextLocationKey returns the key for directory (or the working directory):
-// its normalized Git remote, or "dir:" plus the canonical directory outside a
-// repository.
-func contextLocationKey(directory string) (string, error) {
-	canonical, err := canonicalDirectory(directory)
-	if err != nil {
-		return "", err
-	}
-	if key, ok := gitRemoteKeyAt(canonical); ok {
-		return key, nil
-	}
-	return "dir:" + canonical, nil
-}
-
 // identityDefaultBinding returns the identity-wide team/diary pair from the
 // identity env file, when both are set.
 func identityDefaultBinding(agentDir string) (contextBinding, bool) {
@@ -247,7 +209,7 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 		return resolvedContextBinding{}, err
 	}
 	if len(legacy.Contexts) > 0 {
-		return resolvedContextBinding{}, fmt.Errorf("legacy contexts require migration: register each checkout with 'moltnet projects bindings set', then run 'moltnet context reset --identity <alias>'; Git remotes cannot identify a unique checkout")
+		return resolvedContextBinding{}, fmt.Errorf("legacy contexts require migration: run 'moltnet projects migrate --identity <alias>' in a terminal, or supply --plan for noninteractive migration")
 	}
 	if configPath == "" {
 		configPath, err = projectconfig.Path()
@@ -305,54 +267,6 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 func activationCachePathForContext(agentDir, contextKey string) string {
 	digest := sha256.Sum256([]byte(contextKey))
 	return filepath.Join(agentDir, "activation-caches", hex.EncodeToString(digest[:])+".json")
-}
-
-func validateContextBinding(binding contextBinding) error {
-	if strings.TrimSpace(binding.TeamID) == "" || strings.TrimSpace(binding.DiaryID) == "" {
-		return fmt.Errorf("both --team-id and --diary-id are required")
-	}
-	return nil
-}
-
-// setContextBinding binds directory's location (the working directory when
-// empty) to binding.
-func setContextBinding(agentDir, directory string, binding contextBinding) (resolvedContextBinding, error) {
-	if err := validateContextBinding(binding); err != nil {
-		return resolvedContextBinding{}, err
-	}
-	key, err := contextLocationKey(directory)
-	if err != nil {
-		return resolvedContextBinding{}, err
-	}
-	if err := updateContextStore(agentDir, func(store *contextStore) {
-		if store.Contexts == nil {
-			store.Contexts = map[string]contextBinding{}
-		}
-		store.Contexts[key] = binding
-	}); err != nil {
-		return resolvedContextBinding{}, err
-	}
-	copy := binding
-	return resolvedContextBinding{Key: key, Source: contextSourceLocation, Binding: &copy}, nil
-}
-
-// clearContextBinding removes the binding for directory's location. It reports
-// whether one existed, so callers never announce a change that did not happen.
-func clearContextBinding(agentDir, directory string) (string, bool, error) {
-	key, err := contextLocationKey(directory)
-	if err != nil {
-		return "", false, err
-	}
-	removed := false
-	if err := updateContextStore(agentDir, func(store *contextStore) {
-		if _, ok := store.Contexts[key]; ok {
-			delete(store.Contexts, key)
-			removed = true
-		}
-	}); err != nil {
-		return "", false, err
-	}
-	return key, removed, nil
 }
 
 // The key is hashed as an opaque cache identity, never parsed into fields.

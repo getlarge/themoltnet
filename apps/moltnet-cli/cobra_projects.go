@@ -107,7 +107,7 @@ func newProjectsCmd() *cobra.Command {
 		}
 		root.AddCommand(command)
 	}
-	root.AddCommand(newProjectBindingsCmd())
+	root.AddCommand(newProjectBindingsCmd(), newProjectMigrateCmd(), newProjectSetupCmd())
 	return root
 }
 

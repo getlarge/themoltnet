@@ -125,28 +125,6 @@ func TestProjectStartSelectsSourceWithoutPreparingWorkspace(t *testing.T) {
 	}
 }
 
-func TestProjectLegacyContextCommandsRequireMigration(t *testing.T) {
-	_, _, err := executeCommand(NewRootCmd("test", ""), "context", "set", "--team-id", "team", "--diary-id", "diary")
-	if err == nil || !strings.Contains(err.Error(), "projects bindings set") {
-		t.Fatalf("expected replacement command, got %v", err)
-	}
-}
-func TestProjectLegacyContextReset(t *testing.T) {
-	setupStartUnboundFixture(t, "")
-	identity := filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "identities", "test-agent")
-	if err := os.WriteFile(contextStorePath(identity), []byte(`{"version":1,"contexts":{"git:example/repo":{"teamId":"team","diaryId":"diary"}}}`), 0600); err != nil {
-		t.Fatal(err)
-	}
-	_, _, err := executeCommand(NewRootCmd("test", ""), "context", "reset", "--identity", "test-agent")
-	if err != nil {
-		t.Fatal(err)
-	}
-	store, err := readContextStore(identity)
-	if err != nil || len(store.Contexts) != 0 {
-		t.Fatalf("reset failed: %v %v", store, err)
-	}
-}
-
 func TestProjectsListPaginationFlags(t *testing.T) {
 	out, _, err := executeCommand(NewRootCmd("test", ""), "projects", "list", "--help")
 	if err != nil {

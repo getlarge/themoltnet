@@ -73,7 +73,7 @@ func TestGuidedContextBootstrapsMultipleTeamKeys(t *testing.T) {
 	cmd.SetIn(strings.NewReader("1\n1\n"))
 	var output bytes.Buffer
 	cmd.SetOut(&output)
-	got, diary, err := guidedContextBinding(cmd, dir)
+	got, diary, err := guidedTeamDiary(cmd, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
