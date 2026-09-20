@@ -122,7 +122,7 @@ function requireNonEmptyString(
     throw new Error(`${label} must be a non-empty string`);
 }
 // Deliberately narrower than WHATWG URL parsing; Go implements this same grammar.
-function endpoint(value: string): string {
+export function normalizeProjectEndpoint(value: string): string {
   const fail = () => {
     throw new Error(
       'apiUrl must be a canonical HTTP(S) endpoint; use HTTPS except for loopback',
@@ -218,7 +218,7 @@ function validateProjectConfigValue(
       const name = b.name as string;
       if (names.has(name)) throw new Error(`Duplicate binding name: ${name}`);
       names.add(name);
-      const apiUrl = endpoint(b.apiUrl as string);
+      const apiUrl = normalizeProjectEndpoint(b.apiUrl as string);
       if (!WORKSPACE_STRATEGIES.includes(b.strategy as WorkspaceStrategy))
         throw new Error('An explicit workspace strategy is required');
       if (b.strategy === 'none') {
@@ -354,7 +354,7 @@ export async function updateProjectConfig(
     await mutate(config);
     validateProjectConfig(config);
     for (const binding of config.bindings)
-      binding.apiUrl = endpoint(binding.apiUrl);
+      binding.apiUrl = normalizeProjectEndpoint(binding.apiUrl);
     const data = `${JSON.stringify(config, null, 2)}\n`;
     if (Buffer.byteLength(data) > MAX_CONFIG_BYTES)
       throw new Error('Project config exceeds 1 MiB');
@@ -425,7 +425,9 @@ async function resolveProjectBindingValue(
   };
   const base = dirname(resolve(options.configPath ?? getProjectConfigPath()));
   const matches = (b: ProjectBinding) =>
-    (!options.apiUrl || endpoint(b.apiUrl) === endpoint(options.apiUrl)) &&
+    (!options.apiUrl ||
+      normalizeProjectEndpoint(b.apiUrl) ===
+        normalizeProjectEndpoint(options.apiUrl)) &&
     (!options.teamId || b.teamId === options.teamId) &&
     (!options.projectId || b.projectId === options.projectId);
   let candidates = config.bindings.filter(matches);
@@ -445,7 +447,11 @@ async function resolveProjectBindingValue(
   } else if (candidates.length > 1) {
     const projects = new Set(
       candidates.map((b) =>
-        JSON.stringify([endpoint(b.apiUrl), b.teamId, b.projectId]),
+        JSON.stringify([
+          normalizeProjectEndpoint(b.apiUrl),
+          b.teamId,
+          b.projectId,
+        ]),
       ),
     );
     const defaults =
@@ -514,7 +520,7 @@ async function applyOverrides(
         result.source,
       ),
     );
-  result.apiUrl = endpoint(result.apiUrl);
+  result.apiUrl = normalizeProjectEndpoint(result.apiUrl);
   return result;
 }
 

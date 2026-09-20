@@ -234,6 +234,7 @@ export {
   defaultStoreRoot,
   getProjectConfigPath,
   isDefaultStore,
+  normalizeProjectEndpoint,
   type ProjectBinding,
   type ProjectConfig,
   ProjectConfigError,
@@ -244,6 +245,8 @@ export {
   resolveStoreSelection,
   type StoreRootOptions,
   storeSecretService,
+  updateProjectConfig,
+  validateProjectConfig,
   WORKSPACE_STRATEGIES,
   type WorkspaceStrategy,
 } from '@moltnet/agent-config';
