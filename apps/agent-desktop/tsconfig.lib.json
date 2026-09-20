@@ -21,6 +21,9 @@
     },
     {
       "path": "../../libs/agent-daemon-api-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/task-ui/tsconfig.lib.json"
     }
   ]
 }

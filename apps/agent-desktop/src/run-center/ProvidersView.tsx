@@ -21,7 +21,7 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ProviderForm } from './ProviderForm.js';
 import type {
@@ -62,14 +62,31 @@ export function ProvidersView({
   const entries = Object.entries(providers);
   const [login, setLogin] = useState<AgentServerSubscriptionLogin | null>(null);
   const [signingIn, setSigningIn] = useState<string | null>(null);
+  const loginGeneration = useRef(0);
+  const pendingLogin = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      loginGeneration.current++;
+      const id = pendingLogin.current;
+      pendingLogin.current = null;
+      if (id) void subscriptionActions?.cancelLogin(id).catch(() => undefined);
+    },
+    [subscriptionActions],
+  );
 
   const signIn = async (providerId: string) => {
-    if (!subscriptionActions) return;
+    if (!subscriptionActions || pendingLogin.current) return;
+    const generation = ++loginGeneration.current;
+    pendingLogin.current = providerId;
     setSigningIn(providerId);
     setError(null);
     setLogin(null);
     try {
       let current = await subscriptionActions.startLogin(providerId);
+      if (generation !== loginGeneration.current) {
+        await subscriptionActions.cancelLogin(providerId);
+        return;
+      }
       setLogin(current);
       if (current.status === 'failed') {
         setError(current.error ?? 'The provider refused the sign-in.');
@@ -81,29 +98,45 @@ export function ProvidersView({
       if (target) await subscriptionActions.openSignIn(target);
 
       const deadline = Date.now() + POLL_DEADLINE_MS;
-      while (current.status === 'pending' && Date.now() < deadline) {
+      while (
+        generation === loginGeneration.current &&
+        current.status === 'pending' &&
+        Date.now() < deadline
+      ) {
         await new Promise((resolve) => {
           setTimeout(resolve, POLL_INTERVAL_MS);
         });
+        if (generation !== loginGeneration.current) return;
         current = await subscriptionActions.loginStatus(providerId);
+        if (generation !== loginGeneration.current) return;
         setLogin(current);
       }
       if (current.status === 'failed') {
         setError(current.error ?? 'The provider refused the sign-in.');
         return;
       }
+      if (
+        current.status === 'pending' &&
+        generation === loginGeneration.current
+      ) {
+        await subscriptionActions.cancelLogin(providerId);
+        setError('Sign-in timed out. Start a fresh sign-in.');
+      }
       if (current.status === 'completed') {
         setLogin(null);
         onChanged();
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      if (generation === loginGeneration.current)
+        setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      setSigningIn(null);
+      if (pendingLogin.current === providerId) pendingLogin.current = null;
+      if (generation === loginGeneration.current) setSigningIn(null);
     }
   };
 
   const abandonSignIn = async (providerId: string) => {
+    loginGeneration.current++;
     if (!subscriptionActions) return;
     setLogin(null);
     setSigningIn(null);
@@ -326,6 +359,9 @@ export function ProvidersView({
                   ) : (
                     <Button
                       size="sm"
+                      disabled={
+                        signingIn !== null && signingIn !== subscription.id
+                      }
                       loading={signingIn === subscription.id}
                       loadingLabel="Waiting for the provider"
                       onClick={() => void signIn(subscription.id)}

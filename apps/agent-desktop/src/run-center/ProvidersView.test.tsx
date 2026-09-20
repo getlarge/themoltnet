@@ -209,7 +209,7 @@ function renderWithSubscriptions(
     openSignIn,
     ...overrides,
   };
-  render(
+  const view = render(
     <MoltThemeProvider mode="dark">
       <ProvidersView
         providers={{}}
@@ -224,7 +224,13 @@ function renderWithSubscriptions(
       />
     </MoltThemeProvider>,
   );
-  return { startLogin, loginStatus, cancelLogin, openSignIn };
+  return {
+    startLogin,
+    loginStatus,
+    cancelLogin,
+    openSignIn,
+    unmount: view.unmount,
+  };
 }
 
 describe('subscription sign-in', () => {
@@ -313,6 +319,19 @@ describe('subscription sign-in', () => {
     await waitFor(() => {
       expect(mocks.cancelLogin).toHaveBeenCalledWith('anthropic');
     });
+  });
+
+  it('cancels pending provider approval when leaving the view', async () => {
+    const mocks = renderWithSubscriptions([CLAUDE]);
+    fireEvent.click(
+      screen.getByRole('button', { name: /sign in to claude/iu }),
+    );
+    await waitFor(() => expect(mocks.openSignIn).toHaveBeenCalled());
+
+    mocks.unmount();
+
+    expect(mocks.cancelLogin).toHaveBeenCalledWith('anthropic');
+    expect(mocks.loginStatus).not.toHaveBeenCalled();
   });
 
   it('shows a connected subscription as needing no key', () => {

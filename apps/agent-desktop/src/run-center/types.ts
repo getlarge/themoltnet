@@ -123,21 +123,7 @@ export interface RunCenterActions {
  * this is machine setup rather than run composition, and because a surface
  * that writes secrets deserves its own, small contract.
  */
-export interface ProviderActions {
-  putProvider(
-    providerId: string,
-    config: {
-      api: string;
-      baseUrl: string;
-      envName: string;
-      models: AgentServerProvider['models'];
-      /** Write-only: the server never echoes it back. */
-      apiKey?: string;
-    },
-  ): Promise<AgentServerProvider>;
-  deleteProvider(providerId: string): Promise<void>;
-  discoverModels(providerId: string): Promise<AgentServerProvider['models']>;
-}
+export type { ProviderActions } from '@moltnet/task-ui/local-providers';
 
 /**
  * Signing in to an existing LLM subscription, as an alternative to pasting an

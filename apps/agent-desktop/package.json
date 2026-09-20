@@ -23,7 +23,8 @@
     "jsdom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@moltnet/task-ui": "workspace:*"
   },
   "nx": {
     "namedInputs": {
