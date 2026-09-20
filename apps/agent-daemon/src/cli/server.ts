@@ -114,11 +114,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           const secretProviders =
             createNodeSecretProviderRegistry().register(secrets);
           const externalSecretProviders = createNodeSecretProviderRegistry();
-          const pairing = new NativeGrantService();
+          const nativeGrant = new NativeGrantService();
           // Consumes MOLTNET_AGENT_SERVER_NATIVE_TOKEN from process.env, so
           // run children spawned later cannot inherit the desktop's token.
           const nativeClient = applyNativeClientGrant({
-            pairing,
+            nativeGrant,
             env: processEnvSnapshot(),
           });
           if (Boolean(values.supervised) && !nativeClient) {
@@ -187,7 +187,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             secrets,
             secretProviders,
             externalSecretProviders,
-            pairing,
+            nativeGrant,
             runs,
             subscriptions,
             providers,

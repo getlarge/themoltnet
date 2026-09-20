@@ -165,7 +165,7 @@ export interface BuildAgentServerOptions {
   secrets: FileSecretProvider;
   secretProviders: SecretProviderRegistry;
   externalSecretProviders: SecretProviderRegistry;
-  pairing: NativeGrantService;
+  nativeGrant: NativeGrantService;
   operatorOAuth?: OperatorOAuth;
   operatorApiUrl?: string;
   runs: RunManager;
@@ -329,7 +329,7 @@ function requestOperationSignal(
 export function buildAgentServer(
   options: BuildAgentServerOptions,
 ): FastifyInstance {
-  const { pairing } = options;
+  const { nativeGrant } = options;
   const oauth = options.operatorOAuth;
 
   const fastifyOptions = {
@@ -375,7 +375,7 @@ export function buildAgentServer(
       if (typeof presented === 'string' && presented.length > 0) {
         try {
           if (origin === NATIVE_CLIENT_ORIGIN)
-            pairing.verify(origin, presented);
+            nativeGrant.verify(origin, presented);
           else {
             if (!oauth) return `unauth:${origin}:${request.ip}`;
             await oauth.verifyBrowser(presented);
@@ -407,7 +407,7 @@ export function buildAgentServer(
         'Local control token is required',
       );
     }
-    if (origin === NATIVE_CLIENT_ORIGIN) pairing.verify(origin, token);
+    if (origin === NATIVE_CLIENT_ORIGIN) nativeGrant.verify(origin, token);
     else {
       try {
         if (!oauth) throw new Error('OAuth unavailable');
@@ -429,36 +429,6 @@ export function buildAgentServer(
       { schema: AgentServerRouteSchemas.health },
       async () => ({ status: 'ok' }),
     );
-    for (const [method, url, operationId] of [
-      ['POST', '/v1/pairings', 'startAgentServerPairing'],
-      ['POST', '/v1/pairings/:pairingId/claim', 'claimAgentServerPairing'],
-    ] as const) {
-      app.route({
-        method,
-        url,
-        schema: {
-          operationId,
-          deprecated: true,
-          tags: ['compatibility'],
-          response: {
-            410: {
-              type: 'object',
-              properties: {
-                code: { type: 'string' },
-                message: { type: 'string' },
-              },
-              required: ['code', 'message'],
-            },
-          },
-        },
-        handler: async (_request, reply) =>
-          reply.code(410).send({
-            code: 'pairing_replaced',
-            message:
-              'Sign in through Desktop, then connect Console using OAuth PKCE.',
-          }),
-      });
-    }
     app.get('/oauth/metadata', async () => {
       if (!oauth)
         throw new AgentServerHttpError(

@@ -24,10 +24,10 @@ const MIN_TOKEN_LENGTH = 32;
  * @returns whether a native grant was issued.
  */
 export function applyNativeClientGrant(options: {
-  pairing: NativeGrantService;
+  nativeGrant: NativeGrantService;
   env: NodeJS.ProcessEnv;
 }): boolean {
-  const { pairing, env } = options;
+  const { nativeGrant, env } = options;
   const token = env[NATIVE_TOKEN_ENV];
   delete env[NATIVE_TOKEN_ENV];
   if (typeof token !== 'string' || token.length === 0) return false;
@@ -36,6 +36,6 @@ export function applyNativeClientGrant(options: {
       `${NATIVE_TOKEN_ENV} must be at least 32 characters of unguessable entropy`,
     );
   }
-  pairing.grantNative(token);
+  nativeGrant.grantNative(token);
   return true;
 }

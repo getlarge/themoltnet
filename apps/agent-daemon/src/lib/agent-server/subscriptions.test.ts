@@ -99,14 +99,14 @@ async function fixture(options: {
       new EventEmitter() as unknown as ChildProcess) as SpawnImpl,
   });
   const token = 'native-test-token';
-  const pairing = new NativeGrantService();
-  pairing.grantNative(token);
+  const nativeGrant = new NativeGrantService();
+  nativeGrant.grantNative(token);
   const app = buildAgentServer({
     store,
     secrets,
     secretProviders,
     externalSecretProviders,
-    pairing,
+    nativeGrant,
     runs,
     subscriptions,
     providers: new ProviderConfigurationService({

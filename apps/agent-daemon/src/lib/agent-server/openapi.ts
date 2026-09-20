@@ -31,7 +31,8 @@ export function registerAgentServerOpenApi(app: FastifyInstance): void {
             type: 'apiKey',
             in: 'header',
             name: AGENT_SERVER_TOKEN_HEADER,
-            description: 'Origin-bound capability issued by local pairing.',
+            description:
+              'Console OAuth PKCE local-control access token, or a process-scoped native Desktop grant.',
           },
         },
       },

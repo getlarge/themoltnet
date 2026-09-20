@@ -56,22 +56,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('local OAuth connection', () => {
-  it('removes historical pairing storage and keeps authorization in memory', async () => {
-    sessionStorage.setItem(
-      'moltnet-agent-server-token::http://127.0.0.1:17374',
-      'old-pairing',
-    );
+  it('keeps authorization in memory', async () => {
     const { result } = renderHook(() => useLocalRuntime(), {
       wrapper: createTestWrapper(),
     });
     await waitFor(() => expect(result.current.status).toBe('unauthorized'));
     await act(() => result.current.authorize());
     await waitFor(() => expect(result.current.status).toBe('connected'));
-    expect(
-      sessionStorage.getItem(
-        'moltnet-agent-server-token::http://127.0.0.1:17374',
-      ),
-    ).toBeNull();
+    expect(sessionStorage.length).toBe(0);
   });
   it('drops authorization when the server expires or rejects it and reconnects through PKCE', async () => {
     const { result } = renderHook(() => useLocalRuntime(), {

@@ -25,9 +25,9 @@ afterEach(cleanupAll);
 describe('native desktop client', () => {
   it('authorizes the native origin with the supervisor token', async () => {
     // Arrange
-    const pairing = new NativeGrantService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant });
 
     // Act
     const response = await app.inject({
@@ -47,9 +47,9 @@ describe('native desktop client', () => {
   it.each([undefined, 'guessed'])(
     'rejects enrollment without the native grant (%s)',
     async (token) => {
-      const pairing = new NativeGrantService();
-      pairing.grantNative('supervisor-token');
-      const { app } = await fixture({ pairing });
+      const nativeGrant = new NativeGrantService();
+      nativeGrant.grantNative('supervisor-token');
+      const { app } = await fixture({ nativeGrant });
       const response = await app.inject({
         method: 'POST',
         url: '/v1/agents/agent/teams',
@@ -71,9 +71,9 @@ describe('native desktop client', () => {
 
   it('rejects the native origin with a wrong token', async () => {
     // Arrange
-    const pairing = new NativeGrantService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant });
 
     // Act
     const response = await app.inject({
@@ -92,9 +92,9 @@ describe('native desktop client', () => {
 
   it('does not let a guessed token exhaust the native client rate limit', async () => {
     // Arrange
-    const pairing = new NativeGrantService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing, rateLimitMax: 1 });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant, rateLimitMax: 1 });
 
     // Act: a local process spends the pre-auth budget with a non-empty guess.
     const guessed = await app.inject({
@@ -142,9 +142,9 @@ describe('native desktop client', () => {
 
   it('does not let a browser origin reuse the native token', async () => {
     // Arrange
-    const pairing = new NativeGrantService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant });
 
     // Act
     const response = await app.inject({
@@ -159,21 +159,6 @@ describe('native desktop client', () => {
 
     // Assert
     expect(response.statusCode).toBe(401);
-  });
-
-  it('refuses to open a browser pairing for the native origin', async () => {
-    // A page that could pair as the native client would inherit desktop
-    // authority, so the ceremony must refuse that origin outright.
-    const { app } = await fixture();
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/pairings',
-      headers: { host: HOST, origin: NATIVE_CLIENT_ORIGIN },
-    });
-
-    // `pairing_invalid` is forbidden, not malformed — the existing mapping.
-    expect(response.statusCode).toBe(410);
   });
 
   it('leaves the native origin unauthorized when no token was supplied', async () => {

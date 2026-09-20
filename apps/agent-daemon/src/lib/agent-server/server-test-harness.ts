@@ -103,7 +103,7 @@ export async function fixture(
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
-    pairing?: NativeGrantService;
+    nativeGrant?: NativeGrantService;
     catalogueAgentFor?: BuildAgentServerOptions['catalogueAgentFor'];
     externalSecrets?: Record<string, string>;
     realCredentialPreflight?: boolean;
@@ -262,7 +262,7 @@ export async function fixture(
     secrets,
     secretProviders,
     externalSecretProviders,
-    pairing: options.pairing ?? new NativeGrantService(),
+    nativeGrant: options.nativeGrant ?? new NativeGrantService(),
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }
       : {}),

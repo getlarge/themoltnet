@@ -286,7 +286,7 @@ export function createAgentServerClient(options: {
       );
       return result.models;
     },
-    // SSE over fetch: EventSource cannot send the pairing-token header, so
+    // SSE over fetch: EventSource cannot send the local-control token header, so
     // read the stream manually and surface `data:` payload lines.
     async streamLogs(
       runId: string,

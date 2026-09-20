@@ -2,7 +2,7 @@
  * AgentServer provider registry (presence booleans only) and run lifecycle
  * against a fake spawn.
  *
- * Pairing, the native client and the catalogue have their own files; the shared
+ * Authorization, the native client and the catalogue have their own files; the shared
  * harness lives in `server-test-harness.ts`.
  */
 import {

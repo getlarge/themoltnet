@@ -48,7 +48,7 @@ Commands:
   once      Claim and execute one specific queued task by id, then exit.
   drain     Poll until the queue has nothing claimable, then exit.
             Useful for batch eval runs and demos.
-  server    Loopback supervisor for console-managed runs: pairing,
+  server    Loopback supervisor for console-managed runs: OAuth local control,
             agent/provider config store, and start/stop of poll/drain
             child processes. Binds 127.0.0.1 only.
   server trust

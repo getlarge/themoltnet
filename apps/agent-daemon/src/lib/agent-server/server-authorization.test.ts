@@ -83,14 +83,4 @@ describe('agent server authorization', () => {
       ],
     });
   });
-
-  it('returns a migration response for the published pairing API', async () => {
-    const { app } = await fixture();
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/pairings',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
-    });
-    expect(response.statusCode).toBe(410);
-  });
 });

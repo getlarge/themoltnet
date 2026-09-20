@@ -160,14 +160,6 @@ export function useLocalRuntime(): LocalRuntimeController {
   }, [agentServerUrl, client, persistToken, tokenCacheKey]);
 
   useEffect(() => {
-    // Remove the previous protocol's stored grant during migration.
-    try {
-      sessionStorage.removeItem(
-        `moltnet-agent-server-token::${agentServerUrl}`,
-      );
-    } catch {
-      /* Storage can be disabled; OAuth remains in memory. */
-    }
     void probe();
     return () => {
       authorizationAbortRef.current?.abort();

@@ -92,11 +92,12 @@ join-schema branch and desktop invitation UI are removed. Authenticated SDK/CLI
 invitation joins, diary signing and new-identity key-possession validation
 remain.
 
-The pairing API first appeared in `8af24743a` and is present in
-`agent-daemon-v0.50.0`. Its two published API route names therefore remain as
-deprecated HTTP 410 migration adapters pointing clients to native sign-in and
-Console PKCE. Confirmation pages/codes, claims polling, stored pairing tokens
-and the custom authorization implementation are removed.
+The pairing API first appeared in `8af24743a` and was published in
+`agent-daemon-v0.50.0`. The maintainer explicitly chose removal without legacy
+compatibility: the routes and generated client operations are removed, along
+with confirmation pages/codes, claim polling, stored-token migration and the
+pairing-specific state rejection branch. Native process grants remain separate
+from Console OAuth authorization.
 
 ## Verification and measurements
 
