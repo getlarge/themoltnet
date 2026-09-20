@@ -701,6 +701,27 @@ export type StreamAgentServerRunLogsResponses = {
 export type StreamAgentServerRunLogsResponse =
   StreamAgentServerRunLogsResponses[keyof StreamAgentServerRunLogsResponses];
 
+export type GetAgentServerRunLogSnapshotData = {
+  body?: never;
+  path: {
+    runId: string;
+  };
+  query?: never;
+  url: '/v1/runs/{runId}/logs/snapshot';
+};
+
+export type GetAgentServerRunLogSnapshotResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    lines: Array<string>;
+  };
+};
+
+export type GetAgentServerRunLogSnapshotResponse =
+  GetAgentServerRunLogSnapshotResponses[keyof GetAgentServerRunLogSnapshotResponses];
+
 export type GetAgentServerStatusData = {
   body?: never;
   path?: never;

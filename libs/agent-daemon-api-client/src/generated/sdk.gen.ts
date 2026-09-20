@@ -26,6 +26,8 @@ import type {
   GetAgentServerCatalogueResponses,
   GetAgentServerHealthData,
   GetAgentServerHealthResponses,
+  GetAgentServerRunLogSnapshotData,
+  GetAgentServerRunLogSnapshotResponses,
   GetAgentServerStatusData,
   GetAgentServerStatusErrors,
   GetAgentServerStatusResponses,
@@ -299,6 +301,21 @@ export const streamAgentServerRunLogs = <ThrowOnError extends boolean = false>(
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/runs/{runId}/logs',
+    ...options,
+  });
+
+export const getAgentServerRunLogSnapshot = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetAgentServerRunLogSnapshotData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetAgentServerRunLogSnapshotResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/runs/{runId}/logs/snapshot',
     ...options,
   });
 
