@@ -59,7 +59,7 @@ grep -q '^rust 1\.88\.0$' "$root/.tool-versions" || {
   exit 1
 }
 
-if [ "${2:-}" = "--release" ]; then
+if [ "${2:-}" = "--release" ] || [ "${2:-}" = "--linux-release" ]; then
   [ -n "${TAURI_UPDATER_PUBLIC_KEY:-}" ] || {
     echo "TAURI_UPDATER_PUBLIC_KEY is required for release packaging" >&2
     exit 1
@@ -74,6 +74,9 @@ if [ "${2:-}" = "--release" ]; then
     echo "TAURI_SIGNING_PRIVATE_KEY is required for updater artifacts" >&2
     exit 1
   }
+fi
+
+if [ "${2:-}" = "--release" ]; then
   [ -n "${APPLE_CERT_P12:-}" ] || {
     echo "APPLE_CERT_P12 is required for Developer ID signing" >&2
     exit 1

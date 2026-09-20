@@ -47,7 +47,8 @@
         "{workspaceRoot}/apps/landing/public/apple-touch-icon.png",
         {
           "runtime": "node -p \"process.platform + '-' + process.arch\""
-        }
+        },
+        "{projectRoot}/src-tauri/tauri.linux.conf.json"
       ],
       "agentDesktopRenderer": [
         "{projectRoot}/src/**/*",
@@ -134,7 +135,8 @@
           "{workspaceRoot}/release-please-config.json",
           "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "^production",
-          "sharedGlobals"
+          "sharedGlobals",
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs"
         ],
         "options": {
           "parallel": false,
@@ -226,6 +228,12 @@
         "configurations": {
           "release": {
             "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin --config \"$TAURI_CONFIG\""
+          },
+          "linux-release": {
+            "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles deb,appimage --target x86_64-unknown-linux-gnu --config src-tauri/tauri.linux.conf.json --config \"$TAURI_CONFIG\""
+          },
+          "linux-ci": {
+            "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles deb,appimage --target x86_64-unknown-linux-gnu --config src-tauri/tauri.linux.conf.json --config '{\"bundle\":{\"createUpdaterArtifacts\":false}}'"
           }
         }
       },

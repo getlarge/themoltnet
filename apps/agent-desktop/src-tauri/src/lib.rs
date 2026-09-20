@@ -2,6 +2,7 @@
 mod build_support;
 mod control;
 mod lifecycle;
+mod linux_setup;
 mod native_socket;
 mod operator_oauth {
     include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
@@ -623,10 +624,22 @@ async fn install_desktop_update(app: AppHandle) -> Result<(), String> {
         .await
         .map_err(|error| error.to_string())?
         .ok_or_else(|| "MoltNet Agent is already up to date".to_string())?;
-    update
-        .download_and_install(|_, _| {}, || {})
+    let bytes = update
+        .download(|_, _| {}, || {})
         .await
         .map_err(|error| error.to_string())?;
+    // download() verifies the updater signature before either installer receives bytes.
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        match tauri::utils::platform::bundle_type() {
+            Some(tauri::utils::config::BundleType::Deb) => return linux_setup::install_deb(&bytes),
+            Some(tauri::utils::config::BundleType::AppImage) => {}
+            _ => return Err("In-app Linux updates require an installed deb or AppImage".into()),
+        }
+        update.install(bytes).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())??;
     app.restart();
 }
 
@@ -684,12 +697,30 @@ fn start_lifecycle(app: AppHandle) {
     });
 }
 
+#[tauri::command]
+async fn desktop_linux_setup() -> Result<linux_setup::LinuxSetup, String> {
+    tauri::async_runtime::spawn_blocking(linux_setup::inspect)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn desktop_repair_linux_setup(
+    repair: linux_setup::Repair,
+) -> Result<linux_setup::LinuxSetup, String> {
+    tauri::async_runtime::spawn_blocking(move || linux_setup::repair(repair))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             desktop_status,
+            desktop_linux_setup,
+            desktop_repair_linux_setup,
             desktop_catalogue,
             desktop_control_status,
             desktop_enroll_team,

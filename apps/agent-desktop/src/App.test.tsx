@@ -20,6 +20,7 @@ vi.mock('./bridge.js', () => ({
     logs: [],
   },
   desktopBridge: {
+    linuxSetup: vi.fn().mockResolvedValue({ linux: false }),
     status: vi.fn(),
     install: vi.fn(),
     retry: vi.fn(),

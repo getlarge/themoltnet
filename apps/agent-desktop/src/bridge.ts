@@ -48,7 +48,23 @@ export interface ConnectionSettingsView {
   environment: Partial<ConnectionSettings>;
 }
 
+export interface LinuxSetupStatus {
+  linux: boolean;
+  distribution: string;
+  canInstall: boolean;
+  qemuReady: boolean;
+  keyringInstalled: boolean;
+  secretServiceAvailable: boolean;
+  kvmPresent: boolean;
+  kvmAccessible: boolean;
+  canEnableKvm: boolean;
+}
+export type LinuxRepair = 'install_dependencies' | 'enable_kvm';
+
 export const desktopBridge = {
+  linuxSetup: () => invoke<LinuxSetupStatus>('desktop_linux_setup'),
+  repairLinuxSetup: (repair: LinuxRepair) =>
+    invoke<LinuxSetupStatus>('desktop_repair_linux_setup', { repair }),
   connectionSettings: () =>
     invoke<ConnectionSettingsView>('desktop_connection_settings'),
   applyConnectionSettings: (overrides: Partial<ConnectionSettings>) =>

@@ -127,3 +127,26 @@ for (const field of ['agent', 'agentCli']) {
 NODE
 
 echo 'agent desktop release contract tests passed'
+
+# Linux signing does not require Apple material; all update formats are required.
+TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
+  TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
+  bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --linux-release
+mkdir -p "$fixture/assets"
+for suffix in aarch64.app.tar.gz amd64.deb amd64.AppImage; do
+  printf 'artifact' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix"
+  printf 'signature' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix.sig"
+done
+node tools/release/agent-desktop/manifest.mjs "$fixture/assets" 1.2.3
+node - "$fixture/assets/latest.json" <<'NODE'
+const manifest = require(process.argv[2]);
+const targets = Object.keys(manifest.platforms).sort();
+if (JSON.stringify(targets) !== JSON.stringify(['darwin-aarch64', 'linux-x86_64-appimage', 'linux-x86_64-deb'])) {
+  throw new Error('Updater must select the installed package format');
+}
+NODE
+rm "$fixture/assets/MoltNet-Agent_1.2.3_amd64.deb.sig"
+if node tools/release/agent-desktop/manifest.mjs "$fixture/assets" 1.2.3 2>/dev/null; then
+  echo 'manifest accepted an incomplete Linux release' >&2
+  exit 1
+fi

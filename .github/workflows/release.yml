@@ -2553,7 +2553,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-agent-desktop:
-    name: Sign, notarize, and publish MoltNet Agent for Mac
+    name: Package signed MoltNet Agent for Mac
     needs: [resolve-publish, finalize-agent-daemon-release]
     if: >-
       ${{ always() && needs.resolve-publish.outputs.agent-desktop == 'true' &&
@@ -2574,35 +2574,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
-        run: |
-          release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)
-          [ "$(jq -r .isDraft <<< "$release")" = "true" ] || {
-            echo "desktop release $RELEASE_TAG is already published" >&2
-            exit 1
-          }
-          revision=$(jq -r .targetCommitish <<< "$release")
-          [[ "$revision" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "desktop draft $RELEASE_TAG does not identify an immutable release revision" >&2
-            exit 1
-          }
-          git fetch --no-tags origin main
-          git fetch --no-tags origin "$revision"
-          git merge-base --is-ancestor "$revision" origin/main || {
-            echo "desktop draft $RELEASE_TAG does not target a commit on main" >&2
-            exit 1
-          }
-          tag_revision=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)
-          [ "$tag_revision" = "$revision" ] || {
-            echo "desktop tag $RELEASE_TAG does not match its draft revision" >&2
-            exit 1
-          }
-          git checkout --detach "$revision"
-          version=${RELEASE_TAG#agent-desktop-v}
-          package_version=$(node -p "require('./apps/agent-desktop/package.json').version")
-          [ "$package_version" = "$version" ] || {
-            echo "desktop release tag $RELEASE_TAG does not match package version $package_version" >&2
-            exit 1
-          }
+        run: bash tools/release/agent-desktop/checkout-release.sh
 
       - uses: pnpm/action-setup@v6
 
@@ -2742,47 +2714,138 @@ jobs:
           cp "$dmg" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.dmg"
           cp "$updater" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.tar.gz"
           cp "$signature" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.tar.gz.sig"
-          updater_signature=$(cat "$signature")
-          jq -n \
-            --arg version "$version" \
-            --arg signature "$updater_signature" \
-            --arg url "https://github.com/getlarge/themoltnet/releases/download/$RELEASE_TAG/MoltNet-Agent_${version}_aarch64.app.tar.gz" \
-            '{version:$version,notes:"Signed MoltNet Agent desktop update",pub_date:(now|todate),platforms:{"darwin-aarch64":{signature:$signature,url:$url}}}' \
-            > dist/agent-desktop/latest.json
 
       - name: Upload and verify every release artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
-        run: |
-          revision=$(git rev-parse HEAD)
-          verify_release_revision() {
-            local release
-            release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)
-            [ "$(jq -r .isDraft <<< "$release")" = "true" ] &&
-              [ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ] &&
-              [ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ] || {
-                echo "desktop release $RELEASE_TAG changed during packaging" >&2
-                exit 1
-              }
-          }
+        run: bash tools/release/agent-desktop/upload.sh
 
-          verify_release_revision
-          gh release upload "$RELEASE_TAG" dist/agent-desktop/* --clobber
-          mkdir -p "$RUNNER_TEMP/agent-desktop-uploaded"
-          for artifact in dist/agent-desktop/*; do
-            name=$(basename "$artifact")
-            gh release download "$RELEASE_TAG" \
-              --pattern "$name" \
-              --dir "$RUNNER_TEMP/agent-desktop-uploaded" \
-              --clobber
-            cmp --silent "$artifact" "$RUNNER_TEMP/agent-desktop-uploaded/$name" || {
-              echo "uploaded artifact verification failed: $name" >&2
-              exit 1
-            }
+  release-agent-desktop-linux:
+    name: Package signed MoltNet Agent for Ubuntu
+    needs: [resolve-publish, finalize-agent-daemon-release]
+    if: >-
+      ${{ always() && needs.resolve-publish.outputs.agent-desktop == 'true' &&
+      (needs.resolve-publish.outputs.agent-daemon != 'true' ||
+      needs.finalize-agent-daemon-release.result == 'success') &&
+      !failure() && !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out exact desktop release revision
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+        run: bash tools/release/agent-desktop/checkout-release.sh
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .tool-versions
+          cache: pnpm
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache: false
+
+      - uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884 # 1.88.0
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Linux packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential file libayatana-appindicator3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf libfuse2t64
+
+      - name: Build signed deb and AppImage
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+          AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: |
+          bash tools/release/agent-desktop/validate.sh . --linux-release
+          export TAURI_CONFIG=$(jq -cn --arg key "$TAURI_UPDATER_PUBLIC_KEY" '{plugins:{updater:{pubkey:$key}}}')
+          if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
+            export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
+          fi
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux-release
+
+      - name: Verify and materialize Linux assets
+        env:
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+          TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+        run: |
+          version=${RELEASE_TAG#agent-desktop-v}
+          bundle=apps/agent-desktop/out-rust/bundle/x86_64-unknown-linux-gnu/release/bundle
+          mkdir -p dist/agent-desktop
+          for format in deb AppImage; do
+            artifact=$(find "$bundle" -type f -name "*.$format" -print -quit)
+            [ -s "$artifact" ] && [ -s "$artifact.sig" ] || { echo "Missing signed $format" >&2; exit 1; }
+            cargo run --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --release \
+              --target x86_64-unknown-linux-gnu --target-dir apps/agent-desktop/out-rust/bundle \
+              --bin verify-updater-signature -- "$TAURI_UPDATER_PUBLIC_KEY" "$artifact.sig" "$artifact"
+            cp "$artifact" "dist/agent-desktop/MoltNet-Agent_${version}_amd64.$format"
+            cp "$artifact.sig" "dist/agent-desktop/MoltNet-Agent_${version}_amd64.$format.sig"
           done
-          verify_release_revision
-          gh release edit "$RELEASE_TAG" --draft=false
+          [ "$(dpkg-deb -f dist/agent-desktop/*.deb Architecture)" = amd64 ]
+          [ "$(dpkg-deb -f dist/agent-desktop/*.deb Version)" = "$version" ]
+
+      - name: Upload and verify every release artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+        run: bash tools/release/agent-desktop/upload.sh
+
+  finalize-agent-desktop-release:
+    name: Publish complete desktop release
+    needs: [resolve-publish, release-agent-desktop, release-agent-desktop-linux]
+    if: >-
+      ${{ always() && needs.resolve-publish.outputs.agent-desktop == 'true' &&
+      needs.release-agent-desktop.result == 'success' &&
+      needs.release-agent-desktop-linux.result == 'success' && !cancelled() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out exact desktop release revision
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+        run: bash tools/release/agent-desktop/checkout-release.sh
+
+      - name: Assemble, verify, and publish update manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
+        run: |
+          mkdir -p dist/agent-desktop
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern 'MoltNet-Agent_*' --dir dist/agent-desktop
+          node tools/release/agent-desktop/manifest.mjs dist/agent-desktop "${RELEASE_TAG#agent-desktop-v}" "$GITHUB_REPOSITORY"
+          gh release upload "$RELEASE_TAG" dist/agent-desktop/latest.json --repo "$GITHUB_REPOSITORY" --clobber
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir "$RUNNER_TEMP/manifest"
+          cmp dist/agent-desktop/latest.json "$RUNNER_TEMP/manifest/latest.json"
+          revision=$(git rev-parse HEAD)
+          release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)
+          [ "$(jq -r .isDraft <<< "$release")" = true ]
+          [ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ]
+          [ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ]
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
 
   # release-please's "go" release type tags the lib but never edits go.mod in
   # dependent modules, and goreleaser builds the CLI with GOWORK=off — so a pin
@@ -2812,14 +2875,14 @@ jobs:
         resolve-publish,
         release-cli,
         finalize-agent-daemon-release,
-        release-agent-desktop,
+        finalize-agent-desktop-release,
       ]
     if: >-
       always() && !cancelled() &&
       (needs.resolve-publish.outputs.cli == 'true' || needs.resolve-publish.outputs.agent-daemon == 'true' || needs.resolve-publish.outputs.agent-desktop == 'true') &&
       (needs.resolve-publish.outputs.cli != 'true' || needs.release-cli.result == 'success') &&
       (needs.resolve-publish.outputs.agent-daemon != 'true' || needs.finalize-agent-daemon-release.result == 'success') &&
-      (needs.resolve-publish.outputs.agent-desktop != 'true' || needs.release-agent-desktop.result == 'success')
+      (needs.resolve-publish.outputs.agent-desktop != 'true' || needs.finalize-agent-desktop-release.result == 'success')
     uses: ./.github/workflows/publish-download-pins.yml
     with:
       cli_version: ${{ needs.resolve-publish.outputs.cli == 'true' && needs.resolve-publish.outputs.cli-tag || '' }}

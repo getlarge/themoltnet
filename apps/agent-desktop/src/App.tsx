@@ -31,6 +31,7 @@ import {
   type LifecycleState,
 } from './bridge.js';
 import { ConnectionSettings } from './ConnectionSettings.js';
+import { LinuxSetup } from './LinuxSetup.js';
 
 const STATE_LABELS: Record<LifecycleState, string> = {
   checking: 'Checking',
@@ -375,6 +376,7 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
           </Stack>
         </ControlSurface>
         <ControlSurface as="section" padding="md">
+          <LinuxSetup />
           <ConnectionSettings
             running={
               status.state === 'running' || status.state === 'update_available'
