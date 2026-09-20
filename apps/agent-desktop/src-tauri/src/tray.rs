@@ -84,7 +84,7 @@ fn menu(app: &AppHandle, overview: &Overview) -> tauri::Result<Menu<tauri::Wry>>
         )
         .build(app)?;
     let runtime = overview.runtime.as_ref().unwrap_or(&Value::Null);
-    let identity = text(runtime, "selectedIdentity");
+    let identity = catalogue_identity(runtime);
     let identities = SubmenuBuilder::new(
         app,
         if identity.is_empty() {
@@ -396,11 +396,11 @@ fn start_refresh(app: AppHandle) {
                     failures = 0;
                     next.operator = read(&app, "/oauth/metadata")
                         .and_then(|value| value.get("operatorConfigured").and_then(Value::as_bool));
-                    let identity = text(runtime, "selectedIdentity");
+                    let identity = catalogue_identity(runtime);
                     let old_identity = previous
                         .runtime
                         .as_ref()
-                        .map(|old| text(old, "selectedIdentity"))
+                        .map(|old| catalogue_identity(old))
                         .unwrap_or("");
                     if !identity.is_empty() {
                         next.catalogue = if tick.is_multiple_of(32)
@@ -453,5 +453,35 @@ mod tests {
     fn menu_labels_bound_untrusted_names_and_remove_control_characters() {
         assert_eq!(label("agent\nname\t"), "agentname");
         assert_eq!(label(&"é".repeat(120)).chars().count(), 90);
+    }
+}
+
+fn catalogue_identity(runtime: &Value) -> &str {
+    runtime
+        .get("selectedIdentity")
+        .and_then(Value::as_str)
+        .filter(|identity| !identity.is_empty())
+        .or_else(|| {
+            runtime
+                .get("agents")?
+                .as_array()?
+                .first()?
+                .get("agentName")?
+                .as_str()
+        })
+        .unwrap_or("")
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    #[test]
+    fn catalogue_uses_available_agent_without_a_selection() {
+        let runtime =
+            serde_json::json!({"selectedIdentity": null, "agents": [{"agentName": "local"}]});
+        assert_eq!(catalogue_identity(&runtime), "local");
+        let selected =
+            serde_json::json!({"selectedIdentity": "chosen", "agents": [{"agentName": "local"}]});
+        assert_eq!(catalogue_identity(&selected), "chosen");
     }
 }
