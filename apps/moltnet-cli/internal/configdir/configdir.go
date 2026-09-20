@@ -28,14 +28,33 @@ type Selection struct {
 	defaultRoot string
 }
 
-// Select snapshots environment, HOME and CWD without touching store directories.
+// Select snapshots environment, HOME and CWD, validating conflicting aliases.
 func Select(root *string) (Selection, error) {
 	selection := Selection{source: "explicit root"}
 	selection.defaultRoot, _ = defaultDir()
+	if root == nil {
+		shared, hasShared := os.LookupEnv("MOLTNET_HOME")
+		legacy, hasLegacy := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT")
+		if hasShared && hasLegacy {
+			a, err := Canonical(shared)
+			if err != nil {
+				return selection, fmt.Errorf("%w (MOLTNET_HOME): %w", ErrInvalidRoot, err)
+			}
+			b, err := Canonical(legacy)
+			if err != nil {
+				return selection, fmt.Errorf("%w (MOLTNET_AGENT_SERVER_ROOT): %w", ErrInvalidRoot, err)
+			}
+			if a != b {
+				return selection, fmt.Errorf("%w: conflicting MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT; select one store root", ErrInvalidRoot)
+			}
+		}
+	}
 	if root != nil {
 		selection.Root = *root
 	} else if value, present := os.LookupEnv("MOLTNET_HOME"); present {
 		selection.Root, selection.source = value, "MOLTNET_HOME"
+	} else if value, present := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT"); present {
+		selection.Root, selection.source = value, "MOLTNET_AGENT_SERVER_ROOT"
 	} else {
 		selection.source = "default root"
 		var err error

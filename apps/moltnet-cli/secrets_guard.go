@@ -479,6 +479,18 @@ func normalizePolicyPath(value string) string {
 //
 // value must already be normalized by normalizePolicyPath.
 func classifyCentralStorePath(value string) pathClass {
+	if selected, err := GetConfigDir(); err == nil {
+		for _, root := range []string{selected, canonicalizeExistingPath(selected)} {
+			normalized := normalizePolicyPath(root)
+			if value == normalized {
+				return pathCredential
+			}
+			if strings.HasPrefix(value, normalized+"/") {
+				value = ".config/moltnet/" + strings.TrimPrefix(value, normalized+"/")
+				break
+			}
+		}
+	}
 	const storeMarker = ".config/moltnet"
 	index := strings.Index(value, storeMarker)
 	if index < 0 {
@@ -489,7 +501,7 @@ func classifyCentralStorePath(value string) pathClass {
 	case rest == "":
 		// The store root itself.
 		return pathCredential
-	case rest == identitySelectorFile:
+	case rest == identitySelectorFile || rest == "secrets" || strings.HasPrefix(rest, "secrets/"):
 		return pathCredential
 	case rest == identitiesDirName ||
 		strings.HasPrefix(rest, identitiesDirName+"/"):
@@ -594,8 +606,7 @@ func canonicalizeExistingPath(p string) string {
 }
 
 // wordExpandsSecretRoot reports whether a shell word references the headless
-// secret root through parameter expansion ($MOLTNET_SECRET_ROOT or
-// ${MOLTNET_SECRET_ROOT...}). The expansion is opaque to the static analyser,
+// secret or selected store root through parameter expansion. The expansion is opaque to the static analyser,
 // so any such reference fails closed as credential material.
 func wordExpandsSecretRoot(word *syntax.Word) bool {
 	found := false
@@ -603,7 +614,7 @@ func wordExpandsSecretRoot(word *syntax.Word) bool {
 		if found {
 			return false
 		}
-		if param, ok := node.(*syntax.ParamExp); ok && param.Param != nil && param.Param.Value == secretRootEnv {
+		if param, ok := node.(*syntax.ParamExp); ok && param.Param != nil && (param.Param.Value == secretRootEnv || param.Param.Value == "MOLTNET_HOME" || param.Param.Value == "MOLTNET_AGENT_SERVER_ROOT") {
 			found = true
 			return false
 		}

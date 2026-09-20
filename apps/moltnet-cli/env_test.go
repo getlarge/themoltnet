@@ -595,6 +595,17 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if !filepath.IsAbs(childEnv["MOLTNET_CREDENTIALS_PATH"]) {
 		t.Fatalf("child credentials path is not absolute: %q", childEnv["MOLTNET_CREDENTIALS_PATH"])
 	}
+	storeRoot, err := GetConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	storeRoot, err = filepath.EvalSymlinks(storeRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if childEnv["MOLTNET_HOME"] != storeRoot {
+		t.Fatalf("child store root = %q, want %q", childEnv["MOLTNET_HOME"], storeRoot)
+	}
 	for _, path := range []string{
 		filepath.Join(agentDir, "moltnet.json"),
 		filepath.Join(agentDir, "env"),

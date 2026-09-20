@@ -119,6 +119,18 @@ func TestStoreOverride(t *testing.T) {
 	}
 }
 
+func TestLegacyStoreRootConflict(t *testing.T) {
+	t.Setenv("MOLTNET_HOME", filepath.Join(t.TempDir(), "a"))
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", filepath.Join(t.TempDir(), "b"))
+	if _, err := Dir(); err == nil {
+		t.Fatal("conflicting root aliases accepted")
+	}
+	explicit := t.TempDir()
+	if _, err := Resolve(&explicit); err != nil {
+		t.Fatalf("explicit override: %v", err)
+	}
+}
+
 func TestEmptyStoreRejected(t *testing.T) {
 	t.Setenv("MOLTNET_HOME", "")
 	if _, err := Dir(); err == nil {

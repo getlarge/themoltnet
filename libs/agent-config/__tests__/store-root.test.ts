@@ -45,6 +45,7 @@ describe('MoltNet store selection', () => {
     vi.stubEnv('HOME', home);
     vi.stubEnv('USERPROFILE', home);
     vi.stubEnv('MOLTNET_HOME', undefined);
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -120,6 +121,15 @@ describe('MoltNet store selection', () => {
   });
   it('retains the established default', () => {
     expect(getConfigDir()).toBe(join(home, '.config/moltnet'));
+  });
+  it('accepts the legacy root alias and diagnoses conflicting roots', () => {
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', join(home, 'legacy'));
+    expect(getConfigDir()).toBe(join(home, 'legacy'));
+    vi.stubEnv('MOLTNET_HOME', join(home, 'different'));
+    expect(() => getConfigDir()).toThrow(/conflict/i);
+    expect(getConfigDir({ root: join(home, 'explicit') })).toBe(
+      join(home, 'explicit'),
+    );
   });
   it.each(['\n', '\r\n'])(
     'conforms to root fixtures with %j line endings',

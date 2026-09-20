@@ -51,17 +51,32 @@ export function resolveStoreRoot(options: StoreRootOptions = {}): string {
   // This is the shared configuration boundary for store selection.
   // eslint-disable-next-line no-restricted-syntax
   const env = options.env ?? process.env;
-  const root = options.root ?? env.MOLTNET_HOME;
+  if (
+    options.root === undefined &&
+    env.MOLTNET_HOME !== undefined &&
+    env.MOLTNET_AGENT_SERVER_ROOT !== undefined &&
+    canonicalStoreRoot(env.MOLTNET_HOME, options.cwd) !==
+      canonicalStoreRoot(env.MOLTNET_AGENT_SERVER_ROOT, options.cwd)
+  ) {
+    throw new Error(
+      'Conflicting MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT; select one store root',
+    );
+  }
+  const root =
+    options.root ?? env.MOLTNET_HOME ?? env.MOLTNET_AGENT_SERVER_ROOT;
   const source =
     options.root !== undefined
       ? 'explicit root'
       : env.MOLTNET_HOME !== undefined
         ? 'MOLTNET_HOME'
-        : 'default root';
+        : env.MOLTNET_AGENT_SERVER_ROOT !== undefined
+          ? 'MOLTNET_AGENT_SERVER_ROOT'
+          : 'default root';
   if (root === undefined) {
     // Preserve the established config/display path without filesystem access.
     return join(options.home ?? homedir(), '.config', 'moltnet');
   }
+
   try {
     return canonicalStoreRoot(
       root ?? join(options.home ?? homedir(), '.config', 'moltnet'),
@@ -80,7 +95,11 @@ export function storeSecretService(options: StoreRootOptions = {}): string {
   // Default-store keyring access must not depend on its directory existing.
   // eslint-disable-next-line no-restricted-syntax
   const env = options.env ?? process.env;
-  if (options.root === undefined && env.MOLTNET_HOME === undefined) {
+  if (
+    options.root === undefined &&
+    env.MOLTNET_HOME === undefined &&
+    env.MOLTNET_AGENT_SERVER_ROOT === undefined
+  ) {
     return MOLTNET_SECRET_SERVICE;
   }
   const root = resolveStoreRoot(options);
