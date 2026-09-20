@@ -96,9 +96,9 @@ describe('native desktop client', () => {
       payload: {},
     });
     expect(refused.statusCode).toBe(400);
-    expect(refused.json<unknown>()).toMatchObject({
-      message: expect.stringContaining('Stop running or starting work'),
-    });
+    expect(refused.json<{ message: string }>().message).toContain(
+      'Stop running or starting work',
+    );
     const status = await app.inject({
       method: 'GET',
       url: '/v1/status',
