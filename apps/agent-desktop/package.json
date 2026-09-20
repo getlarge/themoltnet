@@ -24,7 +24,16 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
-    "@moltnet/task-ui": "workspace:*"
+    "@moltnet/task-ui": "workspace:*",
+    "@wdio/cli": "catalog:",
+    "@wdio/local-runner": "catalog:",
+    "@wdio/mocha-framework": "catalog:",
+    "@wdio/spec-reporter": "catalog:",
+    "@wdio/globals": "catalog:",
+    "@wdio/tauri-service": "catalog:",
+    "@wdio/tauri-plugin": "catalog:",
+    "webdriverio": "catalog:",
+    "@axe-core/webdriverio": "catalog:"
   },
   "nx": {
     "namedInputs": {
@@ -283,6 +292,13 @@
         ],
         "options": {
           "command": "node apps/agent-desktop/scripts/test-store-root.mjs"
+        }
+      },
+      "build:e2e": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "CARGO_TARGET_DIR=../out-rust/e2e pnpm --dir apps/agent-desktop exec tauri build --debug --bundles app --features desktop-e2e --config src-tauri/tauri.e2e.conf.json"
         }
       }
     }
