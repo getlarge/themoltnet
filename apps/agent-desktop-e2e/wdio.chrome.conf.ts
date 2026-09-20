@@ -10,7 +10,7 @@ export const config = {
     mkdirSync('test-results', { recursive: true });
   },
   runner: 'local',
-  specs: ['./src/chrome.spec.ts'],
+  specs: ['./src/chrome.spec.ts', './src/run-flow.spec.ts'],
   maxInstances: 1,
   framework: 'mocha',
   reporters: ['spec'],

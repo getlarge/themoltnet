@@ -308,6 +308,10 @@
     "./bridge": {
       "import": "./src/bridge.ts",
       "types": "./src/bridge.ts"
+    },
+    "./run-types": {
+      "import": "./src/run-center/types.ts",
+      "types": "./src/run-center/types.ts"
     }
   }
 }

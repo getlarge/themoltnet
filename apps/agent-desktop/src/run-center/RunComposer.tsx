@@ -18,6 +18,7 @@ import { relativeTime } from './format.js';
 import type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
+  DesktopRun,
   RunCenterActions,
   RunCenterData,
 } from './types.js';
@@ -26,6 +27,8 @@ import type {
 const TASK_TYPE_OPTIONS = Object.keys(BUILT_IN_TASK_TYPES).sort();
 
 export interface RunComposerProps {
+  active?: boolean;
+  previousRun?: DesktopRun;
   data: RunCenterData;
   actions: RunCenterActions;
   /** Prefills from a saved preset when set. */
@@ -36,6 +39,8 @@ export interface RunComposerProps {
 }
 
 export function RunComposer({
+  active = true,
+  previousRun,
   data,
   actions,
   presetId,
@@ -57,54 +62,66 @@ export function RunComposer({
     : null;
 
   const [agent, setAgent] = useState(
-    preset?.agent ??
+    previousRun?.agent ??
+      preset?.agent ??
       data.status?.selectedIdentity ??
       agents[0]?.agentName ??
       '',
   );
   const [teamId, setTeamId] = useState(
-    preset?.teamId ?? data.catalogue?.defaultTeamId ?? '',
+    previousRun?.teamId ??
+      preset?.teamId ??
+      data.catalogue?.defaultTeamId ??
+      '',
   );
-  const [primaryId, setPrimaryId] = useState(preset?.profileIds[0] ?? '');
+  const [primaryId, setPrimaryId] = useState(
+    previousRun?.profiles[0] ?? preset?.profileIds[0] ?? '',
+  );
   const [fallbackIds, setFallbackIds] = useState<string[]>(
-    preset?.profileIds.slice(1) ?? [],
+    previousRun?.profiles.slice(1) ?? preset?.profileIds.slice(1) ?? [],
   );
   const [taskTypes, setTaskTypes] = useState<string[]>(
-    preset?.taskTypes ?? ['freeform'],
+    previousRun?.taskTypes ?? preset?.taskTypes ?? ['freeform'],
   );
   const [advancedOpen, setAdvancedOpen] = useState(
-    (preset?.profileIds.length ?? 0) > 1,
+    (previousRun?.profiles.length ?? preset?.profileIds.length ?? 0) > 1,
   );
   const [presetName, setPresetName] = useState(preset?.name ?? '');
-  const [savePreset, setSavePreset] = useState(Boolean(preset));
+  const [catalogueError, setCatalogueError] = useState<string | null>(null);
+  const [catalogueLoading, setCatalogueLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!active) return;
     let current = true;
     setCatalogue(null);
+    setCatalogueError(null);
+    setCatalogueLoading(Boolean(agent));
     if (!agent) return;
     void actions.catalogue(agent).then(
       (value) => {
         if (!current) return;
         setCatalogue(value);
-        setTeamId((selected) =>
-          value.teams.some((team) => team.teamId === selected && team.available)
-            ? selected
-            : (value.defaultTeamId ?? ''),
-        );
+        setCatalogueLoading(false);
+        setTeamId((selected) => selected || value.defaultTeamId || '');
       },
       () => {
-        if (current)
-          setSubmitError(
-            'Team access could not be verified. Open Identity and teams to enroll or renew.',
+        if (current) {
+          setCatalogueLoading(false);
+          setCatalogueError(
+            'The catalogue could not be loaded. Try again to verify teams and profiles.',
           );
+        }
       },
     );
     return () => {
       current = false;
     };
-  }, [actions, agent]);
+  }, [actions, agent, active, retry]);
   const profiles = useMemo(
     () =>
       (catalogue?.profiles ?? []).filter(
@@ -133,7 +150,9 @@ export function RunComposer({
   );
 
   const problems: string[] = [];
-  if (!agent) problems.push('Choose an identity.');
+  if (!selectedAgent) problems.push('Choose an available identity.');
+  if (catalogueLoading) problems.push('Loading teams and profiles…');
+  if (catalogueError) problems.push('Retry the catalogue before starting.');
   if (!team?.available) problems.push('Verify an available team credential.');
   if (!teamId) problems.push('Choose a team.');
   if (!primaryId) problems.push('Choose a runtime profile.');
@@ -142,8 +161,6 @@ export function RunComposer({
     problems.push(
       `${agent} is key-bound to another team and cannot claim work for ${team?.teamName ?? 'this team'}.`,
     );
-  if (savePreset && !presetName.trim())
-    problems.push('Name the preset, or turn off saving.');
 
   const canStart = problems.length === 0 && Boolean(primary?.ready);
 
@@ -151,17 +168,6 @@ export function RunComposer({
     setBusy(true);
     setSubmitError(null);
     try {
-      if (savePreset) {
-        await actions.savePreset({
-          id: preset?.id ?? null,
-          name: presetName.trim(),
-          agent,
-          teamId,
-          diaryId: selectedTeamDiary,
-          profileIds: [primaryId, ...fallbackIds],
-          taskTypes,
-        });
-      }
       await actions.startRun({
         agent,
         teamId,
@@ -179,6 +185,31 @@ export function RunComposer({
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setSaveMessage(null);
+    try {
+      await actions.savePreset({
+        id: preset?.id ?? null,
+        name: presetName.trim(),
+        agent,
+        teamId,
+        diaryId: selectedTeamDiary,
+        profileIds: [primaryId, ...fallbackIds],
+        taskTypes,
+      });
+      setSaveMessage('Preset saved.');
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : 'The preset could not be saved.',
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -249,7 +280,33 @@ export function RunComposer({
             </Select>
           </div>
 
-          {boundElsewhere || !teams.some((entry) => entry.available) ? (
+          {catalogueLoading ? (
+            <div role="status">
+              <Text>Loading teams and profiles…</Text>
+            </div>
+          ) : null}
+          {catalogueError ? (
+            <InlineNotice tone="error" title="Catalogue unavailable">
+              {catalogueError}
+              <Button
+                variant="secondary"
+                onClick={() => setRetry((value) => value + 1)}
+              >
+                Retry catalogue
+              </Button>
+            </InlineNotice>
+          ) : null}
+          {catalogue && teams.length === 0 ? (
+            <InlineNotice tone="info" title="No teams found">
+              This identity has no teams in this environment.
+              <Button variant="ghost" onClick={onTeams}>
+                Identity and teams
+              </Button>
+            </InlineNotice>
+          ) : null}
+          {catalogue &&
+          teams.length > 0 &&
+          (boundElsewhere || !teams.some((entry) => entry.available)) ? (
             <InlineNotice tone="warning" title="Team access needs attention">
               {team?.blockers.map((blocker) => blocker.message).join(' ') ||
                 'Enroll this identity into a team before starting a run.'}
@@ -367,28 +424,27 @@ export function RunComposer({
 
       <ControlSurface padding="md" as="section">
         <Stack gap={4}>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={savePreset}
-              onChange={(event) => setSavePreset(event.target.checked)}
-            />
-            <Stack gap={0.5}>
-              <Text as="span" weight="medium">
-                Save as a preset
-              </Text>
-              <Text as="span" variant="caption" color="muted">
-                Kept on this Mac only. Presets never start on their own.
-              </Text>
-            </Stack>
-          </label>
-          {savePreset ? (
-            <Input
-              label="Preset name"
-              value={presetName}
-              placeholder="Nightly digest"
-              onChange={(event) => setPresetName(event.target.value)}
-            />
+          <Input
+            label="Preset name"
+            value={presetName}
+            placeholder="Nightly digest"
+            onChange={(event) => setPresetName(event.target.value)}
+          />
+          <Text variant="caption" color="muted">
+            Saved on this Mac. Starting a run does not change saved presets.
+          </Text>
+          <Button
+            variant="secondary"
+            disabled={!canStart || !presetName.trim()}
+            loading={saving}
+            onClick={() => void save()}
+          >
+            {preset ? 'Update preset' : 'Save preset'}
+          </Button>
+          {saveMessage ? (
+            <div role="status">
+              <Text variant="caption">{saveMessage}</Text>
+            </div>
           ) : null}
         </Stack>
       </ControlSurface>

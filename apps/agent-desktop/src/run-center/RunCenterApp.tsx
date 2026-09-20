@@ -18,6 +18,7 @@
  */
 import {
   Badge,
+  Button,
   Logo,
   SideNavigation,
   type SideNavigationItem,
@@ -30,6 +31,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -39,14 +41,14 @@ import { ProvidersView } from './ProvidersView.js';
 import { providerActions, subscriptionActions } from './run-center-bridge.js';
 import { RunsView } from './RunsView.js';
 import { TeamsView } from './TeamsView.js';
-import type { RunCenterActions, RunCenterData } from './types.js';
+import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
 
 export type RunCenterScreen = 'runs' | 'teams' | 'providers' | 'server';
 
 /** Where the Runs pane is: the list, the composer, or one run's detail. */
 export type RunsRoute =
   | { kind: 'list' }
-  | { kind: 'compose'; presetId: string | null }
+  | { kind: 'compose'; presetId: string | null; previousRun?: DesktopRun }
   | { kind: 'detail'; runId: string };
 
 export interface RunCenterAppProps {
@@ -133,6 +135,12 @@ export function RunCenterApp({
   }, []);
 
   const [runsRoute, setRunsRoute] = useState<RunsRoute>(initialRunsRoute);
+  const draftFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (screen === 'runs' && draftFocus.current?.isConnected) {
+      draftFocus.current.focus();
+    }
+  }, [screen]);
 
   const activeRuns = useMemo(
     () => data.runs.filter((run) => run.status === 'running'),
@@ -265,7 +273,6 @@ export function RunCenterApp({
                 return;
               }
               setScreen(item.id as RunCenterScreen);
-              if (item.id === 'runs') setRunsRoute({ kind: 'list' });
             }}
             footer={
               data.presets.length ? (
@@ -278,8 +285,24 @@ export function RunCenterApp({
         </aside>
 
         <main id="main-content" className="run-center__pane" tabIndex={-1}>
-          {screen === 'runs' ? (
+          {screen !== 'runs' && runsRoute.kind === 'compose' ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setScreen('runs')}
+            >
+              Return to run draft
+            </Button>
+          ) : null}
+          <div
+            hidden={screen !== 'runs'}
+            onFocusCapture={(event) => {
+              if (runsRoute.kind === 'compose')
+                draftFocus.current = event.target;
+            }}
+          >
             <RunsView
+              active={screen === 'runs'}
               data={data}
               actions={actions}
               now={now}
@@ -287,7 +310,7 @@ export function RunCenterApp({
               onRoute={setRunsRoute}
               onTeams={() => setScreen('teams')}
             />
-          ) : null}
+          </div>
           {screen === 'teams' ? (
             <TeamsView data={data} actions={actions} now={now} />
           ) : null}

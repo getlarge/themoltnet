@@ -254,7 +254,7 @@
 }
 
 /* Narrow window: the rail collapses to a horizontal strip above the pane. */
-@media (max-width: 860px) {
+@media (max-width: 740px) {
   .run-center__body {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);

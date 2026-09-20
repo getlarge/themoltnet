@@ -17,6 +17,7 @@ import { RunDetail } from './RunDetail.js';
 import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
 
 export interface RunsViewProps {
+  active?: boolean;
   data: RunCenterData;
   actions: RunCenterActions;
   now: number;
@@ -26,6 +27,7 @@ export interface RunsViewProps {
 }
 
 export function RunsView({
+  active = true,
   data,
   actions,
   now,
@@ -36,7 +38,9 @@ export function RunsView({
   if (route.kind === 'compose') {
     return (
       <RunComposer
-        key={route.presetId ?? 'new'}
+        key={route.previousRun?.id ?? route.presetId ?? 'new'}
+        active={active}
+        previousRun={route.previousRun}
         data={data}
         actions={actions}
         presetId={route.presetId}
@@ -55,7 +59,9 @@ export function RunsView({
           actions={actions}
           now={now}
           onBack={() => onRoute({ kind: 'list' })}
-          onRunAgain={() => onRoute({ kind: 'compose', presetId: null })}
+          onRunAgain={() =>
+            onRoute({ kind: 'compose', presetId: null, previousRun: run })
+          }
         />
       );
     }
@@ -185,7 +191,11 @@ function RunsList({
                   now={now}
                   onOpen={() => onRoute({ kind: 'detail', runId: run.id })}
                   onRunAgain={() =>
-                    onRoute({ kind: 'compose', presetId: null })
+                    onRoute({
+                      kind: 'compose',
+                      presetId: null,
+                      previousRun: run,
+                    })
                   }
                 />
               </div>

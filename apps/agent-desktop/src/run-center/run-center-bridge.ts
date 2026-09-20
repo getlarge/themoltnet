@@ -58,7 +58,9 @@ function writePresets(key: string, presets: RunPreset[]): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(presets));
   } catch {
-    // Non-fatal: the run still starts, the preset just is not remembered.
+    throw new Error(
+      'The preset could not be saved. Check available storage and try again.',
+    );
   }
 }
 
