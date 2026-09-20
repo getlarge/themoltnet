@@ -56,6 +56,341 @@
         ],
         "type": "object"
       },
+      "AgentServerCatalogue": {
+        "properties": {
+          "defaultTeamId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerCatalogueProfile"
+            },
+            "type": "array"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerCatalogueTeam"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "teams",
+          "defaultTeamId",
+          "profiles"
+        ],
+        "type": "object"
+      },
+      "AgentServerCatalogueProfile": {
+        "allOf": [
+          {
+            "properties": {
+              "defaultWorkspaceMode": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "shared_mount"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "dedicated_worktree"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "definitionCid": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "maxLength": 4096,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxTurns": {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "model": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "name": {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
+                "type": "string"
+              },
+              "provider": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "requiredEnv": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[A-Z_][A-Z0-9_]*$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              "requiredExecutables": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9._/-]+$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              "requiredTools": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "pattern": "^[a-zA-Z0-9._/-]+$",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              "revision": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "runtimeKind": {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9._-]{0,99}$",
+                "type": "string"
+              },
+              "teamId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "toolEnforcement": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "off"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "watch"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "enforce"
+                    ],
+                    "type": "string"
+                  }
+                ],
+                "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
+              }
+            },
+            "required": [
+              "id",
+              "teamId",
+              "name",
+              "description",
+              "provider",
+              "model",
+              "runtimeKind",
+              "defaultWorkspaceMode",
+              "maxTurns",
+              "toolEnforcement",
+              "requiredEnv",
+              "requiredTools",
+              "requiredExecutables",
+              "revision",
+              "definitionCid"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "blockers": {
+                "items": {
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "remedy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "remedy"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "ready": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "ready",
+              "blockers"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "AgentServerCatalogueTeam": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "blockers": {
+            "items": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "remedy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "remedy"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "credential": {
+            "properties": {
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "keyId": {
+                "type": "string"
+              },
+              "scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "verifiedAt": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "keyId",
+              "verifiedAt",
+              "scopes"
+            ],
+            "type": "object"
+          },
+          "defaultDiaryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diaries": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "teamId": {
+            "type": "string"
+          },
+          "teamName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "teamName",
+          "available",
+          "blockers",
+          "diaries",
+          "defaultDiaryId"
+        ],
+        "type": "object"
+      },
       "AgentServerHealth": {
         "properties": {
           "status": {
@@ -189,6 +524,40 @@
         "properties": {
           "agent": {
             "type": "string"
+          },
+          "credential": {
+            "properties": {
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "keyId": {
+                "type": "string"
+              },
+              "scopes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "verifiedAt": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "keyId",
+              "verifiedAt",
+              "scopes"
+            ],
+            "type": "object"
           },
           "diaryId": {
             "type": "string"
@@ -830,6 +1199,215 @@
         ],
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/v1/agents/{agentName}/teams": {
+      "post": {
+        "operationId": "enrollAgentServerTeam",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "properties": {
+                      "code": {
+                        "maxLength": 4096,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "idempotencyKey": {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "idempotencyKey"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "mode": {
+                            "enum": [
+                              "enroll"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mode"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "mode": {
+                            "enum": [
+                              "replace"
+                            ],
+                            "type": "string"
+                          },
+                          "teamId": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "mode",
+                          "teamId"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "keyId": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "enum": [
+                            "persisted"
+                          ],
+                          "type": "string"
+                        },
+                        "teamId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "teamId",
+                        "keyId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "issuedKeyId": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "recoveryId": {
+                          "type": "string"
+                        },
+                        "secretCaptured": {
+                          "type": "boolean"
+                        },
+                        "state": {
+                          "enum": [
+                            "recovery_required"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "secretCaptured",
+                        "recoveryId",
+                        "message"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/v1/catalogue": {
+      "get": {
+        "operationId": "getAgentServerCatalogue",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerCatalogue"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "catalogue"
         ]
       }
     },

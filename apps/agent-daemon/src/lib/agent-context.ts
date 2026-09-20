@@ -35,7 +35,7 @@ import {
 const AGENT_KEYS_DOC_URL =
   'https://docs.themolt.net/operate/agent-keys#run-the-daemon-with-an-agent-key';
 
-/** Scopes a daemon key must carry; mirrors `DAEMON_REQUIRED_SCOPES`. */
+/** Scopes a new daemon key should be minted with; mirrors `DAEMON_RECOMMENDED_SCOPES`. */
 const DAEMON_KEY_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
 /**

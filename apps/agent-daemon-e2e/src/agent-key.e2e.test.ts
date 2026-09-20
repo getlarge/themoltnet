@@ -159,6 +159,14 @@ const silentLogger: AgentRuntimeLogger = {
 // startup with a missing-scope error rather than a useful assertion.
 const DAEMON_CREDENTIAL_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
+/** What a knowledge-enabled key adds on top of the daemon grant. */
+const KNOWLEDGE_SCOPES = [
+  'diary:read',
+  'diary:write',
+  'pack:read',
+  'pack:write',
+] as const;
+
 describe('Agent daemon agent-key auth (e2e)', () => {
   let harness: DaemonTestHarness;
   // The agent's OAuth2 facade — used only to provision (issue the key, propose
@@ -770,9 +778,12 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         name: 'daemon-e2e-knowledge-key',
         scopes: [
           ...DAEMON_CREDENTIAL_SCOPES,
-          'diary:write',
-          'pack:read',
-          'pack:write',
+          // Only what the daemon grant does not already carry: the API rejects
+          // a scope list with repeats.
+          ...KNOWLEDGE_SCOPES.filter(
+            (scope) =>
+              !(DAEMON_CREDENTIAL_SCOPES as readonly string[]).includes(scope),
+          ),
         ],
         ttlDays: 1,
       },

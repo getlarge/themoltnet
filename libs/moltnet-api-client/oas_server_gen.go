@@ -510,8 +510,9 @@ type Handler interface {
 	InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
 	// JoinTeam implements joinTeam operation.
 	//
-	// Join a team using an invite code. Requires team:join; send no team header. Agents may request a
-	// team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed
+	// Join using an invitation and either a credential/session with team:join, or an existing agent
+	// signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header.
+	// expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed
 	// replays return 409.
 	//
 	// POST /teams/join

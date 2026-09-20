@@ -26,12 +26,9 @@ import { resolveRuntimeProfiles } from '@themoltnet/agent-runtime';
 import {
   formatSecretReferenceString,
   parseSecretReferenceString,
-  resolveAgentKey,
   resolveIdentitySeed,
   type SecretProviderRegistry,
-  selectAgentKeyReference,
 } from '@themoltnet/sdk';
-import { connect } from '@themoltnet/sdk/node';
 
 import {
   DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
@@ -41,7 +38,6 @@ import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
-  verifyAgentActivation,
 } from './identity.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
@@ -52,6 +48,11 @@ import type {
   RunSpec,
 } from './store.js';
 import { AgentServerStoreError } from './store.js';
+import {
+  requireCredentialSnapshot,
+  TeamCredentialError,
+  verifyTeamActivation,
+} from './team-credentials.js';
 
 const STOP_GRACE_MS = 10_000;
 const STOP_FORCE_MS = 2_000;
@@ -90,6 +91,9 @@ const INHERITED_MOLTNET_ENV_NAMES = new Set([
   'MOLTNET_SIGNER_URL',
   'MOLTNET_TRACE_IDLE_POLLING',
 ]);
+
+/** The runtime kind bundled with the agent; needs no registration. */
+export const BUILT_IN_RUNTIME_KIND = 'gondolin_pi';
 
 export class AgentServerRunError extends Error {
   override name = 'AgentServerRunError';
@@ -132,7 +136,7 @@ export interface RunManagerOptions {
   /** Injectable for focused filesystem-failure tests. */
   symlinkImpl?: typeof symlinkSync;
   now?: () => Date;
-  verifyActivationImpl?: typeof verifyAgentActivation;
+  verifyActivationImpl?: typeof verifyTeamActivation;
   logger?: RunLogger;
   maxLogBytes?: number;
   maxCompletedRuns?: number;
@@ -277,32 +281,23 @@ export class RunManager {
       ...target.extraArgs,
     ];
 
+    const snapshot = requireCredentialSnapshot(agent);
+    env['MOLTNET_AGENT_KEY'] = snapshot.agentKey;
+    env['MOLTNET_API_URL'] =
+      activation.apiUrl ??
+      (activation.source === 'external' ? activation.configApiUrl : '');
     if (activation.source === 'managed') {
-      const reference = selectAgentKeyReference(config, spec.teamId)?.reference;
-      if (!reference || !config.keys.private_key_ref) {
+      if (!config.keys.private_key_ref)
         throw new AgentServerRunError(
           'invalid_spec',
-          `managed config for "${activation.alias}" is missing canonical secret references`,
+          'The managed signing key reference is missing',
         );
-      }
-      env['MOLTNET_API_URL'] = activation.apiUrl;
-      env['MOLTNET_AGENT_KEY_REF'] = formatSecretReferenceString(reference);
       env['MOLTNET_PRIVATE_KEY_REF'] = formatSecretReferenceString(
         config.keys.private_key_ref,
       );
       env['MOLTNET_SECRET_ROOT'] = this.store.secretsDir;
     } else {
-      env['MOLTNET_API_URL'] = activation.apiUrl ?? activation.configApiUrl;
       try {
-        const agentKey = await resolveAgentKey(
-          config,
-          this.options.externalSecretProviders,
-          spec.teamId,
-        );
-        if (!agentKey) {
-          throw new Error('external daemon config has no agent key');
-        }
-        env['MOLTNET_AGENT_KEY'] = agentKey;
         env['MOLTNET_PRIVATE_KEY'] = await resolveIdentitySeed(
           config,
           this.options.externalSecretProviders,
@@ -310,7 +305,7 @@ export class RunManager {
       } catch {
         throw new AgentServerRunError(
           'invalid_spec',
-          `external credentials for "${activation.alias}" could not be projected`,
+          'The selected signing key could not be projected',
         );
       }
     }
@@ -356,7 +351,7 @@ export class RunManager {
     signal?: AbortSignal,
   ): Promise<RunRecord> {
     this.assertStartOpen(signal);
-    const verify = this.options.verifyActivationImpl ?? verifyAgentActivation;
+    const verify = this.options.verifyActivationImpl ?? verifyTeamActivation;
     const agent = await verify(
       this.store,
       spec.agent,
@@ -367,16 +362,14 @@ export class RunManager {
       spec.teamId,
     ).catch((cause: unknown) => {
       if (
-        cause instanceof AgentServerIdentityError &&
-        cause.code === 'verification_failed'
-      ) {
-        throw new AgentServerIdentityError(
-          cause.code,
-          `Cannot start agent "${spec.agent}" for team "${spec.teamId}": credential verification failed. Check the selected team key and activation.`,
-          { cause },
-        );
-      }
-      throw cause;
+        cause instanceof TeamCredentialError ||
+        cause instanceof AgentServerStoreError
+      )
+        throw cause;
+      throw new AgentServerIdentityError(
+        'verification_failed',
+        `Cannot start agent "${spec.agent}" for team "${spec.teamId}": credential verification failed. Check the selected team key and activation.`,
+      );
     });
     this.assertStartOpen(signal);
     if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
@@ -468,6 +461,7 @@ export class RunManager {
         status: 'running',
         pid: child.pid,
         startedAt: (this.options.now?.() ?? new Date()).toISOString(),
+        credential: requireCredentialSnapshot(agent).metadata,
       };
       child.once('exit', (code, signal) => {
         const activeRun = this.active.get(id);
@@ -535,7 +529,7 @@ export class RunManager {
     activated: ActivatedAgent,
     cwd: string,
   ): Promise<string | undefined> {
-    const agent = await this.connectActivatedAgent(activated, spec.teamId);
+    const agent = await this.connectAgent(activated, spec.teamId);
     const profiles = await resolveRuntimeProfiles({
       agent,
       profiles: spec.profiles,
@@ -564,38 +558,17 @@ export class RunManager {
       );
     }
     if (registration) return registration.moduleUrl;
-    if (kind === 'gondolin_pi') return undefined;
+    if (kind === BUILT_IN_RUNTIME_KIND) return undefined;
     throw new AgentServerRunError(
       'invalid_spec',
       `No local runtime is registered for profile kind "${kind}".`,
     );
   }
 
-  private async connectActivatedAgent(
-    activated: ActivatedAgent,
-    teamId: string,
-  ) {
-    const { activation, config } = activated;
-    const agentKey = await resolveAgentKey(
-      config,
-      activation.source === 'managed'
-        ? this.options.secretProviders
-        : this.options.externalSecretProviders,
-      teamId,
-    );
-    if (!agentKey) {
-      throw new AgentServerRunError(
-        'invalid_spec',
-        `agent "${activation.alias}" has no agent key`,
-      );
-    }
-    return connect({
-      agentKey,
-      apiUrl:
-        activation.source === 'managed'
-          ? activation.apiUrl
-          : (activation.apiUrl ?? activation.configApiUrl),
-    });
+  private connectAgent(activated: ActivatedAgent, teamId: string) {
+    if (activated.boundTeamId !== teamId)
+      throw new AgentServerRunError('invalid_spec', 'Snapshot team mismatch');
+    return Promise.resolve(requireCredentialSnapshot(activated).client);
   }
 
   stop(id: string): RunRecord {

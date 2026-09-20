@@ -23,6 +23,16 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 const PENDING_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * Reserved origin for the supervising desktop app's native HTTP client.
+ *
+ * A native client is not a browser: CORS and Fetch Metadata do not constrain
+ * it, so the bearer token is the whole control. The scheme is deliberately one
+ * no browser can produce, so a web page can never present this origin, and
+ * `start()` refuses it so the browser ceremony cannot mint a native grant.
+ */
+export const NATIVE_CLIENT_ORIGIN = 'moltnet-agent-desktop://native';
+
 export type AgentServerPairingErrorCode =
   | 'pairing_not_found'
   | 'pairing_expired'
@@ -88,7 +98,28 @@ export class PairingService {
     }
   }
 
+  /**
+   * Register the process-scoped token the supervising app generated for this
+   * server process. Replaces any previous grant, so a superseded token stops
+   * authenticating immediately.
+   */
+  grantNative(token: string): void {
+    if (typeof token !== 'string' || token.length === 0) {
+      throw new AgentServerPairingError(
+        'pairing_invalid',
+        'Native client token must not be empty',
+      );
+    }
+    this.paired.set(NATIVE_CLIENT_ORIGIN, sha256Hex(token));
+  }
+
   start(origin: string): { pairingId: string; approvalPath: string } {
+    if (origin === NATIVE_CLIENT_ORIGIN) {
+      throw new AgentServerPairingError(
+        'pairing_invalid',
+        'The native client origin cannot be paired from a browser',
+      );
+    }
     this.sweep();
     const pairingId = randomBytes(12).toString('hex');
     this.pending.set(pairingId, {

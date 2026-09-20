@@ -34,6 +34,8 @@ import {
   type MoltNetConfig,
 } from '@themoltnet/sdk';
 
+import type { CredentialMetadata } from './team-credentials.js';
+
 export const AGENT_SERVER_STATE_VERSION = 2;
 export const IDENTITY_SELECTOR_VERSION = 1;
 
@@ -133,6 +135,7 @@ interface ActivationIdentity {
   /** Team binding authenticated through whoami when the activation is made. */
   boundTeamId?: string;
   createdAt: string;
+  credentialHealth?: Record<string, CredentialMetadata>;
 }
 
 export interface ManagedAgentActivation extends ActivationIdentity {
@@ -241,6 +244,7 @@ export interface RunRecord extends RunSpec {
   exitCode?: number | null;
   startedAt: string;
   endedAt?: string;
+  credential?: CredentialMetadata;
 }
 
 function readJson<T>(path: string): T | null {
@@ -537,6 +541,20 @@ export class AgentServerStore {
       delete state.pendingRegistrations[alias];
     }
     this.writeAgentServerState(state);
+  }
+
+  writeCredentialMetadata(
+    alias: string,
+    teamId: string,
+    metadata: CredentialMetadata,
+  ): void {
+    const activation = this.readActivation(alias);
+    if (!activation)
+      throw new AgentServerStoreError('not_found', 'Identity is not activated');
+    this.writeActivation({
+      ...activation,
+      credentialHealth: { ...activation.credentialHealth, [teamId]: metadata },
+    });
   }
 
   listActivations(): AgentActivation[] {

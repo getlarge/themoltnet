@@ -1,9 +1,10 @@
 /**
- * AgentServer HTTP surface tests: pairing ceremony, paired-token gating, provider
- * registry (presence booleans only), and run lifecycle against a fake spawn.
+ * AgentServer provider registry (presence booleans only) and run lifecycle
+ * against a fake spawn.
+ *
+ * Pairing, the native client and the catalogue have their own files; the shared
+ * harness lives in `server-test-harness.ts`.
  */
-import type { ChildProcess } from 'node:child_process';
-import { EventEmitter } from 'node:events';
 import {
   existsSync,
   mkdirSync,
@@ -11,499 +12,42 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  type symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { type FileHandle, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { PassThrough } from 'node:stream';
 
 import { cryptoService } from '@moltnet/crypto-service';
-import {
-  READ_ONLY_CAPABILITIES,
-  SecretProviderRegistry,
-} from '@themoltnet/sdk';
+import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
+import { SecretProviderRegistry } from '@themoltnet/sdk';
 import * as SdkNode from '@themoltnet/sdk/node';
-import { FileSecretProvider } from '@themoltnet/sdk/node';
-import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ProviderConfigurationService } from '../provider-configuration.js';
-import { type ActivatedAgent, verifyAgentActivation } from './identity.js';
-import { PairingService } from './pairing.js';
-import { ProviderLoginService } from './provider-login.js';
-import { RunManager, type SpawnImpl } from './runs.js';
-import { RuntimeRegistry } from './runtime-registry.js';
+import { RunManager } from './runs.js';
 import {
   AGENT_SERVER_TOKEN_HEADER,
-  buildAgentServer,
   readAgentServerLogDelta,
 } from './server.js';
-import type { RunSpec } from './store.js';
-import { AgentServerStore, AgentServerStoreError } from './store.js';
-
-const CONSOLE_ORIGIN = 'https://console.themolt.net';
-const HOST = '127.0.0.1:17374';
-
-class FakeChild extends EventEmitter {
-  pid = 4242;
-  killed: string[] = [];
-  stdout = new PassThrough();
-  stderr = new PassThrough();
-  kill(signal?: string): boolean {
-    this.killed.push(signal ?? 'SIGTERM');
-    // Simulate prompt, clean exit on SIGTERM.
-    setImmediate(() => {
-      this.stdout.end();
-      this.stderr.end();
-      this.emit('exit', 0, signal ?? 'SIGTERM');
-    });
-    return true;
-  }
-}
-
-interface Fixture {
-  app: FastifyInstance;
-  store: AgentServerStore;
-  secrets: FileSecretProvider;
-  spawned: {
-    command: string;
-    args: readonly string[];
-    options: { cwd: string; env: Record<string, string | undefined> };
-  }[];
-  children: FakeChild[];
-}
-
-const cleanups: (() => Promise<void> | void)[] = [];
+import {
+  activateManaged,
+  cleanupAll,
+  CONSOLE_ORIGIN,
+  fixture,
+  HOST,
+  pair,
+  registerCleanup,
+} from './server-test-harness.js';
 
 afterEach(async () => {
   vi.restoreAllMocks();
-  for (const cleanup of cleanups.splice(0)) await cleanup();
-});
-
-async function fixture(
-  options: {
-    rateLimitMax?: number;
-    baseEnv?: NodeJS.ProcessEnv;
-    maxLogBytes?: number;
-    discoverFetch?: typeof fetch;
-    symlinkImpl?: typeof symlinkSync;
-    activeIdentity?: string;
-    externalSecrets?: Record<string, string>;
-    realCredentialPreflight?: boolean;
-    resolveRuntimeModule?: (
-      spec: RunSpec,
-      agent: ActivatedAgent,
-      cwd: string,
-    ) => Promise<string | undefined>;
-  } = {},
-): Promise<Fixture> {
-  const {
-    baseEnv = { PATH: '/usr/bin' },
-    maxLogBytes,
-    symlinkImpl,
-    resolveRuntimeModule,
-    externalSecrets = {},
-    realCredentialPreflight = false,
-    ...serverOptions
-  } = options;
-  const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
-  const store = new AgentServerStore(join(temp, 'moltnet')).ensure();
-  const secrets = new FileSecretProvider({
-    root: store.secretsDir,
-    writable: true,
-  });
-  const spawned: Fixture['spawned'] = [];
-  const children: FakeChild[] = [];
-  const secretProviders = new SecretProviderRegistry()
-    .register(secrets)
-    .register({
-      name: 'memory',
-      capabilities: READ_ONLY_CAPABILITIES,
-      read: (key) =>
-        Promise.resolve(
-          key === 'provider/ollama' ? 'resolved-through-registry' : null,
-        ),
-      probe: (key) =>
-        Promise.resolve(key === 'provider/ollama' ? 'present' : 'absent'),
-    });
-  const externalSecretProviders = new SecretProviderRegistry().register({
-    name: 'memory',
-    capabilities: READ_ONLY_CAPABILITIES,
-    read: (key) => {
-      const values: Record<string, string> = {
-        'oauth2/agent-1/client': 'resolved-external-secret',
-        'agent-key/agent-1': 'resolved-external-agent-key',
-        'identity/FP-1/seed': 'resolved-central-seed',
-        ...externalSecrets,
-      };
-      return Promise.resolve(values[key] ?? null);
-    },
-    probe: (key) =>
-      Promise.resolve(
-        Object.keys({
-          'oauth2/agent-1/client': true,
-          'agent-key/agent-1': true,
-          'identity/FP-1/seed': true,
-          ...externalSecrets,
-        }).includes(key)
-          ? 'present'
-          : 'absent',
-      ),
-  });
-  const spawnImpl: SpawnImpl = (command, args, options) => {
-    const child = new FakeChild();
-    spawned.push({ command, args, options });
-    children.push(child);
-    return child as unknown as ChildProcess;
-  };
-  const verifyActivation: typeof verifyAgentActivation = (
-    activationStore,
-    alias,
-  ) => {
-    const activation = activationStore.readActivation(alias);
-    if (!activation) {
-      throw new AgentServerStoreError(
-        'not_found',
-        `Agent alias '${alias}' is not activated`,
-      );
-    }
-    const config =
-      activation.source === 'managed'
-        ? activationStore.readAgentConfig(alias)
-        : (JSON.parse(
-            readFileSync(activation.configPath, 'utf8'),
-          ) as ReturnType<AgentServerStore['readAgentConfig']>);
-    if (!config) {
-      throw new AgentServerStoreError(
-        'not_found',
-        `Missing config for '${alias}'`,
-      );
-    }
-    return Promise.resolve({
-      activation,
-      config,
-      ...(activation.boundTeamId
-        ? { boundTeamId: activation.boundTeamId }
-        : {}),
-    });
-  };
-  const runs = new RunManager({
-    store,
-    secretProviders,
-    externalSecretProviders,
-    baseEnv,
-    entrypoint: {
-      execPath: '/usr/bin/node',
-      execArgv: [],
-      scriptPath: '/app/main.js',
-    },
-    spawnImpl,
-    verifyActivationImpl: realCredentialPreflight
-      ? verifyAgentActivation
-      : verifyActivation,
-    ...(realCredentialPreflight
-      ? { runtimeRegistry: new RuntimeRegistry(store.root) }
-      : {}),
-    ...(symlinkImpl ? { symlinkImpl } : {}),
-    ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
-    ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
-  });
-  const app = buildAgentServer({
-    store,
-    secrets,
-    secretProviders,
-    externalSecretProviders,
-    pairing: new PairingService(),
-    runs,
-    subscriptions: new ProviderLoginService({
-      authPath: store.piAuthJsonPath,
-      listProviders: () => [],
-      runLogin: () => Promise.resolve(),
-      isConnected: () => false,
-    }),
-    providers: new ProviderConfigurationService({
-      store,
-      secrets,
-      secretProviders,
-      ...(serverOptions.discoverFetch
-        ? { fetchImpl: serverOptions.discoverFetch }
-        : {}),
-    }),
-    allowedOrigins: [CONSOLE_ORIGIN],
-    selfOrigin: 'http://127.0.0.1:17374',
-    defaultApiUrl: 'https://api.example',
-    version: 'test',
-    ...serverOptions,
-  });
-  await app.ready();
-  cleanups.push(async () => {
-    await app.close();
-    rmSync(temp, { recursive: true, force: true });
-  });
-  return { app, store, secrets, spawned, children };
-}
-
-function activateManaged(store: AgentServerStore, boundTeamId?: string): void {
-  store.writeAgentConfig('course-bot', {
-    subject_id: 'agent-1',
-    subject_type: 'agent',
-    registered_at: 't',
-    agent_key_ref: { provider: 'file', key: 'agent-key/agent-1' },
-    keys: {
-      public_key: 'pk',
-      fingerprint: 'FP-1',
-      private_key_ref: { provider: 'file', key: 'identity/FP-1/seed' },
-    },
-    endpoints: {
-      api: 'https://api.example',
-      mcp: 'https://mcp.example/mcp',
-    },
-  });
-  store.writeActivation({
-    source: 'managed',
-    alias: 'course-bot',
-    subjectId: 'agent-1',
-    publicKey: 'pk',
-    fingerprint: 'FP-1',
-    ...(boundTeamId ? { boundTeamId } : {}),
-    createdAt: 't',
-    apiUrl: 'https://api.example',
-  });
-}
-
-function writeCentralIdentity(
-  store: AgentServerStore,
-  alias: string,
-  hasAgentKey: boolean,
-): void {
-  store.writeAgentConfig(alias, {
-    subject_id: `agent-${alias}`,
-    subject_type: 'agent',
-    registered_at: 't',
-    ...(hasAgentKey
-      ? {
-          agent_key_ref: {
-            provider: 'file' as const,
-            key: `agent-key/${alias}`,
-          },
-        }
-      : {
-          oauth2: {
-            client_id: `client-${alias}`,
-            client_secret_ref: {
-              provider: 'file' as const,
-              key: `oauth2/agent-${alias}/client-${alias}`,
-            },
-          },
-        }),
-    keys: {
-      public_key: `pk-${alias}`,
-      fingerprint: `FP-${alias}`,
-      private_key_ref: {
-        provider: 'file' as const,
-        key: `identity/FP-${alias}/seed`,
-      },
-    },
-    endpoints: {
-      api: 'https://api.example',
-      mcp: 'https://mcp.example/mcp',
-    },
-  });
-}
-
-async function pair(app: FastifyInstance): Promise<string> {
-  const started = await app.inject({
-    method: 'POST',
-    url: '/v1/pairings',
-    headers: { host: HOST, origin: CONSOLE_ORIGIN },
-  });
-  expect(started.statusCode).toBe(201);
-  const { pairingId } = started.json<{ pairingId: string }>();
-
-  const approval = await app.inject({
-    method: 'GET',
-    url: `/pairings/${pairingId}`,
-    headers: {
-      host: HOST,
-      'sec-fetch-site': 'none',
-      'sec-fetch-mode': 'navigate',
-      'sec-fetch-dest': 'document',
-    },
-  });
-  expect(approval.statusCode).toBe(200);
-  expect(approval.body).toContain(CONSOLE_ORIGIN);
-  const confirmToken = approval.body.match(
-    /name="confirmToken" value="([^"]+)"/u,
-  )?.[1];
-  expect(confirmToken).toBeDefined();
-
-  const confirmed = await app.inject({
-    method: 'POST',
-    url: `/pairings/${pairingId}/confirm`,
-    headers: {
-      host: HOST,
-      'content-type': 'application/x-www-form-urlencoded',
-    },
-    payload: new URLSearchParams({
-      confirmToken: confirmToken ?? '',
-    }).toString(),
-  });
-  expect(confirmed.statusCode).toBe(200);
-
-  const claimed = await app.inject({
-    method: 'POST',
-    url: `/v1/pairings/${pairingId}/claim`,
-    headers: { host: HOST, origin: CONSOLE_ORIGIN },
-  });
-  expect(claimed.statusCode).toBe(200);
-  return claimed.json<{ token: string }>().token;
-}
-
-describe('agent server pairing', () => {
-  it('invalidates grants when the supervisor process changes', () => {
-    const firstProcess = new PairingService();
-    const { pairingId } = firstProcess.start(CONSOLE_ORIGIN);
-    const { confirmToken } = firstProcess.approval(pairingId);
-    firstProcess.confirm(pairingId, confirmToken);
-    const { token } = firstProcess.claim(pairingId, CONSOLE_ORIGIN);
-
-    expect(() => firstProcess.verify(CONSOLE_ORIGIN, token)).not.toThrow();
-    expect(() => new PairingService().verify(CONSOLE_ORIGIN, token)).toThrow(
-      'not valid for this origin',
-    );
-  });
-
-  it('completes the one-click ceremony and gates /v1 on the token', async () => {
-    const { app } = await fixture();
-
-    const unpaired = await app.inject({
-      method: 'GET',
-      url: '/v1/status',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
-    });
-    expect(unpaired.statusCode).toBe(401);
-
-    const token = await pair(app);
-    const status = await app.inject({
-      method: 'GET',
-      url: '/v1/status',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: token,
-      },
-    });
-    expect(status.statusCode).toBe(200);
-    expect(status.json()).toMatchObject({
-      version: 'test',
-      runtimeSettings: {
-        heartbeatIntervalMs: 60_000,
-        warmRetentionSec: 1800,
-      },
-      runs: [],
-    });
-
-    const wrongToken = await app.inject({
-      method: 'GET',
-      url: '/v1/status',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: 'forged',
-      },
-    });
-    expect(wrongToken.statusCode).toBe(401);
-  });
-
-  it('reports central identities and the environment-selected identity', async () => {
-    const { app, store } = await fixture({ activeIdentity: 'second' });
-    writeCentralIdentity(store, 'first', true);
-    writeCentralIdentity(store, 'second', false);
-    const token = await pair(app);
-
-    const response = await app.inject({
-      method: 'GET',
-      url: '/v1/status',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: token,
-      },
-    });
-
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
-      selectedIdentity: 'second',
-      identities: [
-        { alias: 'first', activated: false, hasAgentKey: true },
-        { alias: 'second', activated: false, hasAgentKey: false },
-      ],
-    });
-  });
-
-  it('rate-limits the loopback HTTP surface with stable errors', async () => {
-    const { app } = await fixture({ rateLimitMax: 1 });
-    const headers = {
-      host: HOST,
-      origin: CONSOLE_ORIGIN,
-    };
-
-    const allowed = await app.inject({
-      method: 'POST',
-      url: '/v1/pairings',
-      headers,
-    });
-    const limited = await app.inject({
-      method: 'POST',
-      url: '/v1/pairings',
-      headers,
-    });
-
-    expect(allowed.statusCode).toBe(201);
-    expect(limited.statusCode).toBe(429);
-    expect(limited.json()).toEqual({
-      code: 'rate_limited',
-      message: 'Too many requests',
-    });
-    expect(limited.headers['retry-after']).toBeDefined();
-  });
-
-  it('rejects claims from a different origin and cross-site confirms', async () => {
-    const { app } = await fixture();
-    const started = await app.inject({
-      method: 'POST',
-      url: '/v1/pairings',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
-    });
-    const { pairingId } = started.json<{ pairingId: string }>();
-
-    const crossSite = await app.inject({
-      method: 'POST',
-      url: `/pairings/${pairingId}/confirm`,
-      headers: {
-        host: HOST,
-        'content-type': 'application/x-www-form-urlencoded',
-        'sec-fetch-site': 'cross-site',
-      },
-      payload: 'confirmToken=x',
-    });
-    expect(crossSite.statusCode).toBe(400);
-
-    const foreignClaim = await app.inject({
-      method: 'POST',
-      url: `/v1/pairings/${pairingId}/claim`,
-      headers: { host: HOST, origin: 'http://127.0.0.1:17374' },
-    });
-    expect([401, 403]).toContain(foreignClaim.statusCode);
-  });
+  await cleanupAll();
 });
 
 describe('agent server providers and runs', () => {
   it('caps log replay without dropping lines appended across polls', async () => {
     const temp = mkdtempSync(join(tmpdir(), 'agent-server-log-tail-'));
-    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    registerCleanup(() => rmSync(temp, { recursive: true, force: true }));
     const logPath = join(temp, 'run.log');
     const state = { offset: 0, fragment: '' };
     writeFileSync(logPath, 'discarded\nkept\n');
@@ -989,7 +533,8 @@ describe('agent server providers and runs', () => {
       '--warm-retention-sec',
       '1800',
     ]);
-    expect(options.env['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
+    expect(options.env['MOLTNET_AGENT_KEY']).toBe('test-key-team-1');
+    expect(options.env['MOLTNET_AGENT_KEY_REF']).toBeUndefined();
     expect(options.env['MOLTNET_PRIVATE_KEY_REF']).toBe(
       'file:identity/FP-1/seed',
     );
@@ -1243,14 +788,14 @@ describe('agent server providers and runs', () => {
     expect(childEnv).not.toHaveProperty('SSH_AUTH_SOCK');
     expect(childEnv).not.toHaveProperty('KUBECONFIG');
     expect(childEnv).not.toHaveProperty('DOCKER_CONFIG');
-    expect(childEnv).not.toHaveProperty('MOLTNET_AGENT_KEY');
+    expect(childEnv.MOLTNET_AGENT_KEY).toBe('test-key-team-1');
     expect(childEnv).not.toHaveProperty('MOLTNET_CLIENT_SECRET');
     expect(childEnv).not.toHaveProperty('MOLTNET_PRIVATE_KEY');
     expect(childEnv).not.toHaveProperty('GITHUB_TOKEN');
     expect(childEnv).not.toHaveProperty('ANTHROPIC_API_KEY');
     expect(childEnv).not.toHaveProperty('DATABASE_URL');
     expect(childEnv).not.toHaveProperty('PI_AUTH_JSON');
-    expect(childEnv['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/agent-1');
+    expect(childEnv.MOLTNET_AGENT_KEY_REF).toBeUndefined();
   });
 
   it('caps active child logs at the configured byte budget', async () => {
@@ -1506,8 +1051,11 @@ describe('agent server providers and runs', () => {
               subjectType: 'agent',
               publicKey: keys.publicKey,
               fingerprint: keys.fingerprint,
+              scopes: [...DAEMON_MINIMUM_SCOPES, 'team:read', 'diary:read'],
               credentialBinding: {
                 bindingScope: 'team',
+                keyId: `key-${options?.agentKey}`,
+                expiresAt: null,
                 boundTeamId: options?.agentKey?.slice(-1),
               },
             }),
@@ -1606,7 +1154,7 @@ describe('agent server providers and runs', () => {
     profileRequests.length = 0;
     const failed = await start('b');
     expect(failed.statusCode).toBe(400);
-    expect(failed.json()).toMatchObject({ code: 'verification_failed' });
+    expect(failed.json()).toMatchObject({ code: 'agent_key_unavailable' });
     expect(connectMock).not.toHaveBeenCalled();
     expect(profileRequests).toEqual([]);
     expect(spawned).toHaveLength(2);
@@ -1659,11 +1207,11 @@ describe('agent server providers and runs', () => {
     for (const response of responses)
       expect(response.statusCode, response.body).toBe(201);
     expect(
-      spawned.map(({ options }) => options.env.MOLTNET_AGENT_KEY_REF).sort(),
-    ).toEqual(['file:agent-key/agent-1/a', 'file:agent-key/agent-1/b']);
+      spawned.map(({ options }) => options.env.MOLTNET_AGENT_KEY).sort(),
+    ).toEqual(['test-key-a', 'test-key-b']);
     for (const { options } of spawned) {
       expect(options.env.MOLTNET_CLIENT_SECRET).toBeUndefined();
-      expect(options.env.MOLTNET_AGENT_KEY).toBeUndefined();
+      expect(options.env.MOLTNET_AGENT_KEY_REF).toBeUndefined();
     }
     expect(store.readAgentConfig('course-bot')?.agent_key_ref).toEqual(
       config.agent_key_ref,

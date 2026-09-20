@@ -25,6 +25,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
+const KNOWLEDGE_SCOPES = [
+  'diary:read',
+  'diary:write',
+  'pack:read',
+  'pack:write',
+] as const;
+
 const noopLogger = {
   debug: () => {},
   info: () => {},
@@ -56,9 +63,12 @@ describe('Tool-policy enforcement (daemon)', () => {
         // unable to start the daemon.
         scopes: [
           ...AGENT_CREDENTIAL_SCOPES,
-          'diary:write',
-          'pack:read',
-          'pack:write',
+          // Only the knowledge scopes the daemon grant does not already carry.
+          // Spreading both unfiltered sends duplicates, which the API rejects.
+          ...KNOWLEDGE_SCOPES.filter(
+            (scope) =>
+              !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(scope),
+          ),
         ],
         ttlDays: 1,
       },

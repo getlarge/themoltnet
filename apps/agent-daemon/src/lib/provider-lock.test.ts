@@ -49,6 +49,40 @@ describe('provider locks', () => {
     ).resolves.toBe('ok');
   });
 
+  it('still reports contention when the timeout is shorter than the warning', async () => {
+    // A caller that cannot wait 30s -- an interactive path, say -- passes a
+    // short timeout. The contention warning is the only thing that explains
+    // *why* the wait failed, so a timeout below the warning threshold must not
+    // silently suppress it.
+    const lockRoot = root();
+    let releaseFirst!: () => void;
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const first = withProviderMutationLock(lockRoot, async () => {
+      markStarted();
+      await new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+    });
+    await started;
+    const logger = { warn: vi.fn() };
+
+    await expect(
+      withProviderMutationLock(lockRoot, () => Promise.resolve('unreachable'), {
+        logger,
+        timeoutMs: 300,
+      }),
+    ).rejects.toMatchObject({ code: 'lock_timeout' });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'provider_lock_contended' }),
+      'Provider operation is waiting for another process',
+    );
+    releaseFirst();
+    await first;
+  });
+
   it('times out with contention diagnostics', async () => {
     const lockRoot = root();
     let releaseFirst!: () => void;

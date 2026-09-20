@@ -31,6 +31,8 @@ import {
   type CreateAgentServerAgentData,
   createClient,
   discoverAgentServerProviderModels,
+  enrollAgentServerTeam,
+  getAgentServerCatalogue,
   getAgentServerStatus,
   listAgentServerAgents,
   listAgentServerProviders,
@@ -47,7 +49,7 @@ import {
   resolveAgentKey,
   SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { enrollTeam, FileSecretProvider } from '@themoltnet/sdk/node';
+import { FileSecretProvider } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
@@ -932,7 +934,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(replay.error?.code).toBe('registration_failed');
   });
 
-  it('refuses to start a run in a team the agent key is not bound to', async () => {
+  it('refuses to start a run without an exact team slot', async () => {
     const result = await startAgentServerRun({
       client: agentServerClient(),
       body: {
@@ -944,9 +946,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
     });
     expect(result.response.status).toBe(400);
-    expect(result.error?.code).toBe('verification_failed');
+    expect(result.error?.code).toBe('agent_key_missing');
     expect(result.error?.message).toBe(
-      `Cannot start agent "${agentName}" for team "${personalTeamId}": credential verification failed. Check the selected team key and activation.`,
+      'No credential is indexed for this team.',
     );
   });
 
@@ -1075,14 +1077,21 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       role: 'executor',
       expiresInHours: 1,
     });
-    const enrolled = await enrollTeam({
-      agent: agentA,
-      configDir,
-      secretProvider: provider,
-      code: invitation.code,
-      idempotencyKey: randomUUID(),
+    const enrolled = await enrollAgentServerTeam({
+      client: agentServerClient(),
+      path: { agentName },
+      body: {
+        mode: 'enroll',
+        code: invitation.code,
+        idempotencyKey: randomUUID(),
+      },
     });
-    expect(enrolled.teamId).toBe(teamB.id);
+    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.data).toMatchObject({
+      state: 'persisted',
+      teamId: teamB.id,
+    });
+    expect(JSON.stringify(enrolled.data)).not.toContain(invitation.code);
     const current = await readConfig(configDir);
     const secretB = await resolveAgentKey(current!, registry, teamB.id);
     expect(secretB).toBeTruthy();
@@ -1277,6 +1286,19 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {
     const { secretA, secretB, agentA, agentB, teamB, diaryB, profileB } =
       await enrollSecondTeam();
+    const catalogue = await getAgentServerCatalogue({
+      client: agentServerClient(),
+      query: { identity: agentName },
+    });
+    expect(catalogue.response.status).toBe(200);
+    expect(catalogue.data?.teams).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ teamId, available: true }),
+        expect.objectContaining({ teamId: teamB.id, available: true }),
+      ]),
+    );
+    expect(JSON.stringify(catalogue.data)).not.toContain(secretA);
+    expect(JSON.stringify(catalogue.data)).not.toContain(secretB);
     const lifecycle = teamRunLifecycle([secretA, secretB]);
     const runs = await lifecycle.startBoth(teamB.id, profileB.id);
     const tasks = await Promise.all(
@@ -1329,6 +1351,30 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         JSON.stringify(rejected.error).includes(secret),
       ),
     ).toBe(false);
+    const afterRevocation = await getAgentServerCatalogue({
+      client: agentServerClient(),
+      query: { identity: agentName },
+    });
+    expect(afterRevocation.response.status).toBe(200);
+    expect(afterRevocation.data?.teams).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          teamId,
+          available: false,
+        }),
+        expect.objectContaining({ teamId: teamB.id, available: true }),
+      ]),
+    );
+    expect(
+      afterRevocation.data?.profiles.every(
+        (profile) => profile.teamId !== teamId,
+      ),
+    ).toBe(true);
+    expect(
+      afterRevocation.data?.teams.find((team) => team.teamId === teamId)
+        ?.credential?.keyId,
+    ).toBe(aKeys.items[0].id);
+    expect(afterRevocation.data?.defaultTeamId).toBe(teamB.id);
     const deniedTask = await agent.tasks.create(
       {
         taskType: 'freeform',
@@ -1360,6 +1406,46 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect((await agent.tasks.get(deniedTask.id)).status).toBe('queued');
     expect(await configFilesContaining(agentServerRoot, secretA)).toEqual([]);
     expect(await configFilesContaining(agentServerRoot, secretB)).toEqual([]);
+    const renewalInvite = await agent.teams.invites.create(teamB.id, {
+      role: 'executor',
+      expiresInHours: 1,
+    });
+    const predecessor = (
+      await listAgentServerRuns({ client: agentServerClient() })
+    ).data?.find((run) => run.id === restarted[1].runId);
+    const renewed = await enrollAgentServerTeam({
+      client: agentServerClient(),
+      path: { agentName },
+      body: {
+        mode: 'replace',
+        teamId: teamB.id,
+        code: renewalInvite.code,
+        idempotencyKey: randomUUID(),
+      },
+    });
+    expect(renewed.response.status).toBe(200);
+    expect(renewed.data?.state).toBe('persisted');
+    const stillRunning = (
+      await listAgentServerRuns({ client: agentServerClient() })
+    ).data?.find((run) => run.id === restarted[1].runId);
+    expect(stillRunning).toMatchObject({
+      active: true,
+      credential: predecessor!.credential,
+    });
+    await expect(agentB.agents.whoami()).resolves.toMatchObject({
+      subjectId: managedSubjectId,
+    });
+    if (renewed.data?.state !== 'persisted')
+      throw new Error('Renewal did not persist');
+    expect(renewed.data.keyId).not.toBe(predecessor?.credential?.keyId);
+    const refreshed = await getAgentServerCatalogue({
+      client: agentServerClient(),
+      query: { identity: agentName },
+    });
+    expect(
+      refreshed.data?.teams.find((team) => team.teamId === teamB.id)?.credential
+        ?.keyId,
+    ).toBe(renewed.data.keyId);
     await Promise.all(
       restarted.map(({ runId }) =>
         stopAgentServerRun({
@@ -1368,6 +1454,30 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         }),
       ),
     );
+    await restartTeamSupervisor();
+    const restartedCatalogue = await getAgentServerCatalogue({
+      client: agentServerClient(),
+      query: { identity: agentName },
+    });
+    expect(
+      restartedCatalogue.data?.teams.find((team) => team.teamId === teamB.id),
+    ).toMatchObject({
+      available: true,
+      credential: { keyId: renewed.data.keyId },
+    });
+    expect(
+      restartedCatalogue.data?.teams.find((team) => team.teamId === teamId),
+    ).toMatchObject({
+      available: false,
+      credential: { keyId: aKeys.items[0].id },
+    });
+    const replacementRun = await lifecycle.start(teamB.id, profileB.id);
+    expect(replacementRun.response.status).toBe(201);
+    expect(replacementRun.data?.credential?.keyId).toBe(renewed.data.keyId);
+    await stopAgentServerRun({
+      client: agentServerClient(),
+      path: { runId: replacementRun.data!.id },
+    });
   }, 600_000);
 
   it('shuts down cleanly on SIGTERM', async () => {

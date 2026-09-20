@@ -671,6 +671,7 @@ describe('agent keys', () => {
     expect(identity.data?.credentialBinding).toEqual({
       bindingScope: 'identity',
       keyId: identityKeyId,
+      expiresAt: issued.data!.key.expiresAt,
     });
 
     const claimed = await claimTask({

@@ -485,6 +485,7 @@ describe('TokenValidator', () => {
     });
 
     it('maps a valid Talos agent key onto the existing agent context', async () => {
+      const expiresAt = new Date(Date.now() + 60_000);
       const talosApi = createMockTalosApi();
       const resolveTalosAgent = createMockTalosAgentResolver();
       const logger = createMockLogger();
@@ -507,7 +508,7 @@ describe('TokenValidator', () => {
         },
         status: 'KEY_STATUS_ACTIVE',
         visibility: 'KEY_VISIBILITY_SECRET',
-        expire_time: new Date(Date.now() + 60_000),
+        expire_time: expiresAt,
       });
 
       const result = await validator.resolveAuthContext('ory_ak_secret');
@@ -522,6 +523,7 @@ describe('TokenValidator', () => {
         scopes: ['diary:read'],
         currentTeamId: null,
         credentialBinding: {
+          expiresAt: expiresAt.toISOString(),
           bindingScope: 'team',
           keyId: 'talos-key-123',
           boundTeamId: 'team-123',
