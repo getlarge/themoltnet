@@ -181,7 +181,6 @@ export function DesktopRunCenter() {
             </InlineNotice>
           ) : null
         }
-        onProvidersChanged={() => void refresh()}
         now={now}
         data={{
           operatorConfigured,
