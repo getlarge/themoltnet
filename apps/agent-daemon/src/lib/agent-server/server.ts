@@ -356,7 +356,7 @@ export function buildAgentServer(
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   void app.register(rateLimit, {
-    global: false,
+    global: true,
     max: options.rateLimitMax ?? RATE_LIMIT_MAX,
     timeWindow: RATE_LIMIT_WINDOW_MS,
     errorResponseBuilder: () =>
@@ -418,7 +418,6 @@ export function buildAgentServer(
   };
 
   app.after(() => {
-    app.addHook('onRequest', app.rateLimit());
     app.get(
       '/health',
       { schema: AgentServerRouteSchemas.health },
@@ -626,7 +625,7 @@ function machineCapabilities(
     // drifted — the same check run start performs. Using `list` here would
     // advertise a modified runtime as ready and fail at start instead.
     try {
-      if (options.runtimeRegistry?.resolve(entry.kind)) {
+      if (options.runtimeRegistry?.resolve(entry.kind, { forDisplay: true })) {
         runtimeKinds.add(entry.kind);
       }
     } catch {
@@ -658,7 +657,7 @@ function registerStatusRoute(
         identities: identityViews(store),
         ...(selected ? { selectedIdentity: selected } : {}),
         providers: options.providers.list(),
-        runs: runViews(runs),
+        runs: await runViews(runs),
         runtimeSettings:
           options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
       };
@@ -876,10 +875,13 @@ function registerProviderRoutes(
   );
 }
 
-function runViews(runs: RunManager): Array<Record<string, unknown>> {
-  return runs
-    .list(RUN_HISTORY_LIMIT)
-    .map((record) => ({ ...record, active: runs.isActive(record.id) }));
+async function runViews(
+  runs: RunManager,
+): Promise<Array<Record<string, unknown>>> {
+  return (await runs.listAsync(RUN_HISTORY_LIMIT)).map((record) => ({
+    ...record,
+    active: runs.isActive(record.id),
+  }));
 }
 
 function registerSubscriptionRoutes(
@@ -983,6 +985,50 @@ function registerRunLogRoute(
   requirePairedOrigin: PairedOriginGuard,
 ): void {
   const { runs, store } = options;
+  app.get(
+    '/v1/runs/:runId/logs/snapshot',
+    {
+      schema: {
+        operationId: 'getAgentServerRunLogSnapshot',
+        tags: ['runs'],
+        security: [{ agentServerToken: [] }],
+        params: {
+          type: 'object',
+          required: ['runId'],
+          properties: { runId: { type: 'string', minLength: 1 } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            required: ['lines'],
+            properties: { lines: { type: 'array', items: { type: 'string' } } },
+          },
+        },
+      },
+    },
+    async (request) => {
+      requirePairedOrigin(request);
+      const { runId } = request.params as { runId: string };
+      const record = runs.status(runId);
+      const handle = await open(
+        store.resolveRunLogPath(record.id),
+        fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
+      );
+      try {
+        const state: AgentServerLogReadState = { offset: 0, fragment: '' };
+        const { lines, omitted } = await readAgentServerLogDelta(handle, state);
+        return {
+          lines: [
+            ...(omitted ? ['[older log output omitted]'] : []),
+            ...lines,
+            ...(state.fragment ? [state.fragment] : []),
+          ],
+        };
+      } finally {
+        await handle.close();
+      }
+    },
+  );
   let openStreams = 0;
   app.get(
     '/v1/runs/:runId/logs',

@@ -19,8 +19,11 @@ tauri-build = { version = "2", features = [] }
 base64 = "0.22"
 libc = "0.2"
 minisign-verify = "0.2.5"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-updater = "2"
 tempfile = "3"
+# Blocking HTTP with the platform trust store, so the per-user local CA the
+# Agent Server uses is verified the same way curl verified it.
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "json"] }

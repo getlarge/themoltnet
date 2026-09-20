@@ -24,6 +24,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
 import type { PiModelModality } from '@themoltnet/pi-runtime/pi-config';
@@ -237,9 +238,17 @@ export interface RunSpec {
   mode: 'poll' | 'drain';
 }
 
+/** Why a run stopped, in the operator's terms rather than an exit code. */
+export interface RunFailure {
+  code: string;
+  message: string;
+}
+
 export interface RunRecord extends RunSpec {
   id: string;
   status: 'running' | 'exited' | 'stopped' | 'failed';
+  /** Present only on a failed run. */
+  lastError?: RunFailure;
   pid?: number;
   exitCode?: number | null;
   startedAt: string;
@@ -668,6 +677,39 @@ export class AgentServerStore {
 
   writeRun(record: RunRecord): void {
     writeJsonAtomic(join(this.runDir(record.id), 'run.json'), record);
+  }
+
+  /** Status polling reads history without blocking the supervisor event loop. */
+  async listRunsAsync(
+    limit: number,
+    includeIds: readonly string[] = [],
+  ): Promise<RunRecord[]> {
+    let ids: string[];
+    try {
+      ids = await readdir(this.runsDir);
+    } catch {
+      return [];
+    }
+    const selected = ids
+      .filter((id) => NAME_RE.test(id))
+      .sort()
+      .reverse()
+      .slice(0, Math.max(0, limit));
+    const records = await Promise.all(
+      [...new Set([...includeIds, ...selected])].map(async (id) => {
+        try {
+          return JSON.parse(
+            await readFile(join(this.runDir(id), 'run.json'), 'utf8'),
+          ) as RunRecord;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+          throw error;
+        }
+      }),
+    );
+    return records
+      .filter((record): record is RunRecord => record !== null)
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   }
 
   listRuns(limit = Number.POSITIVE_INFINITY): RunRecord[] {

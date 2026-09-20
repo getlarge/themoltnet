@@ -426,7 +426,7 @@ describe('AgentServerStore', () => {
     expect(() => store.readProviders()).toThrow(/not \{ id, input\? \}/u);
   });
 
-  it('round-trips runs through their run directories', () => {
+  it('round-trips runs through their run directories', async () => {
     const store = freshStore();
     store.createRunDir('run-1');
     store.writeRun({
@@ -441,6 +441,7 @@ describe('AgentServerStore', () => {
     });
     expect(store.readRun('run-1')?.status).toBe('running');
     expect(store.listRuns()).toHaveLength(1);
+    expect(await store.listRunsAsync(1)).toEqual(store.listRuns(1));
   });
 
   it('retains only completed run artifacts inside count, age, and byte budgets', () => {

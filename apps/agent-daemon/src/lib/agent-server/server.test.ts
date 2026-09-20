@@ -45,6 +45,38 @@ afterEach(async () => {
 });
 
 describe('agent server providers and runs', () => {
+  it('returns an authenticated bounded log snapshot for Desktop', async () => {
+    const { app, store } = await fixture();
+    const token = await pair(app);
+    const { logPath } = store.createRunDir('snapshot-run');
+    store.writeRun({
+      id: 'snapshot-run',
+      agent: 'agent',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll',
+      status: 'exited',
+      startedAt: '2026-01-01T00:00:00Z',
+    });
+    writeFileSync(logPath, 'first\nsecond\npartial');
+    const response = await app.inject({
+      url: '/v1/runs/snapshot-run/logs/snapshot',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ lines: ['first', 'second', 'partial'] });
+    const unauthenticated = await app.inject({
+      url: '/v1/runs/snapshot-run/logs/snapshot',
+      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+    });
+    expect(unauthenticated.statusCode).toBe(401);
+  });
+
   it('caps log replay without dropping lines appended across polls', async () => {
     const temp = mkdtempSync(join(tmpdir(), 'agent-server-log-tail-'));
     registerCleanup(() => rmSync(temp, { recursive: true, force: true }));
@@ -1411,5 +1443,85 @@ describe('team and diary travel together', () => {
     expect(response.statusCode).toBe(201);
     expect(env['MOLTNET_TEAM_ID']).toBe('team-3');
     expect(env['MOLTNET_DIARY_ID']).toBeUndefined();
+  });
+});
+describe('a failed run explains itself', () => {
+  /** Start a run, emit stderr, then exit the child with `code`. */
+  async function failRun(stderr: string[], code: number) {
+    const { app, store, children } = await fixture();
+    const token = await pair(app);
+    activateManaged(store);
+    const started = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(started.statusCode).toBe(201);
+    const runId = started.json<{ id: string }>().id;
+    const child = children[0];
+    for (const line of stderr) child?.stderr.write(`${line}\n`);
+    child?.stderr.end();
+    child?.emit('exit', code, null);
+    // Completion is persisted asynchronously. Poll for the transition rather
+    // than sleeping a guessed interval, which races under parallel test runs.
+    type RunView = {
+      id: string;
+      status: string;
+      lastError?: { message: string };
+    };
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const list = await app.inject({
+        method: 'GET',
+        url: '/v1/runs',
+        headers: {
+          host: HOST,
+          origin: CONSOLE_ORIGIN,
+          [AGENT_SERVER_TOKEN_HEADER]: token,
+        },
+      });
+      const run = list.json<RunView[]>().find((entry) => entry.id === runId);
+      if (run && run.status !== 'running') return run;
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+    }
+    throw new Error('the run never left the running state');
+  }
+
+  it('records exit status without persisting raw worker errors', async () => {
+    // Act
+    const run = await failRun(
+      [
+        'poll  worker ready',
+        'run   ERROR provider rejected api-key-secret-sentinel',
+      ],
+      1,
+    );
+
+    // Assert
+    expect(run?.status).toBe('failed');
+    expect(run?.lastError?.message).toContain('exited with code 1');
+    expect(JSON.stringify(run)).not.toContain('api-key-secret-sentinel');
+  });
+
+  it('leaves no error on a run that ended cleanly', async () => {
+    // Arrange / Act
+    const run = await failRun(['poll  worker ready'], 0);
+
+    // Assert
+    expect(run?.status).toBe('exited');
+    expect(run?.lastError).toBeUndefined();
   });
 });

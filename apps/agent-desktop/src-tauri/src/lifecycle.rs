@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 #[cfg(unix)]
+use crate::control::{NativeToken, NATIVE_TOKEN_ENV};
+use serde::{Deserialize, Serialize};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
@@ -52,7 +53,7 @@ pub struct DesktopStatus {
     pub trust_fingerprint: Option<String>,
     pub trusted: bool,
     pub message: String,
-    pub logs: Vec<String>,
+    pub logs: Arc<VecDeque<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -94,7 +95,7 @@ enum StartOrigin {
 }
 
 struct LogBuffer {
-    lines: VecDeque<String>,
+    lines: Arc<VecDeque<String>>,
     path: PathBuf,
     file: Option<File>,
     persisted_bytes: u64,
@@ -103,7 +104,7 @@ struct LogBuffer {
 impl LogBuffer {
     fn new(path: PathBuf) -> Self {
         Self {
-            lines: VecDeque::new(),
+            lines: Arc::new(VecDeque::new()),
             path,
             file: None,
             persisted_bytes: 0,
@@ -112,9 +113,10 @@ impl LogBuffer {
 
     fn push(&mut self, line: String) -> Result<(), String> {
         let line = truncate_log_line(&line, MAX_LOG_LINE_BYTES);
-        self.lines.push_back(line.clone());
-        while self.lines.len() > MAX_LOG_LINES {
-            self.lines.pop_front();
+        let lines = Arc::make_mut(&mut self.lines);
+        lines.push_back(line.clone());
+        while lines.len() > MAX_LOG_LINES {
+            lines.pop_front();
         }
 
         let timestamp = SystemTime::now()
@@ -187,6 +189,17 @@ pub struct LifecycleManager {
     logs: Arc<Mutex<LogBuffer>>,
     retry_used: bool,
     home: PathBuf,
+    /// Grant for the server process currently running, if any. Regenerated on
+    /// every spawn and dropped when the child stops, so it is scoped to one
+    /// process exactly as the server's own grant map is.
+    control_token: Option<NativeToken>,
+}
+
+impl LifecycleManager {
+    /// The grant for the running server, if one is running.
+    pub fn control_token(&self) -> Option<&NativeToken> {
+        self.child.as_ref().and(self.control_token.as_ref())
+    }
 }
 
 impl Default for LifecycleManager {
@@ -208,6 +221,7 @@ impl LifecycleManager {
             logs: Arc::new(Mutex::new(LogBuffer::new(log_path))),
             retry_used: false,
             home,
+            control_token: None,
         }
     }
 
@@ -216,7 +230,7 @@ impl LifecycleManager {
         status.logs = self
             .logs
             .lock()
-            .map(|logs| logs.lines.iter().cloned().collect())
+            .map(|logs| Arc::clone(&logs.lines))
             .unwrap_or_default();
         status
     }
@@ -487,7 +501,14 @@ impl LifecycleManager {
 
         let mut last_failure = "Agent Server failed to start".to_string();
         for attempt in 0..MAX_START_ATTEMPTS {
+            let token = match NativeToken::generate() {
+                Ok(token) => token,
+                Err(error) => return self.fail(&error),
+            };
             let mut command = agent_server_command(&self.executable());
+            // The child consumes and unsets this, so its own run children
+            // cannot inherit the desktop's control grant.
+            command.env(NATIVE_TOKEN_ENV, token.expose());
             let mut child = match command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
@@ -507,6 +528,7 @@ impl LifecycleManager {
             loop {
                 let health_error = match health_ready() {
                     Ok(()) => {
+                        self.control_token = Some(token.clone());
                         self.child = Some(child);
                         self.retry_used = retry_budget_after_start(origin, attempt);
                         self.set_state(
@@ -653,6 +675,12 @@ impl LifecycleManager {
     }
 
     fn set_state(&mut self, state: LifecycleState, message: &str) {
+        if self.status.state != state {
+            eprintln!(
+                "agent-desktop lifecycle {:?} -> {:?}",
+                self.status.state, state
+            );
+        }
         self.status.state = state;
         self.status.message = message.into();
     }
@@ -686,6 +714,17 @@ impl LifecycleManager {
 
 pub fn open_console() -> Result<(), String> {
     fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
+}
+
+pub fn open_team_invites(team_id: Option<&str>) -> Result<(), String> {
+    let url = match team_id {
+        Some(id) if !id.is_empty() && id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') => {
+            format!("https://console.themolt.net/teams/{id}?tab=invites")
+        }
+        Some(_) => return Err("Invalid team identifier".to_string()),
+        None => "https://console.themolt.net/teams".to_string(),
+    };
+    fixed_command("/usr/bin/open", &[&url]).map(|_| ())
 }
 
 pub fn open_logs(directory: &Path) -> Result<(), String> {
@@ -1394,7 +1433,10 @@ mod tests {
         manager.push_log("must not follow the link");
 
         assert_eq!(fs::read_to_string(target).unwrap(), "unchanged");
-        assert_eq!(manager.snapshot().logs, ["must not follow the link"]);
+        assert_eq!(
+            manager.snapshot().logs.front().map(String::as_str),
+            Some("must not follow the link")
+        );
     }
 
     #[test]

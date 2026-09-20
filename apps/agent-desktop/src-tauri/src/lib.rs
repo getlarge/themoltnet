@@ -1,3 +1,4 @@
+mod control;
 mod lifecycle;
 
 #[cfg(test)]
@@ -112,6 +113,15 @@ fn operate(
     result
 }
 
+async fn operate_async(
+    app: AppHandle,
+    operation: fn(&mut LifecycleManager) -> Result<DesktopStatus, String>,
+) -> Result<DesktopStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || operate(&app, operation))
+        .await
+        .map_err(|_| "Desktop lifecycle worker failed".to_string())?
+}
+
 fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let result = match state.lifecycle.lock() {
@@ -127,6 +137,155 @@ fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
     result
 }
 
+/// Read the run catalogue for one local identity.
+///
+/// The renderer names an identity and receives JSON. It never sees the control
+/// token: the grant stays in the lifecycle manager and is applied here, in
+/// native code, on the way out.
+#[tauri::command]
+async fn desktop_catalogue(
+    state: State<'_, AppState>,
+    identity: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::get(
+            token,
+            &format!("/v1/catalogue?identity={}", urlencode(&identity)),
+        )
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable catalogue: {error}"))
+}
+
+#[tauri::command]
+async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| control::get(token, "/v1/status")).await?;
+    serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned an unreadable status".to_string())
+}
+
+#[tauri::command]
+async fn desktop_enroll_team(
+    state: State<'_, AppState>,
+    identity: String,
+    request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let payload =
+        serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
+    let body = with_control_token(&state, move |token| {
+        control::post(
+            token,
+            &format!("/v1/agents/{}/teams", urlencode(&identity)),
+            &payload,
+        )
+    })
+    .await?;
+    control::enrollment_metadata(&body)
+}
+
+#[tauri::command]
+async fn desktop_create_identity(
+    state: State<'_, AppState>,
+    name: String,
+    invitation: String,
+) -> Result<(), String> {
+    let payload =
+        serde_json::json!({ "kind": "managed", "name": name, "enrollmentToken": invitation })
+            .to_string();
+    with_control_token(&state, move |token| {
+        control::post(token, "/v1/agents", &payload)
+    })
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
+fn desktop_team_invites(team_id: Option<String>) -> Result<(), String> {
+    lifecycle::open_team_invites(team_id.as_deref())
+}
+
+/// Run `operation` with the grant for the currently running server.
+async fn with_control_token(
+    state: &State<'_, AppState>,
+    operation: impl FnOnce(&control::NativeToken) -> Result<String, String> + Send + 'static,
+) -> Result<String, String> {
+    let owned_token = {
+        let lifecycle = state
+            .lifecycle
+            .lock()
+            .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?;
+        lifecycle
+            .control_token()
+            .cloned()
+            .ok_or_else(|| "the Agent Server is not running".to_string())?
+    };
+    tauri::async_runtime::spawn_blocking(move || operation(&owned_token))
+        .await
+        .map_err(|_| "Local control task failed".to_string())?
+}
+
+/// Percent-encode a query value. Identity aliases are already constrained, but
+/// the encoding is what makes that a belt rather than the only control.
+fn urlencode(value: &str) -> String {
+    value
+        .bytes()
+        .map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                (byte as char).to_string()
+            }
+            other => format!("%{other:02X}"),
+        })
+        .collect()
+}
+
+/// Start a polling run. The renderer supplies the composed spec; the grant is
+/// applied here.
+#[tauri::command]
+async fn desktop_start_run(
+    state: State<'_, AppState>,
+    spec: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let payload = serde_json::to_string(&spec)
+        .map_err(|error| format!("the run could not be encoded: {error}"))?;
+    let body = with_control_token(&state, move |token| {
+        control::post(token, "/v1/runs", &payload)
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
+}
+
+/// Read a bounded log snapshot; the native grant never enters the renderer.
+#[tauri::command]
+async fn desktop_run_logs(
+    state: State<'_, AppState>,
+    run_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::get(
+            token,
+            &format!("/v1/runs/{}/logs/snapshot", urlencode(&run_id)),
+        )
+    })
+    .await?;
+    serde_json::from_str(&body).map_err(|_| "The Agent Server returned unreadable logs".to_string())
+}
+
+/// Stop a run this machine supervises.
+#[tauri::command]
+async fn desktop_stop_run(
+    state: State<'_, AppState>,
+    run_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::delete(token, &format!("/v1/runs/{}", urlencode(&run_id)))
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
+}
+
 #[tauri::command]
 fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
     state
@@ -137,58 +296,63 @@ fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
-fn install_agent(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::install_agent)
+async fn install_agent(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::install_agent).await
 }
 
 #[tauri::command]
-fn approve_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::approve_trust)
+async fn approve_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::approve_trust).await
 }
 
 #[tauri::command]
-fn retry_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::retry)
+async fn retry_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::retry).await
 }
 
 #[tauri::command]
-fn start_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::start_server)
+async fn start_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::start_server).await
 }
 
 #[tauri::command]
-fn stop_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::stop_server)
+async fn stop_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::stop_server).await
 }
 
 #[tauri::command]
-fn check_for_agent_updates(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::check_for_updates)
+async fn check_for_agent_updates(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::check_for_updates).await
 }
 
 #[tauri::command]
-fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::install_update)
+async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::install_update).await
 }
 
 #[tauri::command]
-fn open_console() -> Result<(), String> {
-    lifecycle::open_console()
+async fn open_console() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(lifecycle::open_console)
+        .await
+        .map_err(|_| "Could not open Console".to_string())?
 }
 
 #[tauri::command]
-fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
-    lifecycle::open_logs(&state.logs_directory)
+async fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
+    let directory = state.logs_directory.clone();
+    tauri::async_runtime::spawn_blocking(move || lifecycle::open_logs(&directory))
+        .await
+        .map_err(|_| "Could not open logs".to_string())?
 }
 
 #[tauri::command]
-fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::remove_bundle)
+async fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::remove_bundle).await
 }
 
 #[tauri::command]
-fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::remove_trust)
+async fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::remove_trust).await
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -353,6 +517,14 @@ pub fn run() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             desktop_status,
+            desktop_catalogue,
+            desktop_control_status,
+            desktop_enroll_team,
+            desktop_create_identity,
+            desktop_team_invites,
+            desktop_start_run,
+            desktop_stop_run,
+            desktop_run_logs,
             install_agent,
             approve_local_trust,
             retry_server,
@@ -412,7 +584,8 @@ mod tests {
 
         let mut changed = same;
         changed.message = "new child output".into();
-        changed.logs.push("line".into());
+        Arc::make_mut(&mut changed.logs).push_back("line".into());
+        assert!(latest.logs.is_empty());
         assert!(update_latest_status(&mut latest, &changed));
         assert_eq!(latest, changed);
     }

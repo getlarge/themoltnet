@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {},
   "dependencies": {
+    "@moltnet/agent-daemon-api-client": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
     "@tauri-apps/api": "2.11.1",
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:",

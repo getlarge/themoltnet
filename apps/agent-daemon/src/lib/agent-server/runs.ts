@@ -44,6 +44,7 @@ import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
   ProvidersState,
+  RunFailure,
   RunRecord,
   RunSpec,
 } from './store.js';
@@ -94,6 +95,23 @@ const INHERITED_MOLTNET_ENV_NAMES = new Set([
 
 /** The runtime kind bundled with the agent; needs no registration. */
 export const BUILT_IN_RUNTIME_KIND = 'gondolin_pi';
+
+/** Persist only process status; worker stderr can contain provider secrets. */
+function describeFailure(
+  code: number | null,
+  signal: NodeJS.Signals | null,
+): RunFailure {
+  if (signal) {
+    return {
+      code: 'run_signalled',
+      message: `The worker was stopped by ${signal}.`,
+    };
+  }
+  return {
+    code: 'run_failed',
+    message: `The worker exited with code ${code ?? 'unknown'}. Open the log for detail.`,
+  };
+}
 
 export class AgentServerRunError extends Error {
   override name = 'AgentServerRunError';
@@ -485,6 +503,9 @@ export class RunManager {
         this.persistRunCompletion(id, spec.agent, {
           status,
           exitCode: code,
+          ...(status === 'failed'
+            ? { lastError: describeFailure(code, signal) }
+            : {}),
         });
       });
       child.once('error', (error) => {
@@ -495,7 +516,13 @@ export class RunManager {
           transition: 'spawn_failed',
           ...safeRunError(error),
         });
-        this.persistRunCompletion(id, spec.agent, { status: 'failed' });
+        this.persistRunCompletion(id, spec.agent, {
+          status: 'failed',
+          lastError: {
+            code: 'spawn_failed',
+            message: `The worker could not be started: ${error.message}`,
+          },
+        });
       });
 
       this.store.writeRun(record);
@@ -607,6 +634,17 @@ export class RunManager {
       throw new AgentServerStoreError('not_found', `run "${id}" was not found`);
     }
     return record;
+  }
+
+  async listAsync(limit: number): Promise<RunRecord[]> {
+    const activeIds = new Set(this.active.keys());
+    const records = await this.store.listRunsAsync(limit + activeIds.size, [
+      ...activeIds,
+    ]);
+    return [
+      ...records.filter((record) => activeIds.has(record.id)),
+      ...records.filter((record) => !activeIds.has(record.id)).slice(0, limit),
+    ];
   }
 
   list(limit = Number.POSITIVE_INFINITY): RunRecord[] {
@@ -767,7 +805,10 @@ export class RunManager {
   private persistRunCompletion(
     id: string,
     agent: string,
-    update: Pick<RunRecord, 'status'> & { exitCode?: number | null },
+    update: Pick<RunRecord, 'status'> & {
+      exitCode?: number | null;
+      lastError?: RunFailure;
+    },
   ): void {
     try {
       const current = this.store.readRun(id);

@@ -12,5 +12,15 @@
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
   "extends": "./tsconfig.json",
   "include": ["src"],
-  "references": [{ "path": "../../libs/design-system/tsconfig.lib.json" }]
+  "references": [
+    {
+      "path": "../../libs/design-system/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/agent-daemon-api-client/tsconfig.lib.json"
+    }
+  ]
 }
