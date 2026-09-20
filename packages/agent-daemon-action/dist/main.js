@@ -20479,13 +20479,16 @@ function requireSecureCredentialApiUrl(apiUrl) {
 	if (url.protocol === "https:" || url.protocol === "http:" && loopback) return apiUrl;
 	throw new MoltNetError(`Refusing to send credentials to insecure API URL ${JSON.stringify(apiUrl)}; use HTTPS or an HTTP loopback address.`, { code: "INVALID_CONFIG" });
 }
-/** Reject a config-selected endpoint that is unsafe for long-lived credentials. */
-function assertTrustedConfigApiUrl(apiUrl) {
-	const url = new URL(apiUrl);
-	const host = url.hostname.replace(/^\[|\]$/g, "");
-	const loopback = host === "localhost" || host === "::1" || /^127(\.\d{1,3}){3}$/.test(host);
-	const moltNet = url.protocol === "https:" && (host === "themolt.net" || host.endsWith(".themolt.net"));
-	if (!loopback && !moltNet) throw new MoltNetError("Config-provided API endpoints must use HTTPS on themolt.net or a loopback host.", { code: "INVALID_CONFIG" });
+/**
+* Validate an endpoint from the selected credential document. Self-hosted
+* deployments are supported; trust follows that document, not domain ownership.
+* Callers selecting an endpoint elsewhere (for example a project binding) must
+* supply the endpoint from the credential document as the second argument.
+*/
+function assertTrustedConfigApiUrl(apiUrl, credentialApiUrl = apiUrl) {
+	requireSecureCredentialApiUrl(apiUrl);
+	requireSecureCredentialApiUrl(credentialApiUrl);
+	if (normalizeApiUrl(apiUrl) !== normalizeApiUrl(credentialApiUrl)) throw new MoltNetError(`Selected API endpoint ${JSON.stringify(apiUrl)} differs from the identity endpoint ${JSON.stringify(credentialApiUrl)}; select the matching identity or explicitly configure the API endpoint.`, { code: "INVALID_CONFIG" });
 }
 function stripTrailingSlash(apiUrl) {
 	return apiUrl.replace(/\/$/, "");
@@ -40121,7 +40124,7 @@ async function resolveConnection(options) {
 		const clientId = configOAuth2.client_id?.trim();
 		if (!clientId) throw new MoltNetError("Invalid OAuth2 config: client_id is required.", { code: "INVALID_CONFIG" });
 		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
-		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl);
+		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl, normalizeApiUrl(config.endpoints?.api));
 		let clientSecret;
 		try {
 			clientSecret = await resolveOAuth2ClientSecret(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
@@ -40141,7 +40144,7 @@ async function resolveConnection(options) {
 	}
 	if (config && hasAgentKeyConfiguration(config)) {
 		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
-		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl);
+		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl, normalizeApiUrl(config.endpoints?.api));
 		requireSecureCredentialApiUrl(apiUrl);
 		let agentKey;
 		try {

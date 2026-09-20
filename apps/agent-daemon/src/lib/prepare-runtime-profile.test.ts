@@ -1,3 +1,7 @@
+import { mkdtempSync, realpathSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import type { ResolvedRuntimeProfile } from '@themoltnet/agent-runtime';
 import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
@@ -62,8 +66,10 @@ function prepare(
   runtimeAdapter: DaemonRuntimeAdapter,
   selectedProfile: ResolvedRuntimeProfile,
   prerequisiteEnv: NodeJS.ProcessEnv = {},
+  stateRootDir?: string,
 ) {
   return prepareRuntimeProfile({
+    stateRootDir,
     agent: {
       tasks: { registerExecutorManifest: vi.fn() },
     } as unknown as Agent,
@@ -111,4 +117,24 @@ describe('prepareRuntimeProfile', () => {
       ),
     ).rejects.toThrow(/refuses runtime-controlled environment variables/);
   });
+});
+
+it('keeps profile mounting separate from explicit state and creates private directories', async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'separate-state-')));
+  try {
+    const prepared = await prepare(
+      adapter(),
+      { ...profile, mountPath: join(root, 'source') },
+      {},
+      join(root, 'state'),
+    );
+    expect(prepared.sandbox.rootDir).toBe(join(root, 'source'));
+    expect(prepared.stateDirs).toMatchObject({
+      rootDir: join(root, 'state', '.moltnet', 'd'),
+      mountPath: join(root, 'source'),
+    });
+    expect(statSync(prepared.stateDirs.rootDir).mode & 0o777).toBe(0o700);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

@@ -32,11 +32,13 @@ function contextualError(
 const MAX_CONFIG_BYTES = 1_048_576;
 const MAX_HOOK_TIMEOUT_MS = 600_000;
 
-export type WorkspaceStrategy =
-  | 'none'
-  | 'existing'
-  | 'git-worktree'
-  | 'isolated-directory';
+export const WORKSPACE_STRATEGIES = [
+  'none',
+  'existing',
+  'git-worktree',
+  'isolated-directory',
+] as const;
+export type WorkspaceStrategy = (typeof WORKSPACE_STRATEGIES)[number];
 export interface WorkspaceHook {
   command: string;
   args: string[];
@@ -217,11 +219,7 @@ function validateProjectConfigValue(
       if (names.has(name)) throw new Error(`Duplicate binding name: ${name}`);
       names.add(name);
       const apiUrl = endpoint(b.apiUrl as string);
-      if (
-        !['none', 'existing', 'git-worktree', 'isolated-directory'].includes(
-          b.strategy as string,
-        )
-      )
+      if (!WORKSPACE_STRATEGIES.includes(b.strategy as WorkspaceStrategy))
         throw new Error('An explicit workspace strategy is required');
       if (b.strategy === 'none') {
         if (b.source !== undefined || b.hooks !== undefined)
@@ -364,7 +362,7 @@ export async function updateProjectConfig(
   });
 }
 
-async function canonicalDirectory(path: string): Promise<string> {
+export async function canonicalDirectory(path: string): Promise<string> {
   const canonical = await realpath(path);
   if (!(await stat(canonical)).isDirectory())
     throw new Error(`Workspace source is not a directory: ${path}`);

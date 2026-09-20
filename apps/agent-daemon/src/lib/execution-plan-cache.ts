@@ -11,6 +11,7 @@ import {
   buildDaemonTaskExecutionPlan,
   type DaemonTaskExecutionPlan,
   type RuntimeProfileWorkspacePolicy,
+  WorkspaceModeMismatchError,
 } from './task-execution-plan.js';
 
 export interface ResolvedRuntimeSlotContext {
@@ -216,13 +217,13 @@ function assertPlanAllowedByWorkspacePolicy(
   // Fail at claim time naming the profile instead of letting the runtime
   // report a misleading git-revision mismatch (#1948).
   if (plan.workspaceRevision && effectiveMode !== 'dedicated_worktree') {
-    throw new Error(
+    throw new WorkspaceModeMismatchError(
       `Runtime profile "${runtimeProfileId}" does not allow "dedicated_worktree", required by a revision-pinned task (resolved workspace mode "${effectiveMode}")`,
     );
   }
   if (!allowed.has(effectiveMode)) {
-    throw new Error(
-      `Runtime profile forbids final workspace mode "${effectiveMode}" for this task`,
+    throw new WorkspaceModeMismatchError(
+      `Runtime profile "${policy?.profileName ?? runtimeProfileId}" forbids final workspace mode "${effectiveMode}"; allowed: ${[...allowed].join(', ')}`,
     );
   }
 }
@@ -663,7 +664,11 @@ function resolveProducerWorkspaceCopySource(
     );
   }
 
-  const sharedMountRoot = dirname(dirname(stateDirs.rootDir));
+  const sharedMountRoot = stateDirs.mountPath;
+  if (!sharedMountRoot)
+    throw new ProducerContextResolutionError(
+      'Shared producer mount root was not supplied by the runtime profile',
+    );
   if (!existsSync(sharedMountRoot)) {
     throw new ProducerContextResolutionError(
       `Shared producer mount root is missing on disk: ${sharedMountRoot}`,

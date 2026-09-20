@@ -8,7 +8,6 @@ import {
   ApiTaskReporter,
   type ClaimedTask,
   createLocalSeedSigner,
-  PollingApiTaskSource,
   resolveRuntimeProfiles,
 } from '@themoltnet/agent-runtime';
 import {
@@ -21,6 +20,7 @@ import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
 import {
   resolveAgentContext,
+  resolveSelectionApiUrl,
   validateStartupBinding,
 } from '../lib/agent-context.js';
 import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
@@ -56,6 +56,12 @@ import {
   type PreparedRuntimeProfile,
   prepareRuntimeProfile,
 } from '../lib/prepare-runtime-profile.js';
+import { createProjectPollingSource } from '../lib/project-task-source.js';
+import {
+  applyProjectWorkspacePolicy,
+  projectRunOptionDefs,
+  resolveRunProjectSelection,
+} from '../lib/run-project-selection.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
@@ -71,6 +77,7 @@ import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
+import { WorkspaceModeMismatchError } from '../lib/task-execution-plan.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
 import type { DaemonRuntimeAdapter } from '../runtime.js';
@@ -94,6 +101,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     args: opts.argv,
     options: {
       ...runtimeCommandOptionDefs(),
+      ...projectRunOptionDefs(),
       team: { type: 'string' },
       'task-types': { type: 'string' },
       'correlation-id': { type: 'string' },
@@ -108,13 +116,18 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
   });
 
-  if (!values.team) {
+  if (
+    !values.team &&
+    !values.binding &&
+    !values.project &&
+    !values['config-file']
+  ) {
     console.error('Missing required flag: --team\n');
     console.error(opts.helpText);
     return 1;
   }
 
-  const teamId = values.team;
+  let teamId = values.team ?? '';
   const profileValues = parseProfileValues(values.profile);
   if (profileValues.length === 0) {
     console.error('Missing required flag: --profile\n');
@@ -190,6 +203,43 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
+  let selection: Awaited<ReturnType<typeof resolveRunProjectSelection>>;
+  try {
+    const endpoint = await resolveSelectionApiUrl(identity.agent, {
+      agentRootDir: values['agent-root']
+        ? resolve(process.cwd(), values['agent-root'])
+        : undefined,
+      credentialSource: cfg.credentialSource,
+      envApiUrl: cfg.apiUrl,
+    });
+    selection = await resolveRunProjectSelection({
+      agent: identity.agent,
+      cwd: process.cwd(),
+      apiUrl: endpoint,
+      binding: values.binding,
+      project: values.project,
+      team: values.team,
+      general: values.general,
+      'config-file': values['config-file'],
+      'state-dir': values['state-dir'],
+      source: values.source,
+      'workspace-strategy': values['workspace-strategy'],
+    });
+    teamId = selection.teamId ?? '';
+    if (!teamId) throw new Error('Select --team or a binding with a team');
+  } catch (error) {
+    await logDaemonStartupFailure({
+      serviceName: 'agent-daemon.selection',
+      level: cfg.logLevel || 'info',
+      gate: 'project_selection',
+      agent: identity.agent,
+      credentialSource: cfg.credentialSource,
+      error,
+    });
+    console.error(error instanceof Error ? error.message : String(error));
+    console.error(opts.helpText);
+    return 1;
+  }
   const credentialSources = {
     profileRequirements: cfg.profileCredentialRequirements,
     bindings: cfg.credentialBindings,
@@ -220,6 +270,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agentRootDir: explicitAgentRootDir,
         credentialSource: cfg.credentialSource,
         envApiUrl: cfg.apiUrl,
+        projectApiUrl: selection.binding?.apiUrl,
         teamId: teamId,
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
@@ -276,28 +327,32 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       throw error;
     }
   })();
-  // Where daemon state lives and what the sandbox mounts. `sync-sessions`
-  // already resolves it this way and states the principle: the cwd default
-  // seeds daemon state dirs, not identity discovery. Credential resolution
-  // keeps following `explicitAgentRootDir`, so this reintroduces no
-  // repository auto-discovery for identities.
-  //
-  // `ctx.agentRootDir` cannot serve here: when --agent-root is omitted it
-  // falls back to the central identity directory, which is outside any
-  // repository, and `dedicated_worktree` tasks discover their main worktree
-  // from the mount path.
-  const daemonRootDir = explicitAgentRootDir ?? process.cwd();
-  const resolvedProfiles = await resolveRuntimeProfiles({
-    agent: ctx.agent,
-    profiles: profileValues,
-    teamId,
-    cwd: daemonRootDir,
-  });
+  // A central identity directory is never a workspace. Preserve explicit bundle
+  // roots for existing callers unless a location or source override was selected.
+  const daemonRootDir =
+    selection.binding || values.source
+      ? (selection.source ?? process.cwd())
+      : (explicitAgentRootDir ?? process.cwd());
+  const resolvedProfiles = (
+    await resolveRuntimeProfiles({
+      agent: ctx.agent,
+      profiles: profileValues,
+      teamId,
+      cwd: daemonRootDir,
+    })
+  ).map((profile) => applyProjectWorkspacePolicy(profile, selection));
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: `agent-daemon.${opts.modeLabel}`,
     level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
   });
   const rootLogger = logger.child({
+    projectId: selection.projectId,
+    binding: selection.binding?.name,
+    selectedBy: selection.selectedBy,
+    source: daemonRootDir,
+    strategy: selection.strategy,
+    stateRootDir: selection.stateRootDir ?? daemonRootDir,
+    apiUrl: selection.apiUrl,
     mode: opts.modeLabel,
     agent: identity.agent,
     teamId,
@@ -328,6 +383,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         agentName: identity.agent,
         profile,
+        stateRootDir: selection.stateRootDir,
+        workspaceExplicit: selection.workspaceExplicit,
         prerequisiteEnv: cfg.profilePrerequisiteEnv,
         runtimeAdapter,
         runtimeInstanceId,
@@ -366,6 +423,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
+      'moltnet.project.id': selection.projectId ?? 'general',
+      'moltnet.project.selection': selection.selectedBy,
+      'moltnet.workspace.strategy': selection.strategy,
       'moltnet.team.id': teamId,
       'moltnet.agent.name': identity.agent,
       'moltnet.credential.source': ctx.credentialSource,
@@ -523,7 +583,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   try {
     runtime = new AgentRuntime({
       logger: rootLogger,
-      source: new PollingApiTaskSource({
+      source: createProjectPollingSource(selection, {
         agent: ctx.agent,
         teamId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
@@ -696,7 +756,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
                   ? 'producer_context_missing'
                   : 'execution_plan_failed',
               message,
-              retryable: false,
+              retryable: err instanceof WorkspaceModeMismatchError,
             },
           };
         }

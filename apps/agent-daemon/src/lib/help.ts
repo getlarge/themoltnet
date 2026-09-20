@@ -1,5 +1,7 @@
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
+import { PROJECT_RUN_FLAGS } from './run-project-selection.js';
+
 export const COMMON_REQUIRED_FLAGS = `\
   -a, --agent <name>          MoltNet agent identity. Agent-key auth is
                               configless; OAuth2 reads moltnet.json.
@@ -11,8 +13,9 @@ export const COMMON_REQUIRED_FLAGS = `\
 export const COMMON_OPTIONAL_FLAGS = `\
   --sandbox <path>            Deprecated. Remote runtime profiles define
                               sandbox policy.
-  --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
-                              CWD, with git root fallback when available.
+  --agent-root <path>         Explicit legacy identity bundle location.
+                              Omitted: use the central identity store.
+${PROJECT_RUN_FLAGS}
   --git-author <"Name <email>">
                               Non-secret git identity projected into the
                               guest for host-brokered commit signing. Default:
@@ -192,8 +195,9 @@ Optional:
   --state <active|idle>       Limit scanned slots by state. Default: all.
   --limit <n>                 Max slots to scan, 1..200. Default: 100.
   --dry-run                   Report missing/stale sessions without uploading.
-  --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
-                              CWD, with git root fallback when available.
+  --agent-root <path>         Explicit legacy identity bundle location.
+                              Omitted: use the central identity store.
+${PROJECT_RUN_FLAGS}
   --debug                     Accepted for consistency; no extra output yet.
 
 Example:

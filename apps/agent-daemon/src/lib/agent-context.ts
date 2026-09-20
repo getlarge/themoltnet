@@ -204,6 +204,7 @@ export async function resolveAgentContext(
      * than read here so this stays the daemon's single `process.env` owner.
      */
     envApiUrl?: string;
+    projectApiUrl?: string;
     teamId?: string;
   } = {},
 ): Promise<DaemonAgentContext> {
@@ -220,11 +221,19 @@ export async function resolveAgentContext(
     options.agentRootDir,
     { requireConfig: options.credentialSource !== 'environment' },
   );
+  const projectApiUrl = options.projectApiUrl;
   if (options.credentialSource === 'environment') {
+    if (projectApiUrl) {
+      assertTrustedConfigApiUrl(
+        projectApiUrl,
+        options.envApiUrl?.trim() || 'https://api.themolt.net',
+      );
+    }
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
     // reference can be resolved.
     const agent = await connect({
+      ...(projectApiUrl ? { apiUrl: projectApiUrl } : {}),
       secretProviders: createNodeSecretProviderRegistry(),
     });
     return {
@@ -241,6 +250,19 @@ export async function resolveAgentContext(
   const config = await readConfig(agentDir);
   if (!config || !hasAgentKeyConfiguration(config)) {
     throw new Error(agentKeyRequiredMessage(agentDir, agentName));
+  }
+  // Bind the selected project to the credential document (or explicit endpoint)
+  // before resolving any secret. The hostname itself does not confer trust.
+  const configuredApiUrl = resolveConfigApiUrl(config, options.envApiUrl);
+  if (options.envApiUrl?.trim())
+    requireSecureCredentialApiUrl(options.envApiUrl);
+  if (projectApiUrl) {
+    assertTrustedConfigApiUrl(
+      projectApiUrl,
+      options.envApiUrl?.trim() ||
+        configuredApiUrl ||
+        'https://api.themolt.net',
+    );
   }
   const secretProviders = createNodeSecretProviderRegistry();
   // Resolve the key here and hand it to connect() explicitly rather than
@@ -264,7 +286,7 @@ export async function resolveAgentContext(
     configDir: agentDir,
     secretProviders,
     agentKey,
-    apiUrl: resolveConfigApiUrl(config, options.envApiUrl),
+    apiUrl: projectApiUrl ?? configuredApiUrl,
   });
   return {
     agentDir,
@@ -369,4 +391,25 @@ function isTransientWhoamiError(error: unknown): boolean {
     typeof statusCode === 'number' &&
     (statusCode === 408 || statusCode === 429 || statusCode >= 500)
   );
+}
+
+/** Read only non-secret endpoint metadata before selecting a team credential. */
+export async function resolveSelectionApiUrl(
+  agentName: string,
+  options: {
+    agentRootDir?: string;
+    credentialSource?: DaemonCredentialSource;
+    envApiUrl?: string;
+  },
+): Promise<string> {
+  if (options.envApiUrl?.trim()) return options.envApiUrl.trim();
+  if (options.credentialSource === 'environment')
+    throw new Error('Set MOLTNET_API_URL for an environment-key worker');
+  const { agentDir } = resolveIdentityLocation(
+    agentName,
+    options.agentRootDir,
+    { requireConfig: true },
+  );
+  const config = await readConfig(agentDir);
+  return resolveConfigApiUrl(config ?? {}) ?? 'https://api.themolt.net';
 }

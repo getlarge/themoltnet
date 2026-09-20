@@ -239,6 +239,10 @@ export interface PollingApiTaskSourceOptions {
    * no diary filter on `GET /tasks`, so this is post-filtered.
    */
   diaryIds?: string[];
+  /** Local worker preflight for requirements knowable before a claim consumes an attempt.
+   * Server-side authorization and atomic claim validation remain authoritative.
+   */
+  isTaskEligible?: (task: Task) => boolean;
   /** Page size per list call. Defaults to 10 — we only need one claimable. */
   listLimit?: number;
   /** Idle backoff floor (ms). */
@@ -507,6 +511,13 @@ export class PollingApiTaskSource implements TaskSource {
         for (const item of result.items) {
           if ((item.projectId ?? null) !== (this.opts.projectId ?? null))
             continue;
+          if (this.opts.isTaskEligible && !this.opts.isTaskEligible(item)) {
+            this.logger.debug(
+              { taskId: item.id },
+              'polling-api.local_requirements_skipped',
+            );
+            continue;
+          }
           if (seen.has(item.id)) continue;
           if (
             this.opts.taskTypes &&

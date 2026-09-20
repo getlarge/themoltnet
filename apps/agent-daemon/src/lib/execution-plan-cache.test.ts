@@ -1248,8 +1248,15 @@ describe('createExecutionPlanCache', () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-shared-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
-      rootDir: join(mountRoot, '.moltnet', 'd'),
-      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+      mountPath: mountRoot,
+      rootDir: join(mountRoot, 'separate-state', '.moltnet', 'd'),
+      piSessionsDir: join(
+        mountRoot,
+        'separate-state',
+        '.moltnet',
+        'd',
+        'pi-sessions',
+      ),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
@@ -1450,7 +1457,7 @@ describe('createExecutionPlanCache', () => {
     await slotStore.close();
   });
 
-  it('rejects a revision-pinned task when the runtime profile downgrades it away from dedicated_worktree', async () => {
+  it('rejects a revision-pinned task before downgrading its required workspace', async () => {
     const mountRoot = mkdtempSync(
       join(tmpdir(), 'daemon-exec-plan-revision-downgrade-'),
     );
@@ -1486,9 +1493,7 @@ describe('createExecutionPlanCache', () => {
           },
         } as unknown as Task,
       }),
-    ).rejects.toThrow(
-      `Runtime profile "${PROFILE_ID}" does not allow "dedicated_worktree", required by a revision-pinned task (resolved workspace mode "shared_mount")`,
-    );
+    ).rejects.toThrow('required by a revision-pinned task');
   });
 
   it('treats a detached revision plan as a dedicated worktree for policy enforcement', async () => {

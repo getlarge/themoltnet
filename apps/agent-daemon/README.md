@@ -584,3 +584,50 @@ material and the selected runtime profile.
 ## License
 
 AGPL-3.0-only.
+
+### Project selection for once, poll and drain
+
+Register folders with `moltnet projects setup`, then select a saved binding:
+
+```sh
+moltnet-agent poll --agent worker --profile <profile-id> --binding local
+moltnet-agent once --agent worker --profile <profile-id> --binding local --task-id <task-id>
+```
+
+`--config-file /absolute/projects.json` selects an alternate configuration for CI
+or cloud. `--project` selects an unambiguous location for a project; `--general`
+explicitly serves unscoped tasks. Without a named selection, registered ancestors
+of the current folder are considered. Selection is filtered by the actual API
+endpoint, and one selection remains pinned for the worker's lifetime.
+
+`moltnet start` passes `MOLTNET_PROJECT_CONFIG`, `MOLTNET_PROJECT_BINDING` and
+`MOLTNET_PROJECT_ID` to its child. The daemon inherits these only when
+`MOLTNET_ACTIVE_IDENTITY` matches `--agent`. Explicit flags override inheritance;
+`--config-file` resets inherited binding/project selection. Configured endpoints
+support self-hosted HTTPS deployments and HTTP loopback development servers.
+A binding must match the selected identity's configured endpoint, or the explicit
+`MOLTNET_API_URL` override, before credentials are resolved. Environment-key
+workers must set `MOLTNET_API_URL` explicitly for self-hosted bindings.
+
+Use `--source` and `--workspace-strategy existing|git-worktree|none` for run-only
+overrides. They never update saved defaults. Git-worktree sources must be the
+root of a committed checkout. `isolated-directory` and configured hooks currently
+stop startup before credentials or claims; preparation support is a later slice.
+
+State remains under `<profile mount root>/.moltnet/d` by default. No existing
+state is moved automatically. `--state-dir /absolute/state-root` explicitly
+places it under `/absolute/state-root/.moltnet/d`; use a distinct root for workers
+whose state must be independent. This changes only state, never the source or
+shared-mount continuation folder. To move state, stop the worker, copy its
+`.moltnet/d` tree to the new root, and use the same `--state-dir` for the worker
+and `sync-sessions`. To revert, stop it and copy updated state back before
+removing the flag. Do not run two workers against the same copied state.
+
+`sync-sessions` accepts the same selection and state flags. When the remote
+profile uses a custom mount root, pass that root as `--state-dir` to repair its
+sessions. Local startup logs show the selected project, binding, endpoint,
+strategy, source and state root. Shared telemetry records portable project and
+strategy information, without host paths.
+
+See [agent configuration](../../docs/reference/agent-configuration.md) for the
+shared project and binding contract.

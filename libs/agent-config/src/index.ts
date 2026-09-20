@@ -41,6 +41,7 @@ export {
 } from './config.js';
 export { withConfigLock } from './config-lock.js';
 export {
+  canonicalDirectory,
   getProjectConfigPath,
   type ProjectBinding,
   type ProjectConfig,
@@ -50,6 +51,7 @@ export {
   resolveProjectBinding,
   updateProjectConfig,
   validateProjectConfig,
+  WORKSPACE_STRATEGIES,
   type WorkspaceHook,
   type WorkspaceStrategy,
 } from './project-bindings.js';
