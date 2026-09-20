@@ -101,6 +101,7 @@ export class OperatorOAuth {
   }
   metadata() {
     return {
+      protocolVersion: OPERATOR_OAUTH.protocolVersion,
       instance: this.instance,
       issuer: this.config.issuer,
       authorizationUrl: this.config.authorizationUrl,

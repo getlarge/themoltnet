@@ -52,6 +52,7 @@ describe('Console PKCE callback boundary', () => {
           instance: 'aaaaaaaa-0000-4000-8000-000000000001',
           clientId: 'console',
           operatorConfigured: true,
+          protocolVersion: 2,
         });
       return Response.json({ access_token: 'local-only', expires_in: 900 });
     });
@@ -104,6 +105,8 @@ describe('Console PKCE callback boundary', () => {
   });
 
   it.each([
+    { protocolVersion: 1 },
+    { protocolVersion: undefined },
     { clientId: 'untrusted-client' },
     { instance: 'not-a-uuid' },
     { issuer: 'https://other.example' },
@@ -121,6 +124,7 @@ describe('Console PKCE callback boundary', () => {
           clientId: 'console',
           instance: 'aaaaaaaa-0000-4000-8000-000000000001',
           operatorConfigured: true,
+          protocolVersion: 2,
           ...change,
         }),
       );
@@ -152,6 +156,7 @@ describe('Console PKCE callback boundary', () => {
         instance: 'aaaaaaaa-0000-4000-8000-000000000001',
         clientId: 'console',
         operatorConfigured: true,
+        protocolVersion: 2,
       }),
     );
     vi.stubGlobal('fetch', fetcher);

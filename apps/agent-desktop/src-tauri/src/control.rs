@@ -23,7 +23,7 @@ pub const NATIVE_TOKEN_ENV: &str = "MOLTNET_AGENT_SERVER_NATIVE_TOKEN";
 const TOKEN_HEADER: &str = "x-moltnet-agent-server-token";
 /// Must match `NATIVE_CLIENT_ORIGIN` in the daemon's `native-grant-service.ts`.
 const NATIVE_ORIGIN: &str = "moltnet-agent-desktop://native";
-const BASE_URL: &str = "https://127.0.0.1:17374";
+use crate::operator_oauth::{APPROVAL_TIMEOUT_SECONDS, BASE_URL};
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// 32 bytes of entropy, base64url-encoded without padding.
@@ -103,9 +103,7 @@ pub fn post(token: &NativeToken, path: &str, body: &str) -> Result<String, Strin
     let timeout = if path == "/v1/operator/sign-in"
         || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
     {
-        // The shared OAuth native approval lifetime is 300 seconds; allow
-        // another 30 seconds for callback and response delivery.
-        Duration::from_secs(300 + 30)
+        Duration::from_secs(APPROVAL_TIMEOUT_SECONDS)
     } else {
         REQUEST_TIMEOUT
     };

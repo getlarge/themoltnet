@@ -16,7 +16,7 @@ use std::{
 };
 
 const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
-const HEALTH_URL: &str = "https://127.0.0.1:17374/health";
+use crate::operator_oauth::HEALTH_URL;
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;

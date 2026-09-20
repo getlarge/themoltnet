@@ -31,11 +31,15 @@ export async function authorizeLocalControl(
       signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
     },
   );
+  if (response.status === 404)
+    throw new Error('Update Agent Server to use PKCE local control.');
   if (!response.ok) throw new Error('Local OAuth is not configured.');
   const meta: unknown = await response.json();
   if (
     !meta ||
     typeof meta !== 'object' ||
+    !('protocolVersion' in meta) ||
+    meta.protocolVersion !== OPERATOR_OAUTH.protocolVersion ||
     !('issuer' in meta) ||
     meta.issuer !== config.oauthIssuer ||
     !('clientId' in meta) ||
@@ -49,7 +53,7 @@ export async function authorizeLocalControl(
     typeof meta.operatorConfigured !== 'boolean'
   )
     throw new Error(
-      'Local authorization configuration does not match this Console. Check Server settings.',
+      'Local authorization configuration does not match this Console. Update Agent Server or check Server settings.',
     );
   if (!meta.operatorConfigured)
     throw new Error(

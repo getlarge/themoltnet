@@ -1,5 +1,8 @@
 mod control;
 mod lifecycle;
+mod operator_oauth {
+    include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
+}
 
 #[cfg(test)]
 #[path = "../build_support.rs"]

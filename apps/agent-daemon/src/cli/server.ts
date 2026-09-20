@@ -48,7 +48,7 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
  * Console origin to configure agents/providers and start/stop runs.
  */
 
-const DEFAULT_PORT = 17374;
+const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const DEFAULT_API_URL = 'https://api.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;

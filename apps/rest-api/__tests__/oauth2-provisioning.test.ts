@@ -265,12 +265,15 @@ describe('Ory challenge failures', () => {
         evictIdentity: vi.fn(),
         resolveSession: vi.fn().mockResolvedValue(human),
       };
-      vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockRejectedValue(
-        new ResponseError(
-          new Response(null, { status: upstream }),
-          'upstream challenge failure',
-        ),
-      );
+      app.oauth2Client.acceptOAuth2ConsentRequest = vi.fn();
+      app.oauth2Client.getOAuth2ConsentRequest = vi
+        .fn()
+        .mockRejectedValue(
+          new ResponseError(
+            new Response(null, { status: upstream }),
+            'upstream challenge failure',
+          ),
+        );
       const response = await app.inject({
         url: '/oauth2/consent?challenge=opaque-challenge',
         headers: { cookie: 'ory_kratos_session=session' },

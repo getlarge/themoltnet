@@ -9,6 +9,7 @@ import {
   registerLoopbackSecurity,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
@@ -516,6 +517,7 @@ export function buildAgentServer(
             200: {
               type: 'object',
               required: [
+                'protocolVersion',
                 'instance',
                 'issuer',
                 'authorizationUrl',
@@ -524,6 +526,10 @@ export function buildAgentServer(
                 'operatorConfigured',
               ],
               properties: {
+                protocolVersion: {
+                  type: 'integer',
+                  const: OPERATOR_OAUTH.protocolVersion,
+                },
                 instance: { type: 'string', format: 'uuid' },
                 issuer: { type: 'string' },
                 authorizationUrl: { type: 'string' },
