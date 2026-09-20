@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const tls = vi.hoisted(() => ({
   ensureLocalTlsMaterial: vi.fn(),
+  inspectLocalTlsMaterial: vi.fn(),
   isLocalCaTrusted: vi.fn(),
   isMacos: vi.fn(),
   removeLocalCa: vi.fn(),
@@ -19,12 +20,13 @@ describe('server trust machine-readable contract', () => {
     tls.ensureLocalTlsMaterial.mockResolvedValue({
       fingerprint: 'AA:BB:CC',
     });
+    tls.inspectLocalTlsMaterial.mockResolvedValue({ fingerprint: 'AA:BB:CC' });
     tls.isLocalCaTrusted.mockResolvedValue(false);
     tls.removeLocalCa.mockResolvedValue(undefined);
     tls.trustLocalCa.mockResolvedValue(undefined);
   });
 
-  it('prepares material and reports status without modifying Keychain', async () => {
+  it('reports status without preparing material or modifying Keychain', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     const code = await runTrustCommand(
@@ -33,7 +35,8 @@ describe('server trust machine-readable contract', () => {
     );
 
     expect(code).toBe(0);
-    expect(tls.ensureLocalTlsMaterial).toHaveBeenCalledOnce();
+    expect(tls.ensureLocalTlsMaterial).not.toHaveBeenCalled();
+    expect(tls.inspectLocalTlsMaterial).toHaveBeenCalledOnce();
     expect(tls.trustLocalCa).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith(
       JSON.stringify({
@@ -42,6 +45,31 @@ describe('server trust machine-readable contract', () => {
         fingerprint: 'AA:BB:CC',
       }),
     );
+  });
+
+  it('reports renewal required without preparing or removing certificates', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    tls.inspectLocalTlsMaterial.mockResolvedValue(null);
+    expect(
+      await runTrustCommand(['--status', '--json'], '/tmp/moltnet-test'),
+    ).toBe(0);
+    expect(tls.ensureLocalTlsMaterial).not.toHaveBeenCalled();
+    expect(tls.removeLocalCa).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      JSON.stringify({ supported: true, trusted: false, fingerprint: null }),
+    );
+  });
+
+  it('removes existing trust without generating replacement material', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    expect(
+      await runTrustCommand(
+        ['--remove', '--yes', '--json'],
+        '/tmp/moltnet-test',
+      ),
+    ).toBe(0);
+    expect(tls.removeLocalCa).toHaveBeenCalledOnce();
+    expect(tls.ensureLocalTlsMaterial).not.toHaveBeenCalled();
   });
 
   it('requires explicit consent for JSON mutations', async () => {
@@ -89,11 +117,11 @@ describe('server trust machine-readable contract', () => {
     );
   });
 
-  it('returns a failure code when TLS preparation fails', async () => {
+  it('returns a failure code when TLS inspection fails', async () => {
     const error = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
-    tls.ensureLocalTlsMaterial.mockRejectedValue(new Error('keychain denied'));
+    tls.inspectLocalTlsMaterial.mockRejectedValue(new Error('keychain denied'));
 
     const code = await runTrustCommand(
       ['--status', '--json'],
