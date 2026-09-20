@@ -11,6 +11,7 @@ import type {
   AgentServerCatalogue,
   AgentServerStatus,
   RunCenterActions,
+  RunPreset,
 } from './types.js';
 
 /** Native IPC owns all server access; this renderer receives public state only. */
@@ -19,7 +20,7 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
-  const [presets, setPresets] = useState(listPresets);
+  const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
   const inFlight = useRef<Promise<void> | null>(null);
@@ -61,7 +62,8 @@ export function DesktopRunCenter() {
             lastCatalogue.current = Date.now();
           }
         }
-        setPresets(listPresets());
+        const nextPresets = await listPresets();
+        if (currentEpoch === epoch.current) setPresets(nextPresets);
       } catch (cause) {
         if (currentEpoch !== epoch.current) return;
         failures.current++;
@@ -159,11 +161,11 @@ export function DesktopRunCenter() {
       },
       savePreset: async (input) => {
         await runCenterActions.savePreset(input);
-        setPresets(listPresets());
+        setPresets(await listPresets());
       },
       deletePreset: async (id) => {
         await runCenterActions.deletePreset(id);
-        setPresets(listPresets());
+        setPresets(await listPresets());
       },
     }),
     [refresh],

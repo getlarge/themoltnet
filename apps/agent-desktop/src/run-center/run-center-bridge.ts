@@ -27,10 +27,24 @@ import type {
 
 const PRESETS_KEY = 'moltnet.run-presets.v1';
 
+async function presetStorageKey(): Promise<string> {
+  const settings = await invoke<{ storageScope?: string }>(
+    'desktop_connection_settings',
+  );
+  if (typeof settings.storageScope !== 'string') {
+    throw new Error(
+      'Restart an updated Agent Server to access presets for this environment.',
+    );
+  }
+  return settings.storageScope
+    ? `${PRESETS_KEY}:${settings.storageScope}`
+    : PRESETS_KEY;
+}
+
 /** Presets survive a reload but never leave this machine. */
-function readPresets(): RunPreset[] {
+function readPresets(key: string): RunPreset[] {
   try {
-    const raw = window.localStorage.getItem(PRESETS_KEY);
+    const raw = window.localStorage.getItem(key);
     if (!raw) return [];
     const value: unknown = JSON.parse(raw);
     return Array.isArray(value) ? (value as RunPreset[]) : [];
@@ -40,16 +54,16 @@ function readPresets(): RunPreset[] {
   }
 }
 
-function writePresets(presets: RunPreset[]): void {
+function writePresets(key: string, presets: RunPreset[]): void {
   try {
-    window.localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+    window.localStorage.setItem(key, JSON.stringify(presets));
   } catch {
     // Non-fatal: the run still starts, the preset just is not remembered.
   }
 }
 
-export function listPresets(): RunPreset[] {
-  return readPresets();
+export async function listPresets(): Promise<RunPreset[]> {
+  return readPresets(await presetStorageKey());
 }
 
 /** Provider credentials. The key crosses to native code and no further. */
@@ -122,7 +136,8 @@ export const runCenterActions: RunCenterActions = {
   },
 
   savePreset: async (input: SavePresetInput) => {
-    const presets = readPresets();
+    const key = await presetStorageKey();
+    const presets = readPresets(key);
     const existing = input.id
       ? presets.find((preset) => preset.id === input.id)
       : undefined;
@@ -138,6 +153,7 @@ export const runCenterActions: RunCenterActions = {
       lastUsedAt: existing?.lastUsedAt ?? null,
     };
     writePresets(
+      key,
       existing
         ? presets.map((entry) => (entry.id === preset.id ? preset : entry))
         : [...presets, preset],
@@ -145,7 +161,11 @@ export const runCenterActions: RunCenterActions = {
   },
 
   deletePreset: async (presetId) => {
-    writePresets(readPresets().filter((preset) => preset.id !== presetId));
+    const key = await presetStorageKey();
+    writePresets(
+      key,
+      readPresets(key).filter((preset) => preset.id !== presetId),
+    );
   },
 
   subscribeRunLogs: (runId, onLines) => {

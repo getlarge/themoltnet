@@ -5,6 +5,26 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+pub fn resolve_environment_store_root(
+    shared: Option<&str>,
+    legacy: Option<&str>,
+    home: &Path,
+    cwd: &Path,
+) -> Result<PathBuf, String> {
+    if let (Some(shared), Some(legacy)) = (shared, legacy) {
+        let first = resolve_store_root(Some(shared), None, home, cwd)?;
+        let second = resolve_store_root(Some(legacy), None, home, cwd)?;
+        if first != second {
+            return Err(
+                "Conflicting MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT; select one store root"
+                    .into(),
+            );
+        }
+        return Ok(first);
+    }
+    resolve_store_root(shared.or(legacy), None, home, cwd)
+}
+
 pub fn resolve_store_root(
     explicit: Option<&str>,
     environment: Option<&str>,
@@ -103,6 +123,21 @@ mod tests {
         fs,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    #[test]
+    fn environment_aliases_agree_or_fail() {
+        let cwd = fs::canonicalize(std::env::temp_dir()).unwrap();
+        assert_eq!(
+            resolve_environment_store_root(None, Some("legacy"), &cwd, &cwd).unwrap(),
+            cwd.join("legacy")
+        );
+        assert_eq!(
+            resolve_environment_store_root(Some("same"), Some("./same"), &cwd, &cwd).unwrap(),
+            cwd.join("same")
+        );
+        assert!(resolve_environment_store_root(Some("first"), Some("second"), &cwd, &cwd).is_err());
+        assert!(resolve_environment_store_root(Some(""), None, &cwd, &cwd).is_err());
+    }
 
     #[test]
     fn shared_conformance() {
