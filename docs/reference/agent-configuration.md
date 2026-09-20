@@ -334,12 +334,12 @@ absolute activation paths share one runtime boundary.
 
 ```
 ~/.config/moltnet/
-├── identity-selector.json              # Persisted default alias
+├── identity-selector.json     # Persisted default alias
+├── projects.json              # Machine-local project bindings
 └── identities/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
 │   ├── env                     # Non-secret activation values
-│   ├── contexts.json           # Legacy registrations; reset after project migration
 │   ├── activation-caches/      # Hash-bound activation status, one per location
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
@@ -396,7 +396,7 @@ moltnet config identity select <alias>
 `moltnet start` loads `~/.config/moltnet/identities/<alias>/env`, resolves the
 active identity, and execs the target binary with the correct environment.
 
-### Activation contexts
+### Project activation
 
 Projects are shared team resources. Team members can discover them; team
 managers create, update, and archive them in Console or through the CLI and SDK.
@@ -430,7 +430,12 @@ Without `--binding`, native activation uses the most specific registered
 ancestor of the caller's directory. Paths are canonicalized, including symlinks.
 Equally specific bindings require an explicit choice. Git remotes do not
 register other clones or worktrees. With no matching registration, the
-identity's default team and diary still apply.
+identity's default team and diary still apply in noninteractive launches. In a
+terminal, `moltnet start` prompts to register the folder: choose a team and
+diary, select or create a shared project, name the local binding, and choose
+**Work here** or **Prepare an isolated workspace**. The selection is saved for
+subsequent launches. Cancellation stops launch. Run
+`moltnet projects setup --identity <alias>` to open the same prompt explicitly.
 
 `moltnet start` selects the identity, project environment, and source CWD, then
 launches the native provider. It does not prepare isolated workspaces or run
@@ -476,24 +481,6 @@ Multiple bindings may serve a project. Outside native ancestor selection, a
 default can select among that project's bindings; it never silently chooses
 between different projects. The file holds no credentials. Credential lookup and
 remote validation happen separately.
-
-### Migrate legacy contexts
-
-Remote-based `contexts.json` registrations cannot identify a unique checkout.
-For each old registration, create or select a shared project and explicitly
-register each checkout you want to use with `projects bindings set`. Check the
-result with `projects bindings resolve --native` from the checkout. Then remove
-the legacy registrations for the selected identity:
-
-```bash
-moltnet context reset --identity <alias>
-moltnet start codex --dry-run
-```
-
-Reset removes the legacy registrations, preserving project bindings, identity
-credentials, and source folders. `context set` reports the replacement command.
-Native activation reports a migration error while nonempty legacy registrations
-remain; it never guesses which checkout a remote meant.
 
 After the first successful activation, LeGreffier keeps one cache per location
 under `~/.config/moltnet/identities/<alias>/activation-caches/`. Warm activation
@@ -858,9 +845,9 @@ projected team credentials must follow it. Existing fallback paths stay valid.
 ### Selecting and migrating team credentials
 
 CLI commands with a team argument use that team's map entry. Commands without
-one use `MOLTNET_TEAM_ID`, then the selected identity's location context or
-identity default. A single map entry can be selected automatically; multiple
-entries without a fallback require an explicit team or context. A selected entry
+one use `MOLTNET_TEAM_ID`, then the selected project binding or identity
+default. A single map entry can be selected automatically; multiple entries
+without a fallback require an explicit team or project binding. A selected entry
 that cannot be resolved fails immediately. Explicit agent-key environment
 overrides and interactive OAuth2 precedence remain unchanged.
 
@@ -936,8 +923,6 @@ Unicode normalization aliases. Both runtimes test case aliases and traverse-only
 ancestors; Go additionally tests normalization aliases. Resolvers validate each
 public input even if it was previously read: callers can mutate configuration
 objects between calls. Filesystem results are never cached across selections.
-Legacy `contexts.json` migration belongs to native CLI activation; a `contexts`
-key in this format is an unknown field, not a migration signal.
 
 ### Shared project catalogue
 

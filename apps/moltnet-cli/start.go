@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	osExec "os/exec"
@@ -51,18 +52,36 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 		return err
 	}
 	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
+	if _, e := os.Lstat(contextStorePath(agentDir)); e == nil {
+		fmt.Fprintln(cmd.ErrOrStderr(), "notice: contexts.json is no longer used; run 'moltnet projects setup' to register this folder, or 'moltnet projects bindings set' for noninteractive registration.")
+	}
 	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName, apiURL)
 	if err != nil {
 		return err
 	}
 	resolvedContext.writeSkippedEndpointNotice(cmd.ErrOrStderr())
-
+	if !dryRun && bindingName == "" && resolvedContext.Project == nil && projectCommandInteractive(cmd) {
+		reader := bufio.NewReader(cmd.InOrStdin())
+		choice, setupErr := promptChoice(cmd.OutOrStdout(), reader, "No project registered for this folder", 2, func(i int) string { return []string{"Register a project", "Not now (use identity default)"}[i] })
+		if setupErr == nil && choice == 0 {
+			// Preserve buffered answers for the remaining prompts.
+			cmd.SetIn(reader)
+			setupErr = setupProjectForCommand(cmd, agentDir, configPath, "")
+		}
+		if setupErr != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "notice: project setup was not completed: %v; using identity defaults. Run 'moltnet projects setup' to retry.\n", setupErr)
+		}
+		resolvedContext, err = resolveContextBindingWithProjectOptions(agentDir, "", configPath, "", apiURL)
+		if err != nil {
+			return err
+		}
+	}
 	switch resolvedContext.Source {
 	case contextSourceLocation:
 	case contextSourceIdentityDefault:
-		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s; using the identity default team and diary (run 'moltnet projects bindings set' to register this folder)\n", resolvedContext.Key)
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no project registered for %s; using the identity default team and diary (run 'moltnet projects setup' to register this folder)\n", resolvedContext.Key)
 	default:
-		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s and no identity default team and diary are set (run 'moltnet projects bindings set' to register this folder)\n", resolvedContext.Key)
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no project registered for %s and no identity default team and diary are set (run 'moltnet projects setup' to register this folder)\n", resolvedContext.Key)
 	}
 	if resolvedContext.Binding != nil {
 		vars["MOLTNET_TEAM_ID"] = resolvedContext.Binding.TeamID

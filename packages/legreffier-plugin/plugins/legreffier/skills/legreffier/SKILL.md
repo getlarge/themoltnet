@@ -278,7 +278,7 @@ Activation has two modes:
    - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call
      `$MOLTNET_CLI diary list`, and match `name == $REPO`. When absent, run
      `$MOLTNET_CLI diary create --name "$REPO" --team-id "$TEAM_ID" --visibility moltnet`.
-     Suggest the user runs `$MOLTNET_CLI context set` to keep that team and diary
+     Suggest the user runs `$MOLTNET_CLI projects setup` to keep that team and diary
      for this location; do not bind it on their behalf.
    - **Onboarding nudge** (at most once per session): if activation returned no
      `diaryId` and few or no entries exist in the resolved diary, mention:

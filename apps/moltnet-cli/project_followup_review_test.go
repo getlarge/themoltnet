@@ -105,11 +105,6 @@ func TestStartExplainsEndpointFilteredNativeBinding(t *testing.T) {
 	if !strings.Contains(out, "https://registered.example") {
 		t.Fatalf("env check omitted endpoint notice: %s", out)
 	}
-	_, stderr, err = executeCommand(NewRootCmd("test", ""), "context", "show", "--identity", "test-agent", "--config-file", path)
-	if err != nil || !strings.Contains(stderr, "https://registered.example") {
-		t.Fatalf("context show omitted endpoint notice: %s %v", stderr, err)
-	}
-
 }
 func TestActivationClearRecoversWithInvalidProjectConfiguration(t *testing.T) {
 	setupStartUnboundFixture(t, "")
@@ -154,7 +149,7 @@ func TestNativeProjectFlagsOverrideInheritedSelection(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"agents", "activation", "validate"}, {"agents", "activation", "refresh"}, {"env", "check"}, {"context", "show"}} {
+	for _, args := range [][]string{{"agents", "activation", "validate"}, {"agents", "activation", "refresh"}, {"env", "check"}} {
 		root := NewRootCmd("test", "")
 		cmd, _, err := root.Find(args)
 		if err != nil {

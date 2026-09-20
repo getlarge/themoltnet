@@ -85,15 +85,15 @@ func TestProjectNativeContextUsesRegisteredAncestor(t *testing.T) {
 	}
 }
 
-func TestProjectNativeContextRejectsLegacyRemoteBindings(t *testing.T) {
+func TestProjectNativeResolutionIgnoresLegacyRemoteBindings(t *testing.T) {
 	identity := t.TempDir()
 	err := os.WriteFile(contextStorePath(identity), []byte(`{"version":1,"contexts":{"git:example/repo":{"teamId":"team","diaryId":"diary"}}}`), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = resolveContextBindingWithProjectOptions(identity, t.TempDir(), filepath.Join(t.TempDir(), "projects.json"), "")
-	if err == nil || !strings.Contains(err.Error(), "migration") {
-		t.Fatalf("expected migration error, got %v", err)
+	selected, err := resolveContextBindingWithProjectOptions(identity, t.TempDir(), filepath.Join(t.TempDir(), "projects.json"), "")
+	if err != nil || selected.Project != nil || selected.Binding != nil {
+		t.Fatalf("legacy registration influenced project resolution: %+v %v", selected, err)
 	}
 }
 
@@ -122,28 +122,6 @@ func TestProjectStartSelectsSourceWithoutPreparingWorkspace(t *testing.T) {
 	entries, err := os.ReadDir(source)
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("native launcher prepared source: %v, %v", entries, err)
-	}
-}
-
-func TestProjectLegacyContextCommandsRequireMigration(t *testing.T) {
-	_, _, err := executeCommand(NewRootCmd("test", ""), "context", "set", "--team-id", "team", "--diary-id", "diary")
-	if err == nil || !strings.Contains(err.Error(), "projects bindings set") {
-		t.Fatalf("expected replacement command, got %v", err)
-	}
-}
-func TestProjectLegacyContextReset(t *testing.T) {
-	setupStartUnboundFixture(t, "")
-	identity := filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "identities", "test-agent")
-	if err := os.WriteFile(contextStorePath(identity), []byte(`{"version":1,"contexts":{"git:example/repo":{"teamId":"team","diaryId":"diary"}}}`), 0600); err != nil {
-		t.Fatal(err)
-	}
-	_, _, err := executeCommand(NewRootCmd("test", ""), "context", "reset", "--identity", "test-agent")
-	if err != nil {
-		t.Fatal(err)
-	}
-	store, err := readContextStore(identity)
-	if err != nil || len(store.Contexts) != 0 {
-		t.Fatalf("reset failed: %v %v", store, err)
 	}
 }
 
