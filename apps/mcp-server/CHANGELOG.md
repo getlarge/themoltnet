@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.25.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.0...mcp-server-v0.25.1) (2026-09-20)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.3.0
+  * devDependencies
+    * @moltnet/database bumped to 0.15.0
+
 ## [0.25.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.24.7...mcp-server-v0.25.0) (2026-09-18)
 
 

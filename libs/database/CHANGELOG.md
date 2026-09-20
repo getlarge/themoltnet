@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/database-v0.14.0...database-v0.15.0) (2026-09-20)
+
+
+### Features
+
+* **projects:** add team catalogue and project-scoped task claims ([e62f201](https://github.com/getlarge/themoltnet/commit/e62f201b0dbe89682628bf76d15e3091478541d3))
+
+
+### Bug Fixes
+
+* **projects:** close routing and migration review gaps ([bb2e283](https://github.com/getlarge/themoltnet/commit/bb2e2830d67d533a81c28f0efb5550c54334a162))
+* **projects:** complete routing and migration review follow-ups ([3b0bf7d](https://github.com/getlarge/themoltnet/commit/3b0bf7d1ba1ee03d0c283e86c36cc46935990eee))
+* **projects:** preserve General claims and tighten catalogue contracts ([841ae30](https://github.com/getlarge/themoltnet/commit/841ae30c747aad1c84a183dd829c2f49a092a3bd))
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/database-v0.13.0...database-v0.14.0) (2026-09-18)
 
 

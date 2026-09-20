@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.11](https://github.com/getlarge/themoltnet/compare/node-red-theme-v0.3.10...node-red-theme-v0.3.11) (2026-09-20)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/design-system bumped to 1.3.0
+
 ## [0.3.10](https://github.com/getlarge/themoltnet/compare/node-red-theme-v0.3.9...node-red-theme-v0.3.10) (2026-09-16)
 
 

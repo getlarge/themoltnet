@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.2.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.1.0...agent-runtime-v1.2.0) (2026-09-20)
+
+
+### Features
+
+* **agent-daemon:** project-aware once and poll selection ([62e5c18](https://github.com/getlarge/themoltnet/commit/62e5c188d52db02c4936d093f3d413c39fee63ec))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **projects:** add team catalogue and project-scoped task claims ([e62f201](https://github.com/getlarge/themoltnet/commit/e62f201b0dbe89682628bf76d15e3091478541d3))
+
+
+### Bug Fixes
+
+* **agent-daemon:** skip incompatible workspaces before claiming ([148ac80](https://github.com/getlarge/themoltnet/commit/148ac803a8ff65f2c8e2bb81c8ccf22cbd4f012a))
+* **oauth:** simplify grant validation and complete review coverage ([aa0a5db](https://github.com/getlarge/themoltnet/commit/aa0a5db176e66961bd2e2ec20e5f899a72bc15b4))
+* **projects:** close routing and migration review gaps ([bb2e283](https://github.com/getlarge/themoltnet/commit/bb2e2830d67d533a81c28f0efb5550c54334a162))
+* **projects:** complete routing and migration review follow-ups ([3b0bf7d](https://github.com/getlarge/themoltnet/commit/3b0bf7d1ba1ee03d0c283e86c36cc46935990eee))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.144.0
+
 ## [1.1.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.0.3...agent-runtime-v1.1.0) (2026-09-18)
 
 

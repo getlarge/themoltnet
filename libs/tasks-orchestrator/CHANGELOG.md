@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.10](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.4.9...tasks-orchestrator-v0.4.10) (2026-09-20)
+
+
+### Bug Fixes
+
+* **projects:** complete routing and migration review follow-ups ([3b0bf7d](https://github.com/getlarge/themoltnet/commit/3b0bf7d1ba1ee03d0c283e86c36cc46935990eee))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.144.0
+
 ## [0.4.9](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.4.8...tasks-orchestrator-v0.4.9) (2026-09-18)
 
 

@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.61.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.60.0...rest-api-v0.61.0) (2026-09-20)
+
+
+### Features
+
+* **agent-daemon:** desktop-control contract for the Run Center ([1efbb19](https://github.com/getlarge/themoltnet/commit/1efbb1942e3342cb8212b38ffa5f03284b115da7))
+* **agent-desktop:** advanced connection settings and Server view refinement ([e0625e8](https://github.com/getlarge/themoltnet/commit/e0625e83e9f7c48d7216a134b1e607ef295d928f))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **agent-server:** use PKCE for provisioning and local control ([675059b](https://github.com/getlarge/themoltnet/commit/675059b5e2007ce7a7c188497cdd52bd6bb97a51))
+* **api:** enroll existing identities with signing proof ([a495789](https://github.com/getlarge/themoltnet/commit/a495789ffa2247d738964f70973685c5454708ec))
+* **api:** expose credential expiry through whoami ([f061259](https://github.com/getlarge/themoltnet/commit/f061259359f19ee9b67bf669eb2f7e40bd556634))
+* **projects:** add team catalogue and project-scoped task claims ([e62f201](https://github.com/getlarge/themoltnet/commit/e62f201b0dbe89682628bf76d15e3091478541d3))
+
+
+### Bug Fixes
+
+* **agent-server:** request usable desktop grants and enforce token age ([92b2c86](https://github.com/getlarge/themoltnet/commit/92b2c86ffd510d8c7c8f6fcdd09c3d81563a2412))
+* **auth:** bind PKCE hook scopes to approved consent ([f3efc45](https://github.com/getlarge/themoltnet/commit/f3efc452f28b9770e7126f39b2b45d6bc32462b4))
+* **auth:** partition token requests by complete grant inputs ([9789908](https://github.com/getlarge/themoltnet/commit/9789908ec1a03782ddad1049b97677ddcc1c6998))
+* **auth:** revalidate streams and preserve consent cancellation ([c655cc9](https://github.com/getlarge/themoltnet/commit/c655cc9ab7d8a5398dd86c45ab7422d2bcb21cc1))
+* **enrollment:** retain older API compatibility and capture fault coverage ([1aab2cf](https://github.com/getlarge/themoltnet/commit/1aab2cf2804546c2338f2bcbe5ca86f8e0533636))
+* **oauth:** bind enrollment approvals to native identity proof ([912964f](https://github.com/getlarge/themoltnet/commit/912964ff8e6ec8df93cb30f2cc1e5a19378fbe75))
+* **oauth:** simplify grant validation and complete review coverage ([aa0a5db](https://github.com/getlarge/themoltnet/commit/aa0a5db176e66961bd2e2ec20e5f899a72bc15b4))
+* **pkce:** align native fixtures and browser test boundaries ([40ff264](https://github.com/getlarge/themoltnet/commit/40ff2642085276443681c000e050c776c10c5bb7))
+* **pkce:** clarify operator consent and prove revoked-key renewal ([fa9da02](https://github.com/getlarge/themoltnet/commit/fa9da027917576d1623a6872331a033314908752))
+* **projects:** complete routing and migration review follow-ups ([3b0bf7d](https://github.com/getlarge/themoltnet/commit/3b0bf7d1ba1ee03d0c283e86c36cc46935990eee))
+* **projects:** preserve General claims and tighten catalogue contracts ([841ae30](https://github.com/getlarge/themoltnet/commit/841ae30c747aad1c84a183dd829c2f49a092a3bd))
+* **projects:** select API teams through request headers ([d51ad94](https://github.com/getlarge/themoltnet/commit/d51ad94eab50346756e1122c89335efc5ccb2709))
+* **release:** configure Fly operator OAuth clients ([0318149](https://github.com/getlarge/themoltnet/commit/031814932d489de89dd922ce7eb1101d03df3f55))
+* **rest-api:** default and validate registered operator OAuth clients ([8c53df4](https://github.com/getlarge/themoltnet/commit/8c53df4b3bcbe9477e15e7ff46c067d92dfb18db))
+* **rest-api:** omit query strings from problem instances ([ceb3a98](https://github.com/getlarge/themoltnet/commit/ceb3a98b4a1e0377ac44009b2c73612e23b45f68))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.15.0
+
 ## [0.60.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.59.0...rest-api-v0.60.0) (2026-09-18)
 
 
