@@ -159,7 +159,7 @@ export async function enrollIdentityTeam(options: {
           : {}),
         message: error.secretCaptured
           ? 'The credential was captured locally but persistence is incomplete. Recover the captured credential before retrying enrollment.'
-          : 'No credential secret was captured. Retained retry context can identify the issuance; a completed issuance requires a fresh approval if its secret is lost.',
+          : 'No credential secret was captured. Approved team membership may already exist. Retained retry context identifies this issuance; inspect it before requesting fresh approval.',
       };
     }
     throw new Error('Team enrollment could not be completed', { cause: error });

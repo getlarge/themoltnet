@@ -17,7 +17,7 @@ vi.mock('@moltnet/agent-key-service', async (original) => ({
 const apps: FastifyInstance[] = [];
 afterEach(async () => {
   vi.unstubAllEnvs();
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   for (const app of apps.splice(0)) await app.close();
 });
 const grant = {
@@ -66,9 +66,58 @@ async function setup() {
     },
   );
   apps.push(app);
-  return { app, keys, patchRelationships };
+  return { app, keys, patchRelationships, mocks };
 }
 describe('enrollment target proof', () => {
+  it('checks human credential authority before accepting an identity proof', async () => {
+    const { app, keys, patchRelationships, mocks } = await setup();
+    mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(false);
+    const agentProof = await cryptoService.sign(
+      enrollmentProofMessage({ accessToken: 'approved-token', grant }),
+      keys.privateKey,
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/oauth2/provision',
+      headers: { authorization: 'Bearer approved-token' },
+      payload: { agentProof },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(patchRelationships).not.toHaveBeenCalled();
+    expect(issue).not.toHaveBeenCalled();
+  });
+
+  it('retries issuance without changing an already approved membership or its role', async () => {
+    const { app, keys, patchRelationships, mocks } = await setup();
+    const agentProof = await cryptoService.sign(
+      enrollmentProofMessage({ accessToken: 'approved-token', grant }),
+      keys.privateKey,
+    );
+    const request = {
+      method: 'POST' as const,
+      url: '/oauth2/provision',
+      headers: { authorization: 'Bearer approved-token' },
+      payload: { agentProof },
+    };
+    issue.mockRejectedValue(new Error('Issuance temporarily unavailable'));
+    expect((await app.inject(request)).statusCode).toBe(500);
+    expect(patchRelationships).toHaveBeenCalledOnce();
+    // Keto's additive membership is durable. A retry preserves it, including
+    // any stronger role assigned concurrently, and keeps the issuance key.
+    mocks.relationshipReader.isTeamMember.mockResolvedValue(true);
+    expect((await app.inject(request)).statusCode).toBe(500);
+    expect(patchRelationships).toHaveBeenCalledOnce();
+    expect(issue.mock.calls.map(([input]) => input.idempotencyKey)).toEqual([
+      grant.idempotencyKey,
+      grant.idempotencyKey,
+    ]);
+    expect(
+      patchRelationships.mock.calls[0]?.[0].relationshipPatch.every(
+        (patch: { action: string }) => patch.action === 'insert',
+      ),
+    ).toBe(true);
+  });
+
   it('requires a matching identity proof before membership or key issuance', async () => {
     const { app, keys, patchRelationships } = await setup();
     const wrong = await cryptoService.generateKeyPair();

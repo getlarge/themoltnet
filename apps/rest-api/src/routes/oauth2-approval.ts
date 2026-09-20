@@ -141,7 +141,7 @@ export async function oauth2ApprovalRoutes(
         'forbidden',
         'Renewal requires existing agent membership',
       );
-    return { agent: agent.alias ?? grant.agentId, team: team.name };
+    return { agent, team };
   }
   async function consent(request: FastifyRequest, value: string) {
     const human = await humanSession(request);
@@ -240,7 +240,8 @@ export async function oauth2ApprovalRoutes(
         grant,
         instance,
         audience: PROVISION_AUDIENCE,
-        ...labels,
+        agent: labels.agent.alias ?? grant.agentId,
+        team: labels.team.name,
       };
     }
     if (
@@ -454,15 +455,13 @@ export async function oauth2ApprovalRoutes(
           'forbidden',
           'The approval cannot delegate the requested scopes',
         );
-      await permissions(human.humanId, grant);
+      const { agent } = await permissions(human.humanId, grant);
       if (grant.operation === 'enroll') {
-        const agent = await app.agentRepository.findById(grant.agentId);
         const accessToken = request.headers.authorization?.replace(
           /^Bearer /i,
           '',
         );
         if (
-          !agent ||
           !accessToken ||
           !request.body.agentProof ||
           !(await cryptoService.verify(
