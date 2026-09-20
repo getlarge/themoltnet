@@ -5,7 +5,12 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ensureLocalTlsMaterial, removeLocalCa, trustLocalCa } from './tls.js';
+import {
+  ensureLocalTlsMaterial,
+  inspectLocalTlsMaterial,
+  removeLocalCa,
+  trustLocalCa,
+} from './tls.js';
 
 const { security } = vi.hoisted(() => ({
   security: vi.fn(async (_program: string, _args: string[]) => ({
@@ -63,6 +68,12 @@ it('rotates previous signing material instead of reusing it', async () => {
     join(root, 'tls', 'local-ca-key.pem'),
     'previous signing material',
     { mode: 0o600 },
+  );
+  security.mockClear();
+  await expect(inspectLocalTlsMaterial(root)).resolves.toBeNull();
+  expect(security).not.toHaveBeenCalled();
+  expect(await readFile(join(root, 'tls', 'local-ca.pem'), 'utf8')).toBe(
+    previous.ca,
   );
   const replacement = await ensureLocalTlsMaterial(root);
   expect(replacement.fingerprint).not.toBe(previous.fingerprint);

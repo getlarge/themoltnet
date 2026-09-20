@@ -79,6 +79,24 @@ async function localTlsMaterialFromDirectory(
   return null;
 }
 
+/** Read-only inspection for native status polling. */
+export async function inspectLocalTlsMaterial(
+  root: string,
+): Promise<LocalTlsMaterial | null> {
+  if (await hasStoredSigningKey(join(root, 'tls'))) return null;
+  return localTlsMaterialFromDirectory(join(root, 'tls'));
+}
+
+async function hasStoredSigningKey(dir: string): Promise<boolean> {
+  return stat(join(dir, 'local-ca-key.pem')).then(
+    () => true,
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return false;
+      throw error;
+    },
+  );
+}
+
 /** Creates a per-user CA and loopback-only leaf certificate under a 0700 directory. */
 export async function ensureLocalTlsMaterial(
   root: string,
@@ -89,13 +107,7 @@ export async function ensureLocalTlsMaterial(
   // a restart during migration must never lose the certificate needed to revoke
   // that trust. Native administration surfaces any platform failure to the user.
   const previousSigningKey = join(dir, 'local-ca-key.pem');
-  const hasPreviousSigningKey = await stat(previousSigningKey).then(
-    () => true,
-    (error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return false;
-      throw error;
-    },
-  );
+  const hasPreviousSigningKey = await hasStoredSigningKey(dir);
   const existing = await localTlsMaterialFromDirectory(dir);
   if (existing && !hasPreviousSigningKey) return existing;
   if (isMacos() && (await isLocalCaTrusted(root))) await removeLocalCa(root);

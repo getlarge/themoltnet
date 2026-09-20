@@ -33,6 +33,7 @@ import {
 } from '../lib/agent-server/store.js';
 import {
   ensureLocalTlsMaterial,
+  inspectLocalTlsMaterial,
   isLocalCaTrusted,
   isMacos,
   removeLocalCa,
@@ -266,20 +267,20 @@ export async function runTrustCommand(
       return 1;
     }
 
-    const material = await ensureLocalTlsMaterial(root);
     if (statusRequested) {
-      const trusted = await isLocalCaTrusted(root);
+      const material = await inspectLocalTlsMaterial(root);
+      const trusted = material !== null && (await isLocalCaTrusted(root));
       if (json)
         printTrustStatus({
           supported: true,
           trusted,
-          fingerprint: material.fingerprint,
+          fingerprint: material?.fingerprint ?? null,
         });
       else
         console.log(
           trusted
-            ? `MoltNet local CA ${material.fingerprint} is trusted.`
-            : `MoltNet local CA ${material.fingerprint} is not trusted.`,
+            ? `MoltNet local CA ${material?.fingerprint ?? '(not prepared)'} is trusted.`
+            : `MoltNet local CA ${material?.fingerprint ?? '(not prepared)'} is not trusted.`,
         );
       return 0;
     }
@@ -297,13 +298,14 @@ export async function runTrustCommand(
         printTrustStatus({
           supported: true,
           trusted: false,
-          fingerprint: material.fingerprint,
+          fingerprint: null,
         });
       else
         console.log('Removed the MoltNet local CA from your login keychain.');
       return 0;
     }
 
+    const material = await ensureLocalTlsMaterial(root);
     if (yes) await trustLocalCa(root);
     else await ensureTrustedLocalTls(root);
     if (json)
