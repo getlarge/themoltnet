@@ -46,9 +46,10 @@ func newAgentsCmd() *cobra.Command {
 				identity, _ = cmd.Flags().GetString("agent")
 			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
-			return runAgentsActivationValidateCmd(cmd.OutOrStdout(), identity, jsonOut)
+			return runAgentsActivationValidateCmd(cmd.OutOrStdout(), identity, jsonOut, nativeProjectOptionsFromCommand(cmd))
 		},
 	}
+	addNativeProjectFlags(validateCmd)
 	validateCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
 	addDeprecatedIdentityFlags(validateCmd)
 	validateCmd.Flags().Bool("json", false, "Print machine-readable JSON")
@@ -63,16 +64,17 @@ func newAgentsCmd() *cobra.Command {
 				identity, _ = cmd.Flags().GetString("agent")
 			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
-			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), identity, jsonOut)
+			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), identity, jsonOut, nativeProjectOptionsFromCommand(cmd))
 		},
 	}
+	addNativeProjectFlags(refreshCmd)
 	refreshCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
 	addDeprecatedIdentityFlags(refreshCmd)
 	refreshCmd.Flags().Bool("json", false, "Print machine-readable JSON")
 
 	clearCmd := &cobra.Command{
 		Use:   "clear",
-		Short: "Clear local activation cache",
+		Short: "Clear all local activation caches for the selected identity",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			identity, _ := cmd.Flags().GetString("identity")

@@ -48,9 +48,10 @@ type resolvedContextBinding struct {
 	Key string
 	// Source is contextSourceLocation, contextSourceIdentityDefault, or empty
 	// when neither applies.
-	Source  string
-	Binding *contextBinding
-	Project *projectconfig.Binding
+	Source           string
+	Binding          *contextBinding
+	Project          *projectconfig.Binding
+	SkippedEndpoints []projectconfig.Binding
 }
 
 func (r resolvedContextBinding) teamID() string {
@@ -231,7 +232,7 @@ func identityDefaultBinding(agentDir string) (contextBinding, bool) {
 // resolveContextBinding resolves the team/diary for directory: the binding
 // stored for its location if there is one, otherwise the identity default.
 func resolveContextBinding(agentDir, directory string) (resolvedContextBinding, error) {
-	return resolveContextBindingWithProjectOptions(agentDir, directory, os.Getenv("MOLTNET_PROJECT_CONFIG"), os.Getenv("MOLTNET_PROJECT_BINDING"))
+	return resolveNativeProjectContext(agentDir, directory)
 }
 
 // Local project selection is independent of credentials and never prepares a workspace.
@@ -261,6 +262,13 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 	if len(endpointOverride) > 0 {
 		apiURL = endpointOverride[0]
 	}
+	if bindingName != "" {
+		for _, candidate := range config.Bindings {
+			if candidate.Name == bindingName && strings.TrimSuffix(candidate.APIURL, "/") != strings.TrimSuffix(apiURL, "/") {
+				return resolvedContextBinding{}, fmt.Errorf("binding %q endpoint %q does not match selected API endpoint %q", bindingName, candidate.APIURL, apiURL)
+			}
+		}
+	}
 	project, err := projectconfig.Resolve(config, projectconfig.Options{APIURL: apiURL, ConfigPath: configPath, CWD: canonical, Native: true, Binding: bindingName})
 	if err != nil {
 		return resolvedContextBinding{}, err
@@ -269,11 +277,23 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 		binding := contextBinding{TeamID: project.TeamID, DiaryID: project.DiaryID}
 		return resolvedContextBinding{Key: projectContextKey(project), Source: contextSourceLocation, Binding: &binding, Project: project}, nil
 	}
+	var skipped []projectconfig.Binding
+	for _, candidate := range config.Bindings {
+		if strings.TrimSuffix(candidate.APIURL, "/") == strings.TrimSuffix(apiURL, "/") {
+			continue
+		}
+		// Diagnostic only: aliases use the same canonical ancestor resolver. An
+		// unavailable source outside the selected endpoint cannot provide a match.
+		match, matchErr := projectconfig.Resolve(&projectconfig.Config{Version: config.Version, Bindings: []projectconfig.Binding{candidate}}, projectconfig.Options{ConfigPath: configPath, CWD: canonical, Native: true})
+		if matchErr == nil && match != nil {
+			skipped = append(skipped, *match)
+		}
+	}
 	key := "dir:" + canonical
 	if binding, ok := identityDefaultBinding(agentDir); ok {
-		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding}, nil
+		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding, SkippedEndpoints: skipped}, nil
 	}
-	return resolvedContextBinding{Key: key}, nil
+	return resolvedContextBinding{Key: key, SkippedEndpoints: skipped}, nil
 }
 
 func activationCachePathForContext(agentDir, contextKey string) string {

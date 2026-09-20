@@ -121,7 +121,7 @@ func newProjectBindingsCmd() *cobra.Command {
 		}
 		return projectconfig.Path()
 	}
-	list := &cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	list := &cobra.Command{Use: "list", Short: "List saved local project bindings", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		p, err := path()
 		if err != nil {
 			return err
@@ -150,6 +150,9 @@ func newProjectBindingsCmd() *cobra.Command {
 		err = projectconfig.Update(p, func(config *projectconfig.Config) error {
 			for i, b := range config.Bindings {
 				if b.Name == binding.Name {
+					if !cmd.Flags().Changed("api-url") && !cmd.Flags().Changed("credentials") {
+						binding.APIURL = b.APIURL
+					}
 					if !cmd.Flags().Changed("diary-id") {
 						binding.DiaryID = b.DiaryID
 					}
@@ -213,6 +216,9 @@ func newProjectBindingsCmd() *cobra.Command {
 		result, err := projectconfig.Resolve(config, selection)
 		if err != nil {
 			return err
+		}
+		if result == nil {
+			return fmt.Errorf("no matching project binding for API endpoint %q", selection.APIURL)
 		}
 		return projectJSON(cmd, result)
 	}}

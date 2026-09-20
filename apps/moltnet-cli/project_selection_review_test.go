@@ -28,7 +28,7 @@ func TestProjectStartRejectsDifferentEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, _, err := executeCommand(NewRootCmd("test", ""), "start", "echo", "--identity", "test-agent", "--binding", "other", "--config-file", path, "--dry-run")
-	if err == nil || !strings.Contains(err.Error(), "endpoint") {
+	if err == nil || !strings.Contains(err.Error(), `binding "other" endpoint "https://other.example" does not match selected API endpoint`) {
 		t.Fatalf("expected endpoint mismatch, got %v", err)
 	}
 }
@@ -62,6 +62,7 @@ func TestProjectActivationHonorsLaunchSelection(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "test-agent")
 	t.Setenv("MOLTNET_PROJECT_CONFIG", path)
 	t.Setenv("MOLTNET_PROJECT_BINDING", "two")
 	ctx, err := resolveActivationContext("test-agent")

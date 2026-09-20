@@ -443,8 +443,13 @@ bindings select the source folder. No configuration is discovered from
 repository files. Native selection filters bindings by the identity's resolved
 API endpoint and rejects an explicit binding for a different endpoint. `start`
 exports `MOLTNET_PROJECT_CONFIG` and `MOLTNET_PROJECT_BINDING` so activation
-uses the same selection. `projects bindings resolve` uses native ancestor lookup
-by default; pass `--native=false` for project/default selection without a CWD
+uses the same selection for that identity. `agents activation validate`,
+`agents activation refresh`, and `env check` accept `--config-file` and
+`--binding` to override the launched session. `agents activation clear` clears
+all location caches for the selected identity without reading project
+registrations. Treat `MOLTNET_CONTEXT_KEY` as an opaque cache identity; do not
+parse its components. `projects bindings resolve` uses native ancestor lookup by
+default; pass `--native=false` for project/default selection without a CWD
 match. Relative paths written by the CLI resolve from the caller's CWD; relative
 paths inside JSON resolve from the configuration file's directory.
 

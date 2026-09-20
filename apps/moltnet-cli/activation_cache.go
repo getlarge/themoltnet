@@ -99,8 +99,8 @@ type activationContext struct {
 	Context   resolvedContextBinding
 }
 
-func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) error {
-	ctx, err := resolveActivationContext(identity)
+func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
+	ctx, err := resolveActivationContext(identity, options...)
 	if err != nil {
 		// "no identity resolves" is a validation answer, not a crash. Under
 		// --json a consumer parses stdout, so it must find a document here
@@ -122,8 +122,8 @@ func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool) 
 	return printActivationValidationResult(w, result, jsonOut)
 }
 
-func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) error {
-	ctx, err := resolveActivationContext(identity)
+func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
+	ctx, err := resolveActivationContext(identity, options...)
 	if err != nil {
 		return err
 	}
@@ -149,19 +149,38 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool) e
 	return printActivationValidationResult(w, &result, jsonOut)
 }
 
+// Clearing is recovery: it never depends on project selection or registration validity.
 func runAgentsActivationClearCmd(w io.Writer, identity string) error {
-	ctx, err := resolveActivationContext(identity)
+	name, err := resolveIdentityAlias(identity)
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(ctx.CachePath); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("remove activation cache: %w", err)
+	dir, err := identityDir(name)
+	if err != nil {
+		return err
 	}
-	fmt.Fprintf(w, "Activation cache cleared: %s\n", ctx.CachePath)
+	cacheDir := filepath.Join(dir, "activation-caches")
+	files, err := os.ReadDir(cacheDir)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	for _, file := range files {
+		base := strings.TrimSuffix(file.Name(), ".json")
+		if file.IsDir() || len(base) != 64 || base == file.Name() {
+			continue
+		}
+		if _, err := hex.DecodeString(base); err != nil {
+			continue
+		}
+		if err := os.Remove(filepath.Join(cacheDir, file.Name())); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("remove activation cache: %w", err)
+		}
+	}
+	fmt.Fprintf(w, "Activation caches cleared for %s\n", name)
 	return nil
 }
 
-func resolveActivationContext(identity string) (*activationContext, error) {
+func resolveActivationContext(identity string, options ...nativeProjectOptions) (*activationContext, error) {
 	agentName, err := resolveIdentityAlias(identity)
 	if err != nil {
 		return nil, err
@@ -179,7 +198,7 @@ func resolveActivationContext(identity string) (*activationContext, error) {
 			return nil, fmt.Errorf("read env file: %w", err)
 		}
 	}
-	resolvedContext, err := resolveContextBinding(agentDir, "")
+	resolvedContext, err := resolveNativeProjectContext(agentDir, "", options...)
 	if err != nil {
 		return nil, err
 	}

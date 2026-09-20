@@ -48,7 +48,7 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	if err != nil {
 		return err
 	}
-	resolved, err := resolveContextBinding(agentDir, "")
+	resolved, err := resolveNativeProjectContext(agentDir, "", nativeProjectOptionsFromCommand(cmd))
 	if err != nil {
 		return err
 	}

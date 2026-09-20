@@ -9,6 +9,7 @@ func newContextCmd() *cobra.Command {
 		Use: "show", Short: "Show the team and diary that apply here, and where they come from", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return runContextShowCmd(cmd, show) },
 	}
+	addNativeProjectFlags(showCmd)
 	showCmd.Flags().StringVar(&show.Identity, "identity", "", "Central identity alias")
 	showCmd.Flags().BoolVar(&show.JSON, "json", false, "Print JSON")
 

@@ -39,11 +39,7 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	if err != nil {
 		return fmt.Errorf("identity environment not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
 	}
-	configPath, _ := cmd.Flags().GetString("config-file")
-	bindingName, _ := cmd.Flags().GetString("binding")
-	if configPath == "" {
-		configPath = os.Getenv("MOLTNET_PROJECT_CONFIG")
-	}
+	configPath, bindingName := nativeProjectSelection(agentDir, nativeProjectOptionsFromCommand(cmd))
 	if configPath == "" {
 		configPath, err = projectconfig.Path()
 		if err != nil {
@@ -54,13 +50,13 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	if err != nil {
 		return err
 	}
-	if bindingName == "" {
-		bindingName = os.Getenv("MOLTNET_PROJECT_BINDING")
-	}
 	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
 	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName, apiURL)
 	if err != nil {
 		return err
+	}
+	for _, skipped := range resolvedContext.SkippedEndpoints {
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: binding %q matches this folder but uses endpoint %q; selected endpoint is %q\n", skipped.Name, skipped.APIURL, apiURL)
 	}
 	switch resolvedContext.Source {
 	case contextSourceLocation:
@@ -75,14 +71,18 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 	vars["MOLTNET_CONTEXT_KEY"] = resolvedContext.Key
 	vars["MOLTNET_PROJECT_CONFIG"] = configPath
-	vars["MOLTNET_API_URL"] = apiURL
+	// Preserve provenance: the SDK validates config-selected endpoints itself.
+	// Only an operator-supplied flag or process environment is an explicit override.
+	delete(vars, "MOLTNET_API_URL")
+	if (cmd.Flag("api-url") != nil && cmd.Flag("api-url").Changed) || strings.TrimSpace(os.Getenv(apiURLEnv)) != "" {
+		vars["MOLTNET_API_URL"] = apiURL
+	}
 	workingDirectory, err := contextWorkingDirectory()
 	if err != nil {
 		return err
 	}
 	if project := resolvedContext.Project; project != nil {
 		vars["MOLTNET_PROJECT_ID"] = project.ProjectID
-		vars["MOLTNET_API_URL"] = project.APIURL
 		vars["MOLTNET_PROJECT_BINDING"] = project.Name
 		if project.Source != "" {
 			workingDirectory = project.Source
@@ -115,7 +115,10 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 	targetPath, err := osExec.LookPath(lookupTarget)
 	if err != nil {
-		return fmt.Errorf("%q not found in PATH", target)
+		if lookupTarget != target || filepath.IsAbs(target) {
+			return fmt.Errorf("target %q could not be executed from directory %q: %w", lookupTarget, workingDirectory, err)
+		}
+		return fmt.Errorf("%q not found in PATH: %w", target, err)
 	}
 
 	// Build environment: current env with agent env vars replacing any
@@ -137,8 +140,8 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 
 	if dryRun {
 		fmt.Fprintf(cmd.OutOrStdout(), "Working directory: %s\n", quoteStartValue(workingDirectory))
-		fmt.Fprintf(cmd.OutOrStdout(), "Agent: %s\n", agentName)
-		fmt.Fprintf(cmd.OutOrStdout(), "Target: %s (%s)\n\n", target, targetPath)
+		fmt.Fprintf(cmd.OutOrStdout(), "Agent: %s\n", quoteStartValue(agentName))
+		fmt.Fprintf(cmd.OutOrStdout(), "Target: %s (%s)\n\n", quoteStartValue(target), quoteStartValue(targetPath))
 		if len(targetArgs) > 0 {
 			fmt.Fprintln(cmd.OutOrStdout(), "Forwarded target arguments:")
 			for _, arg := range targetArgs {

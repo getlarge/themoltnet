@@ -71,7 +71,7 @@ func runEnvCheckCmd(cmd *cobra.Command, identityFlag string) error {
 		fmt.Fprintln(cmd.OutOrStdout(), "✓ GitHub App identity/private key configured (installation resolves per repository)")
 	}
 
-	resolvedContext, contextErr := resolveContextBinding(agentDir, "")
+	resolvedContext, contextErr := resolveNativeProjectContext(agentDir, "", nativeProjectOptionsFromCommand(cmd))
 	if contextErr != nil {
 		fmt.Fprintf(cmd.OutOrStdout(), "✗ activation context → %v\n", contextErr)
 		failed = true
