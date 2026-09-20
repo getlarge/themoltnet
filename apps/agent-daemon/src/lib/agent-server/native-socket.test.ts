@@ -75,6 +75,22 @@ describe('private native socket', () => {
     ).toBe(401);
   });
 
+  it('limits rejected native requests without spending the valid grant budget', async () => {
+    const socket = join(await directory(), 'control.sock');
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('native-secret');
+    const { app } = await fixture({
+      nativeGrant,
+      nativeOnly: true,
+      rateLimitMax: 1,
+    });
+    await app.listen({ path: socket });
+    expect(await get(socket, 'incorrect')).toBe(401);
+    expect(await get(socket, 'incorrect')).toBe(429);
+    expect(await get(socket, 'native-secret')).toBe(200);
+    expect(await get(socket, 'native-secret')).toBe(429);
+  });
+
   it('refuses an occupied path without removing it', async () => {
     const socket = join(await directory(), 'control.sock');
     await writeFile(socket, 'preserve');

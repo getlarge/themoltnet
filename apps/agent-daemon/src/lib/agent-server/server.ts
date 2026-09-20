@@ -349,34 +349,6 @@ export function buildAgentServer(
     ? Fastify({ ...fastifyOptions, loggerInstance: options.logger })
     : Fastify(fastifyOptions);
 
-  if (options.nativeOnly) {
-    app.addHook('onRequest', (request, _reply, done) => {
-      const origin = request.headers.origin;
-      const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
-      if (origin !== NATIVE_CLIENT_ORIGIN || typeof token !== 'string') {
-        done(
-          new AgentServerHttpError(
-            401,
-            'authorization_required',
-            'Native authorization required',
-          ),
-        );
-        return;
-      }
-      try {
-        nativeGrant.verify(origin, token);
-        done();
-      } catch {
-        done(
-          new AgentServerHttpError(
-            401,
-            'authorization_required',
-            'Native authorization required',
-          ),
-        );
-      }
-    });
-  }
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
 
@@ -541,6 +513,35 @@ export function buildAgentServer(
   };
 
   app.after(() => {
+    // Global onRequest rate limiting runs before native authorization, including health.
+    if (options.nativeOnly) {
+      app.addHook('preHandler', (request, _reply, done) => {
+        const origin = request.headers.origin;
+        const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
+        if (origin !== NATIVE_CLIENT_ORIGIN || typeof token !== 'string') {
+          done(
+            new AgentServerHttpError(
+              401,
+              'authorization_required',
+              'Native authorization required',
+            ),
+          );
+          return;
+        }
+        try {
+          nativeGrant.verify(origin, token);
+          done();
+        } catch {
+          done(
+            new AgentServerHttpError(
+              401,
+              'authorization_required',
+              'Native authorization required',
+            ),
+          );
+        }
+      });
+    }
     app.get(
       '/health',
       { schema: AgentServerRouteSchemas.health },
