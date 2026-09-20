@@ -41,7 +41,9 @@ describe('Desktop provider creation', () => {
   it('configures keyless Ollama and preserves discovered model capabilities', async () => {
     const { putProvider, discoverModels, onDone } = setup();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Save and discover models' }),
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
     );
     await screen.findByRole('checkbox', { name: 'vision' });
     expect(putProvider).toHaveBeenNthCalledWith(1, 'ollama', {
@@ -52,7 +54,7 @@ describe('Desktop provider creation', () => {
     });
     expect(discoverModels).toHaveBeenCalledWith('ollama');
     fireEvent.click(
-      screen.getByRole('button', { name: /Save selected models/ }),
+      screen.getByRole('button', { name: /Save models for Ollama/ }),
     );
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(putProvider).toHaveBeenLastCalledWith('ollama', {
@@ -69,7 +71,9 @@ describe('Desktop provider creation', () => {
       target: { value: 'ollama-cloud' },
     });
     expect(
-      screen.getByRole('button', { name: 'Save and discover models' }),
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
     ).toBeDisabled();
     fireEvent.change(screen.getByLabelText('API key'), {
       target: { value: 'secret-sentinel' },
@@ -84,7 +88,9 @@ describe('Desktop provider creation', () => {
       new Error('Provider unavailable; try discovery again.'),
     );
     fireEvent.click(
-      screen.getByRole('button', { name: 'Save and discover models' }),
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
     );
     await screen.findByText('Provider unavailable; try discovery again.');
     expect(
@@ -99,9 +105,58 @@ describe('Desktop provider creation', () => {
       }),
     );
     expect(
-      screen.getByRole('button', { name: 'Discover models' }),
+      screen.getByRole('button', { name: 'Refresh models' }),
     ).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Done' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Close setup' })).toBeEnabled();
+    expect(screen.getByText('API key saved on this Mac.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Endpoint: https://ollama.com/v1'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('API key (optional)'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('selects all matching models, preserves other selections and refreshes without rewriting the connection', async () => {
+    const { discoverModels, putProvider } = setup();
+    discoverModels.mockResolvedValue([
+      { id: 'alpha' },
+      { id: 'beta' },
+      { id: 'alpine' },
+    ]);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
+    await screen.findByRole('checkbox', { name: 'alpha' });
+    fireEvent.click(screen.getByRole('button', { name: 'Select all (3)' }));
+    fireEvent.change(screen.getByLabelText('Filter models'), {
+      target: { value: 'al' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear matching selection' }),
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Save models for Ollama (local) (1)',
+      }),
+    ).toBeEnabled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Select all matching (2)' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh models' }));
+    await waitFor(() => expect(discoverModels).toHaveBeenCalledTimes(2));
+    expect(putProvider).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', {
+        name: 'Save models for Ollama (local) (3)',
+      }),
+    ).toBeEnabled();
+    fireEvent.change(screen.getByLabelText('Filter models'), {
+      target: { value: '' },
+    });
+    expect(screen.getByRole('checkbox', { name: 'beta' })).toBeChecked();
   });
 
   it('does not carry a cloud key into another provider preset', () => {
@@ -121,7 +176,9 @@ describe('Desktop provider creation', () => {
   it('prevents the add form from overwriting an existing provider', () => {
     const { putProvider } = setup({ ollama: LOCAL });
     expect(
-      screen.getByRole('button', { name: 'Save and discover models' }),
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
     ).toBeDisabled();
     expect(putProvider).not.toHaveBeenCalled();
   });

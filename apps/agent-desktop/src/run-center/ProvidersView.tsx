@@ -219,6 +219,12 @@ export function ProvidersView({
                   </Badge>
                 </Stack>
 
+                <Text variant="caption" color="secondary">
+                  {provider.models.length
+                    ? `${provider.models.length} models saved for runtime profiles`
+                    : 'No models saved. Choose models to finish setup.'}
+                </Text>
+
                 {editing === providerId ? (
                   <Stack gap={3}>
                     <Input
