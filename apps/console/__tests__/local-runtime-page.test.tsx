@@ -404,18 +404,18 @@ describe('LocalRuntimePage', () => {
   });
 
   it('discovers models from a preset and saves only the selected ones', async () => {
-    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+    handlers['POST /v1/providers/ollama/discover-models'] = () =>
       jsonResponse({
         models: [
           { id: 'llama3.3:70b' },
           { id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] },
         ],
       });
-    handlers['PUT /v1/providers/ollama-local'] = (init) =>
+    handlers['PUT /v1/providers/ollama'] = (init) =>
       jsonResponse({
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         models: JSON.parse(String(init?.body)).models,
         hasApiKey: false,
       });
@@ -442,25 +442,24 @@ describe('LocalRuntimePage', () => {
         .filter(
           (entry) =>
             entry.method === 'PUT' &&
-            entry.url.endsWith('/v1/providers/ollama-local'),
+            entry.url.endsWith('/v1/providers/ollama'),
         )
         .at(-1);
       expect(put?.body).toMatchObject({
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         // The daemon detected the modality; the console saves it back
         // untouched rather than re-deriving it.
         models: [{ id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] }],
       });
     });
     const discovery = requests.find((entry) =>
-      entry.url.endsWith('/v1/providers/ollama-local/discover-models'),
+      entry.url.endsWith('/v1/providers/ollama/discover-models'),
     );
     expect(discovery?.body).toBeUndefined();
     const stagedProvider = requests.find(
       (entry) =>
-        entry.method === 'PUT' &&
-        entry.url.endsWith('/v1/providers/ollama-local'),
+        entry.method === 'PUT' && entry.url.endsWith('/v1/providers/ollama'),
     );
     expect(stagedProvider?.body).toMatchObject({
       baseUrl: 'http://localhost:11434/v1',
@@ -579,13 +578,13 @@ describe('LocalRuntimePage', () => {
     const models = Array.from({ length: 120 }, (_value, index) => ({
       id: `model-${String(index).padStart(3, '0')}`,
     }));
-    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+    handlers['POST /v1/providers/ollama/discover-models'] = () =>
       jsonResponse({ models });
-    handlers['PUT /v1/providers/ollama-local'] = () =>
+    handlers['PUT /v1/providers/ollama'] = () =>
       jsonResponse({
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         models: [],
         hasApiKey: false,
       });

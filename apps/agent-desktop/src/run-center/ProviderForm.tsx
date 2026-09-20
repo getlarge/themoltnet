@@ -12,11 +12,15 @@ import type { AgentServerProvider, ProviderActions } from './types.js';
 
 const PRESETS = [
   {
-    id: 'ollama-local',
+    id: 'ollama',
     label: 'Ollama (local)',
     baseUrl: 'http://localhost:11434/v1',
   },
-  { id: 'ollama', label: 'Ollama Cloud', baseUrl: 'https://ollama.com/v1' },
+  {
+    id: 'ollama-cloud',
+    label: 'Ollama Cloud',
+    baseUrl: 'https://ollama.com/v1',
+  },
   { id: 'custom', label: 'Custom (OpenAI-compatible)', baseUrl: '' },
 ];
 
@@ -35,8 +39,8 @@ export function ProviderForm({
   onDone: () => void;
 }) {
   const existing = existingId ? providers[existingId] : undefined;
-  const [preset, setPreset] = useState(existing ? 'custom' : 'ollama-local');
-  const [id, setId] = useState(existingId ?? 'ollama-local');
+  const [preset, setPreset] = useState(existing ? 'custom' : 'ollama');
+  const [id, setId] = useState(existingId ?? 'ollama');
   const [baseUrl, setBaseUrl] = useState(
     existing?.baseUrl ?? PRESETS[0].baseUrl,
   );
@@ -53,9 +57,8 @@ export function ProviderForm({
   const [discovered, setDiscovered] = useState(false);
   const providerId = id.trim();
   const duplicate = !saved && Object.hasOwn(providers, providerId);
-  const valid =
-    /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u.test(providerId) && baseUrl.trim();
-  const needsKey = preset === 'ollama' && !saved?.hasApiKey;
+  const valid = /^[a-z0-9][a-z0-9-]{0,63}$/u.test(providerId) && baseUrl.trim();
+  const needsKey = preset === 'ollama-cloud' && !saved?.hasApiKey;
   const filtered = models.filter((model) =>
     model.id.toLowerCase().includes(filter.toLowerCase()),
   );
@@ -69,7 +72,7 @@ export function ProviderForm({
         baseUrl: baseUrl.trim(),
         envName:
           existing?.envName ??
-          `${providerId.toUpperCase().replace(/[^A-Z0-9]/gu, '_')}_API_KEY`,
+          `MOLTNET_PROVIDER_${providerId.replaceAll('-', '_').toUpperCase()}_API_KEY`,
         models: saved?.models ?? [],
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
@@ -153,7 +156,7 @@ export function ProviderForm({
         label="Provider ID"
         value={id}
         disabled={busy || Boolean(saved)}
-        hint="Use this ID in your runtime profiles."
+        hint="Use this ID in your runtime profiles: lowercase letters, digits, and hyphens only."
         error={
           duplicate
             ? 'This provider already exists. Use its Configure models action.'
@@ -168,7 +171,7 @@ export function ProviderForm({
         disabled={busy || Boolean(saved)}
         onChange={(event) => setBaseUrl(event.target.value)}
       />
-      {preset !== 'ollama-local' ? (
+      {preset !== 'ollama' ? (
         <Input
           label={needsKey ? 'API key' : 'API key (optional)'}
           type="password"

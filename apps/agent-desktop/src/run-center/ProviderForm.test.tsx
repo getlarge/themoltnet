@@ -8,7 +8,7 @@ import type { AgentServerProvider, ProviderActions } from './types.js';
 const LOCAL: AgentServerProvider = {
   api: 'openai-completions',
   baseUrl: 'http://localhost:11434/v1',
-  envName: 'OLLAMA_LOCAL_API_KEY',
+  envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
   hasApiKey: false,
   models: [],
 };
@@ -44,18 +44,18 @@ describe('Desktop provider creation', () => {
       screen.getByRole('button', { name: 'Save and discover models' }),
     );
     await screen.findByRole('checkbox', { name: 'vision' });
-    expect(putProvider).toHaveBeenNthCalledWith(1, 'ollama-local', {
+    expect(putProvider).toHaveBeenNthCalledWith(1, 'ollama', {
       api: 'openai-completions',
       baseUrl: LOCAL.baseUrl,
       envName: LOCAL.envName,
       models: [],
     });
-    expect(discoverModels).toHaveBeenCalledWith('ollama-local');
+    expect(discoverModels).toHaveBeenCalledWith('ollama');
     fireEvent.click(
       screen.getByRole('button', { name: /Save selected models/ }),
     );
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(putProvider).toHaveBeenLastCalledWith('ollama-local', {
+    expect(putProvider).toHaveBeenLastCalledWith('ollama', {
       api: LOCAL.api,
       baseUrl: LOCAL.baseUrl,
       envName: LOCAL.envName,
@@ -66,7 +66,7 @@ describe('Desktop provider creation', () => {
   it('requires a cloud key and clears it before model discovery', async () => {
     const { putProvider, discoverModels } = setup();
     fireEvent.change(screen.getByLabelText('Provider type'), {
-      target: { value: 'ollama' },
+      target: { value: 'ollama-cloud' },
     });
     expect(
       screen.getByRole('button', { name: 'Save and discover models' }),
@@ -77,6 +77,7 @@ describe('Desktop provider creation', () => {
     putProvider.mockResolvedValue({
       ...LOCAL,
       baseUrl: 'https://ollama.com/v1',
+      envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
       hasApiKey: true,
     });
     discoverModels.mockRejectedValue(
@@ -90,8 +91,9 @@ describe('Desktop provider creation', () => {
       screen.queryByDisplayValue('secret-sentinel'),
     ).not.toBeInTheDocument();
     expect(putProvider).toHaveBeenCalledWith(
-      'ollama',
+      'ollama-cloud',
       expect.objectContaining({
+        envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
         apiKey: 'secret-sentinel',
         baseUrl: 'https://ollama.com/v1',
       }),
@@ -105,7 +107,7 @@ describe('Desktop provider creation', () => {
   it('does not carry a cloud key into another provider preset', () => {
     setup();
     fireEvent.change(screen.getByLabelText('Provider type'), {
-      target: { value: 'ollama' },
+      target: { value: 'ollama-cloud' },
     });
     fireEvent.change(screen.getByLabelText('API key'), {
       target: { value: 'secret-sentinel' },
@@ -117,7 +119,7 @@ describe('Desktop provider creation', () => {
   });
 
   it('prevents the add form from overwriting an existing provider', () => {
-    const { putProvider } = setup({ 'ollama-local': LOCAL });
+    const { putProvider } = setup({ ollama: LOCAL });
     expect(
       screen.getByRole('button', { name: 'Save and discover models' }),
     ).toBeDisabled();

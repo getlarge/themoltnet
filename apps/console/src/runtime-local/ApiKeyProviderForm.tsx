@@ -23,14 +23,14 @@ const PROVIDER_PRESETS = [
   {
     id: 'ollama-local',
     label: 'Ollama (local)',
-    providerId: 'ollama-local',
+    providerId: 'ollama',
     baseUrl: 'http://localhost:11434/v1',
     needsKey: false,
   },
   {
     id: 'ollama-cloud',
     label: 'Ollama (cloud)',
-    providerId: 'ollama',
+    providerId: 'ollama-cloud',
     baseUrl: 'https://ollama.com/v1',
     needsKey: true,
   },
@@ -58,7 +58,7 @@ export function ApiKeyProviderForm({
   onDone?: () => void;
 }) {
   const [preset, setPreset] = useState<string>('ollama-local');
-  const [id, setId] = useState('ollama-local');
+  const [id, setId] = useState('ollama');
   const [baseUrl, setBaseUrl] = useState('http://localhost:11434/v1');
   const [apiKey, setApiKey] = useState('');
   const [discovered, setDiscovered] = useState<string[]>([]);
