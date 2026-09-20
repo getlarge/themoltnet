@@ -20,6 +20,18 @@ export type AgentServerAgent = {
 export type AgentServerCatalogue = {
   defaultTeamId: string | null;
   profiles: Array<AgentServerCatalogueProfile>;
+  projectErrors: Array<{
+    message: string;
+    teamId: string;
+  }>;
+  projects: Array<{
+    archived: boolean;
+    defaultDiaryId: string | null;
+    description: string | null;
+    id: string;
+    name: string;
+    teamId: string;
+  }>;
   teams: Array<AgentServerCatalogueTeam>;
 };
 
@@ -88,6 +100,23 @@ export type AgentServerLogStream = string;
 export type AgentServerProblem = {
   code: string;
   message: string;
+};
+
+export type AgentServerProjectLocation = {
+  apiUrl: string;
+  default?: boolean;
+  diaryId?: string;
+  effectiveSource: string | null;
+  name: string;
+  projectId: string;
+  readiness: {
+    code?: string;
+    message?: string;
+    ready: boolean;
+  };
+  source?: string;
+  strategy: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
+  teamId: string;
 };
 
 export type AgentServerProvider = {
@@ -408,6 +437,103 @@ export type GetAgentServerCatalogueResponses = {
 
 export type GetAgentServerCatalogueResponse =
   GetAgentServerCatalogueResponses[keyof GetAgentServerCatalogueResponses];
+
+export type ListNativeProjectLocationsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/native/project-bindings';
+};
+
+export type ListNativeProjectLocationsErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type ListNativeProjectLocationsError =
+  ListNativeProjectLocationsErrors[keyof ListNativeProjectLocationsErrors];
+
+export type ListNativeProjectLocationsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    locations: Array<AgentServerProjectLocation>;
+  };
+};
+
+export type ListNativeProjectLocationsResponse =
+  ListNativeProjectLocationsResponses[keyof ListNativeProjectLocationsResponses];
+
+export type SaveNativeProjectLocationData = {
+  body?: {
+    default?: boolean;
+    diaryId?: string;
+    name: string;
+    projectId: string;
+    source?: string;
+    strategy: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
+    teamId: string;
+  } & {
+    identity: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/v1/native/project-bindings';
+};
+
+export type SaveNativeProjectLocationErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type SaveNativeProjectLocationError =
+  SaveNativeProjectLocationErrors[keyof SaveNativeProjectLocationErrors];
+
+export type SaveNativeProjectLocationResponses = {
+  /**
+   * Default Response
+   */
+  200: AgentServerProjectLocation;
+};
+
+export type SaveNativeProjectLocationResponse =
+  SaveNativeProjectLocationResponses[keyof SaveNativeProjectLocationResponses];
+
+export type RemoveNativeProjectLocationData = {
+  body?: never;
+  path: {
+    name: string;
+  };
+  query?: never;
+  url: '/v1/native/project-bindings/{name}';
+};
+
+export type RemoveNativeProjectLocationErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type RemoveNativeProjectLocationError =
+  RemoveNativeProjectLocationErrors[keyof RemoveNativeProjectLocationErrors];
+
+export type RemoveNativeProjectLocationResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    removed: boolean;
+  };
+};
+
+export type RemoveNativeProjectLocationResponse =
+  RemoveNativeProjectLocationResponses[keyof RemoveNativeProjectLocationResponses];
 
 export type RemoveAgentServerOperatorData = {
   body?: never;

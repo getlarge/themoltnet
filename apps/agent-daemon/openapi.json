@@ -74,6 +74,75 @@
             },
             "type": "array"
           },
+          "projectErrors": {
+            "items": {
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "teamId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "teamId",
+                "message"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "projects": {
+            "items": {
+              "properties": {
+                "archived": {
+                  "type": "boolean"
+                },
+                "defaultDiaryId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "teamId": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "teamId",
+                "name",
+                "description",
+                "defaultDiaryId",
+                "archived"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "teams": {
             "items": {
               "$ref": "#/components/schemas/AgentServerCatalogueTeam"
@@ -84,7 +153,9 @@
         "required": [
           "teams",
           "defaultTeamId",
-          "profiles"
+          "profiles",
+          "projects",
+          "projectErrors"
         ],
         "type": "object"
       },
@@ -440,6 +511,101 @@
         "required": [
           "code",
           "message"
+        ],
+        "type": "object"
+      },
+      "AgentServerProjectLocation": {
+        "properties": {
+          "apiUrl": {
+            "type": "string"
+          },
+          "default": {
+            "type": "boolean"
+          },
+          "diaryId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "effectiveSource": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "projectId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "readiness": {
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "ready": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "ready"
+            ],
+            "type": "object"
+          },
+          "source": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "strategy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "existing"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "git-worktree"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "isolated-directory"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "teamId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "apiUrl",
+          "teamId",
+          "projectId",
+          "strategy",
+          "effectiveSource",
+          "readiness"
         ],
         "type": "object"
       },
@@ -1447,6 +1613,224 @@
         ],
         "tags": [
           "catalogue"
+        ]
+      }
+    },
+    "/v1/native/project-bindings": {
+      "get": {
+        "description": "Requires the Desktop native grant; browser authorization is insufficient.",
+        "operationId": "listNativeProjectLocations",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "locations": {
+                      "items": {
+                        "$ref": "#/components/schemas/AgentServerProjectLocation"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "locations"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "native-projects"
+        ]
+      },
+      "post": {
+        "operationId": "saveNativeProjectLocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "properties": {
+                      "default": {
+                        "type": "boolean"
+                      },
+                      "diaryId": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "name": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "projectId": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "strategy": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "none"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "existing"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "git-worktree"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "isolated-directory"
+                            ],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "teamId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "teamId",
+                      "projectId",
+                      "strategy"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "identity": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "identity"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProjectLocation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "native-projects"
+        ]
+      }
+    },
+    "/v1/native/project-bindings/{name}": {
+      "delete": {
+        "operationId": "removeNativeProjectLocation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "removed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "removed"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "native-projects"
         ]
       }
     },

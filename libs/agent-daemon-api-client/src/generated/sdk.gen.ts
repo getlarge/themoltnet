@@ -47,6 +47,9 @@ import type {
   ListAgentServerSubscriptionsData,
   ListAgentServerSubscriptionsErrors,
   ListAgentServerSubscriptionsResponses,
+  ListNativeProjectLocationsData,
+  ListNativeProjectLocationsErrors,
+  ListNativeProjectLocationsResponses,
   PutAgentServerProviderData,
   PutAgentServerProviderErrors,
   PutAgentServerProviderResponses,
@@ -55,6 +58,12 @@ import type {
   ReconcileAgentServerAgentResponses,
   RemoveAgentServerOperatorData,
   RemoveAgentServerOperatorResponses,
+  RemoveNativeProjectLocationData,
+  RemoveNativeProjectLocationErrors,
+  RemoveNativeProjectLocationResponses,
+  SaveNativeProjectLocationData,
+  SaveNativeProjectLocationErrors,
+  SaveNativeProjectLocationResponses,
   SignInAgentServerOperatorData,
   SignInAgentServerOperatorResponses,
   StartAgentServerRunData,
@@ -182,6 +191,56 @@ export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/catalogue',
+    ...options,
+  });
+
+/**
+ * Requires the Desktop native grant; browser authorization is insufficient.
+ */
+export const listNativeProjectLocations = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ListNativeProjectLocationsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListNativeProjectLocationsResponses,
+    ListNativeProjectLocationsErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-bindings',
+    ...options,
+  });
+
+export const saveNativeProjectLocation = <ThrowOnError extends boolean = false>(
+  options?: Options<SaveNativeProjectLocationData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    SaveNativeProjectLocationResponses,
+    SaveNativeProjectLocationErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-bindings',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+export const removeNativeProjectLocation = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<RemoveNativeProjectLocationData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RemoveNativeProjectLocationResponses,
+    RemoveNativeProjectLocationErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-bindings/{name}',
     ...options,
   });
 

@@ -42,6 +42,8 @@ describe('captured run credential', () => {
           },
         ],
         profiles: [],
+        projects: [],
+        projectErrors: [],
         defaultTeamId: 'team',
       }),
       startRun: vi.fn(),

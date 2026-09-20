@@ -123,7 +123,13 @@ describe('catalogue state in the Runs overview', () => {
         <RunsView
           data={{
             ...data,
-            catalogue: { defaultTeamId: null, teams: [], profiles: [] },
+            catalogue: {
+              projects: [],
+              projectErrors: [],
+              defaultTeamId: null,
+              teams: [],
+              profiles: [],
+            },
           }}
           actions={actions}
           now={0}
@@ -145,6 +151,8 @@ it('offers catalogue retry when upstream team verification cannot complete', () 
         data={{
           ...data,
           catalogue: {
+            projects: [],
+            projectErrors: [],
             defaultTeamId: null,
             profiles: [],
             teams: [
