@@ -3245,7 +3245,7 @@ func (s *Server) decodePreviewRenderedPackRequest(r *http.Request) (
 }
 
 func (s *Server) decodeProvisionAgentCredentialRequest(r *http.Request) (
-	req *ProvisionAgentCredentialReq,
+	req OptProvisionAgentCredentialReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -3295,14 +3295,12 @@ func (s *Server) decodeProvisionAgentCredentialRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request *ProvisionAgentCredentialReq
+		var request OptProvisionAgentCredentialReq
 		if err := func() error {
-			request = nil
-			var elem ProvisionAgentCredentialReq
-			if err := elem.Decode(d); err != nil {
+			request.Reset()
+			if err := request.Decode(d); err != nil {
 				return err
 			}
-			request = &elem
 			if err := d.Skip(); err != io.EOF {
 				return errors.New("unexpected trailing data")
 			}
@@ -3314,6 +3312,21 @@ func (s *Server) decodeProvisionAgentCredentialRequest(r *http.Request) (
 				Err:         err,
 			}
 			return req, rawBody, close, err
+		}
+		if err := func() error {
+			if value, ok := request.Get(); ok {
+				if err := func() error {
+					if err := value.Validate(); err != nil {
+						return err
+					}
+					return nil
+				}(); err != nil {
+					return err
+				}
+			}
+			return nil
+		}(); err != nil {
+			return req, rawBody, close, errors.Wrap(err, "validate")
 		}
 		return request, rawBody, close, nil
 	default:

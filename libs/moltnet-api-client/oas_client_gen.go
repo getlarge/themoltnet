@@ -749,7 +749,7 @@ type Invoker interface {
 	// ProvisionAgentCredential invokes provisionAgentCredential operation.
 	//
 	// POST /oauth2/provision
-	ProvisionAgentCredential(ctx context.Context, request *ProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error)
+	ProvisionAgentCredential(ctx context.Context, request OptProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error)
 	// RecoverAgentCredentials invokes recoverAgentCredentials operation.
 	//
 	// Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key.
@@ -20910,12 +20910,12 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 // ProvisionAgentCredential invokes provisionAgentCredential operation.
 //
 // POST /oauth2/provision
-func (c *Client) ProvisionAgentCredential(ctx context.Context, request *ProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error) {
+func (c *Client) ProvisionAgentCredential(ctx context.Context, request OptProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error) {
 	res, err := c.sendProvisionAgentCredential(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendProvisionAgentCredential(ctx context.Context, request *ProvisionAgentCredentialReq) (res ProvisionAgentCredentialRes, err error) {
+func (c *Client) sendProvisionAgentCredential(ctx context.Context, request OptProvisionAgentCredentialReq) (res ProvisionAgentCredentialRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("provisionAgentCredential"),
 		semconv.HTTPRequestMethodKey.String("POST"),

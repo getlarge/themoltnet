@@ -39075,6 +39075,52 @@ func (o OptProvenanceGraphRenderedPackNodeMetaCreator) Or(d ProvenanceGraphRende
 	return d
 }
 
+// NewOptProvisionAgentCredentialReq returns new OptProvisionAgentCredentialReq with value set to v.
+func NewOptProvisionAgentCredentialReq(v ProvisionAgentCredentialReq) OptProvisionAgentCredentialReq {
+	return OptProvisionAgentCredentialReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProvisionAgentCredentialReq is optional ProvisionAgentCredentialReq.
+type OptProvisionAgentCredentialReq struct {
+	Value ProvisionAgentCredentialReq
+	Set   bool
+}
+
+// IsSet returns true if OptProvisionAgentCredentialReq was set.
+func (o OptProvisionAgentCredentialReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProvisionAgentCredentialReq) Reset() {
+	var v ProvisionAgentCredentialReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProvisionAgentCredentialReq) SetTo(v ProvisionAgentCredentialReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProvisionAgentCredentialReq) Get() (v ProvisionAgentCredentialReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProvisionAgentCredentialReq) Or(d ProvisionAgentCredentialReq) ProvisionAgentCredentialReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptReadinessComponentsTalos returns new OptReadinessComponentsTalos with value set to v.
 func NewOptReadinessComponentsTalos(v ReadinessComponentsTalos) OptReadinessComponentsTalos {
 	return OptReadinessComponentsTalos{
@@ -45540,7 +45586,19 @@ type ProvisionAgentCredentialNotFound ProblemDetails
 
 func (*ProvisionAgentCredentialNotFound) provisionAgentCredentialRes() {}
 
-type ProvisionAgentCredentialReq struct{}
+type ProvisionAgentCredentialReq struct {
+	AgentProof OptString `json:"agentProof"`
+}
+
+// GetAgentProof returns the value of AgentProof.
+func (s *ProvisionAgentCredentialReq) GetAgentProof() OptString {
+	return s.AgentProof
+}
+
+// SetAgentProof sets the value of AgentProof.
+func (s *ProvisionAgentCredentialReq) SetAgentProof(val OptString) {
+	s.AgentProof = val
+}
 
 type ProvisionAgentCredentialServiceUnavailable ProblemDetails
 

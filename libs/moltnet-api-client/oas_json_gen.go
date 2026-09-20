@@ -79994,6 +79994,39 @@ func (s *OptProvenanceGraphRenderedPackNodeMetaCreator) UnmarshalJSON(data []byt
 	return s.Decode(d)
 }
 
+// Encode encodes ProvisionAgentCredentialReq as json.
+func (o OptProvisionAgentCredentialReq) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ProvisionAgentCredentialReq from json.
+func (o *OptProvisionAgentCredentialReq) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptProvisionAgentCredentialReq to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptProvisionAgentCredentialReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptProvisionAgentCredentialReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ReadinessComponentsTalos as json.
 func (o OptReadinessComponentsTalos) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -90233,9 +90266,17 @@ func (s *ProvisionAgentCredentialReq) Encode(e *jx.Encoder) {
 
 // encodeFields encodes fields.
 func (s *ProvisionAgentCredentialReq) encodeFields(e *jx.Encoder) {
+	{
+		if s.AgentProof.Set {
+			e.FieldStart("agentProof")
+			s.AgentProof.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfProvisionAgentCredentialReq = [0]string{}
+var jsonFieldsNameOfProvisionAgentCredentialReq = [1]string{
+	0: "agentProof",
+}
 
 // Decode decodes ProvisionAgentCredentialReq from json.
 func (s *ProvisionAgentCredentialReq) Decode(d *jx.Decoder) error {
@@ -90245,9 +90286,20 @@ func (s *ProvisionAgentCredentialReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "agentProof":
+			if err := func() error {
+				s.AgentProof.Reset()
+				if err := s.AgentProof.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentProof\"")
+			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
+		return nil
 	}); err != nil {
 		return errors.Wrap(err, "decode ProvisionAgentCredentialReq")
 	}

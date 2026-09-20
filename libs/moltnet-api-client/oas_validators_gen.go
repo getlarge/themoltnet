@@ -25011,6 +25011,48 @@ func (s *ProvisionAgentCredentialNotFound) Validate() error {
 	return nil
 }
 
+func (s *ProvisionAgentCredentialReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.AgentProof.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     88,
+					MinLengthSet:  true,
+					MaxLength:     88,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[A-Za-z0-9+/]{86}==$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "agentProof",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *ProvisionAgentCredentialServiceUnavailable) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {

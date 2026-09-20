@@ -6962,7 +6962,7 @@ export type AcceptOperatorLoginResponse =
 
 export type ProvisionAgentCredentialData = {
   body?: {
-    [key: string]: never;
+    agentProof?: string;
   };
   path?: never;
   query?: never;

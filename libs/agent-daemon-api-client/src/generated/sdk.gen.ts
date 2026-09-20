@@ -3,6 +3,8 @@
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  CancelAgentServerOperatorApprovalData,
+  CancelAgentServerOperatorApprovalResponses,
   CancelAgentServerSubscriptionLoginData,
   CancelAgentServerSubscriptionLoginErrors,
   CancelAgentServerSubscriptionLoginResponses,
@@ -12,8 +14,6 @@ import type {
   DeleteAgentServerProviderData,
   DeleteAgentServerProviderErrors,
   DeleteAgentServerProviderResponses,
-  DeleteV1OperatorData,
-  DeleteV1OperatorResponses,
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
@@ -25,16 +25,14 @@ import type {
   GetAgentServerCatalogueResponses,
   GetAgentServerHealthData,
   GetAgentServerHealthResponses,
-  GetAgentServerRunLogSnapshotData,
-  GetAgentServerRunLogSnapshotResponses,
+  GetAgentServerOAuthMetadataData,
+  GetAgentServerOAuthMetadataResponses,
   GetAgentServerStatusData,
   GetAgentServerStatusErrors,
   GetAgentServerStatusResponses,
   GetAgentServerSubscriptionLoginData,
   GetAgentServerSubscriptionLoginErrors,
   GetAgentServerSubscriptionLoginResponses,
-  GetOauthMetadataData,
-  GetOauthMetadataResponses,
   ListAgentServerAgentsData,
   ListAgentServerAgentsErrors,
   ListAgentServerAgentsResponses,
@@ -47,14 +45,14 @@ import type {
   ListAgentServerSubscriptionsData,
   ListAgentServerSubscriptionsErrors,
   ListAgentServerSubscriptionsResponses,
-  PostV1OperatorCancelData,
-  PostV1OperatorCancelResponses,
   PutAgentServerProviderData,
   PutAgentServerProviderErrors,
   PutAgentServerProviderResponses,
   ReconcileAgentServerAgentData,
   ReconcileAgentServerAgentErrors,
   ReconcileAgentServerAgentResponses,
+  RemoveAgentServerOperatorData,
+  RemoveAgentServerOperatorResponses,
   SignInAgentServerOperatorData,
   SignInAgentServerOperatorResponses,
   StartAgentServerRunData,
@@ -97,11 +95,13 @@ export const getAgentServerHealth = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({ url: '/health', ...options });
 
-export const getOauthMetadata = <ThrowOnError extends boolean = false>(
-  options?: Options<GetOauthMetadataData, ThrowOnError>,
+export const getAgentServerOAuthMetadata = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetAgentServerOAuthMetadataData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<
-    GetOauthMetadataResponses,
+    GetAgentServerOAuthMetadataResponses,
     unknown,
     ThrowOnError
   >({ url: '/oauth/metadata', ...options });
@@ -183,23 +183,33 @@ export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
-export const deleteV1Operator = <ThrowOnError extends boolean = false>(
-  options?: Options<DeleteV1OperatorData, ThrowOnError>,
+export const removeAgentServerOperator = <ThrowOnError extends boolean = false>(
+  options?: Options<RemoveAgentServerOperatorData, ThrowOnError>,
 ) =>
   (options?.client ?? client).delete<
-    DeleteV1OperatorResponses,
+    RemoveAgentServerOperatorResponses,
     unknown,
     ThrowOnError
-  >({ url: '/v1/operator', ...options });
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/operator',
+    ...options,
+  });
 
-export const postV1OperatorCancel = <ThrowOnError extends boolean = false>(
-  options?: Options<PostV1OperatorCancelData, ThrowOnError>,
+export const cancelAgentServerOperatorApproval = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<CancelAgentServerOperatorApprovalData, ThrowOnError>,
 ) =>
   (options?.client ?? client).post<
-    PostV1OperatorCancelResponses,
+    CancelAgentServerOperatorApprovalResponses,
     unknown,
     ThrowOnError
-  >({ url: '/v1/operator/cancel', ...options });
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/operator/cancel',
+    ...options,
+  });
 
 export const signInAgentServerOperator = <ThrowOnError extends boolean = false>(
   options?: Options<SignInAgentServerOperatorData, ThrowOnError>,
@@ -321,21 +331,6 @@ export const streamAgentServerRunLogs = <ThrowOnError extends boolean = false>(
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/runs/{runId}/logs',
-    ...options,
-  });
-
-export const getAgentServerRunLogSnapshot = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<GetAgentServerRunLogSnapshotData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetAgentServerRunLogSnapshotResponses,
-    unknown,
-    ThrowOnError
-  >({
-    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
-    url: '/v1/runs/{runId}/logs/snapshot',
     ...options,
   });
 

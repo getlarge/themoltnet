@@ -23449,7 +23449,14 @@
             "application/json": {
               "schema": {
                 "additionalProperties": false,
-                "properties": {},
+                "properties": {
+                  "agentProof": {
+                    "maxLength": 88,
+                    "minLength": 88,
+                    "pattern": "^[A-Za-z0-9+/]{86}==$",
+                    "type": "string"
+                  }
+                },
                 "type": "object"
               }
             }

@@ -728,7 +728,7 @@ type Handler interface {
 	// ProvisionAgentCredential implements provisionAgentCredential operation.
 	//
 	// POST /oauth2/provision
-	ProvisionAgentCredential(ctx context.Context, req *ProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error)
+	ProvisionAgentCredential(ctx context.Context, req OptProvisionAgentCredentialReq) (ProvisionAgentCredentialRes, error)
 	// RecoverAgentCredentials implements recoverAgentCredentials operation.
 	//
 	// Issue OAuth2 client credentials to an agent after proving possession of its Ed25519 identity key.

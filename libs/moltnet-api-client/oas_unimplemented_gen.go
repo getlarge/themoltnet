@@ -1092,7 +1092,7 @@ func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *Previe
 // ProvisionAgentCredential implements provisionAgentCredential operation.
 //
 // POST /oauth2/provision
-func (UnimplementedHandler) ProvisionAgentCredential(ctx context.Context, req *ProvisionAgentCredentialReq) (r ProvisionAgentCredentialRes, _ error) {
+func (UnimplementedHandler) ProvisionAgentCredential(ctx context.Context, req OptProvisionAgentCredentialReq) (r ProvisionAgentCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

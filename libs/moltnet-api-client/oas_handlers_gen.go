@@ -26409,7 +26409,7 @@ func (s *Server) handleProvisionAgentCredentialRequest(args [0]string, argsEscap
 		}
 
 		type (
-			Request  = *ProvisionAgentCredentialReq
+			Request  = OptProvisionAgentCredentialReq
 			Params   = struct{}
 			Response = ProvisionAgentCredentialRes
 		)

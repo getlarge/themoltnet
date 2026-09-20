@@ -209,19 +209,29 @@ export type GetAgentServerHealthResponses = {
 export type GetAgentServerHealthResponse =
   GetAgentServerHealthResponses[keyof GetAgentServerHealthResponses];
 
-export type GetOauthMetadataData = {
+export type GetAgentServerOAuthMetadataData = {
   body?: never;
   path?: never;
   query?: never;
   url: '/oauth/metadata';
 };
 
-export type GetOauthMetadataResponses = {
+export type GetAgentServerOAuthMetadataResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    authorizationUrl: string;
+    clientId: string;
+    instance: string;
+    issuer: string;
+    operatorConfigured: boolean;
+    tokenUrl: string;
+  };
 };
+
+export type GetAgentServerOAuthMetadataResponse =
+  GetAgentServerOAuthMetadataResponses[keyof GetAgentServerOAuthMetadataResponses];
 
 export type ListAgentServerAgentsData = {
   body?: never;
@@ -328,7 +338,6 @@ export type EnrollAgentServerTeamData = {
       }
     | {
         mode: 'replace';
-        teamId: string;
       }
   );
   path: {
@@ -399,33 +408,43 @@ export type GetAgentServerCatalogueResponses = {
 export type GetAgentServerCatalogueResponse =
   GetAgentServerCatalogueResponses[keyof GetAgentServerCatalogueResponses];
 
-export type DeleteV1OperatorData = {
+export type RemoveAgentServerOperatorData = {
   body?: never;
   path?: never;
   query?: never;
   url: '/v1/operator';
 };
 
-export type DeleteV1OperatorResponses = {
+export type RemoveAgentServerOperatorResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    state: 'removed';
+  };
 };
 
-export type PostV1OperatorCancelData = {
+export type RemoveAgentServerOperatorResponse =
+  RemoveAgentServerOperatorResponses[keyof RemoveAgentServerOperatorResponses];
+
+export type CancelAgentServerOperatorApprovalData = {
   body?: never;
   path?: never;
   query?: never;
   url: '/v1/operator/cancel';
 };
 
-export type PostV1OperatorCancelResponses = {
+export type CancelAgentServerOperatorApprovalResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    state: 'cancelled';
+  };
 };
+
+export type CancelAgentServerOperatorApprovalResponse =
+  CancelAgentServerOperatorApprovalResponses[keyof CancelAgentServerOperatorApprovalResponses];
 
 export type SignInAgentServerOperatorData = {
   body?: never;

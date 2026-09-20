@@ -966,7 +966,7 @@
   "info": {
     "description": "Private loopback protocol between MoltNet Console and the local agent daemon server.",
     "title": "MoltNet Agent Server API",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -992,11 +992,51 @@
     },
     "/oauth/metadata": {
       "get": {
+        "operationId": "getAgentServerOAuthMetadata",
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "authorizationUrl": {
+                      "type": "string"
+                    },
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "issuer": {
+                      "type": "string"
+                    },
+                    "operatorConfigured": {
+                      "type": "boolean"
+                    },
+                    "tokenUrl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "instance",
+                    "issuer",
+                    "authorizationUrl",
+                    "tokenUrl",
+                    "clientId",
+                    "operatorConfigured"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
             "description": "Default Response"
           }
-        }
+        },
+        "tags": [
+          "operator"
+        ]
       }
     },
     "/v1/agents": {
@@ -1259,15 +1299,10 @@
                               "replace"
                             ],
                             "type": "string"
-                          },
-                          "teamId": {
-                            "minLength": 1,
-                            "type": "string"
                           }
                         },
                         "required": [
-                          "mode",
-                          "teamId"
+                          "mode"
                         ],
                         "type": "object"
                       }
@@ -1410,20 +1445,74 @@
     },
     "/v1/operator": {
       "delete": {
+        "operationId": "removeAgentServerOperator",
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "removed"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
             "description": "Default Response"
           }
-        }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "operator"
+        ]
       }
     },
     "/v1/operator/cancel": {
       "post": {
+        "operationId": "cancelAgentServerOperatorApproval",
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "cancelled"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
             "description": "Default Response"
           }
-        }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "operator"
+        ]
       }
     },
     "/v1/operator/sign-in": {
