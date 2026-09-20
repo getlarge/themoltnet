@@ -50,8 +50,6 @@ export interface RunCenterAppProps {
   now?: number;
   initialScreen?: RunCenterScreen;
   initialRunsRoute?: RunsRoute;
-  /** Refetch after a provider change, so readiness reflects the new key. */
-  onProvidersChanged: () => void;
 }
 
 const SERVER_TONE: Record<
@@ -77,7 +75,6 @@ export function RunCenterApp({
   now = Date.now(),
   initialScreen = 'runs',
   initialRunsRoute = { kind: 'list' },
-  onProvidersChanged,
 }: RunCenterAppProps) {
   const theme = useTheme();
   const [screen, setScreen] = useState<RunCenterScreen>(initialScreen);
@@ -264,7 +261,7 @@ export function RunCenterApp({
               actions={providerActions}
               subscriptions={data.subscriptions}
               subscriptionActions={subscriptionActions}
-              onChanged={onProvidersChanged}
+              onChanged={() => void actions.refresh?.()}
             />
           ) : null}
         </main>
