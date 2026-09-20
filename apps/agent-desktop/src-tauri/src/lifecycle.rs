@@ -1,5 +1,5 @@
 #[cfg(unix)]
-use crate::control::{NativeToken, NATIVE_TOKEN_ENV};
+use crate::control::{NativeConnection, NativeToken, NATIVE_TOKEN_ENV};
 use serde::{Deserialize, Serialize};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 #[cfg(unix)]
@@ -16,12 +16,10 @@ use std::{
 };
 
 const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
-use crate::operator_oauth::HEALTH_URL;
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
-const HEALTH_CHECK_TIMEOUT_SECS: &str = "1";
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
 const EMBEDDED_AGENT_VERSION: &str = env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION");
@@ -192,19 +190,19 @@ pub struct LifecycleManager {
     /// Grant for the server process currently running, if any. Regenerated on
     /// every spawn and dropped when the child stops, so it is scoped to one
     /// process exactly as the server's own grant map is.
-    control_token: Option<NativeToken>,
+    control_connection: Option<NativeConnection>,
 }
 
 impl LifecycleManager {
     /// The grant for the running server, if one is running.
-    pub fn control_token(&self) -> Option<&NativeToken> {
-        self.child.as_ref().and(self.control_token.as_ref())
+    pub fn control_connection(&self) -> Option<&NativeConnection> {
+        self.child.as_ref().and(self.control_connection.as_ref())
     }
 }
 
 impl Default for LifecycleManager {
     fn default() -> Self {
-        Self::new(home_directory().expect("HOME is required on macOS"))
+        Self::new(home_directory().expect("HOME is required"))
     }
 }
 
@@ -221,7 +219,7 @@ impl LifecycleManager {
             logs: Arc::new(Mutex::new(LogBuffer::new(log_path))),
             retry_used: false,
             home,
-            control_token: None,
+            control_connection: None,
         }
     }
 
@@ -244,15 +242,6 @@ impl LifecycleManager {
             return self.install_agent();
         }
         self.ensure_supported_agent()?;
-        let trust = self.trust_status()?;
-        self.apply_trust(&trust);
-        if !trust.trusted {
-            self.set_state(
-                LifecycleState::NeedsTrust,
-                "Approve the per-user local CA before the Agent Server starts.",
-            );
-            return Ok(self.snapshot());
-        }
         self.start_server()
     }
 
@@ -266,17 +255,7 @@ impl LifecycleManager {
         }
         self.refresh_installed_version();
         self.require_supported_version()?;
-        let trust = self.trust_status()?;
-        self.apply_trust(&trust);
-        if trust.trusted {
-            self.start_server()
-        } else {
-            self.set_state(
-                LifecycleState::NeedsTrust,
-                "The verified bundle is installed. Local HTTPS trust needs consent.",
-            );
-            Ok(self.snapshot())
-        }
+        self.start_server()
     }
 
     pub fn approve_trust(&mut self) -> Result<DesktopStatus, String> {
@@ -440,6 +419,7 @@ impl LifecycleManager {
                 }
             }
         }
+        self.control_connection = None;
         self.set_state(LifecycleState::Stopped, "The Agent Server is stopped.");
         Ok(self.snapshot())
     }
@@ -459,6 +439,7 @@ impl LifecycleManager {
             return ExitAction::None;
         };
         self.child = None;
+        self.control_connection = None;
         self.push_log(&format!(
             "Agent Server exited unexpectedly ({}).",
             describe_exit_status(status)
@@ -492,10 +473,12 @@ impl LifecycleManager {
 
     fn start_server_for(&mut self, origin: StartOrigin) -> Result<DesktopStatus, String> {
         self.ensure_supported_agent()?;
-        if self.child.is_none() && health_ready().is_ok() {
-            return self.fail(
-                "Another process already owns the local Agent Server. It was left untouched.",
-            );
+        if self.child.is_some() {
+            return Ok(self.snapshot());
+        }
+        let help = self.run_agent(&["server", "--help"])?;
+        if !String::from_utf8_lossy(&help.stdout).contains("--native-socket") {
+            return self.fail("The installed Agent CLI does not support native sockets. Update the Agent CLI before starting this Desktop version.");
         }
         self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
 
@@ -505,7 +488,20 @@ impl LifecycleManager {
                 Ok(token) => token,
                 Err(error) => return self.fail(&error),
             };
+            // A short canonical path fits sockaddr_un on macOS and Linux.
+            let temporary_root = fs::canonicalize("/tmp").map_err(|error| error.to_string())?;
+            let directory = Arc::new(
+                tempfile::Builder::new()
+                    .prefix("moltnet-")
+                    .tempdir_in(temporary_root)
+                    .map_err(|error| error.to_string())?,
+            );
+            fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o700))
+                .map_err(|error| error.to_string())?;
             let mut command = agent_server_command(&self.executable());
+            command
+                .arg("--native-socket")
+                .arg(directory.path().join("control.sock"));
             // The child consumes and unsets this, so its own run children
             // cannot inherit the desktop's control grant.
             command.env(NATIVE_TOKEN_ENV, token.expose());
@@ -524,14 +520,15 @@ impl LifecycleManager {
             if let Some(stderr) = child.stderr.take() {
                 capture_lines(stderr, Arc::clone(&self.logs), attempt + 1, "stderr");
             }
+            let connection = NativeConnection::new(token, directory, child.id());
             let deadline = Instant::now() + START_TIMEOUT;
             loop {
-                let health_error = match health_ready() {
+                let health_error = match connection.health() {
                     Ok(()) => {
-                        self.control_token = Some(token.clone());
+                        self.control_connection = Some(connection.clone());
                         self.child = Some(child);
                         self.retry_used = retry_budget_after_start(origin, attempt);
-                        self.set_state(LifecycleState::Running, "Ready for Console local control.");
+                        self.set_state(LifecycleState::Running, "Ready for local work.");
                         return Ok(self.snapshot());
                     }
                     Err(error) => error,
@@ -563,11 +560,6 @@ impl LifecycleManager {
             }
         }
         self.fail(&last_failure)
-    }
-
-    fn trust_status(&self) -> Result<TrustResult, String> {
-        let output = self.run_agent(&["server", "trust", "--status", "--json"])?;
-        parse_trust_result(&output.stdout, "trust status response")
     }
 
     fn remove_local_trust(&self) -> Result<TrustResult, String> {
@@ -710,13 +702,13 @@ impl LifecycleManager {
 }
 
 pub fn open_console() -> Result<(), String> {
-    fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
+    fixed_command(platform_opener(), &[CONSOLE_URL]).map(|_| ())
 }
 
 pub fn open_logs(directory: &Path) -> Result<(), String> {
     prepare_private_directory(directory)?;
     let path = directory.to_string_lossy().into_owned();
-    fixed_command("/usr/bin/open", &[&path]).map(|_| ())
+    fixed_command(platform_opener(), &[&path]).map(|_| ())
 }
 
 fn capture_lines(
@@ -850,27 +842,22 @@ fn installer_command(
     command
 }
 
-fn health_ready() -> Result<(), String> {
-    fixed_command(
-        "/usr/bin/curl",
-        &[
-            "--silent",
-            "--show-error",
-            "--fail",
-            "--max-time",
-            HEALTH_CHECK_TIMEOUT_SECS,
-            HEALTH_URL,
-        ],
-    )
-    .map(|_| ())
+fn platform_opener() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "/usr/bin/open"
+    } else {
+        "/usr/bin/xdg-open"
+    }
 }
 
 fn fixed_command(program: &str, args: &[&str]) -> Result<Output, String> {
-    const PROGRAMS: &[&str] = &["/usr/bin/curl", "/usr/bin/open"];
+    const PROGRAMS: &[&str] = &["/usr/bin/curl", "/usr/bin/open", "/usr/bin/xdg-open"];
     if !PROGRAMS.contains(&program) {
         return Err("program is not allowlisted".into());
     }
     let output = Command::new(program)
+        .env_remove("LD_LIBRARY_PATH")
+        .env_remove("LD_PRELOAD")
         .args(args)
         .output()
         .map_err(|error| format!("{program} failed: {error}"))?;
@@ -983,6 +970,9 @@ fn agent_server_command(executable: &Path) -> Command {
     let mut command = Command::new(executable);
     command.args(["server", "--supervised"]);
     command
+        .env_remove("LD_LIBRARY_PATH")
+        .env_remove("LD_PRELOAD");
+    command
 }
 
 /// Open a provider sign-in page in the operator's browser.
@@ -995,7 +985,7 @@ pub fn open_verification_url(url: &str) -> Result<(), String> {
     if !is_https_url(url) {
         return Err("the sign-in page must be a secure https address".into());
     }
-    fixed_command("/usr/bin/open", &[url]).map(|_| ())
+    fixed_command(platform_opener(), &[url]).map(|_| ())
 }
 
 fn is_https_url(url: &str) -> bool {

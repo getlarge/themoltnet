@@ -1,3 +1,4 @@
+import { chmod } from 'node:fs/promises';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
@@ -19,6 +20,7 @@ import {
   NATIVE_TOKEN_ENV,
 } from '../lib/agent-server/native-grant.js';
 import { NativeGrantService } from '../lib/agent-server/native-grant-service.js';
+import { validateNativeSocket } from '../lib/agent-server/native-socket.js';
 import { OperatorOAuth } from '../lib/agent-server/operator-oauth.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
@@ -78,8 +80,20 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       'heartbeat-interval-ms': { type: 'string' },
       'warm-retention-sec': { type: 'string' },
       supervised: { type: 'boolean' },
+      'native-socket': { type: 'string' },
     },
   });
+
+  const nativeSocket = values['native-socket'];
+  if (
+    nativeSocket &&
+    (!values.supervised || values.port || values['allowed-origins'])
+  ) {
+    console.error(
+      '--native-socket requires --supervised and cannot be combined with TCP options',
+    );
+    return 1;
+  }
 
   const port = Number.parseInt(
     values.port ?? (envConfig.port || `${DEFAULT_PORT}`),
@@ -165,9 +179,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             runtimeRegistry,
             runtimeSettings,
           });
-          const tls = isMacos()
-            ? await ensureTrustedLocalTls(settingsRoot)
-            : undefined;
+          if (nativeSocket) await validateNativeSocket(nativeSocket);
+          const tls =
+            !nativeSocket && isMacos()
+              ? await ensureTrustedLocalTls(settingsRoot)
+              : undefined;
           const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
           const operatorOAuth = new OperatorOAuth(
             {
@@ -185,6 +201,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           );
           const app = buildAgentServer({
             operatorOAuth,
+            nativeOnly: Boolean(nativeSocket),
             connectionSettings,
             operatorApiUrl: connection.apiUrl,
             store,
@@ -210,7 +227,12 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           });
 
           try {
-            const address = await app.listen({ host: '127.0.0.1', port });
+            const address = await app.listen(
+              nativeSocket
+                ? { path: nativeSocket }
+                : { host: '127.0.0.1', port },
+            );
+            if (nativeSocket) await chmod(nativeSocket, 0o600);
             console.error(`moltnet-agent server listening on ${address}`);
             console.error(`config root: ${root}`);
             console.error(`allowed origins: ${allowedOrigins.join(', ')}`);

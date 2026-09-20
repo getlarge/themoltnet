@@ -83,14 +83,14 @@ beforeEach(() => {
 });
 
 describe('MoltNet Agent desktop renderer', () => {
-  it('shows non-color lifecycle and verified trust status', async () => {
+  it('shows non-color lifecycle and verified native connection status', async () => {
     renderApp();
 
     expect(
       await screen.findByRole('heading', { name: 'Agent Server running' }),
     ).toBeVisible();
     expect(
-      screen.getByLabelText('Signature status: Local HTTPS trusted'),
+      screen.getByLabelText('Signature status: Native connection verified'),
     ).toBeVisible();
     expect(
       screen.queryByRole('list', { name: 'Agent setup progress' }),

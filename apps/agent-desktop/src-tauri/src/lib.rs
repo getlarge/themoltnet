@@ -1,5 +1,6 @@
 mod control;
 mod lifecycle;
+mod native_socket;
 mod operator_oauth {
     include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
 }
@@ -170,7 +171,7 @@ async fn desktop_catalogue(
     state: State<'_, AppState>,
     identity: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::get(
             token,
             &format!("/v1/catalogue?identity={}", urlencode(&identity)),
@@ -183,7 +184,8 @@ async fn desktop_catalogue(
 
 #[tauri::command]
 async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| control::get(token, "/v1/status")).await?;
+    let body =
+        with_control_connection(&state, move |token| control::get(token, "/v1/status")).await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned an unreadable status".to_string())
 }
@@ -192,7 +194,7 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 async fn desktop_connection_settings(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::get(token, "/v1/native/connection-settings")
     })
     .await?;
@@ -208,7 +210,7 @@ async fn desktop_apply_connection_settings(
     tauri::async_runtime::spawn_blocking(move || {
         operate(&app, |lifecycle| {
             let token = lifecycle
-                .control_token()
+                .control_connection()
                 .ok_or("Start the Agent Server before changing its connection settings")?;
             control::post(
                 token,
@@ -225,8 +227,8 @@ async fn desktop_apply_connection_settings(
 
 #[tauri::command]
 async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
-    let body =
-        with_control_token(&state, move |token| control::get(token, "/oauth/metadata")).await?;
+    let body = with_control_connection(&state, move |token| control::get(token, "/oauth/metadata"))
+        .await?;
     let metadata: serde_json::Value = serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
     Ok(metadata
@@ -240,7 +242,7 @@ async fn desktop_operator_sign_in(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    with_control_token(&state, move |token| {
+    with_control_connection(&state, move |token| {
         control::post(token, "/v1/operator/sign-in", "{}")
     })
     .await?;
@@ -250,7 +252,7 @@ async fn desktop_operator_sign_in(
 
 #[tauri::command]
 async fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
-    with_control_token(&state, move |token| {
+    with_control_connection(&state, move |token| {
         control::post(token, "/v1/operator/cancel", "{}")
     })
     .await?;
@@ -266,7 +268,7 @@ async fn desktop_enroll_team(
 ) -> Result<serde_json::Value, String> {
     let payload =
         serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::post(
             token,
             &format!("/v1/agents/{}/teams", urlencode(&identity)),
@@ -280,11 +282,11 @@ async fn desktop_enroll_team(
 }
 
 /// Run `operation` with the grant for the currently running server.
-async fn with_control_token(
+async fn with_control_connection(
     state: &State<'_, AppState>,
-    operation: impl FnOnce(&control::NativeToken) -> Result<String, String> + Send + 'static,
+    operation: impl FnOnce(&control::NativeConnection) -> Result<String, String> + Send + 'static,
 ) -> Result<String, String> {
-    let owned_token = {
+    let connection = {
         // `try_lock`, not `lock`: this runs on a tokio worker, and `operate`
         // holds this mutex for the whole of a start (<=24s) or stop (<=17s).
         // Blocking here parks a worker per polling command, so on a small
@@ -292,11 +294,11 @@ async fn with_control_token(
         // recoverable - the callers already poll on an interval.
         let lifecycle = state.lifecycle.try_lock().map_err(lifecycle_lock_error)?;
         lifecycle
-            .control_token()
+            .control_connection()
             .cloned()
             .ok_or_else(|| "the Agent Server is not running".to_string())?
     };
-    tauri::async_runtime::spawn_blocking(move || operation(&owned_token))
+    tauri::async_runtime::spawn_blocking(move || operation(&connection))
         .await
         .map_err(|_| "Local control task failed".to_string())?
 }
@@ -324,7 +326,7 @@ async fn desktop_start_run(
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&spec)
         .map_err(|error| format!("the run could not be encoded: {error}"))?;
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::post(token, "/v1/runs", &payload)
     })
     .await?;
@@ -338,7 +340,7 @@ async fn desktop_run_logs(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::get(
             token,
             &format!("/v1/runs/{}/logs/snapshot", urlencode(&run_id)),
@@ -354,7 +356,7 @@ async fn desktop_stop_run(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::delete(token, &format!("/v1/runs/{}", urlencode(&run_id)))
     })
     .await?;
@@ -365,7 +367,7 @@ async fn desktop_stop_run(
 /// Subscriptions this machine can sign in to, and whether it already has.
 #[tauri::command]
 async fn desktop_subscriptions(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::get(token, "/v1/subscriptions")
     })
     .await?;
@@ -379,7 +381,7 @@ async fn desktop_start_subscription_login(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::post(
             token,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
@@ -397,7 +399,7 @@ async fn desktop_subscription_login_status(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::get(
             token,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
@@ -414,7 +416,7 @@ async fn desktop_cancel_subscription_login(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), String> {
-    with_control_token(&state, move |token| {
+    with_control_connection(&state, move |token| {
         control::delete(
             token,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
@@ -442,7 +444,7 @@ async fn desktop_open_sign_in(url: String) -> Result<(), String> {
 #[tauri::command]
 async fn desktop_providers(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let body =
-        with_control_token(&state, move |token| control::get(token, "/v1/providers")).await?;
+        with_control_connection(&state, move |token| control::get(token, "/v1/providers")).await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned unreadable providers: {error}"))
 }
@@ -459,7 +461,7 @@ async fn desktop_put_provider(
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&config)
         .map_err(|error| format!("the provider could not be encoded: {error}"))?;
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::put(
             token,
             &format!("/v1/providers/{}", urlencode(&provider_id)),
@@ -477,7 +479,7 @@ async fn desktop_discover_provider_models(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |token| {
         control::post(
             token,
             &format!("/v1/providers/{}/discover-models", urlencode(&provider_id)),
@@ -495,7 +497,7 @@ async fn desktop_delete_provider(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), String> {
-    with_control_token(&state, move |token| {
+    with_control_connection(&state, move |token| {
         control::delete(token, &format!("/v1/providers/{}", urlencode(&provider_id)))
     })
     .await?;

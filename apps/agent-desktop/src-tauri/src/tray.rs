@@ -375,7 +375,7 @@ fn read(app: &AppHandle, path: &str) -> Option<Value> {
         .lifecycle
         .lock()
         .ok()?
-        .control_token()
+        .control_connection()
         .cloned()?;
     control::get(&token, path)
         .ok()

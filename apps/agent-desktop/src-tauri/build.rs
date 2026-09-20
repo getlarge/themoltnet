@@ -40,13 +40,13 @@ fn main() {
             .filter(|value| *value > 0)
             .expect("operator OAuth parameters must be positive integers")
     };
-    let port = number("serverPort");
-    assert!(port <= 65535, "invalid Agent Server port");
     let timeout = number("nativeLifetimeSeconds")
         .checked_add(number("approvalTransportGraceSeconds"))
         .expect("operator approval timeout overflow");
-    fs::write(out.join("operator-oauth.rs"), format!(
-        "pub const BASE_URL: &str = \"https://127.0.0.1:{port}\";\npub const HEALTH_URL: &str = \"https://127.0.0.1:{port}/health\";\npub const APPROVAL_TIMEOUT_SECONDS: u64 = {timeout};\n"
-    )).expect("write shared native operator OAuth parameters");
+    fs::write(
+        out.join("operator-oauth.rs"),
+        format!("pub const APPROVAL_TIMEOUT_SECONDS: u64 = {timeout};\n"),
+    )
+    .expect("write shared native operator OAuth parameters");
     tauri_build::build();
 }

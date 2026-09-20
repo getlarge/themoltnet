@@ -230,6 +230,7 @@ Options:
   --heartbeat-interval-ms <n> Child reporter heartbeat cadence. Default: 60000.
   --warm-retention-sec <n>    Child session/workspace retention. Default: 1800.
   --supervised                Also stop gracefully when stdin reaches EOF.
+  --native-socket <path>       Private native-only socket (requires --supervised).
 
 On macOS, the first interactive run asks to trust a per-user local CA in the
 login keychain and serves HTTPS. Native supervisors use:

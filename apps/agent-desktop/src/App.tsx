@@ -146,6 +146,8 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
     [],
   );
 
+  const nativeConnected =
+    status.state === 'running' || status.state === 'update_available';
   const currentIndex = FLOW.indexOf(status.state);
   const statusTone =
     status.state === 'needs_trust'
@@ -264,8 +266,12 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               </Text>
             </Stack>
             <SignatureStatus
-              state={status.trusted ? 'verified' : 'pending'}
-              label={status.trusted ? 'Local HTTPS trusted' : 'Trust pending'}
+              state={nativeConnected ? 'verified' : 'pending'}
+              label={
+                nativeConnected
+                  ? 'Native connection verified'
+                  : 'Native connection idle'
+              }
             />
           </Stack>
         </header>
