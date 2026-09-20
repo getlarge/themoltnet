@@ -21,6 +21,9 @@ type setupProjectHandler struct {
 }
 
 func (h *setupProjectHandler) ListProjects(_ context.Context, p moltnetapi.ListProjectsParams) (moltnetapi.ListProjectsRes, error) {
+	if !p.XMoltnetTeamID.Set || p.XMoltnetTeamID.Value.String() != contextTestTeam {
+		return nil, fmt.Errorf("project request omitted selected team header")
+	}
 	h.pages = append(h.pages, p.Offset.Value)
 	if p.Offset.Value == 0 {
 		return &moltnetapi.ListProjectsOK{Items: []moltnetapi.ListProjectsOKItemsItem{}, NextOffset: moltnetapi.NewNilInt(100)}, nil
@@ -28,7 +31,7 @@ func (h *setupProjectHandler) ListProjects(_ context.Context, p moltnetapi.ListP
 	return &moltnetapi.ListProjectsOK{Items: []moltnetapi.ListProjectsOKItemsItem{{ID: uuid.MustParse(contextTestDiary), Name: "shared-project", TeamId: uuid.MustParse(contextTestTeam)}}, NextOffset: moltnetapi.NilInt{Null: true}}, nil
 }
 func (h *setupProjectHandler) GetProject(_ context.Context, p moltnetapi.GetProjectParams) (moltnetapi.GetProjectRes, error) {
-	return &moltnetapi.GetProjectOK{ID: p.ProjectId, TeamId: p.ID, Name: "shared-project"}, nil
+	return &moltnetapi.GetProjectOK{ID: p.ProjectId, TeamId: p.XMoltnetTeamID.Value, Name: "shared-project"}, nil
 }
 func (h *setupProjectHandler) GetDiary(_ context.Context, p moltnetapi.GetDiaryParams) (moltnetapi.GetDiaryRes, error) {
 	d := newTestDiary("diary")

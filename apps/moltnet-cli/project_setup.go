@@ -66,7 +66,7 @@ func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, so
 	projects := []moltnetapi.ListProjectsOKItemsItem{}
 	offset := 0
 	for {
-		response, err := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{ID: team, Limit: moltnetapi.NewOptInt(100), Offset: moltnetapi.NewOptInt(offset)})
+		response, err := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), Limit: moltnetapi.NewOptInt(100), Offset: moltnetapi.NewOptInt(offset)})
 		if err != nil {
 			return b, formatTransportError(err)
 		}
@@ -111,7 +111,7 @@ func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, so
 		if err != nil {
 			return b, err
 		}
-		response, err := client.CreateProject(cmd.Context(), &moltnetapi.CreateProjectReq{Name: name, DefaultDiaryId: moltnetapi.NewOptNilUUID(diary)}, moltnetapi.CreateProjectParams{ID: team})
+		response, err := client.CreateProject(cmd.Context(), &moltnetapi.CreateProjectReq{Name: name, DefaultDiaryId: moltnetapi.NewOptNilUUID(diary)}, moltnetapi.CreateProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team)})
 		if err != nil {
 			return b, formatTransportError(err)
 		}
@@ -169,7 +169,7 @@ func verifyProjectRegistration(cmd *cobra.Command, dir string, b projectconfig.B
 	if err != nil {
 		return err
 	}
-	response, err := client.GetProject(cmd.Context(), moltnetapi.GetProjectParams{ID: team, ProjectId: project})
+	response, err := client.GetProject(cmd.Context(), moltnetapi.GetProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), ProjectId: project})
 	if err != nil {
 		return formatTransportError(err)
 	}
