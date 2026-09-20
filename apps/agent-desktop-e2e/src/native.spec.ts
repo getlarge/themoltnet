@@ -1,4 +1,6 @@
 import { readFileSync } from 'node:fs';
+import { mkdir, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { $, browser, expect } from '@wdio/globals';
@@ -126,6 +128,46 @@ describe('Native Desktop and real fixture daemon', () => {
       core.invoke('desktop_providers'),
     );
     expect(providers).toEqual(expect.objectContaining({ ollama: saved }));
+    await lifecycle('stop_agent_server');
+  });
+});
+
+describe('Native project locations', () => {
+  it('persists a location through real native commands and removes registration only', async () => {
+    const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
+    if (!root) throw new Error('Missing isolated fixture root');
+    const source = join(root, 'project-checkout');
+    await mkdir(source);
+    await lifecycle('start_agent_server');
+    const initial = await browser.tauri.execute(({ core }) =>
+      core.invoke('desktop_project_locations'),
+    );
+    expect(initial).toEqual({ locations: [] });
+    const location = {
+      identity: 'desktop-fixture',
+      name: 'Laptop',
+      teamId: 'team',
+      projectId: 'project',
+      source,
+      strategy: 'existing',
+      default: true,
+    };
+    const saved = await browser.tauri.execute(
+      ({ core }, input) =>
+        core.invoke('desktop_save_project_location', { input }),
+      location,
+    );
+    expect(saved).toMatchObject({ name: 'Laptop', readiness: { ready: true } });
+    await lifecycle('stop_agent_server');
+    await lifecycle('start_agent_server');
+    const persisted = await browser.tauri.execute(({ core }) =>
+      core.invoke('desktop_project_locations'),
+    );
+    expect(persisted).toMatchObject({ locations: [{ name: 'Laptop' }] });
+    await browser.tauri.execute(({ core }) =>
+      core.invoke('desktop_remove_project_location', { name: 'Laptop' }),
+    );
+    expect((await stat(source)).isDirectory()).toBe(true);
     await lifecycle('stop_agent_server');
   });
 });

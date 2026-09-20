@@ -56,7 +56,7 @@ try {
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = import.meta.resolve('tsx');
   const fixture = fileURLToPath(
-    new URL('../agent-daemon/src/main.ts', import.meta.url),
+    new URL('./src/fixtures/desktop-fixture.ts', import.meta.url),
   );
   writeFileSync(
     join(current, 'bin/moltnet-agent'),

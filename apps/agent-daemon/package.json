@@ -73,6 +73,10 @@
     "./lib/governance-plan.js": {
       "import": "./src/lib/governance-plan.ts",
       "types": "./src/lib/governance-plan.ts"
+    },
+    "./testing": {
+      "import": "./src/testing.ts",
+      "types": "./src/testing.ts"
     }
   },
   "publishConfig": {

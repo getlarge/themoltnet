@@ -35,6 +35,7 @@ tauri-plugin-updater = "2"
 tempfile = "3"
 # Blocking HTTP semantics over the authenticated Unix-socket connector.
 ureq = { version = "3", default-features = false, features = ["json"] }
+tauri-plugin-dialog = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6", optional = true }
