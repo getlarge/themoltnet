@@ -27,3 +27,6 @@ The team diary is a default and is resolved again; saved presets use a null diar
 to follow that default. A matching saved preset stays associated with the draft.
 Project-location tests inject a deterministic catalogue into production CLI startup.
 The CLI still owns grants, connection settings, locks, socket binding, and shutdown.
+
+Managed-run tests inject credential/runtime ports and run a deterministic worker
+through the production run manager, including isolated HOME and absolute project paths.

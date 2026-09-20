@@ -23,7 +23,10 @@ import { NativeGrantService } from '../lib/agent-server/native-grant-service.js'
 import { validateNativeSocket } from '../lib/agent-server/native-socket.js';
 import { OperatorOAuth } from '../lib/agent-server/operator-oauth.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
-import { RunManager } from '../lib/agent-server/runs.js';
+import {
+  RunManager,
+  type RunManagerOptions,
+} from '../lib/agent-server/runs.js';
 import { RuntimeRegistry } from '../lib/agent-server/runtime-registry.js';
 import { createAgentServerSecretProviders } from '../lib/agent-server/secret-providers.js';
 import {
@@ -91,9 +94,15 @@ export function nativeSocketValidationOptions(input: {
 
 export interface AgentServerPorts {
   /** Supply application ports while retaining production ownership and lifecycle. */
-  configure?: (
-    store: AgentServerStore,
-  ) => Pick<BuildAgentServerOptions, 'catalogueAgentFor'>;
+  configure?: (store: AgentServerStore) => Pick<
+    BuildAgentServerOptions,
+    'catalogueAgentFor'
+  > & {
+    runOptions?: Pick<
+      RunManagerOptions,
+      'entrypoint' | 'verifyActivationImpl' | 'resolveRuntimeModule'
+    >;
+  };
 }
 
 export async function runAgentServer(
@@ -211,7 +220,9 @@ export async function runAgentServer(
           // One instance, so what a run can execute and what the catalogue
           // advertises as runnable cannot disagree.
           const runtimeRegistry = new RuntimeRegistry(store.root);
+          const supplied = ports.configure?.(store);
           const runs = new RunManager({
+            ...supplied?.runOptions,
             store,
             storeRoot: settingsRoot,
             projectRoot: settingsRoot,
@@ -241,7 +252,9 @@ export async function runAgentServer(
             root,
           );
           const app = buildAgentServer({
-            ...ports.configure?.(store),
+            ...(supplied?.catalogueAgentFor
+              ? { catalogueAgentFor: supplied.catalogueAgentFor }
+              : {}),
             operatorOAuth,
             nativeOnly: Boolean(nativeSocket),
             connectionSettings,

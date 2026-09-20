@@ -1,5 +1,11 @@
 /** Production CLI lifecycle with a deterministic catalogue port. */
-import { runAgentServer } from '@themoltnet/agent-daemon/testing';
+import { fileURLToPath } from 'node:url';
+import type { Agent } from '@themoltnet/sdk';
+import {
+  runAgentServer,
+  captureTeamCredential,
+  loadAgentActivation,
+} from '@themoltnet/agent-daemon/testing';
 
 const project = {
   id: 'project',
@@ -38,6 +44,52 @@ process.exitCode = await runAgentServer(args, {
       });
     }
     return {
+      runOptions: {
+        entrypoint: {
+          execPath: process.execPath,
+          execArgv: ['--import', import.meta.resolve('tsx')],
+          scriptPath: fileURLToPath(
+            new URL('./desktop-worker.ts', import.meta.url),
+          ),
+        },
+        verifyActivationImpl: async (
+          selectedStore,
+          alias,
+          _managed,
+          _external,
+          _connect,
+          _signal,
+          teamId,
+        ) => {
+          if (alias !== 'desktop-fixture' || teamId !== 'team')
+            throw new Error('Unknown fixture identity/team');
+          return captureTeamCredential(
+            await loadAgentActivation(selectedStore, alias),
+            {
+              agentKey: 'fixture-only-agent-key',
+              metadata: {
+                keyId: 'fixture',
+                verifiedAt: '2026-09-20T12:00:00Z',
+                scopes: ['team:read'],
+              },
+              client: {
+                projects: {
+                  get: async (id: string) => ({
+                    id,
+                    teamId: 'team',
+                    archived: false,
+                    defaultDiaryId: 'diary',
+                  }),
+                },
+                diaries: {
+                  get: async (id: string) => ({ id, teamId: 'team' }),
+                },
+              } as unknown as Agent,
+            },
+          );
+        },
+        resolveRuntimeModule: async () => undefined,
+      },
       catalogueAgentFor: async () => ({
         teamIds: ['team'],
         lastVerified: () => undefined,

@@ -17,6 +17,12 @@
   "references": [
     {
       "path": "../agent-desktop/tsconfig.lib.json"
+    },
+    {
+      "path": "../agent-daemon/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/sdk/tsconfig.lib.json"
     }
   ]
 }
