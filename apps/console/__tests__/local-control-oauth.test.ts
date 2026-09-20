@@ -115,17 +115,15 @@ describe('Console PKCE callback boundary', () => {
         closed: false,
         location: { replace },
       } as unknown as Window;
-      const fetcher = vi
-        .fn()
-        .mockResolvedValue(
-          Response.json({
-            issuer: 'https://ory.example',
-            clientId: 'console',
-            instance: 'aaaaaaaa-0000-4000-8000-000000000001',
-            operatorConfigured: true,
-            ...change,
-          }),
-        );
+      const fetcher = vi.fn().mockResolvedValue(
+        Response.json({
+          issuer: 'https://ory.example',
+          clientId: 'console',
+          instance: 'aaaaaaaa-0000-4000-8000-000000000001',
+          operatorConfigured: true,
+          ...change,
+        }),
+      );
       vi.stubGlobal('fetch', fetcher);
       await expect(
         authorizeLocalControl(

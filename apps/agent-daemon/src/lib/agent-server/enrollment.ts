@@ -45,8 +45,11 @@ export async function enrollIdentityTeam(options: {
     options.store,
     options.alias,
   );
+  const identityApiUrl = activation.apiUrl ?? config.endpoints?.api;
+  if (!identityApiUrl)
+    throw new Error('The identity has no API environment configured');
   if (
-    new URL(activation.apiUrl).href.replace(/\/$/u, '') !==
+    new URL(identityApiUrl).href.replace(/\/$/u, '') !==
     apiUrl.href.replace(/\/$/u, '')
   )
     throw new Error(
