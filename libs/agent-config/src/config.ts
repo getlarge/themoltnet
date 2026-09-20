@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { link, mkdir, open, readFile, rm } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { basename, dirname, join, sep } from 'node:path';
 
 import { withConfigLock } from './config-lock.js';
+import { resolveStoreRoot, type StoreRootOptions } from './store-root.js';
 import { writeFileAtomic } from './write-file-atomic.js';
 
 export function deriveMcpUrl(apiUrl: string): string {
@@ -155,13 +155,8 @@ export function assertCanonicalConfig(
   }
 }
 
-export function getConfigDir(): string {
-  // One root, shared with the Go CLI's GetConfigDir and the daemon's
-  // resolveAgentServerRoot. Deliberately does NOT honour XDG_CONFIG_HOME:
-  // following it here would silently relocate the store for every existing
-  // install that has the variable set. The daemon used to honour it and now
-  // does not, adopting any state left at the old location on startup.
-  return join(homedir(), '.config', 'moltnet');
+export function getConfigDir(options?: StoreRootOptions): string {
+  return resolveStoreRoot(options);
 }
 
 export interface IdentitySelector {
@@ -260,12 +255,9 @@ async function seedIdentitySelectorIfUnset(identityDir: string): Promise<void> {
   const alias = identityDir.split(sep).pop();
   if (!alias || !IDENTITY_ALIAS_PATTERN.test(alias)) return;
   const parent = dirname(identityDir);
-  const root =
-    basename(parent) === identitiesDirName
-      ? dirname(parent)
-      : // Not under an `identities` directory, so no store root can be
-        // inferred from the path: fall back to the default store root.
-        getConfigDir();
+  // A standalone per-resource override does not select a store identity.
+  if (basename(parent) !== identitiesDirName) return;
+  const root = dirname(parent);
   const selectorPath = join(root, 'identity-selector.json');
   await withConfigLock(selectorPath, async () => {
     try {

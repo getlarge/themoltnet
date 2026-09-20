@@ -56,4 +56,10 @@ export {
   type WorkspaceStrategy,
 } from './project-bindings.js';
 export { exportSSHKey } from './ssh.js';
+export {
+  canonicalStoreRoot,
+  resolveStoreRoot,
+  type StoreRootOptions,
+  storeSecretService,
+} from './store-root.js';
 export { updateTeamAgentKeyReference } from './team-key-update.js';

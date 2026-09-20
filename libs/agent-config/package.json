@@ -24,6 +24,15 @@
     "vitest": "catalog:"
   },
   "nx": {
+    "targets": {
+      "test": {
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/test-fixtures/store-*.tsv"
+        ]
+      }
+    },
     "tags": [
       "type:util",
       "scope:identity",
