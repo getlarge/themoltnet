@@ -60,8 +60,19 @@ describe('run catalogue', () => {
   const catalogueAgent: CatalogueAgentPort = {
     teamIds: [TEAM],
     lastVerified: () => credential,
+    readProjects: () =>
+      Promise.resolve([
+        {
+          id: '8939be63-d0b5-4a9c-8c27-cc1a4e161eb4',
+          teamId: TEAM,
+          name: 'Research',
+          description: null,
+          defaultDiaryId: null,
+          archived: false,
+        },
+      ]),
     readTeam: async () => ({
-      team: (await data.listTeams())[0]!,
+      team: (await data.listTeams())[0],
       diaries: await data.listDiaries(),
       profiles: (await data.listProfiles()) as Awaited<
         ReturnType<CatalogueAgentPort['readTeam']>
@@ -108,6 +119,17 @@ describe('run catalogue', () => {
         },
       ],
       defaultTeamId: TEAM,
+      projects: [
+        {
+          id: '8939be63-d0b5-4a9c-8c27-cc1a4e161eb4',
+          teamId: TEAM,
+          name: 'Research',
+          description: null,
+          defaultDiaryId: null,
+          archived: false,
+        },
+      ],
+      projectErrors: [],
       profiles: [
         {
           id: 'profile-1',

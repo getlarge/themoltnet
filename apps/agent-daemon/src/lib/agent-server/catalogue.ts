@@ -37,6 +37,12 @@ type ListItems<T> =
 type SdkTeam = ListItems<ReturnType<Agent['teams']['list']>>;
 type SdkDiary = ListItems<ReturnType<Agent['diaries']['list']>>;
 type SdkProfile = ListItems<ReturnType<Agent['runtimeProfiles']['list']>>;
+type SdkProject = ListItems<ReturnType<Agent['projects']['list']>>;
+
+export type CatalogueProject = Pick<
+  SdkProject,
+  'id' | 'teamId' | 'name' | 'description' | 'defaultDiaryId' | 'archived'
+>;
 
 export type CatalogueTeamRecord = Pick<SdkTeam, 'id' | 'name'>;
 export type CatalogueDiaryRecord = Pick<SdkDiary, 'id' | 'name' | 'teamId'>;
@@ -74,6 +80,8 @@ export interface CatalogueAgentPort {
   /** Local indexed slots, not a cross-team API query. */
   teamIds: string[];
   lastVerified(teamId: string): CredentialMetadata | undefined;
+  /** Called only after readTeam verifies this team's credential. */
+  readProjects(teamId: string): Promise<CatalogueProject[]>;
   readTeam(teamId: string): Promise<{
     team: CatalogueTeamRecord;
     diaries: CatalogueDiaryRecord[];
@@ -106,6 +114,8 @@ export interface Catalogue {
   teams: CatalogueTeam[];
   defaultTeamId: string | null;
   profiles: CatalogueProfile[];
+  projects: CatalogueProject[];
+  projectErrors: { teamId: string; message: string }[];
 }
 
 /** The identity-wide binding from `<agentDir>/env`, when it has one. */
@@ -144,7 +154,27 @@ export async function buildCatalogue(options: {
             ...profile,
             ...deriveProfileReadiness(profile, machine),
           }));
-        return { team, profiles };
+        try {
+          const projects = (await agent.readProjects(teamId)).filter(
+            (project) => project.teamId === teamId && !project.archived,
+          );
+          return { team, profiles, projects, projectErrors: [] };
+        } catch {
+          // Project discovery does not invalidate the credential just verified
+          // above. General work and team/profile recovery remain available.
+          return {
+            team,
+            profiles,
+            projects: [],
+            projectErrors: [
+              {
+                teamId,
+                message:
+                  'Projects could not be loaded. Retry project discovery.',
+              },
+            ],
+          };
+        }
       } catch (error) {
         const team: CatalogueTeam = {
           teamId,
@@ -155,7 +185,7 @@ export async function buildCatalogue(options: {
           diaries: [],
           defaultDiaryId: null,
         };
-        return { team, profiles: [] };
+        return { team, profiles: [], projects: [], projectErrors: [] };
       }
     }),
   );
@@ -167,7 +197,13 @@ export async function buildCatalogue(options: {
     null;
   const profiles = entries.flatMap((entry) => entry.profiles);
 
-  return { teams, defaultTeamId, profiles };
+  return {
+    teams,
+    defaultTeamId,
+    profiles,
+    projects: entries.flatMap((entry) => entry.projects),
+    projectErrors: entries.flatMap((entry) => entry.projectErrors),
+  };
 }
 
 function resolveDefaultDiary(

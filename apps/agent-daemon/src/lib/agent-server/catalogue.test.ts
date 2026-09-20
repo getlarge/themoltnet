@@ -62,6 +62,7 @@ function port(
   return {
     teamIds: overrides.teamIds ?? [TEAM_A, TEAM_B],
     lastVerified: () => credential,
+    readProjects: () => Promise.resolve([]),
     readTeam: async (teamId) => ({
       team: (await data.listTeams()).find((team) => team.id === teamId)!,
       diaries: await data.listDiaries(),
