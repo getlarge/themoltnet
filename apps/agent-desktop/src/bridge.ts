@@ -59,6 +59,10 @@ export const desktopBridge = {
     listen<DesktopStatus>('agent-desktop://status', (event) =>
       handler(event.payload),
     ),
+  subscribeNavigation: (handler: (screen: string) => void) =>
+    listen<string>('agent-desktop://navigate', (event) =>
+      handler(event.payload),
+    ),
   subscribeRemoveRequest: (handler: () => void) =>
     listen('agent-desktop://request-remove', handler),
 };

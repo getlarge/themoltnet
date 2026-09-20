@@ -106,6 +106,33 @@ export function RunCenterApp({
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    let stop: (() => void) | undefined;
+    void desktopBridge
+      .subscribeNavigation((next) => {
+        if (
+          active &&
+          (next === 'teams' ||
+            next === 'providers' ||
+            next === 'runs' ||
+            next === 'server')
+        )
+          setScreen(next);
+      })
+      .then(
+        (unsubscribe) => {
+          if (active) stop = unsubscribe;
+          else unsubscribe();
+        },
+        () => {},
+      );
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, []);
+
   const [runsRoute, setRunsRoute] = useState<RunsRoute>(initialRunsRoute);
 
   const activeRuns = useMemo(
