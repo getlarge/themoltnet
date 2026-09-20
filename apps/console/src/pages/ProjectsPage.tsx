@@ -161,6 +161,7 @@ function TeamProjects({
           path: { projectId: editing.id },
           body: changes,
         });
+      setRowErrors({});
       closeEditor();
       await cache.invalidateQueries({
         queryKey: listProjectsQueryKey(requestOptions),
@@ -250,6 +251,7 @@ function TeamProjects({
                 type="checkbox"
                 checked={includeArchived}
                 onChange={(event) => {
+                  setRowErrors({});
                   setIncludeArchived(event.target.checked);
                   setOffset(0);
                   setError(null);
@@ -444,7 +446,7 @@ function TeamProjects({
                           onClick={(event) =>
                             edit(project, event.currentTarget)
                           }
-                          aria-disabled={archiving.has(project.id)}
+                          aria-disabled={archiving.has(project.id) && !editing}
                           disabled={Boolean(editing)}
                         >
                           Edit
@@ -456,7 +458,7 @@ function TeamProjects({
                             focusTarget.current = event.currentTarget;
                             void toggleArchive(project, event.currentTarget);
                           }}
-                          aria-disabled={archiving.has(project.id)}
+                          aria-disabled={archiving.has(project.id) && !editing}
                           disabled={Boolean(editing)}
                         >
                           {project.archived ? 'Restore' : 'Archive'}
@@ -475,6 +477,7 @@ function TeamProjects({
                     aria-disabled={offset === 0 || query.isPlaceholderData}
                     onClick={() => {
                       if (offset > 0 && !query.isPlaceholderData) {
+                        setRowErrors({});
                         setOffset(Math.max(0, offset - PAGE_SIZE));
                         setError(null);
                       }
@@ -489,6 +492,7 @@ function TeamProjects({
                     }
                     onClick={() => {
                       if (nextOffset !== null && !query.isPlaceholderData) {
+                        setRowErrors({});
                         setOffset(nextOffset);
                         setError(null);
                       }

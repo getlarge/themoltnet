@@ -445,5 +445,56 @@ it('keeps other rows actionable during an archive request', async () => {
     (screen.getByRole('button', { name: 'Archive Two' }) as HTMLButtonElement)
       .disabled,
   ).toBe(false);
+  expect(
+    screen
+      .getByRole('button', { name: 'Archive One' })
+      .getAttribute('aria-disabled'),
+  ).toBe('true');
+  expect(
+    screen
+      .getByRole('button', { name: 'Archive Two' })
+      .getAttribute('aria-disabled'),
+  ).toBe('false');
+  expect(
+    screen
+      .getByRole('button', { name: 'Edit Two' })
+      .getAttribute('aria-disabled'),
+  ).toBe('false');
   finish({ data: { id: 'one' } });
 });
+
+it.each(['page', 'filter', 'save'])(
+  'clears abandoned row errors after %s',
+  async (action) => {
+    api.listProjects.mockResolvedValue({
+      data: {
+        items: [{ id: 'project', name: 'Research', archived: false }],
+        nextOffset: 50,
+      },
+    });
+    api.updateProject
+      .mockResolvedValueOnce({
+        error: { status: 403, detail: 'Archive failed.' },
+      })
+      .mockResolvedValue({ data: { id: 'project' } });
+    show();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Archive Research' }),
+    );
+    await screen.findByText('Archive failed.');
+    if (action === 'page') {
+      fireEvent.click(screen.getByRole('button', { name: 'Next projects' }));
+    } else if (action === 'filter') {
+      fireEvent.click(screen.getByLabelText('Show archived projects'));
+    } else {
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Research' }));
+      fireEvent.change(screen.getByLabelText('Project name'), {
+        target: { value: 'Updated' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save project' }));
+    }
+    await waitFor(() =>
+      expect(screen.queryByText('Archive failed.')).toBeNull(),
+    );
+  },
+);
