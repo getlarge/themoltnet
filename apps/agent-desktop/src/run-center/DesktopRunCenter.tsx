@@ -20,6 +20,8 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
+  const [catalogueLoading, setCatalogueLoading] = useState(false);
+  const [catalogueError, setCatalogueError] = useState<string | null>(null);
   const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [presetError, setPresetError] = useState<string | null>(null);
@@ -75,12 +77,25 @@ export function DesktopRunCenter() {
         const identity =
           snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName;
         if (refreshCatalogue || Date.now() - lastCatalogue.current > 60_000) {
-          const next = identity
-            ? await runCenterActions.catalogue(identity)
-            : null;
-          if (currentEpoch === epoch.current) {
-            setCatalogue(next);
-            lastCatalogue.current = Date.now();
+          setCatalogueLoading(true);
+          try {
+            const next = identity
+              ? await runCenterActions.catalogue(identity)
+              : null;
+            if (currentEpoch === epoch.current) {
+              setCatalogue(next);
+              setCatalogueError(null);
+              lastCatalogue.current = Date.now();
+            }
+          } catch {
+            if (currentEpoch === epoch.current) {
+              setCatalogue(null);
+              setCatalogueError(
+                'Teams and profiles could not be loaded. Retry to verify access.',
+              );
+            }
+          } finally {
+            if (currentEpoch === epoch.current) setCatalogueLoading(false);
           }
         }
       } catch (cause) {
@@ -137,6 +152,8 @@ export function DesktopRunCenter() {
       setStatus(null);
       setOperatorConfigured(false);
       setCatalogue(null);
+      setCatalogueLoading(false);
+      setCatalogueError(null);
       return;
     }
     let stopped = false;
@@ -179,8 +196,9 @@ export function DesktopRunCenter() {
         await refresh();
       },
       savePreset: async (input) => {
-        await runCenterActions.savePreset(input);
+        const saved = await runCenterActions.savePreset(input);
         setPresets(await listPresets());
+        return saved;
       },
       deletePreset: async (id) => {
         await runCenterActions.deletePreset(id);
@@ -209,6 +227,8 @@ export function DesktopRunCenter() {
           server,
           status,
           catalogue,
+          catalogueLoading,
+          catalogueError,
           presets,
           providers: status?.providers ?? {},
           subscriptions: status?.subscriptions ?? [],

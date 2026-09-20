@@ -109,7 +109,7 @@ export interface RunCenterActions {
   catalogue: (identity: string) => Promise<AgentServerCatalogue>;
   startRun: (input: StartRunInput) => Promise<AgentServerRun>;
   stopRun: (runId: string) => Promise<void>;
-  savePreset: (input: SavePresetInput) => Promise<void>;
+  savePreset: (input: SavePresetInput) => Promise<RunPreset>;
   deletePreset: (presetId: string) => Promise<void>;
   /** Follows a bounded run log tail. Returns an unsubscribe function. */
   subscribeRunLogs: (
@@ -146,6 +146,8 @@ export interface RunCenterData {
   runs: DesktopRun[];
   presets: RunPreset[];
   catalogue: AgentServerCatalogue | null;
+  catalogueLoading?: boolean;
+  catalogueError?: string | null;
   providers: Record<string, AgentServerProvider>;
   subscriptions: AgentServerSubscription[];
 }

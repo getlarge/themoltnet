@@ -21,6 +21,7 @@ import type {
   DesktopRun,
   RunCenterActions,
   RunCenterData,
+  RunPreset,
 } from './types.js';
 
 /** The daemon's own task-type registry; no server round trip needed. */
@@ -57,9 +58,12 @@ export function RunComposer({
   const teams = catalogue?.teams ?? [];
   const taskTypeOptions = TASK_TYPE_OPTIONS;
 
-  const preset = presetId
-    ? (data.presets.find((candidate) => candidate.id === presetId) ?? null)
-    : null;
+  const [savedPreset, setSavedPreset] = useState<RunPreset | null>(null);
+  const preset =
+    savedPreset ??
+    (presetId
+      ? (data.presets.find((candidate) => candidate.id === presetId) ?? null)
+      : null);
 
   const [agent, setAgent] = useState(
     previousRun?.agent ??
@@ -139,6 +143,9 @@ export function RunComposer({
   const selectedTeamDiary = team?.defaultDiaryId ?? null;
 
   const boundElsewhere = Boolean(team && !team.available);
+  const verificationUnavailable = (team ? [team] : teams).some((entry) =>
+    entry.blockers.some((blocker) => blocker.code === 'agent_key_unavailable'),
+  );
 
   const availableFallbacks = useMemo(
     () =>
@@ -156,10 +163,21 @@ export function RunComposer({
   if (!team?.available) problems.push('Verify an available team credential.');
   if (!teamId) problems.push('Choose a team.');
   if (!primaryId) problems.push('Choose a runtime profile.');
+  if (catalogue && primaryId && !primary)
+    problems.push(
+      'Selected runtime profile is no longer available. Choose another profile.',
+    );
+  if (
+    catalogue &&
+    fallbackIds.some((id) => !profiles.some((profile) => profile.id === id))
+  )
+    problems.push(
+      'A fallback profile is no longer available. Remove or replace it in Advanced.',
+    );
   if (taskTypes.length === 0) problems.push('Choose at least one task type.');
   if (boundElsewhere)
     problems.push(
-      `${agent} is key-bound to another team and cannot claim work for ${team?.teamName ?? 'this team'}.`,
+      team?.blockers[0]?.message ?? 'Team access needs verification.',
     );
 
   const canStart = problems.length === 0 && Boolean(primary?.ready);
@@ -192,7 +210,7 @@ export function RunComposer({
     setSaving(true);
     setSaveMessage(null);
     try {
-      await actions.savePreset({
+      const saved = await actions.savePreset({
         id: preset?.id ?? null,
         name: presetName.trim(),
         agent,
@@ -201,6 +219,7 @@ export function RunComposer({
         profileIds: [primaryId, ...fallbackIds],
         taskTypes,
       });
+      setSavedPreset(saved);
       setSaveMessage('Preset saved.');
     } catch (error) {
       setSaveMessage(
@@ -251,6 +270,12 @@ export function RunComposer({
                   : undefined
               }
             >
+              <option value="">Choose an identity</option>
+              {agent && !selectedAgent ? (
+                <option value={agent} disabled>
+                  {agent} — unavailable
+                </option>
+              ) : null}
               {agents.map((candidate) => (
                 <option key={candidate.agentName} value={candidate.agentName}>
                   {candidate.agentName}
@@ -307,12 +332,30 @@ export function RunComposer({
           {catalogue &&
           teams.length > 0 &&
           (boundElsewhere || !teams.some((entry) => entry.available)) ? (
-            <InlineNotice tone="warning" title="Team access needs attention">
+            <InlineNotice
+              tone="warning"
+              title={
+                verificationUnavailable
+                  ? 'Team access could not be verified'
+                  : 'Team access needs attention'
+              }
+            >
               {team?.blockers.map((blocker) => blocker.message).join(' ') ||
-                'Enroll this identity into a team before starting a run.'}
-              <Button variant="ghost" onClick={onTeams}>
-                Enroll or renew team access
-              </Button>
+                (verificationUnavailable
+                  ? 'Check connectivity and retry team verification.'
+                  : 'Enroll this identity into a team before starting a run.')}
+              {verificationUnavailable ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => setRetry((value) => value + 1)}
+                >
+                  Retry catalogue
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={onTeams}>
+                  Enroll or renew team access
+                </Button>
+              )}
             </InlineNotice>
           ) : null}
 
@@ -330,6 +373,11 @@ export function RunComposer({
               hint="Profiles are authored in Console. This is the policy the run executes under."
             >
               <option value="">Select a profile…</option>
+              {primaryId && !primary ? (
+                <option value={primaryId} disabled>
+                  {primaryId} — {catalogueLoading ? 'checking' : 'unavailable'}
+                </option>
+              ) : null}
               {profiles.map((candidate) => (
                 <option key={candidate.id} value={candidate.id}>
                   {candidate.name}

@@ -89,6 +89,9 @@ function RunsList({
   const [stopError, setStopError] = useState(false);
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
+  const verificationUnavailable = data.catalogue?.teams.some((team) =>
+    team.blockers.some((blocker) => blocker.code === 'agent_key_unavailable'),
+  );
   const serverReady = ['running', 'update_available'].includes(
     data.server.state,
   );
@@ -146,9 +149,35 @@ function RunsList({
         </InlineNotice>
       ) : null}
 
-      {serverReady && !data.catalogue?.teams.some((team) => team.available) ? (
-        <InlineNotice tone="warning" title="Team enrollment required">
-          Enroll an identity before starting a run.{' '}
+      {serverReady && data.catalogueLoading ? (
+        <div role="status">
+          <Text>Loading teams and profiles…</Text>
+        </div>
+      ) : null}
+      {serverReady && (data.catalogueError || verificationUnavailable) ? (
+        <InlineNotice tone="error" title="Catalogue unavailable">
+          {data.catalogueError ??
+            'Some team resources could not be verified. Check connectivity and retry.'}
+          <Button variant="secondary" onClick={() => void actions.refresh?.()}>
+            Retry catalogue
+          </Button>
+        </InlineNotice>
+      ) : null}
+      {serverReady && data.catalogue?.teams.length === 0 ? (
+        <InlineNotice tone="info" title="No teams found">
+          This identity has no teams in this environment.
+          <Button variant="ghost" onClick={onTeams}>
+            Identity and teams
+          </Button>
+        </InlineNotice>
+      ) : null}
+      {serverReady &&
+      !verificationUnavailable &&
+      data.catalogue &&
+      data.catalogue.teams.length > 0 &&
+      !data.catalogue.teams.some((team) => team.available) ? (
+        <InlineNotice tone="warning" title="Team access needs attention">
+          Verify a team credential before starting a run.
           <Button variant="ghost" onClick={onTeams}>
             Identity and teams
           </Button>

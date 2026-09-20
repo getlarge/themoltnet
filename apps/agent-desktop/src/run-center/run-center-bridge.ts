@@ -160,6 +160,7 @@ export const runCenterActions: RunCenterActions = {
         ? presets.map((entry) => (entry.id === preset.id ? preset : entry))
         : [...presets, preset],
     );
+    return preset;
   },
 
   deletePreset: async (presetId) => {

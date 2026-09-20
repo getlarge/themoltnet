@@ -67,6 +67,19 @@ describe('Run-flow audit regressions', () => {
       JSON.parse(localStorage.getItem('moltnet.run-presets.v1') ?? '[]'),
     );
     expect(saved).toEqual([preset]);
+    await start.update();
+    expect(start.mock.calls.map(([args]) => args)).toEqual([
+      {
+        spec: {
+          agent: 'first-agent',
+          teamId: 'team',
+          diaryId: 'diary',
+          profiles: ['quick'],
+          taskTypes: ['freeform'],
+          mode: 'poll',
+        },
+      },
+    ]);
   });
 
   it('updates a preset only through an explicit save action', async () => {
@@ -164,4 +177,72 @@ describe('Run-flow audit regressions', () => {
       );
     });
   }
+  it('offers verification retry when the upstream team catalogue is unavailable', async () => {
+    await (
+      await browser.tauri.mock('desktop_catalogue')
+    ).mockResolvedValue({
+      ...catalogue,
+      defaultTeamId: null,
+      teams: catalogue.teams.map((team) => ({
+        ...team,
+        available: false,
+        blockers: [
+          {
+            code: 'agent_key_unavailable',
+            message: 'Team resources could not be read.',
+            remedy: 'Check connectivity and retry.',
+          },
+        ],
+      })),
+    });
+    await $('button=New run').click();
+    await expect($('button=Retry catalogue')).toBeDisplayed();
+    await expect($('button=Enroll or renew team access')).not.toExist();
+  });
+
+  it('explains when a captured runtime profile is no longer available', async () => {
+    await (
+      await browser.tauri.mock('desktop_catalogue')
+    ).mockResolvedValue({
+      ...catalogue,
+      profiles: catalogue.profiles.filter((profile) => profile.id !== 'quick'),
+    });
+    await $('button=Run again').click();
+    await expect($('button=Start run')).toBeDisabled();
+    await expect($('body')).toHaveText(
+      expect.stringContaining(
+        'Selected runtime profile is no longer available',
+      ),
+    );
+  });
+
+  it('keeps a newly saved preset selected for explicit updates', async () => {
+    await $('button=New run').click();
+    await field('Runtime profile').selectByAttribute('value', 'careful');
+    await $(
+      '//label[normalize-space()="Preset name"]/following-sibling::input',
+    ).setValue('New worker');
+    await $('button=Save preset').click();
+    await expect($('button=Update preset')).toBeDisplayed();
+    await field('Runtime profile').selectByAttribute('value', 'quick');
+    await $('button=Update preset').click();
+    const saved = await browser.execute(() =>
+      JSON.parse(localStorage.getItem('moltnet.run-presets.v1') ?? '[]'),
+    );
+    expect(saved).toHaveLength(2);
+    expect(
+      saved.find((entry: { name: string }) => entry.name === 'New worker')
+        .profileIds,
+    ).toEqual(['quick']);
+    await start.update();
+    expect(start.mock.calls).toHaveLength(0);
+  });
+
+  it('shows captured run logs and repeats from run details', async () => {
+    await $('button=Logs').click();
+    await expect($('body')).toHaveText(expect.stringContaining('Fixture log'));
+    await $('button=Run again').click();
+    await expect(field('Identity')).toHaveValue('previous-agent');
+    await expect(field('Runtime profile')).toHaveValue('quick');
+  });
 });
