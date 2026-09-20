@@ -214,6 +214,7 @@ export async function runAgentServer(
           const runs = new RunManager({
             store,
             storeRoot: settingsRoot,
+            projectRoot: settingsRoot,
             secretProviders,
             externalSecretProviders,
             baseEnv: processEnvSnapshot(),

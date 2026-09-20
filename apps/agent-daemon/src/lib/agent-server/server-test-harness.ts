@@ -103,6 +103,7 @@ export async function cleanupAll(): Promise<void> {
 export async function fixture(
   options: {
     connectionState?: boolean;
+    projectRoot?: string;
     rateLimitMax?: number;
     projectSaveTimeoutMs?: number;
     /** Build without a connection store, as a bare supervisor would. */
@@ -127,6 +128,7 @@ export async function fixture(
   } = {},
 ): Promise<Fixture> {
   const {
+    projectRoot,
     baseEnv = { PATH: '/usr/bin' },
     maxLogBytes,
     symlinkImpl,
@@ -241,7 +243,17 @@ export async function fixture(
             verifiedAt: new Date().toISOString(),
             scopes: [],
           },
-          client: {} as Awaited<ReturnType<typeof connect>>,
+          client: {
+            projects: {
+              get: async (id: string) => ({
+                id,
+                teamId,
+                archived: false,
+                defaultDiaryId: null,
+              }),
+            },
+            diaries: { get: async (id: string) => ({ id, teamId }) },
+          } as unknown as Awaited<ReturnType<typeof connect>>,
         },
       ),
     );
@@ -249,6 +261,7 @@ export async function fixture(
   const runs = new RunManager({
     store,
     storeRoot,
+    projectRoot,
     secretProviders,
     externalSecretProviders,
     baseEnv,
@@ -284,7 +297,11 @@ export async function fixture(
     externalSecretProviders,
     ...(withoutConnectionSettings
       ? {}
-      : { connectionSettings: new ConnectionSettingsStore(store.root) }),
+      : {
+          connectionSettings: new ConnectionSettingsStore(
+            projectRoot ?? store.root,
+          ),
+        }),
     nativeGrant: options.nativeGrant ?? new NativeGrantService(),
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }

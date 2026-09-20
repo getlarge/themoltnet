@@ -1514,11 +1514,47 @@ function registerRunRoutes(
     '/v1/runs',
     { schema: AgentServerRouteSchemas.startRun, attachValidation: true },
     async (request, reply) => {
-      await requireAuthorizedOrigin(request);
+      const origin = await requireAuthorizedOrigin(request);
       const body = requireBody<Record<string, unknown>>(request);
+      if (
+        origin !== NATIVE_CLIENT_ORIGIN &&
+        ['projectId', 'binding', 'source', 'workspaceStrategy'].some(
+          (key) => body[key] !== undefined && body[key] !== null,
+        )
+      )
+        throw new AgentServerHttpError(
+          403,
+          'native_required',
+          'Native administration is required for local project selection',
+        );
+      if (request.validationError)
+        throw new AgentServerHttpError(
+          400,
+          'invalid_spec',
+          'Check the run selection fields',
+        );
       const diaryId = optionalString(body, 'diaryId');
       const record = await runs.start(
         {
+          ...(body.projectId === null
+            ? { projectId: null }
+            : body.projectId !== undefined
+              ? { projectId: requireString(body, 'projectId') }
+              : {}),
+          ...(body.binding !== undefined
+            ? { binding: requireString(body, 'binding') }
+            : {}),
+          ...(body.source !== undefined
+            ? { source: requireString(body, 'source') }
+            : {}),
+          ...(body.workspaceStrategy !== undefined
+            ? {
+                workspaceStrategy: requireString(
+                  body,
+                  'workspaceStrategy',
+                ) as ProjectBinding['strategy'],
+              }
+            : {}),
           agent: requireString(body, 'agent'),
           teamId: requireString(body, 'teamId'),
           ...(diaryId ? { diaryId } : {}),

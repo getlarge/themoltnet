@@ -17,6 +17,7 @@ import {
   openSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { Transform } from 'node:stream';
@@ -37,10 +38,15 @@ import {
   type LocalOperationalSettings,
 } from '../options.js';
 import {
+  applyProjectWorkspacePolicy,
+  type EffectiveRunProjectSelection,
+} from '../run-project-selection.js';
+import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
 } from './identity.js';
+import { resolveManagedProjectSelection } from './managed-project-selection.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
@@ -49,6 +55,7 @@ import type {
   RunFailure,
   RunRecord,
   RunSpec,
+  RunWorkspace,
 } from './store.js';
 import { AgentServerStoreError } from './store.js';
 import {
@@ -150,6 +157,8 @@ export interface RunManagerOptions {
   store: AgentServerStore;
   /** Logical store identity; connection-scoped state must not select a keyring namespace. */
   storeRoot?: string;
+  /** Machine-wide bindings stay outside per-connection run state. */
+  projectRoot?: string;
   /** AgentServer-managed refs (`file:` rooted under this agent server store plus env/keyring). */
   secretProviders: SecretProviderRegistry;
   /** Providers used by external configs at their original location. */
@@ -259,6 +268,7 @@ export class RunManager {
     piDir: string,
     providers: ProvidersState = this.store.readProviders(),
     runtimeModule?: string,
+    workspace?: RunWorkspace,
   ): Promise<{ args: string[]; env: Record<string, string>; cwd: string }> {
     const { activation, config } = agent;
     const homeDir = join(dirname(piDir), 'home');
@@ -312,6 +322,24 @@ export class RunManager {
       '--warm-retention-sec',
       String(runtimeSettings.warmRetentionSec),
       ...target.extraArgs,
+      ...(workspace
+        ? [
+            '--config-file',
+            workspace.configPath,
+            ...(workspace.binding
+              ? ['--binding', workspace.binding]
+              : ['--general']),
+            ...(workspace.strategy === 'profile-default'
+              ? []
+              : [
+                  ...(workspace.source ? ['--source', workspace.source] : []),
+                  '--workspace-strategy',
+                  workspace.strategy,
+                ]),
+            '--state-dir',
+            join(dirname(piDir), 'state'),
+          ]
+        : []),
     ];
 
     const snapshot = requireCredentialSnapshot(agent);
@@ -368,10 +396,17 @@ export class RunManager {
       env[provider.envName] = value;
     }
 
-    return { args, env, cwd: target.cwd };
+    return {
+      args,
+      env,
+      cwd:
+        workspace?.source ??
+        (workspace ? join(dirname(piDir), 'workspace') : target.cwd),
+    };
   }
 
   async start(spec: RunSpec, signal?: AbortSignal): Promise<RunRecord> {
+    spec = structuredClone(spec);
     validateRunSpec(spec);
     const releaseStart = this.reserveStart(spec.agent);
     try {
@@ -418,25 +453,54 @@ export class RunManager {
     const id = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
     const runDir = this.store.runDir(id);
     const piDir = join(runDir, 'pi');
-    const providers = this.store.readProviders();
-    const runtimeModule = this.options.resolveRuntimeModule
-      ? await this.options.resolveRuntimeModule(spec, agent, dirname(piDir))
-      : this.options.runtimeRegistry
-        ? await this.resolveRuntimeModule(spec, agent, dirname(piDir))
-        : undefined;
-    const { args, env, cwd } = await this.prepare(
-      spec,
-      agent,
-      piDir,
-      providers,
-      runtimeModule,
-    );
-    this.assertStartOpen(signal);
     let child: ChildProcess | undefined;
     let logStream: ReturnType<typeof createWriteStream> | undefined;
     let logLimiter: Transform | undefined;
     try {
       const { logPath } = this.store.createRunDir(id);
+      const executionDir = join(runDir, 'workspace');
+      mkdirSync(executionDir, { recursive: true, mode: 0o700 });
+      const resolved = await resolveManagedProjectSelection({
+        spec,
+        root: this.options.projectRoot ?? this.store.root,
+        cwd: executionDir,
+        apiUrl: agent.activation.apiUrl ?? agent.config.endpoints.api,
+        client: requireCredentialSnapshot(agent).client,
+      });
+      const workspace = {
+        ...resolved.workspace,
+        configPath: join(runDir, 'projects.json'),
+      };
+      spec = {
+        ...spec,
+        projectId: workspace.projectId,
+        diaryId: workspace.diaryId,
+      };
+      writeFileSync(workspace.configPath, JSON.stringify(resolved.config), {
+        mode: 0o600,
+        flag: 'wx',
+      });
+      const providers = this.store.readProviders();
+      const executionCwd = workspace.source ?? executionDir;
+      const runtimeModule = this.options.resolveRuntimeModule
+        ? await this.options.resolveRuntimeModule(spec, agent, executionCwd)
+        : this.options.runtimeRegistry
+          ? await this.resolveRuntimeModule(
+              spec,
+              agent,
+              executionCwd,
+              resolved.selection,
+            )
+          : undefined;
+      const { args, env, cwd } = await this.prepare(
+        spec,
+        agent,
+        piDir,
+        providers,
+        runtimeModule,
+        workspace,
+      );
+      this.assertStartOpen(signal);
       for (const dir of [
         env.HOME,
         env.XDG_CACHE_HOME,
@@ -492,6 +556,7 @@ export class RunManager {
 
       const record: RunRecord = {
         ...spec,
+        workspace,
         id,
         status: 'running',
         pid: child.pid,
@@ -572,6 +637,7 @@ export class RunManager {
     spec: RunSpec,
     activated: ActivatedAgent,
     cwd: string,
+    selection: EffectiveRunProjectSelection,
   ): Promise<string | undefined> {
     const agent = await this.connectAgent(activated, spec.teamId);
     const profiles = await resolveRuntimeProfiles({
@@ -580,7 +646,21 @@ export class RunManager {
       teamId: spec.teamId,
       cwd,
     });
-    const kinds = [...new Set(profiles.map((profile) => profile.runtimeKind))];
+    const effectiveProfiles = profiles.map((profile) => {
+      try {
+        return applyProjectWorkspacePolicy(profile, selection);
+      } catch (error) {
+        throw new AgentServerRunError(
+          'invalid_spec',
+          error instanceof Error
+            ? error.message
+            : 'This profile does not support the selected workspace strategy',
+        );
+      }
+    });
+    const kinds = [
+      ...new Set(effectiveProfiles.map((profile) => profile.runtimeKind)),
+    ];
     if (kinds.length !== 1) {
       throw new AgentServerRunError(
         'invalid_spec',

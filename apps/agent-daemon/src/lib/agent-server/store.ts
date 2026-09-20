@@ -34,6 +34,7 @@ import {
   IDENTITY_ALIAS_PATTERN,
   type MoltNetConfig,
 } from '@themoltnet/sdk';
+import type { WorkspaceStrategy } from '@themoltnet/sdk/node';
 
 import type { CredentialMetadata } from './team-credentials.js';
 
@@ -213,6 +214,15 @@ export function assertProviderEnvName(
   return value;
 }
 
+export interface RunWorkspace {
+  projectId: string | null;
+  binding?: string;
+  diaryId?: string;
+  source?: string;
+  strategy: WorkspaceStrategy | 'profile-default';
+  configPath: string;
+}
+
 export interface RunSpec {
   agent: string;
   teamId: string;
@@ -222,6 +232,12 @@ export interface RunSpec {
    * would follow a run into a different team.
    */
   diaryId?: string;
+  /** Without a binding, omitted and null select General work; never infer from supervisor CWD. */
+  projectId?: string | null;
+  binding?: string;
+  /** Native-authorized, run-only overrides. */
+  source?: string;
+  workspaceStrategy?: WorkspaceStrategy;
   profiles: string[];
   taskTypes: string[];
   mode: 'poll' | 'drain';
@@ -234,6 +250,7 @@ export interface RunFailure {
 }
 
 export interface RunRecord extends RunSpec {
+  workspace?: RunWorkspace;
   id: string;
   status: 'running' | 'exited' | 'stopped' | 'failed';
   /** Present only on a failed run. */

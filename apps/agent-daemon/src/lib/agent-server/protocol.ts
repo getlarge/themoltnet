@@ -229,8 +229,32 @@ const ProjectLocationParamsSchema = Type.Object({
   name: Type.String({ minLength: 1 }),
 });
 
+const RunProjectFields = {
+  projectId: Type.Optional(
+    Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  ),
+  binding: Type.Optional(Type.String({ minLength: 1 })),
+  source: Type.Optional(Type.String({ minLength: 1 })),
+  workspaceStrategy: Type.Optional(
+    AgentServerProjectLocationSchema.properties.strategy,
+  ),
+};
+const RunWorkspaceSchema = Type.Object({
+  projectId: Type.Union([Type.String(), Type.Null()]),
+  binding: Type.Optional(Type.String()),
+  diaryId: Type.Optional(Type.String()),
+  source: Type.Optional(Type.String()),
+  strategy: Type.Union([
+    AgentServerProjectLocationSchema.properties.strategy,
+    Type.Literal('profile-default'),
+  ]),
+  configPath: Type.String(),
+});
+
 export const AgentServerRunRecordSchema = Type.Object(
   {
+    ...RunProjectFields,
+    workspace: Type.Optional(RunWorkspaceSchema),
     id: Type.String(),
     agent: Type.String(),
     teamId: Type.String(),
@@ -354,6 +378,7 @@ export const DiscoverModelsSchema = Type.Object(
 );
 
 export const StartRunSchema = Type.Object({
+  ...RunProjectFields,
   agent: Type.String(),
   teamId: Type.String(),
   /** Paired with `teamId`; never inherited from the supervisor. */
