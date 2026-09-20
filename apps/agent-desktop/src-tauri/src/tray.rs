@@ -1,6 +1,8 @@
 //! Native, read-only machine overview with explicit lifecycle actions.
 //! Refreshes use the existing process grant; no OAuth exchange is involved.
-use crate::{control, lifecycle, operate, show_status, stop_and_exit, AppState};
+use crate::{
+    control, lifecycle, operate, operate_with_pending, show_status, stop_and_exit, AppState,
+};
 use lifecycle::{DesktopStatus, LifecycleManager, LifecycleState};
 use serde_json::Value;
 use std::{thread, time::Duration};
@@ -309,9 +311,17 @@ pub fn install(app: &mut tauri::App) -> tauri::Result<()> {
                         .map(|status| running(status.state))
                         .unwrap_or(false);
                     let result = if active {
-                        operate(&handle, LifecycleManager::stop_server)
+                        operate_with_pending(
+                            &handle,
+                            Some(LifecycleState::Stopping),
+                            LifecycleManager::stop_server,
+                        )
                     } else {
-                        operate(&handle, LifecycleManager::start_server)
+                        operate_with_pending(
+                            &handle,
+                            Some(LifecycleState::Starting),
+                            LifecycleManager::start_server,
+                        )
                     };
                     if result.is_err() {
                         show_status(&handle);

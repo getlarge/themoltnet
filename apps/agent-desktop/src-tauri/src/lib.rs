@@ -9,7 +9,7 @@ mod tray;
 #[path = "../build_support.rs"]
 mod build_support;
 
-use lifecycle::{DesktopStatus, ExitAction, LifecycleManager};
+use lifecycle::{DesktopStatus, ExitAction, LifecycleManager, LifecycleState};
 use serde::Serialize;
 use std::{
     path::PathBuf,
@@ -73,7 +73,7 @@ fn poisoned_status(app: &AppHandle) -> String {
         .lock()
         .map(|status| status.clone())
         .unwrap_or_default();
-    status.state = lifecycle::LifecycleState::Failed;
+    status.state = LifecycleState::Failed;
     status.message = message.into();
     publish(app, &status);
     eprintln!("{message}");
@@ -95,6 +95,22 @@ fn operate(
     app: &AppHandle,
     operation: impl FnOnce(&mut LifecycleManager) -> Result<DesktopStatus, String>,
 ) -> Result<DesktopStatus, String> {
+    operate_with_pending(app, None, operation)
+}
+
+/// `operate`, announcing the transition it is about to run.
+///
+/// `operation` holds the lifecycle lock for its whole duration - a start runs
+/// up to MAX_START_ATTEMPTS * START_TIMEOUT and a stop up to STOP_TIMEOUT - and
+/// the snapshot is only published once it returns. The tray refresh worker
+/// reads `latest_status` and skips on `WouldBlock`, so without an interim
+/// publish it keeps the pre-operation label for the whole run: muda checks the
+/// toggle immediately while the menu still reads "Stopped".
+fn operate_with_pending(
+    app: &AppHandle,
+    pending: Option<LifecycleState>,
+    operation: impl FnOnce(&mut LifecycleManager) -> Result<DesktopStatus, String>,
+) -> Result<DesktopStatus, String> {
     let state = app.state::<AppState>();
     let result = {
         let mut lifecycle = match state.lifecycle.try_lock() {
@@ -104,6 +120,13 @@ fn operate(
             }
             Err(TryLockError::Poisoned(_)) => return Err(poisoned_status(app)),
         };
+        // Published only once the lock is ours, so a rejected concurrent
+        // request never announces a transition that will not happen.
+        if let Some(pending) = pending {
+            let mut interim = lifecycle.snapshot();
+            interim.state = pending;
+            publish(app, &interim);
+        }
         let result = operation(&mut lifecycle);
         let snapshot = lifecycle.snapshot();
         publish(app, &snapshot);
@@ -114,9 +137,10 @@ fn operate(
 
 async fn operate_async(
     app: AppHandle,
+    pending: Option<LifecycleState>,
     operation: fn(&mut LifecycleManager) -> Result<DesktopStatus, String>,
 ) -> Result<DesktopStatus, String> {
-    tauri::async_runtime::spawn_blocking(move || operate(&app, operation))
+    tauri::async_runtime::spawn_blocking(move || operate_with_pending(&app, pending, operation))
         .await
         .map_err(|_| "Desktop lifecycle worker failed".to_string())?
 }
@@ -454,37 +478,57 @@ fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
 
 #[tauri::command]
 async fn install_agent(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::install_agent).await
+    operate_async(
+        app,
+        Some(LifecycleState::Installing),
+        LifecycleManager::install_agent,
+    )
+    .await
 }
 
 #[tauri::command]
 async fn approve_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::approve_trust).await
+    operate_async(app, None, LifecycleManager::approve_trust).await
 }
 
 #[tauri::command]
 async fn retry_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::retry).await
+    operate_async(app, Some(LifecycleState::Starting), LifecycleManager::retry).await
 }
 
 #[tauri::command]
 async fn start_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::start_server).await
+    operate_async(
+        app,
+        Some(LifecycleState::Starting),
+        LifecycleManager::start_server,
+    )
+    .await
 }
 
 #[tauri::command]
 async fn stop_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::stop_server).await
+    operate_async(
+        app,
+        Some(LifecycleState::Stopping),
+        LifecycleManager::stop_server,
+    )
+    .await
 }
 
 #[tauri::command]
 async fn check_for_agent_updates(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::check_for_updates).await
+    operate_async(app, None, LifecycleManager::check_for_updates).await
 }
 
 #[tauri::command]
 async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::install_update).await
+    operate_async(
+        app,
+        Some(LifecycleState::Installing),
+        LifecycleManager::install_update,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -504,12 +548,12 @@ async fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
 
 #[tauri::command]
 async fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::remove_bundle).await
+    operate_async(app, None, LifecycleManager::remove_bundle).await
 }
 
 #[tauri::command]
 async fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, LifecycleManager::remove_trust).await
+    operate_async(app, None, LifecycleManager::remove_trust).await
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]
@@ -700,6 +744,21 @@ mod tests {
         assert!(latest.logs.is_empty());
         assert!(update_latest_status(&mut latest, &changed));
         assert_eq!(latest, changed);
+    }
+
+    #[test]
+    fn announcing_a_transition_is_observable_to_the_tray() {
+        // `operate_with_pending` publishes a snapshot whose only difference is
+        // `state`. If that stopped counting as a change, the tray would keep
+        // the pre-operation label for the whole of a start or stop.
+        let mut latest = DesktopStatus {
+            state: LifecycleState::Stopped,
+            ..DesktopStatus::default()
+        };
+        let mut interim = latest.clone();
+        interim.state = LifecycleState::Starting;
+        assert!(update_latest_status(&mut latest, &interim));
+        assert_eq!(latest.state, LifecycleState::Starting);
     }
 
     #[test]
