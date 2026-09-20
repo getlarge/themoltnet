@@ -604,8 +604,10 @@ endpoint, and one selection remains pinned for the worker's lifetime.
 `MOLTNET_PROJECT_ID` to its child. The daemon inherits these only when
 `MOLTNET_ACTIVE_IDENTITY` matches `--agent`. Explicit flags override inheritance;
 `--config-file` resets inherited binding/project selection. Configured endpoints
-remain subject to SDK trust and secure-transport checks. Environment-key workers
-must set `MOLTNET_API_URL` explicitly.
+support self-hosted HTTPS deployments and HTTP loopback development servers.
+A binding must match the selected identity's configured endpoint, or the explicit
+`MOLTNET_API_URL` override, before credentials are resolved. Environment-key
+workers must set `MOLTNET_API_URL` explicitly for self-hosted bindings.
 
 Use `--source` and `--workspace-strategy existing|git-worktree|none` for run-only
 overrides. They never update saved defaults. Git-worktree sources must be the

@@ -222,17 +222,13 @@ export async function resolveAgentContext(
     { requireConfig: options.credentialSource !== 'environment' },
   );
   const projectApiUrl = options.projectApiUrl;
-  if (projectApiUrl) {
-    if (!options.envApiUrl?.trim()) assertTrustedConfigApiUrl(projectApiUrl);
-    requireSecureCredentialApiUrl(projectApiUrl);
-    if (
-      options.envApiUrl?.trim() &&
-      options.envApiUrl.replace(/\/+$/, '') !==
-        projectApiUrl.replace(/\/+$/, '')
-    )
-      throw new Error('Project endpoint differs from MOLTNET_API_URL');
-  }
   if (options.credentialSource === 'environment') {
+    if (projectApiUrl) {
+      assertTrustedConfigApiUrl(
+        projectApiUrl,
+        options.envApiUrl?.trim() || 'https://api.themolt.net',
+      );
+    }
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
     // reference can be resolved.
@@ -254,6 +250,19 @@ export async function resolveAgentContext(
   const config = await readConfig(agentDir);
   if (!config || !hasAgentKeyConfiguration(config)) {
     throw new Error(agentKeyRequiredMessage(agentDir, agentName));
+  }
+  // Bind the selected project to the credential document (or explicit endpoint)
+  // before resolving any secret. The hostname itself does not confer trust.
+  const configuredApiUrl = resolveConfigApiUrl(config, options.envApiUrl);
+  if (options.envApiUrl?.trim())
+    requireSecureCredentialApiUrl(options.envApiUrl);
+  if (projectApiUrl) {
+    assertTrustedConfigApiUrl(
+      projectApiUrl,
+      options.envApiUrl?.trim() ||
+        configuredApiUrl ||
+        'https://api.themolt.net',
+    );
   }
   const secretProviders = createNodeSecretProviderRegistry();
   // Resolve the key here and hand it to connect() explicitly rather than
@@ -277,7 +286,7 @@ export async function resolveAgentContext(
     configDir: agentDir,
     secretProviders,
     agentKey,
-    apiUrl: projectApiUrl ?? resolveConfigApiUrl(config, options.envApiUrl),
+    apiUrl: projectApiUrl ?? configuredApiUrl,
   });
   return {
     agentDir,
