@@ -75,8 +75,9 @@ const NON_RETRYABLE_CODES = new Set([
 ]);
 
 const RETRYABLE_MESSAGE_PATTERNS = [
+  /\b408\b/i,
   /\b429\b/i,
-  /\b5(?:02|03|04)\b/i,
+  /\b5\d{2}\b/i,
   /\btimeout\b/i,
   /\btimed out\b/i,
   /\brate limit/i,
@@ -227,16 +228,20 @@ export function classifyDeterministically(
   if (code === 'llm_api_error' && error.retryable === true) {
     return 'retryable';
   }
-  if (code === 'llm_api_error' && isPermanentProviderRequestError(message)) {
-    return 'non_retryable';
-  }
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }
-  if (RETRYABLE_CODES.has(code)) return 'retryable';
+  // Provider responses can combine authoritative transient evidence with a
+  // request-shape phrase, such as `429: invalid parameter` or
+  // `500: unknown field`. Do not let the fallback phrase matcher override
+  // the status/transport signal.
   if (RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'retryable';
   }
+  if (code === 'llm_api_error' && isPermanentProviderRequestError(message)) {
+    return 'non_retryable';
+  }
+  if (RETRYABLE_CODES.has(code)) return 'retryable';
   if (error.retryable === true) return 'retryable';
   return 'ambiguous';
 }

@@ -351,6 +351,7 @@ async function prepareAttemptFailure(
     error: appendProviderFailureDiagnostics(
       classified.error,
       ctx.providerFailureContext,
+      classified.source,
     ),
   };
 }
@@ -358,11 +359,13 @@ async function prepareAttemptFailure(
 function appendProviderFailureDiagnostics(
   error: NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'],
   context: ProviderFailureContext | undefined,
+  source: ClassifiedAttemptFailure['source'],
 ): NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'] {
   if (
     !context ||
     error.code.toLowerCase() !== 'llm_api_error' ||
     error.retryable !== false ||
+    (source !== 'explicit' && source !== 'deterministic') ||
     error.message.includes('Provider/model:')
   ) {
     return error;
@@ -385,7 +388,10 @@ function appendProviderFailureDiagnostics(
 
   return {
     ...error,
-    message: `${error.message}${diagnostics}${remediation}`.slice(0, 4000),
+    message: `${error.message.slice(
+      0,
+      Math.max(0, 4000 - diagnostics.length - remediation.length),
+    )}${diagnostics}${remediation}`,
   };
 }
 

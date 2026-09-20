@@ -897,6 +897,16 @@ describe('provider error same-session retry helpers', () => {
     expect(shouldRetryProviderErrorMessage('provider overloaded')).toBe(true);
   });
 
+  it('keeps transient evidence retryable when diagnostics mention request shape', () => {
+    for (const message of [
+      '500 response: unknown field request_id',
+      '429: invalid parameter temperature',
+      'request timed out: unsupported field response_format',
+    ]) {
+      expect(shouldRetryProviderErrorMessage(message)).toBe(true);
+    }
+  });
+
   it('computes capped exponential retry delays', () => {
     expect(computeProviderErrorRetryDelay(1, 2_000, 30_000)).toBe(2_000);
     expect(computeProviderErrorRetryDelay(2, 2_000, 30_000)).toBe(4_000);
@@ -1003,6 +1013,35 @@ describe('provider error same-session retry helpers', () => {
     expect(result).toEqual({ runError: null, retryCount: 1 });
     expect(prompts).toEqual(['do the task', 'Go on']);
     expect(retryEvents).toHaveLength(1);
+  });
+
+  it('re-prompts for a mixed transient provider diagnostic instead of failing fast', async () => {
+    const controller = new AbortController();
+    const prompt = vi.fn(async () => {});
+    let first = true;
+
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => {
+        if (first) {
+          first = false;
+          return {
+            llmAbort: true,
+            llmErrorMessage: '429: invalid parameter temperature',
+          };
+        }
+        return { llmAbort: false, llmErrorMessage: null };
+      },
+      maxRetries: 1,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 1 });
+    expect(prompt).toHaveBeenCalledTimes(2);
   });
 
   it('publishes the provider request context only while prompt is active', async () => {

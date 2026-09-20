@@ -371,6 +371,38 @@ describe('finalizeTask', () => {
     );
   });
 
+  it('does not add permanent-request diagnostics to a mixed transient failure', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: '429: invalid parameter temperature',
+      retryable: true,
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 2,
+      } as unknown as Task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retryable).toBe(true);
+    expect(error.message).not.toContain('Unsupported request field(s):');
+    expect(error.message).toBe('429: invalid parameter temperature');
+  });
+
   it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'executor_unexpected_error', message: 'unclear' };

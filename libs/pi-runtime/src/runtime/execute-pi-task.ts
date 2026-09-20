@@ -2814,7 +2814,6 @@ export function shouldRetryProviderErrorMessage(
   message: string | null | undefined,
 ): boolean {
   if (!message || !message.trim()) return true;
-  if (isPermanentProviderRequestError(message)) return false;
   if (
     PROVIDER_ERROR_NON_RETRYABLE_PATTERNS.some((pattern) =>
       pattern.test(message),
@@ -2827,6 +2826,10 @@ export function shouldRetryProviderErrorMessage(
   ) {
     return true;
   }
+  // A provider may include request-shape wording in a transient diagnostic
+  // (for example, `429: invalid parameter` or `500: unknown field`). Status
+  // and transport evidence must win over the defensive phrase matcher.
+  if (isPermanentProviderRequestError(message)) return false;
   // Pi's `stopReason: "error"` is itself provider-error metadata. If the
   // diagnostic is unfamiliar but not a known config/auth failure, prefer one
   // same-session continuation over failing the whole attempt immediately.

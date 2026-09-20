@@ -271,6 +271,18 @@ describe('retry triage classification', () => {
     ).toBe('retryable');
   });
 
+  it('keeps transient provider evidence ahead of request-shape wording', () => {
+    for (const message of [
+      '500 response: unknown field request_id',
+      '429: invalid parameter temperature',
+      'request timed out: unsupported field response_format',
+    ]) {
+      expect(
+        classifyDeterministically({ code: 'llm_api_error', message }),
+      ).toBe('retryable');
+    }
+  });
+
   it('keeps completion-reporting failures retryable despite provider-like wording', () => {
     for (const message of [
       '500 response: unknown field request_id',
