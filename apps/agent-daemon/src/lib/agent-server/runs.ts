@@ -19,7 +19,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { Transform } from 'node:stream';
 
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
@@ -451,7 +451,7 @@ export class RunManager {
       );
     }
     const id = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
-    const runDir = this.store.runDir(id);
+    const runDir = resolve(this.store.runDir(id));
     const piDir = join(runDir, 'pi');
     let child: ChildProcess | undefined;
     let logStream: ReturnType<typeof createWriteStream> | undefined;

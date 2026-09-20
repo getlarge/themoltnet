@@ -1,7 +1,11 @@
 import { isAbsolute, join } from 'node:path';
 
 import type { Agent } from '@themoltnet/sdk';
-import { type ProjectConfig, ProjectConfigError } from '@themoltnet/sdk/node';
+import {
+  canonicalStoreRoot,
+  type ProjectConfig,
+  ProjectConfigError,
+} from '@themoltnet/sdk/node';
 
 import { resolveRunProjectSelection } from '../run-project-selection.js';
 import type { RunSpec, RunWorkspace } from './store.js';
@@ -43,7 +47,7 @@ export async function resolveManagedProjectSelection(options: {
     cwd,
     team: spec.teamId,
     apiUrl,
-    'config-file': join(root, 'projects.json'),
+    'config-file': join(canonicalStoreRoot(root), 'projects.json'),
     general: !spec.projectId && !spec.binding,
     project: spec.projectId ?? undefined,
     binding: spec.binding,

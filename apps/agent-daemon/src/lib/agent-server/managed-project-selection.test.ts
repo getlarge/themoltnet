@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { readProjectConfig, updateProjectConfig } from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -95,6 +95,17 @@ describe('managed run project selection', () => {
     ).toEqual([f.binding]);
     expect(f.project).toHaveBeenCalledWith('project', { teamId: 'team' });
     expect(f.diary).toHaveBeenCalledWith('run-diary', { teamId: 'team' });
+  });
+
+  it('resolves an explicit relative store against the caller directory', async () => {
+    const f = await setup();
+    const result = await resolveManagedProjectSelection({
+      ...f.options,
+      root: relative(process.cwd(), f.root),
+      spec: { ...spec, projectId: 'project' },
+    });
+    expect(result.workspace.configPath).toBe(join(f.root, 'projects.json'));
+    expect(result.workspace.source).toBe(f.source);
   });
 
   it('reads new defaults only for subsequent selections', async () => {
