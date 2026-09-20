@@ -11,6 +11,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -486,6 +487,52 @@ describe('agent server providers and runs', () => {
     );
   });
 
+  it('resolves non-file signing references before changing a managed worker HOME', async () => {
+    const signing = await cryptoService.generateKeyPair();
+    const key = `identity/${signing.fingerprint}/seed`;
+    const { app, store, spawned } = await fixture({
+      externalSecrets: { [key]: signing.privateKey },
+    });
+    activateManaged(store);
+    const config = store.readAgentConfig('course-bot');
+    if (!config) throw new Error('fixture identity is missing');
+    config.keys = {
+      public_key: signing.publicKey,
+      fingerprint: signing.fingerprint,
+      private_key_ref: { provider: 'memory', key },
+    };
+    store.writeAgentConfig('course-bot', config);
+    store.writeActivation({
+      source: 'managed',
+      alias: 'course-bot',
+      subjectId: 'agent-1',
+      publicKey: signing.publicKey,
+      fingerprint: signing.fingerprint,
+      createdAt: 't',
+      apiUrl: 'https://api.example',
+    });
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(spawned[0].options.env.MOLTNET_PRIVATE_KEY).toBe(signing.privateKey);
+    expect(spawned[0].options.env.MOLTNET_PRIVATE_KEY_REF).toBeUndefined();
+  });
+
   it('starts and stops a run for a managed agent with resolved provider env', async () => {
     const { app, store, spawned, children } = await fixture();
     const token = await authorize(app);
@@ -571,6 +618,7 @@ describe('agent server providers and runs', () => {
       'file:identity/FP-1/seed',
     );
     expect(options.env['MOLTNET_SECRET_ROOT']).toBe(store.secretsDir);
+    expect(options.env['MOLTNET_HOME']).toBe(realpathSync(store.root));
     expect(options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe('agent-1');
     expect(options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe('agent');
     expect(options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');

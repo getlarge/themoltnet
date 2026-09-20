@@ -6,6 +6,12 @@ describe('loadConfig observability settings', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
+  it('shares MOLTNET_HOME across direct workers and the server', () => {
+    vi.stubEnv('MOLTNET_HOME', '/isolated-moltnet-store');
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+    expect(loadConfig().agentServerRoot).toBe('/isolated-moltnet-store');
+    expect(loadAgentServerEnvConfig().root).toBe('/isolated-moltnet-store');
+  });
 
   it('keeps full idle polling traces disabled by default', () => {
     expect(loadConfig().traceIdlePolling).toBe(false);

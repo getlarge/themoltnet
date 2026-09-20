@@ -5,6 +5,8 @@
  * here, so the rest of the daemon imports typed values rather than
  * sprinkling string lookups across the codebase.
  */
+import { resolveStoreRoot } from '@themoltnet/sdk/node';
+
 import {
   type DaemonCredentialSource,
   detectCredentialSource,
@@ -25,7 +27,7 @@ export interface DaemonConfig {
    * provider store when one exists, else repo-local .pi.
    */
   piCodingAgentDir: string;
-  /** `MOLTNET_AGENT_SERVER_ROOT`; empty = `~/.config/moltnet`. */
+  /** Effective shared MoltNet store root. */
   agentServerRoot: string;
   /**
    * Where the agent key comes from: `environment` when `MOLTNET_AGENT_KEY`
@@ -76,7 +78,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
-    agentServerRoot: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
+    agentServerRoot: resolveStoreRoot(),
     credentialSource: detectCredentialSource(process.env),
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
@@ -158,7 +160,7 @@ export interface AgentServerEnvConfig {
   };
 }
 
-export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
+export function loadAgentServerEnvConfig(root?: string): AgentServerEnvConfig {
   const issuer = process.env['MOLTNET_OPERATOR_OAUTH_ISSUER'];
   const publicUrl = process.env['MOLTNET_OPERATOR_OAUTH_PUBLIC_URL'] ?? issuer;
   const nativeClientId = process.env['MOLTNET_NATIVE_OAUTH_CLIENT_ID'];
@@ -174,7 +176,7 @@ export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
     },
     port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',
     allowedOrigins: process.env['MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS'] ?? '',
-    root: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
+    root: resolveStoreRoot({ root }),
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
     activeIdentity: process.env['MOLTNET_ACTIVE_IDENTITY'] ?? '',
@@ -188,12 +190,17 @@ export function processEnvSnapshot(): NodeJS.ProcessEnv {
 
 /** Environment inputs used by the credential-free update cache. */
 export interface UpdateEnvConfig {
+  storeRoot?: string;
   xdgCacheHome: string;
   localAppData: string;
 }
 
 export function loadUpdateEnvConfig(): UpdateEnvConfig {
+  const isolated =
+    process.env['MOLTNET_HOME'] !== undefined ||
+    process.env['MOLTNET_AGENT_SERVER_ROOT'] !== undefined;
   return {
+    ...(isolated ? { storeRoot: resolveStoreRoot() } : {}),
     xdgCacheHome: process.env['XDG_CACHE_HOME'] ?? '',
     localAppData: process.env['LOCALAPPDATA'] ?? '',
   };

@@ -25,6 +25,7 @@ import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 import { resolveRuntimeProfiles } from '@themoltnet/agent-runtime';
 import {
   formatSecretReferenceString,
+  getConfigDir,
   parseSecretReferenceString,
   resolveIdentitySeed,
   type SecretProviderRegistry,
@@ -256,6 +257,7 @@ export class RunManager {
     const homeDir = join(dirname(piDir), 'home');
     const env: Record<string, string> = {
       HOME: homeDir,
+      MOLTNET_HOME: getConfigDir({ root: this.store.root }),
       PI_CODING_AGENT_DIR: piDir,
       XDG_CACHE_HOME: join(homeDir, '.cache'),
       XDG_CONFIG_HOME: join(homeDir, '.config'),
@@ -304,17 +306,22 @@ export class RunManager {
     env['MOLTNET_API_URL'] =
       activation.apiUrl ??
       (activation.source === 'external' ? activation.configApiUrl : '');
-    if (activation.source === 'managed') {
-      if (!config.keys.private_key_ref)
-        throw new AgentServerRunError(
-          'invalid_spec',
-          'The managed signing key reference is missing',
-        );
+    if (activation.source === 'managed' && !config.keys.private_key_ref) {
+      throw new AgentServerRunError(
+        'invalid_spec',
+        'The managed signing key reference is missing',
+      );
+    }
+    if (
+      activation.source === 'managed' &&
+      config.keys.private_key_ref?.provider === 'file'
+    ) {
       env['MOLTNET_PRIVATE_KEY_REF'] = formatSecretReferenceString(
         config.keys.private_key_ref,
       );
       env['MOLTNET_SECRET_ROOT'] = this.store.secretsDir;
     } else {
+      // Resolve native keyring references before the worker receives its isolated HOME.
       try {
         env['MOLTNET_PRIVATE_KEY'] = await resolveIdentitySeed(
           config,

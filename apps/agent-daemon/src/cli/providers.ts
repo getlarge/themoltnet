@@ -318,7 +318,11 @@ async function createContext(
     root: store.secretsDir,
     writable: true,
   });
-  const secretProviders = createNodeSecretProviderRegistry().register(secrets);
+  const secretProviders = createNodeSecretProviderRegistry(
+    undefined,
+    undefined,
+    { root },
+  ).register(secrets);
   const stderr = dependencies.stderr ?? console.error;
   const logger = createCliLogger(stderr);
   const configuration =
