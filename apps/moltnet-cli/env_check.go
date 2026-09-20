@@ -82,6 +82,10 @@ func runEnvCheckCmd(cmd *cobra.Command, identityFlag string) error {
 		fmt.Fprintf(cmd.OutOrStdout(), "✓ context %s → team %s, diary %s (%s)\n", resolvedContext.Key, resolvedContext.Binding.TeamID, resolvedContext.Binding.DiaryID, resolvedContext.Source)
 	}
 
+	if contextErr == nil {
+		resolvedContext.writeSkippedEndpointNotice(cmd.OutOrStdout())
+	}
+
 	// Authorship vars
 	authorship := vars["MOLTNET_COMMIT_AUTHORSHIP"]
 	if authorship == "" {

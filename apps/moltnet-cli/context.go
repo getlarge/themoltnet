@@ -52,6 +52,7 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	if err != nil {
 		return err
 	}
+	resolved.writeSkippedEndpointNotice(cmd.ErrOrStderr())
 	result := contextShowResult{ContextKey: resolved.Key, Identity: alias, Source: resolved.Source}
 	if resolved.Binding != nil {
 		result.TeamID = resolved.Binding.TeamID

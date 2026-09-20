@@ -164,12 +164,15 @@ func runAgentsActivationClearCmd(w io.Writer, identity string) error {
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	skipped := 0
 	for _, file := range files {
 		base := strings.TrimSuffix(file.Name(), ".json")
 		if file.IsDir() || len(base) != 64 || base == file.Name() {
+			skipped++
 			continue
 		}
 		if _, err := hex.DecodeString(base); err != nil {
+			skipped++
 			continue
 		}
 		if err := os.Remove(filepath.Join(cacheDir, file.Name())); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -177,6 +180,9 @@ func runAgentsActivationClearCmd(w io.Writer, identity string) error {
 		}
 	}
 	fmt.Fprintf(w, "Activation caches cleared for %s\n", name)
+	if skipped > 0 {
+		fmt.Fprintf(w, "Skipped %d unrecognized cache entries in %s; inspect them manually.\n", skipped, cacheDir)
+	}
 	return nil
 }
 

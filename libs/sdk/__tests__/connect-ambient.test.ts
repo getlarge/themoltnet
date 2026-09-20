@@ -192,7 +192,7 @@ describe('connectAmbient', () => {
     );
   });
 
-  it('never resolves an arbitrary config-selected secret for an arbitrary origin', async () => {
+  it('rejects insecure config transport before resolving a secret', async () => {
     mockReadConfig.mockResolvedValueOnce({
       subject_id: 'id-1',
       subject_type: 'agent',
@@ -202,7 +202,7 @@ describe('connectAmbient', () => {
         client_secret_ref: { provider: 'memory', key: 'unrelated-secret' },
       },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
-      endpoints: { api: 'https://attacker.example', mcp: 'mcp' },
+      endpoints: { api: 'http://selfhost.example', mcp: 'mcp' },
     });
     const read = vi.fn().mockResolvedValue('canary-secret');
     const secretProviders = new SecretProviderRegistry().register({
@@ -217,6 +217,36 @@ describe('connectAmbient', () => {
     });
     expect(read).not.toHaveBeenCalled();
     expect(MockTokenManager).not.toHaveBeenCalled();
+  });
+
+  it('supports a self-hosted identity endpoint with a secret reference', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      subject_id: 'id-1',
+      subject_type: 'agent',
+      registered_at: '2024-01-01',
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret_ref: { provider: 'memory', key: 'oauth2/id-1/cfg-id' },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://selfhost.example', mcp: 'mcp' },
+    });
+    const read = vi.fn().mockResolvedValue('canary-secret');
+    const secretProviders = new SecretProviderRegistry().register({
+      name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
+      read,
+      probe: async () => 'present',
+    });
+
+    await connect({ secretProviders });
+    expect(read).toHaveBeenCalled();
+    expect(MockTokenManager).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiUrl: 'https://selfhost.example',
+        clientSecret: 'canary-secret',
+      }),
+    );
   });
 
   it('rejects config that contains plaintext and a secret reference', async () => {
@@ -542,7 +572,7 @@ describe('connect (agent-key references)', () => {
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
-      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+      endpoints: { api: 'https://selfhost.example/api', mcp: 'mcp' },
     });
 
     await connect({
@@ -551,7 +581,7 @@ describe('connect (agent-key references)', () => {
 
     expect(MockTokenManager).not.toHaveBeenCalled();
     expect(mockCreateClient).toHaveBeenCalledWith(
-      expect.objectContaining({ baseUrl: 'https://api.themolt.net' }),
+      expect.objectContaining({ baseUrl: 'https://selfhost.example/api' }),
     );
     const agentOpts = mockCreateAgent.mock.calls[0]![0];
     await expect(agentOpts.auth!()).resolves.toBe('ak_cfg');

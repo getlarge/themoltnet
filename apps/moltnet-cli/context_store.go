@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/exec"
@@ -48,10 +49,10 @@ type resolvedContextBinding struct {
 	Key string
 	// Source is contextSourceLocation, contextSourceIdentityDefault, or empty
 	// when neither applies.
-	Source           string
-	Binding          *contextBinding
-	Project          *projectconfig.Binding
-	SkippedEndpoints []projectconfig.Binding
+	Source                string
+	Binding               *contextBinding
+	Project               *projectconfig.Binding
+	skippedEndpointNotice func(io.Writer)
 }
 
 func (r resolvedContextBinding) teamID() string {
@@ -277,23 +278,28 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 		binding := contextBinding{TeamID: project.TeamID, DiaryID: project.DiaryID}
 		return resolvedContextBinding{Key: projectContextKey(project), Source: contextSourceLocation, Binding: &binding, Project: project}, nil
 	}
-	var skipped []projectconfig.Binding
-	for _, candidate := range config.Bindings {
-		if strings.TrimSuffix(candidate.APIURL, "/") == strings.TrimSuffix(apiURL, "/") {
-			continue
+	notice := func(w io.Writer) {
+		var skipped []string
+		for _, candidate := range config.Bindings {
+			if strings.TrimSuffix(candidate.APIURL, "/") == strings.TrimSuffix(apiURL, "/") {
+				continue
+			}
+			// Diagnostic only: aliases use the same canonical ancestor resolver. An
+			// unavailable source outside the selected endpoint cannot provide a match.
+			match, matchErr := projectconfig.Resolve(&projectconfig.Config{Version: config.Version, Bindings: []projectconfig.Binding{candidate}}, projectconfig.Options{ConfigPath: configPath, CWD: canonical, Native: true})
+			if matchErr == nil && match != nil {
+				skipped = append(skipped, fmt.Sprintf("%q (%s)", candidate.Name, candidate.APIURL))
+			}
 		}
-		// Diagnostic only: aliases use the same canonical ancestor resolver. An
-		// unavailable source outside the selected endpoint cannot provide a match.
-		match, matchErr := projectconfig.Resolve(&projectconfig.Config{Version: config.Version, Bindings: []projectconfig.Binding{candidate}}, projectconfig.Options{ConfigPath: configPath, CWD: canonical, Native: true})
-		if matchErr == nil && match != nil {
-			skipped = append(skipped, *match)
+		if len(skipped) > 0 {
+			fmt.Fprintf(w, "notice: bindings %s match this folder but use another endpoint; selected endpoint is %q\n", strings.Join(skipped, ", "), apiURL)
 		}
 	}
 	key := "dir:" + canonical
 	if binding, ok := identityDefaultBinding(agentDir); ok {
-		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding, SkippedEndpoints: skipped}, nil
+		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding, skippedEndpointNotice: notice}, nil
 	}
-	return resolvedContextBinding{Key: key, SkippedEndpoints: skipped}, nil
+	return resolvedContextBinding{Key: key, skippedEndpointNotice: notice}, nil
 }
 
 func activationCachePathForContext(agentDir, contextKey string) string {
@@ -353,4 +359,10 @@ func clearContextBinding(agentDir, directory string) (string, bool, error) {
 // Quoting each component keeps separators in names and endpoints unambiguous.
 func projectContextKey(project *projectconfig.Binding) string {
 	return fmt.Sprintf("project:%q:%q:%q:%q", project.APIURL, project.TeamID, project.ProjectID, project.Name)
+}
+
+func (r resolvedContextBinding) writeSkippedEndpointNotice(w io.Writer) {
+	if r.skippedEndpointNotice != nil {
+		r.skippedEndpointNotice(w)
+	}
 }

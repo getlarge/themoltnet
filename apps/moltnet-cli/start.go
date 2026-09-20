@@ -55,9 +55,8 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	if err != nil {
 		return err
 	}
-	for _, skipped := range resolvedContext.SkippedEndpoints {
-		fmt.Fprintf(cmd.ErrOrStderr(), "notice: binding %q matches this folder but uses endpoint %q; selected endpoint is %q\n", skipped.Name, skipped.APIURL, apiURL)
-	}
+	resolvedContext.writeSkippedEndpointNotice(cmd.ErrOrStderr())
+
 	switch resolvedContext.Source {
 	case contextSourceLocation:
 	case contextSourceIdentityDefault:

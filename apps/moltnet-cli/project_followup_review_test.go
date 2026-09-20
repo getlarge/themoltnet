@@ -101,6 +101,15 @@ func TestStartExplainsEndpointFilteredNativeBinding(t *testing.T) {
 			t.Errorf("missing %q in notice: %s", want, stderr)
 		}
 	}
+	out, _, _ = executeCommand(NewRootCmd("test", ""), "env", "check", "--identity", "test-agent", "--config-file", path)
+	if !strings.Contains(out, "https://registered.example") {
+		t.Fatalf("env check omitted endpoint notice: %s", out)
+	}
+	_, stderr, err = executeCommand(NewRootCmd("test", ""), "context", "show", "--identity", "test-agent", "--config-file", path)
+	if err != nil || !strings.Contains(stderr, "https://registered.example") {
+		t.Fatalf("context show omitted endpoint notice: %s %v", stderr, err)
+	}
+
 }
 func TestActivationClearRecoversWithInvalidProjectConfiguration(t *testing.T) {
 	setupStartUnboundFixture(t, "")
@@ -190,5 +199,34 @@ func TestBindingsSetUsesDiscoveredCredentialsEndpoint(t *testing.T) {
 	}
 	if c.Bindings[0].APIURL != "http://localhost:3000" {
 		t.Fatalf("wrong discovered endpoint: %s", c.Bindings[0].APIURL)
+	}
+}
+
+func TestStartExportsExplicitEndpointFlag(t *testing.T) {
+	setupStartUnboundFixture(t, "")
+	t.Setenv("MOLTNET_API_URL", "")
+	out, _, err := executeCommand(NewRootCmd("test", ""), "start", "echo", "--identity", "test-agent", "--config-file", filepath.Join(t.TempDir(), "projects.json"), "--api-url", "https://selfhost.example", "--dry-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "MOLTNET_API_URL=https://selfhost.example") {
+		t.Fatalf("explicit endpoint not exported: %s", out)
+	}
+}
+func TestActivationClearReportsSkippedEntries(t *testing.T) {
+	setupStartUnboundFixture(t, "")
+	dir := filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "identities", "test-agent", "activation-caches")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "renamed.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := runAgentsActivationClearCmd(&out, "test-agent"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "1 unrecognized") {
+		t.Fatalf("missing skipped count: %s", out.String())
 	}
 }
