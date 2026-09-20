@@ -11,16 +11,53 @@ const api = vi.hoisted(() => ({
   updateProject: vi.fn(),
   listDiaries: vi.fn(),
   role: 'owner',
+  hasTeam: true,
 }));
 vi.mock('@moltnet/api-client', () => api);
+vi.mock('@moltnet/api-client/query', () => {
+  const key = (options: { headers: object; query?: object }) => [
+    {
+      _id: 'listProjects',
+      headers: options.headers,
+      ...(options.query ? { query: options.query } : {}),
+    },
+  ];
+  const data = async (result: Promise<{ data?: unknown; error?: unknown }>) => {
+    const response = await result;
+    if (response.error) throw response.error;
+    return response.data;
+  };
+  return {
+    listProjectsQueryKey: key,
+    listProjectsOptions: (options: { headers: object; query?: object }) => ({
+      queryKey: key(options),
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        data(api.listProjects({ ...options, signal })),
+    }),
+    listDiariesOptions: (options: { headers: object }) => ({
+      queryKey: ['diaries', options.headers],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        data(api.listDiaries({ ...options, signal })),
+    }),
+    createProjectMutation: () => ({
+      mutationFn: (options: unknown) => data(api.createProject(options)),
+    }),
+    updateProjectMutation: () => ({
+      mutationFn: (options: unknown) => data(api.updateProject(options)),
+    }),
+  };
+});
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
 vi.mock('../src/team/useTeam.js', () => ({
   useTeam: () => ({
-    selectedTeam: { id: 'team', name: 'Team', role: api.role },
+    selectedTeam: api.hasTeam
+      ? { id: 'team', name: 'Team', role: api.role }
+      : null,
   }),
 }));
 beforeEach(() => {
   api.role = 'owner';
+  api.hasTeam = true;
   api.listDiaries
     .mockReset()
     .mockResolvedValue({ data: { items: [{ id: 'diary', name: 'Notes' }] } });
@@ -138,7 +175,7 @@ it('explains diary loading failures and retries only the catalogue', async () =>
   api.listDiaries.mockRejectedValue(new Error('offline'));
   show();
   fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
-  expect(await screen.findByText('Diaries could not be loaded.')).toBeDefined();
+  expect(await screen.findByText('offline')).toBeDefined();
   api.listDiaries.mockResolvedValue({
     data: { items: [{ id: 'diary', name: 'Notes' }] },
   });
@@ -166,7 +203,7 @@ it('navigates project pages and resets pagination when filtering archives', asyn
     expect(
       screen
         .getByRole('button', { name: 'Next projects' })
-        .hasAttribute('disabled'),
+        .getAttribute('aria-disabled') === 'true',
     ).toBe(false),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Next projects' }));
@@ -179,7 +216,7 @@ it('navigates project pages and resets pagination when filtering archives', asyn
   expect(
     screen
       .getByRole('button', { name: 'Next projects' })
-      .hasAttribute('disabled'),
+      .getAttribute('aria-disabled') === 'true',
   ).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Previous projects' }));
   await screen.findByText('First page');
@@ -187,7 +224,7 @@ it('navigates project pages and resets pagination when filtering archives', asyn
     expect(
       screen
         .getByRole('button', { name: 'Next projects' })
-        .hasAttribute('disabled'),
+        .getAttribute('aria-disabled') === 'true',
     ).toBe(false),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Next projects' }));
@@ -198,5 +235,165 @@ it('navigates project pages and resets pagination when filtering archives', asyn
     expect.objectContaining({
       query: { includeArchived: true, limit: 50, offset: 0 },
     }),
+  );
+});
+
+it('shows duplicate-name details on the field and preserves entered values', async () => {
+  api.createProject.mockResolvedValue({
+    error: { status: 409, detail: 'That project name is already reserved.' },
+  });
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+  const name = screen.getByLabelText('Project name');
+  fireEvent.change(name, { target: { value: 'Research' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save project' }));
+  await screen.findByText('That project name is already reserved.');
+  expect((name as HTMLInputElement).value).toBe('Research');
+  expect(name.getAttribute('aria-invalid')).toBe('true');
+  expect(name.getAttribute('aria-describedby')).toBeTruthy();
+  await waitFor(() => expect(document.activeElement).toBe(name));
+});
+it('validates a whitespace-only name on its field', async () => {
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+  const name = screen.getByLabelText('Project name');
+  fireEvent.change(name, { target: { value: '   ' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save project' }));
+  await screen.findByText('Enter a project name.');
+  expect(name.getAttribute('aria-invalid')).toBe('true');
+  expect(api.createProject).not.toHaveBeenCalled();
+});
+it('archives and restores as a manager', async () => {
+  const project = {
+    id: 'project',
+    name: 'Research',
+    archived: false,
+    description: null,
+    defaultDiaryId: null,
+  };
+  api.listProjects.mockImplementation(async () => ({
+    data: { items: [project] },
+  }));
+  api.updateProject.mockImplementation(async ({ body }) => {
+    project.archived = body.archived;
+    return { data: project };
+  });
+  show();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Archive Research' }),
+  );
+  await screen.findByRole('button', { name: 'Restore Research' });
+  expect(api.updateProject).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      path: { projectId: 'project' },
+      headers: { 'x-moltnet-team-id': 'team' },
+      body: { archived: true },
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Restore Research' }));
+  await screen.findByRole('button', { name: 'Archive Research' });
+  expect(api.updateProject).toHaveBeenLastCalledWith(
+    expect.objectContaining({ body: { archived: false } }),
+  );
+});
+it('disables diary selection when its catalogue fails', async () => {
+  api.listDiaries.mockRejectedValue(new Error('Diary catalogue offline'));
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+  await screen.findByRole('button', { name: 'Retry diaries' });
+  expect(
+    (screen.getByLabelText('Default diary') as HTMLSelectElement).disabled,
+  ).toBe(true);
+});
+it('keeps cached projects visible when a refetch fails', async () => {
+  api.listProjects
+    .mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            id: 'project',
+            name: 'Research',
+            archived: false,
+            description: null,
+            defaultDiaryId: null,
+          },
+        ],
+      },
+    })
+    .mockRejectedValue(new Error('Refetch offline'));
+  show();
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Archive Research' }),
+  );
+  await screen.findByRole('alert');
+  expect(screen.getByText('Research')).toBeDefined();
+});
+
+it('does not load a catalogue without a selected team', () => {
+  api.hasTeam = false;
+  show();
+  expect(
+    screen.getByText('Select a team to browse its projects.'),
+  ).toBeDefined();
+  expect(api.listProjects).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button', { name: 'Create project' })).toBeNull();
+});
+it('prevents duplicate submissions while saving', async () => {
+  let finish!: (value: unknown) => void;
+  api.createProject.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
+  fireEvent.change(screen.getByLabelText('Project name'), {
+    target: { value: 'Research' },
+  });
+  const form = screen
+    .getByRole('button', { name: 'Save project' })
+    .closest('form')!;
+  fireEvent.submit(form);
+  fireEvent.submit(form);
+  await waitFor(() => expect(api.createProject).toHaveBeenCalledTimes(1));
+  finish({ data: { id: 'project' } });
+  await waitFor(() =>
+    expect(screen.queryByRole('button', { name: 'Save project' })).toBeNull(),
+  );
+});
+it('restores focus to the row after an archive failure', async () => {
+  api.listProjects.mockResolvedValue({
+    data: { items: [{ id: 'project', name: 'Research', archived: false }] },
+  });
+  api.updateProject.mockResolvedValue({
+    error: { status: 403, detail: 'Team management is required.' },
+  });
+  show();
+  const action = await screen.findByRole('button', {
+    name: 'Archive Research',
+  });
+  action.focus();
+  fireEvent.click(action);
+  await screen.findByText('Team management is required.');
+  await waitFor(() => expect(document.activeElement).toBe(action));
+});
+it('focuses the catalogue after archiving removes its row', async () => {
+  api.listProjects
+    .mockResolvedValueOnce({
+      data: { items: [{ id: 'project', name: 'Research', archived: false }] },
+    })
+    .mockResolvedValue({ data: { items: [] } });
+  show();
+  const action = await screen.findByRole('button', {
+    name: 'Archive Research',
+  });
+  action.focus();
+  fireEvent.click(action);
+  await screen.findByText('No projects in this team yet.');
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Project catalogue' }),
+    ),
   );
 });

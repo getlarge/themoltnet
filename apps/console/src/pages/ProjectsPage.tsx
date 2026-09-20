@@ -1,14 +1,23 @@
+import { type GetProjectResponse } from '@moltnet/api-client';
 import {
-  createProject,
-  type GetProjectResponse,
-  listDiaries,
-  listProjects,
-  updateProject,
-} from '@moltnet/api-client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+  createProjectMutation,
+  listDiariesOptions,
+  listProjectsOptions,
+  listProjectsQueryKey,
+  updateProjectMutation,
+} from '@moltnet/api-client/query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   Button,
+  EmptyState,
+  InlineNotice,
   Input,
+  PageHeader,
   Select,
   Stack,
   Text,
@@ -17,8 +26,11 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { getApiClient } from '../api.js';
-import { canManageTeam } from '../team/permissions.js';
+import { getApiErrorDetail } from '../api-error.js';
+import { canManageTeam, TEAM_HEADER } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
+
+const PAGE_SIZE = 50;
 
 export function ProjectsPage() {
   const { selectedTeam } = useTeam();
@@ -47,19 +59,17 @@ function TeamProjects({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [diaryId, setDiaryId] = useState('');
-  const [busy, setBusy] = useState(false);
+  const create = useMutation(createProjectMutation());
+  const update = useMutation(updateProjectMutation());
+  const archiveMutation = useMutation(updateProjectMutation());
+  const busy =
+    create.isPending || update.isPending || archiveMutation.isPending;
+  const submitting = useRef(false);
+  const [nameError, setNameError] = useState<string>();
   const [error, setError] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const focusTarget = useRef<HTMLElement | null>(null);
   const restoreFocus = useRef(false);
-  useEffect(() => {
-    if (busy || !restoreFocus.current) return;
-    restoreFocus.current = false;
-    const target = focusTarget.current?.isConnected
-      ? focusTarget.current
-      : root.current?.querySelector<HTMLButtonElement>('button');
-    target?.focus();
-  }, [busy, editing]);
   useEffect(() => {
     if (editing)
       root.current?.querySelector<HTMLInputElement>('#project-name')?.focus();
@@ -68,32 +78,33 @@ function TeamProjects({
     restoreFocus.current = true;
     setEditing(null);
   }
+  const requestOptions = {
+    client: getApiClient(),
+    headers: { [TEAM_HEADER]: teamId ?? '' },
+  };
   const diaries = useQuery({
-    queryKey: ['project-diary-catalogue', teamId],
+    ...listDiariesOptions(requestOptions),
     enabled: Boolean(teamId),
-    queryFn: async ({ signal }) => {
-      const result = await listDiaries({
-        client: getApiClient(),
-        headers: { 'x-moltnet-team-id': teamId! },
-        signal,
-      });
-      if (!result.data) throw new Error('Diaries could not be loaded.');
-      return result.data.items;
-    },
   });
   const query = useQuery({
-    queryKey: ['projects', teamId, includeArchived, offset],
+    ...listProjectsOptions({
+      ...requestOptions,
+      query: { includeArchived, limit: PAGE_SIZE, offset },
+    }),
     enabled: Boolean(teamId),
-    queryFn: async () => {
-      const result = await listProjects({
-        client: getApiClient(),
-        query: { includeArchived, limit: 50, offset },
-        headers: { 'x-moltnet-team-id': teamId! },
-      });
-      if (!result.data) throw new Error('Projects could not be loaded.');
-      return result.data;
-    },
+    placeholderData: keepPreviousData,
   });
+  useEffect(() => {
+    if (busy || !restoreFocus.current) return;
+    restoreFocus.current = false;
+    const target =
+      editing && (error || nameError)
+        ? root.current?.querySelector<HTMLInputElement>('#project-name')
+        : focusTarget.current?.isConnected
+          ? focusTarget.current
+          : root.current?.querySelector<HTMLElement>('#projects-list-heading');
+    target?.focus();
+  }, [busy, editing, error, nameError, query.data]);
   const nextOffset = query.data?.nextOffset ?? null;
   function edit(project: GetProjectResponse | 'new', target: HTMLElement) {
     focusTarget.current = target;
@@ -102,19 +113,21 @@ function TeamProjects({
     setDescription(project === 'new' ? '' : (project.description ?? ''));
     setDiaryId(project === 'new' ? '' : (project.defaultDiaryId ?? ''));
     setError(null);
+    setNameError(undefined);
   }
-  async function save(archive?: GetProjectResponse) {
-    if (!teamId || !canManage || (!archive && !editing)) return;
-    if (!archive && !name.trim()) {
-      setError('Enter a project name.');
+  async function save() {
+    if (submitting.current || !teamId || !canManage || !editing) return;
+    if (!name.trim()) {
+      setNameError('Enter a project name.');
+      root.current?.querySelector<HTMLInputElement>('#project-name')?.focus();
       return;
     }
-    setBusy(true);
+    submitting.current = true;
     setError(null);
     try {
       const options = {
         client: getApiClient(),
-        headers: { 'x-moltnet-team-id': teamId },
+        headers: { [TEAM_HEADER]: teamId },
       };
       const body = {
         name: name.trim(),
@@ -133,38 +146,60 @@ function TeamProjects({
                 : {}),
             }
           : body;
-      if (!archive && editing !== 'new' && Object.keys(changes).length === 0) {
+      if (editing !== 'new' && Object.keys(changes).length === 0) {
         closeEditor();
         return;
       }
-      const result = archive
-        ? await updateProject({
-            ...options,
-            path: { projectId: archive.id },
-            body: { archived: !archive.archived },
-          })
-        : editing === 'new'
-          ? await createProject({ ...options, body })
-          : await updateProject({
-              ...options,
-              path: { projectId: editing!.id },
-              body: changes,
-            });
-      if (!result.data)
-        throw new Error(
-          'Project could not be saved. Check your team permissions and try again.',
-        );
-      if (!archive) closeEditor();
-      else restoreFocus.current = true;
-      await cache.invalidateQueries({ queryKey: ['projects', teamId] });
+      if (editing === 'new') await create.mutateAsync({ ...options, body });
+      else
+        await update.mutateAsync({
+          ...options,
+          path: { projectId: editing.id },
+          body: changes,
+        });
+      closeEditor();
+      await cache.invalidateQueries({
+        queryKey: listProjectsQueryKey(requestOptions),
+      });
+    } catch (cause) {
+      const detail = getApiErrorDetail(
+        cause,
+        'Project could not be saved. Try again.',
+      );
+      if (
+        cause &&
+        typeof cause === 'object' &&
+        'status' in cause &&
+        cause.status === 409
+      )
+        setNameError(detail);
+      else setError(detail);
+    } finally {
+      submitting.current = false;
+      restoreFocus.current = true;
+    }
+  }
+  async function toggleArchive(project: GetProjectResponse) {
+    if (submitting.current || !teamId || !canManage) return;
+    submitting.current = true;
+    setError(null);
+    try {
+      await archiveMutation.mutateAsync({
+        ...requestOptions,
+        path: { projectId: project.id },
+        body: { archived: !project.archived },
+      });
+      restoreFocus.current = true;
+      await cache.invalidateQueries({
+        queryKey: listProjectsQueryKey(requestOptions),
+      });
     } catch (cause) {
       setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Project could not be saved. Try again.',
+        getApiErrorDetail(cause, 'Project could not be saved. Try again.'),
       );
     } finally {
-      setBusy(false);
+      submitting.current = false;
+      restoreFocus.current = true;
     }
   }
   return (
@@ -177,19 +212,14 @@ function TeamProjects({
           wrap
           gap={4}
         >
-          <Stack gap={1}>
-            <Text variant="h2" as="h1">
-              Projects
-            </Text>
-            <Text color="muted">
-              Shared projects for your team. Choose local folders in Desktop or
-              the CLI.
-            </Text>
-          </Stack>
+          <PageHeader
+            title="Projects"
+            description="Shared projects for your team. Choose local folders in Desktop or the CLI."
+          />
           {teamId && canManage && (
             <Button
               onClick={(event) => edit('new', event.currentTarget)}
-              disabled={busy}
+              disabled={busy || Boolean(editing)}
             >
               Create project
             </Button>
@@ -206,16 +236,15 @@ function TeamProjects({
                 onChange={(event) => {
                   setIncludeArchived(event.target.checked);
                   setOffset(0);
+                  setError(null);
                 }}
               />{' '}
               Show archived projects
             </label>
             {error && (
-              <div role="alert">
-                <Text style={{ color: theme.color.error.DEFAULT }}>
-                  {error}
-                </Text>
-              </div>
+              <InlineNotice tone="error" title="Project action failed">
+                {error}
+              </InlineNotice>
             )}
             {editing && (
               <form
@@ -231,8 +260,12 @@ function TeamProjects({
                   <Input
                     id="project-name"
                     label="Project name"
+                    error={nameError}
                     value={name}
-                    onChange={(event) => setName(event.target.value)}
+                    onChange={(event) => {
+                      setName(event.target.value);
+                      setNameError(undefined);
+                    }}
                     required
                     maxLength={255}
                   />
@@ -246,17 +279,24 @@ function TeamProjects({
                     label="Default diary"
                     value={diaryId}
                     onChange={(event) => setDiaryId(event.target.value)}
-                    disabled={diaries.isLoading}
+                    disabled={diaries.isLoading || Boolean(diaries.error)}
                     hint="New tasks can use this diary as their starting selection."
                   >
                     <option value="">Choose per task</option>
+                    {/* Preserve an unreadable saved diary when editing other fields. */}
                     {diaryId &&
-                      !diaries.data?.some((diary) => diary.id === diaryId) && (
+                      !diaries.data?.items.some(
+                        (diary) => diary.id === diaryId,
+                      ) && (
                         <option value={diaryId}>
-                          Unavailable default diary
+                          {diaries.isLoading
+                            ? 'Loading default diary…'
+                            : diaries.error
+                              ? 'Default diary could not be loaded'
+                              : 'Unavailable default diary'}
                         </option>
                       )}
-                    {diaries.data?.map((diary) => (
+                    {diaries.data?.items.map((diary) => (
                       <option key={diary.id} value={diary.id}>
                         {diary.name}
                       </option>
@@ -264,7 +304,12 @@ function TeamProjects({
                   </Select>
                   {diaries.error && (
                     <div role="alert">
-                      <Text>Diaries could not be loaded.</Text>
+                      <Text>
+                        {getApiErrorDetail(
+                          diaries.error,
+                          'Diaries could not be loaded.',
+                        )}
+                      </Text>
                       <Button
                         variant="secondary"
                         onClick={() => void diaries.refetch()}
@@ -289,28 +334,41 @@ function TeamProjects({
                 </Stack>
               </form>
             )}
+            <h2 id="projects-list-heading" tabIndex={-1}>
+              Project catalogue
+            </h2>
+            {query.error && (
+              <InlineNotice
+                tone="error"
+                title="Projects could not be loaded"
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => void query.refetch()}
+                  >
+                    Retry
+                  </Button>
+                }
+              >
+                {getApiErrorDetail(
+                  query.error,
+                  'Projects could not be loaded.',
+                )}
+              </InlineNotice>
+            )}
             {query.isLoading ? (
               <div role="status">
                 <Text>Loading projects…</Text>
               </div>
-            ) : query.error ? (
-              <Stack gap={3}>
-                <div role="alert">
-                  <Text>Projects could not be loaded.</Text>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() => void query.refetch()}
-                >
-                  Retry
-                </Button>
-              </Stack>
             ) : query.data?.items.length === 0 ? (
-              <Text color="muted">
-                {offset > 0
-                  ? 'No projects on this page.'
-                  : 'No projects in this team yet.'}
-              </Text>
+              <EmptyState
+                description="Projects organize shared team work."
+                title={
+                  offset > 0
+                    ? 'No projects on this page.'
+                    : 'No projects in this team yet.'
+                }
+              />
             ) : (
               <Stack gap={0}>
                 {query.data?.items.map((project) => (
@@ -343,9 +401,14 @@ function TeamProjects({
                       <Text variant="caption" color="muted">
                         {project.archived ? 'Archived' : 'Active'} ·{' '}
                         {project.defaultDiaryId
-                          ? (diaries.data?.find(
+                          ? (diaries.data?.items.find(
                               (diary) => diary.id === project.defaultDiaryId,
-                            )?.name ?? 'Default diary unavailable')
+                            )?.name ??
+                            (diaries.isLoading
+                              ? 'Loading default diary…'
+                              : diaries.error
+                                ? 'Default diary could not be loaded'
+                                : 'Default diary unavailable'))
                           : 'Diary chosen per task'}
                       </Text>
                     </Stack>
@@ -357,7 +420,7 @@ function TeamProjects({
                           onClick={(event) =>
                             edit(project, event.currentTarget)
                           }
-                          disabled={busy}
+                          disabled={busy || Boolean(editing)}
                         >
                           Edit
                         </Button>
@@ -366,9 +429,9 @@ function TeamProjects({
                           aria-label={`${project.archived ? 'Restore' : 'Archive'} ${project.name}`}
                           onClick={(event) => {
                             focusTarget.current = event.currentTarget;
-                            void save(project);
+                            void toggleArchive(project);
                           }}
-                          disabled={busy}
+                          disabled={busy || Boolean(editing)}
                         >
                           {project.archived ? 'Restore' : 'Archive'}
                         </Button>
@@ -383,16 +446,26 @@ function TeamProjects({
                 <Stack direction="row" gap={3} wrap>
                   <Button
                     variant="secondary"
-                    disabled={offset === 0 || query.isFetching}
-                    onClick={() => setOffset(Math.max(0, offset - 50))}
+                    aria-disabled={offset === 0 || query.isPlaceholderData}
+                    onClick={() => {
+                      if (offset > 0 && !query.isPlaceholderData) {
+                        setOffset(Math.max(0, offset - PAGE_SIZE));
+                        setError(null);
+                      }
+                    }}
                   >
                     Previous projects
                   </Button>
                   <Button
                     variant="secondary"
-                    disabled={nextOffset === null || query.isFetching}
+                    aria-disabled={
+                      nextOffset === null || query.isPlaceholderData
+                    }
                     onClick={() => {
-                      if (nextOffset !== null) setOffset(nextOffset);
+                      if (nextOffset !== null && !query.isPlaceholderData) {
+                        setOffset(nextOffset);
+                        setError(null);
+                      }
                     }}
                   >
                     Next projects
