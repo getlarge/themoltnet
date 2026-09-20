@@ -9,20 +9,31 @@ import type { CacheEntry, CacheStore } from './types.js';
  * the cache above it compared against an injected clock, so under a test clock
  * every entry read back as expired and nothing ever hit.
  *
- * A key that is never read again holds its value until the process exits,
- * which is fine for the bounded set of OAuth2 clients we serve and is one more
- * reason a Redis store (with a native key TTL) is right once this runs on more
- * than one instance.
+ * Least-recently-used eviction bounds memory even when callers continually
+ * submit new credential/request partitions. Expiry remains owned by the cache.
  */
 export class MemoryCacheStore<T> implements CacheStore<T> {
   private store = new Map<string, CacheEntry<T>>();
+  constructor(private readonly maxEntries = 1_000) {
+    if (!Number.isSafeInteger(maxEntries) || maxEntries < 1)
+      throw new Error('Cache capacity must be a positive integer');
+  }
 
   async get(key: string): Promise<CacheEntry<T> | null> {
-    return this.store.get(key) ?? null;
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    this.store.delete(key);
+    this.store.set(key, entry);
+    return entry;
   }
 
   async set(key: string, value: CacheEntry<T>): Promise<void> {
+    this.store.delete(key);
     this.store.set(key, value);
+    while (this.store.size > this.maxEntries) {
+      const oldest = this.store.keys().next().value;
+      if (oldest !== undefined) this.store.delete(oldest);
+    }
   }
 
   async delete(key: string): Promise<void> {

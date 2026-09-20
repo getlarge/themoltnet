@@ -1,3 +1,4 @@
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import { getConfig } from '../config.js';
 import { loopbackFetch, loopbackUrl } from '../loopback-url.js';
 import type { LocalControlToken } from './local-control-token-cache.js';
@@ -9,6 +10,17 @@ export async function authorizeLocalControl(
   signal: AbortSignal,
 ): Promise<LocalControlToken> {
   if (!popup) throw new Error('Allow popups to sign in to local control.');
+  const config = getConfig();
+  const localUrl = loopbackUrl(baseUrl, 'Agent Server');
+  // HTTP is an explicit same-machine development choice, never a fallback
+  // from a hosted Console after TLS authentication fails.
+  if (
+    localUrl.protocol !== 'https:' &&
+    !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+  )
+    throw new Error(
+      'Local control requires HTTPS. Start Agent Server and approve local trust in Desktop.',
+    );
   const response = await loopbackFetch(
     fetch,
     new URL('/oauth/metadata', loopbackUrl(baseUrl, 'Agent Server')).href,
@@ -19,14 +31,26 @@ export async function authorizeLocalControl(
     },
   );
   if (!response.ok) throw new Error('Local OAuth is not configured.');
-  const meta = (await response.json()) as {
-    issuer: string;
-    clientId: string;
-    instance: string;
-    operatorConfigured: boolean;
-  };
-  const issuer = getConfig().oauthIssuer;
-  if (meta.issuer !== issuer || !meta.operatorConfigured)
+  const meta: unknown = await response.json();
+  if (
+    !meta ||
+    typeof meta !== 'object' ||
+    !('issuer' in meta) ||
+    meta.issuer !== config.oauthIssuer ||
+    !('clientId' in meta) ||
+    meta.clientId !== config.oauthConsoleClientId ||
+    !('instance' in meta) ||
+    typeof meta.instance !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(
+      meta.instance,
+    ) ||
+    !('operatorConfigured' in meta) ||
+    typeof meta.operatorConfigured !== 'boolean'
+  )
+    throw new Error(
+      'Local authorization configuration does not match this Console. Check Server settings.',
+    );
+  if (!meta.operatorConfigured)
     throw new Error(
       'Sign in through Desktop to establish the local operator first.',
     );
@@ -41,14 +65,14 @@ export async function authorizeLocalControl(
     .href;
   const url = new URL('/oauth2/auth', getConfig().oauthPublicUrl);
   for (const [key, value] of Object.entries({
-    client_id: meta.clientId,
+    client_id: config.oauthConsoleClientId,
     response_type: 'code',
     redirect_uri: callback,
     state,
     code_challenge: challenge,
     code_challenge_method: 'S256',
-    scope: 'moltnet:local-control',
-    audience: 'moltnet:agent-server',
+    scope: OPERATOR_OAUTH.localControlScope,
+    audience: OPERATOR_OAUTH.localControlAudience,
     instance: meta.instance,
     prompt: 'consent',
   }))
@@ -89,7 +113,7 @@ export async function authorizeLocalControl(
         reject(new Error('Approval declined'));
       else resolve(data.code);
     };
-    const deadline = Date.now() + 300_000;
+    const deadline = Date.now() + OPERATOR_OAUTH.nativeLifetimeSeconds * 1000;
     const timer = setInterval(() => {
       if (popup.closed || Date.now() >= deadline) abort();
     }, 500);
@@ -114,7 +138,7 @@ export async function authorizeLocalControl(
         grant_type: 'authorization_code',
         code,
         code_verifier: verifier,
-        client_id: meta.clientId,
+        client_id: config.oauthConsoleClientId,
         redirect_uri: callback,
       }),
     },
@@ -136,7 +160,9 @@ export async function authorizeLocalControl(
     throw new Error('Invalid local-control response');
   return {
     accessToken: tokens.access_token,
-    expiresAt: exchangeStartedAt + Math.min(tokens.expires_in, 900) * 1000,
+    expiresAt:
+      exchangeStartedAt +
+      Math.min(tokens.expires_in, OPERATOR_OAUTH.consoleLifetimeSeconds) * 1000,
   };
 }
 function encode(bytes: Uint8Array) {

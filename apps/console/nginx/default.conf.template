@@ -2,19 +2,25 @@ server {
     listen 80;
     root /usr/share/nginx/html;
     index index.html;
+    add_header Content-Security-Policy "frame-ancestors 'none'" always;
+    add_header X-Frame-Options "DENY" always;
 
     # Runtime config injection — replaces VITE_* env vars at container start.
     # Never cache: config points at auth/API origins that must not be pinned to
     # a stale value in a user's browser.
     location = /config.js {
         default_type application/javascript;
+        add_header Content-Security-Policy "frame-ancestors 'none'" always;
+        add_header X-Frame-Options "DENY" always;
         add_header Cache-Control "no-cache, must-revalidate";
-        return 200 'window.__MOLTNET_CONFIG__={oauthIssuer:"${MOLTNET_OPERATOR_OAUTH_ISSUER}",oauthPublicUrl:"${MOLTNET_OPERATOR_OAUTH_PUBLIC_URL}",kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}",agentServerUrl:"${MOLTNET_AGENT_SERVER_URL}"};';
+        return 200 'window.__MOLTNET_CONFIG__={oauthConsoleClientId:"${MOLTNET_CONSOLE_OAUTH_CLIENT_ID}",oauthIssuer:"${MOLTNET_OPERATOR_OAUTH_ISSUER}",oauthPublicUrl:"${MOLTNET_OPERATOR_OAUTH_PUBLIC_URL}",kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}",agentServerUrl:"${MOLTNET_AGENT_SERVER_URL}"};';
     }
 
     # Cache hashed assets immutably
     location /assets/ {
         expires 1y;
+        add_header Content-Security-Policy "frame-ancestors 'none'" always;
+        add_header X-Frame-Options "DENY" always;
         add_header Cache-Control "public, immutable";
     }
 
@@ -24,6 +30,8 @@ server {
     # login cannot clear it. Forcing revalidation means a new deploy is picked up
     # on the next navigation. See the console auth-loop incident (#1747/#1765).
     location = /index.html {
+        add_header Content-Security-Policy "frame-ancestors 'none'" always;
+        add_header X-Frame-Options "DENY" always;
         add_header Cache-Control "no-cache, must-revalidate";
     }
 

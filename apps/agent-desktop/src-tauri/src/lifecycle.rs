@@ -533,7 +533,7 @@ impl LifecycleManager {
                         self.retry_used = retry_budget_after_start(origin, attempt);
                         self.set_state(
                             LifecycleState::Running,
-                            "Ready. Open Console to pair this server process.",
+                            "Ready. Sign in to authorize Console local control.",
                         );
                         return Ok(self.snapshot());
                     }

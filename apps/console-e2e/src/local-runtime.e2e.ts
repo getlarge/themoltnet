@@ -178,6 +178,16 @@ test.describe.serial('Local runtime page', () => {
     await expect.poll(() => existsSync(marker)).toBe(true);
     const approval = await page.context().newPage();
     await approval.goto(readFileSync(marker, 'utf8'));
+    const continueButton = approval.getByRole('button', {
+      name: 'Continue',
+      exact: true,
+    });
+    await expect(
+      continueButton.or(
+        approval.getByRole('button', { name: 'Approve', exact: true }),
+      ),
+    ).toBeVisible();
+    if (await continueButton.isVisible()) await continueButton.click();
     await approval
       .getByRole('button', { name: 'Approve', exact: true })
       .click();
@@ -196,6 +206,16 @@ test.describe.serial('Local runtime page', () => {
       .getByRole('button', { name: 'Connect', exact: true })
       .click();
     const approval = await popup;
+    const continueButton = approval.getByRole('button', {
+      name: 'Continue',
+      exact: true,
+    });
+    await expect(
+      continueButton.or(
+        approval.getByRole('button', { name: 'Approve', exact: true }),
+      ),
+    ).toBeVisible();
+    if (await continueButton.isVisible()) await continueButton.click();
     await approval
       .getByRole('button', { name: 'Approve', exact: true })
       .click();

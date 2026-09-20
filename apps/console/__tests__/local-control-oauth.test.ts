@@ -8,6 +8,7 @@ vi.mock('../src/config.js', () => ({
   getConfig: () => ({
     oauthIssuer: 'https://ory.example',
     oauthPublicUrl: 'https://ory.example',
+    oauthConsoleClientId: 'console',
   }),
 }));
 beforeEach(() => {
@@ -48,7 +49,7 @@ describe('Console PKCE callback boundary', () => {
       if (String(input).endsWith('/oauth/metadata'))
         return Response.json({
           issuer: 'https://ory.example',
-          instance: 'server-instance',
+          instance: 'aaaaaaaa-0000-4000-8000-000000000001',
           clientId: 'console',
           operatorConfigured: true,
         });
@@ -56,7 +57,7 @@ describe('Console PKCE callback boundary', () => {
     });
     vi.stubGlobal('fetch', fetcher);
     const pending = authorizeLocalControl(
-      'http://127.0.0.1:17374',
+      'https://127.0.0.1:17374',
       popup,
       new AbortController().signal,
     );
@@ -102,6 +103,42 @@ describe('Console PKCE callback boundary', () => {
     expect(fetcher.mock.calls[1][1]?.credentials).toBe('omit');
   });
 
+  it.each([
+    { clientId: 'untrusted-client' },
+    { instance: 'not-a-uuid' },
+    { issuer: 'https://other.example' },
+  ])(
+    'rejects untrusted metadata before opening approval: %j',
+    async (change) => {
+      const replace = vi.fn();
+      const popup = {
+        closed: false,
+        location: { replace },
+      } as unknown as Window;
+      const fetcher = vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({
+            issuer: 'https://ory.example',
+            clientId: 'console',
+            instance: 'aaaaaaaa-0000-4000-8000-000000000001',
+            operatorConfigured: true,
+            ...change,
+          }),
+        );
+      vi.stubGlobal('fetch', fetcher);
+      await expect(
+        authorizeLocalControl(
+          'https://127.0.0.1:17374',
+          popup,
+          new AbortController().signal,
+        ),
+      ).rejects.toThrow('does not match');
+      expect(replace).not.toHaveBeenCalled();
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('cancels while awaiting the callback without an exchange', async () => {
     let opened!: () => void;
     const navigation = new Promise<void>((resolve) => {
@@ -114,7 +151,7 @@ describe('Console PKCE callback boundary', () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       Response.json({
         issuer: 'https://ory.example',
-        instance: 'server-instance',
+        instance: 'aaaaaaaa-0000-4000-8000-000000000001',
         clientId: 'console',
         operatorConfigured: true,
       }),
@@ -122,7 +159,7 @@ describe('Console PKCE callback boundary', () => {
     vi.stubGlobal('fetch', fetcher);
     const controller = new AbortController();
     const pending = authorizeLocalControl(
-      'http://127.0.0.1:17374',
+      'https://127.0.0.1:17374',
       popup,
       controller.signal,
     );

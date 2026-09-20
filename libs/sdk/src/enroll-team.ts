@@ -47,6 +47,16 @@ export interface EnrollTeamResult {
   reference: SecretReference;
 }
 
+/** The native controller guarantees that credential issuance was never attempted. */
+export class ProvisioningNotStartedError extends Error {
+  constructor(cause: unknown) {
+    super('Approval did not reach credential issuance; retry approval', {
+      cause,
+    });
+    this.name = 'ProvisioningNotStartedError';
+  }
+}
+
 export class EnrollmentRecoveryError extends Error {
   readonly code = 'ENROLLMENT_RESPONSE_UNAVAILABLE';
   readonly secretCaptured = false;
@@ -137,6 +147,10 @@ export async function enrollTeam(
           idempotencyKey: options.idempotencyKey,
         });
   } catch (error) {
+    if (error instanceof ProvisioningNotStartedError) {
+      await recovery.cancel();
+      throw error;
+    }
     throw new EnrollmentRecoveryError(
       await recovery.retain(),
       error instanceof MoltNetError ? error.issuedKeyId : undefined,

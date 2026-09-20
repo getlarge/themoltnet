@@ -166,8 +166,9 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 }
 
 #[tauri::command]
-fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
-    let body = with_control_token(&state, |token| control::get(token, "/oauth/metadata"))?;
+async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
+    let body =
+        with_control_token(&state, move |token| control::get(token, "/oauth/metadata")).await?;
     let metadata: serde_json::Value = serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
     Ok(metadata
@@ -198,10 +199,11 @@ async fn desktop_operator_sign_in(
 }
 
 #[tauri::command]
-fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
-    with_control_token(&state, |token| {
+async fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
+    with_control_token(&state, move |token| {
         control::post(token, "/v1/operator/cancel", "{}")
-    })?;
+    })
+    .await?;
     Ok(())
 }
 

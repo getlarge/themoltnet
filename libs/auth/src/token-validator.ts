@@ -8,7 +8,11 @@ import { createRemoteJWKSet, errors, type JWTPayload, jwtVerify } from 'jose';
 
 import { readAgentKeyMetadataBinding } from './agent-key-binding.js';
 import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
-import { PROVISIONING_SCOPE, readProvisioningGrant } from './provisioning.js';
+import {
+  PROVISIONING_SCOPE,
+  readDelegableScopes,
+  readProvisioningGrant,
+} from './provisioning.js';
 import {
   createRemoteAuthMetrics,
   RemoteAuthCache,
@@ -325,9 +329,21 @@ function extractAuthContextFromClaims(
       return null;
     }
     const provisioning = readProvisioningGrant(claims['moltnet:provisioning']);
-    if (scopes.includes(PROVISIONING_SCOPE) && !provisioning) return null;
+    const delegableScopes = readDelegableScopes(
+      claims['moltnet:delegable_scopes'],
+    );
+    if (
+      scopes.includes(PROVISIONING_SCOPE) &&
+      (!provisioning ||
+        !delegableScopes ||
+        !delegableScopes.includes('key:manage') ||
+        provisioning.scopes.some((scope) => !delegableScopes.includes(scope)))
+    )
+      return null;
     return {
-      ...(provisioning ? { provisioning } : {}),
+      ...(provisioning && delegableScopes
+        ? { provisioning, delegableScopes }
+        : {}),
       subjectType: 'human',
       identityId,
       humanId,

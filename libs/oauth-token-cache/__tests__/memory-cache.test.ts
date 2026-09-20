@@ -14,6 +14,17 @@ describe('MemoryCacheStore', () => {
     store = new MemoryCacheStore<string>();
   });
 
+  it('evicts the least recently used partition at capacity', async () => {
+    store = new MemoryCacheStore<string>(2);
+    await store.set('a', entry('a'));
+    await store.set('b', entry('b'));
+    await store.get('a');
+    await store.set('c', entry('c'));
+    expect(await store.get('b')).toBeNull();
+    expect((await store.get('a'))?.value).toBe('a');
+    expect((await store.get('c'))?.value).toBe('c');
+  });
+
   it('stores and returns an entry', async () => {
     // Arrange
     const stored = entry('tok');

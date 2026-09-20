@@ -1,10 +1,12 @@
 import { basename, dirname } from 'node:path';
 
+import { enrollmentProofMessage } from '@moltnet/crypto-service';
 import { isLoopbackHostname } from '@moltnet/loopback-companion';
-import { type SecretProviderRegistry } from '@themoltnet/sdk';
+import { type SecretProviderRegistry, signBytes } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
   EnrollmentRecoveryError,
+  ProvisioningNotStartedError,
   enrollTeam,
   type EnrollTeamResult,
 } from '@themoltnet/sdk/node';
@@ -17,7 +19,7 @@ import { AGENT_SERVER_REQUIRED_SCOPES } from './team-credentials.js';
 export type TeamEnrollmentInput = {
   teamId: string;
   idempotencyKey: string;
-} & ({ mode: 'enroll' } | { mode: 'replace'; teamId: string });
+} & ({ mode: 'enroll' } | { mode: 'replace' });
 
 /** Native callers receive metadata only; approval and storage stay local. */
 export async function enrollIdentityTeam(options: {
@@ -43,6 +45,13 @@ export async function enrollIdentityTeam(options: {
     options.store,
     options.alias,
   );
+  if (
+    new URL(activation.apiUrl).href.replace(/\/$/u, '') !==
+    apiUrl.href.replace(/\/$/u, '')
+  )
+    throw new Error(
+      'The identity belongs to another API environment. Select that environment in Server settings before enrollment.',
+    );
   const registry =
     activation.source === 'managed' ? options.managed : options.external;
   const replacement =
@@ -71,16 +80,29 @@ export async function enrollIdentityTeam(options: {
       },
       replacement,
       provision: async () => {
-        const token = await options.oauth.authorize(
-          {
-            agentId: config.subject_id,
-            teamId: options.input.teamId,
-            operation: replacement ? 'renew' : 'enroll',
-            scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
-            idempotencyKey: options.input.idempotencyKey,
-          },
-          options.signal,
-        );
+        const grant = {
+          agentId: config.subject_id,
+          teamId: options.input.teamId,
+          operation: replacement ? ('renew' as const) : ('enroll' as const),
+          scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
+          idempotencyKey: options.input.idempotencyKey,
+        };
+        let token: string;
+        let agentProof: string | undefined;
+        try {
+          token = await options.oauth.authorize(grant, options.signal);
+          agentProof = replacement
+            ? undefined
+            : await signBytes(
+                Buffer.from(
+                  enrollmentProofMessage({ accessToken: token, grant }),
+                ).toString('base64'),
+                dirname(configPath),
+                registry,
+              );
+        } catch (error) {
+          throw new ProvisioningNotStartedError(error);
+        }
         const response = await fetch(
           new URL('/oauth2/provision', options.apiUrl),
           {
@@ -93,7 +115,7 @@ export async function enrollIdentityTeam(options: {
               authorization: `Bearer ${token}`,
               'content-type': 'application/json',
             },
-            body: '{}',
+            body: JSON.stringify(agentProof ? { agentProof } : {}),
           },
         );
         if (!response.ok)
@@ -120,6 +142,7 @@ export async function enrollIdentityTeam(options: {
       keyId: result.key.id,
     };
   } catch (error) {
+    if (error instanceof ProvisioningNotStartedError) throw error;
     if (
       error instanceof CredentialPersistenceError ||
       error instanceof EnrollmentRecoveryError
@@ -136,6 +159,6 @@ export async function enrollIdentityTeam(options: {
           : 'No credential secret was captured. Retained retry context can identify the issuance; a completed issuance requires a fresh approval if its secret is lost.',
       };
     }
-    throw new Error('Team enrollment could not be completed');
+    throw new Error('Team enrollment could not be completed', { cause: error });
   }
 }

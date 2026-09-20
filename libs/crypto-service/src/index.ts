@@ -86,3 +86,5 @@ export {
   type SshsigEnvelope,
   SshsigError,
 } from './sshsig.js';
+
+export { enrollmentProofMessage } from './enrollment-proof.js';

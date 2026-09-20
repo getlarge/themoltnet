@@ -11,7 +11,7 @@ export const localControlTokens = {
   get(key: string): string | null {
     const token = tokens.get(key);
     if (!token) return null;
-    if (Date.now() >= token.expiresAt) {
+    if (Date.now() + 30_000 >= token.expiresAt) {
       tokens.delete(key);
       return null;
     }

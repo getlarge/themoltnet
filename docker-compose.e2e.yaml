@@ -282,6 +282,7 @@ services:
       KRATOS_PUBLIC_URL: http://localhost:4433
       API_BASE_URL: http://localhost:8080
       CONSOLE_BASE_URL: http://localhost:5174
+      MOLTNET_CONSOLE_OAUTH_CLIENT_ID: moltnet-console-e2e
       MOLTNET_OPERATOR_OAUTH_ISSUER: http://hydra:4444
       MOLTNET_OPERATOR_OAUTH_PUBLIC_URL: http://localhost:4444
       SIGNER_BASE_URL: http://127.0.0.1:17373

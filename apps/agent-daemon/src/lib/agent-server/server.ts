@@ -48,7 +48,10 @@ import {
   NativeGrantError,
   type NativeGrantService,
 } from './native-grant-service.js';
-import type { OperatorOAuth } from './operator-oauth.js';
+import {
+  InvalidOperatorGrantError,
+  type OperatorOAuth,
+} from './operator-oauth.js';
 import { AGENT_SERVER_SCHEMAS, AgentServerRouteSchemas } from './protocol.js';
 import {
   AgentServerSubscriptionError,
@@ -356,6 +359,38 @@ export function buildAgentServer(
     allowedHeaders: [AGENT_SERVER_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+  // Bound browser signature work before attempting asymmetric verification.
+  // A fixed process-wide bucket cannot grow with attacker-chosen origins/IPs;
+  // native process grants retain their independent, inexpensive verification.
+  let verificationWindow = Date.now();
+  let verifications = 0;
+  const browserVerification = new WeakMap<FastifyRequest, Promise<void>>();
+  function verifyBrowser(
+    request: FastifyRequest,
+    token: string,
+  ): Promise<void> {
+    const previous = browserVerification.get(request);
+    if (previous) return previous;
+    if (Date.now() - verificationWindow >= RATE_LIMIT_WINDOW_MS) {
+      verificationWindow = Date.now();
+      verifications = 0;
+    }
+    if (++verifications > (options.rateLimitMax ?? RATE_LIMIT_MAX))
+      throw new AgentServerHttpError(
+        429,
+        'rate_limited',
+        'Too many authorization attempts',
+      );
+    if (!oauth)
+      throw new AgentServerHttpError(
+        503,
+        'oauth_unavailable',
+        'Local OAuth is not configured',
+      );
+    const pending = oauth.verifyBrowser(token);
+    browserVerification.set(request, pending);
+    return pending;
+  }
   void app.register(rateLimit, {
     global: true,
     max: options.rateLimitMax ?? RATE_LIMIT_MAX,
@@ -378,10 +413,12 @@ export function buildAgentServer(
             nativeGrant.verify(origin, presented);
           else {
             if (!oauth) return `unauth:${origin}:${request.ip}`;
-            await oauth.verifyBrowser(presented);
+            await verifyBrowser(request, presented);
           }
           authenticated = true;
         } catch (error) {
+          if (error instanceof AgentServerHttpError && error.statusCode === 429)
+            throw error;
           if (
             origin === NATIVE_CLIENT_ORIGIN &&
             !(error instanceof NativeGrantError)
@@ -410,9 +447,44 @@ export function buildAgentServer(
     if (origin === NATIVE_CLIENT_ORIGIN) nativeGrant.verify(origin, token);
     else {
       try {
-        if (!oauth) throw new Error('OAuth unavailable');
-        await oauth.verifyBrowser(token);
-      } catch {
+        if (!oauth)
+          throw new AgentServerHttpError(
+            503,
+            'oauth_unavailable',
+            'Local OAuth is not configured',
+          );
+        await verifyBrowser(request, token);
+      } catch (error) {
+        const code =
+          error && typeof error === 'object' && 'code' in error
+            ? error.code
+            : undefined;
+        const rejected =
+          error instanceof InvalidOperatorGrantError ||
+          (typeof code === 'string' &&
+            [
+              'ERR_JWT_EXPIRED',
+              'ERR_JWT_CLAIM_VALIDATION_FAILED',
+              'ERR_JWS_SIGNATURE_VERIFICATION_FAILED',
+              'ERR_JWS_INVALID',
+              'ERR_JWT_INVALID',
+              'ERR_JOSE_ALG_NOT_ALLOWED',
+              'ERR_JWKS_NO_MATCHING_KEY',
+            ].includes(code));
+        request.log.warn(
+          {
+            stage: 'local-control-authorization',
+            outcome: rejected ? 'rejected' : 'unavailable',
+            code: typeof code === 'string' ? code : undefined,
+          },
+          'Local control authorization failed',
+        );
+        if (!rejected)
+          throw new AgentServerHttpError(
+            503,
+            'authorization_unavailable',
+            'Local authorization is unavailable. Check Server settings or retry shortly.',
+          );
         throw new AgentServerHttpError(
           401,
           'authorization_required',
@@ -429,15 +501,45 @@ export function buildAgentServer(
       { schema: AgentServerRouteSchemas.health },
       async () => ({ status: 'ok' }),
     );
-    app.get('/oauth/metadata', async () => {
-      if (!oauth)
-        throw new AgentServerHttpError(
-          503,
-          'oauth_unavailable',
-          'Local OAuth is not configured',
-        );
-      return oauth.metadata();
-    });
+    app.get(
+      '/oauth/metadata',
+      {
+        schema: {
+          operationId: 'getAgentServerOAuthMetadata',
+          tags: ['operator'],
+          response: {
+            200: {
+              type: 'object',
+              required: [
+                'instance',
+                'issuer',
+                'authorizationUrl',
+                'tokenUrl',
+                'clientId',
+                'operatorConfigured',
+              ],
+              properties: {
+                instance: { type: 'string', format: 'uuid' },
+                issuer: { type: 'string' },
+                authorizationUrl: { type: 'string' },
+                tokenUrl: { type: 'string' },
+                clientId: { type: 'string' },
+                operatorConfigured: { type: 'boolean' },
+              },
+            },
+          },
+        },
+      },
+      async () => {
+        if (!oauth)
+          throw new AgentServerHttpError(
+            503,
+            'oauth_unavailable',
+            'Local OAuth is not configured',
+          );
+        return oauth.metadata();
+      },
+    );
     app.post(
       '/v1/operator/sign-in',
       {
@@ -469,32 +571,66 @@ export function buildAgentServer(
         return { state: 'authorized' };
       },
     );
-    app.post('/v1/operator/cancel', async (request) => {
-      if (
-        (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-        !oauth
-      )
-        throw new AgentServerHttpError(
-          403,
-          'native_required',
-          'Native administration required',
-        );
-      oauth.cancel();
-      return { state: 'cancelled' };
-    });
-    app.delete('/v1/operator', async (request) => {
-      if (
-        (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-        !oauth
-      )
-        throw new AgentServerHttpError(
-          403,
-          'native_required',
-          'Native administration required',
-        );
-      oauth.removeOperator();
-      return { state: 'removed' };
-    });
+    app.post(
+      '/v1/operator/cancel',
+      {
+        schema: {
+          operationId: 'cancelAgentServerOperatorApproval',
+          tags: ['operator'],
+          security: [{ agentServerToken: [] }],
+          response: {
+            200: {
+              type: 'object',
+              properties: { state: { type: 'string', const: 'cancelled' } },
+              required: ['state'],
+            },
+          },
+        },
+      },
+      async (request) => {
+        if (
+          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+          !oauth
+        )
+          throw new AgentServerHttpError(
+            403,
+            'native_required',
+            'Native administration required',
+          );
+        oauth.cancel();
+        return { state: 'cancelled' };
+      },
+    );
+    app.delete(
+      '/v1/operator',
+      {
+        schema: {
+          operationId: 'removeAgentServerOperator',
+          tags: ['operator'],
+          security: [{ agentServerToken: [] }],
+          response: {
+            200: {
+              type: 'object',
+              properties: { state: { type: 'string', const: 'removed' } },
+              required: ['state'],
+            },
+          },
+        },
+      },
+      async (request) => {
+        if (
+          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+          !oauth
+        )
+          throw new AgentServerHttpError(
+            403,
+            'native_required',
+            'Native administration required',
+          );
+        oauth.removeOperator();
+        return { state: 'removed' };
+      },
+    );
     registerStatusRoute(app, options, requireAuthorizedOrigin);
     registerAgentRoutes(app, options, requireAuthorizedOrigin);
     registerProviderRoutes(app, options, requireAuthorizedOrigin);
@@ -756,6 +892,7 @@ function registerAgentRoutes(
         managed: options.secretProviders,
         external: options.externalSecretProviders,
         input: request.body as TeamEnrollmentInput,
+        signal: requestOperationSignal(request, options.shutdownSignal),
       });
     },
   );

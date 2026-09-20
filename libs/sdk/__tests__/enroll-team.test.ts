@@ -7,7 +7,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
 import { CredentialPersistenceError } from '../src/credential-persistence.js';
-import { EnrollmentRecoveryError, enrollTeam } from '../src/enroll-team.js';
+import {
+  EnrollmentRecoveryError,
+  ProvisioningNotStartedError,
+  enrollTeam,
+} from '../src/enroll-team.js';
 import { FileSecretProvider } from '../src/file-secret-provider.js';
 const directories: string[] = [];
 afterEach(async () => {
@@ -117,6 +121,27 @@ describe('enrollment response validation', () => {
 describe('human enrollment replacement and recovery', () => {
   const provision =
     vi.fn<NonNullable<Parameters<typeof enrollTeam>[0]['provision']>>();
+
+  it('cleans up recovery metadata when approval never reached issuance', async () => {
+    const { dir, provider } = await fixture();
+    provision.mockRejectedValueOnce(
+      new ProvisioningNotStartedError(new Error('Approval already pending')),
+    );
+    await expect(
+      enrollTeam({
+        provision,
+        provisioningContext: {
+          teamId: 'team',
+          operation: 'enroll',
+          scopes: ['task:execute'],
+        },
+        idempotencyKey: 'not-started',
+        configDir: dir,
+        secretProvider: provider,
+      }),
+    ).rejects.toBeInstanceOf(ProvisioningNotStartedError);
+    expect(await readdir(join(dir, 'credential-recovery'))).toEqual([]);
+  });
 
   it('retains protected request context on a lost response without claiming secret capture', async () => {
     const { dir, provider } = await fixture();

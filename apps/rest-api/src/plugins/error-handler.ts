@@ -117,7 +117,7 @@ async function errorHandler(fastify: FastifyInstance) {
           unexpected: !status,
           requestId: request.id,
           method: request.method,
-          url: request.url,
+          url: request.routeOptions.url ?? request.url.split('?')[0],
         },
         status
           ? 'Intentional server error'
@@ -150,7 +150,7 @@ async function errorHandler(fastify: FastifyInstance) {
         err: error,
         requestId: request.id,
         method: request.method,
-        url: request.url,
+        url: request.routeOptions.url ?? request.url.split('?')[0],
         validationContext: validationContext ?? null,
         userId:
           (request as unknown as { authContext?: { identityId?: string } })

@@ -31,7 +31,6 @@ import {
   listAgentServerProviders,
   listAgentServerRuns,
   putAgentServerProvider,
-  startAgentServerPairing,
   startAgentServerRun,
   stopAgentServerRun,
 } from '@moltnet/agent-daemon-api-client';
@@ -448,13 +447,6 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   function authorizeNative() {
     token = supervisorToken;
   }
-
-  it('retains a deprecated pairing adapter', async () => {
-    const started = await startAgentServerPairing({
-      client: agentServerClient(BROWSER_ORIGIN, false),
-    });
-    expect(started.response.status).toBe(410);
-  });
 
   it('authorizes native control and rejects its token from a browser origin', async () => {
     authorizeNative();

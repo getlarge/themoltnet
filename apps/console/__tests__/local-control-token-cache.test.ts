@@ -12,12 +12,12 @@ describe('local-control tab token cache', () => {
     const now = vi.spyOn(Date, 'now').mockReturnValue(1000);
     localControlTokens.set('issuer/server-a', {
       accessToken: 'approved',
-      expiresAt: 2000,
+      expiresAt: 62_000,
     });
     expect(localControlTokens.get('issuer/server-a')).toBe('approved');
     expect(localControlTokens.get('issuer/server-b')).toBeNull();
     expect(localControlTokens.get('another-issuer/server-a')).toBeNull();
-    now.mockReturnValue(2000);
+    now.mockReturnValue(32_000);
     expect(localControlTokens.get('issuer/server-a')).toBeNull();
   });
 

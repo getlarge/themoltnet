@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { cryptoService } from '@moltnet/crypto-service';
+import { cryptoService, enrollmentProofMessage } from '@moltnet/crypto-service';
 import { SecretProviderRegistry } from '@themoltnet/sdk';
 import * as SdkNode from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -121,6 +121,43 @@ describe('local team enrollment boundary', () => {
       keyId: 'new-key',
     });
     expect(JSON.stringify(result)).not.toContain(f.keys.privateKey);
+  });
+
+  it('signs the exact approved enrollment using the protected identity key', async () => {
+    const f = await fixture();
+    f.authorize.mockResolvedValue('human-approval');
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ key: { id: 'new-key' }, secret: 'captured' }),
+        ),
+      );
+    vi.spyOn(SdkNode, 'enrollTeam').mockImplementation(async (options) => {
+      await options.provision!();
+      return {
+        teamId: 'team',
+        key: { id: 'new-key' },
+      } as SdkNode.EnrollTeamResult;
+    });
+    await enrollIdentityTeam({
+      ...f.options,
+      input: { mode: 'enroll', teamId: 'team', idempotencyKey: 'request' },
+    });
+    const body = JSON.parse(fetchSpy.mock.calls[0]![1]!.body as string) as {
+      agentProof: string;
+    };
+    expect(
+      await cryptoService.verify(
+        enrollmentProofMessage({
+          accessToken: 'human-approval',
+          grant: f.authorize.mock.calls[0]![0]!,
+        }),
+        body.agentProof,
+        f.keys.publicKey,
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(body)).not.toContain(f.keys.privateKey);
   });
 
   it('enrolls a local identity before first activation without needing its expired credential', async () => {

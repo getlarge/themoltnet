@@ -44,6 +44,7 @@ export interface AgentAuthContext extends BaseAuthContext {
 
 export interface HumanAuthContext extends BaseAuthContext {
   provisioning?: ProvisioningGrant;
+  delegableScopes?: string[];
   /** Subject type — determines Keto namespace for permission checks. */
   subjectType: 'human';
   /** Null when authenticated via direct Kratos session (no OAuth2 client). */

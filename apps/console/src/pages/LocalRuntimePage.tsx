@@ -1,6 +1,6 @@
 /**
  * Local runtime page (#2062 Part C): manage `moltnet-agent server` daemons on
- * this machine — pair, configure agents/providers (secret write-only), and
+ * this machine — authorize local control, configure agents/providers (secret write-only), and
  * start, stop, and observe runs. Works only in a browser on the machine running
  * Agent Server (loopback), by design.
  */
@@ -196,10 +196,13 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
           <Button
             size="sm"
             variant="accent"
-            disabled={authorizing}
-            onClick={() => void runtime.authorize()}
+            onClick={() =>
+              authorizing
+                ? runtime.cancelAuthorization()
+                : void runtime.authorize()
+            }
           >
-            {authorizing ? 'Waiting…' : 'Connect'}
+            {authorizing ? 'Cancel sign-in' : 'Connect'}
           </Button>
         </Stack>
       </Card>
@@ -614,7 +617,7 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
                       </Text>{' '}
                       at{' '}
                       <a
-                        href={login.verificationUri}
+                        href={safeProviderUrl(login.verificationUri)}
                         target="_blank"
                         rel="noopener"
                       >
@@ -627,7 +630,12 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
                       size="sm"
                       variant="accent"
                       onClick={() =>
-                        window.open(login.authUrl, '_blank', 'noopener')
+                        safeProviderUrl(login.authUrl) &&
+                        window.open(
+                          safeProviderUrl(login.authUrl),
+                          '_blank',
+                          'noopener,noreferrer',
+                        )
                       }
                     >
                       Open sign-in page
@@ -986,4 +994,16 @@ function formatRunTimestamp(value: string): string {
         timeStyle: 'medium',
       }).format(timestamp)
     : value;
+}
+
+function safeProviderUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password
+      ? url.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }

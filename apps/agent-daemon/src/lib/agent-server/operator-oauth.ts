@@ -5,9 +5,12 @@ import { createServer } from 'node:http';
 import { join } from 'node:path';
 
 import { isLoopbackHostname } from '@moltnet/loopback-companion';
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-const LOCAL_SCOPE = 'moltnet:local-control';
+export class InvalidOperatorGrantError extends Error {}
+
+const LOCAL_SCOPE = OPERATOR_OAUTH.localControlScope;
 export interface OperatorOAuthConfig {
   issuer: string;
   authorizationUrl: string;
@@ -111,11 +114,16 @@ export class OperatorOAuth {
       algorithms: ['RS256'],
       issuer: this.config.issuer,
       audience:
-        scope === LOCAL_SCOPE ? 'moltnet:agent-server' : 'moltnet:provisioning',
+        scope === LOCAL_SCOPE
+          ? OPERATOR_OAUTH.localControlAudience
+          : OPERATOR_OAUTH.provisioningAudience,
       requiredClaims: ['exp', 'iat', 'sub'],
       // Bound effective authorization by age as well as exp. Hydra records iat
       // before issuance completes, so exp - iat can exceed the configured TTL.
-      maxTokenAge: clientId === this.config.nativeClientId ? 300 : 900,
+      maxTokenAge:
+        clientId === this.config.nativeClientId
+          ? OPERATOR_OAUTH.nativeLifetimeSeconds
+          : OPERATOR_OAUTH.consoleLifetimeSeconds,
     });
     const claims = payload.ext as Record<string, unknown> | undefined;
     const scopes =
@@ -131,7 +139,7 @@ export class OperatorOAuth {
       claims['moltnet:identity_id'] !== payload.sub ||
       claims['moltnet:instance'] !== this.instance
     )
-      throw new Error('Invalid operator grant');
+      throw new InvalidOperatorGrantError('Invalid operator grant');
     return {
       issuer: payload.iss!,
       subject: payload.sub!,
@@ -149,7 +157,7 @@ export class OperatorOAuth {
       operator.issuer !== this.operator.issuer ||
       operator.subject !== this.operator.subject
     )
-      throw new Error('Native operator sign-in required');
+      throw new InvalidOperatorGrantError('Native operator sign-in required');
   }
   async authorize(
     grant?: NativeProvisioning,
@@ -160,10 +168,13 @@ export class OperatorOAuth {
     const state = randomBytes(32).toString('base64url');
     const verifier = randomBytes(32).toString('base64url');
     const callback = `http://127.0.0.1:${this.config.callbackPort}/oauth/callback`;
-    const scope = grant ? 'moltnet:provision' : LOCAL_SCOPE;
+    const scope = grant ? OPERATOR_OAUTH.provisioningScope : LOCAL_SCOPE;
     const controller = new AbortController();
     this.pending = controller;
-    const timeout = setTimeout(() => controller.abort(), 300_000);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      OPERATOR_OAUTH.nativeLifetimeSeconds * 1000,
+    );
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort, { once: true });
     let server: ReturnType<typeof createServer> | undefined;
@@ -215,7 +226,9 @@ export class OperatorOAuth {
             client_id: this.config.nativeClientId,
             response_type: 'code',
             scope,
-            audience: grant ? 'moltnet:provisioning' : 'moltnet:agent-server',
+            audience: grant
+              ? OPERATOR_OAUTH.provisioningAudience
+              : OPERATOR_OAUTH.localControlAudience,
             redirect_uri: callback,
             state,
             code_challenge_method: 'S256',
@@ -270,6 +283,8 @@ export class OperatorOAuth {
         const actual = operator.provisioning as NativeProvisioning | undefined;
         if (
           !actual ||
+          !Array.isArray(actual.scopes) ||
+          !actual.scopes.every((scope) => typeof scope === 'string') ||
           actual.agentId !== grant.agentId ||
           actual.teamId !== grant.teamId ||
           actual.operation !== grant.operation ||
@@ -289,14 +304,32 @@ export class OperatorOAuth {
         );
       if (!this.operator) {
         // Exclusive creation prevents competing server processes replacing the operator.
-        writeFileSync(
-          join(this.root, 'operator.json'),
-          JSON.stringify({
-            issuer: operator.issuer,
-            subject: operator.subject,
-          }),
-          { mode: 0o600, flag: 'wx' },
-        );
+        try {
+          writeFileSync(
+            join(this.root, 'operator.json'),
+            JSON.stringify({
+              issuer: operator.issuer,
+              subject: operator.subject,
+            }),
+            { mode: 0o600, flag: 'wx' },
+          );
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+          const pinned = JSON.parse(
+            readFileSync(join(this.root, 'operator.json'), 'utf8'),
+          ) as unknown;
+          if (
+            !pinned ||
+            typeof pinned !== 'object' ||
+            !('issuer' in pinned) ||
+            !('subject' in pinned) ||
+            pinned.issuer !== operator.issuer ||
+            pinned.subject !== operator.subject
+          )
+            throw new Error(
+              'Change the operator through native administration first',
+            );
+        }
         this.operator = { issuer: operator.issuer, subject: operator.subject };
       }
       return tokens.access_token;

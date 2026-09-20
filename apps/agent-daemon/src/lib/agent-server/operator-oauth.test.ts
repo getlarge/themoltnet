@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -176,6 +182,34 @@ describe('native PKCE operator', () => {
     const restarted = new OperatorOAuth(f.config, f.root, () => undefined);
     await expect(restarted.verifyBrowser(browser)).rejects.toThrow();
   });
+  it.each(['human', 'other-human'])(
+    're-reads a concurrent operator pin for %s',
+    async (subject) => {
+      const f = await fixture();
+      const pending = f.oauth.authorize();
+      const settled = pending.then(
+        () => 'authorized',
+        () => 'rejected',
+      );
+      const url = await f.openedPromise;
+      writeFileSync(
+        join(f.root, 'operator.json'),
+        JSON.stringify({ issuer: f.config.issuer, subject }),
+        { mode: 0o600 },
+      );
+      const callback = new URL(url.searchParams.get('redirect_uri')!);
+      callback.searchParams.set('code', 'approved-code');
+      callback.searchParams.set('state', url.searchParams.get('state')!);
+      await fetch(callback);
+      expect(await settled).toBe(
+        subject === 'human' ? 'authorized' : 'rejected',
+      );
+      expect(f.oauth.metadata().operatorConfigured).toBe(subject === 'human');
+      expect(
+        JSON.parse(readFileSync(join(f.root, 'operator.json'), 'utf8')).subject,
+      ).toBe(subject);
+    },
+  );
   it.each(['cancel', 'removeOperator'] as const)(
     'honors %s during signing-key retrieval',
     async (action) => {

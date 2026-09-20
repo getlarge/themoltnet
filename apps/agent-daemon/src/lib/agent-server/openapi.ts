@@ -11,7 +11,7 @@ export function registerAgentServerOpenApi(app: FastifyInstance): void {
         title: 'MoltNet Agent Server API',
         description:
           'Private loopback protocol between MoltNet Console and the local agent daemon server.',
-        version: '1.0.0',
+        version: '2.0.0',
       },
       servers: [
         {

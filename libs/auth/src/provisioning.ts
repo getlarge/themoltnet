@@ -1,6 +1,9 @@
+import { OPERATOR_OAUTH } from '@moltnet/models';
+import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from './scopes.js';
+
 /** Claims are supplied only by the server-side consent handler. */
-export const PROVISIONING_SCOPE = 'moltnet:provision';
-export const LOCAL_CONTROL_SCOPE = 'moltnet:local-control';
+export const PROVISIONING_SCOPE = OPERATOR_OAUTH.provisioningScope;
+export const LOCAL_CONTROL_SCOPE = OPERATOR_OAUTH.localControlScope;
 export interface ProvisioningGrant {
   agentId: string;
   teamId: string;
@@ -28,7 +31,9 @@ export function readProvisioningGrant(
     !v.scopes.length ||
     v.scopes.length > 128 ||
     !v.scopes.every(
-      (s) => typeof s === 'string' && s.length > 0 && s.length <= 256,
+      (s) =>
+        typeof s === 'string' &&
+        (AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(s),
     )
   )
     return null;
@@ -39,4 +44,20 @@ export function readProvisioningGrant(
     idempotencyKey: v.idempotencyKey,
     scopes: [...new Set(v.scopes as string[])],
   };
+}
+
+/** Server-owned delegation authority captured from the approving session. */
+export function readDelegableScopes(value: unknown): string[] | null {
+  if (
+    !Array.isArray(value) ||
+    !value.length ||
+    value.length > 128 ||
+    !value.every(
+      (scope) =>
+        typeof scope === 'string' &&
+        (AGENT_OAUTH_SCOPES as readonly string[]).includes(scope),
+    )
+  )
+    return null;
+  return [...new Set(value as string[])];
 }

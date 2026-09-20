@@ -35,15 +35,6 @@ export type LocalRuntimeStatus =
   | 'authorizing'
   | 'connected';
 
-const DEFAULT_HTTPS_AGENT_SERVER_URL = 'https://127.0.0.1:17374';
-const DEFAULT_HTTP_AGENT_SERVER_URL = 'http://127.0.0.1:17374';
-
-function supportsLoopbackPna(): boolean {
-  return (
-    typeof Request !== 'undefined' && 'targetAddressSpace' in Request.prototype
-  );
-}
-
 export interface LocalRuntimeController {
   status: LocalRuntimeStatus;
   agentServerUrl: string;
@@ -51,6 +42,7 @@ export interface LocalRuntimeController {
   actionError: string | null;
   connectionError: string | null;
   authorize(): Promise<void>;
+  cancelAuthorization(): void;
   retry(): Promise<void>;
   disconnect(): void;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
@@ -75,9 +67,7 @@ export interface LocalRuntimeController {
 
 export function useLocalRuntime(): LocalRuntimeController {
   const configuredAgentServerUrl = getConfig().agentServerUrl;
-  const [agentServerUrl, setAgentServerUrl] = useState(
-    configuredAgentServerUrl,
-  );
+  const [agentServerUrl] = useState(configuredAgentServerUrl);
   const tokenCacheKey = JSON.stringify([
     getConfig().oauthIssuer,
     agentServerUrl,
@@ -111,21 +101,6 @@ export function useLocalRuntime(): LocalRuntimeController {
     setConnectionError(null);
     const health = await client.health();
     if (health.status === 'unavailable') {
-      if (
-        agentServerUrl === DEFAULT_HTTPS_AGENT_SERVER_URL &&
-        supportsLoopbackPna()
-      ) {
-        const fallback = createAgentServerClient({
-          baseUrl: DEFAULT_HTTP_AGENT_SERVER_URL,
-          getToken: () => localControlTokens.get(tokenCacheKey),
-        });
-        const fallbackHealth = await fallback.health();
-        if (fallbackHealth.status === 'ok') {
-          persistToken(null);
-          setAgentServerUrl(DEFAULT_HTTP_AGENT_SERVER_URL);
-          return;
-        }
-      }
       setConnectionError(
         health.reason === 'timeout'
           ? 'The local supervisor health check timed out.'
@@ -337,6 +312,10 @@ export function useLocalRuntime(): LocalRuntimeController {
     actionError,
     connectionError,
     authorize,
+    cancelAuthorization: () => {
+      authorizationAbortRef.current?.abort();
+      setStatus('unauthorized');
+    },
     retry: probe,
     disconnect,
     createAgent: (body) => runAction(() => client.createAgent(body)),

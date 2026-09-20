@@ -219,6 +219,50 @@ beforeAll(async () => {
 });
 
 describe('TokenValidator jose JWT verification', () => {
+  it('accepts only a well-formed provisioning grant within the approved session ceiling', async () => {
+    const server = await startJwksServer([rs256A.publicJwk]);
+    try {
+      const validator = createValidator(createMockOAuth2Api(), server);
+      const grant = {
+        agentId: AGENT_ID,
+        teamId: IDENTITY_ID,
+        operation: 'enroll',
+        scopes: ['task:execute'],
+        idempotencyKey: 'request',
+      };
+      const claims = {
+        'moltnet:subject_type': 'human',
+        'moltnet:human_id': IDENTITY_ID,
+        'moltnet:provisioning': grant,
+        'moltnet:delegable_scopes': ['key:manage', 'task:execute'],
+        scope: 'moltnet:provision',
+      };
+      const valid = await createTestJwt(rs256A, server.issuer, {
+        extraClaims: claims,
+      });
+      expect(await validator.resolveAuthContext(valid)).toMatchObject({
+        subjectType: 'human',
+        provisioning: grant,
+        delegableScopes: ['key:manage', 'task:execute'],
+      });
+      for (const changed of [
+        { 'moltnet:provisioning': '{bad-json' },
+        { 'moltnet:provisioning': { ...grant, agentId: 'not-a-uuid' } },
+        { 'moltnet:provisioning': { ...grant, scopes: ['not-a-scope'] } },
+        { 'moltnet:provisioning': { ...grant, scopes: [] } },
+        { 'moltnet:delegable_scopes': ['key:manage'] },
+        { 'moltnet:delegable_scopes': null },
+      ]) {
+        const invalid = await createTestJwt(rs256A, server.issuer, {
+          extraClaims: { ...claims, ...changed },
+        });
+        expect(await validator.resolveAuthContext(invalid)).toBeNull();
+      }
+    } finally {
+      await server.close();
+    }
+  });
+
   it('verifies RS256 tokens and reuses the warm JWKS cache', async () => {
     const server = await startJwksServer([rs256A.publicJwk]);
     try {

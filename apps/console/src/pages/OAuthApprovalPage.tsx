@@ -19,38 +19,12 @@ export function OAuthApprovalPage() {
   const [approval, setApproval] = useState<Approval | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const loginExchange = useRef<{
-    challenge: string;
-    promise: Promise<{ redirect_to: string }>;
-  } | null>(null);
   const params = new URLSearchParams(window.location.search);
   const login = params.get('login_challenge');
   const consent = params.get('consent_challenge');
   useEffect(() => {
     let active = true;
-    if (login) {
-      if (loginExchange.current?.challenge !== login)
-        loginExchange.current = {
-          challenge: login,
-          promise: acceptOperatorLogin({
-            client: getApiClient(),
-            body: { challenge: login },
-          }).then(({ data }) => {
-            if (!data) throw new Error('Login rejected');
-            return data;
-          }),
-        };
-      void loginExchange.current.promise
-        .then((result) => {
-          if (active) window.location.replace(result.redirect_to);
-        })
-        .catch(() => {
-          if (active)
-            setError(
-              'Sign-in could not continue. Start again from Desktop or local control.',
-            );
-        });
-    } else if (consent)
+    if (consent)
       void getOperatorConsent({
         client: getApiClient(),
         query: { challenge: consent },
@@ -65,11 +39,29 @@ export function OAuthApprovalPage() {
               'You cannot approve this request. Check the selected team and permissions.',
             );
         });
-    else setError('No authorization request was supplied.');
+    else if (!login) setError('No authorization request was supplied.');
     return () => {
       active = false;
     };
   }, [login, consent]);
+  async function continueLogin() {
+    if (!login || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { data } = await acceptOperatorLogin({
+        client: getApiClient(),
+        body: { challenge: login },
+      });
+      if (!data) throw new Error('Login unavailable');
+      window.location.replace(data.redirect_to);
+    } catch {
+      setError(
+        'Sign-in could not continue. Start a fresh request from Desktop or local control.',
+      );
+      setBusy(false);
+    }
+  }
   async function decide(approve: boolean) {
     setBusy(true);
     setError(null);
@@ -89,25 +81,68 @@ export function OAuthApprovalPage() {
   return (
     <Stack gap={4}>
       <Text as="h1" variant="h4">
-        {approval?.operation === 'operator-sign-in'
-          ? 'Set the local operator?'
-          : approval?.operation === 'local-control'
-            ? 'Allow local agent control?'
-            : 'Approve team access'}
+        {login
+          ? 'Continue with your Console account?'
+          : approval?.operation === 'operator-sign-in'
+            ? 'Set the local operator?'
+            : approval?.operation === 'local-control'
+              ? 'Allow local agent control?'
+              : 'Approve team access'}
       </Text>
-      {approval ? (
+      {login ? (
+        <>
+          <Text>
+            Continue to review the requested access before approving it.
+          </Text>
+          <Button disabled={busy} onClick={() => void continueLogin()}>
+            Continue
+          </Button>
+        </>
+      ) : approval ? (
         <>
           <Text>
             {approval.operation === 'renew'
-              ? 'Renew the credential for'
+              ? 'Renew a team credential.'
               : approval.operation === 'enroll'
-                ? 'Enroll'
+                ? 'Enroll an agent into a team and issue its credential.'
                 : approval.operation === 'operator-sign-in'
-                  ? 'Use your signed-in account as the local operator on'
-                  : 'Allow this Console to manage local agents on'}{' '}
-            {approval.agent ?? 'this computer'}
-            {approval.team ? ` in ${approval.team}` : ''}.
+                  ? 'Use your signed-in account as the local operator on this computer.'
+                  : 'Allow this Console to manage local agents on this computer.'}
           </Text>
+          <dl>
+            {(
+              [
+                ['Agent', approval.agent],
+                ['Team', approval.team],
+              ] as const
+            ).map(([label, value]) =>
+              value ? (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd
+                    style={{
+                      marginInlineStart: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    “
+                    <bdi>
+                      {value
+                        .replace(
+                          /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
+                          '',
+                        )
+                        .slice(0, 120)}
+                    </bdi>
+                    ”
+                  </dd>
+                </div>
+              ) : null,
+            )}
+          </dl>
           <Text as="h2" weight="semibold">
             Requested permissions
           </Text>

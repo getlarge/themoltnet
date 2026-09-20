@@ -18,3 +18,5 @@ export * from './signer-constraint.js';
 export * from './signer-protocol.js';
 export * from './tool-enforcement.js';
 export * from './verification-method.js';
+
+export * from './operator-oauth.js';

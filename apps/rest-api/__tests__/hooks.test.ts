@@ -473,7 +473,13 @@ describe('Hook routes', () => {
                   'moltnet:approved_scope': scope,
                   unapproved: 'must-not-survive',
                   ...(scope === 'moltnet:provision'
-                    ? { 'moltnet:provisioning': provisioning }
+                    ? {
+                        'moltnet:provisioning': provisioning,
+                        'moltnet:delegable_scopes': [
+                          'key:manage',
+                          'task:execute',
+                        ],
+                      }
                     : {}),
                 },
               },
@@ -491,7 +497,10 @@ describe('Hook routes', () => {
             'moltnet:subject_type': 'human',
             'moltnet:instance': OWNER_ID,
             ...(scope === 'moltnet:provision'
-              ? { 'moltnet:provisioning': provisioning }
+              ? {
+                  'moltnet:provisioning': provisioning,
+                  'moltnet:delegable_scopes': ['key:manage', 'task:execute'],
+                }
               : {}),
           });
         } finally {

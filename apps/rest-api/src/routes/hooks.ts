@@ -16,6 +16,7 @@ import {
   type OryClients,
   PROVISIONING_SCOPE,
   readProvisioningGrant,
+  readDelegableScopes,
 } from '@moltnet/auth';
 import { DBOS, DBOSErrors, type HumanRepository } from '@moltnet/database';
 import { DCR_MAX_SCOPES } from '@moltnet/models';
@@ -618,6 +619,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
           const provisioning = readProvisioningGrant(
             extra['moltnet:provisioning'],
           );
+          const delegableScopes = readDelegableScopes(
+            extra['moltnet:delegable_scopes'],
+          );
           // Hydra can invoke the authorization-code hook before populating
           // granted_scopes (ory/hydra#3620). Our consent handler stamps the
           // validated scope into the server-owned session instead.
@@ -635,6 +639,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
               !(nativeClient && scope === PROVISIONING_SCOPE)) ||
             (scope === PROVISIONING_SCOPE &&
               (!provisioning ||
+                !delegableScopes?.includes('key:manage') ||
+                provisioning.scopes.some(
+                  (scope) => !delegableScopes.includes(scope),
+                ) ||
                 provisioning.scopes.some(
                   (value) =>
                     !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
@@ -643,14 +651,27 @@ export async function hookRoutes(fastify: FastifyInstance) {
                 ))) ||
             (scope === LOCAL_CONTROL_SCOPE &&
               extra['moltnet:provisioning'] !== undefined)
-          )
+          ) {
+            request.log.warn(
+              {
+                stage: 'administrative-consent',
+                clientKind: nativeClient ? 'native' : 'console',
+              },
+              'Administrative consent grant rejected',
+            );
             return await reply.status(403).send({
               error: 'scope_not_allowed',
               error_description: 'Invalid administrative consent grant',
             });
+          }
           approvedExtra = {
             'moltnet:instance': extra['moltnet:instance'],
-            ...(provisioning ? { 'moltnet:provisioning': provisioning } : {}),
+            ...(provisioning
+              ? {
+                  'moltnet:provisioning': provisioning,
+                  'moltnet:delegable_scopes': delegableScopes,
+                }
+              : {}),
           };
         } else {
           // ── Self-registered (DCR) client cap ─────────────────────

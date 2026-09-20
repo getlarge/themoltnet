@@ -89,6 +89,8 @@ declare module 'fastify' {
        * declares that authentication is required but no credential scope is.
        */
       requiredScopes?: readonly CredentialScope[];
+      /** Explicit capability for the single approved credential issuance handler. */
+      acceptsProvisioningGrant?: boolean;
     };
   }
   interface FastifyInstance {
@@ -615,8 +617,10 @@ async function enforceRouteScopes(
     if (
       authContext.subjectType !== 'human' ||
       !authContext.provisioning ||
+      authContext.scopes.length !== 1 ||
+      authContext.scopes[0] !== PROVISIONING_SCOPE ||
       request.method !== 'POST' ||
-      request.routeOptions.url !== '/oauth2/provision'
+      request.routeOptions.config.auth?.acceptsProvisioningGrant !== true
     ) {
       throw createAuthError(
         'This grant is restricted to its approved operation',

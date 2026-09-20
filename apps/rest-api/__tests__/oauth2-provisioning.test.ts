@@ -1,4 +1,9 @@
-import { HUMAN_SESSION_SCOPES, PROVISIONING_SCOPE } from '@moltnet/auth';
+import {
+  AGENT_OAUTH_SCOPES,
+  HUMAN_SESSION_SCOPES,
+  LOCAL_CONTROL_SCOPE,
+  PROVISIONING_SCOPE,
+} from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,6 +15,29 @@ afterEach(async () => {
   for (const app of apps.splice(0)) await app.close();
 });
 describe('provisioning grant scope ceiling', () => {
+  it.each([null, LOCAL_CONTROL_SCOPE, PROVISIONING_SCOPE])(
+    'permits normal human authority and rejects special grant %s',
+    async (special) => {
+      const mocks = createMockServices();
+      mocks.relationshipReader.listTeamIdsAndRolesBySubject.mockResolvedValue(
+        [],
+      );
+      const app = await createTestApp(mocks, {
+        subjectType: 'human',
+        humanId: 'cccccccc-0000-4000-8000-000000000003',
+        identityId: 'dddddddd-0000-4000-8000-000000000004',
+        clientId: 'native',
+        currentTeamId: null,
+        scopes: [...HUMAN_SESSION_SCOPES, ...(special ? [special] : [])],
+      });
+      apps.push(app);
+      const response = await app.inject({
+        url: '/teams',
+        headers: { authorization: 'Bearer test-grant' },
+      });
+      expect(response.statusCode).toBe(special ? 401 : 200);
+    },
+  );
   it.each(['/agent-keys', '/teams', '/diaries', '/agents/whoami'])(
     'rejects provisioning authority on %s',
     async (url) => {
@@ -128,6 +156,13 @@ describe('Console consent target validation', () => {
     });
     const plainPkce = new URL(url);
     plainPkce.searchParams.set('code_challenge_method', 'plain');
+    const malformed = new URL(url);
+    malformed.searchParams.set('provisioning', '{invalid');
+    const excessiveScopes = new URL(url);
+    excessiveScopes.searchParams.set(
+      'provisioning',
+      JSON.stringify({ ...grant, scopes: ['key:manage'] }),
+    );
     const renewal = new URL(url);
     renewal.searchParams.set(
       'provisioning',
@@ -144,6 +179,8 @@ describe('Console consent target validation', () => {
       { ...original, requested_scope: [PROVISIONING_SCOPE, 'diary:write'] },
       { ...original, requested_access_token_audience: ['another-api'] },
       { ...original, request_url: renewal.href },
+      { ...original, request_url: malformed.href },
+      { ...original, request_url: excessiveScopes.href },
     ]) {
       vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue(
         invalid,
@@ -181,6 +218,7 @@ describe('Console consent target validation', () => {
             'moltnet:instance': 'eeeeeeee-0000-4000-8000-000000000005',
             'moltnet:approved_scope': PROVISIONING_SCOPE,
             'moltnet:provisioning': grant,
+            'moltnet:delegable_scopes': [...AGENT_OAUTH_SCOPES],
           },
         },
       },
