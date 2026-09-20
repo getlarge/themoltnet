@@ -956,7 +956,7 @@
     },
     "securitySchemes": {
       "agentServerToken": {
-        "description": "Origin-bound capability issued by local pairing.",
+        "description": "Console OAuth PKCE local-control access token, or a process-scoped native Desktop grant.",
         "in": "header",
         "name": "x-moltnet-agent-server-token",
         "type": "apiKey"
@@ -1449,82 +1449,6 @@
             "description": "Default Response"
           }
         }
-      }
-    },
-    "/v1/pairings": {
-      "post": {
-        "deprecated": true,
-        "operationId": "startAgentServerPairing",
-        "responses": {
-          "410": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "tags": [
-          "compatibility"
-        ]
-      }
-    },
-    "/v1/pairings/{pairingId}/claim": {
-      "post": {
-        "deprecated": true,
-        "operationId": "claimAgentServerPairing",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pairingId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "410": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "tags": [
-          "compatibility"
-        ]
       }
     },
     "/v1/providers": {

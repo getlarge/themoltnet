@@ -446,48 +446,6 @@ export type SignInAgentServerOperatorResponses = {
 export type SignInAgentServerOperatorResponse =
   SignInAgentServerOperatorResponses[keyof SignInAgentServerOperatorResponses];
 
-export type StartAgentServerPairingData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/v1/pairings';
-};
-
-export type StartAgentServerPairingErrors = {
-  /**
-   * Default Response
-   */
-  410: {
-    code: string;
-    message: string;
-  };
-};
-
-export type StartAgentServerPairingError =
-  StartAgentServerPairingErrors[keyof StartAgentServerPairingErrors];
-
-export type ClaimAgentServerPairingData = {
-  body?: never;
-  path: {
-    pairingId: string;
-  };
-  query?: never;
-  url: '/v1/pairings/{pairingId}/claim';
-};
-
-export type ClaimAgentServerPairingErrors = {
-  /**
-   * Default Response
-   */
-  410: {
-    code: string;
-    message: string;
-  };
-};
-
-export type ClaimAgentServerPairingError =
-  ClaimAgentServerPairingErrors[keyof ClaimAgentServerPairingErrors];
-
 export type ListAgentServerProvidersData = {
   body?: never;
   path?: never;

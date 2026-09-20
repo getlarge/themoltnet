@@ -6,8 +6,6 @@ import type {
   CancelAgentServerSubscriptionLoginData,
   CancelAgentServerSubscriptionLoginErrors,
   CancelAgentServerSubscriptionLoginResponses,
-  ClaimAgentServerPairingData,
-  ClaimAgentServerPairingErrors,
   CreateAgentServerAgentData,
   CreateAgentServerAgentErrors,
   CreateAgentServerAgentResponses,
@@ -59,8 +57,6 @@ import type {
   ReconcileAgentServerAgentResponses,
   SignInAgentServerOperatorData,
   SignInAgentServerOperatorResponses,
-  StartAgentServerPairingData,
-  StartAgentServerPairingErrors,
   StartAgentServerRunData,
   StartAgentServerRunErrors,
   StartAgentServerRunResponses,
@@ -213,30 +209,6 @@ export const signInAgentServerOperator = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/v1/operator/sign-in', ...options });
-
-/**
- * @deprecated
- */
-export const startAgentServerPairing = <ThrowOnError extends boolean = false>(
-  options?: Options<StartAgentServerPairingData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    unknown,
-    StartAgentServerPairingErrors,
-    ThrowOnError
-  >({ url: '/v1/pairings', ...options });
-
-/**
- * @deprecated
- */
-export const claimAgentServerPairing = <ThrowOnError extends boolean = false>(
-  options: Options<ClaimAgentServerPairingData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    unknown,
-    ClaimAgentServerPairingErrors,
-    ThrowOnError
-  >({ url: '/v1/pairings/{pairingId}/claim', ...options });
 
 export const listAgentServerProviders = <ThrowOnError extends boolean = false>(
   options?: Options<ListAgentServerProvidersData, ThrowOnError>,
