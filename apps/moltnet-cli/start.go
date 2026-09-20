@@ -52,15 +52,8 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 		return err
 	}
 	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
-	if dryRun {
-		if _, e := os.Lstat(contextStorePath(agentDir)); e == nil {
-			fmt.Fprintln(cmd.ErrOrStderr(), "notice: legacy registrations are not used; a normal start requires one-time conversion with 'moltnet projects migrate'. Dry-run writes nothing.")
-		}
-	}
-	if !dryRun {
-		if err := migrateProjectsForCommand(cmd, agentDir, configPath, ""); err != nil {
-			return err
-		}
+	if _, e := os.Lstat(contextStorePath(agentDir)); e == nil {
+		fmt.Fprintln(cmd.ErrOrStderr(), "notice: contexts.json is no longer used; run 'moltnet projects setup' to register this folder, or 'moltnet projects bindings set' for noninteractive registration.")
 	}
 	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName, apiURL)
 	if err != nil {

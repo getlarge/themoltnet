@@ -1,26 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
-	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
-
-const contextStoreVersion = 1
-
-const maxContextStoreBytes = 1 << 20
 
 // A resolved context comes from exactly one of two places, and both are
 // reported so the user can always see which one applied.
@@ -36,12 +26,6 @@ const (
 type contextBinding struct {
 	TeamID  string `json:"teamId"`
 	DiaryID string `json:"diaryId"`
-}
-
-// contextStore is read only for migration; new registrations use projectconfig.Config.
-type contextStore struct {
-	Version  int                       `json:"version"`
-	Contexts map[string]contextBinding `json:"contexts,omitempty"`
 }
 
 type resolvedContextBinding struct {
@@ -72,73 +56,6 @@ func contextStorePath(agentDir string) string {
 	return filepath.Join(agentDir, "contexts.json")
 }
 
-func readContextStore(agentDir string) (*contextStore, error) {
-	path := contextStorePath(agentDir)
-	data, err := safefile.ReadBoundedRegularFile(path, maxContextStoreBytes)
-	if errors.Is(err, os.ErrNotExist) {
-		return &contextStore{Version: contextStoreVersion}, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("read %s: %w", path, err)
-	}
-	var store contextStore
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&store); err != nil {
-		return nil, fmt.Errorf("parse %s: %w", path, err)
-	}
-	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("parse %s: expected one JSON object", path)
-	}
-	if store.Version != contextStoreVersion {
-		return nil, fmt.Errorf("%s has version %d, but this CLI understands version %d; it was likely written by a newer moltnet release", path, store.Version, contextStoreVersion)
-	}
-	return &store, nil
-}
-
-// normalizeGitRemoteKey reduces a remote URL to a provider-neutral key, so
-// every clone and worktree of one repository shares one binding. Credentials,
-// protocol, port, a trailing slash and a `.git` suffix are dropped, and the
-// key is lowercased because hosts and the common forges treat repository
-// paths case-insensitively.
-func normalizeGitRemoteKey(raw string) (string, error) {
-	value := strings.TrimSpace(raw)
-	if value == "" {
-		return "", fmt.Errorf("Git remote is empty")
-	}
-	if !strings.Contains(value, "://") {
-		if at := strings.LastIndex(value, "@"); at >= 0 {
-			value = value[at+1:]
-		}
-		if host, repositoryPath, found := strings.Cut(value, ":"); found {
-			value = "ssh://" + host + "/" + repositoryPath
-		}
-	}
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Host == "" {
-		return "", fmt.Errorf("cannot parse Git remote %q", raw)
-	}
-	host := strings.ToLower(parsed.Hostname())
-	// Trim the slashes first: "…/repo.git/" would otherwise keep its suffix,
-	// because TrimSuffix sees the trailing slash.
-	repositoryPath := strings.TrimSuffix(strings.Trim(parsed.EscapedPath(), "/"), ".git")
-	decoded, err := url.PathUnescape(repositoryPath)
-	if err != nil {
-		return "", fmt.Errorf("decode Git remote path: %w", err)
-	}
-	validPath := decoded != ""
-	for _, segment := range strings.Split(decoded, "/") {
-		if segment == "" || segment == "." || segment == ".." {
-			validPath = false
-			break
-		}
-	}
-	if host == "" || !validPath {
-		return "", fmt.Errorf("Git remote %q has no canonical host/repository path", raw)
-	}
-	return "git:" + host + "/" + strings.ToLower(decoded), nil
-}
-
 var contextWorkingDirectory = os.Getwd
 
 func canonicalDirectory(value string) (string, error) {
@@ -157,22 +74,6 @@ func canonicalDirectory(value string) (string, error) {
 		absolute = resolved
 	}
 	return filepath.Clean(absolute), nil
-}
-
-func gitRemoteKeyAt(directory string) (string, bool) {
-	command := exec.Command("git", "-C", directory, "remote", "get-url", "--push", "origin")
-	command.Stderr = nil
-	output, err := command.Output()
-	if err != nil || strings.TrimSpace(string(output)) == "" {
-		command = exec.Command("git", "-C", directory, "remote", "get-url", "origin")
-		command.Stderr = nil
-		output, err = command.Output()
-	}
-	if err != nil {
-		return "", false
-	}
-	key, err := normalizeGitRemoteKey(string(output))
-	return key, err == nil
 }
 
 // identityDefaultBinding returns the identity-wide team/diary pair from the

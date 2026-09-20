@@ -187,9 +187,6 @@ func contextSuggestedName() string {
 	if err != nil {
 		return "project"
 	}
-	if key, ok := gitRemoteKeyAt(directory); ok {
-		return filepath.Base(strings.TrimPrefix(key, "git:"))
-	}
 	return filepath.Base(directory)
 }
 

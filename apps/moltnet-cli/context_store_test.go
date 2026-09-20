@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -13,28 +12,6 @@ const (
 	contextTestTeam  = "00000000-0000-4000-8000-000000000011"
 	contextTestDiary = "00000000-0000-4000-8000-000000000001"
 )
-
-func TestNormalizeGitRemoteKeyProviderNeutral(t *testing.T) {
-	tests := map[string]string{
-		"git@github.com:getlarge/themoltnet.git":                "git:github.com/getlarge/themoltnet",
-		"https://token@example.com/Group/repo.git":              "git:example.com/group/repo",
-		"ssh://git@gitlab.example.test:2222/nested/project.git": "git:gitlab.example.test/nested/project",
-		"https://example.com/repositories/name..with-dots.git":  "git:example.com/repositories/name..with-dots",
-		// A trailing slash after the .git suffix must not keep the suffix.
-		"https://github.com/getlarge/themoltnet.git/": "git:github.com/getlarge/themoltnet",
-		// Case differs between remotes of one repository; the key must not.
-		"git@github.com:GetLarge/TheMoltNet.git": "git:github.com/getlarge/themoltnet",
-	}
-	for remote, want := range tests {
-		got, err := normalizeGitRemoteKey(remote)
-		if err != nil {
-			t.Fatalf("normalize %q: %v", remote, err)
-		}
-		if got != want {
-			t.Errorf("normalize %q = %q, want %q", remote, got, want)
-		}
-	}
-}
 
 func initContextTestRepository(t *testing.T, remote string) string {
 	t.Helper()
@@ -169,16 +146,5 @@ func TestResolveContextThroughSymlinkedDirectory(t *testing.T) {
 	}
 	if resolved.Key != alias.Key || resolved.diaryID() != contextTestDiary {
 		t.Fatalf("alias resolution mismatch: %+v %+v", resolved, alias)
-	}
-}
-
-func TestReadContextStoreRejectsNewerVersion(t *testing.T) {
-	agentDir := t.TempDir()
-	if err := os.WriteFile(contextStorePath(agentDir), []byte(`{"version": 99}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	_, err := readContextStore(agentDir)
-	if err == nil || !strings.Contains(err.Error(), "contexts.json") || !strings.Contains(err.Error(), "newer") {
-		t.Fatalf("a newer store must fail and name the file and cause, got: %v", err)
 	}
 }
