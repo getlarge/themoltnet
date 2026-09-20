@@ -1248,8 +1248,15 @@ describe('createExecutionPlanCache', () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-shared-'));
     tempRoots.push(mountRoot);
     const stateDirs = {
-      rootDir: join(mountRoot, '.moltnet', 'd'),
-      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+      mountPath: mountRoot,
+      rootDir: join(mountRoot, 'separate-state', '.moltnet', 'd'),
+      piSessionsDir: join(
+        mountRoot,
+        'separate-state',
+        '.moltnet',
+        'd',
+        'pi-sessions',
+      ),
     };
     mkdirSync(stateDirs.piSessionsDir, { recursive: true });
 
@@ -1486,9 +1493,7 @@ describe('createExecutionPlanCache', () => {
           },
         } as unknown as Task,
       }),
-    ).rejects.toThrow(
-      'Requested workspace mode dedicated_worktree is not allowed by this run',
-    );
+    ).rejects.toThrow('required by a revision-pinned task');
   });
 
   it('treats a detached revision plan as a dedicated worktree for policy enforcement', async () => {

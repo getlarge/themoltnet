@@ -1,5 +1,7 @@
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
+import { PROJECT_RUN_FLAGS } from './run-project-selection.js';
+
 export const COMMON_REQUIRED_FLAGS = `\
   -a, --agent <name>          MoltNet agent identity. Agent-key auth is
                               configless; OAuth2 reads moltnet.json.
@@ -13,14 +15,7 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               sandbox policy.
   --agent-root <path>         Explicit legacy identity bundle location.
                               Omitted: use the central identity store.
-  --binding <name>            Select a saved local project location.
-  --project <uuid>            Select a project and its unambiguous binding.
-  --general                   Serve General work (projectId: null).
-  --config-file <path>        Explicit project bindings JSON.
-  --source <path>             Run-only source folder override.
-  --workspace-strategy <name> Run-only existing, git-worktree, or none strategy.
-  --state-dir <path>          Supervisor/session state, separate from source.
-                              Default: central daemon-state/<agent>.
+${PROJECT_RUN_FLAGS}
   --git-author <"Name <email>">
                               Non-secret git identity projected into the
                               guest for host-brokered commit signing. Default:
@@ -202,14 +197,7 @@ Optional:
   --dry-run                   Report missing/stale sessions without uploading.
   --agent-root <path>         Explicit legacy identity bundle location.
                               Omitted: use the central identity store.
-  --binding <name>            Select a saved local project location.
-  --project <uuid>            Select a project and its unambiguous binding.
-  --general                   Serve General work (projectId: null).
-  --config-file <path>        Explicit project bindings JSON.
-  --source <path>             Run-only source folder override.
-  --workspace-strategy <name> Run-only existing, git-worktree, or none strategy.
-  --state-dir <path>          Supervisor/session state, separate from source.
-                              Default: central daemon-state/<agent>.
+${PROJECT_RUN_FLAGS}
   --debug                     Accepted for consistency; no extra output yet.
 
 Example:

@@ -444,11 +444,39 @@ describe('buildDaemonTaskExecutionPlan', () => {
         identity,
         1800,
         {
+          workspaceExplicit: true,
           defaultWorkspaceMode: 'none',
           allowedWorkspaceModes: ['none', 'dedicated_worktree'],
         },
       ),
     ).toThrow(/not allowed/);
+  });
+  it('preserves profile fallback for an unbound worker', () => {
+    expect(
+      buildDaemonTaskExecutionPlan(
+        {
+          id: '34343434-3434-4343-8343-343434343434',
+          taskType: 'freeform',
+          title: null,
+          correlationId: '45454545-4545-4454-8454-454545454545',
+          input: {
+            brief: 'requests shared repo',
+            execution: { workspace: 'shared_mount' },
+          },
+        },
+        {
+          rootDir: '/repo/.moltnet/d',
+          piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+        },
+        identity,
+        1800,
+        {
+          workspaceExplicit: false,
+          defaultWorkspaceMode: 'none',
+          allowedWorkspaceModes: ['none', 'dedicated_worktree'],
+        },
+      ),
+    ).toMatchObject({ workspaceMode: 'scratch_mount' });
   });
 
   it('falls back to the safest allowed mode when the task default is forbidden', () => {

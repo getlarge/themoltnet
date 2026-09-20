@@ -32,6 +32,7 @@ vi.mock('@themoltnet/sdk/node', async (importOriginal) => ({
   createNodeSecretProviderRegistry: registryMock,
 }));
 vi.mock('../config.js', () => ({
+  processEnvSnapshot: () => ({}),
   loadConfig: () => ({
     credentialSource: 'config',
     credentialEnforcement: 'off',
@@ -129,6 +130,7 @@ describe.each([
     run: runPoll,
     extra: ['--profile', 'profile', '--task-types', 'freeform'],
   },
+  { name: 'sync-sessions', run: runSyncSessions, extra: [] },
 ])('$name project credential selection', ({ run, extra }) => {
   function invoke(team?: string) {
     const configPath = join(root, 'projects.json');
@@ -170,7 +172,7 @@ describe.each([
   });
 
   it('rejects a conflicting team before resolving credentials', async () => {
-    await expect(invoke('a')).rejects.toThrow(/match/);
+    await expect(invoke('a')).resolves.toBe(1);
     expect(connectMock).not.toHaveBeenCalled();
     expect(signingMock).not.toHaveBeenCalled();
   });

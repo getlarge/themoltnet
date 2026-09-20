@@ -41,6 +41,7 @@ export async function prepareRuntimeProfile(input: {
   agentName: string;
   profile: ResolvedRuntimeProfile;
   stateRootDir?: string;
+  workspaceExplicit?: boolean;
   prerequisiteEnv: NodeJS.ProcessEnv;
   runtimeAdapter: DaemonRuntimeAdapter;
   runtimeInstanceId: string;
@@ -76,6 +77,7 @@ export async function prepareRuntimeProfile(input: {
   const stateDirs = ensureDaemonStateDirs(
     input.stateRootDir ?? sandbox.rootDir,
   );
+  stateDirs.mountPath = profile.mountPath;
   const slotIdentity: DaemonSlotIdentity = {
     agentName: input.agentName,
     runtimeProfileId: profile.id,
@@ -86,6 +88,8 @@ export async function prepareRuntimeProfile(input: {
     slotIdentity,
     warmRetentionSec: input.warmRetentionSec,
     workspacePolicy: {
+      workspaceExplicit: input.workspaceExplicit,
+      profileName: profile.name,
       defaultWorkspaceMode: profile.defaultWorkspaceMode,
       allowedWorkspaceModes: profile.allowedWorkspaceModes,
     },

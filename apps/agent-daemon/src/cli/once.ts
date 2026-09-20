@@ -4,7 +4,6 @@ import { parseArgs } from 'node:util';
 import {
   AgentRuntime,
   ApiTaskReporter,
-  ApiTaskSource,
   createLocalSeedSigner,
   resolveRuntimeProfile,
   type TaskExecutor,
@@ -16,6 +15,7 @@ import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
 import {
   resolveAgentContext,
+  resolveSelectionApiUrl,
   validateStartupBinding,
 } from '../lib/agent-context.js';
 import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
@@ -47,6 +47,7 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
 import { prepareRuntimeProfile } from '../lib/prepare-runtime-profile.js';
+import { createProjectOnceSource } from '../lib/project-task-source.js';
 import {
   applyProjectWorkspacePolicy,
   projectRunOptionDefs,
@@ -124,12 +125,41 @@ export async function runOnce(
     return 1;
   }
   const cfg = loadConfig();
-  const selection = await resolveRunProjectSelection({
-    ...values,
-    agent: identity.agent,
-    cwd: process.cwd(),
-    apiUrl: cfg.apiUrl,
-  });
+  let selection: Awaited<ReturnType<typeof resolveRunProjectSelection>>;
+  try {
+    const endpoint = await resolveSelectionApiUrl(identity.agent, {
+      agentRootDir: values['agent-root']
+        ? resolve(process.cwd(), values['agent-root'])
+        : undefined,
+      credentialSource: cfg.credentialSource,
+      envApiUrl: cfg.apiUrl,
+    });
+    selection = await resolveRunProjectSelection({
+      agent: identity.agent,
+      cwd: process.cwd(),
+      apiUrl: endpoint,
+      binding: values.binding,
+      project: values.project,
+      team: values.team,
+      general: values.general,
+      'config-file': values['config-file'],
+      'state-dir': values['state-dir'],
+      source: values.source,
+      'workspace-strategy': values['workspace-strategy'],
+    });
+  } catch (error) {
+    await logDaemonStartupFailure({
+      serviceName: 'agent-daemon.selection',
+      level: cfg.logLevel || 'info',
+      gate: 'project_selection',
+      agent: identity.agent,
+      credentialSource: cfg.credentialSource,
+      error,
+    });
+    console.error(error instanceof Error ? error.message : String(error));
+    console.error(ONCE_HELP);
+    return 1;
+  }
   const credentialSources = {
     profileRequirements: cfg.profileCredentialRequirements,
     bindings: cfg.credentialBindings,
@@ -154,7 +184,8 @@ export async function runOnce(
         const resolvedContext = await resolveAgentContext(identity.agent, {
           agentRootDir: explicitAgentRootDir,
           credentialSource: cfg.credentialSource,
-          envApiUrl: selection.apiUrl,
+          envApiUrl: cfg.apiUrl,
+          projectApiUrl: selection.binding?.apiUrl,
           teamId: selection.teamId,
         });
         // Authenticate and validate team binding before resolving signing
@@ -211,8 +242,12 @@ export async function runOnce(
         throw error;
       }
     })();
-  // Source selection is independent of the central identity and supervisor state.
-  const daemonRootDir = selection.source ?? process.cwd();
+  // A central identity directory is never a workspace. Preserve explicit bundle
+  // roots for existing callers unless a location or source override was selected.
+  const daemonRootDir =
+    selection.binding || values.source
+      ? (selection.source ?? process.cwd())
+      : (explicitAgentRootDir ?? process.cwd());
   const profile = applyProjectWorkspacePolicy(
     await resolveRuntimeProfile({
       agent: ctx.agent,
@@ -227,6 +262,13 @@ export async function runOnce(
     level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
   });
   const rootLogger = logger.child({
+    projectId: selection.projectId,
+    binding: selection.binding?.name,
+    selectedBy: selection.selectedBy,
+    source: daemonRootDir,
+    strategy: selection.strategy,
+    stateRootDir: selection.stateRootDir ?? daemonRootDir,
+    apiUrl: selection.apiUrl,
     mode: 'once',
     agent: identity.agent,
     provider: profile.provider,
@@ -255,6 +297,7 @@ export async function runOnce(
     agentName: identity.agent,
     profile,
     stateRootDir: selection.stateRootDir,
+    workspaceExplicit: selection.workspaceExplicit,
     prerequisiteEnv: cfg.profilePrerequisiteEnv,
     runtimeAdapter,
     runtimeInstanceId,
@@ -274,6 +317,9 @@ export async function runOnce(
     agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
+      'moltnet.project.id': selection.projectId ?? 'general',
+      'moltnet.project.selection': selection.selectedBy,
+      'moltnet.workspace.strategy': selection.strategy,
       'moltnet.task.id': taskId,
       'moltnet.agent.name': identity.agent,
       'moltnet.credential.source': ctx.credentialSource,
@@ -566,10 +612,9 @@ export async function runOnce(
 
     runtime = new AgentRuntime({
       logger: rootLogger,
-      source: new ApiTaskSource({
+      source: createProjectOnceSource(selection, {
         agent: ctx.agent,
         taskId,
-        projectId: selection.projectId,
         teamId: profile.teamId,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,

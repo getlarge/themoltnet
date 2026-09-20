@@ -90,6 +90,23 @@ describe('resolveAgentContext', () => {
     });
   });
 
+  it('validates a binding endpoint before connecting or resolving the secret', async () => {
+    readConfigMock.mockResolvedValue({
+      agent_key_ref: { provider: 'file', key: 'agent-key.id' },
+      endpoints: { api: 'https://api.themolt.net' },
+    });
+    assertTrustedConfigApiUrlMock.mockImplementation((url) => {
+      if (url === 'https://other.example') throw new Error('untrusted binding');
+    });
+    await expect(
+      resolveAgentContext('legreffier', {
+        projectApiUrl: 'https://other.example',
+      }),
+    ).rejects.toThrow('untrusted binding');
+    expect(connectMock).not.toHaveBeenCalled();
+    expect(resolveAgentKeyMock).not.toHaveBeenCalled();
+  });
+
   it('selects the central identity independently of an explicit repository root', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-root-'));
     execFileSyncMock.mockImplementation(() => {

@@ -204,6 +204,7 @@ export async function resolveAgentContext(
      * than read here so this stays the daemon's single `process.env` owner.
      */
     envApiUrl?: string;
+    projectApiUrl?: string;
     teamId?: string;
   } = {},
 ): Promise<DaemonAgentContext> {
@@ -220,11 +221,23 @@ export async function resolveAgentContext(
     options.agentRootDir,
     { requireConfig: options.credentialSource !== 'environment' },
   );
+  const projectApiUrl = options.projectApiUrl;
+  if (projectApiUrl) {
+    if (!options.envApiUrl?.trim()) assertTrustedConfigApiUrl(projectApiUrl);
+    requireSecureCredentialApiUrl(projectApiUrl);
+    if (
+      options.envApiUrl?.trim() &&
+      options.envApiUrl.replace(/\/+$/, '') !==
+        projectApiUrl.replace(/\/+$/, '')
+    )
+      throw new Error('Project endpoint differs from MOLTNET_API_URL');
+  }
   if (options.credentialSource === 'environment') {
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
     // reference can be resolved.
     const agent = await connect({
+      ...(projectApiUrl ? { apiUrl: projectApiUrl } : {}),
       secretProviders: createNodeSecretProviderRegistry(),
     });
     return {
@@ -264,7 +277,7 @@ export async function resolveAgentContext(
     configDir: agentDir,
     secretProviders,
     agentKey,
-    apiUrl: resolveConfigApiUrl(config, options.envApiUrl),
+    apiUrl: projectApiUrl ?? resolveConfigApiUrl(config, options.envApiUrl),
   });
   return {
     agentDir,
@@ -369,4 +382,25 @@ function isTransientWhoamiError(error: unknown): boolean {
     typeof statusCode === 'number' &&
     (statusCode === 408 || statusCode === 429 || statusCode >= 500)
   );
+}
+
+/** Read only non-secret endpoint metadata before selecting a team credential. */
+export async function resolveSelectionApiUrl(
+  agentName: string,
+  options: {
+    agentRootDir?: string;
+    credentialSource?: DaemonCredentialSource;
+    envApiUrl?: string;
+  },
+): Promise<string> {
+  if (options.envApiUrl?.trim()) return options.envApiUrl.trim();
+  if (options.credentialSource === 'environment')
+    throw new Error('Set MOLTNET_API_URL for an environment-key worker');
+  const { agentDir } = resolveIdentityLocation(
+    agentName,
+    options.agentRootDir,
+    { requireConfig: true },
+  );
+  const config = await readConfig(agentDir);
+  return resolveConfigApiUrl(config ?? {}) ?? 'https://api.themolt.net';
 }

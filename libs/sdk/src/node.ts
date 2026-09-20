@@ -170,6 +170,7 @@ export {
 } from './errors.js';
 export type { ConnectForRegistration } from './register-node.js';
 export {
+  canonicalDirectory,
   getProjectConfigPath,
   type ProjectBinding,
   type ProjectConfig,
@@ -177,5 +178,6 @@ export {
   type ProjectSelectionOptions,
   readProjectConfig,
   resolveProjectBinding,
+  WORKSPACE_STRATEGIES,
   type WorkspaceStrategy,
 } from '@moltnet/agent-config';

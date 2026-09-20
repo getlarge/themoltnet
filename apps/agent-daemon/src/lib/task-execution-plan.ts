@@ -46,7 +46,11 @@ export interface DaemonTaskExecutionPlan {
   } | null;
 }
 
+export class WorkspaceModeMismatchError extends Error {}
+
 export interface RuntimeProfileWorkspacePolicy {
+  workspaceExplicit?: boolean;
+  profileName?: string;
   defaultWorkspaceMode?: RuntimeProfileWorkspaceMode | null;
   allowedWorkspaceModes?: readonly RuntimeProfileWorkspaceMode[];
 }
@@ -212,12 +216,12 @@ function resolveTaskWorkspaceMode(
       : null;
 
   if (isRuntimeProfileWorkspaceMode(requestedWorkspace)) {
-    if (!allowed.has(requestedWorkspace)) {
-      throw new Error(
-        `Requested workspace mode ${requestedWorkspace} is not allowed by this run`,
+    if (allowed.has(requestedWorkspace))
+      return toDaemonWorkspaceMode(requestedWorkspace);
+    if (runtimeProfileWorkspacePolicy.workspaceExplicit)
+      throw new WorkspaceModeMismatchError(
+        `Requested workspace mode ${requestedWorkspace} is not allowed by profile ${runtimeProfileWorkspacePolicy.profileName ?? '(selected)'}; allowed: ${[...allowed].join(', ')}`,
       );
-    }
-    return toDaemonWorkspaceMode(requestedWorkspace);
   }
 
   if (profileDefault && allowed.has(profileDefault)) {
