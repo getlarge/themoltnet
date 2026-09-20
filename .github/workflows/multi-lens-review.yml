@@ -6,6 +6,10 @@ on:
 
 permissions: {}
 
+# Use the project-aware CLI independently of pending repository releases.
+env:
+  MOLTNET_CLI_VERSION: '3.3.0'
+
 concurrency:
   group: multi-lens-review-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true

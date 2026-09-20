@@ -6,6 +6,10 @@ on:
 
 permissions: {}
 
+# Use the project-aware CLI independently of pending repository releases.
+env:
+  MOLTNET_CLI_VERSION: '3.3.0'
+
 # Manually triggered only (issue #121). Drop a PR comment containing
 # `@legreffier /security-review` to kick off a security-focused review.
 # Reuses the published daemon action; the only difference from the

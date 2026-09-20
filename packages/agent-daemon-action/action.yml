@@ -259,6 +259,22 @@ runs:
         path: ~/.cache/agent-daemon-action/apt
         key: ${{ steps.apt-cache-key.outputs.value }}
 
+    - name: Resolve MoltNet CLI version
+      id: cli
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        # Resolve once, including runs that only use an agent key. Every CLI
+        # invocation uses this immutable version instead of npm's latest tag.
+        version="${MOLTNET_CLI_VERSION:-$(node -p "require(process.env.ACTION_PATH + '/../../packages/cli/package.json').version")}"
+        if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+          echo "::error::MOLTNET_CLI_VERSION must be an exact release version" >&2
+          exit 1
+        fi
+        echo "package=@themoltnet/cli@$version" >> "$GITHUB_OUTPUT"
+
     - name: Materialize MoltNet agent dir from env
       shell: bash
       env:
@@ -266,8 +282,7 @@ runs:
         # inheritance handles the rest. When inputs.agent-name is unset,
         # the script falls through to the inherited MOLTNET_AGENT_NAME.
         AGENT_NAME_OVERRIDE: ${{ inputs.agent-name }}
-        # GitHub-controlled path, not caller input.
-        ACTION_PATH: ${{ github.action_path }}
+        MOLTNET_CLI_PACKAGE: ${{ steps.cli.outputs.package }}
       run: |
         set -euo pipefail
         if [ -n "${AGENT_NAME_OVERRIDE:-}" ]; then
@@ -393,28 +408,6 @@ runs:
         # the central store this relied on vm-manager.ts shadowing any
         # `.moltnet` path segment; that shadow still exists as a second layer
         # for repository-local bundles.)
-        # Pinned by default. This step runs with OAuth, signing-key and
-        # optional GitHub App secrets in its environment, so resolving a
-        # mutable `latest` would let any future npm release read them.
-        # MOLTNET_CLI_VERSION overrides it deliberately; it is never `latest`
-        # implicitly. The document is verified immediately after the call
-        # rather than failing several steps later.
-        # Derived, never duplicated. The action is composite, so its own
-        # checkout sits at $ACTION_PATH and packages/cli/package.json in that
-        # same commit is the CLI this ref was built against. A hardcoded pin
-        # would need bumping on every CLI release and would rot when nobody
-        # did; release-please cannot bump one for us either, because
-        # extra-files paths are package-relative and ".." traversal is
-        # rejected outright (googleapis/release-please#2477).
-        MOLTNET_CLI_PIN="$(
-          sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-            "$ACTION_PATH/../../packages/cli/package.json" | head -n1
-        )"
-        if [ -z "$MOLTNET_CLI_PIN" ]; then
-          echo "::error::could not derive the CLI version from $ACTION_PATH/../../packages/cli/package.json" >&2
-          exit 1
-        fi
-        MOLTNET_CLI_PACKAGE="@themoltnet/cli@${MOLTNET_CLI_VERSION:-$MOLTNET_CLI_PIN}"
         npx -y "$MOLTNET_CLI_PACKAGE" config init-from-env \
           --name "$MOLTNET_AGENT_NAME" \
           --skip-git
@@ -591,6 +584,7 @@ runs:
       if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' }}
       shell: bash
       env:
+        MOLTNET_CLI_PACKAGE: ${{ steps.cli.outputs.package }}
         TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
         TASK_TAGS: ${{ inputs.tags }}
         SKIP_VALIDATION: ${{ inputs.skip-validation }}
@@ -676,14 +670,14 @@ runs:
           flags+=(--max-attempts "$MOLTNET_MAX_ATTEMPTS")
         fi
         if [ -n "$TAGS" ]; then
-          if npx -y @themoltnet/cli task create --help | grep -q -- '--tags'; then
+          if npx -y "$MOLTNET_CLI_PACKAGE" task create --help | grep -q -- '--tags'; then
             flags+=(--tags "$TAGS")
           else
             echo "::warning::@themoltnet/cli from npm does not support task create --tags yet; creating task without tags"
           fi
         fi
 
-        TASK_ID=$(npx -y @themoltnet/cli task create \
+        TASK_ID=$(npx -y "$MOLTNET_CLI_PACKAGE" task create \
           --task-type "$TASK_TYPE" \
           --team-id "$MOLTNET_TEAM_ID" \
           --diary-id "$MOLTNET_DIARY_ID" \

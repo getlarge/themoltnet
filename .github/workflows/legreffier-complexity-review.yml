@@ -36,7 +36,7 @@ jobs:
       # legreffier diary for the incident write-up. Composite-action steps
       # inherit job env directly, with no string-substitution round trip.
       # Use a published CLI even while a release commit is waiting on npm.
-      MOLTNET_CLI_VERSION: '3.1.0'
+      MOLTNET_CLI_VERSION: '3.3.0'
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
       MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
       MOLTNET_SUBJECT_TYPE: agent
