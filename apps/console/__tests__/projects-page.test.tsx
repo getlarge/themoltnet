@@ -54,11 +54,13 @@ it('creates a project with the selected team and diary', async () => {
   await waitFor(() =>
     expect(api.createProject).toHaveBeenCalledWith(
       expect.objectContaining({
-        path: { id: 'team' },
+        headers: { 'x-moltnet-team-id': 'team' },
         body: { name: 'Research', description: null, defaultDiaryId: 'diary' },
       }),
     ),
   );
+  expect(api.createProject.mock.calls[0][0]).not.toHaveProperty('path');
+  expect(api.listProjects.mock.calls[0][0]).not.toHaveProperty('path');
 });
 it('shows members the catalogue without management actions', async () => {
   api.role = 'member';

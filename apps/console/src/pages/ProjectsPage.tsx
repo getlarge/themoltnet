@@ -87,7 +87,6 @@ function TeamProjects({
     queryFn: async () => {
       const result = await listProjects({
         client: getApiClient(),
-        path: { id: teamId! },
         query: { includeArchived, limit: 50, offset },
         headers: { 'x-moltnet-team-id': teamId! },
       });
@@ -141,14 +140,14 @@ function TeamProjects({
       const result = archive
         ? await updateProject({
             ...options,
-            path: { id: teamId, projectId: archive.id },
+            path: { projectId: archive.id },
             body: { archived: !archive.archived },
           })
         : editing === 'new'
-          ? await createProject({ ...options, path: { id: teamId }, body })
+          ? await createProject({ ...options, body })
           : await updateProject({
               ...options,
-              path: { id: teamId, projectId: editing!.id },
+              path: { projectId: editing!.id },
               body: changes,
             });
       if (!result.data)
