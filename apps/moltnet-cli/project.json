@@ -27,6 +27,7 @@
       "inputs": [
         "default",
         "^production",
+        "{workspaceRoot}/test-fixtures/store-*.tsv",
         "{workspaceRoot}/libs/agent-config/__tests__/fixtures/**/*",
         "{workspaceRoot}/libs/agent-config/src/**/*",
         "{workspaceRoot}/libs/sdk/__tests__/fixtures/config-repair.ts",

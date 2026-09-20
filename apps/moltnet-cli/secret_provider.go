@@ -7,12 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/oskeyring"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
 const (
-	secretServiceName       = "themolt.net"
 	osKeyringProviderName   = "os-keyring"
 	environmentProviderName = "env"
 	environmentSecretKey    = "MOLTNET_CLIENT_SECRET"
@@ -406,11 +406,15 @@ func (EnvironmentSecretProvider) Delete(_ string) error {
 }
 
 // OSKeyringSecretProvider stores secrets in the current operating system's
-// credential store under the stable themolt.net service name.
-type OSKeyringSecretProvider struct{}
+// credential store under the selected store's service name.
+type OSKeyringSecretProvider struct{ StoreRoot *string }
 
-func (OSKeyringSecretProvider) Get(key string) (string, error) {
-	value, err := oskeyring.Get(secretServiceName, key)
+func (p OSKeyringSecretProvider) Get(key string) (string, error) {
+	service, err := configdir.SecretService(p.StoreRoot)
+	if err != nil {
+		return "", err
+	}
+	value, err := oskeyring.Get(service, key)
 	if errors.Is(err, oskeyring.ErrNotFound) {
 		return "", ErrSecretNotFound
 	}
@@ -419,12 +423,20 @@ func (OSKeyringSecretProvider) Get(key string) (string, error) {
 
 func (OSKeyringSecretProvider) CanWrite() bool { return true }
 
-func (OSKeyringSecretProvider) Set(key, value string) error {
-	return oskeyring.Set(secretServiceName, key, value)
+func (p OSKeyringSecretProvider) Set(key, value string) error {
+	service, err := configdir.SecretService(p.StoreRoot)
+	if err != nil {
+		return err
+	}
+	return oskeyring.Set(service, key, value)
 }
 
-func (OSKeyringSecretProvider) Delete(key string) error {
-	err := oskeyring.Delete(secretServiceName, key)
+func (p OSKeyringSecretProvider) Delete(key string) error {
+	service, err := configdir.SecretService(p.StoreRoot)
+	if err != nil {
+		return err
+	}
+	err = oskeyring.Delete(service, key)
 	if errors.Is(err, oskeyring.ErrNotFound) {
 		return nil
 	}
