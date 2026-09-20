@@ -9,9 +9,9 @@ import {
 import { useState } from 'react';
 
 import {
-  desktopBridge,
   type ConnectionSettings as Settings,
   type ConnectionSettingsView,
+  desktopBridge,
   type DesktopStatus,
 } from './bridge.js';
 

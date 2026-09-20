@@ -30,7 +30,6 @@ import {
   INITIAL_STATUS,
   type LifecycleState,
 } from './bridge.js';
-
 import { ConnectionSettings } from './ConnectionSettings.js';
 
 const STATE_LABELS: Record<LifecycleState, string> = {

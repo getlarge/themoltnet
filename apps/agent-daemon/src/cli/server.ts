@@ -337,7 +337,7 @@ export async function runTrustCommand(
 
     const material = await ensureLocalTlsMaterial(root);
     if (yes) await trustLocalCa(root);
-    else await ensureTrustedLocalTls(settingsRoot);
+    else await ensureTrustedLocalTls(root);
     if (json)
       printTrustStatus({
         supported: true,

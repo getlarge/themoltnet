@@ -3,8 +3,8 @@ import { MoltThemeProvider } from '@themoltnet/design-system';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  desktopBridge,
   type ConnectionSettingsView,
+  desktopBridge,
   INITIAL_STATUS,
 } from './bridge.js';
 import { ConnectionSettings } from './ConnectionSettings.js';

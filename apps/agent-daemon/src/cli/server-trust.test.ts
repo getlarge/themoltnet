@@ -151,6 +151,25 @@ describe('server trust machine-readable contract', () => {
     expect(tls.ensureLocalTlsMaterial).not.toHaveBeenCalled();
   });
 
+  it('uses the explicit root when checking trust without native consent flags', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    tls.isLocalCaTrusted.mockResolvedValue(true);
+
+    const code = await runTrustCommand(
+      ['--root', '/tmp/moltnet-selected-root'],
+      '/tmp/moltnet-default-root',
+    );
+
+    expect(code).toBe(0);
+    expect(tls.isLocalCaTrusted).toHaveBeenCalledWith(
+      '/tmp/moltnet-selected-root',
+    );
+    expect(tls.ensureLocalTlsMaterial).toHaveBeenCalledWith(
+      '/tmp/moltnet-selected-root',
+    );
+    expect(tls.trustLocalCa).not.toHaveBeenCalled();
+  });
+
   it('prints successful human-readable operations to stdout', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 

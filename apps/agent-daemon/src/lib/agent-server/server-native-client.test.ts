@@ -96,14 +96,16 @@ describe('native desktop client', () => {
       payload: {},
     });
     expect(refused.statusCode).toBe(400);
-    expect(refused.json().message).toContain('Stop running or starting work');
+    expect(refused.json<unknown>()).toMatchObject({
+      message: expect.stringContaining('Stop running or starting work'),
+    });
     const status = await app.inject({
       method: 'GET',
       url: '/v1/status',
       headers,
     });
     expect(status.statusCode).toBe(200);
-    expect(status.json().runs[0].active).toBe(true);
+    expect(status.json<unknown>()).toMatchObject({ runs: [{ active: true }] });
   });
 
   it('authorizes the native origin with the supervisor token', async () => {
