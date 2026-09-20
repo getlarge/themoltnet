@@ -189,10 +189,13 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 }
 
 #[tauri::command]
-async fn desktop_connection_settings(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+async fn desktop_connection_settings(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
     let body = with_control_token(&state, move |token| {
         control::get(token, "/v1/native/connection-settings")
-    }).await?;
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned unreadable connection settings".to_string())
 }

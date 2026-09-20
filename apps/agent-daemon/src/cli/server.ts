@@ -169,32 +169,24 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             ? await ensureTrustedLocalTls(settingsRoot)
             : undefined;
           const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
-          const operatorConfig = connection;
-          const operatorOAuth = operatorConfig
-            ? new OperatorOAuth(
-                {
-                  issuer: operatorConfig.issuer,
-                  authorizationUrl: new URL(
-                    '/oauth2/auth',
-                    operatorConfig.publicUrl,
-                  ).href,
-                  tokenUrl: new URL('/oauth2/token', operatorConfig.publicUrl)
-                    .href,
-                  jwksUrl: new URL(
-                    '/.well-known/jwks.json',
-                    operatorConfig.publicUrl,
-                  ).href,
-                  nativeClientId: operatorConfig.nativeClientId,
-                  consoleClientId: operatorConfig.consoleClientId,
-                  callbackPort: OPERATOR_OAUTH.callbackPort,
-                },
-                root,
-              )
-            : undefined;
+          const operatorOAuth = new OperatorOAuth(
+            {
+              issuer: connection.issuer,
+              authorizationUrl: new URL('/oauth2/auth', connection.publicUrl)
+                .href,
+              tokenUrl: new URL('/oauth2/token', connection.publicUrl).href,
+              jwksUrl: new URL('/.well-known/jwks.json', connection.publicUrl)
+                .href,
+              nativeClientId: connection.nativeClientId,
+              consoleClientId: connection.consoleClientId,
+              callbackPort: OPERATOR_OAUTH.callbackPort,
+            },
+            root,
+          );
           const app = buildAgentServer({
             operatorOAuth,
             connectionSettings,
-            operatorApiUrl: operatorConfig?.apiUrl,
+            operatorApiUrl: connection.apiUrl,
             store,
             secrets,
             secretProviders,
