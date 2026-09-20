@@ -205,7 +205,8 @@ async function errorHandler(fastify: FastifyInstance) {
         status: isValidationError ? 400 : status,
         code: resolvedProblem.code,
         detail,
-        instance: request.url,
+        // Query strings can carry OAuth challenges or other transient secrets.
+        instance: request.url.split('?')[0],
       };
 
       if (validationErrors) {
