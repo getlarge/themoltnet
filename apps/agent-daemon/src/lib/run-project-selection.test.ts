@@ -372,3 +372,58 @@ it.each([false, true])(
     }
   },
 );
+
+it('leaves incompatible workspace tasks queued without consuming an attempt', async () => {
+  const { root, configPath } = await fixture();
+  const selection = await resolveRunProjectSelection({
+    agent: 'worker',
+    cwd: root,
+    'config-file': configPath,
+    binding: 'local',
+  });
+  const base = {
+    teamId: 'team',
+    projectId: 'project',
+    taskType: 'freeform',
+    status: 'queued',
+  };
+  const compatible = {
+    ...base,
+    id: 'compatible',
+    input: { execution: { workspace: 'shared_mount' } },
+  };
+  const claim = vi
+    .fn()
+    .mockResolvedValue({ task: compatible, attempt: { attemptN: 1 } });
+  const list = vi.fn().mockResolvedValue({
+    items: [
+      {
+        ...base,
+        id: 'isolated',
+        input: { execution: { workspace: 'dedicated_worktree' } },
+      },
+      {
+        ...base,
+        id: 'pinned',
+        input: { execution: { revision: 'a'.repeat(40) } },
+      },
+      compatible,
+    ],
+    total: 3,
+  });
+  const source = createProjectPollingSource(selection, {
+    agent: { tasks: { claim, list } } as never,
+    teamId: 'team',
+    stopWhenEmpty: true,
+  });
+  try {
+    await source.claim();
+    expect(claim).toHaveBeenCalledExactlyOnceWith(
+      'compatible',
+      expect.objectContaining({ projectId: 'project' }),
+      expect.anything(),
+    );
+  } finally {
+    await source.close();
+  }
+});
