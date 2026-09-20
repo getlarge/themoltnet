@@ -45,6 +45,13 @@ func migrateProjectContexts(agentDir, destination string, plan projectMigrationP
 	if resolved, e := filepath.EvalSymlinks(legacyAbsolute); e == nil {
 		legacyAbsolute = resolved
 	}
+	archiveAbsolute := legacyAbsolute + ".migrated"
+	if resolved, e := filepath.EvalSymlinks(archiveAbsolute); e == nil {
+		archiveAbsolute = resolved
+	}
+	if absolute == archiveAbsolute {
+		return fmt.Errorf("migration destination must differ from the recovery archive")
+	}
 	if absolute == legacyAbsolute {
 		return fmt.Errorf("migration destination must differ from legacy file")
 	}
@@ -74,7 +81,7 @@ func migrateProjectContexts(agentDir, destination string, plan projectMigrationP
 	for _, key := range keys {
 		old := legacy.Contexts[key]
 		bindings, ok := plan.Entries[key]
-		if !ok || len(bindings) == 0 {
+		if !ok || bindings == nil {
 			return fmt.Errorf("missing checkout mapping for %s", key)
 		}
 		for _, b := range bindings {
@@ -115,6 +122,13 @@ func migrateProjectContexts(agentDir, destination string, plan projectMigrationP
 			if b.Strategy == "none" || b.Strategy == "" {
 				return fmt.Errorf("choose an explicit workspace strategy for %s", key)
 			}
+			b.Source = source
+			normalized := projectconfig.Config{Version: 1, Bindings: []projectconfig.Binding{b}}
+			if err := projectconfig.Validate(&normalized); err != nil {
+				return err
+			}
+			b = normalized.Bindings[0]
+			b.APIURL = strings.TrimSuffix(b.APIURL, "/")
 			if err := validate(b); err != nil {
 				return err
 			}
@@ -143,6 +157,13 @@ func migrateProjectContexts(agentDir, destination string, plan projectMigrationP
 	}); err != nil {
 		return err
 	}
+	data, err := safefile.ReadBoundedRegularFile(legacyPath, maxContextStoreBytes)
+	if err != nil {
+		return err
+	}
+	if err := safefile.Write(legacyPath+".migrated", data); err != nil {
+		return fmt.Errorf("projects saved; archiving registrations failed (safe to retry): %w", err)
+	}
 	if err := os.Remove(legacyPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("projects saved; remove legacy file failed (safe to retry): %w", err)
 	}
@@ -168,6 +189,7 @@ func readProjectMigrationPlan(path string) (projectMigrationPlan, error) {
 
 func newProjectMigrateCmd() *cobra.Command {
 	var identity, configPath, planPath string
+	var discard []string
 	cmd := &cobra.Command{Use: "migrate", Short: "Port legacy contexts into projects.json and remove the legacy file", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		alias, err := resolveIdentityAlias(identity)
 		if err != nil {
@@ -177,15 +199,44 @@ func newProjectMigrateCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return migrateProjectsForCommand(cmd, dir, configPath, planPath)
+		return migrateProjectsForCommand(cmd, dir, configPath, planPath, discard...)
 	}}
+	cmd.Long = `Convert registrations once to projects and bindings. There is no legacy
+resolver or downgrade compatibility. After saving, the input is archived as
+contexts.json.migrated and contexts.json is removed. The archive is never read
+for activation. Inspect it manually if correcting a mapping.
+
+Get project IDs with: moltnet projects list --team-id <team-id>
+Create one with: moltnet projects create --team-id <team-id> --name <name>
+Use --plan mapping.json for noninteractive migration. Every old key must appear;
+an empty array explicitly discards that registration without accessing its folder
+or team. --discard <key> is equivalent and can be repeated. Other entries still
+need mappings (or a terminal). Example mapping.json:
+
+{
+  "version": 1,
+  "entries": {
+    "dir:/absolute/source": [{
+      "name": "local", "apiUrl": "https://api.themolt.net",
+      "teamId": "<team-id>", "projectId": "<project-id>",
+      "diaryId": "<diary-id>", "source": "/absolute/source",
+      "strategy": "existing"
+    }],
+    "dir:/removed/folder": []
+  }
+}
+
+Run: moltnet projects migrate --identity <alias> --plan mapping.json
+Team and diary must match the registration being converted. For git: keys,
+provide each checkout explicitly; the checkout remote must match the key.`
+	cmd.Flags().StringArrayVar(&discard, "discard", nil, "Legacy registration key to explicitly discard (repeatable)")
 	cmd.Flags().StringVar(&identity, "identity", "", "Identity whose legacy registrations are migrated")
 	cmd.Flags().StringVar(&configPath, "config-file", "", "Destination project configuration")
 	cmd.Flags().StringVar(&planPath, "plan", "", "Explicit versioned JSON checkout/project mapping for noninteractive migration")
 	return cmd
 }
 
-func migrateProjectsForCommand(cmd *cobra.Command, dir, configPath, planPath string) error {
+func migrateProjectsForCommand(cmd *cobra.Command, dir, configPath, planPath string, discard ...string) error {
 	if _, err := os.Lstat(contextStorePath(dir)); errors.Is(err, os.ErrNotExist) {
 		return nil
 	} else if err != nil {
@@ -208,7 +259,17 @@ func migrateProjectsForCommand(cmd *cobra.Command, dir, configPath, planPath str
 		if err != nil {
 			return err
 		}
-	} else if len(legacy.Contexts) > 0 {
+	}
+	if plan.Entries == nil {
+		return fmt.Errorf("migration plan entries must be an object")
+	}
+	for _, key := range discard {
+		if _, ok := legacy.Contexts[key]; !ok {
+			return fmt.Errorf("unknown legacy registration %q", key)
+		}
+		plan.Entries[key] = []projectconfig.Binding{}
+	}
+	if len(plan.Entries) < len(legacy.Contexts) {
 		if !projectCommandInteractive(cmd) {
 			return fmt.Errorf("legacy registrations need migration; run 'moltnet projects migrate --identity <alias>' in a terminal or supply --plan <mapping.json>")
 		}
@@ -218,8 +279,31 @@ func migrateProjectsForCommand(cmd *cobra.Command, dir, configPath, planPath str
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
+		cache := projectCatalogueCache{}
+		names := map[string]bool{}
+		current, err := projectconfig.Read(configPath)
+		if err != nil {
+			return err
+		}
+		for _, b := range current.Bindings {
+			names[b.Name] = true
+		}
 		for _, key := range keys {
+			if _, mapped := plan.Entries[key]; mapped {
+				continue
+			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Migrate %s (team %s, diary %s)\n", key, legacy.Contexts[key].TeamID, legacy.Contexts[key].DiaryID)
+			action, err := promptChoice(cmd.OutOrStdout(), reader, "Registration action", 3, func(i int) string { return []string{"Migrate", "Discard this registration", "Cancel"}[i] })
+			if err != nil {
+				return err
+			}
+			if action == 2 {
+				return fmt.Errorf("migration cancelled; registrations unchanged")
+			}
+			if action == 1 {
+				plan.Entries[key] = []projectconfig.Binding{}
+				continue
+			}
 			for {
 				source := strings.TrimPrefix(key, "dir:")
 				if !strings.HasPrefix(key, "dir:") {
@@ -233,10 +317,32 @@ func migrateProjectsForCommand(cmd *cobra.Command, dir, configPath, planPath str
 					return err
 				}
 				old := legacy.Contexts[key]
-				b, err := guidedProjectRegistration(cmd, reader, dir, source, &old)
-				if err != nil {
-					return err
+				b, err := guidedProjectRegistration(cmd, reader, dir, source, &old, cache)
+				if err == nil {
+					err = verifyProjectRegistration(cmd, dir, b)
 				}
+				if err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Cannot migrate %s: %v\n", key, err)
+					choice, promptErr := promptChoice(cmd.OutOrStdout(), reader, "Recovery", 3, func(i int) string { return []string{"Retry", "Discard this registration", "Cancel"}[i] })
+					if promptErr != nil {
+						return promptErr
+					}
+					if choice == 0 {
+						continue
+					}
+					if choice == 1 {
+						plan.Entries[key] = []projectconfig.Binding{}
+						break
+					}
+					return fmt.Errorf("migration cancelled; registrations unchanged")
+				}
+				for names[b.Name] {
+					b.Name, err = promptText(cmd, reader, "Binding name already used; choose another", "")
+					if err != nil {
+						return err
+					}
+				}
+				names[b.Name] = true
 				plan.Entries[key] = append(plan.Entries[key], b)
 				if strings.HasPrefix(key, "dir:") {
 					break
@@ -254,6 +360,6 @@ func migrateProjectsForCommand(cmd *cobra.Command, dir, configPath, planPath str
 	if err := migrateProjectContexts(dir, configPath, plan, func(b projectconfig.Binding) error { return verifyProjectRegistration(cmd, dir, b) }); err != nil {
 		return err
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "Migrated registrations to projects.json and removed contexts.json.")
+	fmt.Fprintln(cmd.OutOrStdout(), "Migrated registrations to projects.json; archived the input as contexts.json.migrated and removed contexts.json.")
 	return nil
 }

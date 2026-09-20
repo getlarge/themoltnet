@@ -85,15 +85,15 @@ func TestProjectNativeContextUsesRegisteredAncestor(t *testing.T) {
 	}
 }
 
-func TestProjectNativeContextRejectsLegacyRemoteBindings(t *testing.T) {
+func TestProjectNativeResolutionIgnoresLegacyRemoteBindings(t *testing.T) {
 	identity := t.TempDir()
 	err := os.WriteFile(contextStorePath(identity), []byte(`{"version":1,"contexts":{"git:example/repo":{"teamId":"team","diaryId":"diary"}}}`), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = resolveContextBindingWithProjectOptions(identity, t.TempDir(), filepath.Join(t.TempDir(), "projects.json"), "")
-	if err == nil || !strings.Contains(err.Error(), "migration") {
-		t.Fatalf("expected migration error, got %v", err)
+	selected, err := resolveContextBindingWithProjectOptions(identity, t.TempDir(), filepath.Join(t.TempDir(), "projects.json"), "")
+	if err != nil || selected.Project != nil || selected.Binding != nil {
+		t.Fatalf("legacy registration influenced project resolution: %+v %v", selected, err)
 	}
 }
 

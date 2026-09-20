@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	osExec "os/exec"
@@ -51,6 +52,11 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 		return err
 	}
 	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
+	if dryRun {
+		if _, e := os.Lstat(contextStorePath(agentDir)); e == nil {
+			fmt.Fprintln(cmd.ErrOrStderr(), "notice: legacy registrations are not used; a normal start requires one-time conversion with 'moltnet projects migrate'. Dry-run writes nothing.")
+		}
+	}
 	if !dryRun {
 		if err := migrateProjectsForCommand(cmd, agentDir, configPath, ""); err != nil {
 			return err
@@ -62,8 +68,15 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 	resolvedContext.writeSkippedEndpointNotice(cmd.ErrOrStderr())
 	if !dryRun && bindingName == "" && resolvedContext.Project == nil && projectCommandInteractive(cmd) {
-		if err := setupProjectForCommand(cmd, agentDir, configPath, ""); err != nil {
-			return err
+		reader := bufio.NewReader(cmd.InOrStdin())
+		choice, setupErr := promptChoice(cmd.OutOrStdout(), reader, "No project registered for this folder", 2, func(i int) string { return []string{"Register a project", "Not now (use identity default)"}[i] })
+		if setupErr == nil && choice == 0 {
+			// Preserve buffered answers for the remaining prompts.
+			cmd.SetIn(reader)
+			setupErr = setupProjectForCommand(cmd, agentDir, configPath, "")
+		}
+		if setupErr != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "notice: project setup was not completed: %v; using identity defaults. Run 'moltnet projects setup' to retry.\n", setupErr)
 		}
 		resolvedContext, err = resolveContextBindingWithProjectOptions(agentDir, "", configPath, "", apiURL)
 		if err != nil {

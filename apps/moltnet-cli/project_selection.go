@@ -204,13 +204,6 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
-	legacy, err := readContextStore(agentDir)
-	if err != nil {
-		return resolvedContextBinding{}, err
-	}
-	if len(legacy.Contexts) > 0 {
-		return resolvedContextBinding{}, fmt.Errorf("legacy contexts require migration: run 'moltnet projects migrate --identity <alias>' in a terminal, or supply --plan for noninteractive migration")
-	}
 	if configPath == "" {
 		configPath, err = projectconfig.Path()
 		if err != nil {

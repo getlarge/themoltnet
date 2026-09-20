@@ -38,7 +38,9 @@ func promptText(cmd *cobra.Command, reader *bufio.Reader, title, initial string)
 	return value, nil
 }
 
-func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, source string, old *contextBinding) (projectconfig.Binding, error) {
+type projectCatalogueCache map[string][]moltnetapi.ListProjectsOKItemsItem
+
+func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, source string, old *contextBinding, caches ...projectCatalogueCache) (projectconfig.Binding, error) {
 	b := projectconfig.Binding{Source: source}
 	if old != nil {
 		b.TeamID, b.DiaryID = old.TeamID, old.DiaryID
@@ -50,11 +52,11 @@ func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, so
 		}
 	}
 	credentials := filepath.Join(dir, "moltnet.json")
-	creds, err := ReadConfigFrom(credentials)
+	_, err := ReadConfigFrom(credentials)
 	if err != nil {
 		return b, err
 	}
-	b.APIURL = resolveAPIURLFromCredentials("", false, creds)
+	b.APIURL = resolveAPIURL(cmd, credentials)
 	client, err := newAuthenticatedClient(b.APIURL, credentials, b.TeamID)
 	if err != nil {
 		return b, err
@@ -63,29 +65,37 @@ func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, so
 	if err != nil {
 		return b, err
 	}
-	projects := []moltnetapi.ListProjectsOKItemsItem{}
-	offset := 0
-	for {
-		response, err := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), Limit: moltnetapi.NewOptInt(100), Offset: moltnetapi.NewOptInt(offset)})
-		if err != nil {
-			return b, formatTransportError(err)
-		}
-		page, ok := response.(*moltnetapi.ListProjectsOK)
-		if !ok {
-			return b, formatAPIError(response)
-		}
-		for _, p := range page.Items {
-			if !p.Archived {
-				projects = append(projects, p)
+	cache := projectCatalogueCache{}
+	if len(caches) > 0 {
+		cache = caches[0]
+	}
+	cacheKey := b.APIURL + "\n" + b.TeamID
+	projects, cached := cache[cacheKey]
+	if !cached {
+		offset := 0
+		for {
+			response, err := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), Limit: moltnetapi.NewOptInt(100), Offset: moltnetapi.NewOptInt(offset)})
+			if err != nil {
+				return b, formatTransportError(err)
 			}
+			page, ok := response.(*moltnetapi.ListProjectsOK)
+			if !ok {
+				return b, formatAPIError(response)
+			}
+			for _, p := range page.Items {
+				if !p.Archived {
+					projects = append(projects, p)
+				}
+			}
+			if page.NextOffset.Null {
+				break
+			}
+			if page.NextOffset.Value <= offset {
+				return b, fmt.Errorf("project catalogue returned a non-advancing page")
+			}
+			offset = page.NextOffset.Value
 		}
-		if page.NextOffset.Null {
-			break
-		}
-		if page.NextOffset.Value <= offset {
-			return b, fmt.Errorf("project catalogue returned a non-advancing page")
-		}
-		offset = page.NextOffset.Value
+		cache[cacheKey] = projects
 	}
 	choice, err := promptChoice(cmd.OutOrStdout(), reader, "Choose a shared project", len(projects)+2, func(i int) string {
 		if i == len(projects) {
@@ -120,6 +130,7 @@ func guidedProjectRegistration(cmd *cobra.Command, reader *bufio.Reader, dir, so
 			return b, formatAPIError(response)
 		}
 		b.ProjectID = created.ID.String()
+		delete(cache, cacheKey)
 	} else {
 		b.ProjectID = projects[choice].ID.String()
 	}

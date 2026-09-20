@@ -72,6 +72,7 @@ func TestProjectMigration(t *testing.T) {
 			if _, err := os.Stat(contextStorePath(dir)); !errors.Is(err, os.ErrNotExist) {
 				t.Fatalf("legacy retained: %v", err)
 			}
+			b.Source, _ = filepath.EvalSymlinks(b.Source)
 			config, err := projectconfig.Read(path)
 			if err != nil || len(config.Bindings) != 1 || !reflect.DeepEqual(config.Bindings[0], b) {
 				t.Fatalf("lost registration: %+v %v", config, err)
@@ -197,5 +198,53 @@ func TestMigrationConcurrentIdentitiesPreserveBindings(t *testing.T) {
 	c, err := projectconfig.Read(path)
 	if err != nil || len(c.Bindings) != 2 {
 		t.Fatalf("concurrent migration lost data: %+v %v", c, err)
+	}
+}
+
+func TestMigrationDiscardUnavailableEntry(t *testing.T) {
+	dir := t.TempDir()
+	key := "dir:/removed/checkout"
+	data, _ := json.Marshal(contextStore{Version: 1, Contexts: map[string]contextBinding{key: {TeamID: "unavailable", DiaryID: "diary"}}})
+	if err := os.WriteFile(contextStorePath(dir), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	plan := projectMigrationPlan{Version: 1, Entries: map[string][]projectconfig.Binding{key: {}}}
+	err := migrateProjectContexts(dir, filepath.Join(t.TempDir(), "projects.json"), plan, func(projectconfig.Binding) error {
+		t.Fatal("discard must not access the folder or team API")
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(contextStorePath(dir)); !os.IsNotExist(err) {
+		t.Fatal("legacy remains")
+	}
+	archived, err := os.ReadFile(contextStorePath(dir) + ".migrated")
+	if err != nil || string(archived) != string(data) {
+		t.Fatalf("archive lost input: %v", err)
+	}
+}
+func TestMigrationRetryNormalizesEndpointAndSource(t *testing.T) {
+	dir, source := t.TempDir(), t.TempDir()
+	path := filepath.Join(t.TempDir(), "projects.json")
+	key := "dir:" + source
+	data, _ := json.Marshal(contextStore{Version: 1, Contexts: map[string]contextBinding{key: {TeamID: "team", DiaryID: "diary"}}})
+	b := projectconfig.Binding{Name: "local", APIURL: "https://api.example/", TeamID: "team", DiaryID: "diary", ProjectID: "project", Source: source, Strategy: "existing"}
+	plan := projectMigrationPlan{Version: 1, Entries: map[string][]projectconfig.Binding{key: {b}}}
+	for i := 0; i < 2; i++ {
+		if err := os.WriteFile(contextStorePath(dir), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := migrateProjectContexts(dir, path, plan, func(projectconfig.Binding) error { return nil }); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestMigrationRejectsArchiveAsDestination(t *testing.T) {
+	dir := t.TempDir()
+	err := migrateProjectContexts(dir, contextStorePath(dir)+".migrated", projectMigrationPlan{Version: 1, Entries: map[string][]projectconfig.Binding{}}, func(projectconfig.Binding) error { return nil })
+	if err == nil {
+		t.Fatal("archive must not overwrite projects")
 	}
 }

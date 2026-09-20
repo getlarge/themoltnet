@@ -165,16 +165,21 @@ func promptChoice(out io.Writer, reader *bufio.Reader, title string, count int, 
 	for index := 0; index < count; index++ {
 		fmt.Fprintf(out, "  %d. %s\n", index+1, label(index))
 	}
-	fmt.Fprint(out, "> ")
-	line, err := reader.ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return 0, err
+	for {
+		fmt.Fprint(out, "> ")
+		line, err := reader.ReadString('\n')
+		if err != nil && !errors.Is(err, io.EOF) {
+			return 0, err
+		}
+		choice, parseErr := strconv.Atoi(strings.TrimSpace(line))
+		if parseErr == nil && choice >= 1 && choice <= count {
+			return choice - 1, nil
+		}
+		if errors.Is(err, io.EOF) {
+			return 0, fmt.Errorf("project setup cancelled: input ended")
+		}
+		fmt.Fprintf(out, "Choose a number from 1 to %d\n", count)
 	}
-	choice, err := strconv.Atoi(strings.TrimSpace(line))
-	if err != nil || choice < 1 || choice > count {
-		return 0, fmt.Errorf("choose a number from 1 to %d", count)
-	}
-	return choice - 1, nil
 }
 
 func contextSuggestedName() string {
