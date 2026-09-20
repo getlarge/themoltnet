@@ -133,7 +133,8 @@ export function ProviderForm({
           onChange={(event) => {
             const next = PRESETS.find(
               (entry) => entry.id === event.target.value,
-            )!;
+            );
+            if (!next) return;
             setPreset(next.id);
             setId(next.id === 'custom' ? '' : next.id);
             setBaseUrl(next.baseUrl);
@@ -214,10 +215,12 @@ export function ProviderForm({
         </Text>
       ) : null}
       {discovered && models.length === 0 ? (
-        <Text role="status" variant="caption">
-          No models found. For local Ollama, pull a model in Ollama, then
-          discover again.
-        </Text>
+        <div role="status">
+          <Text variant="caption">
+            No models found. For local Ollama, pull a model in Ollama, then
+            discover again.
+          </Text>
+        </div>
       ) : null}
       {models.length > 0 ? (
         <Stack gap={3}>
@@ -232,26 +235,28 @@ export function ProviderForm({
               setLimit(50);
             }}
           />
-          <Stack gap={2} role="group" aria-label="Available models">
-            {filtered.slice(0, limit).map((model) => (
-              <label key={model.id}>
-                <input
-                  type="checkbox"
-                  checked={selected.has(model.id)}
-                  disabled={busy}
-                  onChange={() =>
-                    setSelected((current) => {
-                      const next = new Set(current);
-                      if (next.has(model.id)) next.delete(model.id);
-                      else next.add(model.id);
-                      return next;
-                    })
-                  }
-                />{' '}
-                {model.id}
-              </label>
-            ))}
-          </Stack>
+          <div role="group" aria-label="Available models">
+            <Stack gap={2}>
+              {filtered.slice(0, limit).map((model) => (
+                <label key={model.id}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(model.id)}
+                    disabled={busy}
+                    onChange={() =>
+                      setSelected((current) => {
+                        const next = new Set(current);
+                        if (next.has(model.id)) next.delete(model.id);
+                        else next.add(model.id);
+                        return next;
+                      })
+                    }
+                  />{' '}
+                  {model.id}
+                </label>
+              ))}
+            </Stack>
+          </div>
           {filtered.length > limit ? (
             <Button variant="ghost" onClick={() => setLimit(limit + 50)}>
               Show more models
