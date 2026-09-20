@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.61.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.60.0...agent-daemon-v0.61.0) (2026-09-20)
+
+
+### Features
+
+* **agent-daemon:** desktop-control contract for the Run Center ([1efbb19](https://github.com/getlarge/themoltnet/commit/1efbb1942e3342cb8212b38ffa5f03284b115da7))
+* **agent-daemon:** let a failed run name its own cause ([51f6917](https://github.com/getlarge/themoltnet/commit/51f6917ea87972ff644ee8a0c8c37efbf2b05c31))
+* **agent-daemon:** project-aware once and poll selection ([62e5c18](https://github.com/getlarge/themoltnet/commit/62e5c188d52db02c4936d093f3d413c39fee63ec))
+* **agent-daemon:** resolve project bindings before task execution ([29704fe](https://github.com/getlarge/themoltnet/commit/29704fee527fe2dea82684c3800b431ec75b3199))
+* **agent-desktop:** advanced connection settings and Server view refinement ([e0625e8](https://github.com/getlarge/themoltnet/commit/e0625e83e9f7c48d7216a134b1e607ef295d928f))
+* **agent-desktop:** configure advanced connections and refine Server view ([79fd2ea](https://github.com/getlarge/themoltnet/commit/79fd2ea52a6ce250fa8dc89f360c26337ab44099))
+* **agent-desktop:** Run Centre on the native control client ([bf3c149](https://github.com/getlarge/themoltnet/commit/bf3c149c518f810d6d8726374120163276653cdc))
+* **agent-server:** expose local team enrollment and recovery metadata ([402d5cf](https://github.com/getlarge/themoltnet/commit/402d5cf28381e09b69aa193ae9c23d7fbecd1382))
+* **agent-server:** isolate catalogue reads by indexed team ([c2ce2bd](https://github.com/getlarge/themoltnet/commit/c2ce2bd8418202c1153ccc77b3b692619baa3cd2))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **agent-server:** preserve supervised credential snapshots ([4c770ed](https://github.com/getlarge/themoltnet/commit/4c770edd52239d9113bb27149d56ed7adc9e4b59))
+* **agent-server:** use PKCE for provisioning and local control ([675059b](https://github.com/getlarge/themoltnet/commit/675059b5e2007ce7a7c188497cdd52bd6bb97a51))
+* **agent-server:** verify exact team credentials and retain health metadata ([a7dbd44](https://github.com/getlarge/themoltnet/commit/a7dbd44ce48d7a6ce6b580aae1e929dbd8dc9ad5))
+
+
+### Bug Fixes
+
+* **agent-daemon:** bind project endpoints to selected identity ([812103c](https://github.com/getlarge/themoltnet/commit/812103c0acc8a1d7b46ca7e5b99b9e01be8accd9))
+* **agent-daemon:** isolate certificate utility locale ([7cb4e8d](https://github.com/getlarge/themoltnet/commit/7cb4e8d0b789d53caf886808317c566084360336))
+* **agent-daemon:** keep trust inspection read-only ([d004e28](https://github.com/getlarge/themoltnet/commit/d004e2833dc4ce5f79cb4fe201667adce0802aa9))
+* **agent-daemon:** preserve project selection and workspace state boundaries ([c63c7ae](https://github.com/getlarge/themoltnet/commit/c63c7ae28b11ec1b9e0cbf3c50f57f46c0cc183d))
+* **agent-daemon:** resolve optional activation endpoint for enrollment ([26f9c6f](https://github.com/getlarge/themoltnet/commit/26f9c6f923fd38d02d029e46c958fa1c6c2efb1c))
+* **agent-daemon:** rotate local TLS trust with ephemeral signing keys ([676820b](https://github.com/getlarge/themoltnet/commit/676820bf1d9986d92bb16ead8bac7109ec2d92b7))
+* **agent-daemon:** rotate local TLS trust with ephemeral signing keys ([a87c66c](https://github.com/getlarge/themoltnet/commit/a87c66c00b57dbc2b522a37d7d66fca78aa9d9af))
+* **agent-daemon:** skip incompatible workspaces before claiming ([148ac80](https://github.com/getlarge/themoltnet/commit/148ac803a8ff65f2c8e2bb81c8ccf22cbd4f012a))
+* **agent-daemon:** type settings error assertion ([4645153](https://github.com/getlarge/themoltnet/commit/4645153743a1435d0e6ada6163942b97c1548d8d))
+* **agent-server:** align strict verifier injection and typed assertions ([ea0e0a5](https://github.com/getlarge/themoltnet/commit/ea0e0a5edeb35a821e029471a360f44cbf2f776a))
+* **agent-server:** enroll local identities before first activation ([e95852b](https://github.com/getlarge/themoltnet/commit/e95852b4e55b0544ce504bd2a9c10ffd2e2365fc))
+* **agent-server:** partition OAuth browser rate limits ([7a53982](https://github.com/getlarge/themoltnet/commit/7a539821d7ee222f91bb89aa24db337260b9f1cd))
+* **agent-server:** request usable desktop grants and enforce token age ([92b2c86](https://github.com/getlarge/themoltnet/commit/92b2c86ffd510d8c7c8f6fcdd09c3d81563a2412))
+* **auth:** revalidate streams and preserve consent cancellation ([c655cc9](https://github.com/getlarge/themoltnet/commit/c655cc9ab7d8a5398dd86c45ab7422d2bcb21cc1))
+* **desktop:** bound background work and expose run logs ([6f3a60b](https://github.com/getlarge/themoltnet/commit/6f3a60bd04e912fdb96aae9a4bce6397afd7322a))
+* **desktop:** correct trust root and settings CI errors ([7a572f6](https://github.com/getlarge/themoltnet/commit/7a572f676774755135c6d903a2f396ac06713157))
+* **desktop:** keep lifecycle and run refresh responsive ([02fd6cd](https://github.com/getlarge/themoltnet/commit/02fd6cd9f6fd2b0c4ad8e7e5795e945408b3ee91))
+* **oauth:** bind enrollment approvals to native identity proof ([912964f](https://github.com/getlarge/themoltnet/commit/912964ff8e6ec8df93cb30f2cc1e5a19378fbe75))
+* **oauth:** simplify grant validation and complete review coverage ([aa0a5db](https://github.com/getlarge/themoltnet/commit/aa0a5db176e66961bd2e2ec20e5f899a72bc15b4))
+* **pkce:** align native fixtures and browser test boundaries ([40ff264](https://github.com/getlarge/themoltnet/commit/40ff2642085276443681c000e050c776c10c5bb7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.2.0
+    * @themoltnet/pi-runtime bumped to 0.18.2
+    * @themoltnet/sdk bumped to 0.144.0
+
 ## [0.60.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.59.0...agent-daemon-v0.60.0) (2026-09-18)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.7.0...legreffier-plugin-v0.8.0) (2026-09-20)
+
+
+### Features
+
+* **cli:** replace contexts with optional project setup ([e548cfe](https://github.com/getlarge/themoltnet/commit/e548cfe30271ed96777445a81feea9d63a57e429))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.6.1...legreffier-plugin-v0.7.0) (2026-09-18)
 
 

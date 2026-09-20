@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.76.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.75.0...moltnet-api-client-v1.76.0) (2026-09-20)
+
+
+### Features
+
+* **agent-daemon:** desktop-control contract for the Run Center ([1efbb19](https://github.com/getlarge/themoltnet/commit/1efbb1942e3342cb8212b38ffa5f03284b115da7))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **projects:** add team catalogue and project-scoped task claims ([e62f201](https://github.com/getlarge/themoltnet/commit/e62f201b0dbe89682628bf76d15e3091478541d3))
+
+
+### Bug Fixes
+
+* **projects:** complete routing and migration review follow-ups ([3b0bf7d](https://github.com/getlarge/themoltnet/commit/3b0bf7d1ba1ee03d0c283e86c36cc46935990eee))
+* **projects:** preserve General claims and tighten catalogue contracts ([841ae30](https://github.com/getlarge/themoltnet/commit/841ae30c747aad1c84a183dd829c2f49a092a3bd))
+* **projects:** select API teams through request headers ([d51ad94](https://github.com/getlarge/themoltnet/commit/d51ad94eab50346756e1122c89335efc5ccb2709))
+
+
+### Codegen
+
+* **api-client:** regenerate PKCE approval contracts ([1e0acaf](https://github.com/getlarge/themoltnet/commit/1e0acaf7fdb79b1864630d45e2af9cbc6d0daf00))
+* **api:** regenerate proof enrollment and expiry clients ([78d31dd](https://github.com/getlarge/themoltnet/commit/78d31dda9b56dcc737c49be958ef13278a687cd0))
+* **codegen:** regenerate unified enrollment clients ([c443398](https://github.com/getlarge/themoltnet/commit/c4433984b4a86e112595776a4dacdd12b9b12a56))
+* **generated:** refresh enrollment and operator control contracts ([deda405](https://github.com/getlarge/themoltnet/commit/deda40539f3fe811508cecec2b50d0e9babb6dae))
+* **stack:** bring enrollment prerequisites into desktop control ([b5662a9](https://github.com/getlarge/themoltnet/commit/b5662a967d4e62592d76f3d6ba73649719056640))
+* **stack:** bring unified team join into desktop control ([11ddfd3](https://github.com/getlarge/themoltnet/commit/11ddfd3e66e2353326c81e2e91af62560cce4644))
+
 ## [1.75.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.74.0...moltnet-api-client-v1.75.0) (2026-09-18)
 
 

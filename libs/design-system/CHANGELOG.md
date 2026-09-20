@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.2.0...design-system-v1.3.0) (2026-09-20)
+
+
+### Bug Fixes
+
+* **console:** finish project feedback and accessibility fixes ([2b6682e](https://github.com/getlarge/themoltnet/commit/2b6682e67ed95a7b882e3a45568483a50aeb71dd))
+* **console:** scope project actions and style unavailable controls ([9945b98](https://github.com/getlarge/themoltnet/commit/9945b98b87fee8eeebc5a287af4781dcccc96ebe))
+
 ## [1.2.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.1.1...design-system-v1.2.0) (2026-09-16)
 
 

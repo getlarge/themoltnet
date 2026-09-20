@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.19.0](https://github.com/getlarge/themoltnet/compare/console-v0.18.0...console-v0.19.0) (2026-09-20)
+
+
+### Features
+
+* **agent-desktop:** advanced connection settings and Server view refinement ([e0625e8](https://github.com/getlarge/themoltnet/commit/e0625e83e9f7c48d7216a134b1e607ef295d928f))
+* **agent-desktop:** configure providers, models and subscriptions ([2777ed6](https://github.com/getlarge/themoltnet/commit/2777ed655225bbbcc1fcab64e9294099f47b56bc))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **agent-server:** use PKCE for provisioning and local control ([675059b](https://github.com/getlarge/themoltnet/commit/675059b5e2007ce7a7c188497cdd52bd6bb97a51))
+* **console:** manage shared team projects ([1ecfbd3](https://github.com/getlarge/themoltnet/commit/1ecfbd307815d6554771efa5051103ec92e6f93a))
+
+
+### Bug Fixes
+
+* **agent-daemon:** resolve optional activation endpoint for enrollment ([26f9c6f](https://github.com/getlarge/themoltnet/commit/26f9c6f923fd38d02d029e46c958fa1c6c2efb1c))
+* **console:** address project administration review ([3a2cac9](https://github.com/getlarge/themoltnet/commit/3a2cac9df6edf11e3a71e9974825e17586a7e128))
+* **console:** finish project feedback and accessibility fixes ([2b6682e](https://github.com/getlarge/themoltnet/commit/2b6682e67ed95a7b882e3a45568483a50aeb71dd))
+* **console:** navigate project catalogue pages ([fa1b60d](https://github.com/getlarge/themoltnet/commit/fa1b60d0ba7748f258cc4d7c47e03524bec1bc3c))
+* **console:** preserve existing endpoints when choosing provider presets ([fd95a5a](https://github.com/getlarge/themoltnet/commit/fd95a5abd7024d4a3d1249b0c4c68ef9c9af0719))
+* **console:** resolve enrolled run credentials on Agent Server ([b181187](https://github.com/getlarge/themoltnet/commit/b181187da3e4ee9228dfd0710431c78d4da64d3e))
+* **console:** reuse local-control tokens across navigation ([095471d](https://github.com/getlarge/themoltnet/commit/095471d2725e502fd6fe994e4790bebfbd4cd0ee))
+* **console:** scope project actions and style unavailable controls ([9945b98](https://github.com/getlarge/themoltnet/commit/9945b98b87fee8eeebc5a287af4781dcccc96ebe))
+* **console:** use project team headers consistently ([ffc6afd](https://github.com/getlarge/themoltnet/commit/ffc6afd6fc1ebc0d64bb9f4b4aa2588fa13a36a4))
+* **desktop:** align Ollama presets with provider storage contract ([80c7b2e](https://github.com/getlarge/themoltnet/commit/80c7b2e1a0b11cb68ab46efb8924f453fb75acce))
+* **desktop:** cancel abandoned native approvals ([dfebd27](https://github.com/getlarge/themoltnet/commit/dfebd27558b5e648019f1ad64d7365d734f9c155))
+* **oauth:** bind enrollment approvals to native identity proof ([912964f](https://github.com/getlarge/themoltnet/commit/912964ff8e6ec8df93cb30f2cc1e5a19378fbe75))
+* **oauth:** simplify grant validation and complete review coverage ([aa0a5db](https://github.com/getlarge/themoltnet/commit/aa0a5db176e66961bd2e2ec20e5f899a72bc15b4))
+* **pkce:** align native fixtures and browser test boundaries ([40ff264](https://github.com/getlarge/themoltnet/commit/40ff2642085276443681c000e050c776c10c5bb7))
+* **pkce:** clarify operator consent and prove revoked-key renewal ([fa9da02](https://github.com/getlarge/themoltnet/commit/fa9da027917576d1623a6872331a033314908752))
+* **providers:** preserve shared form actions and controller contracts ([02baae6](https://github.com/getlarge/themoltnet/commit/02baae6e7632bcf6142674f6936762d38a64cfb6))
+* **release:** configure Fly operator OAuth clients ([0318149](https://github.com/getlarge/themoltnet/commit/031814932d489de89dd922ce7eb1101d03df3f55))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.3.0
+  * devDependencies
+    * @moltnet/database bumped to 0.15.0
+    * @themoltnet/sdk bumped to 0.144.0
+
 ## [0.18.0](https://github.com/getlarge/themoltnet/compare/console-v0.17.1...console-v0.18.0) (2026-09-18)
 
 

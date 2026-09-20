@@ -1,5 +1,75 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.3.0...agent-desktop-v0.4.0) (2026-09-20)
+
+
+### Features
+
+* **agent-daemon:** let a failed run name its own cause ([51f6917](https://github.com/getlarge/themoltnet/commit/51f6917ea87972ff644ee8a0c8c37efbf2b05c31))
+* **agent-desktop:** add fixture-backed Run Center prototype ([29f58c2](https://github.com/getlarge/themoltnet/commit/29f58c281ed131704c7990a3948c2a2ea52b803e))
+* **agent-desktop:** advanced connection settings and Server view refinement ([e0625e8](https://github.com/getlarge/themoltnet/commit/e0625e83e9f7c48d7216a134b1e607ef295d928f))
+* **agent-desktop:** configure advanced connections and refine Server view ([79fd2ea](https://github.com/getlarge/themoltnet/commit/79fd2ea52a6ce250fa8dc89f360c26337ab44099))
+* **agent-desktop:** configure local and cloud model providers ([2355fc7](https://github.com/getlarge/themoltnet/commit/2355fc7de8df49e3a34e05aafe87bf172934b4a6))
+* **agent-desktop:** configure provider keys without leaving the app ([7bdf444](https://github.com/getlarge/themoltnet/commit/7bdf444444e35558e0fdae369d18e53081d91c02))
+* **agent-desktop:** configure providers, models and subscriptions ([2777ed6](https://github.com/getlarge/themoltnet/commit/2777ed655225bbbcc1fcab64e9294099f47b56bc))
+* **agent-desktop:** keep the control token out of the WebView ([f61bcf2](https://github.com/getlarge/themoltnet/commit/f61bcf2daf2df53007eea4066fb2edaf9d28dbdf))
+* **agent-desktop:** native tray overview and server control ([2f976e1](https://github.com/getlarge/themoltnet/commit/2f976e15adb9ff7f81199cf5da237fd8d0980576))
+* **agent-desktop:** Run Centre on the native control client ([bf3c149](https://github.com/getlarge/themoltnet/commit/bf3c149c518f810d6d8726374120163276653cdc))
+* **agent-desktop:** show machine overview in native tray ([10c40e0](https://github.com/getlarge/themoltnet/commit/10c40e097d1571960ca9e04d0e2c3f9180a392f0))
+* **agent-desktop:** sign in to an LLM subscription from the app ([898b1c8](https://github.com/getlarge/themoltnet/commit/898b1c8718467fe7f171ef72aab5a1c7cb853102))
+* **agent-desktop:** wire the Run Center to the control API ([886e37c](https://github.com/getlarge/themoltnet/commit/886e37c1b6f358b2a3ee390f97d6b7e4d9190cbc))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **agent-server:** use PKCE for provisioning and local control ([675059b](https://github.com/getlarge/themoltnet/commit/675059b5e2007ce7a7c188497cdd52bd6bb97a51))
+* **desktop:** add invitation enrollment renewal and credential health ([36c835d](https://github.com/getlarge/themoltnet/commit/36c835d0f861c7160ec0628c79b5dea9564c3419))
+* **desktop:** connect team health and captured run credentials ([5e19b65](https://github.com/getlarge/themoltnet/commit/5e19b65cc7e279175279c1e5281ec039466695cb))
+* **desktop:** expose native team enrollment and metadata bridge ([cac5e1d](https://github.com/getlarge/themoltnet/commit/cac5e1d42b609827252b9a75ee32972d93c934e1))
+* **desktop:** offer existing team key indexing from empty state ([5510aa1](https://github.com/getlarge/themoltnet/commit/5510aa121431bb7722e6933d2fb04132410d9103))
+
+
+### Bug Fixes
+
+* **agent-desktop:** announce lifecycle transitions to the tray ([5013862](https://github.com/getlarge/themoltnet/commit/501386215d8d61be88213a7362252639d34ade4f))
+* **agent-desktop:** clarify provider setup and add bulk model selection ([e5acdc7](https://github.com/getlarge/themoltnet/commit/e5acdc7708abb0c7463e0ea332785bf50ac10bb1))
+* **agent-desktop:** put provider accessibility roles on HTML wrappers ([19f28d7](https://github.com/getlarge/themoltnet/commit/19f28d7aecaa7a02a6016e047d01523475d648a1))
+* **agent-desktop:** supply provider environment name ([5028cbf](https://github.com/getlarge/themoltnet/commit/5028cbfab9ac816d7ececc5cdccc7bada9f25df5))
+* **agent-desktop:** surface a failed run stop in the runs list ([8ae3512](https://github.com/getlarge/themoltnet/commit/8ae35124c4c25daeec5d5db3bfebb2cf657fa302))
+* **agent-desktop:** surface a failed run stop in the runs list ([094f87d](https://github.com/getlarge/themoltnet/commit/094f87d1c6d978ac510d2900ce4fc6f63c6264ae))
+* **agent-desktop:** unblock the tray build and free the main thread ([320f9ec](https://github.com/getlarge/themoltnet/commit/320f9ec3f2bdc89aa6a10234c51070d38f87b24c))
+* **agent-server:** partition OAuth browser rate limits ([7a53982](https://github.com/getlarge/themoltnet/commit/7a539821d7ee222f91bb89aa24db337260b9f1cd))
+* **desktop:** align Ollama presets with provider storage contract ([80c7b2e](https://github.com/getlarge/themoltnet/commit/80c7b2e1a0b11cb68ab46efb8924f453fb75acce))
+* **desktop:** align status markup and callback contracts ([b2d9453](https://github.com/getlarge/themoltnet/commit/b2d9453b86e18f3d3380914cd690fe6c2a4fb6cb))
+* **desktop:** bound background work and expose run logs ([6f3a60b](https://github.com/getlarge/themoltnet/commit/6f3a60bd04e912fdb96aae9a4bce6397afd7322a))
+* **desktop:** cancel abandoned native approvals ([dfebd27](https://github.com/getlarge/themoltnet/commit/dfebd27558b5e648019f1ad64d7365d734f9c155))
+* **desktop:** clear stale team access refresh errors ([97e2a04](https://github.com/getlarge/themoltnet/commit/97e2a0467c6bb8935af70bca37338f9db5c15a36))
+* **desktop:** correct trust root and settings CI errors ([7a572f6](https://github.com/getlarge/themoltnet/commit/7a572f676774755135c6d903a2f396ac06713157))
+* **desktop:** dispatch provider controls off the UI thread ([75d6d69](https://github.com/getlarge/themoltnet/commit/75d6d69f65b7e9a8b76d92b7c87627be7dff4610))
+* **desktop:** focus renewal invitation and compact team header ([49ddd50](https://github.com/getlarge/themoltnet/commit/49ddd509c7adc351c5bff0b1a070520c07589350))
+* **desktop:** keep lifecycle and run refresh responsive ([02fd6cd](https://github.com/getlarge/themoltnet/commit/02fd6cd9f6fd2b0c4ad8e7e5795e945408b3ee91))
+* **desktop:** keep lifecycle errors typed as messages ([dfdd808](https://github.com/getlarge/themoltnet/commit/dfdd808e2cf2b51933688ca4f16c45b378036c9c))
+* **desktop:** keep tray refresh independent of UI dispatch ([05cbe9d](https://github.com/getlarge/themoltnet/commit/05cbe9d06174cf09083ef1ff78b431476ebb44df))
+* **desktop:** persist operator status and toast approval results ([1154313](https://github.com/getlarge/themoltnet/commit/11543139c376bbcb7e5ef4faff7c28bfe66411a9))
+* **desktop:** reuse run centre refresh after provider changes ([02000db](https://github.com/getlarge/themoltnet/commit/02000db29850ad6ab025d9e926d928834ff0f9d6))
+* **desktop:** show tray catalogue for an available identity ([f89a449](https://github.com/getlarge/themoltnet/commit/f89a44964fc3903036dd01c6449bca6b5ca62696))
+* **desktop:** use platform TLS trust for local control ([5421342](https://github.com/getlarge/themoltnet/commit/5421342a2e5f9613dfdac886ae530295673a60e0))
+* **landing:** publish stable download pins ([f5f8fec](https://github.com/getlarge/themoltnet/commit/f5f8fec03d018726d8fe1f397a88611d37e8258b))
+* **landing:** publish stable download pins ([c4f43a1](https://github.com/getlarge/themoltnet/commit/c4f43a114c32d66fa2265c24e673238d288b6c54))
+* **oauth:** bind enrollment approvals to native identity proof ([912964f](https://github.com/getlarge/themoltnet/commit/912964ff8e6ec8df93cb30f2cc1e5a19378fbe75))
+* **oauth:** simplify grant validation and complete review coverage ([aa0a5db](https://github.com/getlarge/themoltnet/commit/aa0a5db176e66961bd2e2ec20e5f899a72bc15b4))
+* **pkce:** align native fixtures and browser test boundaries ([40ff264](https://github.com/getlarge/themoltnet/commit/40ff2642085276443681c000e050c776c10c5bb7))
+* **providers:** preserve shared form actions and controller contracts ([02baae6](https://github.com/getlarge/themoltnet/commit/02baae6e7632bcf6142674f6936762d38a64cfb6))
+
+
+### Performance Improvements
+
+* **desktop:** share immutable lifecycle log snapshots ([d8c938f](https://github.com/getlarge/themoltnet/commit/d8c938feac48ca53b4894366c8749094f2154fd1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.3.0
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.2.0...agent-desktop-v0.3.0) (2026-09-18)
 
 

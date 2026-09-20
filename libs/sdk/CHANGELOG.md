@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.144.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.143.0...sdk-v0.144.0) (2026-09-20)
+
+
+### Features
+
+* **agent-config:** add shared project binding contract ([e016f0f](https://github.com/getlarge/themoltnet/commit/e016f0f898c1f7864f0f0e92410d0eff22373853))
+* **agent-daemon:** desktop-control contract for the Run Center ([1efbb19](https://github.com/getlarge/themoltnet/commit/1efbb1942e3342cb8212b38ffa5f03284b115da7))
+* **agent-daemon:** project-aware once and poll selection ([62e5c18](https://github.com/getlarge/themoltnet/commit/62e5c188d52db02c4936d093f3d413c39fee63ec))
+* **agent-server:** PKCE enrollment, renewal and Console local control ([38c8e2e](https://github.com/getlarge/themoltnet/commit/38c8e2e0e5cbb84c33f9296cf07019dd2a051f6f))
+* **agent-server:** use PKCE for provisioning and local control ([675059b](https://github.com/getlarge/themoltnet/commit/675059b5e2007ce7a7c188497cdd52bd6bb97a51))
+* **console:** shared team project administration ([d6ff645](https://github.com/getlarge/themoltnet/commit/d6ff6451e8953eed945f4bc150d9db48399cb118))
+* **projects:** add team catalogue and project-scoped task claims ([e62f201](https://github.com/getlarge/themoltnet/commit/e62f201b0dbe89682628bf76d15e3091478541d3))
+* **projects:** team catalogue and project-scoped task claims ([2446284](https://github.com/getlarge/themoltnet/commit/2446284fcf9fcab5cfbfd99c7ef333bfb5dfcf18))
+* **sdk:** enroll and replace team credentials with local proof ([8ae522e](https://github.com/getlarge/themoltnet/commit/8ae522e79c429b189947ad1ce98ae9c2a0906077))
+
+
+### Bug Fixes
+
+* **agent-config:** enforce portable project binding semantics ([e4909e8](https://github.com/getlarge/themoltnet/commit/e4909e80e295f982a84757ebd27627566efb0234))
+* **agent-daemon:** preserve project selection and workspace state boundaries ([c63c7ae](https://github.com/getlarge/themoltnet/commit/c63c7ae28b11ec1b9e0cbf3c50f57f46c0cc183d))
+* **cli:** support self-hosted identities and explain selection ([fc711fd](https://github.com/getlarge/themoltnet/commit/fc711fd9be592cba765b47631e9d200997b1df45))
+* **config:** complete project binding review follow-ups ([0d76a65](https://github.com/getlarge/themoltnet/commit/0d76a65fdd4e043bbab9efa3c1aabd3ed400704e))
+* **enrollment:** retain older API compatibility and capture fault coverage ([1aab2cf](https://github.com/getlarge/themoltnet/commit/1aab2cf2804546c2338f2bcbe5ca86f8e0533636))
+* **oauth:** bind enrollment approvals to native identity proof ([912964f](https://github.com/getlarge/themoltnet/commit/912964ff8e6ec8df93cb30f2cc1e5a19378fbe75))
+* **oauth:** simplify grant validation and complete review coverage ([aa0a5db](https://github.com/getlarge/themoltnet/commit/aa0a5db176e66961bd2e2ec20e5f899a72bc15b4))
+* **pkce:** align native fixtures and browser test boundaries ([40ff264](https://github.com/getlarge/themoltnet/commit/40ff2642085276443681c000e050c776c10c5bb7))
+* **projects:** complete routing and migration review follow-ups ([3b0bf7d](https://github.com/getlarge/themoltnet/commit/3b0bf7d1ba1ee03d0c283e86c36cc46935990eee))
+* **projects:** preserve General claims and tighten catalogue contracts ([841ae30](https://github.com/getlarge/themoltnet/commit/841ae30c747aad1c84a183dd829c2f49a092a3bd))
+* **projects:** select API teams through request headers ([d51ad94](https://github.com/getlarge/themoltnet/commit/d51ad94eab50346756e1122c89335efc5ccb2709))
+* **sdk:** preserve enrollment retry and capture state ([8999061](https://github.com/getlarge/themoltnet/commit/8999061a61fab66f6ec51f31e6b682886f9bc62c))
+
 ## [0.143.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.142.0...sdk-v0.143.0) (2026-09-18)
 
 
