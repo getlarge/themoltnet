@@ -334,12 +334,12 @@ absolute activation paths share one runtime boundary.
 
 ```
 ~/.config/moltnet/
-├── identity-selector.json              # Persisted default alias
+├── identity-selector.json     # Persisted default alias
+├── projects.json              # Machine-local project bindings
 └── identities/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
 │   ├── env                     # Non-secret activation values
-│   ├── contexts.json           # Legacy only; migration ports entries and removes this file
 │   ├── activation-caches/      # Hash-bound activation status, one per location
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
@@ -481,67 +481,6 @@ Multiple bindings may serve a project. Outside native ancestor selection, a
 default can select among that project's bindings; it never silently chooses
 between different projects. The file holds no credentials. Credential lookup and
 remote validation happen separately.
-
-### Migrate legacy contexts
-
-`moltnet start` migrates the selected identity's legacy `contexts.json` before
-launching. In a terminal, it walks every entry, preserves its team and diary,
-and asks you to select or create a shared project and choose the workspace
-strategy. Directory entries already contain a source path. Remote-based entries
-prompt for each checkout to register; the migration verifies its Git remote. A
-remote never silently registers every clone or worktree.
-
-You can run migration explicitly:
-
-```bash
-moltnet projects migrate --identity <alias>
-moltnet projects bindings resolve --native
-moltnet start codex --dry-run
-```
-
-All entries must be mapped before the migration atomically saves
-`projects.json`. Existing unrelated bindings are preserved; conflicting binding
-names fail rather than being overwritten. Only after saving does migration
-delete `contexts.json`. Cancellation, incomplete mappings, unavailable folders,
-and failed project/diary validation retain the legacy file. A retry after saving
-but before deletion recognizes identical bindings. Project creation is a shared
-operation: a project created during an interrupted setup remains available to
-select on retry.
-
-For noninteractive use, pass a versioned mapping file. Keys match the old
-`contexts` keys exactly; each array explicitly names the checkout bindings to
-create. Preserve each entry's team and diary IDs. Source paths must be absolute.
-
-```json
-{
-  "entries": {
-    "git:github.com/example/research": [
-      {
-        "apiUrl": "https://api.themolt.net",
-        "diaryId": "<existing-diary-id>",
-        "name": "research-local",
-        "projectId": "<shared-project-id>",
-        "source": "/home/runner/research",
-        "strategy": "existing",
-        "teamId": "<existing-team-id>"
-      }
-    ]
-  },
-  "version": 1
-}
-```
-
-```bash
-moltnet projects migrate --identity <alias> --plan migration.json
-# Alternate destination, shared with start and bindings commands:
-moltnet projects migrate --identity <alias> --plan migration.json --config-file /work/projects.json
-```
-
-Noninteractive start with unmigrated entries stops with migration instructions;
-it never discards registrations. `start --dry-run` does not migrate, prompt, or
-write configuration. The `context` command is removed; use `projects setup`,
-`projects bindings resolve --native`, and `projects bindings remove <name>`.
-Identity credentials and source folders are preserved.
 
 After the first successful activation, LeGreffier keeps one cache per location
 under `~/.config/moltnet/identities/<alias>/activation-caches/`. Warm activation
@@ -906,9 +845,9 @@ projected team credentials must follow it. Existing fallback paths stay valid.
 ### Selecting and migrating team credentials
 
 CLI commands with a team argument use that team's map entry. Commands without
-one use `MOLTNET_TEAM_ID`, then the selected identity's location context or
-identity default. A single map entry can be selected automatically; multiple
-entries without a fallback require an explicit team or context. A selected entry
+one use `MOLTNET_TEAM_ID`, then the selected project binding or identity
+default. A single map entry can be selected automatically; multiple entries
+without a fallback require an explicit team or project binding. A selected entry
 that cannot be resolved fails immediately. Explicit agent-key environment
 overrides and interactive OAuth2 precedence remain unchanged.
 
@@ -984,8 +923,6 @@ Unicode normalization aliases. Both runtimes test case aliases and traverse-only
 ancestors; Go additionally tests normalization aliases. Resolvers validate each
 public input even if it was previously read: callers can mutate configuration
 objects between calls. Filesystem results are never cached across selections.
-Legacy `contexts.json` migration belongs to native CLI activation; a `contexts`
-key in this format is an unknown field, not a migration signal.
 
 ### Shared project catalogue
 
