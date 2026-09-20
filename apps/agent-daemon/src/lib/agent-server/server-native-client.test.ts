@@ -243,3 +243,28 @@ describe('browser admission and stream authorization', () => {
     expect(verifyBrowser).toHaveBeenCalledTimes(1);
   });
 });
+
+it('distinguishes missing OAuth configuration from temporary verification failure', async () => {
+  const missing = await fixture({ operatorOAuth: undefined });
+  const unavailable = await fixture({
+    operatorOAuth: {
+      cancel: () => undefined,
+      verifyBrowser: vi.fn().mockRejectedValue(new Error('JWKS unavailable')),
+    } as unknown as OperatorOAuth,
+  });
+  for (const [app, expected] of [
+    [missing.app, 'oauth_unavailable'],
+    [unavailable.app, 'authorization_unavailable'],
+  ] as const) {
+    const response = await app.inject({
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'token',
+      },
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ code: expected });
+  }
+});
