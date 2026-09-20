@@ -15,7 +15,10 @@ import {
   hasAgentKeyConfiguration,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { type FileSecretProvider } from '@themoltnet/sdk/node';
+import {
+  canonicalStoreRoot,
+  type FileSecretProvider,
+} from '@themoltnet/sdk/node';
 import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
@@ -33,6 +36,7 @@ import {
 import { safeErrorContext } from '../safe-error-context.js';
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
+import { defaultAgentServerPort } from './endpoint.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
 import {
   AgentServerIdentityError,
@@ -333,8 +337,9 @@ function requestOperationSignal(
 }
 
 export function buildAgentServer(
-  options: BuildAgentServerOptions,
+  input: BuildAgentServerOptions,
 ): FastifyInstance {
+  const options = { ...input };
   const { nativeGrant } = options;
   const oauth = options.operatorOAuth;
   let restartRequired = false;
@@ -343,6 +348,13 @@ export function buildAgentServer(
   const app = options.logger
     ? Fastify({ ...fastifyOptions, loggerInstance: options.logger })
     : Fastify(fastifyOptions);
+
+  app.addHook('onListen', async () => {
+    const address = app.server.address();
+    if (address && typeof address !== 'string') {
+      options.selfOrigin = `${options.tls ? 'https' : 'http'}://127.0.0.1:${address.port}`;
+    }
+  });
 
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
@@ -355,8 +367,9 @@ export function buildAgentServer(
   const browserOrigins = new OriginAllowlist(options.allowedOrigins);
   registerLoopbackSecurity(app, {
     isOriginAllowed: (origin) =>
-      origin === NATIVE_CLIENT_ORIGIN || browserOrigins.has(origin),
-    ...(options.selfOrigin ? { selfOrigins: [options.selfOrigin] } : {}),
+      origin === NATIVE_CLIENT_ORIGIN ||
+      origin === options.selfOrigin ||
+      browserOrigins.has(origin),
     allowedHeaders: [AGENT_SERVER_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
@@ -567,7 +580,13 @@ export function buildAgentServer(
             'native_required',
             'Native administration required',
           );
-        return options.connectionSettings.view();
+        return {
+          ...options.connectionSettings.view(),
+          storageScope:
+            defaultAgentServerPort(options.store.root) === 0
+              ? canonicalStoreRoot(options.store.root)
+              : '',
+        };
       },
     );
     app.post(

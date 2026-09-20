@@ -11,6 +11,10 @@ import {
 import { loadAgentServerEnvConfig, processEnvSnapshot } from '../config.js';
 import { ConnectionSettingsStore } from '../lib/agent-server/connection-settings.js';
 import {
+  defaultAgentServerPort,
+  publishAgentServerEndpoint,
+} from '../lib/agent-server/endpoint.js';
+import {
   AgentServerLockError,
   withAgentServerLock,
 } from '../lib/agent-server/lock.js';
@@ -43,7 +47,6 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
  * start or stop runs.
  */
 
-const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
 // Keep aligned with AGENT_SERVER_LOCK_HELD_EXIT_CODE in Desktop lifecycle.rs.
@@ -94,7 +97,6 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     return 0;
   }
 
-  const envConfig = loadAgentServerEnvConfig();
   const { values } = parseArgs({
     args: argv,
     options: {
@@ -109,6 +111,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     },
   });
 
+  const envConfig = loadAgentServerEnvConfig(values.root);
   const nativeSocket = values['native-socket'];
   const nativeSocketError = validateNativeSocketOptions(
     nativeSocketValidationOptions({
@@ -130,10 +133,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   }
 
   const port = Number.parseInt(
-    values.port ?? (envConfig.port || `${DEFAULT_PORT}`),
+    values.port ??
+      (envConfig.port || `${defaultAgentServerPort(envConfig.root)}`),
     10,
   );
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (!Number.isInteger(port) || port < 0 || port > 65_535) {
     console.error(`Invalid --port: ${String(values.port)}`);
     return 1;
   }
@@ -141,8 +145,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     values['allowed-origins'] ??
       (envConfig.allowedOrigins || DEFAULT_ALLOWED_ORIGINS),
   );
-  const settingsRoot =
-    values.root ?? resolveAgentServerRoot({ root: envConfig.root });
+  const settingsRoot = envConfig.root;
   const connectionSettings = new ConnectionSettingsStore(settingsRoot, {
     ...envConfig.operatorOAuth,
     ...(values['api-url'] || envConfig.apiUrl
@@ -162,15 +165,22 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   try {
     try {
       return await withAgentServerLock(
-        root,
+        settingsRoot,
         async () => {
           const secrets = new FileSecretProvider({
             root: store.secretsDir,
             writable: true,
           });
-          const secretProviders =
-            createNodeSecretProviderRegistry().register(secrets);
-          const externalSecretProviders = createNodeSecretProviderRegistry();
+          const secretProviders = createNodeSecretProviderRegistry(
+            undefined,
+            undefined,
+            { root },
+          ).register(secrets);
+          const externalSecretProviders = createNodeSecretProviderRegistry(
+            undefined,
+            undefined,
+            { root },
+          );
           const nativeGrant = new NativeGrantService();
           // Consumes MOLTNET_AGENT_SERVER_NATIVE_TOKEN from process.env, so
           // run children spawned later cannot inherit the desktop's token.
@@ -257,6 +267,9 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             shutdownSignal: shutdownController.signal,
           });
 
+          let endpoint:
+            | ReturnType<typeof publishAgentServerEndpoint>
+            | undefined;
           try {
             const address = await app.listen(
               nativeSocket
@@ -264,6 +277,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
                 : { host: '127.0.0.1', port },
             );
             if (nativeSocket) await chmod(nativeSocket, 0o600);
+            if (!nativeSocket) endpoint = publishAgentServerEndpoint(settingsRoot, address);
             console.error(`moltnet-agent server listening on ${address}`);
             console.error(`config root: ${root}`);
             if (nativeSocket)
@@ -286,6 +300,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           } catch (cause) {
             await app.close().catch(() => undefined);
             throw cause;
+          } finally {
+            endpoint?.release();
           }
         },
         {
