@@ -27,6 +27,13 @@ export async function resolveTaskProject(
       throw new TaskServiceError(
         'invalid',
         'Continuation parent task not found in this team',
+        [
+          {
+            field: 'input/continueFrom/taskId',
+            code: 'freeform.sourceTaskNotFound',
+            message: `Source task ${input.continuationTaskId} does not resolve to a task you can read`,
+          },
+        ],
       );
     if (
       input.projectId !== undefined &&

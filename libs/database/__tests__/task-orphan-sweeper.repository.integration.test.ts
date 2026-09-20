@@ -17,13 +17,17 @@
  * surface, not the persist transaction shape.
  */
 
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
-import { runMigrations } from '../src/migrate.js';
+import { runMigrations, runPostMigrations } from '../src/migrate.js';
 import { createDatabaseCapacityRepository } from '../src/repositories/database-capacity.repository.js';
 import { createProjectRepository } from '../src/repositories/project.repository.js';
 import { createRuntimeSessionRepository } from '../src/repositories/runtime-session.repository.js';
@@ -622,6 +626,95 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     });
 
     await db.delete(tasks);
+  });
+
+  it('rejects orphaned migration history before applying further SQL', async () => {
+    const latest = await pool.query(
+      'SELECT max(created_at) AS stamp FROM drizzle.__drizzle_migrations',
+    );
+    const stamp = Number(latest.rows[0].stamp) + 1;
+    await pool.query(
+      'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)',
+      ['orphan', stamp],
+    );
+    try {
+      await expect(runMigrations(databaseUrl)).rejects.toThrow(
+        /migration history.*newer|unknown migration/i,
+      );
+    } finally {
+      await pool.query(
+        'DELETE FROM drizzle.__drizzle_migrations WHERE created_at = $1',
+        [stamp],
+      );
+    }
+  });
+  it('rejects a rewritten applied migration before running post-commit SQL', async () => {
+    const latest = (
+      await pool.query(
+        'SELECT id, hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1',
+      )
+    ).rows[0];
+    await pool.query(
+      'UPDATE drizzle.__drizzle_migrations SET hash = $1 WHERE id = $2',
+      ['old-revision', latest.id],
+    );
+    try {
+      await expect(runMigrations(databaseUrl)).rejects.toThrow(
+        /migration.*changed|hash.*mismatch/i,
+      );
+    } finally {
+      await pool.query(
+        'UPDATE drizzle.__drizzle_migrations SET hash = $1 WHERE id = $2',
+        [latest.hash, latest.id],
+      );
+    }
+  });
+  it('repairs a quoted concurrent index in a non-public schema and never records an invalid build', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'post-migrations-'));
+    const tag = 'quoted_index_test';
+    await mkdir(join(folder, 'meta'));
+    await writeFile(
+      join(folder, 'meta/_journal.json'),
+      JSON.stringify({ entries: [{ tag }] }),
+    );
+    const statement =
+      'CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "Mixed index" ON "Review schema"."Rows" (value)';
+    await writeFile(
+      join(folder, `${tag}.sql`),
+      `/* moltnet:post-commit\n${statement};\n*/`,
+    );
+    await pool.query('CREATE SCHEMA "Review schema"');
+    await pool.query('CREATE TABLE "Review schema"."Rows" (value int)');
+    await pool.query('INSERT INTO "Review schema"."Rows" VALUES (1), (1)');
+    try {
+      await expect(pool.query(statement)).rejects.toThrow();
+      await expect(runPostMigrations(pool, folder)).rejects.toThrow();
+      expect(
+        (
+          await pool.query(
+            'SELECT 1 FROM drizzle.__moltnet_post_migrations WHERE tag = $1',
+            [tag],
+          )
+        ).rows,
+      ).toEqual([]);
+      await pool.query('DELETE FROM "Review schema"."Rows"');
+      await runPostMigrations(pool, folder);
+      expect(
+        (
+          await pool.query(
+            'SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass($1)',
+            ['"Review schema"."Mixed index"'],
+          )
+        ).rows,
+      ).toEqual([{ indisvalid: true }]);
+    } finally {
+      await pool.query('DROP SCHEMA "Review schema" CASCADE');
+      await pool.query(
+        'DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = $1',
+        [tag],
+      );
+      await rm(folder, { recursive: true, force: true });
+    }
   });
 
   it('retries deferred project scans after the schema migration has committed', async () => {

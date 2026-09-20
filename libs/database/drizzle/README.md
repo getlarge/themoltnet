@@ -180,9 +180,16 @@ runner (`pnpm db:migrate:run`), not a direct `drizzle-kit migrate` invocation.
 The runner serializes post-commit execution and records completed tags in
 `drizzle.__moltnet_post_migrations`. A failed step retains no completion record,
 so rerunning resumes it. Concurrent indexes use `IF NOT EXISTS`; the runner
-repairs an invalid index before retrying its build. Set a lock timeout directly
+resolves the index in its table’s schema (including quoted identifiers), repairs
+an invalid index before retrying, and verifies validity after each build before
+recording completion. Unsupported concurrent-index declarations fail explicitly. Set a lock timeout directly
 before operations that need it, such as FK validation, rather than bounding
 concurrent index snapshot waits. Cleanup errors do not hide the original error.
+
+Before applying SQL, the runner verifies that the latest recorded migration
+timestamp and content hash match the local history. Unknown or rewritten applied
+migrations stop launch with a reconciliation error instead of silently skipping
+schema changes.
 
 PR #2366 consolidates its unreleased schema into `0048_new_phalanx.sql`. Local
 or staging databases that applied earlier revisions of this PR must be reset

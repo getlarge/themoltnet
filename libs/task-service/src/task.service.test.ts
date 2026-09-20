@@ -2804,6 +2804,32 @@ describe('createTaskService.complete — completion signature', () => {
 });
 
 describe('project task routing', () => {
+  it('checks claim permission before terminal-state conflicts', async () => {
+    const mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: {
+          ...makeJudgeTask(JUDGE_TASK, 'completed'),
+          projectId: null,
+        },
+      },
+    });
+    mocks.permissionChecker.canClaimTask.mockResolvedValue(false);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    expect(
+      mocks.taskRepository.expireIfStillNonTerminal,
+    ).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+    mocks.permissionChecker.canClaimTask.mockResolvedValue(true);
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+
   it('authorizes the claim before reporting a project mismatch', async () => {
     const mocks = makeMocks({
       visibleTasks: {

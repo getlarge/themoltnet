@@ -23673,6 +23673,90 @@ var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 		...options.headers
 	}
 });
+var listProjects = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/projects",
+	...options
+});
+var createProject = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/projects",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var getProject = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/projects/{projectId}",
+	...options
+});
+var updateProject = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/teams/{id}/projects/{projectId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
 /**
 * List pending transfers where the caller is destination team owner.
 */
@@ -25727,6 +25811,81 @@ function createProblemsNamespace(context) {
 				client,
 				path: { type }
 			}), `Failed to get problem type: ${type}`, "PROBLEM_TYPE_FAILED");
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/projects.ts
+function createProjectsNamespace({ client, auth }) {
+	const headers = (teamId) => requiredTeamHeaders({ teamId });
+	return {
+		async create(teamId, body) {
+			return unwrapResult(await createProject({
+				client,
+				auth,
+				path: { id: teamId },
+				headers: headers(teamId),
+				body
+			}));
+		},
+		async list(teamId, options) {
+			return unwrapResult(await listProjects({
+				client,
+				auth,
+				path: { id: teamId },
+				headers: headers(teamId),
+				query: {
+					...options,
+					includeArchived: options?.includeArchived ?? false
+				}
+			}));
+		},
+		async get(teamId, projectId) {
+			return unwrapResult(await getProject({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					projectId
+				},
+				headers: headers(teamId)
+			}));
+		},
+		async update(teamId, projectId, body) {
+			return unwrapResult(await updateProject({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					projectId
+				},
+				headers: headers(teamId),
+				body
+			}));
+		},
+		async archive(teamId, projectId) {
+			return unwrapResult(await updateProject({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					projectId
+				},
+				headers: headers(teamId),
+				body: { archived: true }
+			}));
+		},
+		async unarchive(teamId, projectId) {
+			return unwrapResult(await updateProject({
+				client,
+				auth,
+				path: {
+					id: teamId,
+					projectId
+				},
+				headers: headers(teamId),
+				body: { archived: false }
+			}));
 		}
 	};
 }
@@ -29268,6 +29427,10 @@ function ParametersInstantiate(context, state, type, options) {
 function PartialDeferred(type, options = {}) {
 	return Deferred("Partial", [type], options);
 }
+/** Applies a Partial action to the given type. */
+function Partial(type, options = {}) {
+	return PartialAction(type, options);
+}
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/type/engine/partial/from_cyclic.mjs
 function FromCyclic$6(defs, ref) {
@@ -30989,6 +31152,7 @@ var ProblemCodeSchema = Union([
 	Literal("FORBIDDEN"),
 	Literal("NOT_FOUND"),
 	Literal("CONFLICT"),
+	Literal("PROJECT_MISMATCH"),
 	Literal("UNSUPPORTED_MEDIA_TYPE"),
 	Literal("VALIDATION_FAILED"),
 	Literal("INVALID_CHALLENGE"),
@@ -31069,6 +31233,33 @@ Intersect([ConflictProblemDetailsSchema, _Object_({ flagged: Optional(_Array_(_O
 	threats: _Array_(Ref$2("InjectionThreat"))
 }, { additionalProperties: false }))) })], { $id: "InjectionConflictProblemDetails" });
 Intersect([ProblemDetailsSchema, _Object_({ errors: _Array_(Ref$2("ValidationError")) })], { $id: "ValidationProblemDetails" });
+_Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	creatorAgentId: Union([String$1({ format: "uuid" }), Null()]),
+	creatorHumanId: Union([String$1({ format: "uuid" }), Null()]),
+	name: String$1(),
+	description: Union([String$1(), Null()]),
+	defaultDiaryId: Union([String$1({ format: "uuid" }), Null()]),
+	archived: Boolean$1(),
+	createdAt: String$1({ format: "date-time" }),
+	updatedAt: String$1({ format: "date-time" })
+});
+_Object_({
+	...Partial(_Object_({
+		name: String$1({
+			minLength: 1,
+			maxLength: 255,
+			pattern: "\\S"
+		}),
+		description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
+		defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
+	}, { additionalProperties: false })).properties,
+	archived: Optional(Boolean$1())
+}, {
+	additionalProperties: false,
+	minProperties: 1
+});
 Union([
 	Literal("pack"),
 	Literal("entry"),
@@ -36129,6 +36320,7 @@ _Object_({
 	title: Union([String$1(), Null()]),
 	tags: _Array_(String$1()),
 	teamId: Uuid,
+	projectId: Union([Uuid, Null()]),
 	diaryId: Union([Uuid, Null()]),
 	outputKind: OutputKind,
 	input: Record(String$1(), Unknown()),
@@ -37234,7 +37426,7 @@ function createTasksNamespace(context) {
 				auth,
 				headers: headersForTask(id, options),
 				path: { id },
-				body
+				body: body ?? {}
 			});
 			const data = unwrapResult(result);
 			rememberTask(data.task);
@@ -37488,27 +37680,47 @@ function createAgent(options) {
 		auth
 	};
 	const diaries = createDiariesNamespace(context);
+	const agentKeys = createAgentKeysNamespace(context);
+	const diaryGrants = createDiaryGrantsNamespace(context);
+	const diaryTransfers = createDiaryTransfersNamespace(context);
+	const packs = createPacksNamespace(context);
+	const entries = createEntriesNamespace(context);
+	const agents = createAgentsNamespace(context);
+	const crypto = createCryptoNamespace(context, createSigningRequestsNamespace(context), createSigningCredentialsNamespace(context));
+	const authNs = createAuthNamespace(context);
+	const recovery = createRecoveryNamespace(context);
+	const publicNs = createPublicNamespace(context);
+	const legreffierNs = createLegreffierNamespace(context);
+	const problemsNs = createProblemsNamespace(context);
+	const teams = createTeamsNamespace(context);
+	const runtimeProfiles = createRuntimeProfilesNamespace(context);
+	const runtimePolicies = createRuntimePoliciesNamespace(context);
+	const tasks = createTasksNamespace(context);
+	const taskGrants = createTaskGrantsNamespace(context);
+	const runtimeSlots = createRuntimeSlotsNamespace(context);
+	const runtimeSessions = createRuntimeSessionsNamespace(context);
 	return {
-		agentKeys: createAgentKeysNamespace(context),
+		agentKeys,
 		diaries,
-		diaryGrants: createDiaryGrantsNamespace(context),
-		diaryTransfers: createDiaryTransfersNamespace(context),
-		packs: createPacksNamespace(context),
-		entries: createEntriesNamespace(context),
-		agents: createAgentsNamespace(context),
-		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context), createSigningCredentialsNamespace(context)),
-		auth: createAuthNamespace(context),
-		recovery: createRecoveryNamespace(context),
-		public: createPublicNamespace(context),
-		legreffier: createLegreffierNamespace(context),
-		problems: createProblemsNamespace(context),
-		teams: createTeamsNamespace(context),
-		runtimeProfiles: createRuntimeProfilesNamespace(context),
-		runtimePolicies: createRuntimePoliciesNamespace(context),
-		tasks: createTasksNamespace(context),
-		taskGrants: createTaskGrantsNamespace(context),
-		runtimeSlots: createRuntimeSlotsNamespace(context),
-		runtimeSessions: createRuntimeSessionsNamespace(context),
+		diaryGrants,
+		diaryTransfers,
+		packs,
+		entries,
+		agents,
+		crypto,
+		auth: authNs,
+		recovery,
+		public: publicNs,
+		legreffier: legreffierNs,
+		problems: problemsNs,
+		teams,
+		projects: createProjectsNamespace(context),
+		runtimeProfiles,
+		runtimePolicies,
+		tasks,
+		taskGrants,
+		runtimeSlots,
+		runtimeSessions,
 		client,
 		getToken: () => {
 			if (tokenManager) return tokenManager.getToken();

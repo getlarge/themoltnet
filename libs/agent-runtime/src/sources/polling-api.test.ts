@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
-import { MoltNetError } from '@themoltnet/sdk';
+import { MoltNetError, problemToError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 const pollingTelemetry = vi.hoisted(() => ({
@@ -1354,10 +1354,16 @@ it('warns when a routed claim has a project mismatch', async () => {
     .mockResolvedValueOnce({ items: [task], total: 1 })
     .mockResolvedValue({ items: [], total: 0 });
   const claim = vi.fn<TasksNamespace['claim']>().mockRejectedValue(
-    new MoltNetError('mismatch', {
-      code: 'PROJECT_MISMATCH',
-      statusCode: 409,
-    }),
+    problemToError(
+      {
+        type: 'https://themolt.net/problems/project-mismatch',
+        code: 'PROJECT_MISMATCH',
+        title: 'Project mismatch',
+        status: 409,
+        detail: 'Worker project must match task',
+      },
+      409,
+    ),
   );
   const source = new PollingApiTaskSource({
     agent: makeAgent(list, claim),

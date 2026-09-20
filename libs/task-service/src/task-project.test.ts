@@ -52,6 +52,13 @@ describe('task project selection', () => {
     ).rejects.toMatchObject({
       code: 'invalid',
       message: 'Continuation parent task not found in this team',
+      validationErrors: [
+        {
+          field: 'input/continueFrom/taskId',
+          code: 'freeform.sourceTaskNotFound',
+          message: 'Source task parent does not resolve to a task you can read',
+        },
+      ],
     });
   });
   it('permits existing continuations in archived projects but rejects new work', async () => {

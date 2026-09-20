@@ -654,7 +654,10 @@ export class PollingApiTaskSource implements TaskSource {
         };
       } catch (err) {
         const status = statusOf(err);
-        if (err instanceof MoltNetError && err.code === 'PROJECT_MISMATCH') {
+        if (
+          err instanceof MoltNetError &&
+          err.code === 'https://themolt.net/problems/project-mismatch'
+        ) {
           this.logger.warn(
             { taskId: task.id, projectId: this.opts.projectId ?? null },
             'polling-api.project_mismatch',
