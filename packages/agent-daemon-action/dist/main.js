@@ -30553,6 +30553,15 @@ Object.freeze([...[
 	"offline",
 	"offline_access"
 ], ...MCP_CLIENT_SCOPES]);
+Object.freeze({
+	provisioningScope: "moltnet:provision",
+	localControlScope: "moltnet:local-control",
+	provisioningAudience: "moltnet:provisioning",
+	localControlAudience: "moltnet:agent-server",
+	nativeLifetimeSeconds: 300,
+	consoleLifetimeSeconds: 900,
+	callbackPort: 17375
+});
 //#endregion
 //#region ../../libs/models/src/preview-sign.ts
 function schemaRef$1(schema, id) {
@@ -31543,15 +31552,6 @@ var ToolEnforcementSchema = Union([
 	Literal(TOOL_ENFORCEMENT_VALUES[1]),
 	Literal(TOOL_ENFORCEMENT_VALUES[2])
 ], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
-Object.freeze({
-	provisioningScope: "moltnet:provision",
-	localControlScope: "moltnet:local-control",
-	provisioningAudience: "moltnet:provisioning",
-	localControlAudience: "moltnet:agent-server",
-	nativeLifetimeSeconds: 300,
-	consoleLifetimeSeconds: 900,
-	callbackPort: 17375
-});
 //#endregion
 //#region ../../libs/runtime-profiles/src/runtime-profiles.ts
 var RuntimeProfileName = String$1({
