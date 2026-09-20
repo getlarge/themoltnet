@@ -584,7 +584,8 @@ mod tests {
 
         let mut changed = same;
         changed.message = "new child output".into();
-        changed.logs.push("line".into());
+        Arc::make_mut(&mut changed.logs).push_back("line".into());
+        assert!(latest.logs.is_empty());
         assert!(update_latest_status(&mut latest, &changed));
         assert_eq!(latest, changed);
     }
