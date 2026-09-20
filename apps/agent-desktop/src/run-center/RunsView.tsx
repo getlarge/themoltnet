@@ -80,6 +80,7 @@ function RunsList({
 }: Omit<RunsViewProps, 'route'>) {
   const theme = useTheme();
   const [stopping, setStopping] = useState<string | null>(null);
+  const [stopError, setStopError] = useState(false);
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
   const serverReady = ['running', 'update_available'].includes(
@@ -88,8 +89,13 @@ function RunsList({
 
   const stop = async (runId: string) => {
     setStopping(runId);
+    setStopError(false);
     try {
       await actions.stopRun(runId);
+    } catch {
+      // Without this the spinner clears and the run keeps polling, so the
+      // failure is invisible. RunDetail surfaces the same notice.
+      setStopError(true);
     } finally {
       setStopping(null);
     }
@@ -120,6 +126,12 @@ function RunsList({
           New run
         </Button>
       </Stack>
+
+      {stopError ? (
+        <InlineNotice tone="warning" title="Run could not be stopped">
+          Try again or check the Server view.
+        </InlineNotice>
+      ) : null}
 
       {!serverReady ? (
         <InlineNotice tone="warning" title="The Agent Server is not running">
