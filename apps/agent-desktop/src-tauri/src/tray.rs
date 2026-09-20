@@ -1,8 +1,6 @@
 //! Native, read-only machine overview with explicit lifecycle actions.
 //! Refreshes use the existing process grant; no OAuth exchange is involved.
-use crate::{
-    control, lifecycle, operate, show_status, stop_and_exit, with_control_token, AppState,
-};
+use crate::{control, lifecycle, operate, show_status, stop_and_exit, AppState};
 use lifecycle::{DesktopStatus, LifecycleManager, LifecycleState};
 use serde_json::Value;
 use std::{thread, time::Duration};
@@ -354,7 +352,16 @@ pub fn install(app: &mut tauri::App) -> tauri::Result<()> {
 }
 
 fn read(app: &AppHandle, path: &str) -> Option<Value> {
-    with_control_token(&app.state::<AppState>(), |token| control::get(token, path))
+    // This runs on the tray worker, never on the main thread. Release the
+    // lifecycle lock before network I/O so native administration remains live.
+    let token = app
+        .state::<AppState>()
+        .lifecycle
+        .lock()
+        .ok()?
+        .control_token()
+        .cloned()?;
+    control::get(&token, path)
         .ok()
         .and_then(|body| serde_json::from_str(&body).ok())
 }
@@ -363,6 +370,7 @@ fn start_refresh(app: AppHandle) {
     thread::spawn(move || {
         let mut previous = Overview::default();
         let mut tick = 0usize;
+        let mut failures = 0u32;
         loop {
             // Native-only refresh remains available with the window hidden.
             let mut status = app
@@ -380,12 +388,14 @@ fn start_refresh(app: AppHandle) {
                 ..Overview::default()
             };
             if running(next.status.state)
-                && (tick.is_multiple_of(8) || !running(previous.status.state))
+                && (tick.is_multiple_of(8usize << failures.min(2))
+                    || !running(previous.status.state))
             {
                 next.runtime = read(&app, "/v1/status");
-                next.operator = read(&app, "/oauth/metadata")
-                    .and_then(|value| value.get("operatorConfigured").and_then(Value::as_bool));
                 if let Some(runtime) = &next.runtime {
+                    failures = 0;
+                    next.operator = read(&app, "/oauth/metadata")
+                        .and_then(|value| value.get("operatorConfigured").and_then(Value::as_bool));
                     let identity = text(runtime, "selectedIdentity");
                     let old_identity = previous
                         .runtime
@@ -405,6 +415,8 @@ fn start_refresh(app: AppHandle) {
                             previous.catalogue.clone()
                         };
                     }
+                } else {
+                    failures = failures.saturating_add(1);
                 }
             } else if running(next.status.state) {
                 next.runtime = previous.runtime.clone();
