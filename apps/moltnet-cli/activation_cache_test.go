@@ -1218,6 +1218,7 @@ func TestAgentsActivationRefreshRejectsDiaryFromAnotherTeam(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := projectconfig.Update(path, func(config *projectconfig.Config) error {
+		config.Bindings[0].APIURL = resolveAPIURL(nil, filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "identities", "test-agent", "moltnet.json"))
 		config.Bindings[0].TeamID = "00000000-0000-4000-8000-000000000099"
 		return nil
 	}); err != nil {

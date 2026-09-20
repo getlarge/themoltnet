@@ -438,9 +438,15 @@ setup hooks, even when those are saved in the binding. `--dry-run` prints the
 selection without launching or writing.
 
 Use `--config-file <path>` on `projects bindings` or `start` for an explicit
-alternative, including CI. No configuration is discovered from repository files.
-Relative paths written by the CLI resolve from the caller's CWD; relative paths
-inside JSON resolve from the configuration file's directory.
+alternative, including CI. Only use configuration files you trust: their
+bindings select the source folder. No configuration is discovered from
+repository files. Native selection filters bindings by the identity's resolved
+API endpoint and rejects an explicit binding for a different endpoint. `start`
+exports `MOLTNET_PROJECT_CONFIG` and `MOLTNET_PROJECT_BINDING` so activation
+uses the same selection. `projects bindings resolve` uses native ancestor lookup
+by default; pass `--native=false` for project/default selection without a CWD
+match. Relative paths written by the CLI resolve from the caller's CWD; relative
+paths inside JSON resolve from the configuration file's directory.
 
 A minimal configuration is:
 
@@ -461,9 +467,10 @@ A minimal configuration is:
 }
 ```
 
-Multiple bindings may serve a project. A default can select among that project's
-bindings; it never silently chooses between different projects. The file holds
-no credentials. Credential lookup and remote validation happen separately.
+Multiple bindings may serve a project. Outside native ancestor selection, a
+default can select among that project's bindings; it never silently chooses
+between different projects. The file holds no credentials. Credential lookup and
+remote validation happen separately.
 
 ### Migrate legacy contexts
 

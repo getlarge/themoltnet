@@ -8,7 +8,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +41,24 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 	configPath, _ := cmd.Flags().GetString("config-file")
 	bindingName, _ := cmd.Flags().GetString("binding")
-	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName)
+	if configPath == "" {
+		configPath = os.Getenv("MOLTNET_PROJECT_CONFIG")
+	}
+	if configPath == "" {
+		configPath, err = projectconfig.Path()
+		if err != nil {
+			return err
+		}
+	}
+	configPath, err = filepath.Abs(configPath)
+	if err != nil {
+		return err
+	}
+	if bindingName == "" {
+		bindingName = os.Getenv("MOLTNET_PROJECT_BINDING")
+	}
+	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
+	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName, apiURL)
 	if err != nil {
 		return err
 	}
@@ -55,6 +74,8 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 		vars["MOLTNET_DIARY_ID"] = resolvedContext.Binding.DiaryID
 	}
 	vars["MOLTNET_CONTEXT_KEY"] = resolvedContext.Key
+	vars["MOLTNET_PROJECT_CONFIG"] = configPath
+	vars["MOLTNET_API_URL"] = apiURL
 	workingDirectory, err := contextWorkingDirectory()
 	if err != nil {
 		return err
@@ -86,8 +107,13 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	vars["MOLTNET_CREDENTIALS_PATH"] = filepath.Clean(launchConfigPath)
 	vars["MOLTNET_ACTIVE_IDENTITY"] = agentName
 
-	// Resolve target binary
-	targetPath, err := osExec.LookPath(target)
+	vars["PWD"] = workingDirectory
+	// Resolve relative targets against the selected source, including during dry runs.
+	lookupTarget := target
+	if !filepath.IsAbs(target) && strings.ContainsAny(target, `/\`) {
+		lookupTarget = filepath.Join(workingDirectory, target)
+	}
+	targetPath, err := osExec.LookPath(lookupTarget)
 	if err != nil {
 		return fmt.Errorf("%q not found in PATH", target)
 	}
@@ -110,7 +136,7 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 
 	if dryRun {
-		fmt.Fprintf(cmd.OutOrStdout(), "Working directory: %s\n", workingDirectory)
+		fmt.Fprintf(cmd.OutOrStdout(), "Working directory: %s\n", quoteStartValue(workingDirectory))
 		fmt.Fprintf(cmd.OutOrStdout(), "Agent: %s\n", agentName)
 		fmt.Fprintf(cmd.OutOrStdout(), "Target: %s (%s)\n\n", target, targetPath)
 		if len(targetArgs) > 0 {
@@ -131,11 +157,17 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 			if isSecretKey(k) {
 				v = "***"
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "  %s=%s\n", k, v)
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s=%s\n", k, quoteStartValue(v))
 		}
 		return nil
 	}
 
+	if project := resolvedContext.Project; project != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Project binding %q: source %q, endpoint %q\n", project.Name, workingDirectory, project.APIURL)
+		if project.Strategy != "existing" && project.Strategy != "none" {
+			fmt.Fprintln(cmd.ErrOrStderr(), "notice: native start runs in the source folder; isolated workspace preparation is performed by task workers")
+		}
+	}
 	// exec replaces the current process
 	argv := append([]string{target}, targetArgs...)
 	originalDirectory, err := os.Getwd()
@@ -180,4 +212,12 @@ func resolveAgentOAuth2Environment(agentDir, agentName string, registry *SecretP
 func isSecretKey(key string) bool {
 	return strings.HasSuffix(key, "_CLIENT_SECRET") ||
 		strings.Contains(key, "_PRIVATE_KEY")
+}
+
+// Keep ordinary dry-run values readable without allowing control characters to add lines.
+func quoteStartValue(value string) string {
+	if strings.IndexFunc(value, unicode.IsControl) >= 0 {
+		return strconv.Quote(value)
+	}
+	return value
 }

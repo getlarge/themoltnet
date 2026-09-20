@@ -77,7 +77,7 @@ func runEnvCheckCmd(cmd *cobra.Command, identityFlag string) error {
 		failed = true
 	} else if resolvedContext.Binding == nil {
 		// Not a failure: team and diary are optional, as they always were.
-		fmt.Fprintf(cmd.OutOrStdout(), "⚠ no team/diary for %s — run 'moltnet context set' to bind this location\n", resolvedContext.Key)
+		fmt.Fprintf(cmd.OutOrStdout(), "⚠ no team/diary for %s — run 'moltnet projects bindings set' to bind this location\n", resolvedContext.Key)
 	} else {
 		fmt.Fprintf(cmd.OutOrStdout(), "✓ context %s → team %s, diary %s (%s)\n", resolvedContext.Key, resolvedContext.Binding.TeamID, resolvedContext.Binding.DiaryID, resolvedContext.Source)
 	}

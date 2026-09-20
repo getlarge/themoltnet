@@ -36,14 +36,9 @@ type contextBinding struct {
 	DiaryID string `json:"diaryId"`
 }
 
-// contextStore maps a location key to its team/diary binding.
-//
-// A location is the normalized Git remote when the directory is inside a
-// repository that has one, and the canonical directory otherwise. There is
-// deliberately no ancestor lookup, no directory override, and no stored
-// default: one location has one key and one lookup, so there is no precedence
-// between bindings to get wrong. The identity-wide default stays where it has
-// always lived, in the identity env file.
+// contextStore is the legacy location format retained for the explicit migration.
+// Its keys are normalized Git remotes or canonical directories. Native selection
+// uses projectconfig and does not interpret these keys as project bindings.
 type contextStore struct {
 	Version  int                       `json:"version"`
 	Contexts map[string]contextBinding `json:"contexts,omitempty"`
@@ -236,11 +231,11 @@ func identityDefaultBinding(agentDir string) (contextBinding, bool) {
 // resolveContextBinding resolves the team/diary for directory: the binding
 // stored for its location if there is one, otherwise the identity default.
 func resolveContextBinding(agentDir, directory string) (resolvedContextBinding, error) {
-	return resolveContextBindingWithProjectOptions(agentDir, directory, "", "")
+	return resolveContextBindingWithProjectOptions(agentDir, directory, os.Getenv("MOLTNET_PROJECT_CONFIG"), os.Getenv("MOLTNET_PROJECT_BINDING"))
 }
 
 // Local project selection is independent of credentials and never prepares a workspace.
-func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bindingName string) (resolvedContextBinding, error) {
+func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bindingName string, endpointOverride ...string) (resolvedContextBinding, error) {
 	canonical, err := canonicalDirectory(directory)
 	if err != nil {
 		return resolvedContextBinding{}, err
@@ -262,13 +257,17 @@ func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bi
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
-	project, err := projectconfig.Resolve(config, projectconfig.Options{ConfigPath: configPath, CWD: canonical, Native: true, Binding: bindingName})
+	apiURL := resolveAPIURL(nil, filepath.Join(agentDir, "moltnet.json"))
+	if len(endpointOverride) > 0 {
+		apiURL = endpointOverride[0]
+	}
+	project, err := projectconfig.Resolve(config, projectconfig.Options{APIURL: apiURL, ConfigPath: configPath, CWD: canonical, Native: true, Binding: bindingName})
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
 	if project != nil {
 		binding := contextBinding{TeamID: project.TeamID, DiaryID: project.DiaryID}
-		return resolvedContextBinding{Key: "project:" + project.APIURL + ":" + project.TeamID + ":" + project.ProjectID + ":" + project.Name, Source: contextSourceLocation, Binding: &binding, Project: project}, nil
+		return resolvedContextBinding{Key: projectContextKey(project), Source: contextSourceLocation, Binding: &binding, Project: project}, nil
 	}
 	key := "dir:" + canonical
 	if binding, ok := identityDefaultBinding(agentDir); ok {
@@ -328,4 +327,10 @@ func clearContextBinding(agentDir, directory string) (string, bool, error) {
 		return "", false, err
 	}
 	return key, removed, nil
+}
+
+// The key is hashed as an opaque cache identity, never parsed into fields.
+// Quoting each component keeps separators in names and endpoints unambiguous.
+func projectContextKey(project *projectconfig.Binding) string {
+	return fmt.Sprintf("project:%q:%q:%q:%q", project.APIURL, project.TeamID, project.ProjectID, project.Name)
 }

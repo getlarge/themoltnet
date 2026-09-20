@@ -62,7 +62,7 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "Location: %s\nIdentity: %s\n", result.ContextKey, result.Identity)
 	if resolved.Binding == nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none — run 'moltnet context set' to bind this location")
+		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none — run 'moltnet projects bindings set' to bind this location")
 		return nil
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "Source:   %s\nTeam:     %s\nDiary:    %s\n", result.Source, result.TeamID, result.DiaryID)

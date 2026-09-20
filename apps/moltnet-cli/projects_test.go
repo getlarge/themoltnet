@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 )
 
 func TestProjectsCommands(t *testing.T) {
@@ -30,7 +31,7 @@ func TestProjectsBindingsRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	root = NewRootCmd("test", "")
-	out, _, err := executeCommand(root, "projects", "bindings", "resolve", "--config-file", path, "--binding", "local")
+	out, _, err := executeCommand(root, "projects", "bindings", "resolve", "--config-file", path, "--binding", "local", "--api-url", "https://api.example")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +76,7 @@ func TestProjectNativeContextUsesRegisteredAncestor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolved, err := resolveContextBindingWithProjectOptions(t.TempDir(), child, configPath, "")
+	resolved, err := resolveContextBindingWithProjectOptions(t.TempDir(), child, configPath, "", "https://api.example")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +102,7 @@ func TestProjectStartSelectsSourceWithoutPreparingWorkspace(t *testing.T) {
 	source := t.TempDir()
 	configPath := filepath.Join(t.TempDir(), "projects.json")
 	err := projectconfig.Update(configPath, func(config *projectconfig.Config) error {
-		config.Bindings = []projectconfig.Binding{{Name: "local", APIURL: "https://api.example", TeamID: "team", ProjectID: "project", Source: source, Strategy: "git-worktree", Hooks: &projectconfig.Hooks{BeforeRun: &projectconfig.Hook{Command: "must-not-run", Args: []string{}, TimeoutMS: 1000}}}}
+		config.Bindings = []projectconfig.Binding{{Name: "local", APIURL: defaultAPIURL, TeamID: "team", ProjectID: "project", Source: source, Strategy: "git-worktree", Hooks: &projectconfig.Hooks{BeforeRun: &projectconfig.Hook{Command: "must-not-run", Args: []string{}, TimeoutMS: 1000}}}}
 		return nil
 	})
 	if err != nil {

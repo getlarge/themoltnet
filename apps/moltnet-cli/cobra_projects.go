@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,9 +12,7 @@ import (
 )
 
 func projectJSON(cmd *cobra.Command, value any) error {
-	encoder := json.NewEncoder(cmd.OutOrStdout())
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+	return printJSONTo(cmd.OutOrStdout(), value)
 }
 
 func newProjectsCmd() *cobra.Command {
@@ -51,9 +48,9 @@ func newProjectsCmd() *cobra.Command {
 			if action == "list" && (limit < 1 || limit > 100 || offset < 0) {
 				return fmt.Errorf("limit must be between 1 and 100 and offset must be non-negative")
 			}
-			team, err := uuid.Parse(teamID)
+			team, err := parseTeamID(teamID)
 			if err != nil {
-				return fmt.Errorf("invalid team ID: %w", err)
+				return err
 			}
 			var project uuid.UUID
 			if len(args) > 0 {
@@ -78,7 +75,6 @@ func newProjectsCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			var result any
 			switch action {
 			case "create":
 				body := &moltnetapi.CreateProjectReq{Name: name, DefaultDiaryId: diary}
@@ -86,34 +82,13 @@ func newProjectsCmd() *cobra.Command {
 					body.Description = moltnetapi.NewOptNilString(description)
 				}
 				res, e := client.CreateProject(cmd.Context(), body, moltnetapi.CreateProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team)})
-				err = e
-				if err == nil {
-					if value, ok := res.(*moltnetapi.CreateProjectCreated); ok {
-						result = value
-					} else {
-						return formatAPIError(res)
-					}
-				}
+				return printProjectResponse[*moltnetapi.CreateProjectCreated](cmd, res, e)
 			case "list":
 				res, e := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), IncludeArchived: moltnetapi.NewOptBool(includeArchived), Limit: moltnetapi.NewOptInt(limit), Offset: moltnetapi.NewOptInt(offset)})
-				err = e
-				if err == nil {
-					if value, ok := res.(*moltnetapi.ListProjectsOK); ok {
-						result = value
-					} else {
-						return formatAPIError(res)
-					}
-				}
+				return printProjectResponse[*moltnetapi.ListProjectsOK](cmd, res, e)
 			case "get":
 				res, e := client.GetProject(cmd.Context(), moltnetapi.GetProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), ProjectId: project})
-				err = e
-				if err == nil {
-					if value, ok := res.(*moltnetapi.GetProjectOK); ok {
-						result = value
-					} else {
-						return formatAPIError(res)
-					}
-				}
+				return printProjectResponse[*moltnetapi.GetProjectOK](cmd, res, e)
 			case "update", "archive":
 				body := &moltnetapi.UpdateProjectReq{DefaultDiaryId: diary}
 				if action == "archive" {
@@ -126,19 +101,9 @@ func newProjectsCmd() *cobra.Command {
 					body.Description = moltnetapi.NewOptNilString(description)
 				}
 				res, e := client.UpdateProject(cmd.Context(), moltnetapi.NewOptUpdateProjectReq(*body), moltnetapi.UpdateProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), ProjectId: project})
-				err = e
-				if err == nil {
-					if value, ok := res.(*moltnetapi.UpdateProjectOK); ok {
-						result = value
-					} else {
-						return formatAPIError(res)
-					}
-				}
+				return printProjectResponse[*moltnetapi.UpdateProjectOK](cmd, res, e)
 			}
-			if err != nil {
-				return formatTransportError(err)
-			}
-			return projectJSON(cmd, result)
+			return fmt.Errorf("unsupported project action %q", action)
 		}
 		root.AddCommand(command)
 	}
@@ -168,25 +133,37 @@ func newProjectBindingsCmd() *cobra.Command {
 		return projectJSON(cmd, config)
 	}}
 	var binding projectconfig.Binding
-	set := &cobra.Command{Use: "set <name>", Short: "Save a folder and explicit workspace strategy", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	set := &cobra.Command{Use: "set <name>", Short: "Save a folder and explicit workspace strategy; preserve unset optional fields", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := path()
 		if err != nil {
 			return err
 		}
 		binding.Name = args[0]
-		binding.APIURL, _ = cmd.Flags().GetString("api-url")
-		if binding.APIURL == "" {
-			binding.APIURL = "https://api.themolt.net"
-		}
+		credPath, _ := cmd.Flags().GetString("credentials")
+		binding.APIURL = resolveAPIURL(cmd, credPath)
 		if binding.Source != "" {
 			binding.Source, err = filepath.Abs(binding.Source)
 			if err != nil {
 				return err
 			}
 		}
-		return projectconfig.Update(p, func(config *projectconfig.Config) error {
+		err = projectconfig.Update(p, func(config *projectconfig.Config) error {
 			for i, b := range config.Bindings {
 				if b.Name == binding.Name {
+					if !cmd.Flags().Changed("diary-id") {
+						binding.DiaryID = b.DiaryID
+					}
+					if !cmd.Flags().Changed("default") {
+						binding.Default = b.Default
+					}
+					binding.Hooks = b.Hooks
+					if !cmd.Flags().Changed("source") {
+						binding.Source = b.Source
+					}
+					if binding.Strategy == "none" {
+						binding.Source = ""
+						binding.Hooks = nil
+					}
 					config.Bindings[i] = binding
 					return nil
 				}
@@ -194,6 +171,11 @@ func newProjectBindingsCmd() *cobra.Command {
 			config.Bindings = append(config.Bindings, binding)
 			return nil
 		})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Saved binding %q for %s\n", binding.Name, binding.APIURL)
+		return nil
 	}}
 	set.Flags().StringVar(&binding.TeamID, "team-id", "", "Project team ID")
 	set.Flags().StringVar(&binding.ProjectID, "project-id", "", "Shared project ID")
@@ -212,9 +194,8 @@ func newProjectBindingsCmd() *cobra.Command {
 			return err
 		}
 		selection.ConfigPath = p
-		if cmd.Flag("api-url").Changed {
-			selection.APIURL, _ = cmd.Flags().GetString("api-url")
-		}
+		credPath, _ := cmd.Flags().GetString("credentials")
+		selection.APIURL = resolveAPIURL(cmd, credPath)
 		selection.CWD, err = os.Getwd()
 		if err != nil {
 			return err
@@ -238,7 +219,7 @@ func newProjectBindingsCmd() *cobra.Command {
 	resolveCmd.Flags().StringVar(&selection.Binding, "binding", "", "Select an explicit binding")
 	resolveCmd.Flags().StringVar(&selection.ProjectID, "project-id", "", "Select a project")
 	resolveCmd.Flags().StringVar(&selection.TeamID, "team-id", "", "Select a team")
-	resolveCmd.Flags().BoolVar(&selection.Native, "native", false, "Resolve the most specific registered ancestor")
+	resolveCmd.Flags().BoolVar(&selection.Native, "native", true, "Resolve the most specific registered ancestor")
 	resolveCmd.Flags().StringVar(&source, "source", "", "Run-only source override")
 	resolveCmd.Flags().StringVar(&strategy, "strategy", "", "Run-only strategy override")
 	remove := &cobra.Command{Use: "remove <name>", Short: "Remove a registration without deleting its folder", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
@@ -258,4 +239,15 @@ func newProjectBindingsCmd() *cobra.Command {
 	}}
 	root.AddCommand(list, set, resolveCmd, remove)
 	return root
+}
+
+func printProjectResponse[T any](cmd *cobra.Command, result any, err error) error {
+	if err != nil {
+		return formatTransportError(err)
+	}
+	value, ok := result.(T)
+	if !ok {
+		return formatAPIError(result)
+	}
+	return printJSONTo(cmd.OutOrStdout(), value)
 }

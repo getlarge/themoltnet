@@ -430,7 +430,7 @@ func writeProjectTestBinding(t *testing.T, directory, diary string) {
 		t.Fatal(err)
 	}
 	err = projectconfig.Update(path, func(config *projectconfig.Config) error {
-		config.Bindings = []projectconfig.Binding{{Name: "test", APIURL: "https://api.example", TeamID: contextTestTeam, ProjectID: "project", DiaryID: diary, Source: source, Strategy: "existing"}}
+		config.Bindings = []projectconfig.Binding{{Name: "test", APIURL: defaultAPIURL, TeamID: contextTestTeam, ProjectID: "project", DiaryID: diary, Source: source, Strategy: "existing"}}
 		return nil
 	})
 	if err != nil {
