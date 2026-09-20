@@ -108,7 +108,7 @@
   },
   "scripts": {
     "cli": "tsx src/main.ts",
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx ../../tools/src/desktop-development.ts tsx watch src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
