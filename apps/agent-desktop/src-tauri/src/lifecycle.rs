@@ -53,7 +53,7 @@ pub struct DesktopStatus {
     pub trust_fingerprint: Option<String>,
     pub trusted: bool,
     pub message: String,
-    pub logs: Vec<String>,
+    pub logs: Arc<VecDeque<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -95,7 +95,7 @@ enum StartOrigin {
 }
 
 struct LogBuffer {
-    lines: VecDeque<String>,
+    lines: Arc<VecDeque<String>>,
     path: PathBuf,
     file: Option<File>,
     persisted_bytes: u64,
@@ -104,7 +104,7 @@ struct LogBuffer {
 impl LogBuffer {
     fn new(path: PathBuf) -> Self {
         Self {
-            lines: VecDeque::new(),
+            lines: Arc::new(VecDeque::new()),
             path,
             file: None,
             persisted_bytes: 0,
@@ -113,9 +113,10 @@ impl LogBuffer {
 
     fn push(&mut self, line: String) -> Result<(), String> {
         let line = truncate_log_line(&line, MAX_LOG_LINE_BYTES);
-        self.lines.push_back(line.clone());
-        while self.lines.len() > MAX_LOG_LINES {
-            self.lines.pop_front();
+        let lines = Arc::make_mut(&mut self.lines);
+        lines.push_back(line.clone());
+        while lines.len() > MAX_LOG_LINES {
+            lines.pop_front();
         }
 
         let timestamp = SystemTime::now()
@@ -229,7 +230,7 @@ impl LifecycleManager {
         status.logs = self
             .logs
             .lock()
-            .map(|logs| logs.lines.iter().cloned().collect())
+            .map(|logs| Arc::clone(&logs.lines))
             .unwrap_or_default();
         status
     }
@@ -674,6 +675,12 @@ impl LifecycleManager {
     }
 
     fn set_state(&mut self, state: LifecycleState, message: &str) {
+        if self.status.state != state {
+            eprintln!(
+                "agent-desktop lifecycle {:?} -> {:?}",
+                self.status.state, state
+            );
+        }
         self.status.state = state;
         self.status.message = message.into();
     }
@@ -1426,7 +1433,10 @@ mod tests {
         manager.push_log("must not follow the link");
 
         assert_eq!(fs::read_to_string(target).unwrap(), "unchanged");
-        assert_eq!(manager.snapshot().logs, ["must not follow the link"]);
+        assert_eq!(
+            manager.snapshot().logs.front().map(String::as_str),
+            Some("must not follow the link")
+        );
     }
 
     #[test]

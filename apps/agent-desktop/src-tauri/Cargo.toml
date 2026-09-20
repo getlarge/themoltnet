@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 base64 = "0.22"
 libc = "0.2"
 minisign-verify = "0.2.5"
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1"
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-updater = "2"
