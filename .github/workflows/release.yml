@@ -2145,7 +2145,7 @@ jobs:
       ]
     if: ${{ always() && needs.resolve-publish.outputs.pi-extension == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: write
       id-token: write
@@ -2170,6 +2170,25 @@ jobs:
         run: |
           npm install -g @earendil-works/pi-coding-agent
           echo "MOLTNET_PI_BIN=$(npm prefix -g)/bin/pi" >> "$GITHUB_ENV"
+
+      # The Pi Runtime publish job can finish before its new version is visible
+      # to a fresh registry install in the extension's loader smoke.
+      - name: Wait for Pi Runtime on npm
+        run: |
+          expected=$(node -p "require('./libs/pi-runtime/package.json').version")
+          for attempt in {1..20}; do
+            published=$(npm view "@themoltnet/pi-runtime@$expected" version --prefer-online --fetch-retries=0 --fetch-timeout=10000 2>/dev/null || true)
+            if [[ "$published" == "$expected" ]]; then
+              echo "@themoltnet/pi-runtime@$expected is visible on npm"
+              exit 0
+            fi
+            if (( attempt < 20 )); then
+              echo "Waiting for @themoltnet/pi-runtime@$expected on npm (attempt $attempt/20)"
+              sleep 30
+            fi
+          done
+          echo "::error::@themoltnet/pi-runtime@$expected is not visible on npm after 20 attempts"
+          exit 1
 
       - run: pnpm exec nx run @themoltnet/pi-extension:check:pack
         env:
