@@ -5,6 +5,14 @@ type AbortTaskAttemptRes interface {
 	abortTaskAttemptRes()
 }
 
+type AcceptOperatorConsentRes interface {
+	acceptOperatorConsentRes()
+}
+
+type AcceptOperatorLoginRes interface {
+	acceptOperatorLoginRes()
+}
+
 type AcceptTeamFoundingRes interface {
 	acceptTeamFoundingRes()
 }
@@ -249,6 +257,10 @@ type GetOAuth2TokenRes interface {
 	getOAuth2TokenRes()
 }
 
+type GetOperatorConsentRes interface {
+	getOperatorConsentRes()
+}
+
 type GetProjectRes interface {
 	getProjectRes()
 }
@@ -443,6 +455,10 @@ type PreviewDiaryCustomPackRes interface {
 
 type PreviewRenderedPackRes interface {
 	previewRenderedPackRes()
+}
+
+type ProvisionAgentCredentialRes interface {
+	provisionAgentCredentialRes()
 }
 
 type RecoverAgentCredentialsRes interface {

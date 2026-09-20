@@ -243,17 +243,6 @@ export const AgentServerStatusSchema = Type.Object(
   { $id: 'AgentServerStatus' },
 );
 
-export const PairingStartedSchema = Type.Object(
-  { pairingId: Type.String(), approvalPath: Type.String() },
-  { $id: 'PairingStarted' },
-);
-
-export const PairingClaimedSchema = Type.Object(
-  { token: Type.String() },
-  { $id: 'PairingClaimed' },
-);
-
-export const PairingParamsSchema = Type.Object({ pairingId: Type.String() });
 export const ProviderParamsSchema = Type.Object({ providerId: Type.String() });
 export const AgentParamsSchema = Type.Object({ agentName: Type.String() });
 export const RunParamsSchema = Type.Object({ runId: Type.String() });
@@ -333,15 +322,13 @@ export const AGENT_SERVER_SCHEMAS = [
   AgentServerSubscriptionSchema,
   AgentServerSubscriptionLoginSchema,
   AgentServerStatusSchema,
-  PairingStartedSchema,
-  PairingClaimedSchema,
   ReconcileAgentResultSchema,
   DiscoverModelsSchema,
   CancelledSubscriptionSchema,
   LogStreamSchema,
 ] as const;
 
-const pairedSecurity = [{ agentServerToken: [] }] as const;
+const localControlSecurity = [{ agentServerToken: [] }] as const;
 const problemResponse = { default: schemaRef(AgentServerProblemSchema) };
 
 export const AgentServerRouteSchemas = {
@@ -350,27 +337,16 @@ export const AgentServerRouteSchemas = {
     tags: ['system'],
     response: { 200: schemaRef(AgentServerHealthSchema) },
   },
-  startPairing: {
-    operationId: 'startAgentServerPairing',
-    tags: ['pairing'],
-    response: { 201: schemaRef(PairingStartedSchema), ...problemResponse },
-  },
-  claimPairing: {
-    operationId: 'claimAgentServerPairing',
-    tags: ['pairing'],
-    params: PairingParamsSchema,
-    response: { 200: schemaRef(PairingClaimedSchema), ...problemResponse },
-  },
   status: {
     operationId: 'getAgentServerStatus',
     tags: ['system'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     response: { 200: schemaRef(AgentServerStatusSchema), ...problemResponse },
   },
   listAgents: {
     operationId: 'listAgentServerAgents',
     tags: ['agents'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     response: {
       200: Type.Array(schemaRef(AgentServerAgentSchema)),
       ...problemResponse,
@@ -379,25 +355,24 @@ export const AgentServerRouteSchemas = {
   createAgent: {
     operationId: 'createAgentServerAgent',
     tags: ['agents'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     body: CreateAgentSchema,
     response: { 201: schemaRef(AgentServerAgentSchema), ...problemResponse },
   },
   enrollTeam: {
     operationId: 'enrollAgentServerTeam',
     tags: ['agents'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: AgentParamsSchema,
     body: Type.Intersect([
       Type.Object({
-        code: Type.String({ minLength: 1, maxLength: 4096 }),
+        teamId: Type.String({ format: 'uuid' }),
         idempotencyKey: Type.String({ minLength: 1, maxLength: 256 }),
       }),
       Type.Union([
         Type.Object({ mode: Type.Literal('enroll') }),
         Type.Object({
           mode: Type.Literal('replace'),
-          teamId: Type.String({ minLength: 1 }),
         }),
       ]),
     ]),
@@ -422,7 +397,7 @@ export const AgentServerRouteSchemas = {
   reconcileAgent: {
     operationId: 'reconcileAgentServerAgent',
     tags: ['agents'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: AgentParamsSchema,
     body: ReconcileAgentSchema,
     response: {
@@ -433,7 +408,7 @@ export const AgentServerRouteSchemas = {
   listProviders: {
     operationId: 'listAgentServerProviders',
     tags: ['providers'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     response: {
       200: Type.Record(Type.String(), schemaRef(AgentServerProviderSchema)),
       ...problemResponse,
@@ -442,14 +417,14 @@ export const AgentServerRouteSchemas = {
   discoverModels: {
     operationId: 'discoverAgentServerProviderModels',
     tags: ['providers'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: ProviderParamsSchema,
     response: { 200: schemaRef(DiscoverModelsSchema), ...problemResponse },
   },
   putProvider: {
     operationId: 'putAgentServerProvider',
     tags: ['providers'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: ProviderParamsSchema,
     body: PutProviderSchema,
     response: {
@@ -460,14 +435,14 @@ export const AgentServerRouteSchemas = {
   deleteProvider: {
     operationId: 'deleteAgentServerProvider',
     tags: ['providers'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: ProviderParamsSchema,
     response: { 204: Type.Any(), ...problemResponse },
   },
   listSubscriptions: {
     operationId: 'listAgentServerSubscriptions',
     tags: ['subscriptions'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     response: {
       200: Type.Array(schemaRef(AgentServerSubscriptionSchema)),
       ...problemResponse,
@@ -476,7 +451,7 @@ export const AgentServerRouteSchemas = {
   startSubscriptionLogin: {
     operationId: 'startAgentServerSubscriptionLogin',
     tags: ['subscriptions'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: ProviderParamsSchema,
     response: {
       201: schemaRef(AgentServerSubscriptionLoginSchema),
@@ -486,7 +461,7 @@ export const AgentServerRouteSchemas = {
   getSubscriptionLogin: {
     operationId: 'getAgentServerSubscriptionLogin',
     tags: ['subscriptions'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: ProviderParamsSchema,
     response: {
       200: schemaRef(AgentServerSubscriptionLoginSchema),
@@ -496,7 +471,7 @@ export const AgentServerRouteSchemas = {
   cancelSubscriptionLogin: {
     operationId: 'cancelAgentServerSubscriptionLogin',
     tags: ['subscriptions'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: ProviderParamsSchema,
     response: {
       200: schemaRef(CancelledSubscriptionSchema),
@@ -506,7 +481,7 @@ export const AgentServerRouteSchemas = {
   catalogue: {
     operationId: 'getAgentServerCatalogue',
     tags: ['catalogue'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     querystring: CatalogueQuerySchema,
     response: {
       200: schemaRef(AgentServerCatalogueSchema),
@@ -516,7 +491,7 @@ export const AgentServerRouteSchemas = {
   listRuns: {
     operationId: 'listAgentServerRuns',
     tags: ['runs'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     response: {
       200: Type.Array(schemaRef(AgentServerRunSchema)),
       ...problemResponse,
@@ -525,14 +500,14 @@ export const AgentServerRouteSchemas = {
   startRun: {
     operationId: 'startAgentServerRun',
     tags: ['runs'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     body: StartRunSchema,
     response: { 201: schemaRef(AgentServerRunSchema), ...problemResponse },
   },
   stopRun: {
     operationId: 'stopAgentServerRun',
     tags: ['runs'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: RunParamsSchema,
     response: {
       200: schemaRef(AgentServerRunRecordSchema),
@@ -542,7 +517,7 @@ export const AgentServerRouteSchemas = {
   streamRunLogs: {
     operationId: 'streamAgentServerRunLogs',
     tags: ['runs'],
-    security: pairedSecurity,
+    security: localControlSecurity,
     params: RunParamsSchema,
     response: { 200: schemaRef(LogStreamSchema), ...problemResponse },
   },

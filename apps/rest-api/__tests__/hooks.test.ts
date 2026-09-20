@@ -62,6 +62,14 @@ describe('Hook routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    // Schema rejection can leave a one-shot Ory response unconsumed. Tests
+    // are shuffled, so reset this app-owned mock as well as the repositories.
+    vi.mocked(app.oauth2Client.getOAuth2Client)
+      .mockReset()
+      .mockResolvedValue({
+        client_id: 'test-client-id',
+        metadata: { identity_id: OWNER_ID },
+      });
     mockStartWorkflow
       .mockReset()
       .mockReturnValue(
@@ -423,6 +431,153 @@ describe('Hook routes', () => {
         'moltnet:subject_type': 'human',
       });
     });
+
+    it.each(
+      ['moltnet:local-control', 'moltnet:provision'].flatMap((scope) => [
+        { scope, granted: [scope] },
+        { scope, granted: [] },
+      ]),
+    )(
+      'preserves validated $scope consent with hook scopes $granted',
+      async ({ scope, granted }) => {
+        vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
+        try {
+          vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+            client_id: 'native-client',
+            metadata: {},
+          });
+          mocks.humanRepository.findByIdentityId.mockResolvedValue({
+            id: HUMAN_ID,
+            identityId: HUMAN_IDENTITY_ID,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          const provisioning = {
+            agentId: OWNER_ID,
+            teamId: HUMAN_ID,
+            operation: 'enroll',
+            scopes: ['task:execute'],
+            idempotencyKey: 'approved-request',
+          };
+          const response = await app.inject({
+            method: 'POST',
+            url: '/hooks/hydra/token-exchange',
+            headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+            payload: {
+              session: {
+                id_token: { subject: HUMAN_IDENTITY_ID },
+                extra: {
+                  'moltnet:identity_id': HUMAN_IDENTITY_ID,
+                  'moltnet:subject_type': 'human',
+                  'moltnet:instance': OWNER_ID,
+                  'moltnet:approved_scope': scope,
+                  unapproved: 'must-not-survive',
+                  ...(scope === 'moltnet:provision'
+                    ? {
+                        'moltnet:provisioning': provisioning,
+                        'moltnet:delegable_scopes': [
+                          'key:manage',
+                          'task:execute',
+                        ],
+                      }
+                    : {}),
+                },
+              },
+              request: {
+                client_id: 'native-client',
+                grant_types: ['authorization_code'],
+                granted_scopes: granted,
+              },
+            },
+          });
+          expect(response.statusCode).toBe(200);
+          expect(response.json().session.access_token).toEqual({
+            'moltnet:identity_id': HUMAN_IDENTITY_ID,
+            'moltnet:human_id': HUMAN_ID,
+            'moltnet:subject_type': 'human',
+            'moltnet:instance': OWNER_ID,
+            ...(scope === 'moltnet:provision'
+              ? {
+                  'moltnet:provisioning': provisioning,
+                  'moltnet:delegable_scopes': ['key:manage', 'task:execute'],
+                }
+              : {}),
+          });
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      },
+    );
+
+    it.each([
+      { approved: undefined, granted: [] },
+      { approved: undefined, granted: ['moltnet:local-control'] },
+      { approved: ['moltnet:local-control'], granted: [] },
+      { approved: 'diary:manage', granted: [] },
+      { approved: 'moltnet:local-control', granted: undefined },
+      {
+        approved: 'moltnet:local-control',
+        granted: { scope: 'moltnet:local-control' },
+      },
+      { approved: 'moltnet:local-control', granted: ['moltnet:provision'] },
+      {
+        approved: 'moltnet:local-control',
+        granted: ['moltnet:local-control', 'diary:manage'],
+      },
+      {
+        approved: 'moltnet:provision',
+        granted: [],
+        clientId: 'console-client',
+      },
+    ])(
+      'rejects invalid administrative scope binding $approved / $granted',
+      async ({ approved, granted, clientId = 'native-client' }) => {
+        vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
+        vi.stubEnv('MOLTNET_CONSOLE_OAUTH_CLIENT_ID', 'console-client');
+        try {
+          vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+            client_id: clientId,
+            metadata: {},
+          });
+          const response = await app.inject({
+            method: 'POST',
+            url: '/hooks/hydra/token-exchange',
+            headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+            payload: {
+              session: {
+                id_token: { subject: HUMAN_IDENTITY_ID },
+                extra: {
+                  'moltnet:identity_id': HUMAN_IDENTITY_ID,
+                  'moltnet:subject_type': 'human',
+                  'moltnet:instance': OWNER_ID,
+                  'moltnet:approved_scope': approved,
+                  ...(approved === 'moltnet:provision'
+                    ? {
+                        'moltnet:provisioning': {
+                          agentId: OWNER_ID,
+                          teamId: HUMAN_ID,
+                          operation: 'enroll',
+                          scopes: ['task:execute'],
+                          idempotencyKey: 'approved-request',
+                        },
+                      }
+                    : {}),
+                },
+              },
+              request: {
+                client_id: clientId,
+                grant_types: ['authorization_code'],
+                granted_scopes: granted,
+              },
+            },
+          });
+          expect([400, 403]).toContain(response.statusCode);
+          expect(mocks.humanRepository.findByIdentityId).not.toHaveBeenCalled();
+        } finally {
+          vi.unstubAllEnvs();
+        }
+      },
+    );
 
     it('denies a self-registered client granted a scope above the DCR cap', async () => {
       // Arrange: a DCR client (no MoltNet metadata) whose grant carries

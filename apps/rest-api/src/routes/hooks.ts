@@ -10,13 +10,21 @@
 import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import type { OryClients } from '@moltnet/auth';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  LOCAL_CONTROL_SCOPE,
+  type OryClients,
+  PROVISIONING_SCOPE,
+  readDelegableScopes,
+  readProvisioningGrant,
+} from '@moltnet/auth';
 import { DBOS, DBOSErrors, type HumanRepository } from '@moltnet/database';
 import { DCR_MAX_SCOPES } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import { loadOperatorOAuthClients } from '../config.js';
 import {
   DEFAULT_WORKFLOW_TIMEOUT_MS,
   HUMAN_ONBOARDING_QUEUE_NAME,
@@ -595,63 +603,135 @@ export async function hookRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // ── Self-registered (DCR) client cap ─────────────────────
-        // Anything reaching this point registered through open Dynamic
-        // Client Registration: both first-party creation sites stamp
-        // `metadata.identity_id`, so they returned above. DCR is open by
-        // design — chat agents have no other way to reach the MCP server —
-        // which means registration proves nothing about the registrant and
-        // the grant is the only thing limiting them.
-        //
-        // Hydra's token hook can add session claims or deny with 403; it
-        // cannot narrow `granted_scopes`. So an over-broad grant cannot be
-        // trimmed down to the cap, only refused.
-        //
-        // `default_grant_allowed_scope` is `true` (#2162), but it is scoped to
-        // `oauth2.client_credentials`, so it does not widen this population:
-        // DCR clients reaching here came through authorization_code, whose
-        // granted scopes are what the client asked for. A DCR client using
-        // client_credentials never gets this far — it has no id_token subject
-        // and falls through to identity_not_found below.
-        // Fail closed on an absent or malformed list. `granted_scopes` is
-        // optional in the schema because the agent path above does not need
-        // it, but here it is the only evidence of what the token will carry —
-        // treating "not stated" as "nothing granted" would let a malformed
-        // payload walk past the cap and mint a human-subject token.
-        if (!Array.isArray(tokenRequest.granted_scopes)) {
-          fastify.log.warn(
-            { client_id: tokenRequest.client_id },
-            'Token exchange: self-registered client sent no granted_scopes',
+        // Administratively registered public clients use consent-bound grants.
+        // They are not dynamic registrations and never inherit the DCR ceiling.
+        const clients = loadOperatorOAuthClients();
+        const nativeClient =
+          !!clients.nativeClientId &&
+          tokenRequest.client_id === clients.nativeClientId;
+        const consoleClient =
+          !!clients.consoleClientId &&
+          tokenRequest.client_id === clients.consoleClientId;
+        let approvedExtra: Record<string, unknown> = {};
+        if (nativeClient || consoleClient) {
+          const granted = tokenRequest.granted_scopes;
+          const extra = session.extra ?? {};
+          const provisioning = readProvisioningGrant(
+            extra['moltnet:provisioning'],
           );
-          return await reply.status(403).send({
-            error: 'scope_not_allowed',
-            error_description:
-              'A self-registered client must present its granted scopes.',
-          });
-        }
-        const overGrantedScopes = tokenRequest.granted_scopes.filter(
-          (scope) => !DCR_MAX_SCOPES.includes(scope),
-        );
-        if (overGrantedScopes.length > 0) {
-          // The list is attacker-controlled in both length and content, and it
-          // reaches a log sink and a response body. Report a bounded sample
-          // rather than echoing it whole.
-          const reported = boundScopeSample(overGrantedScopes);
-          fastify.log.warn(
-            {
-              client_id: tokenRequest.client_id,
-              over_granted_scopes: reported.sample,
-              over_granted_scope_count: overGrantedScopes.length,
-            },
-            'Token exchange: self-registered client exceeded the DCR scope cap',
+          const delegableScopes = readDelegableScopes(
+            extra['moltnet:delegable_scopes'],
           );
-          return await reply.status(403).send({
-            error: 'scope_not_allowed',
-            error_description:
-              `A self-registered client may not be granted ` +
-              `${reported.text}. Re-register requesting only the MCP tool ` +
-              `scopes.`,
-          });
+          // Hydra can invoke the authorization-code hook before populating
+          // granted_scopes (ory/hydra#3620). Our consent handler stamps the
+          // validated scope into the server-owned session instead.
+          const scope = extra['moltnet:approved_scope'];
+          if (
+            tokenRequest.grant_types?.join(' ') !== 'authorization_code' ||
+            !Array.isArray(granted) ||
+            (granted.length !== 0 &&
+              (granted.length !== 1 || granted[0] !== scope)) ||
+            extra['moltnet:subject_type'] !== 'human' ||
+            extra['moltnet:identity_id'] !== session.id_token?.subject ||
+            typeof extra['moltnet:instance'] !== 'string' ||
+            !/^[0-9a-f-]{36}$/i.test(extra['moltnet:instance']) ||
+            (scope !== LOCAL_CONTROL_SCOPE &&
+              !(nativeClient && scope === PROVISIONING_SCOPE)) ||
+            (scope === PROVISIONING_SCOPE &&
+              (!provisioning ||
+                !delegableScopes?.includes('key:manage') ||
+                provisioning.scopes.some(
+                  (scope) => !delegableScopes.includes(scope),
+                ) ||
+                provisioning.scopes.some(
+                  (value) =>
+                    !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
+                      value,
+                    ),
+                ))) ||
+            (scope === LOCAL_CONTROL_SCOPE &&
+              extra['moltnet:provisioning'] !== undefined)
+          ) {
+            request.log.warn(
+              {
+                stage: 'administrative-consent',
+                clientKind: nativeClient ? 'native' : 'console',
+              },
+              'Administrative consent grant rejected',
+            );
+            return await reply.status(403).send({
+              error: 'scope_not_allowed',
+              error_description: 'Invalid administrative consent grant',
+            });
+          }
+          approvedExtra = {
+            'moltnet:instance': extra['moltnet:instance'],
+            ...(provisioning
+              ? {
+                  'moltnet:provisioning': provisioning,
+                  'moltnet:delegable_scopes': delegableScopes,
+                }
+              : {}),
+          };
+        } else {
+          // ── Self-registered (DCR) client cap ─────────────────────
+          // Other clients reaching this point registered through open Dynamic
+          // Client Registration: both first-party creation sites stamp
+          // `metadata.identity_id`, so they returned above. DCR is open by
+          // design — chat agents have no other way to reach the MCP server —
+          // which means registration proves nothing about the registrant and
+          // the grant is the only thing limiting them.
+          //
+          // Hydra's token hook can add session claims or deny with 403; it
+          // cannot narrow `granted_scopes`. So an over-broad grant cannot be
+          // trimmed down to the cap, only refused.
+          //
+          // `default_grant_allowed_scope` is `true` (#2162), but it is scoped to
+          // `oauth2.client_credentials`, so it does not widen this population:
+          // DCR clients reaching here came through authorization_code, whose
+          // granted scopes are what the client asked for. A DCR client using
+          // client_credentials never gets this far — it has no id_token subject
+          // and falls through to identity_not_found below.
+          // Fail closed on an absent or malformed list. `granted_scopes` is
+          // optional in the schema because the agent path above does not need
+          // it, but here it is the only evidence of what the token will carry —
+          // treating "not stated" as "nothing granted" would let a malformed
+          // payload walk past the cap and mint a human-subject token.
+          if (!Array.isArray(tokenRequest.granted_scopes)) {
+            fastify.log.warn(
+              { client_id: tokenRequest.client_id },
+              'Token exchange: self-registered client sent no granted_scopes',
+            );
+            return await reply.status(403).send({
+              error: 'scope_not_allowed',
+              error_description:
+                'A self-registered client must present its granted scopes.',
+            });
+          }
+          const overGrantedScopes = tokenRequest.granted_scopes.filter(
+            (scope) => !DCR_MAX_SCOPES.includes(scope),
+          );
+          if (overGrantedScopes.length > 0) {
+            // The list is attacker-controlled in both length and content, and it
+            // reaches a log sink and a response body. Report a bounded sample
+            // rather than echoing it whole.
+            const reported = boundScopeSample(overGrantedScopes);
+            fastify.log.warn(
+              {
+                client_id: tokenRequest.client_id,
+                over_granted_scopes: reported.sample,
+                over_granted_scope_count: overGrantedScopes.length,
+              },
+              'Token exchange: self-registered client exceeded the DCR scope cap',
+            );
+            return await reply.status(403).send({
+              error: 'scope_not_allowed',
+              error_description:
+                `A self-registered client may not be granted ` +
+                `${reported.text}. Re-register requesting only the MCP tool ` +
+                `scopes.`,
+            });
+          }
         }
 
         // ── Human path ───────────────────────────────────────────
@@ -670,6 +750,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
             return await reply.status(200).send({
               session: {
                 access_token: {
+                  ...approvedExtra,
                   'moltnet:identity_id': subject,
                   'moltnet:human_id': human.id,
                   'moltnet:subject_type': 'human',

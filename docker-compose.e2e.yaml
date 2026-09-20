@@ -115,8 +115,10 @@ services:
       file: docker-compose.base.yaml
       service: hydra
     environment:
+      URLS_LOGIN: http://localhost:5174/oauth/login
+      URLS_CONSENT: http://localhost:5174/oauth/consent
       URLS_SELF_ISSUER: http://hydra:4444
-      URLS_SELF_PUBLIC: http://hydra:4444
+      URLS_SELF_PUBLIC: http://localhost:4444
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully
@@ -193,6 +195,8 @@ services:
       # Integration tests assert immediate revocation. Production keeps the
       # documented 60-second positive-cache window; TTL zero still exercises
       # single-flight request coalescing without retaining positive entries.
+      MOLTNET_NATIVE_OAUTH_CLIENT_ID: moltnet-native-e2e
+      MOLTNET_CONSOLE_OAUTH_CLIENT_ID: moltnet-console-e2e
       ORY_AUTH_CACHE_TTL_MS: '0'
       ORY_ACTION_API_KEY: local-dev-webhook-key
       RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
@@ -278,8 +282,13 @@ services:
       KRATOS_PUBLIC_URL: http://localhost:4433
       API_BASE_URL: http://localhost:8080
       CONSOLE_BASE_URL: http://localhost:5174
+      MOLTNET_CONSOLE_OAUTH_CLIENT_ID: moltnet-console-e2e
+      MOLTNET_OPERATOR_OAUTH_ISSUER: http://hydra:4444
+      MOLTNET_OPERATOR_OAUTH_PUBLIC_URL: http://localhost:4444
       SIGNER_BASE_URL: http://127.0.0.1:17373
-      MOLTNET_AGENT_SERVER_URL: ${MOLTNET_AGENT_SERVER_URL:-https://127.0.0.1:17374}
+      # The browser suite starts its Linux loopback supervisor over HTTP.
+      # Use an explicit endpoint; production Console never downgrades TLS.
+      MOLTNET_AGENT_SERVER_URL: ${MOLTNET_AGENT_SERVER_URL:-http://127.0.0.1:17374}
     depends_on:
       rest-api:
         condition: service_healthy

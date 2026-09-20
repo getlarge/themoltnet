@@ -1,13 +1,8 @@
-/**
- * `moltnet-agent server` — per-user loopback supervisor (#2061).
- *
- * Starts nothing on its own: it binds 127.0.0.1 and waits for a paired
- * Console origin to configure agents/providers and start/stop runs.
- */
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
 import { parseAllowedOrigins } from '@moltnet/loopback-companion';
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
@@ -22,7 +17,8 @@ import {
   applyNativeClientGrant,
   NATIVE_TOKEN_ENV,
 } from '../lib/agent-server/native-grant.js';
-import { PairingService } from '../lib/agent-server/pairing.js';
+import { NativeGrantService } from '../lib/agent-server/native-grant-service.js';
+import { OperatorOAuth } from '../lib/agent-server/operator-oauth.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
 import { RuntimeRegistry } from '../lib/agent-server/runtime-registry.js';
@@ -45,7 +41,14 @@ import { parseLocalOperationalSettings } from '../lib/options.js';
 import { ProviderConfigurationService } from '../lib/provider-configuration.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 
-const DEFAULT_PORT = 17374;
+/**
+ * `moltnet-agent server` — per-user loopback supervisor (#2061).
+ *
+ * Starts nothing on its own: it binds 127.0.0.1 and waits for an authorized
+ * Console origin to configure agents/providers and start/stop runs.
+ */
+
+const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const DEFAULT_API_URL = 'https://api.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
@@ -112,11 +115,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           const secretProviders =
             createNodeSecretProviderRegistry().register(secrets);
           const externalSecretProviders = createNodeSecretProviderRegistry();
-          const pairing = new PairingService();
+          const nativeGrant = new NativeGrantService();
           // Consumes MOLTNET_AGENT_SERVER_NATIVE_TOKEN from process.env, so
           // run children spawned later cannot inherit the desktop's token.
           const nativeClient = applyNativeClientGrant({
-            pairing,
+            nativeGrant,
             env: processEnvSnapshot(),
           });
           if (Boolean(values.supervised) && !nativeClient) {
@@ -127,7 +130,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             console.error(
               `A supervised Agent Server requires ${NATIVE_TOKEN_ENV}. ` +
                 'Start it from MoltNet Agent, or omit --supervised to run it ' +
-                'for browser pairing only.',
+                'to reconnect Console to an operator already established by Desktop.',
             );
             return 1;
           }
@@ -156,12 +159,36 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           });
           const tls = isMacos() ? await ensureTrustedLocalTls(root) : undefined;
           const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
+          const operatorConfig = envConfig.operatorOAuth;
+          const operatorOAuth = operatorConfig
+            ? new OperatorOAuth(
+                {
+                  issuer: operatorConfig.issuer,
+                  authorizationUrl: new URL(
+                    '/oauth2/auth',
+                    operatorConfig.publicUrl,
+                  ).href,
+                  tokenUrl: new URL('/oauth2/token', operatorConfig.publicUrl)
+                    .href,
+                  jwksUrl: new URL(
+                    '/.well-known/jwks.json',
+                    operatorConfig.publicUrl,
+                  ).href,
+                  nativeClientId: operatorConfig.nativeClientId,
+                  consoleClientId: operatorConfig.consoleClientId,
+                  callbackPort: OPERATOR_OAUTH.callbackPort,
+                },
+                root,
+              )
+            : undefined;
           const app = buildAgentServer({
+            operatorOAuth,
+            operatorApiUrl: operatorConfig?.apiUrl,
             store,
             secrets,
             secretProviders,
             externalSecretProviders,
-            pairing,
+            nativeGrant,
             runs,
             subscriptions,
             providers,
@@ -188,7 +215,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
               console.error('native desktop client: authorized');
             }
             console.error(
-              'Pair from the Console "Local runtime" page; approve the one-click prompt this server opens.',
+              'Sign in through Desktop, then connect from the Console "Local runtime" page.',
             );
 
             return await waitForAgentServerShutdown(

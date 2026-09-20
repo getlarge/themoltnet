@@ -11,11 +11,11 @@ import type { Catalogue, CatalogueAgentPort } from './catalogue.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
+  authorize,
   cleanupAll,
   CONSOLE_ORIGIN,
   fixture,
   HOST,
-  pair,
 } from './server-test-harness.js';
 
 afterEach(cleanupAll);
@@ -75,7 +75,7 @@ describe('run catalogue', () => {
     const { app, store } = await fixture({
       catalogueAgentFor: () => Promise.resolve(catalogueAgent),
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
 
     // Act
@@ -154,7 +154,7 @@ describe('run catalogue', () => {
     const { app } = await fixture({
       catalogueAgentFor: () => Promise.resolve(catalogueAgent),
     });
-    const token = await pair(app);
+    const token = await authorize(app);
 
     // Act
     const response = await app.inject({
@@ -183,7 +183,7 @@ describe('run catalogue', () => {
           readTeam: () => Promise.reject(stale),
         }),
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
 
     // Act
@@ -215,7 +215,7 @@ describe('run catalogue', () => {
     const { app, store } = await fixture({
       catalogueAgentFor: () => Promise.resolve(catalogueAgent),
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
 
     // Act

@@ -21,9 +21,9 @@ use std::time::Duration;
 pub const NATIVE_TOKEN_ENV: &str = "MOLTNET_AGENT_SERVER_NATIVE_TOKEN";
 
 const TOKEN_HEADER: &str = "x-moltnet-agent-server-token";
-/// Must match `NATIVE_CLIENT_ORIGIN` in the daemon's `pairing.ts`.
+/// Must match `NATIVE_CLIENT_ORIGIN` in the daemon's `native-grant-service.ts`.
 const NATIVE_ORIGIN: &str = "moltnet-agent-desktop://native";
-const BASE_URL: &str = "https://127.0.0.1:17374";
+use crate::operator_oauth::{APPROVAL_TIMEOUT_SECONDS, BASE_URL};
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 
 /// 32 bytes of entropy, base64url-encoded without padding.
@@ -62,25 +62,35 @@ impl std::fmt::Debug for NativeToken {
     }
 }
 
-fn client() -> ureq::Agent {
-    static CLIENT: OnceLock<ureq::Agent> = OnceLock::new();
-    CLIENT
-        .get_or_init(|| {
-            ureq::Agent::config_builder()
-                .timeout_global(Some(REQUEST_TIMEOUT))
-                // Let a 4xx return normally so the server's own problem message can be
-                // read off the body. The brief asks for actionable errors, and "the
-                // profile needs ANTHROPIC_API_KEY" beats "403".
-                .http_status_as_error(false)
-                .build()
-                .into()
-        })
-        .clone()
+fn client(timeout: Duration) -> ureq::Agent {
+    static REQUEST_CLIENT: OnceLock<ureq::Agent> = OnceLock::new();
+    static APPROVAL_CLIENT: OnceLock<ureq::Agent> = OnceLock::new();
+    let slot = if timeout == REQUEST_TIMEOUT {
+        &REQUEST_CLIENT
+    } else {
+        &APPROVAL_CLIENT
+    };
+    slot.get_or_init(|| {
+        ureq::Agent::config_builder()
+            .timeout_global(Some(timeout))
+            .tls_config(
+                ureq::tls::TlsConfig::builder()
+                    .root_certs(ureq::tls::RootCerts::PlatformVerifier)
+                    .build(),
+            )
+            // Let a 4xx return normally so the server's own problem message can be
+            // read off the body. The brief asks for actionable errors, and "the
+            // profile needs ANTHROPIC_API_KEY" beats "403".
+            .http_status_as_error(false)
+            .build()
+            .into()
+    })
+    .clone()
 }
 
 /// Read from the control API.
 pub fn get(token: &NativeToken, path: &str) -> Result<String, String> {
-    let response = client()
+    let response = client(REQUEST_TIMEOUT)
         .get(format!("{BASE_URL}{path}"))
         .header(TOKEN_HEADER, token.expose())
         .header("origin", NATIVE_ORIGIN)
@@ -90,7 +100,14 @@ pub fn get(token: &NativeToken, path: &str) -> Result<String, String> {
 
 /// Write to the control API with a JSON payload.
 pub fn post(token: &NativeToken, path: &str, body: &str) -> Result<String, String> {
-    let response = client()
+    let timeout = if path == "/v1/operator/sign-in"
+        || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
+    {
+        Duration::from_secs(APPROVAL_TIMEOUT_SECONDS)
+    } else {
+        REQUEST_TIMEOUT
+    };
+    let response = client(timeout)
         .post(format!("{BASE_URL}{path}"))
         .header(TOKEN_HEADER, token.expose())
         .header("origin", NATIVE_ORIGIN)
@@ -101,7 +118,7 @@ pub fn post(token: &NativeToken, path: &str, body: &str) -> Result<String, Strin
 
 /// Replace a resource through the control API.
 pub fn put(token: &NativeToken, path: &str, body: &str) -> Result<String, String> {
-    let response = client()
+    let response = client(REQUEST_TIMEOUT)
         .put(format!("{BASE_URL}{path}"))
         .header(TOKEN_HEADER, token.expose())
         .header("origin", NATIVE_ORIGIN)
@@ -112,7 +129,7 @@ pub fn put(token: &NativeToken, path: &str, body: &str) -> Result<String, String
 
 /// Delete through the control API.
 pub fn delete(token: &NativeToken, path: &str) -> Result<String, String> {
-    let response = client()
+    let response = client(REQUEST_TIMEOUT)
         .delete(format!("{BASE_URL}{path}"))
         .header(TOKEN_HEADER, token.expose())
         .header("origin", NATIVE_ORIGIN)
@@ -218,10 +235,10 @@ mod tests {
 
     #[test]
     fn prefers_the_servers_own_problem_message() {
-        let body = r#"{"code":"pairing_token_invalid","message":"Pairing token is not valid"}"#;
+        let body = r#"{"code":"native_token_invalid","message":"Native token is not valid"}"#;
         assert_eq!(
             problem_message(body).as_deref(),
-            Some("Pairing token is not valid")
+            Some("Native token is not valid")
         );
     }
 

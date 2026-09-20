@@ -3,7 +3,7 @@
  *
  * Loopback-only, `credentials: 'omit'` — the browser session never reaches
  * the companion (same rule as the signer client). Authenticated routes carry
- * the origin-bound pairing token in `x-moltnet-agent-server-token`; the header name
+ * the instance-bound OAuth token in `x-moltnet-agent-server-token`; the header name
  * mirrors `AGENT_SERVER_TOKEN_HEADER` in
  * `apps/agent-daemon/src/lib/agent-server/server.ts`.
  */
@@ -27,8 +27,6 @@ import {
   AgentServerRunViewSchema,
   AgentServerSubscriptionLoginSchema,
   DiscoverModelsSchema,
-  PairingClaimedSchema,
-  PairingStartedSchema,
   parseAgentServerResponse,
   parseAgentServerStatus,
   ProblemSchema,
@@ -75,9 +73,6 @@ export class AgentServerClientError extends Error {
 export interface AgentServerClient {
   baseUrl: string;
   health(): Promise<AgentServerHealthResult>;
-  startPairing(): Promise<{ pairingId: string; approvalPath: string }>;
-  claimPairing(pairingId: string): Promise<{ token: string }>;
-  approvalUrl(approvalPath: string): string;
   status(): Promise<AgentServerStatus>;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgent>;
   putProvider(id: string, body: PutProviderBody): Promise<AgentServerProvider>;
@@ -181,22 +176,6 @@ export function createAgentServerClient(options: {
               : 'network',
         };
       }
-    },
-    startPairing() {
-      return request('POST', '/v1/pairings', (value) =>
-        parseAgentServerResponse(PairingStartedSchema, value, 'pairing'),
-      );
-    },
-    claimPairing(pairingId: string) {
-      return request(
-        'POST',
-        `/v1/pairings/${encodeURIComponent(pairingId)}/claim`,
-        (value) =>
-          parseAgentServerResponse(PairingClaimedSchema, value, 'claim'),
-      );
-    },
-    approvalUrl(approvalPath: string): string {
-      return `${base}${approvalPath}`;
     },
     status() {
       return request('GET', '/v1/status', parseAgentServerStatus);
@@ -307,7 +286,7 @@ export function createAgentServerClient(options: {
       );
       return result.models;
     },
-    // SSE over fetch: EventSource cannot send the pairing-token header, so
+    // SSE over fetch: EventSource cannot send the local-control token header, so
     // read the stream manually and surface `data:` payload lines.
     async streamLogs(
       runId: string,

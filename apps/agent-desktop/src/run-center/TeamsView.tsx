@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { credentialLabel, expiryLabel } from './credential-health.js';
 import type {
@@ -36,11 +36,11 @@ export function TeamsView({
       '',
   );
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
-  const [mode, setMode] = useState<'enroll' | 'new' | 'replace'>('enroll');
+  const [mode, setMode] = useState<'enroll' | 'replace'>('enroll');
   const [team, setTeam] = useState<AgentServerCatalogueTeam | null>(null);
-  const [name, setName] = useState('');
-  const [invitation, setInvitation] = useState('');
+  const [destinationTeamId, setDestinationTeamId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -49,12 +49,13 @@ export function TeamsView({
     error: boolean;
   } | null>(null);
   const inFlight = useRef(false);
-  const invitationId = useId();
-  useEffect(() => {
-    if (mode === 'replace' && team)
-      document.getElementById(invitationId)?.focus();
-  }, [mode, team, invitationId]);
+  const cancellationRequested = useRef(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
+  useEffect(() => {
+    if (!feedback || feedback.error) return;
+    const timer = window.setTimeout(() => setFeedback(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
   useEffect(() => {
     let current = true;
     setCatalogue(null);
@@ -101,25 +102,22 @@ export function TeamsView({
   }, [data.status, identity]);
 
   const submit = async () => {
-    if (inFlight.current || !invitation.trim()) return;
+    if (inFlight.current || (mode !== 'replace' && !destinationTeamId.trim()))
+      return;
     inFlight.current = true;
-    const code = invitation.trim();
-    setInvitation('');
+    cancellationRequested.current = false;
+    const teamId = mode === 'replace' ? team!.teamId : destinationTeamId.trim();
     setConfirm(false);
     setBusy(true);
     setFeedback(null);
     try {
-      if (mode === 'new') {
-        if (!actions.createIdentity) throw new Error('Creation unavailable');
-        await actions.createIdentity(name.trim(), code);
-        setIdentity(name.trim());
-      } else {
+      {
         if (!actions.enrollTeam) throw new Error('Enrollment unavailable');
         const result = await actions.enrollTeam(identity, {
-          code,
+          teamId,
           idempotencyKey: crypto.randomUUID(),
           ...(mode === 'replace' && team
-            ? { mode: 'replace', teamId: team.teamId }
+            ? { mode: 'replace' }
             : { mode: 'enroll' }),
         });
         if (result.state === 'recovery_required') {
@@ -148,25 +146,17 @@ export function TeamsView({
       setTeam(null);
     } catch {
       setFeedback({
-        title: 'Enrollment could not be confirmed',
+        title: cancellationRequested.current
+          ? 'Approval cancelled'
+          : 'Enrollment could not be confirmed',
         message:
-          'Refresh team access before retrying. Check the invitation and selected team; if issuance completed, inspect local recovery status before using a fresh invitation.',
-        error: true,
+          'Refresh team access before retrying. If issuance completed, inspect local recovery status before using a fresh approval.',
+        error: !cancellationRequested.current,
       });
     } finally {
       inFlight.current = false;
       setBusy(false);
-    }
-  };
-  const openConsole = async (teamId?: string) => {
-    try {
-      await actions.openTeamInvites?.(teamId);
-    } catch {
-      setFeedback({
-        title: 'Console could not open',
-        message: 'Open Console and select the team’s Invites tab.',
-        error: true,
-      });
+      setCancelling(false);
     }
   };
   return (
@@ -192,9 +182,80 @@ export function TeamsView({
           </Button>
         </Stack>
         <Text color="secondary">
-          Enroll this identity with an invitation from your team’s Console.
+          Approve team access in Console. The credential is saved automatically
+          on this computer.
         </Text>
       </Stack>
+      {data.operatorConfigured ? (
+        <Stack direction="row" gap={3} align="center">
+          <Badge variant="success">Signed in</Badge>
+          <Text variant="caption" color="secondary">
+            Local control enabled on this computer
+          </Text>
+        </Stack>
+      ) : (
+        <Button
+          variant="secondary"
+          disabled={busy}
+          onClick={async () => {
+            cancellationRequested.current = false;
+            setBusy(true);
+            setFeedback(null);
+            try {
+              if (!actions.signInOperator)
+                throw new Error('Native sign-in unavailable');
+              await actions.signInOperator();
+              await actions.refresh?.();
+              setFeedback({
+                title: 'Local operator signed in',
+                message: 'You can now connect Console to local agents.',
+                error: false,
+              });
+            } catch {
+              setFeedback({
+                title: cancellationRequested.current
+                  ? 'Approval cancelled'
+                  : 'Sign-in did not complete',
+                message: 'Try again and approve in Console.',
+                error: !cancellationRequested.current,
+              });
+            } finally {
+              setBusy(false);
+              setCancelling(false);
+            }
+          }}
+        >
+          Sign in for local control
+        </Button>
+      )}
+      {busy && actions.cancelOperatorApproval ? (
+        <Stack direction="row" gap={3} align="center" wrap>
+          <Text variant="caption" color="secondary">
+            If you closed the approval tab, cancel here to try again.
+          </Text>
+          <Button
+            variant="secondary"
+            disabled={cancelling}
+            onClick={async () => {
+              setCancelling(true);
+              cancellationRequested.current = true;
+              try {
+                await actions.cancelOperatorApproval?.();
+              } catch {
+                cancellationRequested.current = false;
+                setCancelling(false);
+                setFeedback({
+                  title: 'Cancellation could not be confirmed',
+                  message: 'Check the Server view, then try again.',
+                  error: true,
+                });
+              }
+            }}
+          >
+            {cancelling ? 'Cancelling…' : 'Cancel approval'}
+          </Button>
+        </Stack>
+      ) : null}
       <Select
         label="Identity"
         value={identity}
@@ -203,7 +264,7 @@ export function TeamsView({
           setIdentity(event.target.value);
           setTeam(null);
           setMode('enroll');
-          setInvitation('');
+          setDestinationTeamId('');
         }}
       >
         <option value="">Select an identity…</option>
@@ -271,16 +332,10 @@ export function TeamsView({
                 onClick={() => {
                   setTeam(entry);
                   setMode('replace');
-                  setInvitation('');
+                  setDestinationTeamId('');
                 }}
               >
                 Renew
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => void openConsole(entry.teamId)}
-              >
-                Renew in Console
               </Button>
             </Stack>
           </Stack>
@@ -308,81 +363,75 @@ export function TeamsView({
             >
               Enroll into a team
             </Button>
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={() => {
-                setMode('new');
-                setTeam(null);
-                setInvitation('');
-              }}
-            >
-              Create a new identity
-            </Button>
           </Stack>
           <Text as="h2" variant="h4">
-            {mode === 'new'
-              ? 'Create an identity'
-              : mode === 'replace'
-                ? `Renew ${team?.teamName ?? 'team access'}`
-                : 'Enroll into a team'}
+            {mode === 'replace'
+              ? `Renew ${team?.teamName ?? 'team access'}`
+              : 'Enroll into a team'}
           </Text>
-          {mode === 'new' ? (
+          {mode === 'enroll' ? (
             <Input
-              label="Identity name"
-              value={name}
+              label="Team ID"
+              value={destinationTeamId}
               disabled={busy}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => setDestinationTeamId(event.target.value)}
             />
           ) : null}
-          <Input
-            id={invitationId}
-            label="Single-use invitation"
-            type="password"
-            autoComplete="off"
-            value={invitation}
-            disabled={busy}
-            onChange={(event) => setInvitation(event.target.value)}
-          />
           <Text variant="caption" color="secondary">
-            Create an invitation in Console, then paste it here. The invitation
-            is cleared when submitted.
+            Console will show the selected identity, team and permissions before
+            you approve.
           </Text>
           <Stack direction="row" gap={2} wrap>
             <Button
               disabled={
                 busy ||
-                !invitation.trim() ||
-                (mode === 'new' ? !name.trim() : !identity)
+                (mode === 'enroll' && !destinationTeamId.trim()) ||
+                !identity
               }
               onClick={() =>
                 mode === 'replace' ? setConfirm(true) : void submit()
               }
             >
               {busy
-                ? 'Enrolling…'
+                ? 'Waiting for approval…'
                 : mode === 'replace'
                   ? 'Replace team credential'
-                  : mode === 'new'
-                    ? 'Create and enroll'
-                    : 'Enroll'}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => void openConsole(team?.teamId)}
-            >
-              Get an invitation in Console
+                  : 'Approve in Console'}
             </Button>
           </Stack>
         </Stack>
       </ControlSurface>
-      {feedback ? (
+      {feedback?.error ? (
         <InlineNotice
           tone={feedback.error ? 'error' : 'success'}
           title={feedback.title}
         >
           {feedback.message}
         </InlineNotice>
+      ) : null}
+      {feedback && !feedback.error ? (
+        <aside
+          className="run-center__toast"
+          role="status"
+          aria-label="Approval completed"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <Stack gap={2}>
+            <Text weight="semibold">{feedback.title}</Text>
+            <Text variant="caption" color="secondary">
+              {feedback.message}
+            </Text>
+          </Stack>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setFeedback(null)}
+            aria-label="Dismiss notification"
+          >
+            Dismiss
+          </Button>
+        </aside>
       ) : null}
       <ConfirmDialog
         open={confirm}

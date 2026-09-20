@@ -2,8 +2,8 @@
  * `moltnet-agent server` E2E — black-box over the loopback HTTP contract.
  *
  * Spawns the real Agent Server as a child process against an
- * isolated `--root`, then drives it exactly the way the Console does:
- * pairing ceremony → paired JSON API → provider + managed-agent setup →
+ * isolated `--root`, then drives it through native process control:
+ * native process authorization → JSON API → provider + managed-agent setup →
  * a real daemon run polling the e2e rest-api → stop → shutdown.
  *
  * Deliberately knows nothing about the persistence layer (file names,
@@ -14,31 +14,23 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
-import {
-  createServer,
-  type IncomingMessage,
-  request as httpRequest,
-  type Server,
-} from 'node:http';
+import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import {
-  claimAgentServerPairing,
   createAgentServerAgent,
   type CreateAgentServerAgentData,
   createClient,
   discoverAgentServerProviderModels,
-  enrollAgentServerTeam,
   getAgentServerCatalogue,
   getAgentServerStatus,
   listAgentServerAgents,
   listAgentServerProviders,
   listAgentServerRuns,
   putAgentServerProvider,
-  startAgentServerPairing,
   startAgentServerRun,
   stopAgentServerRun,
 } from '@moltnet/agent-daemon-api-client';
@@ -49,13 +41,13 @@ import {
   resolveAgentKey,
   SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { FileSecretProvider } from '@themoltnet/sdk/node';
+import { enrollTeam, FileSecretProvider } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
-const ALLOWED_ORIGIN = 'http://localhost:5174';
-const PAIRING_ORIGIN = 'http://localhost:5175';
+const NATIVE_ORIGIN = 'moltnet-agent-desktop://native';
+const BROWSER_ORIGIN = 'http://localhost:5175';
 const OTHER_ORIGIN = 'http://localhost:9999';
 const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
@@ -65,6 +57,7 @@ const MODEL_ID = 'e2e-fake';
 const RAW_API_KEY = 'e2e-secret-key-never-in-config';
 const CLI_RAW_API_KEY = 'e2e-cli-secret-key-never-in-config';
 const STDERR_TAIL_BYTES = 16 * 1024;
+let supervisorToken = randomUUID();
 
 function appendStderrTail(current: string, chunk: Buffer): string {
   return `${current}${chunk.toString()}`.slice(-STDERR_TAIL_BYTES);
@@ -132,39 +125,6 @@ function startJsonStub(
 }
 
 /**
- * Top-level navigation GET. Node's `fetch` (undici) drops `Sec-*` request
- * headers as forbidden, so the browser's Fetch-Metadata signal has to be
- * sent over a raw HTTP request.
- */
-function navigateTo(url: string): Promise<{ status: number; text: string }> {
-  return new Promise((resolveNav, reject) => {
-    const req = httpRequest(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          'sec-fetch-site': 'none',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-dest': 'document',
-        },
-      },
-      (response) => {
-        let text = '';
-        response.setEncoding('utf8');
-        response.on('data', (chunk: string) => {
-          text += chunk;
-        });
-        response.on('end', () =>
-          resolveNav({ status: response.statusCode ?? 0, text }),
-        );
-      },
-    );
-    req.once('error', reject);
-    req.end();
-  });
-}
-
-/**
  * Spawn `moltnet-agent` from source. Uses node + tsx's loader flags directly
  * (what the `tsx` CLI does internally) so server signals reach the direct
  * child and runs can re-exec the same absolute loader paths from their own
@@ -180,10 +140,23 @@ function spawnAgentCommand(
   // tree and the child re-exec path all get exercised. cwd is /tmp so
   // nothing can resolve from the repository by accident.
   const bundle = process.env.MOLTNET_AGENT_BUNDLE;
+  // Exercise invalid browser credentials with OAuth configured. An absent
+  // configuration intentionally returns 503 rather than asking users to sign in.
+  const env = {
+    ...process.env,
+    MOLTNET_AGENT_SERVER_NATIVE_TOKEN: supervisorToken,
+    MOLTNET_OPERATOR_OAUTH_ISSUER: 'http://hydra:4444',
+    MOLTNET_OPERATOR_OAUTH_PUBLIC_URL:
+      process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://localhost:4444',
+    MOLTNET_NATIVE_OAUTH_CLIENT_ID: 'moltnet-native-e2e',
+    MOLTNET_CONSOLE_OAUTH_CLIENT_ID: 'moltnet-console-e2e',
+    MOLTNET_OPERATOR_API_URL:
+      process.env.REST_API_URL ?? 'http://localhost:8080',
+  };
   if (bundle) {
     return spawn(join(bundle, 'bin/moltnet-agent'), args, {
       cwd: '/tmp',
-      env: process.env,
+      env,
       stdio: [stdin, 'pipe', 'pipe'],
     });
   }
@@ -198,7 +171,11 @@ function spawnAgentCommand(
       'src/main.ts',
       ...args,
     ],
-    { cwd: DAEMON_ROOT, env: process.env, stdio: [stdin, 'pipe', 'pipe'] },
+    {
+      cwd: DAEMON_ROOT,
+      env,
+      stdio: [stdin, 'pipe', 'pipe'],
+    },
   );
 }
 
@@ -255,6 +232,7 @@ class AgentServerSupervisor {
     apiUrl: string;
     allowedOrigins: readonly string[];
   }): Promise<AgentServerSupervisor> {
+    supervisorToken = randomUUID();
     const port = await freePort();
     const baseUrl = `http://127.0.0.1:${port}`;
     const supervisor = new AgentServerSupervisor(
@@ -350,7 +328,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   let managedSubjectId: string;
   let runId: string;
 
-  function agentServerClient(origin = ALLOWED_ORIGIN, paired = true) {
+  function agentServerClient(origin = NATIVE_ORIGIN, paired = true) {
     return createClient({
       baseUrl: base,
       credentials: 'omit',
@@ -372,7 +350,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     let text = '';
     try {
       const response = await fetch(`${base}/v1/runs/${id}/logs`, {
-        headers: { origin: ALLOWED_ORIGIN, [AGENT_SERVER_TOKEN_HEADER]: token },
+        headers: { origin: NATIVE_ORIGIN, [AGENT_SERVER_TOKEN_HEADER]: token },
         signal: controller.signal,
       });
       expect(response.status).toBe(200);
@@ -439,7 +417,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     supervisor = await AgentServerSupervisor.start({
       root: agentServerRoot,
       apiUrl: harness.restApiUrl,
-      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
+      allowedOrigins: [BROWSER_ORIGIN],
     });
     base = supervisor.baseUrl;
   });
@@ -461,14 +439,14 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     await harness?.teardown();
   });
 
-  it('answers health without pairing and gates the JSON API behind pairing', async () => {
+  it('answers health without authorization and gates the JSON API', async () => {
     expect((await fetch(`${base}/health`)).status).toBe(200);
 
     const unpaired = await getAgentServerStatus({
-      client: agentServerClient(ALLOWED_ORIGIN, false),
+      client: agentServerClient(NATIVE_ORIGIN, false),
     });
     expect(unpaired.response.status).toBe(401);
-    expect(unpaired.error?.code).toBe('pairing_required');
+    expect(unpaired.error?.code).toBe('authorization_required');
 
     const foreign = await getAgentServerStatus({
       client: agentServerClient(OTHER_ORIGIN, false),
@@ -476,53 +454,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(foreign.response.status).toBe(403);
   });
 
-  async function pairConsole() {
-    // Arrange: the Console starts a pairing from its own origin.
-    const started = await startAgentServerPairing({
-      client: agentServerClient(ALLOWED_ORIGIN, false),
-    });
-    expect(started.response.status).toBe(201);
-    const { pairingId, approvalPath } = started.data!;
-    expect(approvalPath).toBe(`/pairings/${pairingId}`);
-
-    // Act: the user opens the approval page (a top-level navigation)...
-    const fetched = await fetch(`${base}${approvalPath}`);
-    expect(fetched.status).toBe(400); // never as a plain fetch
-    const approval = await navigateTo(`${base}${approvalPath}`);
-    expect(approval.status).toBe(200);
-    const html = approval.text;
-    expect(html).toContain(ALLOWED_ORIGIN);
-    const confirmToken = /name="confirmToken" value="([^"]+)"/.exec(html)?.[1];
-    expect(confirmToken).toBeTruthy();
-
-    // ...and submits the same-origin approval form.
-    const confirmed = await fetch(`${base}/pairings/${pairingId}/confirm`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ confirmToken: confirmToken ?? '' }),
-    });
-    expect(confirmed.status).toBe(200);
-    expect(await confirmed.text()).toContain('Connection approved');
-
-    // Assert: only the pairing origin can claim the token.
-    const stolen = await claimAgentServerPairing({
-      client: agentServerClient(PAIRING_ORIGIN, false),
-      path: { pairingId },
-    });
-    expect(stolen.response.status).toBe(403);
-    expect(stolen.error?.code).toBe('pairing_origin_mismatch');
-
-    const claimed = await claimAgentServerPairing({
-      client: agentServerClient(ALLOWED_ORIGIN, false),
-      path: { pairingId },
-    });
-    expect(claimed.response.status).toBe(200);
-    token = claimed.data!.token;
-    expect(token.length).toBeGreaterThan(20);
+  function authorizeNative() {
+    token = supervisorToken;
   }
 
-  it('completes the pairing ceremony and binds the token to the origin', async () => {
-    await pairConsole();
+  it('authorizes native control and rejects its token from a browser origin', async () => {
+    authorizeNative();
     const status = await getAgentServerStatus({
       client: agentServerClient(),
     });
@@ -537,7 +474,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
 
     // A token presented from another origin is not honoured.
     const crossOrigin = await getAgentServerStatus({
-      client: agentServerClient(PAIRING_ORIGIN),
+      client: agentServerClient(BROWSER_ORIGIN),
     });
     expect(crossOrigin.response.status).toBe(401);
   });
@@ -1077,21 +1014,14 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       role: 'executor',
       expiresInHours: 1,
     });
-    const enrolled = await enrollAgentServerTeam({
-      client: agentServerClient(),
-      path: { agentName },
-      body: {
-        mode: 'enroll',
-        code: invitation.code,
-        idempotencyKey: randomUUID(),
-      },
+    const enrolled = await enrollTeam({
+      agent: agentA,
+      code: invitation.code,
+      idempotencyKey: randomUUID(),
+      configDir,
+      secretProvider: provider,
     });
-    expect(enrolled.response.status).toBe(200);
-    expect(enrolled.data).toMatchObject({
-      state: 'persisted',
-      teamId: teamB.id,
-    });
-    expect(JSON.stringify(enrolled.data)).not.toContain(invitation.code);
+    expect(enrolled.teamId).toBe(teamB.id);
     const current = await readConfig(configDir);
     const secretB = await resolveAgentKey(current!, registry, teamB.id);
     expect(secretB).toBeTruthy();
@@ -1274,13 +1204,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     supervisor = await AgentServerSupervisor.start({
       root: agentServerRoot,
       apiUrl: harness.restApiUrl,
-      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
+      allowedOrigins: [BROWSER_ORIGIN],
     });
     base = supervisor.baseUrl;
-    // Pairing tokens are process-local; persisted agent credentials are not.
+    // Native tokens are process-local; persisted agent credentials are not.
     const stale = await getAgentServerStatus({ client: agentServerClient() });
     expect(stale.response.status).toBe(401);
-    await pairConsole();
+    authorizeNative();
   }
 
   it('enrolls a second team, runs both concurrently, reconnects after restart and isolates revocation', async () => {
@@ -1406,46 +1336,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect((await agent.tasks.get(deniedTask.id)).status).toBe('queued');
     expect(await configFilesContaining(agentServerRoot, secretA)).toEqual([]);
     expect(await configFilesContaining(agentServerRoot, secretB)).toEqual([]);
-    const renewalInvite = await agent.teams.invites.create(teamB.id, {
-      role: 'executor',
-      expiresInHours: 1,
-    });
-    const predecessor = (
-      await listAgentServerRuns({ client: agentServerClient() })
-    ).data?.find((run) => run.id === restarted[1].runId);
-    const renewed = await enrollAgentServerTeam({
-      client: agentServerClient(),
-      path: { agentName },
-      body: {
-        mode: 'replace',
-        teamId: teamB.id,
-        code: renewalInvite.code,
-        idempotencyKey: randomUUID(),
-      },
-    });
-    expect(renewed.response.status).toBe(200);
-    expect(renewed.data?.state).toBe('persisted');
-    const stillRunning = (
-      await listAgentServerRuns({ client: agentServerClient() })
-    ).data?.find((run) => run.id === restarted[1].runId);
-    expect(stillRunning).toMatchObject({
-      active: true,
-      credential: predecessor!.credential,
-    });
-    await expect(agentB.agents.whoami()).resolves.toMatchObject({
-      subjectId: managedSubjectId,
-    });
-    if (renewed.data?.state !== 'persisted')
-      throw new Error('Renewal did not persist');
-    expect(renewed.data.keyId).not.toBe(predecessor?.credential?.keyId);
-    const refreshed = await getAgentServerCatalogue({
-      client: agentServerClient(),
-      query: { identity: agentName },
-    });
-    expect(
-      refreshed.data?.teams.find((team) => team.teamId === teamB.id)?.credential
-        ?.keyId,
-    ).toBe(renewed.data.keyId);
+    // Native renewal and predecessor preservation are exercised by the real
+    // Console approval journey. This suite keeps offline run/revocation coverage.
+    const activeB = await agent.agentKeys.list(
+      { agentId: managedSubjectId, status: 'active' },
+      { teamId: teamB.id },
+    );
+    const activeBKeyId = activeB.items[0].id;
     await Promise.all(
       restarted.map(({ runId }) =>
         stopAgentServerRun({
@@ -1463,7 +1360,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       restartedCatalogue.data?.teams.find((team) => team.teamId === teamB.id),
     ).toMatchObject({
       available: true,
-      credential: { keyId: renewed.data.keyId },
+      credential: { keyId: activeBKeyId },
     });
     expect(
       restartedCatalogue.data?.teams.find((team) => team.teamId === teamId),
@@ -1473,7 +1370,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     const replacementRun = await lifecycle.start(teamB.id, profileB.id);
     expect(replacementRun.response.status).toBe(201);
-    expect(replacementRun.data?.credential?.keyId).toBe(renewed.data.keyId);
+    expect(replacementRun.data?.credential?.keyId).toBe(activeBKeyId);
     await stopAgentServerRun({
       client: agentServerClient(),
       path: { runId: replacementRun.data!.id },

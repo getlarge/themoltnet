@@ -1,3 +1,9 @@
+vi.mock('../src/runtime-local/local-control-oauth.js', () => ({
+  authorizeLocalControl: vi.fn().mockImplementation(async () => ({
+    accessToken: 'paired-token-for-tests',
+    expiresAt: Date.now() + 900_000,
+  })),
+}));
 /**
  * Integration tests for the Local runtime page: real page + real
  * useLocalRuntime hook + real Agent Server client against a mocked loopback fetch.
@@ -9,6 +15,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocalRuntimePage } from '../src/pages/LocalRuntimePage.js';
 import type { AgentServerProviderModel } from '../src/runtime-local/agent-server-response-validation.js';
+import { authorizeLocalControl } from '../src/runtime-local/local-control-oauth.js';
+import { localControlTokens } from '../src/runtime-local/local-control-token-cache.js';
 import { createTestWrapper } from './test-query-client.js';
 
 const AGENT_SERVER = 'http://127.0.0.1:17374';
@@ -118,12 +126,11 @@ function installFetch() {
 }
 
 beforeEach(() => {
+  localControlTokens.clear();
+  vi.mocked(authorizeLocalControl).mockClear();
   requests.length = 0;
   profilesState.items = [];
-  sessionStorage.setItem(
-    `moltnet-agent-server-token::${AGENT_SERVER}`,
-    'paired-token-for-tests',
-  );
+  vi.spyOn(window, 'open').mockReturnValue(null);
   handlers = {
     'GET /health': () => jsonResponse({ status: 'ok' }),
     'GET /v1/status': () => jsonResponse(agentServerState.status),
@@ -131,13 +138,41 @@ beforeEach(() => {
   installFetch();
 });
 
-function renderPage() {
-  return render(<LocalRuntimePage />, { wrapper: createTestWrapper() });
+async function renderPage(connect = true) {
+  const view = render(<LocalRuntimePage />, { wrapper: createTestWrapper() });
+  if (connect) {
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect' }));
+    await screen.findByText('LLM providers');
+    vi.mocked(window.open).mockClear();
+  }
+  return view;
 }
 
 describe('LocalRuntimePage', () => {
-  it('connects with a stored token and renders all sections from /v1/status', async () => {
-    renderPage();
+  it('reuses the approved token after leaving and returning to the page', async () => {
+    const first = await renderPage();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    first.unmount();
+    await renderPage(false);
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    expect(authorizeLocalControl).toHaveBeenCalledTimes(1);
+  });
+
+  it('discards a cached token rejected after a server restart', async () => {
+    const first = await renderPage();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    first.unmount();
+    handlers['GET /v1/status'] = () => jsonResponse({}, 401);
+    await renderPage(false);
+    expect(await screen.findByText('Sign-in required')).toBeInTheDocument();
+    expect(authorizeLocalControl).toHaveBeenCalledTimes(1);
+    expect(
+      localControlTokens.get(JSON.stringify([undefined, AGENT_SERVER])),
+    ).toBeNull();
+  });
+
+  it('connects with a tab-memory token and renders all sections from /v1/status', async () => {
+    await renderPage();
     expect(await screen.findByText('Connected')).toBeInTheDocument();
     expect((await screen.findAllByText('existing-bot')).length).toBeGreaterThan(
       0,
@@ -145,7 +180,7 @@ describe('LocalRuntimePage', () => {
     expect(screen.getByText('Anthropic')).toBeInTheDocument();
     expect(screen.getByText('ollama')).toBeInTheDocument();
     expect(screen.getByText(/No runs yet/)).toBeInTheDocument();
-    // Token travels in the pairing header, never as browser credentials.
+    // Token travels in the local-control header, never as browser credentials.
     const statusCall = (
       fetch as unknown as ReturnType<typeof vi.fn>
     ).mock.calls.find(([url]) => String(url).endsWith('/v1/status'));
@@ -161,7 +196,7 @@ describe('LocalRuntimePage', () => {
     handlers['GET /health'] = () => {
       throw new Error('connection refused');
     };
-    renderPage();
+    await renderPage(false);
     expect(await screen.findByText('Not running')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {
@@ -185,7 +220,7 @@ describe('LocalRuntimePage', () => {
         },
         500,
       );
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
     fireEvent.change(screen.getByLabelText('Agent name'), {
       target: { value: 'legreffier-local' },
@@ -217,7 +252,7 @@ describe('LocalRuntimePage', () => {
       jsonResponse({ providerId: 'anthropic', status: 'pending' });
     const open = vi.fn();
     vi.stubGlobal('open', open);
-    renderPage();
+    await renderPage();
     await screen.findByText('Anthropic');
     fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
     expect(
@@ -235,7 +270,7 @@ describe('LocalRuntimePage', () => {
       );
     handlers['DELETE /v1/subscriptions/anthropic/login'] = () =>
       jsonResponse({ providerId: 'anthropic', status: 'cancelled' });
-    renderPage();
+    await renderPage();
     await screen.findByText('Anthropic');
     fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
@@ -267,7 +302,7 @@ describe('LocalRuntimePage', () => {
         },
         500,
       );
-    renderPage();
+    await renderPage();
     await screen.findByText('Anthropic');
     fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
     await screen.findByRole('button', { name: 'Open sign-in page' });
@@ -292,7 +327,7 @@ describe('LocalRuntimePage', () => {
         },
         201,
       );
-    renderPage();
+    await renderPage();
     await screen.findByText('OpenAI Codex');
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
     expect(await screen.findByText('device flow refused')).toBeInTheDocument();
@@ -315,7 +350,7 @@ describe('LocalRuntimePage', () => {
         },
         201,
       );
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
     fireEvent.change(screen.getByLabelText('Agent name'), {
       target: { value: 'course-bot' },
@@ -349,7 +384,7 @@ describe('LocalRuntimePage', () => {
         },
         201,
       );
-    renderPage();
+    await renderPage();
     expect(await screen.findByText(/Current identity:/)).toHaveTextContent(
       'legreffier',
     );
@@ -377,7 +412,7 @@ describe('LocalRuntimePage', () => {
         },
         400,
       );
-    renderPage();
+    await renderPage();
     await screen.findByText(/Current identity:/);
 
     fireEvent.click(screen.getByRole('button', { name: 'Attach identity' }));
@@ -389,17 +424,20 @@ describe('LocalRuntimePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('blocks starting a run for an agent bound to another team', async () => {
+  it('lets Agent Server resolve an enrolled team instead of blocking on the primary key team', async () => {
     agentServerState.status.agents[0] = {
       ...agentServerState.status.agents[0],
       teamId: 'personal-team-9',
     };
-    renderPage();
+    await renderPage();
     await screen.findAllByText(/existing-bot/);
     const agentSelect = screen.getByLabelText('Agent');
     fireEvent.change(agentSelect, { target: { value: 'existing-bot' } });
-    expect(await screen.findByText(/bound to team/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Runtime profile'), {
+      target: { value: 'profile-for-selected-team' },
+    });
+    expect(screen.queryByText(/bound to team/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
     delete (agentServerState.status.agents[0] as { teamId?: string }).teamId;
   });
 
@@ -438,7 +476,7 @@ describe('LocalRuntimePage', () => {
         models: JSON.parse(String(init?.body)).models,
         hasApiKey: false,
       });
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
 
     // Preset pre-fills the endpoint; no hand-typed base URL needed.
@@ -495,7 +533,7 @@ describe('LocalRuntimePage', () => {
   it('pre-fills an existing provider for edits and can remove it', async () => {
     handlers['DELETE /v1/providers/ollama'] = () =>
       new Response(null, { status: 204 });
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
@@ -535,7 +573,7 @@ describe('LocalRuntimePage', () => {
         models: JSON.parse(String(init?.body)).models,
         hasApiKey: true,
       });
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
@@ -574,7 +612,7 @@ describe('LocalRuntimePage', () => {
         models: JSON.parse(String(init?.body)).models,
         hasApiKey: true,
       });
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
@@ -617,7 +655,7 @@ describe('LocalRuntimePage', () => {
         models: [],
         hasApiKey: false,
       });
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
     fireEvent.click(
       screen.getByRole('button', {
@@ -643,7 +681,7 @@ describe('LocalRuntimePage', () => {
       { id: '11111111-aaaa-bbbb-cccc-000000000001', name: 'course-profile' },
       { id: '22222222-aaaa-bbbb-cccc-000000000002', name: 'review-profile' },
     ];
-    renderPage();
+    await renderPage();
     await screen.findAllByText('existing-bot');
     // The picker swaps in once the async profiles query resolves.
     expect(
@@ -674,7 +712,7 @@ describe('LocalRuntimePage', () => {
         },
         201,
       );
-    renderPage();
+    await renderPage();
     await screen.findByRole('option', {
       name: 'course-profile · 11111111',
     });

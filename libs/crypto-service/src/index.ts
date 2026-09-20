@@ -26,6 +26,7 @@ export {
   type KeyPair,
   type SignedMessage,
 } from './crypto.service.js';
+export { enrollmentProofMessage } from './enrollment-proof.js';
 export {
   assertExecutorManifestObject,
   buildExecutorAttestationSigningBytes,

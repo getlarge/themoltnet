@@ -1,10 +1,3 @@
-/**
- * @moltnet/auth — Fastify Auth Plugin
- *
- * Provides request.authContext decorator, and preHandler factories
- * for protecting routes with OAuth2 token validation and scope checks.
- */
-
 import { setRequestContextField } from '@moltnet/observability';
 import type {
   FastifyInstance,
@@ -23,12 +16,20 @@ import {
 } from './constants.js';
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
+import { LOCAL_CONTROL_SCOPE, PROVISIONING_SCOPE } from './provisioning.js';
 import type { RelationshipWriter } from './relationship-writer.js';
 import { RemoteAuthenticationError } from './remote-auth-error.js';
 import type { CredentialScope } from './scopes.js';
 import type { SessionResolver } from './session-resolver.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
+
+/**
+ * @moltnet/auth — Fastify Auth Plugin
+ *
+ * Provides request.authContext decorator, and preHandler factories
+ * for protecting routes with OAuth2 token validation and scope checks.
+ */
 
 type AuthResolutionOutcome =
   | { status: 'authenticated'; context: AuthContext }
@@ -88,6 +89,8 @@ declare module 'fastify' {
        * declares that authentication is required but no credential scope is.
        */
       requiredScopes?: readonly CredentialScope[];
+      /** Explicit capability for the single approved credential issuance handler. */
+      acceptsProvisioningGrant?: boolean;
     };
   }
   interface FastifyInstance {
@@ -605,6 +608,25 @@ async function enforceRouteScopes(
   reply: FastifyReply,
   authContext: AuthContext,
 ): Promise<void> {
+  // Special-purpose browser grants never become general API credentials.
+  if (
+    authContext.scopes.includes(LOCAL_CONTROL_SCOPE) ||
+    authContext.scopes.includes(PROVISIONING_SCOPE) ||
+    (authContext.subjectType === 'human' && authContext.provisioning)
+  ) {
+    if (
+      authContext.subjectType !== 'human' ||
+      !authContext.provisioning ||
+      authContext.scopes.length !== 1 ||
+      authContext.scopes[0] !== PROVISIONING_SCOPE ||
+      request.method !== 'POST' ||
+      request.routeOptions.config.auth?.acceptsProvisioningGrant !== true
+    ) {
+      throw createAuthError(
+        'This grant is restricted to its approved operation',
+      );
+    }
+  }
   const requiredScopes = request.routeOptions.config.auth?.requiredScopes ?? [];
   const missingScope = requiredScopes.find(
     (scope) => !authContext.scopes.includes(scope),

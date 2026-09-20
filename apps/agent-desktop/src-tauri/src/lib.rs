@@ -1,5 +1,8 @@
 mod control;
 mod lifecycle;
+mod operator_oauth {
+    include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
+}
 
 #[cfg(test)]
 #[path = "../build_support.rs"]
@@ -166,7 +169,42 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 }
 
 #[tauri::command]
+async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
+    let body =
+        with_control_token(&state, move |token| control::get(token, "/oauth/metadata")).await?;
+    let metadata: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
+    Ok(metadata
+        .get("operatorConfigured")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(false))
+}
+
+#[tauri::command]
+async fn desktop_operator_sign_in(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    with_control_token(&state, move |token| {
+        control::post(token, "/v1/operator/sign-in", "{}")
+    })
+    .await?;
+    show_status(&app);
+    Ok(())
+}
+
+#[tauri::command]
+async fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
+    with_control_token(&state, move |token| {
+        control::post(token, "/v1/operator/cancel", "{}")
+    })
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn desktop_enroll_team(
+    app: AppHandle,
     state: State<'_, AppState>,
     identity: String,
     request: serde_json::Value,
@@ -181,28 +219,9 @@ async fn desktop_enroll_team(
         )
     })
     .await?;
-    control::enrollment_metadata(&body)
-}
-
-#[tauri::command]
-async fn desktop_create_identity(
-    state: State<'_, AppState>,
-    name: String,
-    invitation: String,
-) -> Result<(), String> {
-    let payload =
-        serde_json::json!({ "kind": "managed", "name": name, "enrollmentToken": invitation })
-            .to_string();
-    with_control_token(&state, move |token| {
-        control::post(token, "/v1/agents", &payload)
-    })
-    .await?;
-    Ok(())
-}
-
-#[tauri::command]
-fn desktop_team_invites(team_id: Option<String>) -> Result<(), String> {
-    lifecycle::open_team_invites(team_id.as_deref())
+    let metadata = control::enrollment_metadata(&body)?;
+    show_status(&app);
+    Ok(metadata)
 }
 
 /// Run `operation` with the grant for the currently running server.
@@ -658,8 +677,9 @@ pub fn run() {
             desktop_catalogue,
             desktop_control_status,
             desktop_enroll_team,
-            desktop_create_identity,
-            desktop_team_invites,
+            desktop_operator_sign_in,
+            desktop_operator_configured,
+            desktop_cancel_operator_approval,
             desktop_start_run,
             desktop_stop_run,
             desktop_run_logs,

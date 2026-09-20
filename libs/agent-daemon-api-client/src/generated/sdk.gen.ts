@@ -3,12 +3,11 @@
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  CancelAgentServerOperatorApprovalData,
+  CancelAgentServerOperatorApprovalResponses,
   CancelAgentServerSubscriptionLoginData,
   CancelAgentServerSubscriptionLoginErrors,
   CancelAgentServerSubscriptionLoginResponses,
-  ClaimAgentServerPairingData,
-  ClaimAgentServerPairingErrors,
-  ClaimAgentServerPairingResponses,
   CreateAgentServerAgentData,
   CreateAgentServerAgentErrors,
   CreateAgentServerAgentResponses,
@@ -26,6 +25,8 @@ import type {
   GetAgentServerCatalogueResponses,
   GetAgentServerHealthData,
   GetAgentServerHealthResponses,
+  GetAgentServerOAuthMetadataData,
+  GetAgentServerOAuthMetadataResponses,
   GetAgentServerRunLogSnapshotData,
   GetAgentServerRunLogSnapshotResponses,
   GetAgentServerStatusData,
@@ -52,9 +53,10 @@ import type {
   ReconcileAgentServerAgentData,
   ReconcileAgentServerAgentErrors,
   ReconcileAgentServerAgentResponses,
-  StartAgentServerPairingData,
-  StartAgentServerPairingErrors,
-  StartAgentServerPairingResponses,
+  RemoveAgentServerOperatorData,
+  RemoveAgentServerOperatorResponses,
+  SignInAgentServerOperatorData,
+  SignInAgentServerOperatorResponses,
   StartAgentServerRunData,
   StartAgentServerRunErrors,
   StartAgentServerRunResponses,
@@ -94,6 +96,17 @@ export const getAgentServerHealth = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/health', ...options });
+
+export const getAgentServerOAuthMetadata = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<GetAgentServerOAuthMetadataData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetAgentServerOAuthMetadataResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/oauth/metadata', ...options });
 
 export const listAgentServerAgents = <ThrowOnError extends boolean = false>(
   options?: Options<ListAgentServerAgentsData, ThrowOnError>,
@@ -172,23 +185,42 @@ export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
-export const startAgentServerPairing = <ThrowOnError extends boolean = false>(
-  options?: Options<StartAgentServerPairingData, ThrowOnError>,
+export const removeAgentServerOperator = <ThrowOnError extends boolean = false>(
+  options?: Options<RemoveAgentServerOperatorData, ThrowOnError>,
+) =>
+  (options?.client ?? client).delete<
+    RemoveAgentServerOperatorResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/operator',
+    ...options,
+  });
+
+export const cancelAgentServerOperatorApproval = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<CancelAgentServerOperatorApprovalData, ThrowOnError>,
 ) =>
   (options?.client ?? client).post<
-    StartAgentServerPairingResponses,
-    StartAgentServerPairingErrors,
+    CancelAgentServerOperatorApprovalResponses,
+    unknown,
     ThrowOnError
-  >({ url: '/v1/pairings', ...options });
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/operator/cancel',
+    ...options,
+  });
 
-export const claimAgentServerPairing = <ThrowOnError extends boolean = false>(
-  options: Options<ClaimAgentServerPairingData, ThrowOnError>,
+export const signInAgentServerOperator = <ThrowOnError extends boolean = false>(
+  options?: Options<SignInAgentServerOperatorData, ThrowOnError>,
 ) =>
-  (options.client ?? client).post<
-    ClaimAgentServerPairingResponses,
-    ClaimAgentServerPairingErrors,
+  (options?.client ?? client).post<
+    SignInAgentServerOperatorResponses,
+    unknown,
     ThrowOnError
-  >({ url: '/v1/pairings/{pairingId}/claim', ...options });
+  >({ url: '/v1/operator/sign-in', ...options });
 
 export const listAgentServerProviders = <ThrowOnError extends boolean = false>(
   options?: Options<ListAgentServerProvidersData, ThrowOnError>,

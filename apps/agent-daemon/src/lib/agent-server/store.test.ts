@@ -78,25 +78,6 @@ describe('AgentServerStore', () => {
     );
   });
 
-  it('rejects the obsolete durable pairing format', () => {
-    const store = freshStore();
-    writeFileSync(
-      join(store.root, 'agent-server.json'),
-      JSON.stringify({
-        version: 2,
-        pendingRegistrations: {},
-        activations: {},
-        pairedOrigins: {
-          'https://console.themolt.net': { tokenHash: 'obsolete' },
-        },
-      }),
-    );
-
-    expect(() => store.readAgentServerState()).toThrow(
-      'obsolete pairing format',
-    );
-  });
-
   it('does not treat unreadable state as missing state', () => {
     const store = freshStore();
     mkdirSync(join(store.root, 'agent-server.json'));

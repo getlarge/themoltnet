@@ -50,6 +50,125 @@ type AbortTaskAttemptUnauthorized ProblemDetails
 
 func (*AbortTaskAttemptUnauthorized) abortTaskAttemptRes() {}
 
+type AcceptOperatorConsentBadRequest ProblemDetails
+
+func (*AcceptOperatorConsentBadRequest) acceptOperatorConsentRes() {}
+
+type AcceptOperatorConsentForbidden ProblemDetails
+
+func (*AcceptOperatorConsentForbidden) acceptOperatorConsentRes() {}
+
+type AcceptOperatorConsentNotFound ProblemDetails
+
+func (*AcceptOperatorConsentNotFound) acceptOperatorConsentRes() {}
+
+type AcceptOperatorConsentOK struct {
+	RedirectTo string `json:"redirect_to"`
+}
+
+// GetRedirectTo returns the value of RedirectTo.
+func (s *AcceptOperatorConsentOK) GetRedirectTo() string {
+	return s.RedirectTo
+}
+
+// SetRedirectTo sets the value of RedirectTo.
+func (s *AcceptOperatorConsentOK) SetRedirectTo(val string) {
+	s.RedirectTo = val
+}
+
+func (*AcceptOperatorConsentOK) acceptOperatorConsentRes() {}
+
+type AcceptOperatorConsentReq struct {
+	Approve   bool   `json:"approve"`
+	Challenge string `json:"challenge"`
+}
+
+// GetApprove returns the value of Approve.
+func (s *AcceptOperatorConsentReq) GetApprove() bool {
+	return s.Approve
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *AcceptOperatorConsentReq) GetChallenge() string {
+	return s.Challenge
+}
+
+// SetApprove sets the value of Approve.
+func (s *AcceptOperatorConsentReq) SetApprove(val bool) {
+	s.Approve = val
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *AcceptOperatorConsentReq) SetChallenge(val string) {
+	s.Challenge = val
+}
+
+type AcceptOperatorConsentServiceUnavailable ProblemDetails
+
+func (*AcceptOperatorConsentServiceUnavailable) acceptOperatorConsentRes() {}
+
+type AcceptOperatorConsentTooManyRequests ProblemDetails
+
+func (*AcceptOperatorConsentTooManyRequests) acceptOperatorConsentRes() {}
+
+type AcceptOperatorConsentUnauthorized ProblemDetails
+
+func (*AcceptOperatorConsentUnauthorized) acceptOperatorConsentRes() {}
+
+type AcceptOperatorLoginBadRequest ProblemDetails
+
+func (*AcceptOperatorLoginBadRequest) acceptOperatorLoginRes() {}
+
+type AcceptOperatorLoginForbidden ProblemDetails
+
+func (*AcceptOperatorLoginForbidden) acceptOperatorLoginRes() {}
+
+type AcceptOperatorLoginNotFound ProblemDetails
+
+func (*AcceptOperatorLoginNotFound) acceptOperatorLoginRes() {}
+
+type AcceptOperatorLoginOK struct {
+	RedirectTo string `json:"redirect_to"`
+}
+
+// GetRedirectTo returns the value of RedirectTo.
+func (s *AcceptOperatorLoginOK) GetRedirectTo() string {
+	return s.RedirectTo
+}
+
+// SetRedirectTo sets the value of RedirectTo.
+func (s *AcceptOperatorLoginOK) SetRedirectTo(val string) {
+	s.RedirectTo = val
+}
+
+func (*AcceptOperatorLoginOK) acceptOperatorLoginRes() {}
+
+type AcceptOperatorLoginReq struct {
+	Challenge string `json:"challenge"`
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *AcceptOperatorLoginReq) GetChallenge() string {
+	return s.Challenge
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *AcceptOperatorLoginReq) SetChallenge(val string) {
+	s.Challenge = val
+}
+
+type AcceptOperatorLoginServiceUnavailable ProblemDetails
+
+func (*AcceptOperatorLoginServiceUnavailable) acceptOperatorLoginRes() {}
+
+type AcceptOperatorLoginTooManyRequests ProblemDetails
+
+func (*AcceptOperatorLoginTooManyRequests) acceptOperatorLoginRes() {}
+
+type AcceptOperatorLoginUnauthorized ProblemDetails
+
+func (*AcceptOperatorLoginUnauthorized) acceptOperatorLoginRes() {}
+
 type AcceptTeamFoundingBadRequest ProblemDetails
 
 func (*AcceptTeamFoundingBadRequest) acceptTeamFoundingRes() {}
@@ -682,8 +801,9 @@ func (s *AgentKeyWithSecret) SetSecret(val string) {
 	s.Secret = val
 }
 
-func (*AgentKeyWithSecret) createAgentKeyRes() {}
-func (*AgentKeyWithSecret) rotateAgentKeyRes() {}
+func (*AgentKeyWithSecret) createAgentKeyRes()           {}
+func (*AgentKeyWithSecret) provisionAgentCredentialRes() {}
+func (*AgentKeyWithSecret) rotateAgentKeyRes()           {}
 
 // Ref: #/components/schemas/AgentPrincipal
 type AgentPrincipal struct {
@@ -24017,6 +24137,112 @@ func (s *GetOAuth2TokenUnauthorizedAdditional) init() GetOAuth2TokenUnauthorized
 	return m
 }
 
+type GetOperatorConsentBadRequest ProblemDetails
+
+func (*GetOperatorConsentBadRequest) getOperatorConsentRes() {}
+
+type GetOperatorConsentForbidden ProblemDetails
+
+func (*GetOperatorConsentForbidden) getOperatorConsentRes() {}
+
+type GetOperatorConsentNotFound ProblemDetails
+
+func (*GetOperatorConsentNotFound) getOperatorConsentRes() {}
+
+type GetOperatorConsentOK struct {
+	Agent       OptString `json:"agent"`
+	AgentId     OptString `json:"agentId"`
+	Instance    string    `json:"instance"`
+	Operation   string    `json:"operation"`
+	Permissions []string  `json:"permissions"`
+	Team        OptString `json:"team"`
+	TeamId      OptString `json:"teamId"`
+}
+
+// GetAgent returns the value of Agent.
+func (s *GetOperatorConsentOK) GetAgent() OptString {
+	return s.Agent
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *GetOperatorConsentOK) GetAgentId() OptString {
+	return s.AgentId
+}
+
+// GetInstance returns the value of Instance.
+func (s *GetOperatorConsentOK) GetInstance() string {
+	return s.Instance
+}
+
+// GetOperation returns the value of Operation.
+func (s *GetOperatorConsentOK) GetOperation() string {
+	return s.Operation
+}
+
+// GetPermissions returns the value of Permissions.
+func (s *GetOperatorConsentOK) GetPermissions() []string {
+	return s.Permissions
+}
+
+// GetTeam returns the value of Team.
+func (s *GetOperatorConsentOK) GetTeam() OptString {
+	return s.Team
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *GetOperatorConsentOK) GetTeamId() OptString {
+	return s.TeamId
+}
+
+// SetAgent sets the value of Agent.
+func (s *GetOperatorConsentOK) SetAgent(val OptString) {
+	s.Agent = val
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *GetOperatorConsentOK) SetAgentId(val OptString) {
+	s.AgentId = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *GetOperatorConsentOK) SetInstance(val string) {
+	s.Instance = val
+}
+
+// SetOperation sets the value of Operation.
+func (s *GetOperatorConsentOK) SetOperation(val string) {
+	s.Operation = val
+}
+
+// SetPermissions sets the value of Permissions.
+func (s *GetOperatorConsentOK) SetPermissions(val []string) {
+	s.Permissions = val
+}
+
+// SetTeam sets the value of Team.
+func (s *GetOperatorConsentOK) SetTeam(val OptString) {
+	s.Team = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *GetOperatorConsentOK) SetTeamId(val OptString) {
+	s.TeamId = val
+}
+
+func (*GetOperatorConsentOK) getOperatorConsentRes() {}
+
+type GetOperatorConsentServiceUnavailable ProblemDetails
+
+func (*GetOperatorConsentServiceUnavailable) getOperatorConsentRes() {}
+
+type GetOperatorConsentTooManyRequests ProblemDetails
+
+func (*GetOperatorConsentTooManyRequests) getOperatorConsentRes() {}
+
+type GetOperatorConsentUnauthorized ProblemDetails
+
+func (*GetOperatorConsentUnauthorized) getOperatorConsentRes() {}
+
 // GetProblemTypeOK is response for GetProblemType operation.
 type GetProblemTypeOK struct{}
 
@@ -27645,9 +27871,6 @@ type JoinTeamReq struct {
 	// UUID v4 identifier.
 	ExpectedTeamId OptUUID                     `json:"expectedTeamId"`
 	IssueAgentKey  OptJoinTeamReqIssueAgentKey `json:"issueAgentKey"`
-	// Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey
-	// and Idempotency-Key.
-	Proof OptJoinTeamReqProof `json:"proof"`
 }
 
 // GetCode returns the value of Code.
@@ -27665,11 +27888,6 @@ func (s *JoinTeamReq) GetIssueAgentKey() OptJoinTeamReqIssueAgentKey {
 	return s.IssueAgentKey
 }
 
-// GetProof returns the value of Proof.
-func (s *JoinTeamReq) GetProof() OptJoinTeamReqProof {
-	return s.Proof
-}
-
 // SetCode sets the value of Code.
 func (s *JoinTeamReq) SetCode(val string) {
 	s.Code = val
@@ -27685,11 +27903,6 @@ func (s *JoinTeamReq) SetIssueAgentKey(val OptJoinTeamReqIssueAgentKey) {
 	s.IssueAgentKey = val
 }
 
-// SetProof sets the value of Proof.
-func (s *JoinTeamReq) SetProof(val OptJoinTeamReqProof) {
-	s.Proof = val
-}
-
 type JoinTeamReqIssueAgentKey bool
 
 const (
@@ -27701,34 +27914,6 @@ func (JoinTeamReqIssueAgentKey) AllValues() []JoinTeamReqIssueAgentKey {
 	return []JoinTeamReqIssueAgentKey{
 		JoinTeamReqIssueAgentKeyTrue,
 	}
-}
-
-// Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey
-// and Idempotency-Key.
-type JoinTeamReqProof struct {
-	Signature string `json:"signature"`
-	// UUID v4 identifier.
-	SubjectId uuid.UUID `json:"subjectId"`
-}
-
-// GetSignature returns the value of Signature.
-func (s *JoinTeamReqProof) GetSignature() string {
-	return s.Signature
-}
-
-// GetSubjectId returns the value of SubjectId.
-func (s *JoinTeamReqProof) GetSubjectId() uuid.UUID {
-	return s.SubjectId
-}
-
-// SetSignature sets the value of Signature.
-func (s *JoinTeamReqProof) SetSignature(val string) {
-	s.Signature = val
-}
-
-// SetSubjectId sets the value of SubjectId.
-func (s *JoinTeamReqProof) SetSubjectId(val uuid.UUID) {
-	s.SubjectId = val
 }
 
 type JoinTeamServiceUnavailable ProblemDetails
@@ -37478,52 +37663,6 @@ func (o OptJoinTeamReqIssueAgentKey) Or(d JoinTeamReqIssueAgentKey) JoinTeamReqI
 	return d
 }
 
-// NewOptJoinTeamReqProof returns new OptJoinTeamReqProof with value set to v.
-func NewOptJoinTeamReqProof(v JoinTeamReqProof) OptJoinTeamReqProof {
-	return OptJoinTeamReqProof{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptJoinTeamReqProof is optional JoinTeamReqProof.
-type OptJoinTeamReqProof struct {
-	Value JoinTeamReqProof
-	Set   bool
-}
-
-// IsSet returns true if OptJoinTeamReqProof was set.
-func (o OptJoinTeamReqProof) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptJoinTeamReqProof) Reset() {
-	var v JoinTeamReqProof
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptJoinTeamReqProof) SetTo(v JoinTeamReqProof) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptJoinTeamReqProof) Get() (v JoinTeamReqProof, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptJoinTeamReqProof) Or(d JoinTeamReqProof) JoinTeamReqProof {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptListAgentKeysStatus returns new OptListAgentKeysStatus with value set to v.
 func NewOptListAgentKeysStatus(v ListAgentKeysStatus) OptListAgentKeysStatus {
 	return OptListAgentKeysStatus{
@@ -38930,6 +39069,52 @@ func (o OptProvenanceGraphRenderedPackNodeMetaCreator) Get() (v ProvenanceGraphR
 
 // Or returns value if set, or given parameter if does not.
 func (o OptProvenanceGraphRenderedPackNodeMetaCreator) Or(d ProvenanceGraphRenderedPackNodeMetaCreator) ProvenanceGraphRenderedPackNodeMetaCreator {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptProvisionAgentCredentialReq returns new OptProvisionAgentCredentialReq with value set to v.
+func NewOptProvisionAgentCredentialReq(v ProvisionAgentCredentialReq) OptProvisionAgentCredentialReq {
+	return OptProvisionAgentCredentialReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProvisionAgentCredentialReq is optional ProvisionAgentCredentialReq.
+type OptProvisionAgentCredentialReq struct {
+	Value ProvisionAgentCredentialReq
+	Set   bool
+}
+
+// IsSet returns true if OptProvisionAgentCredentialReq was set.
+func (o OptProvisionAgentCredentialReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProvisionAgentCredentialReq) Reset() {
+	var v ProvisionAgentCredentialReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProvisionAgentCredentialReq) SetTo(v ProvisionAgentCredentialReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProvisionAgentCredentialReq) Get() (v ProvisionAgentCredentialReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProvisionAgentCredentialReq) Or(d ProvisionAgentCredentialReq) ProvisionAgentCredentialReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -45388,6 +45573,44 @@ func (s *ProvenanceGraphTeamRoleNodeType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ProvisionAgentCredentialBadRequest ProblemDetails
+
+func (*ProvisionAgentCredentialBadRequest) provisionAgentCredentialRes() {}
+
+type ProvisionAgentCredentialForbidden ProblemDetails
+
+func (*ProvisionAgentCredentialForbidden) provisionAgentCredentialRes() {}
+
+type ProvisionAgentCredentialNotFound ProblemDetails
+
+func (*ProvisionAgentCredentialNotFound) provisionAgentCredentialRes() {}
+
+type ProvisionAgentCredentialReq struct {
+	AgentProof OptString `json:"agentProof"`
+}
+
+// GetAgentProof returns the value of AgentProof.
+func (s *ProvisionAgentCredentialReq) GetAgentProof() OptString {
+	return s.AgentProof
+}
+
+// SetAgentProof sets the value of AgentProof.
+func (s *ProvisionAgentCredentialReq) SetAgentProof(val OptString) {
+	s.AgentProof = val
+}
+
+type ProvisionAgentCredentialServiceUnavailable ProblemDetails
+
+func (*ProvisionAgentCredentialServiceUnavailable) provisionAgentCredentialRes() {}
+
+type ProvisionAgentCredentialTooManyRequests ProblemDetails
+
+func (*ProvisionAgentCredentialTooManyRequests) provisionAgentCredentialRes() {}
+
+type ProvisionAgentCredentialUnauthorized ProblemDetails
+
+func (*ProvisionAgentCredentialUnauthorized) provisionAgentCredentialRes() {}
 
 // Ref: #/components/schemas/PublicFeedEntry
 type PublicFeedEntry struct {

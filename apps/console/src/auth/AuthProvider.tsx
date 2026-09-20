@@ -17,6 +17,7 @@ import {
 } from 'react';
 
 import { getKratosClient } from '../kratos.js';
+import { localControlTokens } from '../runtime-local/local-control-token-cache.js';
 
 const FOREGROUND_REVALIDATION_INTERVAL_MS = 30_000;
 const SESSION_CHECK_TIMEOUT_MS = 10_000;
@@ -230,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [checkSession]);
 
   const logout = useCallback(async () => {
+    localControlTokens.clear();
     try {
       const kratosClient = getKratosClient();
       const logoutFlow = await kratosClient.createBrowserLogoutFlow();

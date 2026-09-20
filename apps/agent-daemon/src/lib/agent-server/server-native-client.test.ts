@@ -5,11 +5,21 @@
  * token and passes it in the child's environment, so no browser ceremony is
  * involved and the native origin must never be reachable through one.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { writeFileSync } from 'node:fs';
 
-import { NATIVE_CLIENT_ORIGIN, PairingService } from './pairing.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  NATIVE_CLIENT_ORIGIN,
+  NativeGrantService,
+} from './native-grant-service.js';
+import {
+  InvalidOperatorGrantError,
+  type OperatorOAuth,
+} from './operator-oauth.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
+  authorize,
   cleanupAll,
   CONSOLE_ORIGIN,
   fixture,
@@ -21,9 +31,9 @@ afterEach(cleanupAll);
 describe('native desktop client', () => {
   it('authorizes the native origin with the supervisor token', async () => {
     // Arrange
-    const pairing = new PairingService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant });
 
     // Act
     const response = await app.inject({
@@ -43,9 +53,9 @@ describe('native desktop client', () => {
   it.each([undefined, 'guessed'])(
     'rejects enrollment without the native grant (%s)',
     async (token) => {
-      const pairing = new PairingService();
-      pairing.grantNative('supervisor-token');
-      const { app } = await fixture({ pairing });
+      const nativeGrant = new NativeGrantService();
+      nativeGrant.grantNative('supervisor-token');
+      const { app } = await fixture({ nativeGrant });
       const response = await app.inject({
         method: 'POST',
         url: '/v1/agents/agent/teams',
@@ -56,7 +66,7 @@ describe('native desktop client', () => {
         },
         payload: {
           mode: 'enroll',
-          code: 'invite-sentinel',
+          teamId: 'aaaaaaaa-0000-4000-8000-000000000001',
           idempotencyKey: 'request',
         },
       });
@@ -67,9 +77,9 @@ describe('native desktop client', () => {
 
   it('rejects the native origin with a wrong token', async () => {
     // Arrange
-    const pairing = new PairingService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant });
 
     // Act
     const response = await app.inject({
@@ -88,9 +98,9 @@ describe('native desktop client', () => {
 
   it('does not let a guessed token exhaust the native client rate limit', async () => {
     // Arrange
-    const pairing = new PairingService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing, rateLimitMax: 1 });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant, rateLimitMax: 1 });
 
     // Act: a local process spends the pre-auth budget with a non-empty guess.
     const guessed = await app.inject({
@@ -117,11 +127,30 @@ describe('native desktop client', () => {
     expect(authorized.statusCode).toBe(200);
   });
 
+  it('separates authorized Console requests from guesses and enforces their limit', async () => {
+    const { app } = await fixture({ rateLimitMax: 1 });
+    const token = await authorize(app);
+    const request = (presented: string) =>
+      app.inject({
+        method: 'GET',
+        url: '/v1/status',
+        headers: {
+          host: HOST,
+          origin: CONSOLE_ORIGIN,
+          [AGENT_SERVER_TOKEN_HEADER]: presented,
+        },
+      });
+    expect((await request('guessed')).statusCode).toBe(401);
+    expect((await request(token)).statusCode).toBe(200);
+    expect((await request('another-guess')).statusCode).toBe(429);
+    expect((await request(token)).statusCode).toBe(429);
+  });
+
   it('does not let a browser origin reuse the native token', async () => {
     // Arrange
-    const pairing = new PairingService();
-    pairing.grantNative('supervisor-token');
-    const { app } = await fixture({ pairing });
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({ nativeGrant });
 
     // Act
     const response = await app.inject({
@@ -136,21 +165,6 @@ describe('native desktop client', () => {
 
     // Assert
     expect(response.statusCode).toBe(401);
-  });
-
-  it('refuses to open a browser pairing for the native origin', async () => {
-    // A page that could pair as the native client would inherit desktop
-    // authority, so the ceremony must refuse that origin outright.
-    const { app } = await fixture();
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/v1/pairings',
-      headers: { host: HOST, origin: NATIVE_CLIENT_ORIGIN },
-    });
-
-    // `pairing_invalid` is forbidden, not malformed — the existing mapping.
-    expect(response.statusCode).toBe(403);
   });
 
   it('leaves the native origin unauthorized when no token was supplied', async () => {
@@ -171,4 +185,86 @@ describe('native desktop client', () => {
     // Assert
     expect(response.statusCode).toBe(401);
   });
+});
+
+describe('browser admission and stream authorization', () => {
+  it('shares admission verification but revalidates before streaming log content', async () => {
+    const verifyBrowser = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValue(new InvalidOperatorGrantError('Grant expired'));
+    const { app, store } = await fixture({
+      operatorOAuth: {
+        verifyBrowser,
+        cancel: () => undefined,
+      } as unknown as OperatorOAuth,
+    });
+    const { logPath } = store.createRunDir('expiring-run');
+    store.writeRun({
+      id: 'expiring-run',
+      agent: 'agent',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll',
+      status: 'exited',
+      startedAt: '2026-01-01T00:00:00Z',
+    });
+    writeFileSync(logPath, 'must-not-be-forwarded\n');
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    const result = fetch(`${address}/v1/runs/expiring-run/logs`, {
+      headers: {
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'expiring-token',
+      },
+      signal: AbortSignal.timeout(3000),
+    }).then((response) => response.text());
+    await expect(result).rejects.toThrow();
+    expect(verifyBrowser).toHaveBeenCalledTimes(2);
+  });
+
+  it('verifies a normal request once', async () => {
+    const verifyBrowser = vi.fn().mockResolvedValue(undefined);
+    const { app } = await fixture({
+      operatorOAuth: {
+        verifyBrowser,
+        cancel: () => undefined,
+      } as unknown as OperatorOAuth,
+    });
+    const response = await app.inject({
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'valid',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(verifyBrowser).toHaveBeenCalledTimes(1);
+  });
+});
+
+it('distinguishes missing OAuth configuration from temporary verification failure', async () => {
+  const missing = await fixture({ operatorOAuth: undefined });
+  const unavailable = await fixture({
+    operatorOAuth: {
+      cancel: () => undefined,
+      verifyBrowser: vi.fn().mockRejectedValue(new Error('JWKS unavailable')),
+    } as unknown as OperatorOAuth,
+  });
+  for (const [app, expected] of [
+    [missing.app, 'oauth_unavailable'],
+    [unavailable.app, 'authorization_unavailable'],
+  ] as const) {
+    const response = await app.inject({
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'token',
+      },
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ code: expected });
+  }
 });

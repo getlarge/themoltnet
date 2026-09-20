@@ -932,32 +932,6 @@
         ],
         "type": "object"
       },
-      "PairingClaimed": {
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "token"
-        ],
-        "type": "object"
-      },
-      "PairingStarted": {
-        "properties": {
-          "approvalPath": {
-            "type": "string"
-          },
-          "pairingId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "pairingId",
-          "approvalPath"
-        ],
-        "type": "object"
-      },
       "ReconcileAgentResult": {
         "anyOf": [
           {
@@ -982,7 +956,7 @@
     },
     "securitySchemes": {
       "agentServerToken": {
-        "description": "Origin-bound capability issued by local pairing.",
+        "description": "Console OAuth PKCE local-control access token, or a process-scoped native Desktop grant.",
         "in": "header",
         "name": "x-moltnet-agent-server-token",
         "type": "apiKey"
@@ -992,7 +966,7 @@
   "info": {
     "description": "Private loopback protocol between MoltNet Console and the local agent daemon server.",
     "title": "MoltNet Agent Server API",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1013,6 +987,62 @@
         },
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/oauth/metadata": {
+      "get": {
+        "operationId": "getAgentServerOAuthMetadata",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "authorizationUrl": {
+                      "type": "string"
+                    },
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "issuer": {
+                      "type": "string"
+                    },
+                    "operatorConfigured": {
+                      "type": "boolean"
+                    },
+                    "protocolVersion": {
+                      "enum": [
+                        2
+                      ],
+                      "type": "integer"
+                    },
+                    "tokenUrl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "protocolVersion",
+                    "instance",
+                    "issuer",
+                    "authorizationUrl",
+                    "tokenUrl",
+                    "clientId",
+                    "operatorConfigured"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "operator"
         ]
       }
     },
@@ -1237,19 +1267,18 @@
                 "allOf": [
                   {
                     "properties": {
-                      "code": {
-                        "maxLength": 4096,
-                        "minLength": 1,
-                        "type": "string"
-                      },
                       "idempotencyKey": {
                         "maxLength": 256,
                         "minLength": 1,
                         "type": "string"
+                      },
+                      "teamId": {
+                        "format": "uuid",
+                        "type": "string"
                       }
                     },
                     "required": [
-                      "code",
+                      "teamId",
                       "idempotencyKey"
                     ],
                     "type": "object"
@@ -1277,15 +1306,10 @@
                               "replace"
                             ],
                             "type": "string"
-                          },
-                          "teamId": {
-                            "minLength": 1,
-                            "type": "string"
                           }
                         },
                         "required": [
-                          "mode",
-                          "teamId"
+                          "mode"
                         ],
                         "type": "object"
                       }
@@ -1426,74 +1450,101 @@
         ]
       }
     },
-    "/v1/pairings": {
-      "post": {
-        "operationId": "startAgentServerPairing",
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PairingStarted"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentServerProblem"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "tags": [
-          "pairing"
-        ]
-      }
-    },
-    "/v1/pairings/{pairingId}/claim": {
-      "post": {
-        "operationId": "claimAgentServerPairing",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "pairingId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+    "/v1/operator": {
+      "delete": {
+        "operationId": "removeAgentServerOperator",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingClaimed"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentServerProblem"
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "removed"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
                 }
               }
             },
             "description": "Default Response"
           }
         },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
         "tags": [
-          "pairing"
+          "operator"
         ]
+      }
+    },
+    "/v1/operator/cancel": {
+      "post": {
+        "operationId": "cancelAgentServerOperatorApproval",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "cancelled"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "operator"
+        ]
+      }
+    },
+    "/v1/operator/sign-in": {
+      "post": {
+        "operationId": "signInAgentServerOperator",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        }
       }
     },
     "/v1/providers": {

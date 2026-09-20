@@ -11,6 +11,8 @@ import {
 import { client } from '../client.gen';
 import {
   abortTaskAttempt,
+  acceptOperatorConsent,
+  acceptOperatorLogin,
   acceptTeamFounding,
   acceptTransfer,
   addGroupMember,
@@ -75,6 +77,7 @@ import {
   getLlmsTxt,
   getNetworkInfo,
   getOAuth2Token,
+  getOperatorConsent,
   getProblemType,
   getProject,
   getPublicEntry,
@@ -127,6 +130,7 @@ import {
   type Options,
   previewDiaryCustomPack,
   previewRenderedPack,
+  provisionAgentCredential,
   recoverAgentCredentials,
   registerAgent,
   registerExecutorManifest,
@@ -174,6 +178,12 @@ import type {
   AbortTaskAttemptData,
   AbortTaskAttemptError,
   AbortTaskAttemptResponse,
+  AcceptOperatorConsentData,
+  AcceptOperatorConsentError,
+  AcceptOperatorConsentResponse,
+  AcceptOperatorLoginData,
+  AcceptOperatorLoginError,
+  AcceptOperatorLoginResponse,
   AcceptTeamFoundingData,
   AcceptTeamFoundingError,
   AcceptTeamFoundingResponse,
@@ -363,6 +373,9 @@ import type {
   GetOAuth2TokenData,
   GetOAuth2TokenError,
   GetOAuth2TokenResponse,
+  GetOperatorConsentData,
+  GetOperatorConsentError,
+  GetOperatorConsentResponse,
   GetProblemTypeData,
   GetProjectData,
   GetProjectError,
@@ -513,6 +526,9 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackError,
   PreviewRenderedPackResponse,
+  ProvisionAgentCredentialData,
+  ProvisionAgentCredentialError,
+  ProvisionAgentCredentialResponse,
   RecoverAgentCredentialsData,
   RecoverAgentCredentialsError,
   RecoverAgentCredentialsResponse,
@@ -2719,6 +2735,103 @@ export const getLlmsTxtOptions = (options?: Options<GetLlmsTxtData>) =>
     },
     queryKey: getLlmsTxtQueryKey(options),
   });
+
+export const getOperatorConsentQueryKey = (
+  options: Options<GetOperatorConsentData>,
+) => createQueryKey('getOperatorConsent', options);
+
+export const getOperatorConsentOptions = (
+  options: Options<GetOperatorConsentData>,
+) =>
+  queryOptions<
+    GetOperatorConsentResponse,
+    GetOperatorConsentError,
+    GetOperatorConsentResponse,
+    ReturnType<typeof getOperatorConsentQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getOperatorConsent({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getOperatorConsentQueryKey(options),
+  });
+
+export const acceptOperatorConsentMutation = (
+  options?: Partial<Options<AcceptOperatorConsentData>>,
+): UseMutationOptions<
+  AcceptOperatorConsentResponse,
+  AcceptOperatorConsentError,
+  Options<AcceptOperatorConsentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AcceptOperatorConsentResponse,
+    AcceptOperatorConsentError,
+    Options<AcceptOperatorConsentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await acceptOperatorConsent({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const acceptOperatorLoginMutation = (
+  options?: Partial<Options<AcceptOperatorLoginData>>,
+): UseMutationOptions<
+  AcceptOperatorLoginResponse,
+  AcceptOperatorLoginError,
+  Options<AcceptOperatorLoginData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AcceptOperatorLoginResponse,
+    AcceptOperatorLoginError,
+    Options<AcceptOperatorLoginData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await acceptOperatorLogin({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const provisionAgentCredentialMutation = (
+  options?: Partial<Options<ProvisionAgentCredentialData>>,
+): UseMutationOptions<
+  ProvisionAgentCredentialResponse,
+  ProvisionAgentCredentialError,
+  Options<ProvisionAgentCredentialData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ProvisionAgentCredentialResponse,
+    ProvisionAgentCredentialError,
+    Options<ProvisionAgentCredentialData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await provisionAgentCredential({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 /**
  * OAuth2 token endpoint. Proxies every grant to the upstream identity provider, which remains the authority on which grants and client authentication methods are accepted. Successful client_credentials and refresh_token grants may be served from cache.
@@ -5124,7 +5237,7 @@ export const createTeamMutation = (
 };
 
 /**
- * Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.
+ * Join using an invitation and a credential/session with team:join. Key issuance requires Idempotency-Key; secrets are returned once and completed replays return 409.
  */
 export const joinTeamMutation = (
   options?: Partial<Options<JoinTeamData>>,

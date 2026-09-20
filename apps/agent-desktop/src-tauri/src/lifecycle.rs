@@ -16,7 +16,7 @@ use std::{
 };
 
 const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
-const HEALTH_URL: &str = "https://127.0.0.1:17374/health";
+use crate::operator_oauth::HEALTH_URL;
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
@@ -533,7 +533,7 @@ impl LifecycleManager {
                         self.retry_used = retry_budget_after_start(origin, attempt);
                         self.set_state(
                             LifecycleState::Running,
-                            "Ready. Open Console to pair this server process.",
+                            "Ready. Sign in to authorize Console local control.",
                         );
                         return Ok(self.snapshot());
                     }
@@ -714,17 +714,6 @@ impl LifecycleManager {
 
 pub fn open_console() -> Result<(), String> {
     fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
-}
-
-pub fn open_team_invites(team_id: Option<&str>) -> Result<(), String> {
-    let url = match team_id {
-        Some(id) if !id.is_empty() && id.bytes().all(|b| b.is_ascii_hexdigit() || b == b'-') => {
-            format!("https://console.themolt.net/teams/{id}?tab=invites")
-        }
-        Some(_) => return Err("Invalid team identifier".to_string()),
-        None => "https://console.themolt.net/teams".to_string(),
-    };
-    fixed_command("/usr/bin/open", &[&url]).map(|_| ())
 }
 
 pub fn open_logs(directory: &Path) -> Result<(), String> {

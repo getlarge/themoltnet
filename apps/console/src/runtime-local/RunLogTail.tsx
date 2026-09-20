@@ -113,12 +113,7 @@ export function RunLogTail({
         }}
       >
         {buffer.lines.length > 0
-          ? buffer.lines.map((line, index) => (
-              <span key={`${index}:${line.length}`}>
-                {index > 0 ? '\n' : null}
-                {line}
-              </span>
-            ))
+          ? buffer.lines.join('\n')
           : 'Waiting for output…'}
       </pre>
     </Stack>

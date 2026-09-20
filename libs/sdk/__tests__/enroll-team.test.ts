@@ -7,15 +7,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
 import { CredentialPersistenceError } from '../src/credential-persistence.js';
-import { EnrollmentRecoveryError, enrollTeam } from '../src/enroll-team.js';
-import { requestProofEnrollment } from '../src/enrollment-proof.js';
-
-vi.mock('../src/enrollment-proof.js', () => ({
-  requestProofEnrollment: vi.fn(),
-  EnrollmentRequestError: class extends Error {},
-}));
+import {
+  EnrollmentRecoveryError,
+  enrollTeam,
+  ProvisioningNotStartedError,
+} from '../src/enroll-team.js';
 import { FileSecretProvider } from '../src/file-secret-provider.js';
-
 const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(
@@ -121,17 +118,43 @@ describe('enrollment response validation', () => {
   );
 });
 
-describe('proof enrollment replacement and recovery', () => {
-  const signer = { sign: async () => 'proof' };
+describe('human enrollment replacement and recovery', () => {
+  const provision =
+    vi.fn<NonNullable<Parameters<typeof enrollTeam>[0]['provision']>>();
+
+  it('cleans up recovery metadata when approval never reached issuance', async () => {
+    const { dir, provider } = await fixture();
+    provision.mockRejectedValueOnce(
+      new ProvisioningNotStartedError(new Error('Approval already pending')),
+    );
+    await expect(
+      enrollTeam({
+        provision,
+        provisioningContext: {
+          teamId: 'team',
+          operation: 'enroll',
+          scopes: ['task:execute'],
+        },
+        idempotencyKey: 'not-started',
+        configDir: dir,
+        secretProvider: provider,
+      }),
+    ).rejects.toBeInstanceOf(ProvisioningNotStartedError);
+    expect(await readdir(join(dir, 'credential-recovery'))).toEqual([]);
+  });
 
   it('retains protected request context on a lost response without claiming secret capture', async () => {
     const { dir, provider } = await fixture();
-    vi.mocked(requestProofEnrollment).mockRejectedValue(
+    provision.mockRejectedValue(
       new Error('transport failed with sensitive details'),
     );
     const failure = await enrollTeam({
-      signer,
-      code: 'invitation',
+      provision,
+      provisioningContext: {
+        teamId: 'team',
+        operation: 'enroll',
+        scopes: ['task:execute'],
+      },
       idempotencyKey: 'same-request',
       configDir: dir,
       secretProvider: provider,
@@ -142,7 +165,14 @@ describe('proof enrollment replacement and recovery', () => {
     const record = JSON.parse(await readFile(error.recoveryPath, 'utf8'));
     expect(record).toMatchObject({
       secretCaptured: false,
-      retryContext: { code: 'invitation', idempotencyKey: 'same-request' },
+      retryContext: {
+        provisioning: {
+          teamId: 'team',
+          operation: 'enroll',
+          scopes: ['task:execute'],
+        },
+        idempotencyKey: 'same-request',
+      },
     });
     expect(record).not.toHaveProperty('secret');
     expect((await stat(error.recoveryPath)).mode & 0o777).toBe(0o600);
@@ -165,7 +195,7 @@ describe('proof enrollment replacement and recovery', () => {
         { ...config, agent_key_refs: { team: reference } },
         dir,
       );
-      vi.mocked(requestProofEnrollment).mockImplementation(async () => {
+      provision.mockImplementation(async () => {
         if (scenario === 'secret-race')
           await provider.write(reference.key, 'concurrent-writer');
         if (scenario === 'slot-race')
@@ -180,19 +210,19 @@ describe('proof enrollment replacement and recovery', () => {
           );
         if (scenario === 'readback-failure')
           vi.spyOn(provider, 'write').mockResolvedValue(undefined);
-        return response as Awaited<ReturnType<typeof requestProofEnrollment>>;
+        return response as Awaited<
+          ReturnType<NonNullable<Parameters<typeof enrollTeam>[0]['provision']>>
+        >;
       });
       const result = await enrollTeam({
-        signer,
+        provision,
         replacement: { teamId: 'team' },
         code: 'invite',
         idempotencyKey: 'renewal',
         configDir: dir,
         secretProvider: provider,
       }).catch((e: unknown) => e);
-      expect(requestProofEnrollment).toHaveBeenLastCalledWith(
-        expect.objectContaining({ expectedTeamId: 'team' }),
-      );
+      expect(provision).toHaveBeenCalled();
       if (scenario === 'unchanged') {
         expect(result).toMatchObject({ teamId: 'team', key: { id: 'key' } });
         expect(await provider.read(reference.key)).toBe('issued-secret');

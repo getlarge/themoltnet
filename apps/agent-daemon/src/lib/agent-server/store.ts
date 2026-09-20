@@ -352,12 +352,6 @@ export class AgentServerStore {
         `agent-server.json version ${String(isRecord(state) ? state.version : undefined)} is not supported; move agent-server.json aside, run \`moltnet config migrate\`, then add or attach the agents again`,
       );
     }
-    if ('pairedOrigins' in state) {
-      throw new AgentServerStoreError(
-        'invalid_state',
-        'agent-server.json uses the obsolete pairing format; move agent-server.json aside and configure the agent server again',
-      );
-    }
     if (!isRecord(state.pendingRegistrations) || !isRecord(state.activations)) {
       throw new AgentServerStoreError(
         'invalid_state',

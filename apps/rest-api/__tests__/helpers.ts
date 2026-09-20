@@ -839,6 +839,7 @@ export async function createTestApp(
     oryProjectUrl?: string;
     identityApi?: Pick<OryClients['identity'], 'getIdentity'>;
     talosApi?: { getJwks(): Promise<unknown> };
+    relationshipApi?: OryClients['relationship'];
   },
   /**
    * Override how a bearer token resolves to an AuthContext. Defaults to always
@@ -893,7 +894,8 @@ export async function createTestApp(
     } as OryClients['identity'],
     oauth2: mockOAuth2Api,
     permission: {} as OryClients['permission'],
-    relationship: {} as OryClients['relationship'],
+    relationship:
+      healthOptions?.relationshipApi ?? ({} as OryClients['relationship']),
     ...(healthOptions?.talosApi
       ? { apiKeys: healthOptions.talosApi as OryClients['apiKeys'] }
       : {}),

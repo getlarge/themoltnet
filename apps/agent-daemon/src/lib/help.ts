@@ -51,7 +51,7 @@ Commands:
   once      Claim and execute one specific queued task by id, then exit.
   drain     Poll until the queue has nothing claimable, then exit.
             Useful for batch eval runs and demos.
-  server    Loopback supervisor for console-managed runs: pairing,
+  server    Loopback supervisor for console-managed runs: OAuth local control,
             agent/provider config store, and start/stop of poll/drain
             child processes. Binds 127.0.0.1 only.
   server trust
@@ -213,14 +213,14 @@ export function isHelpFlag(args: readonly string[]): boolean {
 export const AGENT_SERVER_HELP = `\
 agent-daemon server — loopback supervisor for console-managed runs.
 
-Binds 127.0.0.1 only. A paired Console origin configures agents and
+Binds 127.0.0.1 only. An authorized Console origin configures agents and
 providers (secret references only) and starts/stops poll/drain runs as
 child processes of this supervisor.
 
 Options:
   --port <n>                  Loopback port. Default: 17374.
                               Env: MOLTNET_AGENT_SERVER_PORT.
-  --allowed-origins <csv>     Exact Console origins allowed to pair.
+  --allowed-origins <csv>     Exact Console origins allowed local control.
                               Default: https://console.themolt.net.
                               Env: MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS.
   --root <path>               Config root. Default: ~/.config/moltnet

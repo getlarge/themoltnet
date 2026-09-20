@@ -48,7 +48,7 @@ const status = (overrides: Partial<DesktopStatus> = {}): DesktopStatus => ({
   availableVersion: null,
   trustFingerprint: 'AA:BB:CC',
   trusted: true,
-  message: 'Ready for Console pairing.',
+  message: 'Ready for Console local control.',
   logs: ['server listening on https://127.0.0.1:17374'],
   ...overrides,
 });

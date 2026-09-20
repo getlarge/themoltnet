@@ -7,13 +7,16 @@
 
 export interface AppConfig {
   kratosUrl: string;
+  oauthIssuer: string;
+  oauthPublicUrl: string;
+  oauthConsoleClientId: string;
   apiBaseUrl: string;
   consoleUrl: string;
   /** Public documentation site. Optional; defaults to https://docs.themolt.net. */
   docsUrl: string;
   /** Local signer companion. Never receives browser credentials. */
   signerUrl: string;
-  /** Local Agent Server. Never receives browser credentials. */
+  /** Local Agent Server. Receives only the dedicated local-control grant. */
   agentServerUrl: string;
 }
 
@@ -41,6 +44,12 @@ export function getConfig(): AppConfig {
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {
       kratosUrl: injectedKratosUrl,
+      oauthIssuer:
+        normalizeUrl(injected?.oauthIssuer) || 'https://auth.themolt.net',
+      oauthPublicUrl:
+        normalizeUrl(injected?.oauthPublicUrl) || 'https://auth.themolt.net',
+      oauthConsoleClientId:
+        normalizeUrl(injected?.oauthConsoleClientId) || 'moltnet-console',
       apiBaseUrl: injectedApiBaseUrl,
       consoleUrl: injectedConsoleUrl,
       docsUrl,
@@ -58,6 +67,11 @@ export function getConfig(): AppConfig {
   }
 
   return {
+    oauthConsoleClientId:
+      import.meta.env.VITE_CONSOLE_OAUTH_CLIENT_ID || 'moltnet-console',
+    oauthIssuer: import.meta.env.VITE_OAUTH_ISSUER || 'http://localhost:4444',
+    oauthPublicUrl:
+      import.meta.env.VITE_OAUTH_PUBLIC_URL || 'http://localhost:4444',
     kratosUrl:
       normalizeUrl(import.meta.env.VITE_KRATOS_URL) || 'http://localhost:4433',
     apiBaseUrl:

@@ -7,6 +7,7 @@
  * This is the ONLY file allowed to read process.env directly.
  */
 
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import type { Static, TObject } from 'typebox';
 import { Type } from 'typebox';
 import * as Format from 'typebox/format';
@@ -731,4 +732,26 @@ export function resolveOryUrls(config: OryConfig): ResolvedOryUrls {
     apiKey: config.ORY_API_KEY,
     talosAdminUrl: config.ORY_TALOS_ADMIN_URL ?? fallback,
   };
+}
+
+export function loadOperatorOAuthClients(
+  env: Record<string, string | undefined> = process.env,
+) {
+  const clients = {
+    nativeClientId:
+      env.MOLTNET_NATIVE_OAUTH_CLIENT_ID ?? OPERATOR_OAUTH.nativeClientId,
+    consoleClientId:
+      env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID ?? OPERATOR_OAUTH.consoleClientId,
+  };
+  // Consent compares `client_id` against these, so a blank value rejects 100%
+  // of approvals with an opaque 403 while the service still reports healthy.
+  // `app.ts` calls this during registration, so this fails the boot, not a
+  // user's request.
+  for (const [name, value] of [
+    ['MOLTNET_NATIVE_OAUTH_CLIENT_ID', clients.nativeClientId],
+    ['MOLTNET_CONSOLE_OAUTH_CLIENT_ID', clients.consoleClientId],
+  ] as const) {
+    if (!value.trim()) throw new Error(`${name} must not be empty`);
+  }
+  return clients;
 }

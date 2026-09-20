@@ -1,14 +1,3 @@
-/**
- * @moltnet/auth — Token Validation Service
- *
- * Validates OAuth2 access tokens using two strategies:
- * - Opaque tokens (Ory prefix `ory_at_`, `ory_ht_`): introspection via Ory Hydra
- * - JWTs (three dot-separated segments): local JWKS verification, with
- *   introspection fallback only for transient JWKS failures
- *
- * Then resolves the full AuthContext for authenticated requests.
- */
-
 import {
   type ApiKeysApi,
   KeyStatus,
@@ -19,6 +8,12 @@ import { createRemoteJWKSet, errors, type JWTPayload, jwtVerify } from 'jose';
 
 import { readAgentKeyMetadataBinding } from './agent-key-binding.js';
 import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
+import {
+  LOCAL_CONTROL_SCOPE,
+  PROVISIONING_SCOPE,
+  readDelegableScopes,
+  readProvisioningGrant,
+} from './provisioning.js';
 import {
   createRemoteAuthMetrics,
   RemoteAuthCache,
@@ -35,6 +30,17 @@ import type {
   IntrospectionResult,
   SubjectType,
 } from './types.js';
+
+/**
+ * @moltnet/auth — Token Validation Service
+ *
+ * Validates OAuth2 access tokens using two strategies:
+ * - Opaque tokens (Ory prefix `ory_at_`, `ory_ht_`): introspection via Ory Hydra
+ * - JWTs (three dot-separated segments): local JWKS verification, with
+ *   introspection fallback only for transient JWKS failures
+ *
+ * Then resolves the full AuthContext for authenticated requests.
+ */
 
 export interface TokenValidatorConfig {
   /** Ory Hydra JWKS URI (e.g. https://<project>.projects.oryapis.com/.well-known/jwks.json) */
@@ -323,7 +329,22 @@ function extractAuthContextFromClaims(
       // principal they can't translate into a creator FK.
       return null;
     }
+    const provisioning = readProvisioningGrant(claims['moltnet:provisioning']);
+    const delegableScopes = readDelegableScopes(
+      claims['moltnet:delegable_scopes'],
+    );
+    if (
+      scopes.includes(PROVISIONING_SCOPE) &&
+      (!provisioning ||
+        !delegableScopes ||
+        !delegableScopes.includes('key:manage') ||
+        provisioning.scopes.some((scope) => !delegableScopes.includes(scope)))
+    )
+      return null;
     return {
+      ...(provisioning && delegableScopes
+        ? { provisioning, delegableScopes }
+        : {}),
       subjectType: 'human',
       identityId,
       humanId,
@@ -865,6 +886,14 @@ export function createTokenValidator(
           result.clientId,
           result.scopes,
         );
+        if (
+          !fromClaims &&
+          result.scopes.some(
+            (scope) =>
+              scope === PROVISIONING_SCOPE || scope === LOCAL_CONTROL_SCOPE,
+          )
+        )
+          return null;
         const context =
           fromClaims ??
           (await fetchClientMetadata(
@@ -975,6 +1004,14 @@ export function createTokenValidator(
         return fromClaims;
       }
 
+      // Special approval grants require their complete signed claims.
+      if (
+        scopes.some(
+          (scope) =>
+            scope === PROVISIONING_SCOPE || scope === LOCAL_CONTROL_SCOPE,
+        )
+      )
+        return null;
       // Fallback: fetch client metadata from Hydra
       return resolveClientMetadataContext(token, result);
     },

@@ -68,6 +68,7 @@ export {
   authPrincipalCreator,
   type PrincipalSource,
 } from './principal.js';
+export * from './provisioning.js';
 export {
   createRelationshipReader,
   type DiaryGrantTuple,

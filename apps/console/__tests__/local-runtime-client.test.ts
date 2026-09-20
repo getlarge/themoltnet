@@ -48,12 +48,10 @@ describe('agent server client', () => {
     expect(fetchMock.mock.calls[0][1]).not.toHaveProperty('targetAddressSpace');
   });
 
-  it('never sends browser credentials and attaches the pairing token', async () => {
+  it('never sends browser credentials and attaches the local-control access token', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        jsonResponse({ pairingId: 'p1', approvalPath: '/pairings/p1' }, 201),
-      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
       .mockResolvedValueOnce(
         jsonResponse({
           version: 'test',
@@ -72,7 +70,7 @@ describe('agent server client', () => {
       fetch: fetchMock,
     });
 
-    await client.startPairing();
+    await client.health();
     token = 'paired-token';
     await expect(client.status()).resolves.toMatchObject({
       runtimeSettings: {
@@ -103,14 +101,15 @@ describe('agent server client', () => {
   });
 
   it('maps Agent Server problem responses onto typed errors', async () => {
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        jsonResponse(
-          { code: 'pairing_required', message: 'Pairing token is required' },
-          401,
-        ),
-      );
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      jsonResponse(
+        {
+          code: 'authorization_required',
+          message: 'Local control token is required',
+        },
+        401,
+      ),
+    );
     const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => null,
@@ -121,7 +120,9 @@ describe('agent server client', () => {
       expect.unreachable();
     } catch (error) {
       expect(error).toBeInstanceOf(AgentServerClientError);
-      expect((error as AgentServerClientError).code).toBe('pairing_required');
+      expect((error as AgentServerClientError).code).toBe(
+        'authorization_required',
+      );
       expect((error as AgentServerClientError).status).toBe(401);
     }
   });
@@ -397,7 +398,13 @@ describe('agent server client', () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(
-        jsonResponse({ code: 'pairing_required', message: 'Pair again' }, 401),
+        jsonResponse(
+          {
+            code: 'authorization_required',
+            message: 'Sign in to authorize local control',
+          },
+          401,
+        ),
       )
       .mockResolvedValueOnce(
         new Response(null, {
@@ -420,7 +427,7 @@ describe('agent server client', () => {
 
     await expect(
       client.streamLogs('run-1', vi.fn(), signal),
-    ).rejects.toMatchObject({ code: 'pairing_required', status: 401 });
+    ).rejects.toMatchObject({ code: 'authorization_required', status: 401 });
     await expect(
       client.streamLogs('run-1', vi.fn(), signal),
     ).rejects.toMatchObject({ code: 'logs_unavailable' });

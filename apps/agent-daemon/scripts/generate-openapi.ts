@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     secrets: stub(),
     secretProviders: stub(),
     externalSecretProviders: stub(),
-    pairing: stub(),
+    nativeGrant: stub(),
     runs: stub(),
     subscriptions: stub(),
     providers: stub(),

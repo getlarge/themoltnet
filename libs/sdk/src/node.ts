@@ -12,6 +12,7 @@ export {
   enrollTeam,
   type EnrollTeamOptions,
   type EnrollTeamResult,
+  ProvisioningNotStartedError,
 } from './enroll-team.js';
 import {
   type EnvironmentLookup,

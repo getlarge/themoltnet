@@ -15,7 +15,6 @@ describe('native team enrollment bridge', () => {
     const request = {
       mode: 'replace' as const,
       teamId: 'team-a',
-      code: 'invitation-sentinel',
       idempotencyKey: 'request-id',
     };
     const result = { state: 'persisted', teamId: 'team-a', keyId: 'key-id' };
@@ -30,11 +29,9 @@ describe('native team enrollment bridge', () => {
     expect(localStorage.length).toBe(0);
   });
 
-  it('opens Console with only the selected team identifier', async () => {
+  it('starts native operator sign-in without carrying a browser token', async () => {
     vi.mocked(invoke).mockResolvedValue(undefined);
-    await runCenterActions.openTeamInvites!('team-a');
-    expect(invoke).toHaveBeenCalledWith('desktop_team_invites', {
-      teamId: 'team-a',
-    });
+    await runCenterActions.signInOperator!();
+    expect(invoke).toHaveBeenCalledWith('desktop_operator_sign_in');
   });
 });

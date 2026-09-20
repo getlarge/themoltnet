@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -64,8 +64,6 @@ function fixture() {
       teamId: 'team-a',
       keyId: 'new-key',
     }),
-    createIdentity: vi.fn().mockResolvedValue(undefined),
-    openTeamInvites: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue(undefined),
     startRun: vi.fn(),
     stopRun: vi.fn(),
@@ -88,14 +86,65 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
-  it('confirms the exact replacement, clears the invitation, and leaves active runs alone', async () => {
+  it('shows a dismissible toast after sign-in completes', async () => {
+    const { data, actions } = fixture();
+    actions.signInOperator = vi.fn().mockResolvedValue(undefined);
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in for local control' }),
+    );
+    expect(
+      await screen.findByRole('status', { name: 'Approval completed' }),
+    ).toHaveTextContent('Local operator signed in');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dismiss notification' }),
+    );
+    expect(
+      screen.queryByRole('status', { name: 'Approval completed' }),
+    ).not.toBeInTheDocument();
+  });
+  it('shows the persisted operator state without offering another sign-in', async () => {
+    const { data, actions } = fixture();
+    show({ ...data, operatorConfigured: true }, actions);
+    expect(await screen.findByText('Signed in')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Sign in for local control' }),
+    ).not.toBeInTheDocument();
+  });
+  it('cancels an abandoned sign-in and enables retry after native cancellation', async () => {
+    const { data, actions } = fixture();
+    let rejectApproval!: (error: Error) => void;
+    const signIn = vi.fn(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectApproval = reject;
+        }),
+    );
+    const cancel = vi.fn(async () => {
+      rejectApproval(new Error('Approval cancelled'));
+    });
+    actions.signInOperator = signIn;
+    actions.cancelOperatorApproval = cancel;
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in for local control' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cancel approval' }),
+    );
+    expect(await screen.findByText('Approval cancelled')).toBeInTheDocument();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', { name: 'Sign in for local control' }),
+    ).toBeEnabled();
+  });
+  it('confirms the exact replacement and leaves active runs alone', async () => {
     const { data, actions } = fixture();
     show(data, actions);
     expect(await screen.findByText('Expired')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
-    fireEvent.change(screen.getByLabelText('Single-use invitation'), {
-      target: { value: 'single-use-sentinel' },
-    });
     fireEvent.click(
       screen.getByRole('button', { name: 'Replace team credential' }),
     );
@@ -107,10 +156,8 @@ describe('desktop team enrollment', () => {
       expect.objectContaining({
         mode: 'replace',
         teamId: 'team-a',
-        code: 'single-use-sentinel',
       }),
     );
-    expect(screen.getByLabelText('Single-use invitation')).toHaveValue('');
     expect(actions.refresh).toHaveBeenCalledOnce();
     expect(actions.stopRun).not.toHaveBeenCalled();
   });
@@ -126,10 +173,10 @@ describe('desktop team enrollment', () => {
     });
     show(data, actions);
     await screen.findByText('Research');
-    fireEvent.change(screen.getByLabelText('Single-use invitation'), {
+    fireEvent.change(screen.getByLabelText('Team ID'), {
       target: { value: 'single-use-sentinel' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Enroll' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in Console' }));
     await screen.findByText('Enrollment needs recovery');
     expect(
       screen.getByText(/No credential secret was captured/),
@@ -137,34 +184,8 @@ describe('desktop team enrollment', () => {
     expect(
       screen.queryByText('Credential saved for recovery'),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Single-use invitation')).toHaveValue('');
   });
 
-  it('opens only a team identifier in Console and creates a new identity through native registration', async () => {
-    const { data, actions } = fixture();
-    show(data, actions);
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Renew in Console' }),
-    );
-    expect(actions.openTeamInvites).toHaveBeenCalledWith('team-a');
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create a new identity' }),
-    );
-    fireEvent.change(screen.getByLabelText('Identity name'), {
-      target: { value: 'new-agent' },
-    });
-    fireEvent.change(screen.getByLabelText('Single-use invitation'), {
-      target: { value: 'invite-sentinel' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Create and enroll' }));
-    await waitFor(() =>
-      expect(actions.createIdentity).toHaveBeenCalledWith(
-        'new-agent',
-        'invite-sentinel',
-      ),
-    );
-    expect(screen.getByLabelText('Single-use invitation')).toHaveValue('');
-  });
   it('refreshes unavailable team access after an external renewal', async () => {
     const { data, actions } = fixture();
     show(data, actions);

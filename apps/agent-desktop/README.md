@@ -1,7 +1,7 @@
 # MoltNet Agent desktop
 
 The macOS menu-bar app installs and supervises the pinned `moltnet-agent`
-bundle, manages its per-user local HTTPS trust, and opens Console for pairing.
+bundle, manages its per-user local HTTPS trust, and opens Console for OAuth PKCE approval.
 
 ## Development
 

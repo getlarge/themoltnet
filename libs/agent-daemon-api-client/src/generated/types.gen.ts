@@ -186,15 +186,6 @@ export type DiscoveredModels = {
   }>;
 };
 
-export type PairingClaimed = {
-  token: string;
-};
-
-export type PairingStarted = {
-  approvalPath: string;
-  pairingId: string;
-};
-
 export type ReconcileAgentResult =
   | AgentServerAgent
   | {
@@ -217,6 +208,31 @@ export type GetAgentServerHealthResponses = {
 
 export type GetAgentServerHealthResponse =
   GetAgentServerHealthResponses[keyof GetAgentServerHealthResponses];
+
+export type GetAgentServerOAuthMetadataData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/oauth/metadata';
+};
+
+export type GetAgentServerOAuthMetadataResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    authorizationUrl: string;
+    clientId: string;
+    instance: string;
+    issuer: string;
+    operatorConfigured: boolean;
+    protocolVersion: 2;
+    tokenUrl: string;
+  };
+};
+
+export type GetAgentServerOAuthMetadataResponse =
+  GetAgentServerOAuthMetadataResponses[keyof GetAgentServerOAuthMetadataResponses];
 
 export type ListAgentServerAgentsData = {
   body?: never;
@@ -315,15 +331,14 @@ export type ReconcileAgentServerAgentResponse =
 
 export type EnrollAgentServerTeamData = {
   body?: {
-    code: string;
     idempotencyKey: string;
+    teamId: string;
   } & (
     | {
         mode: 'enroll';
       }
     | {
         mode: 'replace';
-        teamId: string;
       }
   );
   path: {
@@ -394,61 +409,62 @@ export type GetAgentServerCatalogueResponses = {
 export type GetAgentServerCatalogueResponse =
   GetAgentServerCatalogueResponses[keyof GetAgentServerCatalogueResponses];
 
-export type StartAgentServerPairingData = {
+export type RemoveAgentServerOperatorData = {
   body?: never;
   path?: never;
   query?: never;
-  url: '/v1/pairings';
+  url: '/v1/operator';
 };
 
-export type StartAgentServerPairingErrors = {
+export type RemoveAgentServerOperatorResponses = {
   /**
    * Default Response
    */
-  default: AgentServerProblem;
-};
-
-export type StartAgentServerPairingError =
-  StartAgentServerPairingErrors[keyof StartAgentServerPairingErrors];
-
-export type StartAgentServerPairingResponses = {
-  /**
-   * Default Response
-   */
-  201: PairingStarted;
-};
-
-export type StartAgentServerPairingResponse =
-  StartAgentServerPairingResponses[keyof StartAgentServerPairingResponses];
-
-export type ClaimAgentServerPairingData = {
-  body?: never;
-  path: {
-    pairingId: string;
+  200: {
+    state: 'removed';
   };
+};
+
+export type RemoveAgentServerOperatorResponse =
+  RemoveAgentServerOperatorResponses[keyof RemoveAgentServerOperatorResponses];
+
+export type CancelAgentServerOperatorApprovalData = {
+  body?: never;
+  path?: never;
   query?: never;
-  url: '/v1/pairings/{pairingId}/claim';
+  url: '/v1/operator/cancel';
 };
 
-export type ClaimAgentServerPairingErrors = {
+export type CancelAgentServerOperatorApprovalResponses = {
   /**
    * Default Response
    */
-  default: AgentServerProblem;
+  200: {
+    state: 'cancelled';
+  };
 };
 
-export type ClaimAgentServerPairingError =
-  ClaimAgentServerPairingErrors[keyof ClaimAgentServerPairingErrors];
+export type CancelAgentServerOperatorApprovalResponse =
+  CancelAgentServerOperatorApprovalResponses[keyof CancelAgentServerOperatorApprovalResponses];
 
-export type ClaimAgentServerPairingResponses = {
+export type SignInAgentServerOperatorData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/operator/sign-in';
+};
+
+export type SignInAgentServerOperatorResponses = {
   /**
    * Default Response
    */
-  200: PairingClaimed;
+  200: {
+    state: string;
+  };
 };
 
-export type ClaimAgentServerPairingResponse =
-  ClaimAgentServerPairingResponses[keyof ClaimAgentServerPairingResponses];
+export type SignInAgentServerOperatorResponse =
+  SignInAgentServerOperatorResponses[keyof SignInAgentServerOperatorResponses];
 
 export type ListAgentServerProvidersData = {
   body?: never;

@@ -17,9 +17,10 @@ import type {
 export function DesktopRunCenter() {
   const [server, setServer] = useState(INITIAL_STATUS);
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
+  const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
   const [presets, setPresets] = useState(listPresets);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
   const inFlight = useRef<Promise<void> | null>(null);
   const epoch = useRef(0);
@@ -42,8 +43,13 @@ export function DesktopRunCenter() {
         );
         if (currentEpoch !== epoch.current) return;
         setStatus(snapshot);
+        const configured = await invoke<boolean>(
+          'desktop_operator_configured',
+        ).catch(() => null);
+        if (currentEpoch !== epoch.current) return;
+        if (configured !== null) setOperatorConfigured(configured);
         failures.current = 0;
-        setError(false);
+        setError(null);
         const identity =
           snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName;
         if (refreshCatalogue || Date.now() - lastCatalogue.current > 60_000) {
@@ -56,11 +62,17 @@ export function DesktopRunCenter() {
           }
         }
         setPresets(listPresets());
-      } catch {
+      } catch (cause) {
         if (currentEpoch !== epoch.current) return;
         failures.current++;
         setCatalogue(null);
-        setError(true);
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : typeof cause === 'string'
+              ? cause
+              : 'Check the Server view. Previously displayed metadata may be stale.',
+        );
       }
     })();
     inFlight.current = pending;
@@ -77,7 +89,7 @@ export function DesktopRunCenter() {
         if (active) setServer(value);
       },
       () => {
-        if (active) setError(true);
+        if (active) setError('Could not read the local server state.');
       },
     );
     void desktopBridge
@@ -90,7 +102,7 @@ export function DesktopRunCenter() {
           else stop();
         },
         () => {
-          if (active) setError(true);
+          if (active) setError('Could not subscribe to local server updates.');
         },
       );
     return () => {
@@ -102,6 +114,7 @@ export function DesktopRunCenter() {
     epoch.current++;
     if (!['running', 'update_available'].includes(server.state)) {
       setStatus(null);
+      setOperatorConfigured(false);
       setCatalogue(null);
       return;
     }
@@ -157,14 +170,20 @@ export function DesktopRunCenter() {
   );
   return (
     <>
-      {error && ['running', 'update_available'].includes(server.state) ? (
-        <InlineNotice tone="warning" title="Local state could not be refreshed">
-          Check the Server view. Previously displayed metadata may be stale.
-        </InlineNotice>
-      ) : null}
       <RunCenterApp
+        notice={
+          error && ['running', 'update_available'].includes(server.state) ? (
+            <InlineNotice
+              tone="warning"
+              title="Local state could not be refreshed"
+            >
+              {error}
+            </InlineNotice>
+          ) : null
+        }
         now={now}
         data={{
+          operatorConfigured,
           server,
           status,
           catalogue,

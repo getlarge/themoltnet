@@ -1,8 +1,3 @@
-/**
- * Connection and state controller for the local agent server (#2062).
- * Pairing grants are process-scoped by the daemon and kept in sessionStorage,
- * so a browser restart or daemon restart requires fresh local approval.
- */
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -10,7 +5,6 @@ import { abortableDelay } from '../abortable-delay.js';
 import { getConfig } from '../config.js';
 import {
   type AgentServerAgentView,
-  type AgentServerClient,
   AgentServerClientError,
   type AgentServerProviderModel,
   type AgentServerProviderView,
@@ -21,37 +15,25 @@ import {
   type PutProviderBody,
   type StartRunBody,
 } from './agent-server-client.js';
+import { authorizeLocalControl } from './local-control-oauth.js';
+import {
+  type LocalControlToken,
+  localControlTokens,
+} from './local-control-token-cache.js';
+
+/**
+ * Connection and state controller for the local agent server (#2062).
+ * OAuth tokens remain in tab memory. Expiry, reload, and server restart
+ * require a fresh authorization code exchange.
+ */
 
 export type LocalRuntimeStatus =
   | 'connecting'
   | 'unavailable'
   | 'degraded'
-  | 'unpaired'
-  | 'pairing'
+  | 'unauthorized'
+  | 'authorizing'
   | 'connected';
-
-const CLAIM_POLL_INTERVAL_MS = 1_000;
-const CLAIM_TIMEOUT_MS = 120_000;
-const DEFAULT_HTTPS_AGENT_SERVER_URL = 'https://127.0.0.1:17374';
-const DEFAULT_HTTP_AGENT_SERVER_URL = 'http://127.0.0.1:17374';
-
-function supportsLoopbackPna(): boolean {
-  return (
-    typeof Request !== 'undefined' && 'targetAddressSpace' in Request.prototype
-  );
-}
-
-function tokenStorageKey(agentServerUrl: string): string {
-  return `moltnet-agent-server-token::${agentServerUrl}`;
-}
-
-function readStoredToken(agentServerUrl: string): string | null {
-  try {
-    return sessionStorage.getItem(tokenStorageKey(agentServerUrl));
-  } catch {
-    return null;
-  }
-}
 
 export interface LocalRuntimeController {
   status: LocalRuntimeStatus;
@@ -59,8 +41,8 @@ export interface LocalRuntimeController {
   data: AgentServerStatus | undefined;
   actionError: string | null;
   connectionError: string | null;
-  pairingApprovalUrl: string | null;
-  pair(): Promise<void>;
+  authorize(): Promise<void>;
+  cancelAuthorization(): void;
   retry(): Promise<void>;
   disconnect(): void;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
@@ -85,18 +67,16 @@ export interface LocalRuntimeController {
 
 export function useLocalRuntime(): LocalRuntimeController {
   const configuredAgentServerUrl = getConfig().agentServerUrl;
-  const [agentServerUrl, setAgentServerUrl] = useState(
-    configuredAgentServerUrl,
-  );
-  const tokenRef = useRef<string | null>(readStoredToken(agentServerUrl));
-  const pairingAbortRef = useRef<AbortController | null>(null);
+  const [agentServerUrl] = useState(configuredAgentServerUrl);
+  const tokenCacheKey = JSON.stringify([
+    getConfig().oauthIssuer,
+    agentServerUrl,
+  ]);
+  const authorizationAbortRef = useRef<AbortController | null>(null);
   const subscriptionAbortRef = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<LocalRuntimeStatus>('connecting');
   const [actionError, setActionError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [pairingApprovalUrl, setPairingApprovalUrl] = useState<string | null>(
-    null,
-  );
   const [subscriptionLogin, setSubscriptionLogin] =
     useState<AgentServerSubscriptionLogin | null>(null);
 
@@ -104,23 +84,16 @@ export function useLocalRuntime(): LocalRuntimeController {
     () =>
       createAgentServerClient({
         baseUrl: agentServerUrl,
-        getToken: () => tokenRef.current,
+        getToken: () => localControlTokens.get(tokenCacheKey),
       }),
-    [agentServerUrl],
+    [agentServerUrl, tokenCacheKey],
   );
 
   const persistToken = useCallback(
-    (token: string | null) => {
-      tokenRef.current = token;
-      try {
-        if (token)
-          sessionStorage.setItem(tokenStorageKey(agentServerUrl), token);
-        else sessionStorage.removeItem(tokenStorageKey(agentServerUrl));
-      } catch {
-        // Storage unavailable: keep the process-scoped token in this tab only.
-      }
+    (token: LocalControlToken | null) => {
+      localControlTokens.set(tokenCacheKey, token);
     },
-    [agentServerUrl],
+    [tokenCacheKey],
   );
 
   const probe = useCallback(async () => {
@@ -128,27 +101,6 @@ export function useLocalRuntime(): LocalRuntimeController {
     setConnectionError(null);
     const health = await client.health();
     if (health.status === 'unavailable') {
-      if (
-        agentServerUrl === DEFAULT_HTTPS_AGENT_SERVER_URL &&
-        supportsLoopbackPna()
-      ) {
-        const fallback = createAgentServerClient({
-          baseUrl: DEFAULT_HTTP_AGENT_SERVER_URL,
-          getToken: () => tokenRef.current,
-        });
-        const fallbackHealth = await fallback.health();
-        if (fallbackHealth.status === 'ok') {
-          try {
-            tokenRef.current = sessionStorage.getItem(
-              tokenStorageKey(DEFAULT_HTTP_AGENT_SERVER_URL),
-            );
-          } catch {
-            // Storage unavailable: retain the current tab token only.
-          }
-          setAgentServerUrl(DEFAULT_HTTP_AGENT_SERVER_URL);
-          return;
-        }
-      }
       setConnectionError(
         health.reason === 'timeout'
           ? 'The local supervisor health check timed out.'
@@ -164,8 +116,8 @@ export function useLocalRuntime(): LocalRuntimeController {
       setStatus('degraded');
       return;
     }
-    if (!tokenRef.current) {
-      setStatus('unpaired');
+    if (!localControlTokens.get(tokenCacheKey)) {
+      setStatus('unauthorized');
       return;
     }
     try {
@@ -174,21 +126,21 @@ export function useLocalRuntime(): LocalRuntimeController {
     } catch (error) {
       if (isUnauthorized(error)) {
         persistToken(null);
-        setStatus('unpaired');
+        setStatus('unauthorized');
       } else {
         setConnectionError(errorMessage(error));
         setStatus('degraded');
       }
     }
-  }, [client, persistToken]);
+  }, [agentServerUrl, client, persistToken, tokenCacheKey]);
 
   useEffect(() => {
     void probe();
     return () => {
-      pairingAbortRef.current?.abort();
+      authorizationAbortRef.current?.abort();
       subscriptionAbortRef.current?.abort();
     };
-  }, [probe]);
+  }, [agentServerUrl, probe]);
 
   const statusQuery = useQuery({
     queryKey: ['local-runtime', 'status', agentServerUrl],
@@ -202,55 +154,47 @@ export function useLocalRuntime(): LocalRuntimeController {
     if (!statusQuery.error) return;
     if (isUnauthorized(statusQuery.error)) {
       persistToken(null);
-      setStatus('unpaired');
+      setStatus('unauthorized');
       return;
     }
     setConnectionError(errorMessage(statusQuery.error));
     setStatus('degraded');
   }, [statusQuery.error, persistToken]);
 
-  const pair = useCallback(async () => {
-    pairingAbortRef.current?.abort();
+  const authorize = useCallback(async () => {
+    if (authorizationAbortRef.current) return;
+    if (localControlTokens.get(tokenCacheKey)) {
+      await probe();
+      return;
+    }
     const controller = new AbortController();
-    pairingAbortRef.current = controller;
+    authorizationAbortRef.current = controller;
     const popup = window.open('about:blank', '_blank', 'popup');
     setActionError(null);
     setConnectionError(null);
-    setPairingApprovalUrl(null);
-    setStatus('pairing');
+    setStatus('authorizing');
     try {
-      const { pairingId, approvalPath } = await client.startPairing();
-      controller.signal.throwIfAborted();
-      const approvalUrl = client.approvalUrl(approvalPath);
-      setPairingApprovalUrl(approvalUrl);
-      if (popup && !popup.closed) {
-        popup.location.replace(approvalUrl);
-        popup.focus();
-      } else {
-        setActionError('Popup blocked. Open the approval page below.');
-      }
-      const token = await claimApprovedPairing(
-        client,
-        pairingId,
+      const token = await authorizeLocalControl(
+        agentServerUrl,
+        popup,
         controller.signal,
       );
       controller.signal.throwIfAborted();
       persistToken(token);
-      setPairingApprovalUrl(null);
       setActionError(null);
       setStatus('connected');
       popup?.close();
     } catch (error) {
       popup?.close();
       if (controller.signal.aborted) return;
-      setActionError(errorMessage(error, 'Pairing failed'));
+      setActionError(errorMessage(error, 'Authorization failed'));
       await probe();
     } finally {
-      if (pairingAbortRef.current === controller) {
-        pairingAbortRef.current = null;
+      if (authorizationAbortRef.current === controller) {
+        authorizationAbortRef.current = null;
       }
     }
-  }, [client, persistToken, probe]);
+  }, [agentServerUrl, persistToken, probe, tokenCacheKey]);
 
   const connectSubscription = useCallback(
     async (providerId: string) => {
@@ -328,14 +272,13 @@ export function useLocalRuntime(): LocalRuntimeController {
   );
 
   const disconnect = useCallback(() => {
-    pairingAbortRef.current?.abort();
+    authorizationAbortRef.current?.abort();
     subscriptionAbortRef.current?.abort();
     persistToken(null);
-    setPairingApprovalUrl(null);
     setSubscriptionLogin(null);
     setActionError(null);
     setConnectionError(null);
-    setStatus('unpaired');
+    setStatus('unauthorized');
   }, [persistToken]);
 
   const refetchStatus = statusQuery.refetch;
@@ -368,8 +311,11 @@ export function useLocalRuntime(): LocalRuntimeController {
     data: statusQuery.data,
     actionError,
     connectionError,
-    pairingApprovalUrl,
-    pair,
+    authorize,
+    cancelAuthorization: () => {
+      authorizationAbortRef.current?.abort();
+      setStatus('unauthorized');
+    },
     retry: probe,
     disconnect,
     createAgent: (body) => runAction(() => client.createAgent(body)),
@@ -384,29 +330,6 @@ export function useLocalRuntime(): LocalRuntimeController {
     cancelSubscription,
     discoverModels: (providerId) => client.discoverModels(providerId),
   };
-}
-
-async function claimApprovedPairing(
-  client: AgentServerClient,
-  pairingId: string,
-  signal: AbortSignal,
-): Promise<string> {
-  const deadline = Date.now() + CLAIM_TIMEOUT_MS;
-  for (;;) {
-    await abortableDelay(CLAIM_POLL_INTERVAL_MS, signal);
-    try {
-      const { token } = await client.claimPairing(pairingId);
-      return token;
-    } catch (error) {
-      const pending =
-        error instanceof AgentServerClientError &&
-        (error.code === 'pairing_not_approved' || error.status === 401);
-      if (!pending) throw error;
-      if (Date.now() >= deadline) {
-        throw new Error('Pairing approval timed out. Start again to retry.');
-      }
-    }
-  }
 }
 
 function isUnauthorized(error: unknown): boolean {

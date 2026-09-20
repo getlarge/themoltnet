@@ -2,7 +2,7 @@
  * AgentServer provider registry (presence booleans only) and run lifecycle
  * against a fake spawn.
  *
- * Pairing, the native client and the catalogue have their own files; the shared
+ * Authorization, the native client and the catalogue have their own files; the shared
  * harness lives in `server-test-harness.ts`.
  */
 import {
@@ -31,11 +31,11 @@ import {
 } from './server.js';
 import {
   activateManaged,
+  authorize,
   cleanupAll,
   CONSOLE_ORIGIN,
   fixture,
   HOST,
-  pair,
   registerCleanup,
 } from './server-test-harness.js';
 
@@ -47,7 +47,7 @@ afterEach(async () => {
 describe('agent server providers and runs', () => {
   it('returns an authenticated bounded log snapshot for Desktop', async () => {
     const { app, store } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const { logPath } = store.createRunDir('snapshot-run');
     store.writeRun({
       id: 'snapshot-run',
@@ -170,7 +170,7 @@ describe('agent server providers and runs', () => {
 
   it('bounds the run history returned by the polled status surface', async () => {
     const { app, store } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     const activeResponse = await app.inject({
       method: 'POST',
@@ -232,7 +232,7 @@ describe('agent server providers and runs', () => {
     'HAS-HYPHEN',
   ])('rejects unsafe provider env name %s', async (envName) => {
     const { app } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const response = await app.inject({
       method: 'PUT',
       url: '/v1/providers/unsafe',
@@ -257,7 +257,7 @@ describe('agent server providers and runs', () => {
 
   it('stores providers with secret refs and reports presence booleans only', async () => {
     const { app, store } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const headers = {
       host: HOST,
       origin: CONSOLE_ORIGIN,
@@ -331,7 +331,7 @@ describe('agent server providers and runs', () => {
 
   it('removes a provider and its local API key', async () => {
     const { app, store } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const headers = {
       host: HOST,
       origin: CONSOLE_ORIGIN,
@@ -370,7 +370,7 @@ describe('agent server providers and runs', () => {
 
   it('preserves the legacy HTTP error code when removing a missing provider', async () => {
     const { app } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
 
     const response = await app.inject({
       method: 'DELETE',
@@ -390,7 +390,7 @@ describe('agent server providers and runs', () => {
 
   it('serializes provider updates so concurrent writes cannot drop entries', async () => {
     const { app, store, secrets } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const headers = {
       host: HOST,
       origin: CONSOLE_ORIGIN,
@@ -450,7 +450,7 @@ describe('agent server providers and runs', () => {
     const localRuntime = 'file:///opt/moltnet/runtimes/acme-review.mjs';
     const resolveRuntimeModule = vi.fn(async () => localRuntime);
     const { app, store, spawned } = await fixture({ resolveRuntimeModule });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
 
     const response = await app.inject({
@@ -488,7 +488,7 @@ describe('agent server providers and runs', () => {
 
   it('starts and stops a run for a managed agent with resolved provider env', async () => {
     const { app, store, spawned, children } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const headers = {
       host: HOST,
       origin: CONSOLE_ORIGIN,
@@ -609,7 +609,7 @@ describe('agent server providers and runs', () => {
 
   it('refuses managed-agent creation without an enrollment token', async () => {
     const { app } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const response = await app.inject({
       method: 'POST',
       url: '/v1/agents',
@@ -629,7 +629,7 @@ describe('agent server providers and runs', () => {
 
   it('answers 409 for a pending registration that cannot be resumed', async () => {
     const { app, store } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     // A pending record whose config was never written cannot be resumed.
     store.reserveRegistration('pending-bot', 'https://api.themolt.net');
 
@@ -651,7 +651,7 @@ describe('agent server providers and runs', () => {
 
   it('rejects a managed registration API override before forwarding its enrollment token', async () => {
     const { app } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const response = await app.inject({
       method: 'POST',
       url: '/v1/agents',
@@ -676,7 +676,7 @@ describe('agent server providers and runs', () => {
 
   it('exposes the pinned team binding and rejects cross-team run starts', async () => {
     const { app, store, spawned } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store, 'team-bound');
     const headers = {
       host: HOST,
@@ -739,7 +739,7 @@ describe('agent server providers and runs', () => {
         });
       },
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     const response = await app.inject({
       method: 'POST',
@@ -787,7 +787,7 @@ describe('agent server providers and runs', () => {
         PI_AUTH_JSON: '{"provider":"ambient"}',
       },
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
 
     const response = await app.inject({
@@ -832,7 +832,7 @@ describe('agent server providers and runs', () => {
 
   it('caps active child logs at the configured byte budget', async () => {
     const { app, store, children } = await fixture({ maxLogBytes: 32 });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     const created = await app.inject({
       method: 'POST',
@@ -910,7 +910,7 @@ describe('agent server providers and runs', () => {
 
   it('launches an external alias from the exact configured agent directory', async () => {
     const { app, store, spawned } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const signing = await cryptoService.generateKeyPair();
     const agentRoot = join(store.root, 'external-root');
     const configDir = join(agentRoot, '.moltnet', 'configured-name');
@@ -1008,7 +1008,7 @@ describe('agent server providers and runs', () => {
         [privateKeyRef]: signing.privateKey,
       },
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     store.writeAgentConfig('central', {
       subject_id: 'agent-1',
       subject_type: 'agent',
@@ -1143,7 +1143,7 @@ describe('agent server providers and runs', () => {
       configPath: store.agentPath('central'),
       configApiUrl: 'https://api.themolt.net',
     });
-    const token = await pair(app);
+    const token = await authorize(app);
     const start = (teamId: string) =>
       app.inject({
         method: 'POST',
@@ -1214,7 +1214,7 @@ describe('agent server providers and runs', () => {
       b: { provider: 'file', key: 'agent-key/agent-1/b' },
     };
     store.writeAgentConfig('course-bot', config);
-    const token = await pair(app);
+    const token = await authorize(app);
     const responses = await Promise.all(
       ['a', 'b'].map((teamId) =>
         app.inject({
@@ -1252,7 +1252,7 @@ describe('agent server providers and runs', () => {
 
   it('rejects runs for unknown agents and invalid specs', async () => {
     const { app } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const headers = {
       host: HOST,
       origin: CONSOLE_ORIGIN,
@@ -1304,7 +1304,7 @@ describe('agent server providers and runs', () => {
 
   it('does not materialize a run when provider resolution fails', async () => {
     const { app, store, spawned } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     store.writeProviders({
       missing: {
@@ -1341,7 +1341,7 @@ describe('agent server providers and runs', () => {
 
   it('kills the child and removes artifacts when run persistence fails', async () => {
     const { app, store, spawned, children } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     vi.spyOn(store, 'writeRun').mockImplementationOnce(() => {
       throw new Error('disk full');
@@ -1384,7 +1384,7 @@ describe('team and diary travel together', () => {
     baseEnv: NodeJS.ProcessEnv,
   ) {
     const { app, store, spawned } = await fixture({ baseEnv });
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     const response = await app.inject({
       method: 'POST',
@@ -1449,7 +1449,7 @@ describe('a failed run explains itself', () => {
   /** Start a run, emit stderr, then exit the child with `code`. */
   async function failRun(stderr: string[], code: number) {
     const { app, store, children } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     activateManaged(store);
     const started = await app.inject({
       method: 'POST',

@@ -6,6 +6,7 @@
 
 export * from './credential-scopes.js';
 export * from './hash.js';
+export * from './operator-oauth.js';
 export * from './preview-sign.js';
 export * from './principal.js';
 export * from './problem-details.js';

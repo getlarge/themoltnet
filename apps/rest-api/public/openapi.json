@@ -23085,6 +23085,465 @@
         ]
       }
     },
+    "/oauth2/consent": {
+      "get": {
+        "operationId": "getOperatorConsent",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "challenge",
+            "required": true,
+            "schema": {
+              "maxLength": 2048,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "agentId": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "team": {
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "operation",
+                    "permissions",
+                    "instance"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "oauth2"
+        ]
+      },
+      "post": {
+        "operationId": "acceptOperatorConsent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "approve": {
+                    "type": "boolean"
+                  },
+                  "challenge": {
+                    "maxLength": 2048,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "challenge",
+                  "approve"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "redirect_to": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "redirect_to"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "oauth2"
+        ]
+      }
+    },
+    "/oauth2/login": {
+      "post": {
+        "operationId": "acceptOperatorLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "challenge": {
+                    "maxLength": 2048,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "challenge"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "redirect_to": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "redirect_to"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "oauth2"
+        ]
+      }
+    },
+    "/oauth2/provision": {
+      "post": {
+        "operationId": "provisionAgentCredential",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "agentProof": {
+                    "maxLength": 88,
+                    "minLength": 88,
+                    "pattern": "^[A-Za-z0-9+/]{86}==$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKeyWithSecret"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "agent-keys"
+        ]
+      }
+    },
     "/oauth2/token": {
       "post": {
         "description": "OAuth2 token endpoint. Proxies every grant to the upstream identity provider, which remains the authority on which grants and client authentication methods are accepted. Successful client_credentials and refresh_token grants may be served from cache.",
@@ -49401,7 +49860,7 @@
     },
     "/teams/join": {
       "post": {
-        "description": "Join using an invitation and either a credential/session with team:join, or an existing agent signing proof. Proof requires issueAgentKey and Idempotency-Key; send no team header. expectedTeamId rejects wrong-team renewal before consumption. Secrets are returned once; completed replays return 409.",
+        "description": "Join using an invitation and a credential/session with team:join. Key issuance requires Idempotency-Key; secrets are returned once and completed replays return 409.",
         "operationId": "joinTeam",
         "parameters": [
           {
@@ -49435,26 +49894,6 @@
                       true
                     ],
                     "type": "boolean"
-                  },
-                  "proof": {
-                    "description": "Alternative to API/session authentication for existing-agent enrollment. Requires issueAgentKey and Idempotency-Key.",
-                    "properties": {
-                      "signature": {
-                        "maxLength": 256,
-                        "minLength": 1,
-                        "type": "string"
-                      },
-                      "subjectId": {
-                        "description": "UUID v4 identifier",
-                        "format": "uuid",
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "subjectId",
-                      "signature"
-                    ],
-                    "type": "object"
                   }
                 },
                 "required": [
@@ -49619,8 +50058,7 @@
           },
           {
             "cookieAuth": []
-          },
-          {}
+          }
         ],
         "tags": [
           "teams"
