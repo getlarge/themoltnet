@@ -13,6 +13,7 @@
 
 use std::fs::File;
 use std::io::Read;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 /// Environment variable the Agent Server reads its native grant from.
@@ -62,14 +63,19 @@ impl std::fmt::Debug for NativeToken {
 }
 
 fn client() -> ureq::Agent {
-    ureq::Agent::config_builder()
-        .timeout_global(Some(REQUEST_TIMEOUT))
-        // Let a 4xx return normally so the server's own problem message can be
-        // read off the body. The brief asks for actionable errors, and "the
-        // profile needs ANTHROPIC_API_KEY" beats "403".
-        .http_status_as_error(false)
-        .build()
-        .into()
+    static CLIENT: OnceLock<ureq::Agent> = OnceLock::new();
+    CLIENT
+        .get_or_init(|| {
+            ureq::Agent::config_builder()
+                .timeout_global(Some(REQUEST_TIMEOUT))
+                // Let a 4xx return normally so the server's own problem message can be
+                // read off the body. The brief asks for actionable errors, and "the
+                // profile needs ANTHROPIC_API_KEY" beats "403".
+                .http_status_as_error(false)
+                .build()
+                .into()
+        })
+        .clone()
 }
 
 /// Read from the control API.

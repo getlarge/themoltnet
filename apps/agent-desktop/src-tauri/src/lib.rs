@@ -134,47 +134,49 @@ fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
 /// token: the grant stays in the lifecycle manager and is applied here, in
 /// native code, on the way out.
 #[tauri::command]
-fn desktop_catalogue(
+async fn desktop_catalogue(
     state: State<'_, AppState>,
     identity: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, |token| {
+    let body = with_control_token(&state, move |token| {
         control::get(
             token,
             &format!("/v1/catalogue?identity={}", urlencode(&identity)),
         )
-    })?;
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned an unreadable catalogue: {error}"))
 }
 
 #[tauri::command]
-fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, |token| control::get(token, "/v1/status"))?;
+async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| control::get(token, "/v1/status")).await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned an unreadable status".to_string())
 }
 
 #[tauri::command]
-fn desktop_enroll_team(
+async fn desktop_enroll_team(
     state: State<'_, AppState>,
     identity: String,
     request: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let payload =
         serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
-    let body = with_control_token(&state, |token| {
+    let body = with_control_token(&state, move |token| {
         control::post(
             token,
             &format!("/v1/agents/{}/teams", urlencode(&identity)),
             &payload,
         )
-    })?;
+    })
+    .await?;
     control::enrollment_metadata(&body)
 }
 
 #[tauri::command]
-fn desktop_create_identity(
+async fn desktop_create_identity(
     state: State<'_, AppState>,
     name: String,
     invitation: String,
@@ -182,7 +184,10 @@ fn desktop_create_identity(
     let payload =
         serde_json::json!({ "kind": "managed", "name": name, "enrollmentToken": invitation })
             .to_string();
-    with_control_token(&state, |token| control::post(token, "/v1/agents", &payload))?;
+    with_control_token(&state, move |token| {
+        control::post(token, "/v1/agents", &payload)
+    })
+    .await?;
     Ok(())
 }
 
@@ -192,18 +197,23 @@ fn desktop_team_invites(team_id: Option<String>) -> Result<(), String> {
 }
 
 /// Run `operation` with the grant for the currently running server.
-fn with_control_token(
+async fn with_control_token(
     state: &State<'_, AppState>,
-    operation: impl FnOnce(&control::NativeToken) -> Result<String, String>,
+    operation: impl FnOnce(&control::NativeToken) -> Result<String, String> + Send + 'static,
 ) -> Result<String, String> {
-    let lifecycle = state
-        .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?;
-    let token = lifecycle
-        .control_token()
-        .ok_or_else(|| "the Agent Server is not running".to_string())?;
-    operation(token)
+    let owned_token = {
+        let lifecycle = state
+            .lifecycle
+            .lock()
+            .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?;
+        lifecycle
+            .control_token()
+            .cloned()
+            .ok_or_else(|| "the Agent Server is not running".to_string())?
+    };
+    tauri::async_runtime::spawn_blocking(move || operation(&owned_token))
+        .await
+        .map_err(|_| "Local control task failed".to_string())?
 }
 
 /// Percent-encode a query value. Identity aliases are already constrained, but
@@ -223,26 +233,46 @@ fn urlencode(value: &str) -> String {
 /// Start a polling run. The renderer supplies the composed spec; the grant is
 /// applied here.
 #[tauri::command]
-fn desktop_start_run(
+async fn desktop_start_run(
     state: State<'_, AppState>,
     spec: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&spec)
         .map_err(|error| format!("the run could not be encoded: {error}"))?;
-    let body = with_control_token(&state, |token| control::post(token, "/v1/runs", &payload))?;
+    let body = with_control_token(&state, move |token| {
+        control::post(token, "/v1/runs", &payload)
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
 }
 
-/// Stop a run this machine supervises.
+/// Read a bounded log snapshot; the native grant never enters the renderer.
 #[tauri::command]
-fn desktop_stop_run(
+async fn desktop_run_logs(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, |token| {
+    let body = with_control_token(&state, move |token| {
+        control::get(
+            token,
+            &format!("/v1/runs/{}/logs/snapshot", urlencode(&run_id)),
+        )
+    })
+    .await?;
+    serde_json::from_str(&body).map_err(|_| "The Agent Server returned unreadable logs".to_string())
+}
+
+/// Stop a run this machine supervises.
+#[tauri::command]
+async fn desktop_stop_run(
+    state: State<'_, AppState>,
+    run_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
         control::delete(token, &format!("/v1/runs/{}", urlencode(&run_id)))
-    })?;
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
 }
@@ -480,6 +510,7 @@ pub fn run() {
             desktop_team_invites,
             desktop_start_run,
             desktop_stop_run,
+            desktop_run_logs,
             install_agent,
             approve_local_trust,
             retry_server,

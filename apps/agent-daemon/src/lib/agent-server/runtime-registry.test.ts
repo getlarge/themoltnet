@@ -29,11 +29,17 @@ describe('RuntimeRegistry', () => {
     const { module, registry } = fixture();
     await registry.register('review_pi', `file://${module}`);
     expect(registry.resolve('review_pi')?.moduleUrl).toContain('runtime.mjs');
+    expect(
+      registry.resolve('review_pi', { forDisplay: true })?.moduleUrl,
+    ).toContain('runtime.mjs');
     writeFileSync(
       module,
       'export default { runtimeKind: "review_pi", async prepare() { return { changed: true }; } };',
     );
     expect(() => registry.resolve('review_pi')).toThrow('has changed');
+    expect(() => registry.resolve('review_pi', { forDisplay: true })).toThrow(
+      'has changed',
+    );
   });
 
   it('rejects a runtime whose declared kind differs from its registration', async () => {

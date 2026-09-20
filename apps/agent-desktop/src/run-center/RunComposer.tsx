@@ -264,7 +264,11 @@ export function RunComposer({
             <Select
               label="Runtime profile"
               value={primaryId}
-              onChange={(event) => setPrimaryId(event.target.value)}
+              onChange={(event) => {
+                const selected = event.target.value;
+                setPrimaryId(selected);
+                setFallbackIds((ids) => ids.filter((id) => id !== selected));
+              }}
               hint="Profiles are authored in Console. This is the policy the run executes under."
             >
               <option value="">Select a profile…</option>

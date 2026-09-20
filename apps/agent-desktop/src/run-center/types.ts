@@ -105,10 +105,10 @@ export interface RunCenterActions {
   stopRun: (runId: string) => Promise<void>;
   savePreset: (input: SavePresetInput) => Promise<void>;
   deletePreset: (presetId: string) => Promise<void>;
-  /** Streams a run's log lines. Returns an unsubscribe function. */
+  /** Follows a bounded run log tail. Returns an unsubscribe function. */
   subscribeRunLogs: (
     runId: string,
-    onLine: (line: string) => void,
+    onLines: (lines: string[]) => void,
   ) => () => void;
 }
 

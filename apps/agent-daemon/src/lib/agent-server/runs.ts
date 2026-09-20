@@ -96,23 +96,11 @@ const INHERITED_MOLTNET_ENV_NAMES = new Set([
 /** The runtime kind bundled with the agent; needs no registration. */
 export const BUILT_IN_RUNTIME_KIND = 'gondolin_pi';
 
-/** Enough tail to carry a reason without retaining the whole run's output. */
-const STDERR_MEMORY_LINES = 20;
-
-/**
- * Turn a child's exit into something an operator can act on. The worker
- * already writes a reason to stderr before dying, so the most recent line
- * mentioning an error beats restating the exit code.
- */
+/** Persist only process status; worker stderr can contain provider secrets. */
 function describeFailure(
-  recentStderr: readonly string[],
   code: number | null,
   signal: NodeJS.Signals | null,
 ): RunFailure {
-  const reason = [...recentStderr]
-    .reverse()
-    .find((line) => /error|fatal|refus|cannot|failed/iu.test(line));
-  if (reason) return { code: 'run_failed', message: reason };
   if (signal) {
     return {
       code: 'run_signalled',
@@ -483,15 +471,6 @@ export class RunManager {
       );
       this.active.set(id, { agent: spec.agent, child, stopRequested: false });
       child.stdout?.pipe(logLimiter, { end: false });
-      const recentStderr: string[] = [];
-      child.stderr?.on('data', (chunk: Buffer | string) => {
-        for (const line of String(chunk).split('\n')) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          recentStderr.push(trimmed);
-          if (recentStderr.length > STDERR_MEMORY_LINES) recentStderr.shift();
-        }
-      });
       child.stderr?.pipe(logLimiter, { end: false });
 
       const record: RunRecord = {
@@ -525,7 +504,7 @@ export class RunManager {
           status,
           exitCode: code,
           ...(status === 'failed'
-            ? { lastError: describeFailure(recentStderr, code, signal) }
+            ? { lastError: describeFailure(code, signal) }
             : {}),
         });
       });
@@ -655,6 +634,17 @@ export class RunManager {
       throw new AgentServerStoreError('not_found', `run "${id}" was not found`);
     }
     return record;
+  }
+
+  async listAsync(limit: number): Promise<RunRecord[]> {
+    const activeIds = new Set(this.active.keys());
+    const records = await this.store.listRunsAsync(limit + activeIds.size, [
+      ...activeIds,
+    ]);
+    return [
+      ...records.filter((record) => activeIds.has(record.id)),
+      ...records.filter((record) => !activeIds.has(record.id)).slice(0, limit),
+    ];
   }
 
   list(limit = Number.POSITIVE_INFINITY): RunRecord[] {

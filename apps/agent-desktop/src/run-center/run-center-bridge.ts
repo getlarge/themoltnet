@@ -99,12 +99,34 @@ export const runCenterActions: RunCenterActions = {
     writePresets(readPresets().filter((preset) => preset.id !== presetId));
   },
 
-  subscribeRunLogs: (runId, onLine) => {
-    // Streaming is not wired yet; the detail view falls back to the log file
-    // the Server panel already exposes. Kept in the contract so the view does
-    // not change shape when SSE lands.
-    void runId;
-    void onLine;
-    return () => undefined;
+  subscribeRunLogs: (runId, onLines) => {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let generation = 0;
+    const poll = async (current: number) => {
+      if (stopped || document.visibilityState === 'hidden') return;
+      try {
+        const snapshot = await invoke<{ lines: string[] }>('desktop_run_logs', {
+          runId,
+        });
+        if (!stopped && current === generation) onLines(snapshot.lines);
+      } catch {
+        if (!stopped && current === generation)
+          onLines(['Log output is unavailable. Check the Server view.']);
+      }
+      if (!stopped && current === generation)
+        timer = setTimeout(() => void poll(current), 3_000);
+    };
+    const visible = () => {
+      clearTimeout(timer);
+      void poll(++generation);
+    };
+    document.addEventListener('visibilitychange', visible);
+    visible();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', visible);
+    };
   },
 };

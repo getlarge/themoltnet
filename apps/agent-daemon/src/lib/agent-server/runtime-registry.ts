@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -32,6 +33,22 @@ const LOCKFILE_NAMES = [
 
 /** Local, operator-owned allowlist for executable daemon runtime modules. */
 export class RuntimeRegistry {
+  private readonly displayDigests = new Map<
+    string,
+    { stamp: string; hash: string }
+  >();
+  private displayHash(path: string | URL): string {
+    const stat = statSync(path);
+    const key = String(path);
+    const stamp = `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+    const previous = this.displayDigests.get(key);
+    if (previous?.stamp === stamp) return previous.hash;
+    const hash = hashPath(path);
+    if (this.displayDigests.size >= 128) this.displayDigests.clear();
+    this.displayDigests.set(key, { stamp, hash });
+    return hash;
+  }
+
   constructor(private readonly root: string) {}
 
   private get path(): string {
@@ -65,7 +82,7 @@ export class RuntimeRegistry {
     }
     if (!moduleUrl.startsWith('file:'))
       throw new Error('Runtime registration must resolve to a local file URL.');
-    const entryHash = hashFile(new URL(moduleUrl));
+    const entryHash = hashPath(new URL(moduleUrl));
     const lockfilePath = isPackageSpecifier(specifier)
       ? findLockfile(cwd)
       : undefined;
@@ -98,11 +115,16 @@ export class RuntimeRegistry {
     return true;
   }
 
-  resolve(kind: string): RuntimeRegistration | undefined {
+  resolve(
+    kind: string,
+    options: { forDisplay?: boolean } = {},
+  ): RuntimeRegistration | undefined {
     kind = assertStoreName('runtime kind', kind);
     const entry = this.list().find((candidate) => candidate.kind === kind);
     if (!entry) return undefined;
-    if (hashFile(new URL(entry.moduleUrl)) !== entry.entryHash) {
+    const digest = (path: string | URL) =>
+      options.forDisplay ? this.displayHash(path) : hashPath(path);
+    if (digest(new URL(entry.moduleUrl)) !== entry.entryHash) {
       throw new Error(
         `Registered runtime "${kind}" has changed; re-register it before starting a run.`,
       );
@@ -110,7 +132,7 @@ export class RuntimeRegistry {
     if (
       entry.lockfilePath &&
       (!existsSync(entry.lockfilePath) ||
-        hashPath(entry.lockfilePath) !== entry.lockfileHash)
+        digest(entry.lockfilePath) !== entry.lockfileHash)
     ) {
       throw new Error(
         `Registered runtime "${kind}" lockfile has changed; re-register it before starting a run.`,
@@ -120,11 +142,7 @@ export class RuntimeRegistry {
   }
 }
 
-function hashFile(url: URL): string {
-  return createHash('sha256').update(readFileSync(url)).digest('hex');
-}
-
-function hashPath(path: string): string {
+function hashPath(path: string | URL): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 

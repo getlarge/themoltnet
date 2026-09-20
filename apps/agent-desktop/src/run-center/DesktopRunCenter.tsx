@@ -2,7 +2,7 @@ import './run-center.css';
 
 import { invoke } from '@tauri-apps/api/core';
 import { InlineNotice } from '@themoltnet/design-system';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { desktopBridge, INITIAL_STATUS } from '../bridge.js';
 import { listPresets, runCenterActions } from './run-center-bridge.js';
@@ -21,24 +21,46 @@ export function DesktopRunCenter() {
   const [presets, setPresets] = useState(listPresets);
   const [error, setError] = useState(false);
   const [now, setNow] = useState(Date.now);
-  const refresh = useCallback(async (refreshCatalogue = true) => {
-    try {
-      const snapshot = await invoke<AgentServerStatus>(
-        'desktop_control_status',
-      );
-      setStatus(snapshot);
-      setError(false);
-      const identity =
-        snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName;
-      if (refreshCatalogue) {
-        if (identity) setCatalogue(await runCenterActions.catalogue(identity));
-        else setCatalogue(null);
+  const inFlight = useRef<Promise<void> | null>(null);
+  const epoch = useRef(0);
+  const failures = useRef(0);
+  const lastCatalogue = useRef(0);
+  const refresh = useCallback((refreshCatalogue = true): Promise<void> => {
+    if (inFlight.current) return inFlight.current;
+    const currentEpoch = epoch.current;
+    const pending = (async () => {
+      try {
+        const snapshot = await invoke<AgentServerStatus>(
+          'desktop_control_status',
+        );
+        if (currentEpoch !== epoch.current) return;
+        setStatus(snapshot);
+        failures.current = 0;
+        setError(false);
+        const identity =
+          snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName;
+        if (refreshCatalogue || Date.now() - lastCatalogue.current > 60_000) {
+          const next = identity
+            ? await runCenterActions.catalogue(identity)
+            : null;
+          if (currentEpoch === epoch.current) {
+            setCatalogue(next);
+            lastCatalogue.current = Date.now();
+          }
+        }
+        setPresets(listPresets());
+      } catch {
+        if (currentEpoch !== epoch.current) return;
+        failures.current++;
+        setCatalogue(null);
+        setError(true);
       }
-      setPresets(listPresets());
-    } catch {
-      setCatalogue(null);
-      setError(true);
-    }
+    })();
+    inFlight.current = pending;
+    void pending.finally(() => {
+      if (inFlight.current === pending) inFlight.current = null;
+    });
+    return pending;
   }, []);
   useEffect(() => {
     let active = true;
@@ -70,17 +92,37 @@ export function DesktopRunCenter() {
     };
   }, []);
   useEffect(() => {
+    epoch.current++;
     if (!['running', 'update_available'].includes(server.state)) {
       setStatus(null);
       setCatalogue(null);
       return;
     }
-    void refresh();
-    const timer = window.setInterval(() => {
+    let stopped = false;
+    let timer: number | undefined;
+    let generation = 0;
+    const poll = async (current: number, includeCatalogue = false) => {
+      if (stopped || document.visibilityState === 'hidden') return;
       setNow(Date.now());
-      void refresh();
-    }, 5000);
-    return () => window.clearInterval(timer);
+      await refresh(includeCatalogue);
+      if (!stopped && generation === current)
+        timer = window.setTimeout(
+          () => void poll(current),
+          Math.min(60_000, 5_000 * 2 ** failures.current),
+        );
+    };
+    const visible = () => {
+      window.clearTimeout(timer);
+      void poll(++generation, true);
+    };
+    document.addEventListener('visibilitychange', visible);
+    visible();
+    return () => {
+      stopped = true;
+      epoch.current++;
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', visible);
+    };
   }, [server.state, refresh]);
   const actions = useMemo<RunCenterActions>(
     () => ({
@@ -122,7 +164,17 @@ export function DesktopRunCenter() {
           presets,
           runs: (status?.runs ?? []).map((run) => ({
             ...run,
-            presetName: null,
+            presetName:
+              presets.find(
+                (preset) =>
+                  preset.agent === run.agent &&
+                  preset.teamId === run.teamId &&
+                  (preset.diaryId ?? null) === (run.diaryId ?? null) &&
+                  JSON.stringify(preset.profileIds) ===
+                    JSON.stringify(run.profiles) &&
+                  JSON.stringify([...preset.taskTypes].sort()) ===
+                    JSON.stringify([...run.taskTypes].sort()),
+              )?.name ?? null,
             teamName:
               catalogue?.teams.find((team) => team.teamId === run.teamId)
                 ?.teamName ?? null,

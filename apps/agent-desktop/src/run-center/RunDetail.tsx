@@ -68,9 +68,7 @@ export function RunDetail({
 
   useEffect(() => {
     setLines([]);
-    return actions.subscribeRunLogs(run.id, (line) =>
-      setLines((current) => [...current, line]),
-    );
+    return actions.subscribeRunLogs(run.id, setLines);
   }, [actions, run.id]);
 
   useEffect(() => {

@@ -45,6 +45,38 @@ afterEach(async () => {
 });
 
 describe('agent server providers and runs', () => {
+  it('returns an authenticated bounded log snapshot for Desktop', async () => {
+    const { app, store } = await fixture();
+    const token = await pair(app);
+    const { logPath } = store.createRunDir('snapshot-run');
+    store.writeRun({
+      id: 'snapshot-run',
+      agent: 'agent',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll',
+      status: 'exited',
+      startedAt: '2026-01-01T00:00:00Z',
+    });
+    writeFileSync(logPath, 'first\nsecond\npartial');
+    const response = await app.inject({
+      url: '/v1/runs/snapshot-run/logs/snapshot',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ lines: ['first', 'second', 'partial'] });
+    const unauthenticated = await app.inject({
+      url: '/v1/runs/snapshot-run/logs/snapshot',
+      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+    });
+    expect(unauthenticated.statusCode).toBe(401);
+  });
+
   it('caps log replay without dropping lines appended across polls', async () => {
     const temp = mkdtempSync(join(tmpdir(), 'agent-server-log-tail-'));
     registerCleanup(() => rmSync(temp, { recursive: true, force: true }));
@@ -1468,16 +1500,20 @@ describe('a failed run explains itself', () => {
     throw new Error('the run never left the running state');
   }
 
-  it('records why the worker stopped', async () => {
+  it('records exit status without persisting raw worker errors', async () => {
     // Act
     const run = await failRun(
-      ['poll  worker ready', 'run   ERROR profile needs ACME_WORKSPACE_TOKEN'],
+      [
+        'poll  worker ready',
+        'run   ERROR provider rejected api-key-secret-sentinel',
+      ],
       1,
     );
 
     // Assert
     expect(run?.status).toBe('failed');
-    expect(run?.lastError?.message).toContain('ACME_WORKSPACE_TOKEN');
+    expect(run?.lastError?.message).toContain('exited with code 1');
+    expect(JSON.stringify(run)).not.toContain('api-key-secret-sentinel');
   });
 
   it('leaves no error on a run that ended cleanly', async () => {
