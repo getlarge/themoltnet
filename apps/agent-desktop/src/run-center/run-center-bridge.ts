@@ -139,6 +139,14 @@ export const runCenterActions: RunCenterActions = {
       spec: {
         agent: input.agent,
         teamId: input.teamId,
+        ...(input.projectId !== undefined
+          ? { projectId: input.projectId }
+          : {}),
+        ...(input.binding !== undefined ? { binding: input.binding } : {}),
+        ...(input.source !== undefined ? { source: input.source } : {}),
+        ...(input.workspaceStrategy !== undefined
+          ? { workspaceStrategy: input.workspaceStrategy }
+          : {}),
         ...(input.diaryId ? { diaryId: input.diaryId } : {}),
         profiles: input.profiles,
         taskTypes: input.taskTypes,
