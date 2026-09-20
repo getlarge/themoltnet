@@ -80,7 +80,6 @@ fn poisoned_status(app: &AppHandle) -> String {
     message.into()
 }
 
-#[cfg(test)]
 fn lifecycle_lock_error<T>(error: TryLockError<T>) -> String {
     match error {
         TryLockError::WouldBlock => {
@@ -227,10 +226,12 @@ async fn with_control_token(
     operation: impl FnOnce(&control::NativeToken) -> Result<String, String> + Send + 'static,
 ) -> Result<String, String> {
     let owned_token = {
-        let lifecycle = state
-            .lifecycle
-            .lock()
-            .map_err(|_| "desktop lifecycle lock was poisoned".to_string())?;
+        // `try_lock`, not `lock`: this runs on a tokio worker, and `operate`
+        // holds this mutex for the whole of a start (<=24s) or stop (<=17s).
+        // Blocking here parks a worker per polling command, so on a small
+        // runtime every poller stalls for the duration. Failing fast is
+        // recoverable - the callers already poll on an interval.
+        let lifecycle = state.lifecycle.try_lock().map_err(lifecycle_lock_error)?;
         lifecycle
             .control_token()
             .cloned()
@@ -368,8 +369,10 @@ async fn desktop_cancel_subscription_login(
 /// a browser cannot, because popup blockers eat a window opened outside the
 /// click gesture.
 #[tauri::command]
-fn desktop_open_sign_in(url: String) -> Result<(), String> {
-    lifecycle::open_verification_url(&url)
+async fn desktop_open_sign_in(url: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || lifecycle::open_verification_url(&url))
+        .await
+        .map_err(|_| "Could not open the sign-in page".to_string())?
 }
 
 /// Providers configured on this machine.

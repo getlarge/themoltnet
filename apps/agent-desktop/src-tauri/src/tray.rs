@@ -319,10 +319,16 @@ pub fn install(app: &mut tauri::App) -> tauri::Result<()> {
                 });
             }
             "console" => {
-                let _ = lifecycle::open_console();
+                // `open` spawns a process; keep it off the menu-event thread.
+                tauri::async_runtime::spawn_blocking(|| {
+                    let _ = lifecycle::open_console();
+                });
             }
             "logs" => {
-                let _ = lifecycle::open_logs(&app.state::<AppState>().logs_directory);
+                let directory = app.state::<AppState>().logs_directory.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    let _ = lifecycle::open_logs(&directory);
+                });
             }
             "update" => {
                 show_status(app);
@@ -381,7 +387,10 @@ fn start_refresh(app: AppHandle) {
                 .unwrap_or_default();
             // Log lines and explanatory messages do not change menu content.
             // Ignoring them avoids rebuilding an open menu on each log write.
-            status.logs.clear();
+            // Replacing the handle is O(1) and leaves the shared buffer that
+            // `latest_status` and every live snapshot still reference intact;
+            // mutating through it would clear theirs too.
+            status.logs = Default::default();
             status.message.clear();
             let mut next = Overview {
                 status,
@@ -400,7 +409,7 @@ fn start_refresh(app: AppHandle) {
                     let old_identity = previous
                         .runtime
                         .as_ref()
-                        .map(|old| catalogue_identity(old))
+                        .map(catalogue_identity)
                         .unwrap_or("");
                     if !identity.is_empty() {
                         next.catalogue = if tick.is_multiple_of(32)
