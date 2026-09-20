@@ -167,3 +167,31 @@ migration, or reset local Docker volumes:
 ```bash
 pnpm docker:reset
 ```
+
+### Post-commit steps
+
+Migrations that require concurrent indexes keep their SQL in the same numbered
+migration file, inside a `/* moltnet:post-commit ... */` block. Separate each
+statement in that block with `-- moltnet:statement-breakpoint`. Drizzle executes
+the ordinary SQL transaction and ignores the comment; `runMigrations` then runs
+the marked statements without a transaction. Use the application migration
+runner (`pnpm db:migrate:run`), not a direct `drizzle-kit migrate` invocation.
+
+The runner serializes post-commit execution and records completed tags in
+`drizzle.__moltnet_post_migrations`. A failed step retains no completion record,
+so rerunning resumes it. Concurrent indexes use `IF NOT EXISTS`; the runner
+resolves the index in its table’s schema (including quoted identifiers), repairs
+an invalid index before retrying, and verifies validity after each build before
+recording completion. Unsupported concurrent-index declarations fail explicitly. Set a lock timeout directly
+before operations that need it, such as FK validation, rather than bounding
+concurrent index snapshot waits. Cleanup errors do not hide the original error.
+
+Before applying SQL, the runner verifies that the latest recorded migration
+timestamp and content hash match the local history. Unknown or rewritten applied
+migrations stop launch with a reconciliation error instead of silently skipping
+schema changes.
+
+PR #2366 consolidates its unreleased schema into `0048_new_phalanx.sql`. Local
+or staging databases that applied earlier revisions of this PR must be reset
+and migrated from the consolidated history. Do not reset a production database
+as part of this development-only migration change.

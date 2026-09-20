@@ -3,13 +3,14 @@ import {
   mkdtemp,
   readdir,
   readFile,
+  rm,
   stat,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   type GitHubConfig,
@@ -22,6 +23,16 @@ import {
   updateOAuth2Config,
   writeConfig,
 } from '../src/config.js';
+
+let testHome: string;
+beforeEach(async () => {
+  testHome = await mkdtemp(join(tmpdir(), 'config-home-'));
+  vi.stubEnv('HOME', testHome);
+});
+afterEach(async () => {
+  vi.unstubAllEnvs();
+  await rm(testHome, { recursive: true, force: true });
+});
 
 function config(): MoltNetConfig {
   return {

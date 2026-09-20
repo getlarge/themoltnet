@@ -30,6 +30,7 @@ export function dbTaskToWire(row: DbTask): Task {
     title: row.title ?? null,
     tags: row.tags ?? [],
     teamId: row.teamId,
+    projectId: row.projectId ?? null,
     diaryId: row.diaryId ?? null,
     outputKind: row.outputKind,
     input: row.input as Record<string, unknown>,

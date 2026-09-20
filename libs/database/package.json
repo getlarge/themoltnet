@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc -b tsconfig.lib.json",
     "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
+    "migrate": "tsx src/migrate-cli.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "db:migrate:run": "tsx src/migrate-cli.ts",

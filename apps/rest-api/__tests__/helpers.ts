@@ -33,6 +33,7 @@ import type {
   GroupRepository,
   HumanRepository,
   NonceRepository,
+  ProjectRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
   RuntimePolicySnapshotRepository,
@@ -267,6 +268,9 @@ export interface MockServices {
     delete: ReturnType<typeof vi.fn>;
   };
   groupRepository: { [K in keyof GroupRepository]: ReturnType<typeof vi.fn> };
+  projectRepository: {
+    [K in keyof ProjectRepository]: ReturnType<typeof vi.fn>;
+  };
   teamRepository: { [K in keyof TeamRepository]: ReturnType<typeof vi.fn> };
   diaryTransferRepository: {
     create: ReturnType<typeof vi.fn>;
@@ -395,6 +399,12 @@ export function createMockServices(): MockServices {
       listByEntry: vi.fn().mockResolvedValue([]),
       updateStatus: vi.fn(),
       delete: vi.fn(),
+    },
+    projectRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      listByTeamId: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
     },
     groupRepository: {
       create: vi.fn(),
@@ -993,6 +1003,7 @@ export async function createTestApp(
     runtimePolicySnapshotRepository:
       mocks.runtimePolicySnapshotRepository as unknown as RuntimePolicySnapshotRepository,
     groupRepository: mocks.groupRepository as never,
+    projectRepository: mocks.projectRepository as never,
     relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',
     webhookApiKey: TEST_WEBHOOK_API_KEY,

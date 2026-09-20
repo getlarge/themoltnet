@@ -28,6 +28,7 @@ export type {
   GroupRepository,
   HumanRepository,
   NonceRepository,
+  ProjectRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
@@ -65,6 +66,7 @@ import type {
   EntryRelationRepository,
   GroupRepository,
   HumanRepository,
+  ProjectRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
@@ -114,6 +116,7 @@ declare module 'fastify' {
     humanRepository: HumanRepository;
     cryptoService: CryptoService;
     groupRepository: GroupRepository;
+    projectRepository: ProjectRepository;
     teamRepository: TeamRepository;
     diaryTransferRepository: DiaryTransferRepository;
     runtimeProfileRepository: RuntimeProfileRepository;

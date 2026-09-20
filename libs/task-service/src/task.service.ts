@@ -186,19 +186,24 @@ export function createTaskService(deps: TaskServiceDeps) {
       const initialRow = await findTaskForTeam(taskId, teamId);
       if (!initialRow)
         throw new TaskServiceError('not_found', 'Task not found');
-      let claimAuthorized = false;
-      if (initialRow?.status === 'waiting') {
-        const canClaimWaiting = await permissionChecker.canClaimTask(
-          taskId,
-          callerId,
-          callerNs,
+      const canClaim = await permissionChecker.canClaimTask(
+        taskId,
+        callerId,
+        callerNs,
+      );
+      if (!canClaim)
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to claim this task',
         );
-        if (!canClaimWaiting)
-          throw new TaskServiceError(
-            'forbidden',
-            'Not authorized to claim this task',
-          );
-        claimAuthorized = true;
+      if (
+        (initialRow.projectId ?? null) !==
+        (executorAttestation.projectId ?? null)
+      ) {
+        throw new TaskServiceError(
+          'project_mismatch',
+          'Run project does not match task project',
+        );
       }
       let row =
         initialRow?.status === 'waiting'
@@ -226,19 +231,6 @@ export function createTaskService(deps: TaskServiceDeps) {
           'conflict',
           'Task has exhausted all allowed attempts',
         );
-      }
-
-      if (!claimAuthorized) {
-        const canClaim = await permissionChecker.canClaimTask(
-          taskId,
-          callerId,
-          callerNs,
-        );
-        if (!canClaim)
-          throw new TaskServiceError(
-            'forbidden',
-            'Not authorized to claim this task',
-          );
       }
 
       const allowedProfiles = (row.allowedProfiles ?? []) as {
@@ -365,10 +357,14 @@ export function createTaskService(deps: TaskServiceDeps) {
               );
             }
           }
-          const claimed = await taskRepository.claimIfQueued(taskId, {
-            claimAgentId: callerId,
-            claimExpiresAt,
-          });
+          const claimed = await taskRepository.claimIfQueued(
+            taskId,
+            {
+              claimAgentId: callerId,
+              claimExpiresAt,
+            },
+            executorAttestation.projectId ?? null,
+          );
           if (!claimed) return null;
 
           await persistExecutorVerification(claimedExecutor, taskRepository);
@@ -414,7 +410,10 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Task is not queued or is already being claimed',
         );
       }
-      logger.info({ taskId, attemptN, callerId }, 'task.claimed');
+      logger.info(
+        { taskId, attemptN, callerId, projectId: row.projectId ?? null },
+        'task.claimed',
+      );
       return {
         task: dbTaskToWire(claimedState.task),
         attempt: dbAttemptToWire({

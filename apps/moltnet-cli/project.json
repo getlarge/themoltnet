@@ -28,6 +28,7 @@
         "default",
         "^production",
         "{workspaceRoot}/libs/agent-config/__tests__/fixtures/**/*",
+        "{workspaceRoot}/libs/agent-config/src/**/*",
         "{workspaceRoot}/libs/sdk/__tests__/fixtures/config-repair.ts",
         "{workspaceRoot}/libs/sdk/src/repair.ts"
       ]

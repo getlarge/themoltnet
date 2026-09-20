@@ -22,6 +22,7 @@ import type { TSchema } from 'typebox';
 
 import { validateClaimConditionShape } from './claim-condition.js';
 import type { TaskConditionHelpers } from './task-conditions.js';
+import { resolveTaskProject } from './task-project.js';
 import {
   isUniqueViolation,
   normalizeTaskTags,
@@ -62,6 +63,7 @@ export function createTaskCreateService(
     | 'taskArtifactRepository'
     | 'taskInputArtifactObjectStore'
     | 'diaryRepository'
+    | 'projectRepository'
     | 'runtimeProfileRepository'
     | 'correlationSealRepository'
     | 'permissionChecker'
@@ -81,6 +83,7 @@ export function createTaskCreateService(
     taskArtifactRepository,
     taskInputArtifactObjectStore,
     diaryRepository,
+    projectRepository,
     runtimeProfileRepository,
     correlationSealRepository,
     permissionChecker,
@@ -199,6 +202,26 @@ export function createTaskCreateService(
         );
       }
 
+      const projectContext = makeAsyncValidationContext(
+        input.callerId,
+        input.callerNs,
+      );
+      const projectId = await resolveTaskProject(
+        {
+          teamId: input.teamId,
+          projectId: input.projectId,
+          continuationTaskId:
+            input.taskType === 'freeform'
+              ? (normalizedInput as { continueFrom?: { taskId: string } })
+                  .continueFrom?.taskId
+              : undefined,
+        },
+        {
+          resolveTask: (id) => projectContext.resolveTask(id),
+          projectRepository,
+        },
+      );
+
       // Profile existence is team-sensitive. Resolve it only after the
       // batched Team.propose_tasks + Diary.read authorization succeeds so a
       // caller cannot use validation differences as a cross-team membership
@@ -265,6 +288,7 @@ export function createTaskCreateService(
             claimCondition: input.claimCondition ?? null,
             correlationId: input.correlationId ?? null,
             diaryId: input.diaryId,
+            projectId,
             dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
             expiresInSec: input.expiresInSec ?? null,
             input: normalizedInput,
@@ -340,11 +364,7 @@ export function createTaskCreateService(
         : true;
       const deferReadinessChecks =
         input.claimCondition !== undefined && !conditionSatisfied;
-      const asyncCtx = makeAsyncValidationContext(
-        input.callerId,
-        input.callerNs,
-        { deferReadinessChecks },
-      );
+      const asyncCtx = { ...projectContext, deferReadinessChecks };
       const asyncErrors = await validateTaskInputAsync(
         input.taskType,
         normalizedInput,
@@ -386,6 +406,7 @@ export function createTaskCreateService(
         tags: normalizedTags,
         teamId: input.teamId,
         diaryId: input.diaryId,
+        projectId,
         outputKind: taskTypeDef.outputKind,
         input: normalizedInput,
         inputSchemaCid,

@@ -271,3 +271,5 @@ export const MoltNet = {
   connect,
   connectHuman,
 } as const;
+
+export type { ProjectsNamespace } from './namespaces/projects.js';

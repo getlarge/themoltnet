@@ -40,5 +40,18 @@ export {
   type WriteConfigOptions,
 } from './config.js';
 export { withConfigLock } from './config-lock.js';
+export {
+  getProjectConfigPath,
+  type ProjectBinding,
+  type ProjectConfig,
+  ProjectConfigError,
+  type ProjectSelectionOptions,
+  readProjectConfig,
+  resolveProjectBinding,
+  updateProjectConfig,
+  validateProjectConfig,
+  type WorkspaceHook,
+  type WorkspaceStrategy,
+} from './project-bindings.js';
 export { exportSSHKey } from './ssh.js';
 export { updateTeamAgentKeyReference } from './team-key-update.js';

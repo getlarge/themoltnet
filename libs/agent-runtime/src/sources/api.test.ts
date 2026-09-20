@@ -67,7 +67,7 @@ describe('ApiTaskSource', () => {
     });
     await expect(src.claim()).resolves.toBeNull();
     expect(claimMock).toHaveBeenCalledTimes(1);
-    expect(claimMock).toHaveBeenCalledWith(task.id, {});
+    expect(claimMock).toHaveBeenCalledWith(task.id, { projectId: null });
   });
 
   it('surfaces claim failures', async () => {
@@ -145,6 +145,7 @@ describe('ApiTaskSource', () => {
     await expect(src.claim()).resolves.toMatchObject({ profileId });
 
     expect(claimMock).toHaveBeenCalledWith(task.id, {
+      projectId: null,
       profileId,
     });
     await expect(src.claim()).resolves.toBeNull();
@@ -177,9 +178,22 @@ describe('ApiTaskSource', () => {
       profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     });
     expect(claimMock).toHaveBeenCalledWith(task.id, {
+      projectId: null,
       profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       ...attestation,
     });
     expect(claimed?.claimAuthority).toBeUndefined();
   });
+});
+
+it('declares the selected project for direct task claims', async () => {
+  const task = makeFulfillBriefTask();
+  const claim = vi.fn().mockResolvedValue({ task, attempt: { attemptN: 1 } });
+  const source = new ApiTaskSource({
+    agent: makeAgent(claim),
+    taskId: task.id,
+    projectId: 'project',
+  } as never);
+  await source.claim();
+  expect(claim).toHaveBeenCalledWith(task.id, { projectId: 'project' });
 });

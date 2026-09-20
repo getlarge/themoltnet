@@ -104,6 +104,8 @@ function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
     case 'not_found':
       return createProblem('not-found', error.message);
+    case 'project_mismatch':
+      return createProblem('project-mismatch', error.message);
     case 'conflict':
       return createProblem('conflict', error.message);
     case 'forbidden':
@@ -343,6 +345,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           tags: request.body.tags,
           teamId,
           diaryId: request.body.diaryId,
+          projectId: request.body.projectId,
           inputPayload: request.body.input,
           references: request.body.references,
           correlationId: request.body.correlationId,
@@ -399,6 +402,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
+
       try {
         return await fastify.taskService.list({
           teamId,
@@ -411,6 +415,8 @@ export function taskRoutes(fastify: FastifyInstance) {
           profileId: request.query.profileId,
           correlationId: request.query.correlationId,
           diaryId: request.query.diaryId,
+          projectId:
+            request.query.projectId === 'none' ? null : request.query.projectId,
           proposedByAgentId: request.query.proposedByAgentId,
           proposedByHumanId: request.query.proposedByHumanId,
           claimedByAgentId: request.query.claimedByAgentId,
@@ -1068,6 +1074,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           callerNs,
           request.body.leaseTtlSec,
           {
+            projectId: request.body.projectId ?? null,
             executorManifest: request.body.executorManifest,
             executorFingerprint: request.body.executorFingerprint,
             executorSignature: request.body.executorSignature,

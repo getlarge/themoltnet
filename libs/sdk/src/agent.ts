@@ -187,6 +187,10 @@ import { createEntriesNamespace } from './namespaces/entries.js';
 import { createLegreffierNamespace } from './namespaces/legreffier.js';
 import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
+import {
+  createProjectsNamespace,
+  type ProjectsNamespace,
+} from './namespaces/projects.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createRuntimePoliciesNamespace } from './namespaces/runtime-policies.js';
@@ -1072,6 +1076,7 @@ export interface Agent {
   legreffier: LegreffierNamespace;
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
+  projects: ProjectsNamespace;
   runtimeProfiles: RuntimeProfilesNamespace;
   runtimePolicies: RuntimePoliciesNamespace;
   tasks: TasksNamespace;
@@ -1144,6 +1149,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     legreffier: legreffierNs,
     problems: problemsNs,
     teams,
+    projects: createProjectsNamespace(context),
     runtimeProfiles,
     runtimePolicies,
     tasks,

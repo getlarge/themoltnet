@@ -17,20 +17,26 @@
  * surface, not the persist transaction shape.
  */
 
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
-import { runMigrations } from '../src/migrate.js';
+import { runMigrations, runPostMigrations } from '../src/migrate.js';
 import { createDatabaseCapacityRepository } from '../src/repositories/database-capacity.repository.js';
+import { createProjectRepository } from '../src/repositories/project.repository.js';
 import { createRuntimeSessionRepository } from '../src/repositories/runtime-session.repository.js';
 import { createTaskRepository } from '../src/repositories/task.repository.js';
 import { createTaskArtifactRepository } from '../src/repositories/task-artifact.repository.js';
 import {
   agents,
   diaries,
+  projects,
   runtimeSessions,
   taskArtifacts,
   taskAttempts,
@@ -39,9 +45,11 @@ import {
   teams,
 } from '../src/schema.js';
 import { createDrizzleTransactionRunner } from '../src/transaction-context.js';
+import { UniqueViolationError } from '../src/unique-violation.js';
 
 describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let db: Database;
+  let databaseUrl: string;
   let pool: Pool;
   let repo: ReturnType<typeof createTaskRepository>;
   let capacityRepo: ReturnType<typeof createDatabaseCapacityRepository>;
@@ -65,7 +73,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       .withPassword('moltnet_secret')
       .start();
 
-    const databaseUrl = container.getConnectionUri();
+    databaseUrl = container.getConnectionUri();
     stopContainer = () => container.stop().then(() => undefined);
 
     await runMigrations(databaseUrl);
@@ -105,6 +113,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       await db.delete(taskAttempts);
       await db.delete(tasks);
       await db.delete(diaries);
+      await db.delete(projects);
       await db.delete(teams);
       await db.delete(agents);
     }
@@ -617,6 +626,243 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     });
 
     await db.delete(tasks);
+  });
+
+  it('rejects orphaned migration history before applying further SQL', async () => {
+    const latest = await pool.query(
+      'SELECT max(created_at) AS stamp FROM drizzle.__drizzle_migrations',
+    );
+    const stamp = Number(latest.rows[0].stamp) + 1;
+    await pool.query(
+      'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ($1, $2)',
+      ['orphan', stamp],
+    );
+    try {
+      await expect(runMigrations(databaseUrl)).rejects.toThrow(
+        /migration history.*newer|unknown migration/i,
+      );
+    } finally {
+      await pool.query(
+        'DELETE FROM drizzle.__drizzle_migrations WHERE created_at = $1',
+        [stamp],
+      );
+    }
+  });
+  it('rejects a rewritten applied migration before running post-commit SQL', async () => {
+    const latest = (
+      await pool.query(
+        'SELECT id, hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1',
+      )
+    ).rows[0];
+    await pool.query(
+      'UPDATE drizzle.__drizzle_migrations SET hash = $1 WHERE id = $2',
+      ['old-revision', latest.id],
+    );
+    try {
+      await expect(runMigrations(databaseUrl)).rejects.toThrow(
+        /migration.*changed|hash.*mismatch/i,
+      );
+    } finally {
+      await pool.query(
+        'UPDATE drizzle.__drizzle_migrations SET hash = $1 WHERE id = $2',
+        [latest.hash, latest.id],
+      );
+    }
+  });
+  it('repairs a quoted concurrent index in a non-public schema and never records an invalid build', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'post-migrations-'));
+    const tag = 'quoted_index_test';
+    await mkdir(join(folder, 'meta'));
+    await writeFile(
+      join(folder, 'meta/_journal.json'),
+      JSON.stringify({ entries: [{ tag }] }),
+    );
+    const statement =
+      'CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "Mixed index" ON "Review schema"."Rows" (value)';
+    await writeFile(
+      join(folder, `${tag}.sql`),
+      `/* moltnet:post-commit\n${statement};\n*/`,
+    );
+    await pool.query('CREATE SCHEMA "Review schema"');
+    await pool.query('CREATE TABLE "Review schema"."Rows" (value int)');
+    await pool.query('INSERT INTO "Review schema"."Rows" VALUES (1), (1)');
+    try {
+      await expect(pool.query(statement)).rejects.toThrow();
+      await expect(runPostMigrations(pool, folder)).rejects.toThrow();
+      expect(
+        (
+          await pool.query(
+            'SELECT 1 FROM drizzle.__moltnet_post_migrations WHERE tag = $1',
+            [tag],
+          )
+        ).rows,
+      ).toEqual([]);
+      await pool.query('DELETE FROM "Review schema"."Rows"');
+      await runPostMigrations(pool, folder);
+      expect(
+        (
+          await pool.query(
+            'SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass($1)',
+            ['"Review schema"."Mixed index"'],
+          )
+        ).rows,
+      ).toEqual([{ indisvalid: true }]);
+    } finally {
+      await pool.query('DROP SCHEMA "Review schema" CASCADE');
+      await pool.query(
+        'DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = $1',
+        [tag],
+      );
+      await rm(folder, { recursive: true, force: true });
+    }
+  });
+
+  it('retries deferred project scans after the schema migration has committed', async () => {
+    await pool.query(
+      "DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = '0048_new_phalanx'",
+    );
+    await pool.query('DROP INDEX tasks_project_created_idx');
+    await runMigrations(databaseUrl);
+    await runMigrations(databaseUrl);
+    const constraints = await pool.query(
+      "SELECT convalidated FROM pg_constraint WHERE conname = 'tasks_project_id_projects_id_fk'",
+    );
+    expect(constraints.rows).toEqual([{ convalidated: true }]);
+    const indexes = await pool.query(
+      "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
+    );
+    expect(indexes.rows).toEqual([{ indisvalid: true }]);
+  });
+
+  it('repairs an interrupted project index before recording completion', async () => {
+    await pool.query(
+      "DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = '0048_new_phalanx'",
+    );
+    await pool.query('DROP INDEX tasks_project_created_idx');
+    const blocker = await pool.connect();
+    const builder = await pool.connect();
+    try {
+      await blocker.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+      await blocker.query('SELECT * FROM agents LIMIT 1');
+      await builder.query("SET lock_timeout = '100ms'");
+      await expect(
+        builder.query(
+          'CREATE INDEX CONCURRENTLY tasks_project_created_idx ON tasks (project_id, created_at) WHERE project_id IS NOT NULL',
+        ),
+      ).rejects.toThrow(/lock timeout/);
+      const invalid = await pool.query(
+        "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
+      );
+      expect(invalid.rows).toEqual([{ indisvalid: false }]);
+      await blocker.query('ROLLBACK');
+      await expect(runMigrations(databaseUrl)).resolves.toBeUndefined();
+      const repaired = await pool.query(
+        "SELECT indisvalid FROM pg_index WHERE indexrelid = 'tasks_project_created_idx'::regclass",
+      );
+      expect(repaired.rows).toEqual([{ indisvalid: true }]);
+    } finally {
+      await blocker.query('ROLLBACK');
+      blocker.release();
+      builder.release(true);
+    }
+  });
+
+  it('completes the project index despite an older transaction and skips applied steps', async () => {
+    await pool.query(
+      "DELETE FROM drizzle.__moltnet_post_migrations WHERE tag = '0048_new_phalanx'",
+    );
+    await pool.query('DROP INDEX tasks_project_created_idx');
+    const blocker = await pool.connect();
+    try {
+      await blocker.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+      await blocker.query('SELECT * FROM agents LIMIT 1');
+      const release = setTimeout(() => {
+        void blocker.query('COMMIT');
+      }, 6500);
+      try {
+        await expect(runMigrations(databaseUrl)).resolves.toBeUndefined();
+      } finally {
+        clearTimeout(release);
+        await blocker.query('ROLLBACK');
+      }
+      const first = await pool.query(
+        'SELECT applied_at FROM drizzle.__moltnet_post_migrations',
+      );
+      await runMigrations(databaseUrl);
+      const second = await pool.query(
+        'SELECT applied_at FROM drizzle.__moltnet_post_migrations',
+      );
+      expect(second.rows).toEqual(first.rows);
+    } finally {
+      blocker.release();
+    }
+  });
+
+  it('persists project attribution and scopes catalogue mutations to the owning team', async () => {
+    const catalogue = createProjectRepository(db);
+    const input = {
+      teamId: TEAM_ID,
+      name: 'catalogue-contract',
+      creator: { kind: 'agent' as const, id: AGENT_ID },
+    };
+    const project = await catalogue.create(input);
+    expect(project).toMatchObject({
+      creatorAgentId: AGENT_ID,
+      creatorHumanId: null,
+    });
+    await expect(
+      catalogue.create({ ...input, name: ' CATALOGUE-CONTRACT ' }),
+    ).rejects.toBeInstanceOf(UniqueViolationError);
+    expect(
+      await catalogue.update(project.id, AGENT_ID, { name: 'transferred' }),
+    ).toBeNull();
+    expect(await catalogue.findById(project.id)).toMatchObject({
+      name: input.name,
+      teamId: TEAM_ID,
+    });
+    await catalogue.update(project.id, TEAM_ID, { archived: true });
+    expect(await catalogue.listByTeamId(TEAM_ID)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: project.id })]),
+    );
+    expect(await catalogue.listByTeamId(TEAM_ID, true)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: project.id, archived: true }),
+      ]),
+    );
+    await db.delete(projects).where(eq(projects.id, project.id));
+  });
+
+  it('atomically separates General and project claims and admits only one matching worker', async () => {
+    const projectId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa91';
+    const taskId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa92';
+    await db.insert(projects).values({
+      id: projectId,
+      teamId: TEAM_ID,
+      name: 'claim-routing',
+      creatorAgentId: AGENT_ID,
+    });
+    await seedTask({ id: taskId, status: 'queued', claimExpiresAt: null });
+    await db.update(tasks).set({ projectId }).where(eq(tasks.id, taskId));
+    const claim = {
+      claimAgentId: AGENT_ID,
+      claimExpiresAt: new Date(Date.now() + 30_000),
+    };
+    expect(await repo.claimIfQueued(taskId, claim)).toBeNull();
+    expect(await repo.claimIfQueued(taskId, claim, null)).toBeNull();
+    expect(await repo.claimIfQueued(taskId, claim, TEAM_ID)).toBeNull();
+    const contenders = await Promise.all([
+      repo.claimIfQueued(taskId, claim, projectId),
+      repo.claimIfQueued(taskId, claim, projectId),
+      repo.claimIfQueued(taskId, claim, null),
+      repo.claimIfQueued(taskId, claim, TEAM_ID),
+    ]);
+    expect(contenders.filter(Boolean)).toHaveLength(1);
+    expect(contenders.find(Boolean)).toMatchObject({
+      projectId,
+      status: 'dispatched',
+    });
+    await db.delete(tasks);
+    await db.delete(projects).where(eq(projects.id, projectId));
   });
 
   it('does not claim queued tasks whose task lifetime elapsed', async () => {

@@ -57,6 +57,7 @@ export interface TaskAttemptWithManifests extends TaskAttempt {
 
 /** Filters shared by `list` and `count` (everything except limit/cursor). */
 export interface TaskListFilterOpts {
+  projectId?: string | null;
   teamId: string;
   query?: string;
   status?: Task['status'];
@@ -264,6 +265,13 @@ export function createTaskRepository(db: Database) {
           excludeTags.map((tag) => sql`${tag}`),
           sql`,`,
         )}]::text[])`,
+      );
+    }
+    if (opts.projectId !== undefined) {
+      filters.push(
+        opts.projectId === null
+          ? isNull(tasks.projectId)
+          : eq(tasks.projectId, opts.projectId),
       );
     }
     if (opts.profileId) {
@@ -669,6 +677,7 @@ export function createTaskRepository(db: Database) {
       excludeTags?: string[];
       correlationId?: string;
       diaryId?: string;
+      projectId?: string | null;
       proposedByAgentId?: string;
       proposedByHumanId?: string;
       claimedByAgentId?: string;
@@ -712,6 +721,7 @@ export function createTaskRepository(db: Database) {
     async claimIfQueued(
       id: string,
       claim: Pick<Task, 'claimAgentId' | 'claimExpiresAt'>,
+      projectId: string | null = null,
     ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
@@ -720,6 +730,9 @@ export function createTaskRepository(db: Database) {
           and(
             eq(tasks.id, id),
             eq(tasks.status, 'queued'),
+            projectId === null
+              ? isNull(tasks.projectId)
+              : eq(tasks.projectId, projectId),
             or(isNull(tasks.expiresAt), gt(tasks.expiresAt, sql`now()`)),
           ),
         )
