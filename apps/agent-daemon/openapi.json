@@ -1015,11 +1015,18 @@
                     "operatorConfigured": {
                       "type": "boolean"
                     },
+                    "protocolVersion": {
+                      "enum": [
+                        2
+                      ],
+                      "type": "integer"
+                    },
                     "tokenUrl": {
                       "type": "string"
                     }
                   },
                   "required": [
+                    "protocolVersion",
                     "instance",
                     "issuer",
                     "authorizationUrl",

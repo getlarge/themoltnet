@@ -30554,13 +30554,16 @@ Object.freeze([...[
 	"offline_access"
 ], ...MCP_CLIENT_SCOPES]);
 Object.freeze({
+	protocolVersion: 2,
 	provisioningScope: "moltnet:provision",
 	localControlScope: "moltnet:local-control",
 	provisioningAudience: "moltnet:provisioning",
 	localControlAudience: "moltnet:agent-server",
-	nativeLifetimeSeconds: 300,
+	approvalTransportGraceSeconds: 30,
+	callbackPort: 17375,
 	consoleLifetimeSeconds: 900,
-	callbackPort: 17375
+	nativeLifetimeSeconds: 300,
+	serverPort: 17374
 });
 //#endregion
 //#region ../../libs/models/src/preview-sign.ts

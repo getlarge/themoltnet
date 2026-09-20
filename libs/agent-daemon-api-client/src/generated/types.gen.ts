@@ -226,6 +226,7 @@ export type GetAgentServerOAuthMetadataResponses = {
     instance: string;
     issuer: string;
     operatorConfigured: boolean;
+    protocolVersion: 2;
     tokenUrl: string;
   };
 };
