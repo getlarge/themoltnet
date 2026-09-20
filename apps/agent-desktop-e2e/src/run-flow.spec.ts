@@ -17,7 +17,7 @@ async function mount() {
     desktop_control_status: status,
     desktop_operator_configured: true,
     desktop_catalogue: catalogue,
-    desktop_connection_settings: { storageScope: '' },
+    desktop_preset_storage_scope: { storageScope: '' },
     desktop_providers: {},
     desktop_subscriptions: [],
     desktop_run_logs: { lines: ['Fixture log'] },

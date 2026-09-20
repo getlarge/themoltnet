@@ -191,6 +191,13 @@ pub struct LifecycleManager {
 }
 
 impl LifecycleManager {
+    pub fn preset_scope(&self) -> crate::preset_scope::PresetScope {
+        crate::preset_scope::PresetScope {
+            root: self.store_root.clone(),
+            home: self.home.clone(),
+        }
+    }
+
     /// The grant for the running server, if one is running.
     pub fn control_connection(&self) -> Option<&NativeConnection> {
         self.child.as_ref().and(self.control_connection.as_ref())
@@ -730,12 +737,6 @@ impl LifecycleManager {
         self.install_root().join("current/bin/moltnet-agent")
     }
 
-    pub fn preset_scope(&self) -> crate::preset_scope::PresetScope {
-        crate::preset_scope::PresetScope {
-            root: self.store_root.clone(),
-            home: self.home.clone(),
-        }
-    }
 
     pub fn logs_directory(&self) -> PathBuf {
         self.store_root.join("agent-server/logs")

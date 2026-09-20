@@ -209,6 +209,7 @@
           "{workspaceRoot}/test-fixtures/agent-server-endpoint.json",
           "{workspaceRoot}/test-fixtures/connection-state-root.json",
           "{workspaceRoot}/docs/operate/*.md",
+          "{workspaceRoot}/test-fixtures/connection-state-root.json",
           "{workspaceRoot}/docs/.vitepress/config.ts"
         ]
       }
