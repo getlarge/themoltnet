@@ -139,7 +139,7 @@ type GitHubSection struct {
 	Org            string           `json:"org,omitempty"`
 }
 
-// GetConfigDir returns ~/.config/moltnet.
+// GetConfigDir returns the selected store, defaulting to ~/.config/moltnet.
 func GetConfigDir() (string, error) { return configdir.Dir() }
 
 // GetConfigPath returns the credentials path for the selected central identity.

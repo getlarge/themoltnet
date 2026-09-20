@@ -216,14 +216,14 @@ Agent Desktop instead uses a private Unix socket with a process-scoped grant.
 Both modes configure agents and providers and start/stop child runs.
 
 Options:
-  --port <n>                  Loopback port. Default: 17374.
+  --port <n>                  Loopback port. Default store: 17374; isolated: 0.
                               Env: MOLTNET_AGENT_SERVER_PORT.
   --allowed-origins <csv>     Exact browser-controller origins allowed
                               local control.
                               Default: https://console.themolt.net.
                               Env: MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS.
   --root <path>               Config root. Default: ~/.config/moltnet
-                              (or MOLTNET_AGENT_SERVER_ROOT).
+                              (or MOLTNET_HOME; legacy MOLTNET_AGENT_SERVER_ROOT).
   --api-url <url>             Default MoltNet API for new managed agents.
                               Default: https://api.themolt.net.
   --heartbeat-interval-ms <n> Child reporter heartbeat cadence. Default: 60000.
@@ -253,8 +253,8 @@ Usage:
     [--root <path>]
   moltnet-agent providers logout <id> [--yes] [--root <path>]
 
-The default root is ~/.config/moltnet. MOLTNET_AGENT_SERVER_ROOT remains the
-environment override. API keys are accepted only from redirected stdin; they
+The default root is ~/.config/moltnet. MOLTNET_HOME selects another store.
+MOLTNET_AGENT_SERVER_ROOT is a legacy alias; conflicting values fail. API keys are accepted only from redirected stdin; they
 are stored separately and providers.json contains only a secret reference.
 
 --model declares a text-only model. --model-input declares a model together

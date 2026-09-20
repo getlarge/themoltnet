@@ -55,11 +55,12 @@ for the full exchange.
 
 ## Store selection and keyring namespaces
 
-The shared store API selects an explicit `root` option first, then
-`MOLTNET_HOME`, then `~/.config/moltnet`. The variable names the store itself;
-no extra `.config/moltnet` suffix is appended. An explicitly empty, blank,
-NUL-containing, inaccessible, or non-directory path is an error, including an
-empty environment variable. Unset the variable to select the default.
+The CLI, SDK, Agent Server, and Desktop select an explicit store option first,
+then `MOLTNET_HOME`, then `~/.config/moltnet`. The variable names the store
+itself; no extra `.config/moltnet` suffix is appended. An explicitly empty,
+blank, NUL-containing, inaccessible, or non-directory path is an error,
+including an empty environment variable. Unset the variable to select the
+default.
 
 The default config/display path retains its established lexical spelling without
 filesystem access. Explicit and environment roots return absolute canonical
@@ -89,12 +90,30 @@ credentials document, not a keyring namespace. Set `MOLTNET_HOME` (or the Node
 registry's explicit store option) to read that document's isolated secrets.
 Explicit document paths do not seed the selected store's identity selector.
 
-This shared-library foundation does not yet provide complete process isolation.
-Do not use `MOLTNET_HOME` as an isolated CLI, daemon, or Desktop environment
-until the consumer integration is installed. That integration scopes discovery,
-locks, run state, and subprocesses as well as credentials.
+`MOLTNET_AGENT_SERVER_ROOT` is a compatibility alias. If both environment
+variables are set, their canonical roots must agree. The default does not
+consult `XDG_CONFIG_HOME`.
+
+```bash
+export MOLTNET_HOME="$HOME/.local/share/moltnet/development/personal"
+moltnet agents list
+```
+
+Each store has one Agent Server singleton. The default store uses port 17374;
+isolated stores receive an available loopback port unless `--port` or
+`MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0` explicitly requests an
+available port. Desktop discovers it through `agent-server-endpoint.json` in the
+selected store. The record contains public connection metadata, not a token.
+
+Desktop connection environments remain separate beneath the selected store.
+Presets use the effective environment's storage scope. `moltnet start` and
+managed workers pass an absolute `MOLTNET_HOME` to children so changing their
+working directory or `HOME` does not change their store. Desktop's
+`MOLTNET_AGENT_HOME` selects its installation directory independently.
 
 ## Which credentials file a command uses
+
+The paths below use the default store; substitute `MOLTNET_HOME` when selected.
 
 Every command resolves one credentials file, and uses it for authentication,
 signing, and endpoint discovery alike. Resolution order, highest first:

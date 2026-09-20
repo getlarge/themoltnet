@@ -14,7 +14,8 @@ func newStartCmd() *cobra.Command {
 		Use:   "start <target> [-- <target-args>...]",
 		Short: "Start an agent session with resolved credentials",
 		Long: `Start an agent session with the resolved central identity environment.
-Sources ~/.config/moltnet/identities/<alias>/env and exec's into the target binary.
+Sources <store>/identities/<alias>/env and exec's into the target binary.
+MOLTNET_HOME selects the store (default: ~/.config/moltnet).
 In a terminal, optionally prompts to register new folders.
 --dry-run does not write configuration or prompt. Common targets: claude, codex.`,
 		Example: `  moltnet start claude
