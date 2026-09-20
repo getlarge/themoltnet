@@ -227,7 +227,7 @@ export function isMacos(): boolean {
 async function removeTrustSettings(args: string[]): Promise<void> {
   try {
     await execFileAsync('/usr/bin/security', args, {
-      env: { ...process.env, LC_ALL: 'C' },
+      env: { LC_ALL: 'C' },
     });
   } catch (error) {
     const stderr =
