@@ -101,10 +101,17 @@ export function ApiKeyProviderForm({
     setVisibleLimit(MODEL_PAGE_SIZE);
   };
 
+  const existingEndpoint = runtime.data?.providers[id.trim()]?.baseUrl;
+  const endpointConflict =
+    !provider &&
+    existingEndpoint !== undefined &&
+    existingEndpoint !== baseUrl.trim();
+
   const applyPreset = (presetId: string) => {
     const next =
       PROVIDER_PRESETS.find((entry) => entry.id === presetId) ??
       PROVIDER_PRESETS[2];
+    setApiKey('');
     setPreset(next.id);
     setId(next.providerId);
     setBaseUrl(next.baseUrl);
@@ -113,6 +120,7 @@ export function ApiKeyProviderForm({
   };
 
   const discover = async () => {
+    if (endpointConflict) return;
     setBusy(true);
     setDiscoverError(null);
     try {
@@ -149,6 +157,7 @@ export function ApiKeyProviderForm({
   };
 
   const save = async () => {
+    if (endpointConflict) return;
     setBusy(true);
     try {
       const providerId = id.trim();
@@ -194,10 +203,16 @@ export function ApiKeyProviderForm({
         onBaseUrlChange={setBaseUrl}
         onIdChange={setId}
       />
+      {endpointConflict ? (
+        <Text variant="caption" color="error">
+          This provider ID already uses another endpoint. Edit the existing
+          provider or choose a different ID.
+        </Text>
+      ) : null}
       <Stack direction="row" gap={2} align="center" wrap>
         <Button
           size="sm"
-          disabled={busy || !id.trim() || !baseUrl.trim()}
+          disabled={busy || endpointConflict || !id.trim() || !baseUrl.trim()}
           onClick={() => void discover()}
         >
           {busy ? 'Fetching…' : 'Fetch models'}
@@ -233,6 +248,7 @@ export function ApiKeyProviderForm({
           variant="accent"
           disabled={
             busy ||
+            endpointConflict ||
             !id.trim() ||
             !baseUrl.trim() ||
             selectedRef.current.size === 0

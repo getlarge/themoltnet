@@ -403,7 +403,20 @@ describe('LocalRuntimePage', () => {
     delete (agentServerState.status.agents[0] as { teamId?: string }).teamId;
   });
 
+  it('does not replace a legacy provider endpoint through a new preset', async () => {
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.click(screen.getByRole('button', { name: 'Ollama (local)' }));
+    expect(screen.getByRole('button', { name: 'Fetch models' })).toBeDisabled();
+    expect(
+      screen.getByText(/This provider ID already uses another endpoint/),
+    ).toBeInTheDocument();
+    expect(requests.some((request) => request.method === 'PUT')).toBe(false);
+  });
+
   it('discovers models from a preset and saves only the selected ones', async () => {
+    handlers['GET /v1/status'] = () =>
+      jsonResponse({ ...agentServerState.status, providers: {} });
     handlers['POST /v1/providers/ollama/discover-models'] = () =>
       jsonResponse({
         models: [
@@ -575,6 +588,8 @@ describe('LocalRuntimePage', () => {
   });
 
   it('renders large discovery results in bounded, filterable pages', async () => {
+    handlers['GET /v1/status'] = () =>
+      jsonResponse({ ...agentServerState.status, providers: {} });
     const models = Array.from({ length: 120 }, (_value, index) => ({
       id: `model-${String(index).padStart(3, '0')}`,
     }));
