@@ -406,10 +406,16 @@ describe('LocalRuntimePage', () => {
   it('does not replace a legacy provider endpoint through a new preset', async () => {
     renderPage();
     await screen.findAllByText('existing-bot');
-    fireEvent.click(screen.getByRole('button', { name: 'Ollama (local)' }));
-    expect(screen.getByRole('button', { name: 'Fetch models' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'ollama' },
+    });
     expect(
-      screen.getByText(/This provider ID already uses another endpoint/),
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/This provider already exists/),
     ).toBeInTheDocument();
     expect(requests.some((request) => request.method === 'PUT')).toBe(false);
   });
@@ -436,19 +442,25 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText('existing-bot');
 
     // Preset pre-fills the endpoint; no hand-typed base URL needed.
-    fireEvent.click(screen.getByRole('button', { name: 'Ollama (local)' }));
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'ollama' },
+    });
     expect((screen.getByLabelText('Base URL') as HTMLInputElement).value).toBe(
       'http://localhost:11434/v1',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
     const modelCheckbox = await screen.findByRole('checkbox', {
       // The image chip is inside the label, so it joins the accessible name;
       // that is deliberate, so a screen reader announces the capability.
       name: /^qwen3-coder:480b-cloud/u,
     });
     fireEvent.click(modelCheckbox);
-    fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
+    fireEvent.click(screen.getByRole('button', { name: /Save models for/ }));
 
     await waitFor(() => {
       const put = requests
@@ -483,20 +495,20 @@ describe('LocalRuntimePage', () => {
   it('pre-fills an existing provider for edits and can remove it', async () => {
     handlers['DELETE /v1/providers/ollama'] = () =>
       new Response(null, { status: 204 });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPage();
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
+    expect(screen.getByText('Configure Ollama (local)')).toBeInTheDocument();
+    expect(screen.getByText('Provider ID: ollama')).toBeInTheDocument();
     expect(
-      (screen.getByLabelText('Provider id') as HTMLInputElement).value,
-    ).toBe('ollama');
-    expect(
-      screen.getByRole('button', { name: 'Update provider' }),
+      screen.getByRole('button', { name: /Save models for/ }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove provider' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remove provider' }).at(-1)!,
+    );
     await waitFor(() =>
       expect(
         requests.some(
@@ -527,8 +539,8 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Update provider' }));
+    expect(screen.getByText('Configure Ollama (local)')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Save models for/ }));
 
     await waitFor(() => {
       const put = requests
@@ -566,10 +578,12 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh models' }));
     await screen.findByRole('checkbox', { name: /qwen3\.5:397b/u });
-    fireEvent.click(screen.getByRole('checkbox', { name: /qwen3\.5:397b/u }));
-    fireEvent.click(screen.getByRole('button', { name: 'Update provider' }));
+    expect(
+      screen.getByRole('checkbox', { name: /qwen3\.5:397b/u }),
+    ).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: /Save models for/ }));
 
     await waitFor(() => {
       const put = requests
@@ -605,13 +619,17 @@ describe('LocalRuntimePage', () => {
       });
     renderPage();
     await screen.findAllByText('existing-bot');
-    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
 
-    await screen.findByLabelText('Filter discovered models');
+    await screen.findByLabelText('Filter models');
     expect(screen.getAllByRole('checkbox')).toHaveLength(50);
-    fireEvent.click(screen.getByRole('button', { name: 'Show 50 more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show more models' }));
     expect(screen.getAllByRole('checkbox')).toHaveLength(100);
-    fireEvent.change(screen.getByLabelText('Filter discovered models'), {
+    fireEvent.change(screen.getByLabelText('Filter models'), {
       target: { value: 'model-119' },
     });
     expect(screen.getAllByRole('checkbox')).toHaveLength(1);

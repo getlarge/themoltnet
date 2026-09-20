@@ -12,8 +12,8 @@ import {
   type AgentServerAgentView,
   type AgentServerClient,
   AgentServerClientError,
-  type AgentServerProvider,
   type AgentServerProviderModel,
+  type AgentServerProviderView,
   type AgentServerStatus,
   type AgentServerSubscriptionLogin,
   type CreateAgentBody,
@@ -64,7 +64,10 @@ export interface LocalRuntimeController {
   retry(): Promise<void>;
   disconnect(): void;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
-  putProvider(id: string, body: PutProviderBody): Promise<AgentServerProvider>;
+  putProvider(
+    id: string,
+    body: PutProviderBody,
+  ): Promise<AgentServerProviderView>;
   deleteProvider(id: string): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;

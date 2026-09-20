@@ -16,10 +16,10 @@ import type {
   AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
-  EnrollAgentServerTeamData,
-  EnrollAgentServerTeamResponses,
   AgentServerSubscription,
   AgentServerSubscriptionLogin,
+  EnrollAgentServerTeamData,
+  EnrollAgentServerTeamResponses,
 } from '@moltnet/agent-daemon-api-client';
 
 import type { DesktopStatus, LifecycleState } from '../bridge.js';

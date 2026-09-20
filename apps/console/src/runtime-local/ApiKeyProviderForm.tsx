@@ -18,9 +18,9 @@ export function ApiKeyProviderForm({
       providers={runtime.data?.providers ?? {}}
       existingId={provider?.id}
       actions={{
-        putProvider: runtime.putProvider,
-        discoverModels: runtime.discoverModels,
-        deleteProvider: runtime.deleteProvider,
+        putProvider: (id, body) => runtime.putProvider(id, body),
+        discoverModels: (id) => runtime.discoverModels(id),
+        deleteProvider: (id) => runtime.deleteProvider(id),
       }}
       onChanged={() => undefined}
       onDone={() => onDone?.()}

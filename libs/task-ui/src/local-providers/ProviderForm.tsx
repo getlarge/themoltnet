@@ -1,5 +1,6 @@
 import {
   Button,
+  ConfirmDialog,
   InlineNotice,
   Input,
   Select,
@@ -54,6 +55,7 @@ export function ProviderForm({
   const [filter, setFilter] = useState('');
   const [limit, setLimit] = useState(50);
   const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discovered, setDiscovered] = useState(false);
   const providerId = id.trim();
@@ -118,6 +120,21 @@ export function ProviderForm({
         envName: saved.envName,
         models: models.filter((model) => selected.has(model.id)),
       });
+      onChanged();
+      onDone();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setRemoving(false);
+    setBusy(true);
+    setError(null);
+    try {
+      await actions.deleteProvider(providerId);
       onChanged();
       onDone();
     } catch (cause) {
@@ -247,7 +264,7 @@ export function ProviderForm({
               : 'Save connection and discover models'}
         </Button>
         <Button variant="ghost" disabled={busy} onClick={onDone}>
-          {saved ? 'Close setup' : 'Cancel'}
+          {saved ? 'Close setup' : 'Cancel setup'}
         </Button>
         {editingKey ? (
           <Button
@@ -262,6 +279,24 @@ export function ProviderForm({
           </Button>
         ) : null}
       </Stack>
+      {saved ? (
+        <Button
+          variant="ghost"
+          disabled={busy}
+          onClick={() => setRemoving(true)}
+        >
+          Remove provider
+        </Button>
+      ) : null}
+      <ConfirmDialog
+        open={removing}
+        title={`Remove ${providerLabel}?`}
+        message="This removes the connection and its stored API key. Runtime profiles using it will need another provider."
+        confirmLabel="Remove provider"
+        destructive
+        onCancel={() => setRemoving(false)}
+        onConfirm={() => void remove()}
+      />
       {saved && !saved.models.length ? (
         <Text variant="caption" color="secondary">
           Connection saved. Choose and save models below to finish setup for
