@@ -26,6 +26,7 @@ export type TextColor =
 
 export interface TextProps extends BaseComponentProps {
   id?: string;
+  tabIndex?: number;
   variant?: TextVariant;
   color?: TextColor;
   as?: ElementType;

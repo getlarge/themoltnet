@@ -62,8 +62,10 @@ function TeamProjects({
   const create = useMutation(createProjectMutation());
   const update = useMutation(updateProjectMutation());
   const archiveMutation = useMutation(updateProjectMutation());
-  const busy =
-    create.isPending || update.isPending || archiveMutation.isPending;
+  const busy = create.isPending || update.isPending;
+  const archivePending = useRef(new Set<string>());
+  const [archiving, setArchiving] = useState(new Set<string>());
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const submitting = useRef(false);
   const [nameError, setNameError] = useState<string>();
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +79,8 @@ function TeamProjects({
   function closeEditor() {
     restoreFocus.current = true;
     setEditing(null);
+    setError(null);
+    setNameError(undefined);
   }
   const requestOptions = {
     client: getApiClient(),
@@ -104,7 +108,7 @@ function TeamProjects({
           ? focusTarget.current
           : root.current?.querySelector<HTMLElement>('#projects-list-heading');
     target?.focus();
-  }, [busy, editing, error, nameError, query.data]);
+  }, [busy, editing, error, nameError, query.data, archiving]);
   const nextOffset = query.data?.nextOffset ?? null;
   function edit(project: GetProjectResponse | 'new', target: HTMLElement) {
     focusTarget.current = target;
@@ -179,52 +183,64 @@ function TeamProjects({
       restoreFocus.current = true;
     }
   }
-  async function toggleArchive(project: GetProjectResponse) {
-    if (submitting.current || !teamId || !canManage) return;
-    submitting.current = true;
-    setError(null);
+  async function toggleArchive(
+    project: GetProjectResponse,
+    target: HTMLElement,
+  ) {
+    if (archivePending.current.has(project.id) || !teamId || !canManage) return;
+    archivePending.current.add(project.id);
+    setArchiving(new Set(archivePending.current));
+    setRowErrors((current) => {
+      const next = { ...current };
+      delete next[project.id];
+      return next;
+    });
     try {
       await archiveMutation.mutateAsync({
         ...requestOptions,
         path: { projectId: project.id },
         body: { archived: !project.archived },
       });
-      restoreFocus.current = true;
       await cache.invalidateQueries({
         queryKey: listProjectsQueryKey(requestOptions),
       });
     } catch (cause) {
-      setError(
-        getApiErrorDetail(cause, 'Project could not be saved. Try again.'),
-      );
+      setRowErrors((current) => ({
+        ...current,
+        [project.id]: getApiErrorDetail(
+          cause,
+          'Project could not be saved. Try again.',
+        ),
+      }));
     } finally {
-      submitting.current = false;
-      restoreFocus.current = true;
+      archivePending.current.delete(project.id);
+      if (
+        document.activeElement === target ||
+        document.activeElement === document.body
+      ) {
+        focusTarget.current = target;
+        restoreFocus.current = true;
+      }
+      setArchiving(new Set(archivePending.current));
     }
   }
   return (
     <div ref={root}>
       <Stack gap={6}>
-        <Stack
-          direction="row"
-          justify="space-between"
-          align="center"
-          wrap
-          gap={4}
-        >
-          <PageHeader
-            title="Projects"
-            description="Shared projects for your team. Choose local folders in Desktop or the CLI."
-          />
-          {teamId && canManage && (
-            <Button
-              onClick={(event) => edit('new', event.currentTarget)}
-              disabled={busy || Boolean(editing)}
-            >
-              Create project
-            </Button>
-          )}
-        </Stack>
+        <PageHeader
+          title="Projects"
+          description="Shared projects for your team. Choose local folders in Desktop or the CLI."
+          actions={
+            teamId && canManage ? (
+              <Button
+                onClick={(event) => edit('new', event.currentTarget)}
+                disabled={busy || Boolean(editing)}
+              >
+                Create project
+              </Button>
+            ) : undefined
+          }
+        />
         {!teamId ? (
           <Text color="muted">Select a team to browse its projects.</Text>
         ) : (
@@ -279,7 +295,7 @@ function TeamProjects({
                     label="Default diary"
                     value={diaryId}
                     onChange={(event) => setDiaryId(event.target.value)}
-                    disabled={diaries.isLoading || Boolean(diaries.error)}
+                    disabled={diaries.isLoading}
                     hint="New tasks can use this diary as their starting selection."
                   >
                     <option value="">Choose per task</option>
@@ -334,9 +350,9 @@ function TeamProjects({
                 </Stack>
               </form>
             )}
-            <h2 id="projects-list-heading" tabIndex={-1}>
+            <Text variant="h3" as="h2" id="projects-list-heading" tabIndex={-1}>
               Project catalogue
-            </h2>
+            </Text>
             {query.error && (
               <InlineNotice
                 tone="error"
@@ -392,9 +408,17 @@ function TeamProjects({
                         flex: '1 1 16rem',
                       }}
                     >
-                      <Text variant="h3" as="h2">
+                      <Text variant="h3" as="h3">
                         {project.name}
                       </Text>
+                      {rowErrors[project.id] && (
+                        <InlineNotice
+                          tone="error"
+                          title="Project action failed"
+                        >
+                          {rowErrors[project.id]}
+                        </InlineNotice>
+                      )}
                       {project.description && (
                         <Text color="muted">{project.description}</Text>
                       )}
@@ -420,7 +444,8 @@ function TeamProjects({
                           onClick={(event) =>
                             edit(project, event.currentTarget)
                           }
-                          disabled={busy || Boolean(editing)}
+                          aria-disabled={archiving.has(project.id)}
+                          disabled={Boolean(editing)}
                         >
                           Edit
                         </Button>
@@ -429,9 +454,10 @@ function TeamProjects({
                           aria-label={`${project.archived ? 'Restore' : 'Archive'} ${project.name}`}
                           onClick={(event) => {
                             focusTarget.current = event.currentTarget;
-                            void toggleArchive(project);
+                            void toggleArchive(project, event.currentTarget);
                           }}
-                          disabled={busy || Boolean(editing)}
+                          aria-disabled={archiving.has(project.id)}
+                          disabled={Boolean(editing)}
                         >
                           {project.archived ? 'Restore' : 'Archive'}
                         </Button>

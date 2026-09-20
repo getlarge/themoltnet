@@ -1,9 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 import { ProjectsPage } from '../src/pages/ProjectsPage.js';
+import { createTestWrapper } from './test-query-client.js';
 
 const api = vi.hoisted(() => ({
   listProjects: vi.fn(),
@@ -66,16 +65,7 @@ beforeEach(() => {
   api.updateProject.mockReset().mockResolvedValue({ data: { id: 'project' } });
 });
 function show() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  render(
-    <QueryClientProvider client={client}>
-      <MoltThemeProvider mode="dark">
-        <ProjectsPage />
-      </MoltThemeProvider>
-    </QueryClientProvider>,
-  );
+  render(<ProjectsPage />, { wrapper: createTestWrapper() });
 }
 it('creates a project with the selected team and diary', async () => {
   show();
@@ -296,14 +286,14 @@ it('archives and restores as a manager', async () => {
     expect.objectContaining({ body: { archived: false } }),
   );
 });
-it('disables diary selection when its catalogue fails', async () => {
+it('allows explicit diary clearing when its catalogue fails', async () => {
   api.listDiaries.mockRejectedValue(new Error('Diary catalogue offline'));
   show();
   fireEvent.click(screen.getByRole('button', { name: 'Create project' }));
   await screen.findByRole('button', { name: 'Retry diaries' });
   expect(
     (screen.getByLabelText('Default diary') as HTMLSelectElement).disabled,
-  ).toBe(true);
+  ).toBe(false);
 });
 it('keeps cached projects visible when a refetch fails', async () => {
   api.listProjects
@@ -396,4 +386,64 @@ it('focuses the catalogue after archiving removes its row', async () => {
       screen.getByRole('heading', { name: 'Project catalogue' }),
     ),
   );
+});
+
+it('clears editor errors on cancel after a forbidden update', async () => {
+  api.listProjects.mockResolvedValue({
+    data: {
+      items: [
+        {
+          id: 'project',
+          name: 'Research',
+          archived: false,
+          description: null,
+          defaultDiaryId: null,
+        },
+      ],
+    },
+  });
+  api.updateProject.mockResolvedValue({
+    error: { status: 403, detail: 'Team management required.' },
+  });
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit Research' }));
+  fireEvent.change(screen.getByLabelText('Project name'), {
+    target: { value: 'Updated' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save project' }));
+  await screen.findByText('Team management required.');
+  expect(
+    (screen.getByLabelText('Project name') as HTMLInputElement).value,
+  ).toBe('Updated');
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByText('Team management required.')).toBeNull();
+});
+it('keeps other rows actionable during an archive request', async () => {
+  api.listProjects.mockResolvedValue({
+    data: {
+      items: [
+        { id: 'one', name: 'One', archived: false },
+        { id: 'two', name: 'Two', archived: false },
+      ],
+    },
+  });
+  let finish!: (value: unknown) => void;
+  api.updateProject.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  show();
+  fireEvent.click(await screen.findByRole('button', { name: 'Archive One' }));
+  await waitFor(() => expect(api.updateProject).toHaveBeenCalledTimes(1));
+  expect(
+    (screen.getByRole('button', { name: 'Edit Two' }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  expect(
+    (screen.getByRole('button', { name: 'Archive Two' }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
+  finish({ data: { id: 'one' } });
 });
