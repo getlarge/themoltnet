@@ -85,7 +85,7 @@ func newProjectsCmd() *cobra.Command {
 				if cmd.Flags().Changed("description") {
 					body.Description = moltnetapi.NewOptNilString(description)
 				}
-				res, e := client.CreateProject(cmd.Context(), body, moltnetapi.CreateProjectParams{ID: team})
+				res, e := client.CreateProject(cmd.Context(), body, moltnetapi.CreateProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team)})
 				err = e
 				if err == nil {
 					if value, ok := res.(*moltnetapi.CreateProjectCreated); ok {
@@ -95,7 +95,7 @@ func newProjectsCmd() *cobra.Command {
 					}
 				}
 			case "list":
-				res, e := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{ID: team, IncludeArchived: moltnetapi.NewOptBool(includeArchived), Limit: moltnetapi.NewOptInt(limit), Offset: moltnetapi.NewOptInt(offset)})
+				res, e := client.ListProjects(cmd.Context(), moltnetapi.ListProjectsParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), IncludeArchived: moltnetapi.NewOptBool(includeArchived), Limit: moltnetapi.NewOptInt(limit), Offset: moltnetapi.NewOptInt(offset)})
 				err = e
 				if err == nil {
 					if value, ok := res.(*moltnetapi.ListProjectsOK); ok {
@@ -105,7 +105,7 @@ func newProjectsCmd() *cobra.Command {
 					}
 				}
 			case "get":
-				res, e := client.GetProject(cmd.Context(), moltnetapi.GetProjectParams{ID: team, ProjectId: project})
+				res, e := client.GetProject(cmd.Context(), moltnetapi.GetProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), ProjectId: project})
 				err = e
 				if err == nil {
 					if value, ok := res.(*moltnetapi.GetProjectOK); ok {
@@ -125,7 +125,7 @@ func newProjectsCmd() *cobra.Command {
 				if cmd.Flags().Changed("description") {
 					body.Description = moltnetapi.NewOptNilString(description)
 				}
-				res, e := client.UpdateProject(cmd.Context(), moltnetapi.NewOptUpdateProjectReq(*body), moltnetapi.UpdateProjectParams{ID: team, ProjectId: project})
+				res, e := client.UpdateProject(cmd.Context(), moltnetapi.NewOptUpdateProjectReq(*body), moltnetapi.UpdateProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(team), ProjectId: project})
 				err = e
 				if err == nil {
 					if value, ok := res.(*moltnetapi.UpdateProjectOK); ok {

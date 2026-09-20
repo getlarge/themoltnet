@@ -162,9 +162,11 @@ func TestProjectsListPaginationRequest(t *testing.T) {
 	isolateCredentialDiscovery(t)
 	t.Setenv(agentKeyEnv, "ak_test_pagination")
 	t.Setenv(agentKeyRefEnv, "")
-	var received string
+	var received, requestPath, selectedTeam string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		received = r.URL.RawQuery
+		requestPath = r.URL.Path
+		selectedTeam = r.Header.Get("x-moltnet-team-id")
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"items":[],"nextOffset":75}`))
 	}))
@@ -172,6 +174,9 @@ func TestProjectsListPaginationRequest(t *testing.T) {
 	out, _, err := executeCommand(NewRootCmd("test", ""), "projects", "list", "--team-id", "00000000-0000-0000-0000-000000000001", "--api-url", server.URL, "--limit", "25", "--offset", "50")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if requestPath != "/projects" || selectedTeam != "00000000-0000-0000-0000-000000000001" {
+		t.Fatalf("wrong project routing: %s, team %s", requestPath, selectedTeam)
 	}
 	if !strings.Contains(received, "limit=25") || !strings.Contains(received, "offset=50") {
 		t.Fatalf("query = %q", received)
