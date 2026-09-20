@@ -77,6 +77,10 @@ Before the Linux release, record results for both formats:
 - Quit from the tray and confirm the supervised server and workers follow the
   selected shutdown behavior.
 
-macOS UI automation is also a follow-up: component and Rust tests cover the
-contracts, while a signed-app suite should exercise install, native connection,
-updates, shutdown, and the other-process ownership boundary.
+## Acceptance tests
+
+The [Desktop automation harness](e2e/README.md) covers Chrome renderer journeys
+and native macOS flows against an isolated fixture daemon. Component and Rust
+tests cover the fast contracts. Signed installation, tray
+behavior, and the personal journey against Docker E2E services require their
+separate acceptance checks.

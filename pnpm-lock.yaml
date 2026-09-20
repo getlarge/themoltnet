@@ -12,6 +12,9 @@ catalogs:
     '@aws-sdk/client-s3':
       specifier: ^3.935.0
       version: 3.1075.0
+    '@axe-core/webdriverio':
+      specifier: ^4.13.0
+      version: 4.13.0
     '@commitlint/cli':
       specifier: ^20.1.0
       version: 20.5.3
@@ -886,6 +889,9 @@ importers:
         specifier: workspace:*
         version: link:../agent-desktop
     devDependencies:
+      '@axe-core/webdriverio':
+        specifier: 'catalog:'
+        version: 4.13.0(webdriverio@9.31.9)
       '@wdio/cli':
         specifier: 'catalog:'
         version: 9.31.9(@types/node@25.1.0)(expect-webdriverio@6.0.10)
@@ -3935,6 +3941,11 @@ packages:
   '@aws/lambda-invoke-store@0.2.4':
     resolution: {integrity: sha512-iY8yvjE0y651BixKNPgmv1WrQc+GZ142sb0z4gYnChDDY2YqI4P/jsSopBWrKfAt7LOJAkOXt7rC/hms+WclQQ==}
     engines: {node: '>=18.0.0'}
+
+  '@axe-core/webdriverio@4.13.0':
+    resolution: {integrity: sha512-u46dRGXYqB2CGENvtGo5TjpCI3DTor1dkJXohfEUpfjzODdtUViMnbkQS/KwXE6DneJaEVJ/rG7FNLR1c1MR+w==}
+    peerDependencies:
+      webdriverio: ^5 || ^6 || ^7 || ^8 || ^9
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -9189,6 +9200,10 @@ packages:
     resolution: {integrity: sha512-FTavr/7Ba0IptwGOPxnQvdyW2tAsdLBMTBXz7rKH6xJ2skpyxpBxyHkDdBs4lf69yRqYpkqCdfhnwS8YULGOmg==}
     engines: {node: '>=4'}
 
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
+    engines: {node: '>=4'}
+
   axios@1.15.0:
     resolution: {integrity: sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==}
 
@@ -9824,6 +9839,11 @@ packages:
 
   css.escape@1.5.1:
     resolution: {integrity: sha512-YUifsXXuknHlUsmlgyY0PKzgPOr7/FjCePfHNt0jxm83wHZi44VDMQ7/fGNkjY3/jV1MC+1CmZbaHzugyeRtpg==}
+
+  cssesc@3.0.0:
+    resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
+    engines: {node: '>=4'}
+    hasBin: true
 
   cssfilter@0.0.10:
     resolution: {integrity: sha512-FAaLDaplstoRsDR8XGYH51znUN0UY7nMc6Z9/fvE8EXGwvJE9hu7W2vHwx1+bd6gCYnln9nLbzxFTrcO9YQDZw==}
@@ -15451,6 +15471,12 @@ snapshots:
       tslib: 2.8.1
 
   '@aws/lambda-invoke-store@0.2.4': {}
+
+  '@axe-core/webdriverio@4.13.0(webdriverio@9.31.9)':
+    dependencies:
+      axe-core: 4.13.0
+      cssesc: 3.0.0
+      webdriverio: 9.31.9
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -21369,6 +21395,8 @@ snapshots:
 
   axe-core@4.12.0: {}
 
+  axe-core@4.13.0: {}
+
   axios@1.15.0:
     dependencies:
       follow-redirects: 1.16.0(debug@4.3.4)
@@ -22023,6 +22051,8 @@ snapshots:
   css-what@6.2.2: {}
 
   css.escape@1.5.1: {}
+
+  cssesc@3.0.0: {}
 
   cssfilter@0.0.10: {}
 

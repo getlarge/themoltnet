@@ -18,7 +18,7 @@ tauri-build = { version = "2", features = [] }
 
 [features]
 default = []
-desktop-e2e = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver"]
+desktop-e2e = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-foundation"]
 
 [dependencies]
 tauri-plugin-wdio = { version = "1", optional = true }
@@ -35,3 +35,8 @@ tauri-plugin-updater = "2"
 tempfile = "3"
 # Blocking HTTP semantics over the authenticated Unix-socket connector.
 ureq = { version = "3", default-features = false, features = ["json"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6", optional = true }
+objc2-app-kit = { version = "0.3", optional = true, default-features = false, features = ["std", "NSApplication", "NSEvent", "NSGraphicsContext", "NSWindow"] }
+objc2-foundation = { version = "0.3", optional = true, default-features = false, features = ["std", "NSGeometry", "NSString"] }

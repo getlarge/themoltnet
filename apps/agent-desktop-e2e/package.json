@@ -16,7 +16,8 @@
     "webdriverio": "catalog:",
     "tsx": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "@axe-core/webdriverio": "catalog:"
   },
   "nx": {
     "projectType": "application",

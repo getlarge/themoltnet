@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import AxeBuilder from '@axe-core/webdriverio';
 import { $, browser, expect } from '@wdio/globals';
 
 import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
@@ -127,4 +128,73 @@ describe('Native Desktop and real fixture daemon', () => {
     expect(providers).toEqual(expect.objectContaining({ ollama: saved }));
     await lifecycle('stop_agent_server');
   });
+});
+
+// Rendered acceptance uses the actual WebKit window and native bridge, including
+// the stopped-daemon recovery state. Trust dialogs remain a separate OS check.
+describe('Native window accessibility', () => {
+  for (const [width, height] of [
+    [820, 720],
+    [640, 560],
+  ]) {
+    it(`supports keyboard recovery and scrolling at ${width}×${height}`, async () => {
+      await browser.setWindowSize(width, height);
+      await $('a=Saved worker').click();
+      await expect($('button=Retry catalogue')).toBeDisplayed();
+      // The native app has one webview; axe must not open a browser tab.
+      const audit = await new AxeBuilder({ client: browser })
+        .setLegacyMode()
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+        .analyze();
+      expect(
+        audit.violations.map(({ id, nodes }) => ({
+          id,
+          targets: nodes.map((node) => node.target),
+        })),
+      ).toEqual([]);
+      const name = $(
+        '//label[normalize-space()="Preset name"]/following-sibling::input',
+      );
+      await browser.execute(
+        (element) => {
+          (element as unknown as HTMLElement).scrollIntoView({
+            block: 'center',
+            behavior: 'instant',
+          });
+        },
+        await name,
+      );
+      await name.click();
+      await browser.tauri.execute(({ core }) => core.invoke('desktop_e2e_tab'));
+      await expect($('button=Delete preset')).toBeFocused();
+      await browser.waitUntil(
+        async () =>
+          browser.execute(() => {
+            // Background WebKit pauses animation time. Capture the actual
+            // focus state's final style without depending on foreground policy.
+            document.getAnimations().forEach((animation) => animation.finish());
+            const focused = document.activeElement;
+            return Boolean(
+              focused &&
+              getComputedStyle(focused).boxShadow.includes('rgb(0, 212, 200)'),
+            );
+          }),
+        {
+          timeout: 2000,
+          timeoutMsg: 'Keyboard focus must have a visible ring',
+        },
+      );
+      await expect($('button=Start run')).toBeDisabled();
+      expect(
+        await browser.execute(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await browser.saveScreenshot(`/private/tmp/desktop-native-${width}.png`);
+      await $('a=Providers').click();
+      await $('button=Return to run draft').click();
+      await expect($('button=Delete preset')).toBeFocused();
+      await $('button=Cancel').click();
+    });
+  }
 });

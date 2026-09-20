@@ -3,6 +3,8 @@ mod automation;
 #[path = "../build_support.rs"]
 mod build_support;
 mod control;
+#[cfg(all(feature = "desktop-e2e", target_os = "macos"))]
+mod e2e_keyboard;
 mod lifecycle;
 mod linux_setup;
 mod native_socket;
@@ -849,6 +851,8 @@ pub fn run() {
     let app = builder
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
+            #[cfg(all(feature = "desktop-e2e", target_os = "macos"))]
+            e2e_keyboard::desktop_e2e_tab,
             desktop_status,
             desktop_linux_setup,
             desktop_repair_linux_setup,

@@ -12,3 +12,7 @@ the host's Desktop build dependencies and a graphical session. The test build
 refuses to start without the runner's isolated roots and has no updater plugin.
 
 Linux native journeys use an isolated D-Bus session and X11 display. Platform data and runtime directories belong to the temporary fixture. On macOS, changing HOME does not isolate Keychain: native fixtures must use file-backed credentials and must not write operator Keychain items.
+Native layout checks exercise the default and minimum window sizes. Axe uses
+single-window mode; the macOS test build supplies an AppKit Tab command for
+WebKit focus navigation. Foreground animation, tray behavior, and signed
+installation remain separate native acceptance checks.
