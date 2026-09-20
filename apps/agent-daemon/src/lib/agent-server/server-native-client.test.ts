@@ -19,6 +19,7 @@ import {
 } from './operator-oauth.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
+  activateManaged,
   authorize,
   cleanupAll,
   CONSOLE_ORIGIN,
@@ -29,6 +30,84 @@ import {
 afterEach(cleanupAll);
 
 describe('native desktop client', () => {
+  it('restricts connection settings to native administration and requires restart after saving', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('settings-token');
+    const { app } = await fixture({ nativeGrant });
+    const token = await authorize(app);
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/native/connection-settings',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {},
+    });
+    expect(denied.statusCode).toBe(403);
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'settings-token',
+    };
+    const saved = await app.inject({
+      method: 'POST',
+      url: '/v1/native/connection-settings',
+      headers,
+      payload: { nativeClientId: 'another-native' },
+    });
+    expect(saved.statusCode).toBe(200);
+    const blocked = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers,
+    });
+    expect(blocked.statusCode).toBe(409);
+  });
+
+  it('keeps active work running when a connection change is requested', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('settings-token');
+    const { app, store } = await fixture({ nativeGrant });
+    activateManaged(store);
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'settings-token',
+    };
+    const started = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(started.statusCode).toBe(201);
+    const refused = await app.inject({
+      method: 'POST',
+      url: '/v1/native/connection-settings',
+      headers,
+      payload: {},
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json<{ message: string }>().message).toContain(
+      'Stop running or starting work',
+    );
+    const status = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers,
+    });
+    expect(status.statusCode).toBe(200);
+    expect(status.json<unknown>()).toMatchObject({ runs: [{ active: true }] });
+  });
+
   it('authorizes the native origin with the supervisor token', async () => {
     // Arrange
     const nativeGrant = new NativeGrantService();

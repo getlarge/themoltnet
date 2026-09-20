@@ -93,8 +93,8 @@ describe('MoltNet Agent desktop renderer', () => {
       screen.getByLabelText('Signature status: Local HTTPS trusted'),
     ).toBeVisible();
     expect(
-      screen.getByRole('list', { name: 'Agent setup progress' }),
-    ).toBeVisible();
+      screen.queryByRole('list', { name: 'Agent setup progress' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open Console' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Stop Agent Server' }));
     await waitFor(() => expect(desktopBridge.stop).toHaveBeenCalledOnce());
@@ -124,6 +124,7 @@ describe('MoltNet Agent desktop renderer', () => {
     );
     renderApp();
 
+    fireEvent.click(screen.getByText('Maintenance'));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Remove agent bundle' }),
     );
@@ -166,7 +167,7 @@ describe('MoltNet Agent desktop renderer', () => {
       }),
     ).toBeEnabled();
     expect(
-      screen.getByText('Current lifecycle branch: Update available.'),
+      screen.getByRole('heading', { name: 'Update available' }),
     ).toBeVisible();
   });
 

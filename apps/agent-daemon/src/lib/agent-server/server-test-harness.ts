@@ -15,6 +15,7 @@ import { type connect, FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 
 import { ProviderConfigurationService } from '../provider-configuration.js';
+import { ConnectionSettingsStore } from './connection-settings.js';
 import { type ActivatedAgent } from './identity.js';
 import { NativeGrantService } from './native-grant-service.js';
 import {
@@ -258,6 +259,7 @@ export async function fixture(
   const app = buildAgentServer({
     operatorOAuth: {
       cancel: () => undefined,
+      removeOperator: () => undefined,
       verifyBrowser: async (token: string) => {
         if (token !== browserToken)
           throw new InvalidOperatorGrantError('Invalid browser token');
@@ -267,6 +269,7 @@ export async function fixture(
     secrets,
     secretProviders,
     externalSecretProviders,
+    connectionSettings: new ConnectionSettingsStore(store.root),
     nativeGrant: options.nativeGrant ?? new NativeGrantService(),
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }

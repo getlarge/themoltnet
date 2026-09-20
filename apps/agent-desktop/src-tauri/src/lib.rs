@@ -189,6 +189,41 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 }
 
 #[tauri::command]
+async fn desktop_connection_settings(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::get(token, "/v1/native/connection-settings")
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned unreadable connection settings".to_string())
+}
+
+#[tauri::command]
+async fn desktop_apply_connection_settings(
+    app: AppHandle,
+    overrides: serde_json::Value,
+) -> Result<DesktopStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        operate(&app, |lifecycle| {
+            let token = lifecycle
+                .control_token()
+                .ok_or("Start the Agent Server before changing its connection settings")?;
+            control::post(
+                token,
+                "/v1/native/connection-settings",
+                &overrides.to_string(),
+            )?;
+            lifecycle.stop_server()?;
+            lifecycle.start_server()
+        })
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
     let body =
         with_control_token(&state, move |token| control::get(token, "/oauth/metadata")).await?;
@@ -668,6 +703,8 @@ pub fn run() {
             desktop_enroll_team,
             desktop_operator_sign_in,
             desktop_operator_configured,
+            desktop_connection_settings,
+            desktop_apply_connection_settings,
             desktop_cancel_operator_approval,
             desktop_start_run,
             desktop_stop_run,

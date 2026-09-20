@@ -19,12 +19,18 @@ A provisioning grant binds the human, agent, team, operation, credential scopes
 and idempotency key. It lasts five minutes, has no refresh token or remembered
 consent, and can call only `POST /oauth2/provision`. Enrollment checks
 membership and credential management, inserts a member only when absent, and
-preserves existing roles. Renewal checks credential management and existing
-membership. Both use the existing Talos key service with human authority,
-independently of the predecessor credential. Captured secrets and request
-recovery metadata use protected storage, writer locking, conflict checks and
-read-back verification. A lost exchange requires fresh approval; an idempotency
-key does not replay an already consumed one-time secret.
+preserves existing roles. The native controller additionally proves possession
+of that agent identity by signing a domain-separated enrollment message
+containing the access-token hash, agent, team, operation, sorted scopes and
+idempotency key. Consent derives its delegation ceiling from the approving human
+session. Renewal checks credential management and existing membership. Both use
+the existing Talos key service with human authority, independently of the
+predecessor credential. Captured secrets and request recovery metadata use
+protected storage, writer locking, conflict checks and read-back verification. A
+lost exchange requires fresh approval; an idempotency key does not replay an
+already consumed one-time secret. Approved membership is durable when issuance
+is interrupted; recovery preserves the issuance key and does not remove or
+downgrade a concurrently assigned role.
 
 Native sign-in stores only operator issuer and subject. Native administration is
 required to remove or change that operator. Console uses its own PKCE client and
@@ -64,6 +70,7 @@ Hydra URLS_SELF_ISSUER=http://hydra:4444
 Hydra URLS_SELF_PUBLIC=http://localhost:4444
 REST MOLTNET_NATIVE_OAUTH_CLIENT_ID=moltnet-native-e2e
 REST MOLTNET_CONSOLE_OAUTH_CLIENT_ID=moltnet-console-e2e
+Console MOLTNET_CONSOLE_OAUTH_CLIENT_ID=moltnet-console-e2e
 Console MOLTNET_OPERATOR_OAUTH_ISSUER=http://hydra:4444
 Console MOLTNET_OPERATOR_OAUTH_PUBLIC_URL=http://localhost:4444
 ```
@@ -86,18 +93,33 @@ CLI/WSL retains existing authenticated provisioning compatibility.
 
 ## Deletion and compatibility
 
-The enrollment-proof helper first appeared in `8ae522e79`; no SDK release tag
-contains that commit. Its SDK helper, REST proof validator, message builder,
-join-schema branch and desktop invitation UI are removed. Authenticated SDK/CLI
-invitation joins, diary signing and new-identity key-possession validation
-remain.
+The superseded invitation enrollment-proof helper first appeared in `8ae522e79`;
+no SDK release tag contains that commit. Its SDK helper, REST proof validator,
+message builder, join-schema branch and desktop invitation UI are removed.
+Authenticated SDK/CLI invitation joins, diary signing and new-identity
+key-possession validation remain.
 
 The pairing API first appeared in `8af24743a` and was published in
 `agent-daemon-v0.50.0`. The maintainer explicitly chose removal without legacy
 compatibility: the routes and generated client operations are removed, along
 with confirmation pages/codes, claim polling, stored-token migration and the
-pairing-specific state rejection branch. Native process grants remain separate
-from Console OAuth authorization.
+pairing-specific state rejection branch. Local OAuth metadata identifies
+protocol version 2; Console rejects incompatible peers before approval. Native
+process grants remain separate from Console OAuth authorization.
+
+## Release configuration
+
+Server settings provide production defaults for the API and OAuth endpoints and
+for the administratively registered `moltnet-native` and `moltnet-console`
+clients. Local advanced settings can override them; launch environment overrides
+take precedence. REST and Console declare matching public values in their
+`fly.toml` files. Ory client registration and approval routing are tracked in
+[operations issue 8](https://github.com/getlarge/moltnet-operations/issues/8).
+The repository changes do not provision clients or deploy production settings.
+
+Native Rust and TypeScript consume the same timeout and port parameters from
+`libs/models/src/operator-oauth-parameters.json`. Rust constants are generated
+at build time. Ordinary M2M token caching and request coalescing remain enabled.
 
 ## Verification and measurements
 
@@ -153,15 +175,28 @@ generated-contract commits below. Dependencies add the existing catalogued
 `jose` runtime dependency to Agent Server and the private workspace native API
 client to Console E2E. No dependency versions were upgraded.
 
-Measured with `git diff --numstat 0547a375b` through commit `70057cd3e`,
-excluding this report. Categories are mutually exclusive: generated paths first;
-package/configuration files next; test files and E2E fixtures next; remaining
-handwritten runtime code last. Counts include the retained token-request
-partitioning fix.
+The remaining desktop stack (#2334 → #2335 → #2371 → #2375 → #2378), measured
+from merged base `1efbb1942` through `260d493c0`, excludes this report and the
+separate TLS change in #2379. Categories are mutually exclusive: generated paths
+(`generated/`, `.gen.ts`, `_gen.go`, OpenAPI and tracked bundles) first;
+documentation next; package/build/configuration files next; tests and E2E
+fixtures next; remaining handwritten source last. This is a whole-stack count,
+not just the PKCE replacement delta.
 
 | Category                       |  Added | Removed |    Net |
 | ------------------------------ | -----: | ------: | -----: |
-| Production source              |  1,837 |   1,156 |   +681 |
-| Tests and fixtures             |  1,380 |   1,573 |   -193 |
-| Configuration and dependencies |     17 |       3 |    +14 |
-| Generated contracts and bundle | 10,946 |   4,724 | +6,222 |
+| Production source              |  8,266 |   1,680 | +6,586 |
+| Tests and fixtures             |  3,590 |   1,722 | +1,868 |
+| Configuration and dependencies |    218 |       9 |   +209 |
+| Generated contracts and bundle | 11,273 |   4,777 | +6,496 |
+| Other documentation            |     28 |       4 |    +24 |
+
+No dependency versions were upgraded. The Rust build also uses the existing
+`serde_json` dependency, and `serde` enables `rc` to share immutable log
+snapshots. Provider configuration is shared through `@moltnet/task-ui`; private
+workspace inputs remain development dependencies. Generated artifacts are
+committed separately from handwritten implementation changes.
+
+The earlier demo and browser-run evidence above predates the enrollment proof
+and follow-up review changes. Current-head verification remains in the linked PR
+checks; earlier passing runs do not establish that the current stack passes.

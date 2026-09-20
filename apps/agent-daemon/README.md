@@ -631,3 +631,27 @@ strategy information, without host paths.
 
 See [agent configuration](../../docs/reference/agent-configuration.md) for the
 shared project and binding contract.
+
+### Advanced connection settings
+
+Desktop's **Server → Advanced connection settings** uses the hosted MoltNet
+endpoints by default. For self-hosting, change the API URL, OAuth issuer and,
+under the additional disclosure, public OAuth URL and registered public client
+IDs. Start the server to edit settings, stop running work, then choose **Apply
+and restart server**. Sign in again after applying. Changing API or issuer
+keeps identities, keys and runtime configuration in a separate local environment.
+Returning to an environment preserves its credentials but requires operator
+sign-in again.
+
+Only local overrides are saved in `connection-settings.json` under the Agent
+Server configuration root. **Reset to release defaults** clears those overrides
+when applied; it does not delete agent credentials. Launch environment values
+have priority and appear read-only. Operators who explicitly set both
+`MOLTNET_OPERATOR_API_URL` and `MOLTNET_OPERATOR_OAUTH_ISSUER` should also use
+`MOLTNET_AGENT_SERVER_ROOT` to select a dedicated environment root.
+
+Release defaults use `https://api.themolt.net`, `https://auth.themolt.net`, and
+public client IDs `moltnet-native` / `moltnet-console`. Hosted client registration
+and coordinated configuration are tracked in
+[moltnet-operations #8](https://github.com/getlarge/moltnet-operations/issues/8).
+These IDs are public configuration; they do not contain a client secret.

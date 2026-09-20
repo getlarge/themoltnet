@@ -647,6 +647,22 @@ export class RunManager {
     ];
   }
 
+  /** Freeze new starts only after local configuration has been persisted. */
+  prepareServerRestart<T>(persist: () => T): T {
+    if (this.closing || this.starting > 0 || this.active.size > 0)
+      throw new AgentServerRunError(
+        'invalid_spec',
+        'Stop running or starting work before changing connection settings',
+      );
+    this.closing = true;
+    try {
+      return persist();
+    } catch (error) {
+      this.closing = false;
+      throw error;
+    }
+  }
+
   list(limit = Number.POSITIVE_INFINITY): RunRecord[] {
     if (!Number.isFinite(limit)) return this.store.listRuns();
 

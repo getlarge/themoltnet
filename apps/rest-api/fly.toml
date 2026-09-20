@@ -15,6 +15,9 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   NODE_ENV = "production"
   ORY_PROJECT_URL = "https://auth.themolt.net"
   ORY_TALOS_ADMIN_URL = "https://auth.themolt.net"
+  # Administratively registered public PKCE clients; must match Desktop defaults.
+  MOLTNET_NATIVE_OAUTH_CLIENT_ID = "moltnet-native"
+  MOLTNET_CONSOLE_OAUTH_CLIENT_ID = "moltnet-console"
   # REDIS_URL is a Fly secret (it carries credentials), so it is not set here.
   # It backs both the rate limiter and the OAuth2 grant cache, and is REQUIRED
   # in production — loadConfig refuses to start without it. This app runs more
