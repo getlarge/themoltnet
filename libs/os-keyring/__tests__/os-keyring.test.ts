@@ -8,6 +8,28 @@ import {
 } from '../src/index.js';
 
 describe('OSKeyringSecretProvider', () => {
+  it('keeps writes, reads, and deletion within the selected service', async () => {
+    const secrets = new Map<string, string>();
+    const load = async () => ({
+      getPassword: async (service: string, key: string) =>
+        secrets.get(`${service}:${key}`) ?? null,
+      setPassword: async (service: string, key: string, value: string) => {
+        secrets.set(`${service}:${key}`, value);
+      },
+      deletePassword: async (service: string, key: string) =>
+        secrets.delete(`${service}:${key}`),
+    });
+    const a = new OSKeyringSecretProvider('linux', load, 'themolt.net/store/a');
+    const b = new OSKeyringSecretProvider('linux', load, 'themolt.net/store/b');
+    const defaults = new OSKeyringSecretProvider('linux', load);
+    await a.write('same-alias', 'a');
+    await b.write('same-alias', 'b');
+    await defaults.write('same-alias', 'default');
+    await a.delete('same-alias');
+    expect(await a.read('same-alias')).toBeNull();
+    expect(await b.read('same-alias')).toBe('b');
+    expect(await defaults.read('same-alias')).toBe('default');
+  });
   it('loads keytar once and reads the requested service and account', async () => {
     const keytar = {
       getPassword: vi.fn().mockResolvedValue('secret'),

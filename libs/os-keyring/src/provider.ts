@@ -53,13 +53,12 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
   constructor(
     private readonly platform: NodeJS.Platform = process.platform,
     private readonly loadKeytar: KeytarLoader = loadNativeKeytar,
+    private readonly service: string = MOLTNET_SECRET_SERVICE,
   ) {}
 
   async read(key: string): Promise<string | null> {
     this.assertSupported();
-    const value = await (
-      await this.keytar()
-    ).getPassword(MOLTNET_SECRET_SERVICE, key);
+    const value = await (await this.keytar()).getPassword(this.service, key);
     if (value === null || this.platform !== 'darwin') return value;
     return decodeGoKeyringPassword(value);
   }
@@ -74,14 +73,12 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
     this.assertSupported();
     const stored =
       this.platform === 'darwin' ? encodeGoKeyringPassword(value) : value;
-    await (
-      await this.keytar()
-    ).setPassword(MOLTNET_SECRET_SERVICE, key, stored);
+    await (await this.keytar()).setPassword(this.service, key, stored);
   }
 
   async delete(key: string): Promise<void> {
     this.assertSupported();
-    await (await this.keytar()).deletePassword(MOLTNET_SECRET_SERVICE, key);
+    await (await this.keytar()).deletePassword(this.service, key);
   }
 
   async probe(key: string): Promise<KeyringProbeResult> {

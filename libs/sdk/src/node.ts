@@ -1,3 +1,8 @@
+import {
+  type StoreRootOptions,
+  storeSecretService,
+} from '@moltnet/agent-config';
+
 import type { Agent } from './agent.js';
 import { readEnvironmentVariable } from './config.js';
 import {
@@ -45,6 +50,8 @@ type LoadedKeyringProvider = Required<
 type OSKeyringModule = {
   OSKeyringSecretProvider: new (
     platform?: NodeJS.Platform,
+    loader?: undefined,
+    service?: string,
   ) => LoadedKeyringProvider;
 };
 
@@ -57,8 +64,14 @@ export class OSKeyringSecretProvider implements SecretProvider {
   readonly name = OS_KEYRING_SECRET_PROVIDER;
   readonly capabilities = READ_WRITE_CAPABILITIES;
   private providerPromise: Promise<LoadedKeyringProvider> | undefined;
+  private readonly service: string;
 
-  constructor(private readonly platform: NodeJS.Platform = process.platform) {}
+  constructor(
+    private readonly platform: NodeJS.Platform = process.platform,
+    storeOptions?: StoreRootOptions,
+  ) {
+    this.service = storeSecretService(storeOptions);
+  }
 
   async read(key: string): Promise<string | null> {
     return (await this.provider()).read(key);
@@ -87,7 +100,7 @@ export class OSKeyringSecretProvider implements SecretProvider {
     this.providerPromise ??= import('@themoltnet/os-keyring')
       .then(
         ({ OSKeyringSecretProvider: Provider }: OSKeyringModule) =>
-          new Provider(this.platform),
+          new Provider(this.platform, undefined, this.service),
       )
       .catch((error: unknown) => {
         throw new Error(
@@ -114,9 +127,10 @@ export function windowsKeyringTarget(
 export function createNodeSecretProviderRegistry(
   platform: NodeJS.Platform = process.platform,
   readEnv: EnvironmentLookup = readEnvironmentVariable,
+  storeOptions?: StoreRootOptions,
 ): SecretProviderRegistry {
   return createDefaultSecretProviderRegistry()
-    .register(new OSKeyringSecretProvider(platform))
+    .register(new OSKeyringSecretProvider(platform, storeOptions))
     .register(
       new FileSecretProvider(
         fileSecretProviderOptionsFromEnv(readEnv, platform),
@@ -172,6 +186,7 @@ export {
 export type { ConnectForRegistration } from './register-node.js';
 export {
   canonicalDirectory,
+  canonicalStoreRoot,
   getProjectConfigPath,
   type ProjectBinding,
   type ProjectConfig,
@@ -179,6 +194,9 @@ export {
   type ProjectSelectionOptions,
   readProjectConfig,
   resolveProjectBinding,
+  resolveStoreRoot,
+  type StoreRootOptions,
+  storeSecretService,
   WORKSPACE_STRATEGIES,
   type WorkspaceStrategy,
 } from '@moltnet/agent-config';

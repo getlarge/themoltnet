@@ -18,8 +18,12 @@ vi.mock('@themoltnet/os-keyring', () => ({
     readonly name = 'os-keyring';
     readonly capabilities = { read: true, write: true, delete: true };
 
-    constructor(platform: NodeJS.Platform) {
-      keyring.constructor(platform);
+    constructor(
+      platform: NodeJS.Platform,
+      _loader?: unknown,
+      service?: string,
+    ) {
+      keyring.constructor(platform, service);
     }
 
     read = keyring.read;
@@ -83,7 +87,20 @@ describe('Node secret providers', () => {
         key: 'oauth2/identity-123/client-456',
       }),
     ).resolves.toBe('resolved-secret');
-    expect(keyring.constructor).toHaveBeenCalledWith('linux');
+    expect(keyring.constructor).toHaveBeenCalledWith('linux', 'themolt.net');
+  });
+
+  it('captures a separate keyring namespace for each selected store', async () => {
+    keyring.read.mockResolvedValue('fixture-only-secret');
+    vi.stubEnv('MOLTNET_HOME', join(tmpdir(), 'store-a'));
+    const a = createNodeSecretProviderRegistry('linux');
+    vi.stubEnv('MOLTNET_HOME', join(tmpdir(), 'store-b'));
+    const b = createNodeSecretProviderRegistry('linux');
+    await a.resolve({ provider: 'os-keyring', key: 'identity/same/seed' });
+    await b.resolve({ provider: 'os-keyring', key: 'identity/same/seed' });
+    const [first, second] = keyring.constructor.mock.calls;
+    expect(first?.[1]).toMatch(/^themolt.net\/store\/[a-f0-9]{64}$/);
+    expect(second?.[1]).not.toBe(first?.[1]);
   });
 
   it('resolves referenced and plaintext OAuth2 secrets for Node consumers', async () => {
