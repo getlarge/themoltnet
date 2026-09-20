@@ -9,6 +9,7 @@ import {
 } from '@themoltnet/sdk/node';
 
 import { loadAgentServerEnvConfig, processEnvSnapshot } from '../config.js';
+import { ConnectionSettingsStore } from '../lib/agent-server/connection-settings.js';
 import {
   AgentServerLockError,
   withAgentServerLock,
@@ -50,7 +51,6 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 
 const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
-const DEFAULT_API_URL = 'https://api.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
 
 export async function runAgentServer(argv: string[]): Promise<number> {
@@ -93,9 +93,17 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     values['allowed-origins'] ??
       (envConfig.allowedOrigins || DEFAULT_ALLOWED_ORIGINS),
   );
-  const root = values.root ?? resolveAgentServerRoot({ root: envConfig.root });
-  const defaultApiUrl =
-    values['api-url'] ?? (envConfig.apiUrl || DEFAULT_API_URL);
+  const settingsRoot =
+    values.root ?? resolveAgentServerRoot({ root: envConfig.root });
+  const connectionSettings = new ConnectionSettingsStore(settingsRoot, {
+    ...envConfig.operatorOAuth,
+    ...(values['api-url'] || envConfig.apiUrl
+      ? { apiUrl: values['api-url'] || envConfig.apiUrl }
+      : {}),
+  });
+  const connection = connectionSettings.view().effective;
+  const root = connectionSettings.stateRoot(connection);
+  const defaultApiUrl = connection.apiUrl;
   const runtimeSettings = parseLocalOperationalSettings(values);
 
   const store = new AgentServerStore(root).ensure();
@@ -157,9 +165,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             runtimeRegistry,
             runtimeSettings,
           });
-          const tls = isMacos() ? await ensureTrustedLocalTls(root) : undefined;
+          const tls = isMacos()
+            ? await ensureTrustedLocalTls(settingsRoot)
+            : undefined;
           const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
-          const operatorConfig = envConfig.operatorOAuth;
+          const operatorConfig = connection;
           const operatorOAuth = operatorConfig
             ? new OperatorOAuth(
                 {
@@ -183,6 +193,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             : undefined;
           const app = buildAgentServer({
             operatorOAuth,
+            connectionSettings,
             operatorApiUrl: operatorConfig?.apiUrl,
             store,
             secrets,
@@ -334,7 +345,7 @@ export async function runTrustCommand(
 
     const material = await ensureLocalTlsMaterial(root);
     if (yes) await trustLocalCa(root);
-    else await ensureTrustedLocalTls(root);
+    else await ensureTrustedLocalTls(settingsRoot);
     if (json)
       printTrustStatus({
         supported: true,

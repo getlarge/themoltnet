@@ -39,7 +39,25 @@ export const INITIAL_STATUS: DesktopStatus = {
   logs: [],
 };
 
+export interface ConnectionSettings {
+  apiUrl: string;
+  issuer: string;
+  publicUrl: string;
+  nativeClientId: string;
+  consoleClientId: string;
+}
+export interface ConnectionSettingsView {
+  defaults: ConnectionSettings;
+  effective: ConnectionSettings;
+  overrides: Partial<ConnectionSettings>;
+  environment: Partial<ConnectionSettings>;
+}
+
 export const desktopBridge = {
+  connectionSettings: () =>
+    invoke<ConnectionSettingsView>('desktop_connection_settings'),
+  applyConnectionSettings: (overrides: Partial<ConnectionSettings>) =>
+    invoke<DesktopStatus>('desktop_apply_connection_settings', { overrides }),
   status: () => invoke<DesktopStatus>('desktop_status'),
   install: () => invoke<DesktopStatus>('install_agent'),
   trust: () => invoke<DesktopStatus>('approve_local_trust'),

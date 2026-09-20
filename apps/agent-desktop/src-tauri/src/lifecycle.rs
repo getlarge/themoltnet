@@ -531,10 +531,7 @@ impl LifecycleManager {
                         self.control_token = Some(token.clone());
                         self.child = Some(child);
                         self.retry_used = retry_budget_after_start(origin, attempt);
-                        self.set_state(
-                            LifecycleState::Running,
-                            "Ready. Sign in to authorize Console local control.",
-                        );
+                        self.set_state(LifecycleState::Running, "Ready for Console local control.");
                         return Ok(self.snapshot());
                     }
                     Err(error) => error,

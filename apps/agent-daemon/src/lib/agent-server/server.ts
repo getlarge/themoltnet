@@ -32,6 +32,7 @@ import {
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import type { ConnectionSettingsStore } from './connection-settings.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
 import {
   AgentServerIdentityError,
@@ -170,6 +171,7 @@ export interface BuildAgentServerOptions {
   secretProviders: SecretProviderRegistry;
   externalSecretProviders: SecretProviderRegistry;
   nativeGrant: NativeGrantService;
+  connectionSettings?: ConnectionSettingsStore;
   operatorOAuth?: OperatorOAuth;
   operatorApiUrl?: string;
   runs: RunManager;
@@ -335,6 +337,7 @@ export function buildAgentServer(
 ): FastifyInstance {
   const { nativeGrant } = options;
   const oauth = options.operatorOAuth;
+  let restartRequired = false;
 
   const fastifyOptions = {
     bodyLimit: BODY_LIMIT,
@@ -436,6 +439,12 @@ export function buildAgentServer(
   const requireAuthorizedOrigin = async (
     request: FastifyRequest,
   ): Promise<string> => {
+    if (restartRequired)
+      throw new AgentServerHttpError(
+        409,
+        'restart_required',
+        'Restart the Agent Server to apply connection settings',
+      );
     const origin = requireOriginHeader(request.headers);
     const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
     if (typeof token !== 'string' || token.length === 0) {
@@ -506,6 +515,53 @@ export function buildAgentServer(
       '/health',
       { schema: AgentServerRouteSchemas.health },
       async () => ({ status: 'ok' }),
+    );
+    app.get(
+      '/v1/native/connection-settings',
+      { schema: { hide: true } },
+      async (request) => {
+        if (
+          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+          !options.connectionSettings
+        )
+          throw new AgentServerHttpError(
+            403,
+            'native_required',
+            'Native administration required',
+          );
+        return options.connectionSettings.view();
+      },
+    );
+    app.post(
+      '/v1/native/connection-settings',
+      { schema: { hide: true } },
+      async (request) => {
+        if (
+          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
+          !options.connectionSettings
+        )
+          throw new AgentServerHttpError(
+            403,
+            'native_required',
+            'Native administration required',
+          );
+        try {
+          const settings = options.runs.prepareServerRestart(() =>
+            options.connectionSettings!.save(request.body),
+          );
+          oauth?.cancel();
+          restartRequired = true;
+          return settings;
+        } catch (error) {
+          throw new AgentServerHttpError(
+            400,
+            'invalid_connection_settings',
+            error instanceof Error
+              ? error.message
+              : 'Invalid connection settings',
+          );
+        }
+      },
     );
     app.get(
       '/oauth/metadata',

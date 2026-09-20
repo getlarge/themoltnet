@@ -2,7 +2,7 @@
  * THESIS: Make foreground ownership visible; never disguise the agent as a service.
  * OWN-WORLD: Matte control surfaces, teal lifecycle flow, amber trust proof.
  * STORY: Inspect state, consent at protected transitions, continue in Console.
- * FIRST VIEWPORT: Identity header, live state rail, next action, bounded logs.
+ * FIRST VIEWPORT: Server status and controls, diagnostics, advanced settings.
  * FORM: Lifecycle ledger; sixth grounded Operate structure, seed 2688504d.
  */
 import {
@@ -30,6 +30,8 @@ import {
   INITIAL_STATUS,
   type LifecycleState,
 } from './bridge.js';
+
+import { ConnectionSettings } from './ConnectionSettings.js';
 
 const STATE_LABELS: Record<LifecycleState, string> = {
   checking: 'Checking',
@@ -75,7 +77,6 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
-  const theme = useTheme();
   const [status, setStatus] = useState<DesktopStatus>(INITIAL_STATUS);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [busy, setBusy] = useState(false);
@@ -147,9 +148,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
   );
 
   const currentIndex = FLOW.indexOf(status.state);
-  const setupComplete = ['running', 'update_available', 'stopping'].includes(
-    status.state,
-  );
   const statusTone =
     status.state === 'needs_trust'
       ? 'identity'
@@ -167,15 +165,10 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
         label: 'Review local HTTPS trust',
         action: () => setConfirmation('trust'),
       };
-    if (status.state === 'running')
+    if (status.state === 'running' || status.state === 'update_available')
       return {
-        label: 'Open Console',
-        action: () => void desktopBridge.openConsole(),
-      };
-    if (status.state === 'update_available')
-      return {
-        label: 'Review Agent CLI update',
-        action: () => setConfirmation('update'),
+        label: 'Stop Agent Server',
+        action: () => void run(desktopBridge.stop),
       };
     if (status.state === 'failed' || status.state === 'stopped')
       return {
@@ -284,7 +277,7 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               <Text as="p" variant="overline" color="primary">
                 Current state
               </Text>
-              <Text as="h1" variant="h3">
+              <Text as="h2" variant="h3">
                 {STATE_LABELS[status.state]}
               </Text>
               <Text color="secondary" aria-live="polite" aria-atomic="true">
@@ -293,45 +286,11 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               {notice}
             </Stack>
 
-            <ol
-              className="lifecycle-ledger"
-              aria-label="Agent setup progress"
-              aria-describedby={
-                currentIndex < 0 ? 'lifecycle-branch' : undefined
-              }
-            >
-              {FLOW.map((state, index) => {
-                const complete = setupComplete || index < currentIndex;
-                const current = state === status.state;
-                return (
-                  <li
-                    key={state}
-                    aria-current={current ? 'step' : undefined}
-                    data-complete={complete || undefined}
-                    data-current={current || undefined}
-                    style={{
-                      color: current
-                        ? theme.color.primary.DEFAULT
-                        : complete
-                          ? theme.color.success.DEFAULT
-                          : theme.color.text.muted,
-                      borderColor: current
-                        ? theme.color.primary.DEFAULT
-                        : theme.color.border.DEFAULT,
-                    }}
-                  >
-                    <span aria-hidden="true">{complete ? '✓' : index + 1}</span>
-                    <Text as="span" variant="caption" color="secondary">
-                      {STATE_LABELS[state]}
-                    </Text>
-                  </li>
-                );
-              })}
-            </ol>
-
-            {currentIndex < 0 ? (
-              <Text id="lifecycle-branch" variant="caption" color="secondary">
-                Current lifecycle branch: {STATE_LABELS[status.state]}.
+            {!status.installedVersion || status.state === 'needs_trust' ? (
+              <Text variant="caption" color="secondary">
+                {currentIndex >= 0
+                  ? `Setup step ${currentIndex + 1} of ${FLOW.length}`
+                  : STATE_LABELS[status.state]}
               </Text>
             ) : null}
 
@@ -359,25 +318,48 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
                 <Button
                   variant="secondary"
                   disabled={busy}
-                  onClick={() => void run(desktopBridge.stop)}
+                  onClick={() => void desktopBridge.openConsole()}
                 >
-                  Stop Agent Server
+                  Open Console
                 </Button>
               ) : null}
+            </Stack>
+          </Stack>
+        </ControlSurface>
+
+        <ControlSurface
+          as="section"
+          padding="md"
+          aria-labelledby="details-title"
+        >
+          <Stack gap={4}>
+            <Stack direction="row" justify="space-between" align="center">
+              <Text id="details-title" as="h2" variant="h4">
+                Diagnostics and updates
+              </Text>
+              <Text mono variant="caption" color="muted">
+                {status.installedVersion
+                  ? `agent ${status.installedVersion}`
+                  : 'not installed'}
+              </Text>
+            </Stack>
+            <Stack direction="row" gap={3} wrap>
               <Button
                 variant="secondary"
                 disabled={busy}
                 onClick={() =>
-                  void run(
-                    desktopBridge.checkForUpdates,
-                    'Agent CLI update check finished.',
-                  )
+                  status.state === 'update_available'
+                    ? setConfirmation('update')
+                    : void run(
+                        desktopBridge.checkForUpdates,
+                        'Agent CLI update check finished.',
+                      )
                 }
               >
-                Check Agent CLI update
+                {status.state === 'update_available'
+                  ? 'Review Agent CLI update'
+                  : 'Check Agent CLI update'}
               </Button>
-            </Stack>
-            <Stack direction="row" gap={3} wrap>
               <Button
                 variant="ghost"
                 onClick={() => void desktopBridge.openLogs()}
@@ -391,25 +373,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               >
                 Check app update
               </Button>
-            </Stack>
-          </Stack>
-        </ControlSurface>
-
-        <ControlSurface
-          as="section"
-          padding="md"
-          aria-labelledby="details-title"
-        >
-          <Stack gap={4}>
-            <Stack direction="row" justify="space-between" align="center">
-              <Text id="details-title" as="h2" variant="h4">
-                Runtime details
-              </Text>
-              <Text mono variant="caption" color="muted">
-                {status.installedVersion
-                  ? `agent ${status.installedVersion}`
-                  : 'not installed'}
-              </Text>
             </Stack>
             {status.trustFingerprint ? (
               <Text
@@ -426,29 +389,46 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
                 ? status.logs.slice(-12).join('\n')
                 : 'No Agent Server output yet.'}
             </pre>
-            <Stack direction="row" justify="space-between" align="center" wrap>
-              <Text variant="caption" color="muted">
-                Quitting this app stops the Agent Server. Configuration stays in
-                ~/.config/moltnet.
-              </Text>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={busy || !status.trustFingerprint}
-                onClick={() => setConfirmation('remove-ca')}
+            <details>
+              <summary>Maintenance</summary>
+              <Stack
+                direction="row"
+                justify="space-between"
+                align="center"
+                wrap
               >
-                Remove local CA…
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={busy}
-                onClick={() => setConfirmation('remove')}
-              >
-                Remove agent bundle
-              </Button>
-            </Stack>
+                <Text variant="caption" color="muted">
+                  Quitting this app stops the Agent Server. Configuration stays
+                  in ~/.config/moltnet.
+                </Text>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy || !status.trustFingerprint}
+                  onClick={() => setConfirmation('remove-ca')}
+                >
+                  Remove local CA…
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => setConfirmation('remove')}
+                >
+                  Remove agent bundle
+                </Button>
+              </Stack>{' '}
+            </details>
           </Stack>
+        </ControlSurface>
+        <ControlSurface as="section" padding="md">
+          <ConnectionSettings
+            running={
+              status.state === 'running' || status.state === 'update_available'
+            }
+            busy={busy}
+            apply={run}
+          />
         </ControlSurface>
       </Stack>
 
