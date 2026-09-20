@@ -101,6 +101,7 @@ export async function cleanupAll(): Promise<void> {
 export async function fixture(
   options: {
     rateLimitMax?: number;
+    operatorOAuth?: OperatorOAuth;
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;
     discoverFetch?: typeof fetch;

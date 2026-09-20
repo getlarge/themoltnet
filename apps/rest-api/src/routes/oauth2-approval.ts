@@ -66,7 +66,20 @@ export async function oauth2ApprovalRoutes(
           ? (error.response as { status?: number } | undefined)?.status
           : undefined;
       app.log.warn(
-        { stage, upstreamStatus: status },
+        {
+          stage,
+          upstreamStatus: status,
+          // Error messages and response bodies may contain challenges. Stack
+          // frames identify unexpected failures without logging their payload.
+          errorType: error instanceof Error ? error.name : typeof error,
+          frames:
+            error instanceof Error
+              ? error.stack
+                  ?.split('\n')
+                  .filter((line) => /^\s+at /u.test(line))
+                  .join('\n')
+              : undefined,
+        },
         'Operator approval request failed',
       );
       if (status === 404 || status === 410)
@@ -143,7 +156,7 @@ export async function oauth2ApprovalRoutes(
       );
     return { agent, team };
   }
-  async function consent(request: FastifyRequest, value: string) {
+  async function consentSession(request: FastifyRequest, value: string) {
     const human = await humanSession(request);
     const consent = await oryRequest('getOAuth2ConsentRequest', () =>
       oauth.getOAuth2ConsentRequest({
@@ -155,6 +168,18 @@ export async function oauth2ApprovalRoutes(
         'forbidden',
         'The approval session does not match the authorization request',
       );
+    if (
+      !consent.client?.client_id ||
+      ![
+        options.clients.nativeClientId,
+        options.clients.consoleClientId,
+      ].includes(consent.client.client_id)
+    )
+      throw createProblem('forbidden', 'The OAuth client is not approved');
+    return { human, consent };
+  }
+  async function consent(request: FastifyRequest, value: string) {
+    const { human, consent } = await consentSession(request, value);
     const params = new URL(consent.request_url!).searchParams;
     if (
       params.get('response_type') !== 'code' ||
@@ -364,14 +389,16 @@ export async function oauth2ApprovalRoutes(
       },
     },
     async (request) => {
-      const result = await consent(request, request.body.challenge);
-      if (!request.body.approve)
+      if (!request.body.approve) {
+        await consentSession(request, request.body.challenge);
         return oryRequest('rejectOAuth2ConsentRequest', () =>
           oauth.rejectOAuth2ConsentRequest({
             consentChallenge: request.body.challenge,
             rejectOAuth2Request: { error: 'access_denied' },
           }),
         );
+      }
+      const result = await consent(request, request.body.challenge);
       return oryRequest('acceptOAuth2ConsentRequest', () =>
         oauth.acceptOAuth2ConsentRequest({
           consentChallenge: request.body.challenge,

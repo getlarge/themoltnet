@@ -453,8 +453,13 @@ export function buildAgentServer(
             'oauth_unavailable',
             'Local OAuth is not configured',
           );
-        await verifyBrowser(request, token);
+        // Consume admission verification once. Later checks on the same SSE
+        // request must revalidate expiry and the current operator.
+        const admission = browserVerification.get(request);
+        browserVerification.delete(request);
+        await (admission ?? oauth.verifyBrowser(token));
       } catch (error) {
+        if (error instanceof AgentServerHttpError) throw error;
         const code =
           error && typeof error === 'object' && 'code' in error
             ? error.code

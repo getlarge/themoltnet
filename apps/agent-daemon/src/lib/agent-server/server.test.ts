@@ -47,7 +47,7 @@ afterEach(async () => {
 describe('agent server providers and runs', () => {
   it('returns an authenticated bounded log snapshot for Desktop', async () => {
     const { app, store } = await fixture();
-    const token = await pair(app);
+    const token = await authorize(app);
     const { logPath } = store.createRunDir('snapshot-run');
     store.writeRun({
       id: 'snapshot-run',

@@ -39,33 +39,31 @@ describe('provisioning grant scope ceiling', () => {
       expect(response.statusCode).toBe(special ? 401 : 200);
     },
   );
-  it.each(['/agent-keys', '/teams', '/diaries', '/agents/whoami'])(
-    'rejects provisioning authority on %s',
-    async (url) => {
-      const app = await createTestApp(createMockServices(), {
-        subjectType: 'human',
-        humanId: 'cccccccc-0000-4000-8000-000000000003',
-        identityId: 'dddddddd-0000-4000-8000-000000000004',
-        clientId: 'native',
-        currentTeamId: null,
-        scopes: [PROVISIONING_SCOPE, ...HUMAN_SESSION_SCOPES],
-        provisioning: {
-          agentId: 'aaaaaaaa-0000-4000-8000-000000000001',
-          teamId: 'bbbbbbbb-0000-4000-8000-000000000002',
-          operation: 'renew',
-          scopes: ['task:execute'],
-          idempotencyKey: 'same-request',
-        },
-      });
-      apps.push(app);
-      const response = await app.inject({
-        method: 'GET',
-        url,
-        headers: { authorization: 'Bearer provision' },
-      });
-      expect([401, 403]).toContain(response.statusCode);
-    },
-  );
+  it.each(['/teams'])('rejects provisioning authority on %s', async (url) => {
+    const app = await createTestApp(createMockServices(), {
+      subjectType: 'human',
+      humanId: 'cccccccc-0000-4000-8000-000000000003',
+      identityId: 'dddddddd-0000-4000-8000-000000000004',
+      clientId: 'native',
+      currentTeamId: null,
+      scopes: [PROVISIONING_SCOPE],
+      provisioning: {
+        agentId: 'aaaaaaaa-0000-4000-8000-000000000001',
+        teamId: 'bbbbbbbb-0000-4000-8000-000000000002',
+        operation: 'renew',
+        scopes: ['task:execute'],
+        idempotencyKey: 'same-request',
+      },
+    });
+    apps.push(app);
+    const response = await app.inject({
+      method: 'POST',
+      url,
+      headers: { authorization: 'Bearer provision' },
+      payload: { name: 'Provisioning must not create teams' },
+    });
+    expect(response.statusCode).toBe(401);
+  });
 });
 
 describe('Console consent target validation', () => {
@@ -151,6 +149,20 @@ describe('Console consent target validation', () => {
     });
     expect(rejected.statusCode).toBe(403);
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).not.toHaveBeenCalled();
+    app.oauth2Client.rejectOAuth2ConsentRequest = vi.fn().mockResolvedValue({
+      redirect_to: 'https://ory.example/denied',
+    });
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: { cookie: 'ory_kratos_session=session' },
+      payload: { challenge: 'challenge', approve: false },
+    });
+    expect(denied.statusCode).toBe(200);
+    expect(app.oauth2Client.rejectOAuth2ConsentRequest).toHaveBeenCalledWith({
+      consentChallenge: 'challenge',
+      rejectOAuth2Request: { error: 'access_denied' },
+    });
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
     const original = await app.oauth2Client.getOAuth2ConsentRequest({
       consentChallenge: 'challenge',

@@ -5,12 +5,18 @@
  * token and passes it in the child's environment, so no browser ceremony is
  * involved and the native origin must never be reachable through one.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { writeFileSync } from 'node:fs';
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
 } from './native-grant-service.js';
+import {
+  InvalidOperatorGrantError,
+  type OperatorOAuth,
+} from './operator-oauth.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   authorize,
@@ -178,5 +184,62 @@ describe('native desktop client', () => {
 
     // Assert
     expect(response.statusCode).toBe(401);
+  });
+});
+
+describe('browser admission and stream authorization', () => {
+  it('shares admission verification but revalidates before streaming log content', async () => {
+    const verifyBrowser = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValue(new InvalidOperatorGrantError('Grant expired'));
+    const { app, store } = await fixture({
+      operatorOAuth: {
+        verifyBrowser,
+        cancel: () => undefined,
+      } as unknown as OperatorOAuth,
+    });
+    const { logPath } = store.createRunDir('expiring-run');
+    store.writeRun({
+      id: 'expiring-run',
+      agent: 'agent',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll',
+      status: 'exited',
+      startedAt: '2026-01-01T00:00:00Z',
+    });
+    writeFileSync(logPath, 'must-not-be-forwarded\n');
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    const result = fetch(`${address}/v1/runs/expiring-run/logs`, {
+      headers: {
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'expiring-token',
+      },
+      signal: AbortSignal.timeout(3000),
+    }).then((response) => response.text());
+    await expect(result).rejects.toThrow();
+    expect(verifyBrowser).toHaveBeenCalledTimes(2);
+  });
+
+  it('verifies a normal request once', async () => {
+    const verifyBrowser = vi.fn().mockResolvedValue(undefined);
+    const { app } = await fixture({
+      operatorOAuth: {
+        verifyBrowser,
+        cancel: () => undefined,
+      } as unknown as OperatorOAuth,
+    });
+    const response = await app.inject({
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'valid',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(verifyBrowser).toHaveBeenCalledTimes(1);
   });
 });
