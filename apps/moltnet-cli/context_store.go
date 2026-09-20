@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
@@ -35,14 +37,9 @@ type contextBinding struct {
 	DiaryID string `json:"diaryId"`
 }
 
-// contextStore maps a location key to its team/diary binding.
-//
-// A location is the normalized Git remote when the directory is inside a
-// repository that has one, and the canonical directory otherwise. There is
-// deliberately no ancestor lookup, no directory override, and no stored
-// default: one location has one key and one lookup, so there is no precedence
-// between bindings to get wrong. The identity-wide default stays where it has
-// always lived, in the identity env file.
+// contextStore is the legacy location format retained for the explicit migration.
+// Its keys are normalized Git remotes or canonical directories. Native selection
+// uses projectconfig and does not interpret these keys as project bindings.
 type contextStore struct {
 	Version  int                       `json:"version"`
 	Contexts map[string]contextBinding `json:"contexts,omitempty"`
@@ -52,8 +49,10 @@ type resolvedContextBinding struct {
 	Key string
 	// Source is contextSourceLocation, contextSourceIdentityDefault, or empty
 	// when neither applies.
-	Source  string
-	Binding *contextBinding
+	Source                string
+	Binding               *contextBinding
+	Project               *projectconfig.Binding
+	skippedEndpointNotice func(io.Writer)
 }
 
 func (r resolvedContextBinding) teamID() string {
@@ -234,22 +233,73 @@ func identityDefaultBinding(agentDir string) (contextBinding, bool) {
 // resolveContextBinding resolves the team/diary for directory: the binding
 // stored for its location if there is one, otherwise the identity default.
 func resolveContextBinding(agentDir, directory string) (resolvedContextBinding, error) {
-	key, err := contextLocationKey(directory)
+	return resolveNativeProjectContext(agentDir, directory)
+}
+
+// Local project selection is independent of credentials and never prepares a workspace.
+func resolveContextBindingWithProjectOptions(agentDir, directory, configPath, bindingName string, endpointOverride ...string) (resolvedContextBinding, error) {
+	canonical, err := canonicalDirectory(directory)
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
-	store, err := readContextStore(agentDir)
+	legacy, err := readContextStore(agentDir)
 	if err != nil {
 		return resolvedContextBinding{}, err
 	}
-	if binding, ok := store.Contexts[key]; ok {
-		copy := binding
-		return resolvedContextBinding{Key: key, Source: contextSourceLocation, Binding: &copy}, nil
+	if len(legacy.Contexts) > 0 {
+		return resolvedContextBinding{}, fmt.Errorf("legacy contexts require migration: register each checkout with 'moltnet projects bindings set', then run 'moltnet context reset --identity <alias>'; Git remotes cannot identify a unique checkout")
 	}
+	if configPath == "" {
+		configPath, err = projectconfig.Path()
+		if err != nil {
+			return resolvedContextBinding{}, err
+		}
+	}
+	config, err := projectconfig.Read(configPath)
+	if err != nil {
+		return resolvedContextBinding{}, err
+	}
+	apiURL := resolveAPIURL(nil, filepath.Join(agentDir, "moltnet.json"))
+	if len(endpointOverride) > 0 {
+		apiURL = endpointOverride[0]
+	}
+	if bindingName != "" {
+		for _, candidate := range config.Bindings {
+			if candidate.Name == bindingName && strings.TrimSuffix(candidate.APIURL, "/") != strings.TrimSuffix(apiURL, "/") {
+				return resolvedContextBinding{}, fmt.Errorf("binding %q endpoint %q does not match selected API endpoint %q", bindingName, candidate.APIURL, apiURL)
+			}
+		}
+	}
+	project, err := projectconfig.Resolve(config, projectconfig.Options{APIURL: apiURL, ConfigPath: configPath, CWD: canonical, Native: true, Binding: bindingName})
+	if err != nil {
+		return resolvedContextBinding{}, err
+	}
+	if project != nil {
+		binding := contextBinding{TeamID: project.TeamID, DiaryID: project.DiaryID}
+		return resolvedContextBinding{Key: projectContextKey(project), Source: contextSourceLocation, Binding: &binding, Project: project}, nil
+	}
+	notice := func(w io.Writer) {
+		var skipped []string
+		for _, candidate := range config.Bindings {
+			if strings.TrimSuffix(candidate.APIURL, "/") == strings.TrimSuffix(apiURL, "/") {
+				continue
+			}
+			// Diagnostic only: aliases use the same canonical ancestor resolver. An
+			// unavailable source outside the selected endpoint cannot provide a match.
+			match, matchErr := projectconfig.Resolve(&projectconfig.Config{Version: config.Version, Bindings: []projectconfig.Binding{candidate}}, projectconfig.Options{ConfigPath: configPath, CWD: canonical, Native: true})
+			if matchErr == nil && match != nil {
+				skipped = append(skipped, fmt.Sprintf("%q (%s)", candidate.Name, candidate.APIURL))
+			}
+		}
+		if len(skipped) > 0 {
+			fmt.Fprintf(w, "notice: bindings %s match this folder but use another endpoint; selected endpoint is %q\n", strings.Join(skipped, ", "), apiURL)
+		}
+	}
+	key := "dir:" + canonical
 	if binding, ok := identityDefaultBinding(agentDir); ok {
-		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding}, nil
+		return resolvedContextBinding{Key: key, Source: contextSourceIdentityDefault, Binding: &binding, skippedEndpointNotice: notice}, nil
 	}
-	return resolvedContextBinding{Key: key}, nil
+	return resolvedContextBinding{Key: key, skippedEndpointNotice: notice}, nil
 }
 
 func activationCachePathForContext(agentDir, contextKey string) string {
@@ -303,4 +353,16 @@ func clearContextBinding(agentDir, directory string) (string, bool, error) {
 		return "", false, err
 	}
 	return key, removed, nil
+}
+
+// The key is hashed as an opaque cache identity, never parsed into fields.
+// Quoting each component keeps separators in names and endpoints unambiguous.
+func projectContextKey(project *projectconfig.Binding) string {
+	return fmt.Sprintf("project:%q:%q:%q:%q", project.APIURL, project.TeamID, project.ProjectID, project.Name)
+}
+
+func (r resolvedContextBinding) writeSkippedEndpointNotice(w io.Writer) {
+	if r.skippedEndpointNotice != nil {
+		r.skippedEndpointNotice(w)
+	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -413,11 +414,26 @@ func TestEnvCheckMissingVars(t *testing.T) {
 
 // writeStartTestContext binds the working directory's location — the one
 // start, activation and env check resolve — through the real write path.
-func writeStartTestContext(t *testing.T, agentDir string) {
+func writeStartTestContext(t *testing.T, _ string) {
 	t.Helper()
-	if _, err := setContextBinding(agentDir, "", contextBinding{
-		TeamID: contextTestTeam, DiaryID: contextTestDiary,
-	}); err != nil {
+	writeProjectTestBinding(t, "", contextTestDiary)
+}
+
+func writeProjectTestBinding(t *testing.T, directory, diary string) {
+	t.Helper()
+	source, err := canonicalDirectory(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := projectconfig.Path()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = projectconfig.Update(path, func(config *projectconfig.Config) error {
+		config.Bindings = []projectconfig.Binding{{Name: "test", APIURL: defaultAPIURL, TeamID: contextTestTeam, ProjectID: "project", DiaryID: diary, Source: source, Strategy: "existing"}}
+		return nil
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
 }
@@ -700,11 +716,8 @@ func TestStartWithNoContextAtAllStillStarts(t *testing.T) {
 // A location binding wins over the identity default and needs no notice.
 func TestStartBoundLocationOverridesIdentityDefault(t *testing.T) {
 	setupStartUnboundFixture(t, fmt.Sprintf("MOLTNET_TEAM_ID='%s'\nMOLTNET_DIARY_ID='%s'\n", contextTestTeam, contextTestDiary))
-	agentDir := filepath.Join(os.Getenv("HOME"), ".config", "moltnet", "identities", "test-agent")
 	bound := "00000000-0000-4000-8000-000000000003"
-	if _, err := setContextBinding(agentDir, "", contextBinding{TeamID: contextTestTeam, DiaryID: bound}); err != nil {
-		t.Fatal(err)
-	}
+	writeProjectTestBinding(t, "", bound)
 	root := NewRootCmd("test", "")
 	stdout, stderr, err := executeCommand(root, "start", "echo", "--identity", "test-agent", "--dry-run")
 	if err != nil {

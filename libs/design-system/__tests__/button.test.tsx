@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Button, MoltThemeProvider } from '../src/index.js';
 
@@ -73,4 +73,20 @@ describe('Button', () => {
       expect(minHeight).toBeGreaterThanOrEqual(44);
     }
   });
+});
+
+it('renders aria-disabled as disabled while retaining focus and suppressing activation', () => {
+  const clicked = vi.fn();
+  renderWithTheme(
+    <Button aria-disabled onClick={clicked}>
+      Next
+    </Button>,
+  );
+  const button = screen.getByRole('button', { name: 'Next' });
+  button.focus();
+  expect(button).toHaveFocus();
+  expect(button).not.toBeDisabled();
+  expect(button).toHaveStyle({ opacity: '0.5', cursor: 'not-allowed' });
+  fireEvent.click(button);
+  expect(clicked).not.toHaveBeenCalled();
 });

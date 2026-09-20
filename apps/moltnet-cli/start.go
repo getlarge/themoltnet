@@ -8,7 +8,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -37,36 +39,58 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	if err != nil {
 		return fmt.Errorf("identity environment not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
 	}
-	resolvedContext, err := resolveContextBinding(agentDir, "")
+	configPath, bindingName := nativeProjectSelection(agentDir, nativeProjectOptionsFromCommand(cmd))
+	if configPath == "" {
+		configPath, err = projectconfig.Path()
+		if err != nil {
+			return err
+		}
+	}
+	configPath, err = filepath.Abs(configPath)
 	if err != nil {
 		return err
 	}
-	// Ask for a binding wherever this runs without one — but only when it can
-	// ask, and never on a dry run, which must not write anything. A launch that
-	// cannot ask keeps the identity default, exactly as before per-location
-	// contexts existed, so upgrading never stops an agent from starting.
-	if resolvedContext.Source != contextSourceLocation && !dryRun && contextCommandInteractive(cmd) {
-		teamID, diaryID, setupErr := guidedContextBinding(cmd, agentDir)
-		if setupErr != nil {
-			return setupErr
-		}
-		resolvedContext, setupErr = setContextBinding(agentDir, "", contextBinding{TeamID: teamID, DiaryID: diaryID})
-		if setupErr != nil {
-			return setupErr
-		}
+	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
+	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName, apiURL)
+	if err != nil {
+		return err
 	}
+	resolvedContext.writeSkippedEndpointNotice(cmd.ErrOrStderr())
+
 	switch resolvedContext.Source {
 	case contextSourceLocation:
 	case contextSourceIdentityDefault:
-		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s; using the identity default team and diary (run 'moltnet context set' to bind this location)\n", resolvedContext.Key)
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s; using the identity default team and diary (run 'moltnet projects bindings set' to register this folder)\n", resolvedContext.Key)
 	default:
-		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s and no identity default team and diary are set (run 'moltnet context set' to bind this location)\n", resolvedContext.Key)
+		fmt.Fprintf(cmd.ErrOrStderr(), "notice: no context bound for %s and no identity default team and diary are set (run 'moltnet projects bindings set' to register this folder)\n", resolvedContext.Key)
 	}
 	if resolvedContext.Binding != nil {
 		vars["MOLTNET_TEAM_ID"] = resolvedContext.Binding.TeamID
 		vars["MOLTNET_DIARY_ID"] = resolvedContext.Binding.DiaryID
 	}
 	vars["MOLTNET_CONTEXT_KEY"] = resolvedContext.Key
+	vars["MOLTNET_PROJECT_CONFIG"] = configPath
+	// Preserve provenance: the SDK validates config-selected endpoints itself.
+	// Only an operator-supplied flag or process environment is an explicit override.
+	delete(vars, "MOLTNET_API_URL")
+	if (cmd.Flag("api-url") != nil && cmd.Flag("api-url").Changed) || strings.TrimSpace(os.Getenv(apiURLEnv)) != "" {
+		vars["MOLTNET_API_URL"] = apiURL
+	}
+	workingDirectory, err := contextWorkingDirectory()
+	if err != nil {
+		return err
+	}
+	if project := resolvedContext.Project; project != nil {
+		vars["MOLTNET_PROJECT_ID"] = project.ProjectID
+		vars["MOLTNET_PROJECT_BINDING"] = project.Name
+		if project.Source != "" {
+			workingDirectory = project.Source
+		}
+	} else {
+		vars["MOLTNET_PROJECT_ID"] = ""
+		vars["MOLTNET_PROJECT_BINDING"] = ""
+	}
+
 	credentialVars, err := resolveAgentOAuth2Environment(agentDir, agentName, registry)
 	if err != nil {
 		return err
@@ -82,10 +106,18 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	vars["MOLTNET_CREDENTIALS_PATH"] = filepath.Clean(launchConfigPath)
 	vars["MOLTNET_ACTIVE_IDENTITY"] = agentName
 
-	// Resolve target binary
-	targetPath, err := osExec.LookPath(target)
+	vars["PWD"] = workingDirectory
+	// Resolve relative targets against the selected source, including during dry runs.
+	lookupTarget := target
+	if !filepath.IsAbs(target) && strings.ContainsAny(target, `/\`) {
+		lookupTarget = filepath.Join(workingDirectory, target)
+	}
+	targetPath, err := osExec.LookPath(lookupTarget)
 	if err != nil {
-		return fmt.Errorf("%q not found in PATH", target)
+		if lookupTarget != target || filepath.IsAbs(target) {
+			return fmt.Errorf("target %q could not be executed from directory %q: %w", lookupTarget, workingDirectory, err)
+		}
+		return fmt.Errorf("%q not found in PATH: %w", target, err)
 	}
 
 	// Build environment: current env with agent env vars replacing any
@@ -106,8 +138,9 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 
 	if dryRun {
-		fmt.Fprintf(cmd.OutOrStdout(), "Agent: %s\n", agentName)
-		fmt.Fprintf(cmd.OutOrStdout(), "Target: %s (%s)\n\n", target, targetPath)
+		fmt.Fprintf(cmd.OutOrStdout(), "Working directory: %s\n", quoteStartValue(workingDirectory))
+		fmt.Fprintf(cmd.OutOrStdout(), "Agent: %s\n", quoteStartValue(agentName))
+		fmt.Fprintf(cmd.OutOrStdout(), "Target: %s (%s)\n\n", quoteStartValue(target), quoteStartValue(targetPath))
 		if len(targetArgs) > 0 {
 			fmt.Fprintln(cmd.OutOrStdout(), "Forwarded target arguments:")
 			for _, arg := range targetArgs {
@@ -126,13 +159,28 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 			if isSecretKey(k) {
 				v = "***"
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "  %s=%s\n", k, v)
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s=%s\n", k, quoteStartValue(v))
 		}
 		return nil
 	}
 
+	if project := resolvedContext.Project; project != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Project binding %q: source %q, endpoint %q\n", project.Name, workingDirectory, project.APIURL)
+		if project.Strategy != "existing" && project.Strategy != "none" {
+			fmt.Fprintln(cmd.ErrOrStderr(), "notice: native start runs in the source folder; isolated workspace preparation is performed by task workers")
+		}
+	}
 	// exec replaces the current process
 	argv := append([]string{target}, targetArgs...)
+	originalDirectory, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	if err := os.Chdir(workingDirectory); err != nil {
+		return fmt.Errorf("select project working directory: %w", err)
+	}
+	// Real exec replaces this process. Restore CWD when a test executor returns or launch fails.
+	defer func() { _ = os.Chdir(originalDirectory) }()
 	return execFn(targetPath, argv, env)
 }
 
@@ -166,4 +214,12 @@ func resolveAgentOAuth2Environment(agentDir, agentName string, registry *SecretP
 func isSecretKey(key string) bool {
 	return strings.HasSuffix(key, "_CLIENT_SECRET") ||
 		strings.Contains(key, "_PRIVATE_KEY")
+}
+
+// Keep ordinary dry-run values readable without allowing control characters to add lines.
+func quoteStartValue(value string) string {
+	if strings.IndexFunc(value, unicode.IsControl) >= 0 {
+		return strconv.Quote(value)
+	}
+	return value
 }

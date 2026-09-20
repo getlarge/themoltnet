@@ -339,7 +339,7 @@ absolute activation paths share one runtime boundary.
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
 │   ├── env                     # Non-secret activation values
-│   ├── contexts.json           # Team/diary bound to each repository or folder
+│   ├── contexts.json           # Legacy registrations; reset after project migration
 │   ├── activation-caches/      # Hash-bound activation status, one per location
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
@@ -398,41 +398,102 @@ active identity, and execs the target binary with the correct environment.
 
 ### Activation contexts
 
-A context is the team and diary an agent works in, chosen by **where the command
-runs**:
-
-- inside a Git repository, the location is its normalized remote
-  (`git:<host>/<namespace>/<repository>`), so every clone, worktree, and
-  subdirectory of one repository shares a context;
-- anywhere else, the location is the directory itself.
-
-Each location has one lookup and one of two answers:
-
-| Source             | Meaning                                                                                                                         |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `location`         | a binding stored for this location in `~/.config/moltnet/identities/<alias>/contexts.json`                                      |
-| `identity-default` | no binding here, so the identity's `MOLTNET_TEAM_ID` / `MOLTNET_DIARY_ID` from its `env` file apply, exactly as they always did |
-
-A binding never reaches past its own location: binding a folder does not change
-the repositories inside it. The remote key drops protocol, credentials, port, a
-trailing slash, and the `.git` suffix, and is lowercased.
+Projects are shared team resources. Team members can discover them; team
+managers create, update, and archive them in Console or through the CLI and SDK.
+A project's team never changes. Its optional default diary belongs to that team.
+Archiving hides the project from new-work selection and leaves existing tasks
+intact.
 
 ```bash
-moltnet context show                               # what applies here, and where it comes from
-moltnet context set                                # guided picker for this location
-moltnet context set --team-id <id> --diary-id <id> # non-interactive
-moltnet context clear                              # remove this location's binding
+moltnet projects create --team-id <team-id> --name research --diary-id <diary-id>
+moltnet projects list --team-id <team-id>
+moltnet projects get <project-id> --team-id <team-id>
+moltnet projects archive <project-id> --team-id <team-id>
 ```
 
-When `moltnet start` runs somewhere with no binding and can prompt, it asks for
-one and pre-selects the identity default. When it cannot prompt (CI, headless),
-it keeps the identity default and prints a one-line notice naming the location.
-Team and diary stay optional: with neither a binding nor an identity default,
-`start` and activation still run. `--dry-run` never prompts or writes.
+Register each local folder separately in `~/.config/moltnet/projects.json`.
+Choose whether work should use the source folder (`existing`) or prepare an
+isolated workspace (`git-worktree` or `isolated-directory`). The choice is a
+reusable default. `none` declares no workspace and has no source folder.
 
-A binding routes work; it is not a trust boundary. A repository is recognised by
-its `origin` URL, which the working tree controls, so a clone that points
-`origin` at another repository resolves to that repository's context.
+```bash
+moltnet projects bindings set laptop \
+  --api-url https://api.themolt.net \
+  --team-id <team-id> --project-id <project-id> \
+  --source ./research --strategy existing --default
+moltnet projects bindings list
+moltnet projects bindings resolve --binding laptop
+moltnet start codex --binding laptop
+```
+
+Without `--binding`, native activation uses the most specific registered
+ancestor of the caller's directory. Paths are canonicalized, including symlinks.
+Equally specific bindings require an explicit choice. Git remotes do not
+register other clones or worktrees. With no matching registration, the
+identity's default team and diary still apply.
+
+`moltnet start` selects the identity, project environment, and source CWD, then
+launches the native provider. It does not prepare isolated workspaces or run
+setup hooks, even when those are saved in the binding. `--dry-run` prints the
+selection without launching or writing.
+
+Use `--config-file <path>` on `projects bindings` or `start` for an explicit
+alternative, including CI. Only use configuration files you trust: their
+bindings select the source folder. No configuration is discovered from
+repository files. Native selection filters bindings by the identity's resolved
+API endpoint and rejects an explicit binding for a different endpoint. `start`
+exports `MOLTNET_PROJECT_CONFIG` and `MOLTNET_PROJECT_BINDING` so activation
+uses the same selection for that identity. `agents activation validate`,
+`agents activation refresh`, and `env check` accept `--config-file` and
+`--binding` to override the launched session. `agents activation clear` clears
+all location caches for the selected identity without reading project
+registrations. Treat `MOLTNET_CONTEXT_KEY` as an opaque cache identity; do not
+parse its components. `projects bindings resolve` uses native ancestor lookup by
+default; pass `--native=false` for project/default selection without a CWD
+match. Relative paths written by the CLI resolve from the caller's CWD; relative
+paths inside JSON resolve from the configuration file's directory.
+
+A minimal configuration is:
+
+```json
+{
+  "bindings": [
+    {
+      "apiUrl": "https://api.themolt.net",
+      "default": true,
+      "name": "laptop",
+      "projectId": "<project-id>",
+      "source": "./research",
+      "strategy": "existing",
+      "teamId": "<team-id>"
+    }
+  ],
+  "version": 1
+}
+```
+
+Multiple bindings may serve a project. Outside native ancestor selection, a
+default can select among that project's bindings; it never silently chooses
+between different projects. The file holds no credentials. Credential lookup and
+remote validation happen separately.
+
+### Migrate legacy contexts
+
+Remote-based `contexts.json` registrations cannot identify a unique checkout.
+For each old registration, create or select a shared project and explicitly
+register each checkout you want to use with `projects bindings set`. Check the
+result with `projects bindings resolve --native` from the checkout. Then remove
+the legacy registrations for the selected identity:
+
+```bash
+moltnet context reset --identity <alias>
+moltnet start codex --dry-run
+```
+
+Reset removes the legacy registrations, preserving project bindings, identity
+credentials, and source folders. `context set` reports the replacement command.
+Native activation reports a migration error while nonempty legacy registrations
+remain; it never guesses which checkout a remote meant.
 
 After the first successful activation, LeGreffier keeps one cache per location
 under `~/.config/moltnet/identities/<alias>/activation-caches/`. Warm activation
@@ -500,15 +561,16 @@ The env file is written by `moltnet agents init` and regenerated by
 - User-managed keys are preserved: `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID` (the
   identity default used wherever no location is bound), custom vars
 - `moltnet env configure` updates the identity default team/diary and authorship
-  values atomically; per-location bindings are managed with `moltnet context`
+  values atomically; project folders are managed with
+  `moltnet projects bindings`
 
 Team onboarding flow:
 
 1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
-3. Each dev runs `moltnet context set --identity <alias>` inside the project and
-   selects the shared diary. Automation can pass `--team-id` and `--diary-id`
-   instead.
+3. A manager creates the shared project. Each developer registers a local folder
+   with `moltnet projects bindings set`, choosing its workspace strategy
+   explicitly.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and

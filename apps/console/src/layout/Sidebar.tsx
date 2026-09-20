@@ -15,6 +15,7 @@ import {
   BookOpen,
   Bot,
   Boxes,
+  FolderKanban,
   KeyRound,
   LibraryBig,
   ListTodo,
@@ -59,6 +60,12 @@ const baseGroups: Array<{
     id: 'task-engine',
     label: 'Task Engine',
     items: [
+      {
+        id: 'projects',
+        label: 'Projects',
+        path: '/projects',
+        icon: <FolderKanban size={ICON_SIZE} strokeWidth={1.8} />,
+      },
       {
         id: 'task-board',
         label: 'Task board',

@@ -73,12 +73,16 @@ export function Button({
   children,
   'aria-busy': ariaBusy,
   'aria-label': ariaLabel,
+  'aria-disabled': ariaDisabled,
+  onClick,
   ...rest
 }: ButtonProps) {
   const theme = useTheme();
   const reducedMotion = useReducedMotion();
   const { hovered, focused, pressed, handlers } = useInteractive();
   const isDisabled = disabled || loading;
+  const visuallyDisabled =
+    isDisabled || ariaDisabled === true || ariaDisabled === 'true';
 
   const base: React.CSSProperties = {
     display: 'inline-flex',
@@ -90,9 +94,9 @@ export function Button({
     fontFamily: 'inherit',
     fontWeight: theme.font.weight.medium,
     lineHeight: theme.font.lineHeight.normal,
-    cursor: isDisabled ? 'not-allowed' : 'pointer',
+    cursor: visuallyDisabled ? 'not-allowed' : 'pointer',
     transition: `background ${theme.transition.fast}, color ${theme.transition.fast}, box-shadow ${theme.transition.fast}, opacity ${theme.transition.fast}`,
-    opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+    opacity: visuallyDisabled ? 0.5 : pressed ? 0.85 : 1,
     outline: 'none',
     ...sizeStyles[size],
   };
@@ -100,7 +104,7 @@ export function Button({
   const variants: Record<ButtonVariant, React.CSSProperties> = {
     primary: {
       background:
-        hovered && !disabled
+        hovered && !visuallyDisabled
           ? theme.color.primary.hover
           : theme.color.primary.DEFAULT,
       color: theme.color.text.inverse,
@@ -110,7 +114,9 @@ export function Button({
     },
     secondary: {
       background:
-        hovered && !disabled ? theme.color.primary.muted : 'transparent',
+        hovered && !visuallyDisabled
+          ? theme.color.primary.muted
+          : 'transparent',
       color: theme.color.primary.DEFAULT,
       boxShadow: focused
         ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.primary.DEFAULT}`
@@ -118,9 +124,11 @@ export function Button({
     },
     ghost: {
       background:
-        hovered && !disabled ? theme.color.primary.subtle : 'transparent',
+        hovered && !visuallyDisabled
+          ? theme.color.primary.subtle
+          : 'transparent',
       color:
-        hovered && !disabled
+        hovered && !visuallyDisabled
           ? theme.color.primary.DEFAULT
           : theme.color.text.DEFAULT,
       boxShadow: focused
@@ -129,7 +137,7 @@ export function Button({
     },
     accent: {
       background:
-        hovered && !disabled
+        hovered && !visuallyDisabled
           ? theme.color.accent.hover
           : theme.color.accent.DEFAULT,
       color: theme.color.text.inverse,
@@ -145,7 +153,7 @@ export function Button({
       color: theme.color.text.inverse,
       boxShadow: focused
         ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.error.DEFAULT}`
-        : hovered && !disabled
+        : hovered && !visuallyDisabled
           ? 'inset 0 0 0 999px rgba(0, 0, 0, 0.12)'
           : 'none',
     },
@@ -160,6 +168,14 @@ export function Button({
       style={{ ...base, ...variants[variant], ...style }}
       {...handlers}
       {...rest}
+      aria-disabled={ariaDisabled}
+      onClick={(event) => {
+        if (visuallyDisabled) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      }}
     >
       {loading && <Spinner reducedMotion={reducedMotion} />}
       {loading && loadingLabel ? loadingLabel : children}

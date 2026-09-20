@@ -26,6 +26,7 @@ func newEnvCmd() *cobra.Command {
 			return runEnvCheckCmd(cmd, identity)
 		},
 	}
+	addNativeProjectFlags(checkCmd)
 	checkCmd.Flags().String("identity", "", "Central identity alias (overrides active/default identity)")
 	addDeprecatedIdentityFlags(checkCmd)
 

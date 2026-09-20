@@ -160,7 +160,7 @@ async function resolveConnection(
       config.endpoints?.api,
     );
     if (!options.apiUrl && !env.apiUrl) {
-      assertTrustedConfigApiUrl(apiUrl);
+      assertTrustedConfigApiUrl(apiUrl, normalizeApiUrl(config.endpoints?.api));
     }
     let clientSecret: string;
     try {
@@ -199,7 +199,7 @@ async function resolveConnection(
       config.endpoints?.api,
     );
     if (!options.apiUrl && !env.apiUrl) {
-      assertTrustedConfigApiUrl(apiUrl);
+      assertTrustedConfigApiUrl(apiUrl, normalizeApiUrl(config.endpoints?.api));
     }
     requireSecureCredentialApiUrl(apiUrl);
     let agentKey: string | null;

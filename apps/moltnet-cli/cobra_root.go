@@ -74,6 +74,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newRenderedPacksCmd())
 	rootCmd.AddCommand(newRelationsCmd())
 	rootCmd.AddCommand(newTeamsCmd())
+	rootCmd.AddCommand(newProjectsCmd())
 	rootCmd.AddCommand(newProfileCmd())
 	rootCmd.AddCommand(newPolicyCmd())
 	rootCmd.AddCommand(newTaskCmd())

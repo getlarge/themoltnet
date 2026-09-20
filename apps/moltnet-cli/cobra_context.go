@@ -9,6 +9,7 @@ func newContextCmd() *cobra.Command {
 		Use: "show", Short: "Show the team and diary that apply here, and where they come from", Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error { return runContextShowCmd(cmd, show) },
 	}
+	addNativeProjectFlags(showCmd)
 	showCmd.Flags().StringVar(&show.Identity, "identity", "", "Central identity alias")
 	showCmd.Flags().BoolVar(&show.JSON, "json", false, "Print JSON")
 
@@ -28,6 +29,12 @@ func newContextCmd() *cobra.Command {
 	}
 	clearCmd.Flags().StringVar(&clear.Identity, "identity", "", "Central identity alias")
 
-	root.AddCommand(showCmd, setCmd, clearCmd)
+	var resetIdentity string
+	resetCmd := &cobra.Command{Use: "reset", Short: "Remove all legacy context registrations for an identity", Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error { return runContextResetCmd(cmd, resetIdentity) },
+	}
+	resetCmd.Flags().StringVar(&resetIdentity, "identity", "", "Central identity alias")
+	setCmd.Deprecated = "use projects bindings set with an explicit checkout path"
+	root.AddCommand(showCmd, setCmd, clearCmd, resetCmd)
 	return root
 }

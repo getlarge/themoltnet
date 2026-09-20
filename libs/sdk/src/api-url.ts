@@ -46,18 +46,21 @@ export function requireSecureCredentialApiUrl(apiUrl: string): string {
   );
 }
 
-/** Reject a config-selected endpoint that is unsafe for long-lived credentials. */
-export function assertTrustedConfigApiUrl(apiUrl: string): void {
-  const url = new URL(apiUrl);
-  const host = url.hostname.replace(/^\[|\]$/g, '');
-  const loopback =
-    host === 'localhost' || host === '::1' || /^127(\.\d{1,3}){3}$/.test(host);
-  const moltNet =
-    url.protocol === 'https:' &&
-    (host === 'themolt.net' || host.endsWith('.themolt.net'));
-  if (!loopback && !moltNet) {
+/**
+ * Validate an endpoint from the selected credential document. Self-hosted
+ * deployments are supported; trust follows that document, not domain ownership.
+ * Callers selecting an endpoint elsewhere (for example a project binding) must
+ * supply the endpoint from the credential document as the second argument.
+ */
+export function assertTrustedConfigApiUrl(
+  apiUrl: string,
+  credentialApiUrl = apiUrl,
+): void {
+  requireSecureCredentialApiUrl(apiUrl);
+  requireSecureCredentialApiUrl(credentialApiUrl);
+  if (normalizeApiUrl(apiUrl) !== normalizeApiUrl(credentialApiUrl)) {
     throw new MoltNetError(
-      'Config-provided API endpoints must use HTTPS on themolt.net or a loopback host.',
+      `Selected API endpoint ${JSON.stringify(apiUrl)} differs from the identity endpoint ${JSON.stringify(credentialApiUrl)}; select the matching identity or explicitly configure the API endpoint.`,
       { code: 'INVALID_CONFIG' },
     );
   }

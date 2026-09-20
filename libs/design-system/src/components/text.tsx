@@ -26,6 +26,7 @@ export type TextColor =
 
 export interface TextProps extends BaseComponentProps {
   id?: string;
+  tabIndex?: number;
   variant?: TextVariant;
   color?: TextColor;
   as?: ElementType;
@@ -139,7 +140,7 @@ export function Text({
     ...variantStyles[variant],
     color: colorMap[color],
     fontFamily: mono ? theme.font.family.mono : undefined,
-    fontWeight: weight ? theme.font.weight[weight] : undefined,
+    ...(weight ? { fontWeight: theme.font.weight[weight] } : {}),
     textAlign: align,
     ...style,
   };

@@ -48,10 +48,11 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	if err != nil {
 		return err
 	}
-	resolved, err := resolveContextBinding(agentDir, "")
+	resolved, err := resolveNativeProjectContext(agentDir, "", nativeProjectOptionsFromCommand(cmd))
 	if err != nil {
 		return err
 	}
+	resolved.writeSkippedEndpointNotice(cmd.ErrOrStderr())
 	result := contextShowResult{ContextKey: resolved.Key, Identity: alias, Source: resolved.Source}
 	if resolved.Binding != nil {
 		result.TeamID = resolved.Binding.TeamID
@@ -62,35 +63,26 @@ func runContextShowCmd(cmd *cobra.Command, opts contextCommandOptions) error {
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "Location: %s\nIdentity: %s\n", result.ContextKey, result.Identity)
 	if resolved.Binding == nil {
-		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none — run 'moltnet context set' to bind this location")
+		fmt.Fprintln(cmd.OutOrStdout(), "Binding:  none — run 'moltnet projects bindings set' to bind this location")
 		return nil
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "Source:   %s\nTeam:     %s\nDiary:    %s\n", result.Source, result.TeamID, result.DiaryID)
 	return nil
 }
 
-func runContextSetCmd(cmd *cobra.Command, opts contextCommandOptions) error {
-	alias, agentDir, err := contextIdentity(opts.Identity)
+func runContextSetCmd(_ *cobra.Command, _ contextCommandOptions) error {
+	return fmt.Errorf("contexts have been replaced: use 'moltnet projects bindings set' with an explicit project, source folder and workspace strategy")
+}
+
+func runContextResetCmd(cmd *cobra.Command, identity string) error {
+	alias, agentDir, err := contextIdentity(identity)
 	if err != nil {
 		return err
 	}
-	if (opts.TeamID == "") != (opts.DiaryID == "") {
-		return fmt.Errorf("--team-id and --diary-id must be provided together")
-	}
-	if opts.TeamID == "" {
-		if !contextCommandInteractive(cmd) {
-			return fmt.Errorf("context set requires --team-id and --diary-id in non-interactive use")
-		}
-		opts.TeamID, opts.DiaryID, err = guidedContextBinding(cmd, agentDir)
-		if err != nil {
-			return err
-		}
-	}
-	resolved, err := setContextBinding(agentDir, "", contextBinding{TeamID: opts.TeamID, DiaryID: opts.DiaryID})
-	if err != nil {
+	if err := updateContextStore(agentDir, func(store *contextStore) { store.Contexts = nil }); err != nil {
 		return err
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Bound %s for %s (team %s, diary %s)\n", resolved.Key, alias, opts.TeamID, opts.DiaryID)
+	fmt.Fprintf(cmd.OutOrStdout(), "Reset legacy contexts for %s. Project registrations are unchanged.\n", alias)
 	return nil
 }
 
