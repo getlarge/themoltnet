@@ -3,6 +3,7 @@ mod lifecycle;
 mod operator_oauth {
     include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
 }
+mod tray;
 
 #[cfg(test)]
 #[path = "../build_support.rs"]
@@ -16,11 +17,7 @@ use std::{
     thread,
     time::Duration,
 };
-use tauri::{
-    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
-    tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager, RunEvent, State, WindowEvent,
-};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, State, WindowEvent};
 use tauri_plugin_updater::UpdaterExt;
 
 const STATUS_EVENT: &str = "agent-desktop://status";
@@ -566,61 +563,6 @@ fn show_status(app: &AppHandle) {
     }
 }
 
-fn install_tray(app: &mut tauri::App) -> tauri::Result<()> {
-    let show = MenuItemBuilder::with_id("show", "Show Status").build(app)?;
-    let console = MenuItemBuilder::with_id("console", "Open Console").build(app)?;
-    let logs = MenuItemBuilder::with_id("logs", "Open Logs").build(app)?;
-    let update = MenuItemBuilder::with_id("update", "Check for Updates").build(app)?;
-    let remove = MenuItemBuilder::with_id("remove", "Remove Agent Bundle").build(app)?;
-    let separator = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "Quit and Stop Server").build(app)?;
-    let menu = MenuBuilder::new(app)
-        .items(&[&show, &console, &logs, &update, &remove, &separator, &quit])
-        .build()?;
-    let mut tray = TrayIconBuilder::new()
-        .tooltip("MoltNet Agent")
-        .menu(&menu)
-        .on_menu_event(|app, event| match event.id().as_ref() {
-            "show" => show_status(app),
-            "console" => {
-                if let Err(error) = lifecycle::open_console() {
-                    eprintln!("could not open MoltNet Console: {error}");
-                }
-            }
-            "logs" => {
-                let state = app.state::<AppState>();
-                if let Err(error) = lifecycle::open_logs(&state.logs_directory) {
-                    eprintln!("could not open Agent Server logs: {error}");
-                }
-            }
-            "update" => {
-                show_status(app);
-                let handle = app.clone();
-                tauri::async_runtime::spawn_blocking(move || {
-                    let _ = operate(&handle, LifecycleManager::check_for_updates);
-                });
-            }
-            "remove" => {
-                show_status(app);
-                if let Err(error) = app.emit("agent-desktop://request-remove", ()) {
-                    eprintln!("could not publish Agent bundle removal request: {error}");
-                }
-            }
-            "quit" => {
-                let handle = app.clone();
-                tauri::async_runtime::spawn_blocking(move || {
-                    let _ = stop_and_exit(&handle);
-                });
-            }
-            _ => {}
-        });
-    if let Some(icon) = app.default_window_icon() {
-        tray = tray.icon(icon.clone());
-    }
-    tray.build(app)?;
-    Ok(())
-}
-
 fn start_lifecycle(app: AppHandle) {
     let initialize = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
@@ -707,7 +649,7 @@ pub fn run() {
             install_desktop_update
         ])
         .setup(|app| {
-            install_tray(app)?;
+            tray::install(app)?;
             start_lifecycle(app.handle().clone());
             Ok(())
         })
