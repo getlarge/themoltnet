@@ -9,6 +9,7 @@ import { createRemoteJWKSet, errors, type JWTPayload, jwtVerify } from 'jose';
 import { readAgentKeyMetadataBinding } from './agent-key-binding.js';
 import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
 import {
+  LOCAL_CONTROL_SCOPE,
   PROVISIONING_SCOPE,
   readDelegableScopes,
   readProvisioningGrant,
@@ -885,6 +886,14 @@ export function createTokenValidator(
           result.clientId,
           result.scopes,
         );
+        if (
+          !fromClaims &&
+          result.scopes.some(
+            (scope) =>
+              scope === PROVISIONING_SCOPE || scope === LOCAL_CONTROL_SCOPE,
+          )
+        )
+          return null;
         const context =
           fromClaims ??
           (await fetchClientMetadata(
@@ -995,6 +1004,14 @@ export function createTokenValidator(
         return fromClaims;
       }
 
+      // Special approval grants require their complete signed claims.
+      if (
+        scopes.some(
+          (scope) =>
+            scope === PROVISIONING_SCOPE || scope === LOCAL_CONTROL_SCOPE,
+        )
+      )
+        return null;
       // Fallback: fetch client metadata from Hydra
       return resolveClientMetadataContext(token, result);
     },

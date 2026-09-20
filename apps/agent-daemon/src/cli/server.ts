@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
 import { parseAllowedOrigins } from '@moltnet/loopback-companion';
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
@@ -175,7 +176,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
                   ).href,
                   nativeClientId: operatorConfig.nativeClientId,
                   consoleClientId: operatorConfig.consoleClientId,
-                  callbackPort: 17375,
+                  callbackPort: OPERATOR_OAUTH.callbackPort,
                 },
                 root,
               )

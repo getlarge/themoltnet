@@ -15,8 +15,8 @@ import {
   LOCAL_CONTROL_SCOPE,
   type OryClients,
   PROVISIONING_SCOPE,
-  readProvisioningGrant,
   readDelegableScopes,
+  readProvisioningGrant,
 } from '@moltnet/auth';
 import { DBOS, DBOSErrors, type HumanRepository } from '@moltnet/database';
 import { DCR_MAX_SCOPES } from '@moltnet/models';

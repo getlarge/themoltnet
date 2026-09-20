@@ -43,7 +43,9 @@ export function DesktopRunCenter() {
         );
         if (currentEpoch !== epoch.current) return;
         setStatus(snapshot);
-        const configured = await invoke<boolean>('desktop_operator_configured').catch(() => null);
+        const configured = await invoke<boolean>(
+          'desktop_operator_configured',
+        ).catch(() => null);
         if (currentEpoch !== epoch.current) return;
         if (configured !== null) setOperatorConfigured(configured);
         failures.current = 0;
@@ -64,7 +66,13 @@ export function DesktopRunCenter() {
         if (currentEpoch !== epoch.current) return;
         failures.current++;
         setCatalogue(null);
-        setError(cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : 'Check the Server view. Previously displayed metadata may be stale.');
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : typeof cause === 'string'
+              ? cause
+              : 'Check the Server view. Previously displayed metadata may be stale.',
+        );
       }
     })();
     inFlight.current = pending;

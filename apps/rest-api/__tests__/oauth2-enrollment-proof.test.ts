@@ -1,3 +1,4 @@
+import type * as AgentKeyService from '@moltnet/agent-key-service';
 import {
   AGENT_OAUTH_SCOPES,
   type OryClients,
@@ -11,7 +12,7 @@ import { createMockServices, createTestApp } from './helpers.js';
 
 const { issue } = vi.hoisted(() => ({ issue: vi.fn() }));
 vi.mock('@moltnet/agent-key-service', async (original) => ({
-  ...(await original<typeof import('@moltnet/agent-key-service')>()),
+  ...(await original<typeof AgentKeyService>()),
   createAgentKeyService: () => ({ issue }),
 }));
 const apps: FastifyInstance[] = [];

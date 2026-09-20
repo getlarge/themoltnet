@@ -182,18 +182,10 @@ async fn desktop_operator_sign_in(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let token = state
-        .lifecycle
-        .lock()
-        .map_err(|_| "desktop lifecycle lock was poisoned")?
-        .control_token()
-        .cloned()
-        .ok_or("the Agent Server is not running")?;
-    tauri::async_runtime::spawn_blocking(move || {
-        control::post(&token, "/v1/operator/sign-in", "{}")
+    with_control_token(&state, move |token| {
+        control::post(token, "/v1/operator/sign-in", "{}")
     })
-    .await
-    .map_err(|_| "Sign-in task failed")??;
+    .await?;
     show_status(&app);
     Ok(())
 }

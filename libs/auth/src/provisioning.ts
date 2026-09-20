@@ -1,4 +1,5 @@
 import { OPERATOR_OAUTH } from '@moltnet/models';
+
 import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from './scopes.js';
 
 /** Claims are supplied only by the server-side consent handler. */

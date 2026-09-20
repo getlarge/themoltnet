@@ -103,7 +103,9 @@ pub fn post(token: &NativeToken, path: &str, body: &str) -> Result<String, Strin
     let timeout = if path == "/v1/operator/sign-in"
         || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
     {
-        Duration::from_secs(330)
+        // The shared OAuth native approval lifetime is 300 seconds; allow
+        // another 30 seconds for callback and response delivery.
+        Duration::from_secs(300 + 30)
     } else {
         REQUEST_TIMEOUT
     };

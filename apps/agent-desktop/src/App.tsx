@@ -130,7 +130,7 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
         }
       } catch (error) {
         // The native error remains useful in the WebView's diagnostic console.
-        // eslint-disable-next-line no-console
+
         console.error(error);
         setFeedback({
           tone: 'error',
@@ -208,7 +208,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
           try {
             await desktopBridge.installDesktopUpdate();
           } catch (error) {
-            // eslint-disable-next-line no-console
             console.error(error);
             setFeedback({
               tone: 'error',
@@ -248,7 +247,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
           message: result.message,
         });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error(error);
       setFeedback({
         tone: 'error',

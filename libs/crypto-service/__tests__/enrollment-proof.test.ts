@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { cryptoService } from './crypto.service.js';
-import { enrollmentProofMessage } from './enrollment-proof.js';
+import { cryptoService } from '../src/crypto.service.js';
+import { enrollmentProofMessage } from '../src/enrollment-proof.js';
 
 const grant = {
   agentId: 'agent',

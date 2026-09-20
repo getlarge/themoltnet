@@ -6,9 +6,9 @@ import { type SecretProviderRegistry, signBytes } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
   EnrollmentRecoveryError,
-  ProvisioningNotStartedError,
   enrollTeam,
   type EnrollTeamResult,
+  ProvisioningNotStartedError,
 } from '@themoltnet/sdk/node';
 
 import { loadEnrollmentIdentity } from './identity.js';

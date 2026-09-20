@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError, problemToError } from '@themoltnet/sdk';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const pollingTelemetry = vi.hoisted(() => ({
   recordCompletedRuntimePhase: vi.fn(),
@@ -27,6 +27,8 @@ import {
   isContinuationClaimableByThisDaemon,
   PollingApiTaskSource,
 } from './polling-api.js';
+
+afterEach(() => vi.useRealTimers());
 
 const silentLogger: AgentRuntimeLogger = {
   debug: () => {},
@@ -295,7 +297,8 @@ describe('PollingApiTaskSource', () => {
 
     await expect(src.claim()).resolves.toMatchObject({ task: { id: task.id } });
     const pending = src.claim();
-    await vi.advanceTimersByTimeAsync(110);
+    // Include the maximum jittered polling interval after the grace deadline.
+    await vi.advanceTimersByTimeAsync(150);
     await expect(pending).resolves.toBeNull();
     expect(info).toHaveBeenCalledWith(
       expect.objectContaining({

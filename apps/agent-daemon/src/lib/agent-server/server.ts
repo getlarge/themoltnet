@@ -375,7 +375,7 @@ export function buildAgentServer(
       verificationWindow = Date.now();
       verifications = 0;
     }
-    if (++verifications > (options.rateLimitMax ?? RATE_LIMIT_MAX))
+    if (++verifications > RATE_LIMIT_MAX)
       throw new AgentServerHttpError(
         429,
         'rate_limited',
@@ -1160,7 +1160,7 @@ function registerRunLogRoute(
       },
     },
     async (request) => {
-      requirePairedOrigin(request);
+      await requireAuthorizedOrigin(request);
       const { runId } = request.params as { runId: string };
       const record = runs.status(runId);
       const handle = await open(

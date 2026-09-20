@@ -17,7 +17,10 @@ import type { FastifyInstance } from 'fastify';
 import { ProviderConfigurationService } from '../provider-configuration.js';
 import { type ActivatedAgent } from './identity.js';
 import { NativeGrantService } from './native-grant-service.js';
-import type { OperatorOAuth } from './operator-oauth.js';
+import {
+  InvalidOperatorGrantError,
+  type OperatorOAuth,
+} from './operator-oauth.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
 import { RuntimeRegistry } from './runtime-registry.js';
@@ -255,7 +258,8 @@ export async function fixture(
     operatorOAuth: {
       cancel: () => undefined,
       verifyBrowser: async (token: string) => {
-        if (token !== browserToken) throw new Error('Invalid browser token');
+        if (token !== browserToken)
+          throw new InvalidOperatorGrantError('Invalid browser token');
       },
     } as unknown as OperatorOAuth,
     store,

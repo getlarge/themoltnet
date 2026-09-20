@@ -10,16 +10,20 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { OPERATOR_OAUTH } from '@moltnet/models';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { OperatorOAuth } from './operator-oauth.js';
+import { type NativeProvisioning, OperatorOAuth } from './operator-oauth.js';
 
 const cleanup: Array<() => Promise<void> | void> = [];
 afterEach(async () => {
   for (const fn of cleanup.splice(0)) await fn();
 });
-async function fixture(beforeJwks?: () => Promise<void>) {
+async function fixture(
+  beforeJwks?: () => Promise<void>,
+  exchangeClaims: Record<string, unknown> = {},
+) {
   const root = mkdtempSync(join(tmpdir(), 'operator-oauth-'));
   cleanup.push(() => rmSync(root, { recursive: true, force: true }));
   const { publicKey, privateKey } = await generateKeyPair('RS256');
@@ -76,7 +80,9 @@ async function fixture(beforeJwks?: () => Promise<void>) {
           .update(form.get('code_verifier')!)
           .digest('base64url'),
       ).toBe(authorization.searchParams.get('code_challenge'));
-      response.end(JSON.stringify({ access_token: await token({}, false) }));
+      response.end(
+        JSON.stringify({ access_token: await token(exchangeClaims, false) }),
+      );
     })().catch((error: unknown) => {
       response.destroy(
         error instanceof Error ? error : new Error(String(error)),
@@ -182,6 +188,48 @@ describe('native PKCE operator', () => {
     const restarted = new OperatorOAuth(f.config, f.root, () => undefined);
     await expect(restarted.verifyBrowser(browser)).rejects.toThrow();
   });
+  it.each([
+    { agentId: 'other-agent' },
+    { teamId: 'other-team' },
+    { operation: 'renew' },
+    { idempotencyKey: 'other-request' },
+    { scopes: ['task:write'] },
+    { scopes: 'task:read' },
+    { scopes: [null] },
+  ])('rejects an exchanged grant with a changed target: %j', async (change) => {
+    const grant: NativeProvisioning = {
+      agentId: 'agent',
+      teamId: 'team',
+      operation: 'enroll',
+      scopes: ['task:read'],
+      idempotencyKey: 'request',
+    };
+    const claims: Record<string, unknown> = {};
+    const f = await fixture(undefined, claims);
+    Object.assign(claims, {
+      scp: [OPERATOR_OAUTH.provisioningScope],
+      aud: OPERATOR_OAUTH.provisioningAudience,
+      ext: {
+        'moltnet:identity_id': 'human',
+        'moltnet:subject_type': 'human',
+        'moltnet:instance': f.oauth.instance,
+        'moltnet:provisioning': { ...grant, ...change },
+      },
+    });
+    const pending = f.oauth.authorize(grant);
+    const rejection = expect(pending).rejects.toThrow(
+      'Approval target differs',
+    );
+    const url = await f.openedPromise;
+    const callback = new URL(url.searchParams.get('redirect_uri')!);
+    callback.searchParams.set('state', url.searchParams.get('state')!);
+    callback.searchParams.set('code', 'approved-code');
+    await fetch(callback);
+    await rejection;
+    expect(f.exchanges()).toBe(1);
+    expect(existsSync(join(f.root, 'operator.json'))).toBe(false);
+  });
+
   it.each(['human', 'other-human'])(
     're-reads a concurrent operator pin for %s',
     async (subject) => {
@@ -206,8 +254,8 @@ describe('native PKCE operator', () => {
       );
       expect(f.oauth.metadata().operatorConfigured).toBe(subject === 'human');
       expect(
-        JSON.parse(readFileSync(join(f.root, 'operator.json'), 'utf8')).subject,
-      ).toBe(subject);
+        JSON.parse(readFileSync(join(f.root, 'operator.json'), 'utf8')),
+      ).toMatchObject({ subject });
     },
   );
   it.each(['cancel', 'removeOperator'] as const)(

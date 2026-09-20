@@ -276,10 +276,7 @@ export class OperatorOAuth {
         this.config.nativeClientId,
       );
       controller.signal.throwIfAborted();
-      if (
-        grant &&
-        JSON.stringify(operator.provisioning) !== JSON.stringify(grant)
-      ) {
+      if (grant) {
         const actual = operator.provisioning as NativeProvisioning | undefined;
         if (
           !actual ||

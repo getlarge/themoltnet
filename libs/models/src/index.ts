@@ -6,6 +6,7 @@
 
 export * from './credential-scopes.js';
 export * from './hash.js';
+export * from './operator-oauth.js';
 export * from './preview-sign.js';
 export * from './principal.js';
 export * from './problem-details.js';
@@ -18,5 +19,3 @@ export * from './signer-constraint.js';
 export * from './signer-protocol.js';
 export * from './tool-enforcement.js';
 export * from './verification-method.js';
-
-export * from './operator-oauth.js';

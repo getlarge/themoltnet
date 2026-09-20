@@ -4,6 +4,7 @@ import {
   LOCAL_CONTROL_SCOPE,
   PROVISIONING_SCOPE,
 } from '@moltnet/auth';
+import { ResponseError } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -224,4 +225,49 @@ describe('Console consent target validation', () => {
       },
     });
   });
+});
+
+describe('Ory challenge failures', () => {
+  it.each([
+    [400, 400],
+    [404, 404],
+    [409, 400],
+    [410, 404],
+    [403, 503],
+    [500, 503],
+  ])(
+    'maps upstream %i to a recoverable %i response',
+    async (upstream, expected) => {
+      const mocks = createMockServices();
+      const human = {
+        subjectType: 'human' as const,
+        humanId: 'cccccccc-0000-4000-8000-000000000003',
+        identityId: 'dddddddd-0000-4000-8000-000000000004',
+        clientId: null,
+        currentTeamId: null,
+        scopes: [...HUMAN_SESSION_SCOPES],
+      };
+      const app = await createTestApp(mocks, human);
+      apps.push(app);
+      app.sessionResolver = {
+        evictIdentity: vi.fn(),
+        resolveSession: vi.fn().mockResolvedValue(human),
+      };
+      vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockRejectedValue(
+        new ResponseError(
+          new Response(null, { status: upstream }),
+          'upstream challenge failure',
+        ),
+      );
+      const response = await app.inject({
+        url: '/oauth2/consent?challenge=opaque-challenge',
+        headers: { cookie: 'ory_kratos_session=session' },
+      });
+      expect(response.statusCode).toBe(expected);
+      expect(response.body).not.toContain('opaque-challenge');
+      expect(
+        app.oauth2Client.acceptOAuth2ConsentRequest,
+      ).not.toHaveBeenCalled();
+    },
+  );
 });
