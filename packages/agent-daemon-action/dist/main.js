@@ -30559,6 +30559,8 @@ Object.freeze({
 	localControlScope: "moltnet:local-control",
 	provisioningAudience: "moltnet:provisioning",
 	localControlAudience: "moltnet:agent-server",
+	nativeClientId: "moltnet-native",
+	consoleClientId: "moltnet-console",
 	approvalTransportGraceSeconds: 30,
 	callbackPort: 17375,
 	consoleLifetimeSeconds: 900,
