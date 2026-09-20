@@ -140,10 +140,23 @@ function spawnAgentCommand(
   // tree and the child re-exec path all get exercised. cwd is /tmp so
   // nothing can resolve from the repository by accident.
   const bundle = process.env.MOLTNET_AGENT_BUNDLE;
+  // Exercise invalid browser credentials with OAuth configured. An absent
+  // configuration intentionally returns 503 rather than asking users to sign in.
+  const env = {
+    ...process.env,
+    MOLTNET_AGENT_SERVER_NATIVE_TOKEN: supervisorToken,
+    MOLTNET_OPERATOR_OAUTH_ISSUER: 'http://hydra:4444',
+    MOLTNET_OPERATOR_OAUTH_PUBLIC_URL:
+      process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://localhost:4444',
+    MOLTNET_NATIVE_OAUTH_CLIENT_ID: 'moltnet-native-e2e',
+    MOLTNET_CONSOLE_OAUTH_CLIENT_ID: 'moltnet-console-e2e',
+    MOLTNET_OPERATOR_API_URL:
+      process.env.REST_API_URL ?? 'http://localhost:8080',
+  };
   if (bundle) {
     return spawn(join(bundle, 'bin/moltnet-agent'), args, {
       cwd: '/tmp',
-      env: process.env,
+      env,
       stdio: [stdin, 'pipe', 'pipe'],
     });
   }
@@ -160,10 +173,7 @@ function spawnAgentCommand(
     ],
     {
       cwd: DAEMON_ROOT,
-      env: {
-        ...process.env,
-        MOLTNET_AGENT_SERVER_NATIVE_TOKEN: supervisorToken,
-      },
+      env,
       stdio: [stdin, 'pipe', 'pipe'],
     },
   );

@@ -286,7 +286,9 @@ services:
       MOLTNET_OPERATOR_OAUTH_ISSUER: http://hydra:4444
       MOLTNET_OPERATOR_OAUTH_PUBLIC_URL: http://localhost:4444
       SIGNER_BASE_URL: http://127.0.0.1:17373
-      MOLTNET_AGENT_SERVER_URL: ${MOLTNET_AGENT_SERVER_URL:-https://127.0.0.1:17374}
+      # The browser suite starts its Linux loopback supervisor over HTTP.
+      # Use an explicit endpoint; production Console never downgrades TLS.
+      MOLTNET_AGENT_SERVER_URL: ${MOLTNET_AGENT_SERVER_URL:-http://127.0.0.1:17374}
     depends_on:
       rest-api:
         condition: service_healthy
