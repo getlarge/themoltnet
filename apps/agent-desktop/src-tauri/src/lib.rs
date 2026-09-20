@@ -286,6 +286,144 @@ async fn desktop_stop_run(
         .map_err(|error| format!("the Agent Server returned an unreadable run: {error}"))
 }
 
+/// Subscriptions this machine can sign in to, and whether it already has.
+#[tauri::command]
+async fn desktop_subscriptions(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::get(token, "/v1/subscriptions")
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned unreadable subscriptions: {error}"))
+}
+
+/// Begin a provider device-authorization flow.
+#[tauri::command]
+async fn desktop_start_subscription_login(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::post(
+            token,
+            &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
+            "{}",
+        )
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable sign-in: {error}"))
+}
+
+/// Poll a device-authorization flow for completion.
+#[tauri::command]
+async fn desktop_subscription_login_status(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::get(
+            token,
+            &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
+        )
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable sign-in: {error}"))
+}
+
+/// Abandon a device-authorization flow the operator gave up on.
+#[tauri::command]
+async fn desktop_cancel_subscription_login(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<(), String> {
+    with_control_token(&state, move |token| {
+        control::delete(
+            token,
+            &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
+        )
+    })
+    .await?;
+    Ok(())
+}
+
+/// Open a provider sign-in page. Native code can do this after an await;
+/// a browser cannot, because popup blockers eat a window opened outside the
+/// click gesture.
+#[tauri::command]
+fn desktop_open_sign_in(url: String) -> Result<(), String> {
+    lifecycle::open_verification_url(&url)
+}
+
+/// Providers configured on this machine.
+///
+/// The response carries `hasApiKey` booleans, never a key: the server does not
+/// echo secrets back, so a configured credential cannot be read out of the
+/// WebView even by the surface that wrote it.
+#[tauri::command]
+async fn desktop_providers(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body =
+        with_control_token(&state, move |token| control::get(token, "/v1/providers")).await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned unreadable providers: {error}"))
+}
+
+/// Configure a provider, optionally supplying an API key.
+///
+/// The key is written straight through to the server, which stores it in the
+/// local secret provider. Nothing here logs or retains it.
+#[tauri::command]
+async fn desktop_put_provider(
+    state: State<'_, AppState>,
+    provider_id: String,
+    config: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let payload = serde_json::to_string(&config)
+        .map_err(|error| format!("the provider could not be encoded: {error}"))?;
+    let body = with_control_token(&state, move |token| {
+        control::put(
+            token,
+            &format!("/v1/providers/{}", urlencode(&provider_id)),
+            &payload,
+        )
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned an unreadable provider: {error}"))
+}
+
+/// Discover models through the server, using its protected provider credentials.
+#[tauri::command]
+async fn desktop_discover_provider_models(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_token(&state, move |token| {
+        control::post(
+            token,
+            &format!("/v1/providers/{}/discover-models", urlencode(&provider_id)),
+            "{}",
+        )
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|error| format!("the Agent Server returned unreadable models: {error}"))
+}
+
+/// Remove a provider and the API key held for it on this machine.
+#[tauri::command]
+async fn desktop_delete_provider(
+    state: State<'_, AppState>,
+    provider_id: String,
+) -> Result<(), String> {
+    with_control_token(&state, move |token| {
+        control::delete(token, &format!("/v1/providers/{}", urlencode(&provider_id)))
+    })
+    .await?;
+    Ok(())
+}
+
 #[tauri::command]
 fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
     state
@@ -525,6 +663,15 @@ pub fn run() {
             desktop_start_run,
             desktop_stop_run,
             desktop_run_logs,
+            desktop_providers,
+            desktop_put_provider,
+            desktop_discover_provider_models,
+            desktop_delete_provider,
+            desktop_subscriptions,
+            desktop_start_subscription_login,
+            desktop_subscription_login_status,
+            desktop_cancel_subscription_login,
+            desktop_open_sign_in,
             install_agent,
             approve_local_trust,
             retry_server,

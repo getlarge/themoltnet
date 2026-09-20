@@ -29,11 +29,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ServerPanel } from '../App.js';
 import { desktopBridge } from '../bridge.js';
+import { ProvidersView } from './ProvidersView.js';
+import { providerActions, subscriptionActions } from './run-center-bridge.js';
 import { RunsView } from './RunsView.js';
 import { TeamsView } from './TeamsView.js';
 import type { RunCenterActions, RunCenterData } from './types.js';
 
-export type RunCenterScreen = 'runs' | 'teams' | 'server';
+export type RunCenterScreen = 'runs' | 'teams' | 'providers' | 'server';
 
 /** Where the Runs pane is: the list, the composer, or one run's detail. */
 export type RunsRoute =
@@ -108,6 +110,13 @@ export function RunCenterApp({
     setRunsRoute({ kind: 'compose', presetId });
   }, []);
 
+  // A provider with no key is the most common reason a profile cannot run.
+  const connectedSubscriptions = new Set(
+    data.subscriptions.filter((entry) => entry.connected).map((e) => e.id),
+  );
+  const missingKeys = Object.entries(data.providers).filter(
+    ([id, provider]) => !provider.hasApiKey && !connectedSubscriptions.has(id),
+  ).length;
   const serverTone = SERVER_TONE[data.server.state] ?? SERVER_TONE.checking;
   const serverNeedsUser = ['needs_trust', 'needs_install', 'failed'].includes(
     data.server.state,
@@ -128,6 +137,15 @@ export function RunCenterApp({
       label: 'Identity and teams',
       href: '#teams',
       current: screen === 'teams',
+    },
+    {
+      id: 'providers',
+      label: 'Providers',
+      href: '#providers',
+      current: screen === 'providers',
+      badge: missingKeys ? (
+        <Badge variant="warning">{missingKeys}</Badge>
+      ) : undefined,
     },
     {
       id: 'server',
@@ -237,6 +255,15 @@ export function RunCenterApp({
           <div hidden={screen !== 'server'}>
             <ServerPanel />
           </div>
+          {screen === 'providers' ? (
+            <ProvidersView
+              providers={data.providers}
+              actions={providerActions}
+              subscriptions={data.subscriptions}
+              subscriptionActions={subscriptionActions}
+              onChanged={() => void actions.refresh?.()}
+            />
+          ) : null}
         </main>
       </div>
     </div>

@@ -13,6 +13,7 @@ import {
   type AgentServerClient,
   AgentServerClientError,
   type AgentServerProviderModel,
+  type AgentServerProviderView,
   type AgentServerStatus,
   type AgentServerSubscriptionLogin,
   type CreateAgentBody,
@@ -63,7 +64,10 @@ export interface LocalRuntimeController {
   retry(): Promise<void>;
   disconnect(): void;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
-  putProvider(id: string, body: PutProviderBody): Promise<void>;
+  putProvider(
+    id: string,
+    body: PutProviderBody,
+  ): Promise<AgentServerProviderView>;
   deleteProvider(id: string): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;
@@ -369,8 +373,7 @@ export function useLocalRuntime(): LocalRuntimeController {
     retry: probe,
     disconnect,
     createAgent: (body) => runAction(() => client.createAgent(body)),
-    putProvider: (id, body) =>
-      runAction(() => client.putProvider(id, body)).then(() => undefined),
+    putProvider: (id, body) => runAction(() => client.putProvider(id, body)),
     deleteProvider: (id) => runAction(() => client.deleteProvider(id)),
     startRun: (body) =>
       runAction(() => client.startRun(body)).then(() => undefined),

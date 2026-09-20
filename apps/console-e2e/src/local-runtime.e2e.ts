@@ -256,17 +256,36 @@ test.describe.serial('Local runtime page', () => {
     });
 
     await test.step('configure the provider and runtime profile', async () => {
-      await page
-        .getByRole('button', { name: 'Custom (OpenAI-compatible)' })
-        .click();
-      await page.getByLabel('Provider id').fill(PROVIDER_ID);
+      await page.getByLabel('Provider type').selectOption('custom');
+      await page.getByLabel('Provider ID', { exact: true }).fill(PROVIDER_ID);
       await page.getByLabel('Base URL').fill(`${modelStub.url}/v1`);
-      await page.getByLabel('API key', { exact: true }).fill('e2e-key');
-      await page.getByRole('button', { name: 'Fetch models' }).click();
+      await page
+        .getByLabel('API key (optional)', { exact: true })
+        .fill('e2e-key');
+      await page
+        .getByRole('button', { name: 'Save connection and discover models' })
+        .click();
+      await expect(
+        page.getByRole('heading', {
+          name: `Configure ${PROVIDER_ID}`,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByText(`Endpoint: ${modelStub.url}/v1`, { exact: true }),
+      ).toBeVisible();
       const modelCheckbox = page.getByRole('checkbox', { name: MODEL_ID });
       await expect(modelCheckbox).toBeVisible();
       await modelCheckbox.check();
-      await page.getByRole('button', { name: 'Save provider' }).click();
+      await page
+        .getByRole('button', {
+          name: `Save models for ${PROVIDER_ID} (1)`,
+          exact: true,
+        })
+        .click();
+      await expect(
+        page.getByText(`${modelStub.url}/v1 · 1 model`, { exact: true }),
+      ).toBeVisible();
       await expect(
         page.getByText(PROVIDER_ID, { exact: true }).first(),
       ).toBeVisible();

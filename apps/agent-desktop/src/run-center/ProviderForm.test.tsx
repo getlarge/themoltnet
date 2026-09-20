@@ -1,0 +1,185 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MoltThemeProvider } from '@themoltnet/design-system';
+import { describe, expect, it, vi } from 'vitest';
+
+import { ProviderForm } from './ProviderForm.js';
+import type { AgentServerProvider, ProviderActions } from './types.js';
+
+const LOCAL: AgentServerProvider = {
+  api: 'openai-completions',
+  baseUrl: 'http://localhost:11434/v1',
+  envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
+  hasApiKey: false,
+  models: [],
+};
+function setup(providers: Record<string, AgentServerProvider> = {}) {
+  const putProvider = vi.fn().mockResolvedValue(LOCAL);
+  const discoverModels = vi
+    .fn()
+    .mockResolvedValue([{ id: 'vision', input: ['text', 'image'] }]);
+  const actions: ProviderActions = {
+    putProvider,
+    discoverModels,
+    deleteProvider: vi.fn(),
+  };
+  const onChanged = vi.fn();
+  const onDone = vi.fn();
+  render(
+    <MoltThemeProvider mode="dark">
+      <ProviderForm
+        providers={providers}
+        actions={actions}
+        onChanged={onChanged}
+        onDone={onDone}
+      />
+    </MoltThemeProvider>,
+  );
+  return { putProvider, discoverModels, onChanged, onDone };
+}
+
+describe('Desktop provider creation', () => {
+  it('configures keyless Ollama and preserves discovered model capabilities', async () => {
+    const { putProvider, discoverModels, onDone } = setup();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
+    await screen.findByRole('checkbox', { name: 'vision' });
+    expect(putProvider).toHaveBeenNthCalledWith(1, 'ollama', {
+      api: 'openai-completions',
+      baseUrl: LOCAL.baseUrl,
+      envName: LOCAL.envName,
+      models: [],
+    });
+    expect(discoverModels).toHaveBeenCalledWith('ollama');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Save models for Ollama/ }),
+    );
+    await waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(putProvider).toHaveBeenLastCalledWith('ollama', {
+      api: LOCAL.api,
+      baseUrl: LOCAL.baseUrl,
+      envName: LOCAL.envName,
+      models: [{ id: 'vision', input: ['text', 'image'] }],
+    });
+  });
+
+  it('requires a cloud key and clears it before model discovery', async () => {
+    const { putProvider, discoverModels } = setup();
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'ollama-cloud' },
+    });
+    expect(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('API key'), {
+      target: { value: 'secret-sentinel' },
+    });
+    putProvider.mockResolvedValue({
+      ...LOCAL,
+      baseUrl: 'https://ollama.com/v1',
+      envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
+      hasApiKey: true,
+    });
+    discoverModels.mockRejectedValue(
+      new Error('Provider unavailable; try discovery again.'),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
+    await screen.findByText('Provider unavailable; try discovery again.');
+    expect(
+      screen.queryByDisplayValue('secret-sentinel'),
+    ).not.toBeInTheDocument();
+    expect(putProvider).toHaveBeenCalledWith(
+      'ollama-cloud',
+      expect.objectContaining({
+        envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
+        apiKey: 'secret-sentinel',
+        baseUrl: 'https://ollama.com/v1',
+      }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Refresh models' }),
+    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Close setup' })).toBeEnabled();
+    expect(screen.getByText('API key saved on this Mac.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Endpoint: https://ollama.com/v1'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('API key (optional)'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('selects all matching models, preserves other selections and refreshes without rewriting the connection', async () => {
+    const { discoverModels, putProvider } = setup();
+    discoverModels.mockResolvedValue([
+      { id: 'alpha' },
+      { id: 'beta' },
+      { id: 'alpine' },
+    ]);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
+    await screen.findByRole('checkbox', { name: 'alpha' });
+    fireEvent.click(screen.getByRole('button', { name: 'Select all (3)' }));
+    fireEvent.change(screen.getByLabelText('Filter models'), {
+      target: { value: 'al' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear matching selection' }),
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Save models for Ollama (local) (1)',
+      }),
+    ).toBeEnabled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Select all matching (2)' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh models' }));
+    await waitFor(() => expect(discoverModels).toHaveBeenCalledTimes(2));
+    expect(putProvider).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', {
+        name: 'Save models for Ollama (local) (3)',
+      }),
+    ).toBeEnabled();
+    fireEvent.change(screen.getByLabelText('Filter models'), {
+      target: { value: '' },
+    });
+    expect(screen.getByRole('checkbox', { name: 'beta' })).toBeChecked();
+  });
+
+  it('does not carry a cloud key into another provider preset', () => {
+    setup();
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'ollama-cloud' },
+    });
+    fireEvent.change(screen.getByLabelText('API key'), {
+      target: { value: 'secret-sentinel' },
+    });
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'custom' },
+    });
+    expect(screen.getByLabelText('API key (optional)')).toHaveValue('');
+  });
+
+  it('prevents the add form from overwriting an existing provider', () => {
+    const { putProvider } = setup({ ollama: LOCAL });
+    expect(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    ).toBeDisabled();
+    expect(putProvider).not.toHaveBeenCalled();
+  });
+});

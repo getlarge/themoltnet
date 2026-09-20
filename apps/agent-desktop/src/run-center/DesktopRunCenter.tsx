@@ -169,6 +169,8 @@ export function DesktopRunCenter() {
           status,
           catalogue,
           presets,
+          providers: status?.providers ?? {},
+          subscriptions: status?.subscriptions ?? [],
           runs: (status?.runs ?? []).map((run) => ({
             ...run,
             presetName:

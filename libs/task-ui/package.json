@@ -10,6 +10,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./local-providers": {
+      "import": "./src/local-providers/index.ts",
+      "types": "./src/local-providers/index.ts"
     }
   },
   "scripts": {
@@ -30,7 +34,8 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@moltnet/agent-daemon-api-client": "workspace:*"
   },
   "nx": {
     "tags": [

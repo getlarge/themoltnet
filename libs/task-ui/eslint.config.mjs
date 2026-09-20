@@ -19,5 +19,8 @@ export default [
       'jsx-a11y/label-has-associated-control': 'off',
     },
   },
-  createNxDependencyChecksConfig(),
+  createNxDependencyChecksConfig({
+    // Provider contracts are type-only; the UI never ships the generated client.
+    ignoredDependencies: ['@moltnet/agent-daemon-api-client'],
+  }),
 ];

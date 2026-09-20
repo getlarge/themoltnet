@@ -403,19 +403,38 @@ describe('LocalRuntimePage', () => {
     delete (agentServerState.status.agents[0] as { teamId?: string }).teamId;
   });
 
+  it('does not replace a legacy provider endpoint through a new preset', async () => {
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'ollama' },
+    });
+    expect(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/This provider already exists/),
+    ).toBeInTheDocument();
+    expect(requests.some((request) => request.method === 'PUT')).toBe(false);
+  });
+
   it('discovers models from a preset and saves only the selected ones', async () => {
-    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+    handlers['GET /v1/status'] = () =>
+      jsonResponse({ ...agentServerState.status, providers: {} });
+    handlers['POST /v1/providers/ollama/discover-models'] = () =>
       jsonResponse({
         models: [
           { id: 'llama3.3:70b' },
           { id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] },
         ],
       });
-    handlers['PUT /v1/providers/ollama-local'] = (init) =>
+    handlers['PUT /v1/providers/ollama'] = (init) =>
       jsonResponse({
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         models: JSON.parse(String(init?.body)).models,
         hasApiKey: false,
       });
@@ -423,44 +442,49 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText('existing-bot');
 
     // Preset pre-fills the endpoint; no hand-typed base URL needed.
-    fireEvent.click(screen.getByRole('button', { name: 'Ollama (local)' }));
+    fireEvent.change(screen.getByLabelText('Provider type'), {
+      target: { value: 'ollama' },
+    });
     expect((screen.getByLabelText('Base URL') as HTMLInputElement).value).toBe(
       'http://localhost:11434/v1',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
     const modelCheckbox = await screen.findByRole('checkbox', {
       // The image chip is inside the label, so it joins the accessible name;
       // that is deliberate, so a screen reader announces the capability.
       name: /^qwen3-coder:480b-cloud/u,
     });
     fireEvent.click(modelCheckbox);
-    fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
+    fireEvent.click(screen.getByRole('button', { name: /Save models for/ }));
 
     await waitFor(() => {
       const put = requests
         .filter(
           (entry) =>
             entry.method === 'PUT' &&
-            entry.url.endsWith('/v1/providers/ollama-local'),
+            entry.url.endsWith('/v1/providers/ollama'),
         )
         .at(-1);
       expect(put?.body).toMatchObject({
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         // The daemon detected the modality; the console saves it back
         // untouched rather than re-deriving it.
         models: [{ id: 'qwen3-coder:480b-cloud', input: ['text', 'image'] }],
       });
     });
     const discovery = requests.find((entry) =>
-      entry.url.endsWith('/v1/providers/ollama-local/discover-models'),
+      entry.url.endsWith('/v1/providers/ollama/discover-models'),
     );
     expect(discovery?.body).toBeUndefined();
     const stagedProvider = requests.find(
       (entry) =>
-        entry.method === 'PUT' &&
-        entry.url.endsWith('/v1/providers/ollama-local'),
+        entry.method === 'PUT' && entry.url.endsWith('/v1/providers/ollama'),
     );
     expect(stagedProvider?.body).toMatchObject({
       baseUrl: 'http://localhost:11434/v1',
@@ -471,20 +495,20 @@ describe('LocalRuntimePage', () => {
   it('pre-fills an existing provider for edits and can remove it', async () => {
     handlers['DELETE /v1/providers/ollama'] = () =>
       new Response(null, { status: 204 });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPage();
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
+    expect(screen.getByText('Configure Ollama (local)')).toBeInTheDocument();
+    expect(screen.getByText('Provider ID: ollama')).toBeInTheDocument();
     expect(
-      (screen.getByLabelText('Provider id') as HTMLInputElement).value,
-    ).toBe('ollama');
-    expect(
-      screen.getByRole('button', { name: 'Update provider' }),
+      screen.getByRole('button', { name: /Save models for/ }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove provider' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remove provider' }).at(-1)!,
+    );
     await waitFor(() =>
       expect(
         requests.some(
@@ -515,8 +539,8 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Update provider' }));
+    expect(screen.getByText('Configure Ollama (local)')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Save models for/ }));
 
     await waitFor(() => {
       const put = requests
@@ -554,10 +578,12 @@ describe('LocalRuntimePage', () => {
     await screen.findAllByText('existing-bot');
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh models' }));
     await screen.findByRole('checkbox', { name: /qwen3\.5:397b/u });
-    fireEvent.click(screen.getByRole('checkbox', { name: /qwen3\.5:397b/u }));
-    fireEvent.click(screen.getByRole('button', { name: 'Update provider' }));
+    expect(
+      screen.getByRole('checkbox', { name: /qwen3\.5:397b/u }),
+    ).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: /Save models for/ }));
 
     await waitFor(() => {
       const put = requests
@@ -576,28 +602,34 @@ describe('LocalRuntimePage', () => {
   });
 
   it('renders large discovery results in bounded, filterable pages', async () => {
+    handlers['GET /v1/status'] = () =>
+      jsonResponse({ ...agentServerState.status, providers: {} });
     const models = Array.from({ length: 120 }, (_value, index) => ({
       id: `model-${String(index).padStart(3, '0')}`,
     }));
-    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+    handlers['POST /v1/providers/ollama/discover-models'] = () =>
       jsonResponse({ models });
-    handlers['PUT /v1/providers/ollama-local'] = () =>
+    handlers['PUT /v1/providers/ollama'] = () =>
       jsonResponse({
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         models: [],
         hasApiKey: false,
       });
     renderPage();
     await screen.findAllByText('existing-bot');
-    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Save connection and discover models',
+      }),
+    );
 
-    await screen.findByLabelText('Filter discovered models');
+    await screen.findByLabelText('Filter models');
     expect(screen.getAllByRole('checkbox')).toHaveLength(50);
-    fireEvent.click(screen.getByRole('button', { name: 'Show 50 more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show more models' }));
     expect(screen.getAllByRole('checkbox')).toHaveLength(100);
-    fireEvent.change(screen.getByLabelText('Filter discovered models'), {
+    fireEvent.change(screen.getByLabelText('Filter models'), {
       target: { value: 'model-119' },
     });
     expect(screen.getAllByRole('checkbox')).toHaveLength(1);
