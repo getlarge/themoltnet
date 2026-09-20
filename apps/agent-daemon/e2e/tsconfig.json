@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "@fastify/swagger"]
+  },
+  "extends": "../../../tsconfig.json",
+  "include": ["./desktop-fixture.ts"]
+}
