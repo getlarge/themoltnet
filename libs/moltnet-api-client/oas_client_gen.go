@@ -166,7 +166,7 @@ type Invoker interface {
 	CreateGroup(ctx context.Context, request *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
 	// CreateProject invokes createProject operation.
 	//
-	// POST /teams/{id}/projects
+	// POST /projects
 	CreateProject(ctx context.Context, request *CreateProjectReq, params CreateProjectParams) (CreateProjectRes, error)
 	// CreateRuntimeModel invokes createRuntimeModel operation.
 	//
@@ -433,7 +433,7 @@ type Invoker interface {
 	GetProblemType(ctx context.Context, params GetProblemTypeParams) error
 	// GetProject invokes getProject operation.
 	//
-	// GET /teams/{id}/projects/{projectId}
+	// GET /projects/{projectId}
 	GetProject(ctx context.Context, params GetProjectParams) (GetProjectRes, error)
 	// GetPublicEntry invokes getPublicEntry operation.
 	//
@@ -630,7 +630,7 @@ type Invoker interface {
 	ListProblemTypes(ctx context.Context) ([]ListProblemTypesOKItem, error)
 	// ListProjects invokes listProjects operation.
 	//
-	// GET /teams/{id}/projects
+	// GET /projects
 	ListProjects(ctx context.Context, params ListProjectsParams) (ListProjectsRes, error)
 	// ListRuntimeModels invokes listRuntimeModels operation.
 	//
@@ -904,7 +904,7 @@ type Invoker interface {
 	UpdateEntryRelationStatus(ctx context.Context, request *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (UpdateEntryRelationStatusRes, error)
 	// UpdateProject invokes updateProject operation.
 	//
-	// PATCH /teams/{id}/projects/{projectId}
+	// PATCH /projects/{projectId}
 	UpdateProject(ctx context.Context, request OptUpdateProjectReq, params UpdateProjectParams) (UpdateProjectRes, error)
 	// UpdateRenderedPack invokes updateRenderedPack operation.
 	//
@@ -4816,7 +4816,7 @@ func (c *Client) sendCreateGroup(ctx context.Context, request *CreateGroupReq, p
 
 // CreateProject invokes createProject operation.
 //
-// POST /teams/{id}/projects
+// POST /projects
 func (c *Client) CreateProject(ctx context.Context, request *CreateProjectReq, params CreateProjectParams) (CreateProjectRes, error) {
 	res, err := c.sendCreateProject(ctx, request, params)
 	return res, err
@@ -4826,7 +4826,7 @@ func (c *Client) sendCreateProject(ctx context.Context, request *CreateProjectRe
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createProject"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/teams/{id}/projects"),
+		semconv.URLTemplateKey.String("/projects"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -4859,27 +4859,8 @@ func (c *Client) sendCreateProject(ctx context.Context, request *CreateProjectRe
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/teams/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/projects"
+	var pathParts [1]string
+	pathParts[0] = "/projects"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"
@@ -4889,6 +4870,23 @@ func (c *Client) sendCreateProject(ctx context.Context, request *CreateProjectRe
 	}
 	if err := encodeCreateProjectRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -11310,7 +11308,7 @@ func (c *Client) sendGetProblemType(ctx context.Context, params GetProblemTypePa
 
 // GetProject invokes getProject operation.
 //
-// GET /teams/{id}/projects/{projectId}
+// GET /projects/{projectId}
 func (c *Client) GetProject(ctx context.Context, params GetProjectParams) (GetProjectRes, error) {
 	res, err := c.sendGetProject(ctx, params)
 	return res, err
@@ -11320,7 +11318,7 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getProject"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/teams/{id}/projects/{projectId}"),
+		semconv.URLTemplateKey.String("/projects/{projectId}"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -11353,27 +11351,8 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [4]string
-	pathParts[0] = "/teams/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/projects/"
+	var pathParts [2]string
+	pathParts[0] = "/projects/"
 	{
 		// Encode "projectId" parameter.
 		e := uri.NewPathEncoder(uri.PathEncoderConfig{
@@ -11390,7 +11369,7 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 		if err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
-		pathParts[3] = encoded
+		pathParts[1] = encoded
 	}
 	uri.AddPathParts(u, pathParts[:]...)
 
@@ -11398,6 +11377,23 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -16982,7 +16978,7 @@ func (c *Client) sendListProblemTypes(ctx context.Context) (res []ListProblemTyp
 
 // ListProjects invokes listProjects operation.
 //
-// GET /teams/{id}/projects
+// GET /projects
 func (c *Client) ListProjects(ctx context.Context, params ListProjectsParams) (ListProjectsRes, error) {
 	res, err := c.sendListProjects(ctx, params)
 	return res, err
@@ -16992,7 +16988,7 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listProjects"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/teams/{id}/projects"),
+		semconv.URLTemplateKey.String("/projects"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -17025,27 +17021,8 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/teams/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/projects"
+	var pathParts [1]string
+	pathParts[0] = "/projects"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeQueryParams"
@@ -17107,6 +17084,23 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -24755,7 +24749,7 @@ func (c *Client) sendUpdateEntryRelationStatus(ctx context.Context, request *Upd
 
 // UpdateProject invokes updateProject operation.
 //
-// PATCH /teams/{id}/projects/{projectId}
+// PATCH /projects/{projectId}
 func (c *Client) UpdateProject(ctx context.Context, request OptUpdateProjectReq, params UpdateProjectParams) (UpdateProjectRes, error) {
 	res, err := c.sendUpdateProject(ctx, request, params)
 	return res, err
@@ -24765,7 +24759,7 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("updateProject"),
 		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.URLTemplateKey.String("/teams/{id}/projects/{projectId}"),
+		semconv.URLTemplateKey.String("/projects/{projectId}"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -24798,27 +24792,8 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [4]string
-	pathParts[0] = "/teams/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/projects/"
+	var pathParts [2]string
+	pathParts[0] = "/projects/"
 	{
 		// Encode "projectId" parameter.
 		e := uri.NewPathEncoder(uri.PathEncoderConfig{
@@ -24835,7 +24810,7 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 		if err != nil {
 			return res, errors.Wrap(err, "encode path")
 		}
-		pathParts[3] = encoded
+		pathParts[1] = encoded
 	}
 	uri.AddPathParts(u, pathParts[:]...)
 
@@ -24846,6 +24821,23 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 	}
 	if err := encodeUpdateProjectRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

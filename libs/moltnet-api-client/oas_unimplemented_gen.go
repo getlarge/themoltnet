@@ -221,7 +221,7 @@ func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq
 
 // CreateProject implements createProject operation.
 //
-// POST /teams/{id}/projects
+// POST /projects
 func (UnimplementedHandler) CreateProject(ctx context.Context, req *CreateProjectReq, params CreateProjectParams) (r CreateProjectRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -617,7 +617,7 @@ func (UnimplementedHandler) GetProblemType(ctx context.Context, params GetProble
 
 // GetProject implements getProject operation.
 //
-// GET /teams/{id}/projects/{projectId}
+// GET /projects/{projectId}
 func (UnimplementedHandler) GetProject(ctx context.Context, params GetProjectParams) (r GetProjectRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -910,7 +910,7 @@ func (UnimplementedHandler) ListProblemTypes(ctx context.Context) (r []ListProbl
 
 // ListProjects implements listProjects operation.
 //
-// GET /teams/{id}/projects
+// GET /projects
 func (UnimplementedHandler) ListProjects(ctx context.Context, params ListProjectsParams) (r ListProjectsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -1319,7 +1319,7 @@ func (UnimplementedHandler) UpdateEntryRelationStatus(ctx context.Context, req *
 
 // UpdateProject implements updateProject operation.
 //
-// PATCH /teams/{id}/projects/{projectId}
+// PATCH /projects/{projectId}
 func (UnimplementedHandler) UpdateProject(ctx context.Context, req OptUpdateProjectReq, params UpdateProjectParams) (r UpdateProjectRes, _ error) {
 	return r, ht.ErrNotImplemented
 }

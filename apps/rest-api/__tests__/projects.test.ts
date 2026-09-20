@@ -24,7 +24,10 @@ import {
 const TEAM = 'aa0e8400-e29b-41d4-a716-446655440011';
 const ID = '990e8400-e29b-41d4-a716-446655440010';
 const DIARY = 'bb0e8400-e29b-41d4-a716-446655440011';
-const headers = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
+const headers = {
+  authorization: `Bearer ${TEST_BEARER_TOKEN}`,
+  'x-moltnet-team-id': TEAM,
+};
 const project = {
   id: ID,
   teamId: TEAM,
@@ -73,6 +76,27 @@ describe('shared team projects', () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM });
   });
+  it.each(['GET', 'POST', 'PATCH'] as const)(
+    'requires a team selection for unbound %s requests',
+    async (method) => {
+      const response = await app.inject({
+        method,
+        url: method === 'PATCH' ? `/projects/${ID}` : '/projects',
+        headers: { authorization: headers.authorization },
+        ...(method === 'GET' ? {} : { payload: { name: 'Research' } }),
+      });
+      expect(response.statusCode).toBe(400);
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.update).not.toHaveBeenCalled();
+      expect(repository.listByTeamId).not.toHaveBeenCalled();
+    },
+  );
+  it('does not expose the old team-prefixed routes', async () => {
+    expect(
+      (await app.inject({ url: `/teams/${TEAM}/projects`, headers }))
+        .statusCode,
+    ).toBe(404);
+  });
   it('returns bounded pages and an explicit next offset', async () => {
     repository.listByTeamId.mockResolvedValue([
       project,
@@ -80,7 +104,7 @@ describe('shared team projects', () => {
     ]);
     const response = await app.inject({
       method: 'GET',
-      url: `/teams/${TEAM}/projects?limit=1&offset=2`,
+      url: `/projects?limit=1&offset=2`,
       headers,
     });
     expect(response.statusCode).toBe(200);
@@ -96,7 +120,7 @@ describe('shared team projects', () => {
   it('lets team managers create projects including in personal teams', async () => {
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM}/projects`,
+      url: `/projects`,
       headers,
       payload: { name: 'Research' },
     });
@@ -112,7 +136,7 @@ describe('shared team projects', () => {
     authContext = HUMAN_AUTH_CONTEXT;
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM}/projects`,
+      url: `/projects`,
       headers,
       payload: { name: 'Research' },
     });
@@ -127,7 +151,7 @@ describe('shared team projects', () => {
     mocks.permissionChecker.canWriteTeam.mockResolvedValue(false);
     const response = await app.inject({
       method: 'PATCH',
-      url: `/teams/${TEAM}/projects/${ID}`,
+      url: `/projects/${ID}`,
       headers,
       payload: { archived: true },
     });
@@ -137,7 +161,7 @@ describe('shared team projects', () => {
   it('hides catalogue discovery from non-members', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(false);
     const response = await app.inject({
-      url: `/teams/${TEAM}/projects`,
+      url: `/projects`,
       headers,
     });
     expect(response.statusCode).toBe(404);
@@ -146,7 +170,7 @@ describe('shared team projects', () => {
   it('rejects an empty project update before writing', async () => {
     const response = await app.inject({
       method: 'PATCH',
-      url: `/teams/${TEAM}/projects/${ID}`,
+      url: `/projects/${ID}`,
       headers,
     });
     expect(response.statusCode).toBe(400);
@@ -156,7 +180,7 @@ describe('shared team projects', () => {
     mocks.permissionChecker.canWriteTeam.mockResolvedValue(false);
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM}/projects`,
+      url: `/projects`,
       headers,
       payload: { name: 'Research' },
     });
@@ -164,25 +188,23 @@ describe('shared team projects', () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
   it('allows team discovery but hides projects from non-members', async () => {
-    expect(
-      (await app.inject({ url: `/teams/${TEAM}/projects`, headers }))
-        .statusCode,
-    ).toBe(200);
+    expect((await app.inject({ url: `/projects`, headers })).statusCode).toBe(
+      200,
+    );
     expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, false, {
       limit: 51,
       offset: 0,
     });
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(false);
     expect(
-      (await app.inject({ url: `/teams/${TEAM}/projects/${ID}`, headers }))
-        .statusCode,
+      (await app.inject({ url: `/projects/${ID}`, headers })).statusCode,
     ).toBe(404);
   });
   it('rejects a default diary from a different team', async () => {
     mocks.diaryService.findDiary.mockResolvedValue({ id: DIARY, teamId: ID });
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM}/projects`,
+      url: `/projects`,
       headers,
       payload: { name: 'Research', defaultDiaryId: DIARY },
     });
@@ -192,15 +214,14 @@ describe('shared team projects', () => {
   it('does not return a project addressed through another team', async () => {
     repository.findById.mockResolvedValue({ ...project, teamId: ID });
     expect(
-      (await app.inject({ url: `/teams/${TEAM}/projects/${ID}`, headers }))
-        .statusCode,
+      (await app.inject({ url: `/projects/${ID}`, headers })).statusCode,
     ).toBe(404);
   });
   it('archives without deleting and can list archived projects explicitly', async () => {
     repository.update.mockResolvedValue({ ...project, archived: true });
     const response = await app.inject({
       method: 'PATCH',
-      url: `/teams/${TEAM}/projects/${ID}`,
+      url: `/projects/${ID}`,
       headers,
       payload: { archived: true },
     });
@@ -210,7 +231,7 @@ describe('shared team projects', () => {
       archived: true,
     });
     await app.inject({
-      url: `/teams/${TEAM}/projects?includeArchived=true`,
+      url: `/projects?includeArchived=true`,
       headers,
     });
     expect(repository.listByTeamId).toHaveBeenCalledWith(TEAM, true, {
@@ -224,7 +245,7 @@ describe('shared team projects', () => {
       authContext = KEY_AUTH_CONTEXT;
       const response = await app.inject({
         method,
-        url: `/teams/${TEAM}/projects${method === 'PATCH' ? `/${ID}` : ''}`,
+        url: `/projects${method === 'PATCH' ? `/${ID}` : ''}`,
         headers,
         ...(method === 'GET' ? {} : { payload: { name: 'Research' } }),
       });
@@ -240,7 +261,7 @@ describe('shared team projects', () => {
     );
     const response = await app.inject({
       method: 'POST',
-      url: `/teams/${TEAM}/projects`,
+      url: `/projects`,
       headers,
       payload: { name: 'Research', defaultDiaryId: DIARY },
     });
@@ -253,7 +274,7 @@ describe('shared team projects', () => {
   it('never transfers a project through update', async () => {
     const response = await app.inject({
       method: 'PATCH',
-      url: `/teams/${TEAM}/projects/${ID}`,
+      url: `/projects/${ID}`,
       headers,
       payload: { name: 'Renamed', teamId: ID },
     });

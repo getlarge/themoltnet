@@ -37,12 +37,10 @@ describe('project catalogue and task routing', () => {
   it('archives a catalogue entry while preserving matching claims on existing tasks', async () => {
     const auth = () => owner.accessToken;
     const headers = { 'x-moltnet-team-id': owner.personalTeamId };
-    const path = { id: owner.personalTeamId };
     const created = await createProject({
       client,
       auth,
       headers,
-      path,
       body: {
         name: `project-${randomUUID()}`,
         defaultDiaryId: owner.privateDiaryId,
@@ -50,7 +48,7 @@ describe('project catalogue and task routing', () => {
     });
     expect(created.response.status).toBe(201);
     const projectId = created.data!.id;
-    const projectPath = { ...path, projectId };
+    const projectPath = { projectId };
     const fetched = await getProject({
       client,
       auth,
@@ -93,7 +91,7 @@ describe('project catalogue and task routing', () => {
       body: { archived: true },
     });
     expect(archived.data!.archived).toBe(true);
-    const hidden = await listProjects({ client, auth, headers, path });
+    const hidden = await listProjects({ client, auth, headers });
     expect(hidden.data!.items.map((project) => project.id)).not.toContain(
       projectId,
     );
@@ -101,7 +99,6 @@ describe('project catalogue and task routing', () => {
       client,
       auth,
       headers,
-      path,
       query: { includeArchived: true },
     });
     expect(all.data!.items.map((project) => project.id)).toContain(projectId);
@@ -133,7 +130,7 @@ describe('project catalogue and task routing', () => {
     const deniedRead = await listProjects({
       client,
       auth: () => outsider.accessToken,
-      path: { id },
+      headers: { 'x-moltnet-team-id': id },
     });
     expect(deniedRead.response.status).toBe(404);
     expect(deniedRead.error).toMatchObject({ code: 'NOT_FOUND' });
@@ -152,7 +149,6 @@ describe('project catalogue and task routing', () => {
     const rejected = await createProject({
       client,
       auth: () => outsider.accessToken,
-      path: { id },
       headers: { 'x-moltnet-team-id': id },
       body: { name: 'member-project' },
     });
@@ -160,7 +156,7 @@ describe('project catalogue and task routing', () => {
     expect(rejected.error).toMatchObject({ code: 'FORBIDDEN' });
   });
 
-  it('keeps a team-bound key within its selected team without a header', async () => {
+  it('infers the bound team without a header and rejects a conflicting header', async () => {
     const issued = await createAgentKey({
       client,
       auth: () => owner.accessToken,
@@ -181,10 +177,17 @@ describe('project catalogue and task routing', () => {
       auth: () => owner.accessToken,
       body: { name: `other-project-team-${randomUUID()}` },
     });
+    const inferred = await createProject({
+      client,
+      auth: () => issued.data!.secret,
+      body: { name: `inferred-${randomUUID()}` },
+    });
+    expect(inferred.response.status).toBe(201);
+    expect(inferred.data!.teamId).toBe(owner.personalTeamId);
     const rejected = await createProject({
       client,
       auth: () => issued.data!.secret,
-      path: { id: team.data!.id },
+      headers: { 'x-moltnet-team-id': team.data!.id },
       body: { name: 'bound-project' },
     });
     expect(rejected.response.status).toBe(403);
@@ -207,7 +210,6 @@ describe('project catalogue and task routing', () => {
     const id = team.data!.id;
     const project = await createProject({
       client: humanClient,
-      path: { id },
       headers: { 'x-moltnet-team-id': id },
       body: { name: 'Human project' },
     });

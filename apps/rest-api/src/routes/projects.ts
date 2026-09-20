@@ -7,7 +7,7 @@ import {
   CreateProjectSchema,
   ProblemDetailsSchema,
   ProjectResponseSchema,
-  TeamParamsSchema,
+  TeamHeaderOptionalSchema,
   UpdateProjectSchema,
 } from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -19,6 +19,7 @@ import {
   createValidationProblem,
 } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 function serializeProject(project: Project) {
@@ -33,7 +34,6 @@ export async function projectRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
   const params = Type.Object({
-    id: Type.String({ format: 'uuid' }),
     projectId: Type.String({ format: 'uuid' }),
   });
   const errors = {
@@ -123,11 +123,12 @@ export async function projectRoutes(fastify: FastifyInstance) {
     }
   }
   server.post(
-    '/teams/:id/projects',
+    '/projects',
     {
       config: {
         auth: {
           credentialBindingScope: 'team',
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['team:manage'],
         },
       },
@@ -135,13 +136,13 @@ export async function projectRoutes(fastify: FastifyInstance) {
         operationId: 'createProject',
         tags: ['projects'],
         security,
-        params: TeamParamsSchema,
+        headers: TeamHeaderOptionalSchema,
         body: CreateProjectSchema,
         response: { 201: ProjectResponseSchema, ...errors },
       },
     },
     async (request, reply) => {
-      const { id: teamId } = request.params;
+      const teamId = requireCurrentTeamId(request, 'projects');
       await authorize(request, teamId, true);
       if (!(await fastify.teamRepository.findById(teamId)))
         throw createProblem('not-found');
@@ -157,17 +158,21 @@ export async function projectRoutes(fastify: FastifyInstance) {
     },
   );
   server.get(
-    '/teams/:id/projects',
+    '/projects',
     {
       config: {
-        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+        auth: {
+          credentialBindingScope: 'team',
+          deferTeamAccessAuthorization: true,
+          requiredScopes: ['team:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
         operationId: 'listProjects',
         tags: ['projects'],
         security,
-        params: TeamParamsSchema,
+        headers: TeamHeaderOptionalSchema,
         querystring: Type.Object({
           includeArchived: Type.Optional(Type.Boolean()),
           limit: Type.Optional(
@@ -185,11 +190,12 @@ export async function projectRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      await authorize(request, request.params.id);
+      const teamId = requireCurrentTeamId(request, 'projects');
+      await authorize(request, teamId);
       const limit = request.query.limit ?? 50;
       const offset = request.query.offset ?? 0;
       const items = await fastify.projectRepository.listByTeamId(
-        request.params.id,
+        teamId,
         request.query.includeArchived ?? false,
         { limit: limit + 1, offset },
       );
@@ -200,10 +206,14 @@ export async function projectRoutes(fastify: FastifyInstance) {
     },
   );
   server.get(
-    '/teams/:id/projects/:projectId',
+    '/projects/:projectId',
     {
       config: {
-        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+        auth: {
+          credentialBindingScope: 'team',
+          deferTeamAccessAuthorization: true,
+          requiredScopes: ['team:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -211,21 +221,24 @@ export async function projectRoutes(fastify: FastifyInstance) {
         tags: ['projects'],
         security,
         params,
+        headers: TeamHeaderOptionalSchema,
         response: { 200: ProjectResponseSchema, ...errors },
       },
     },
     async (request) => {
-      await authorize(request, request.params.id);
-      const project = await find(request.params.id, request.params.projectId);
+      const teamId = requireCurrentTeamId(request, 'projects');
+      await authorize(request, teamId);
+      const project = await find(teamId, request.params.projectId);
       return serializeProject(project);
     },
   );
   server.patch(
-    '/teams/:id/projects/:projectId',
+    '/projects/:projectId',
     {
       config: {
         auth: {
           credentialBindingScope: 'team',
+          deferTeamAccessAuthorization: true,
           requiredScopes: ['team:manage'],
         },
       },
@@ -234,12 +247,14 @@ export async function projectRoutes(fastify: FastifyInstance) {
         tags: ['projects'],
         security,
         params,
+        headers: TeamHeaderOptionalSchema,
         body: UpdateProjectSchema,
         response: { 200: ProjectResponseSchema, ...errors },
       },
     },
     async (request) => {
-      const { id: teamId, projectId } = request.params;
+      const teamId = requireCurrentTeamId(request, 'projects');
+      const { projectId } = request.params;
       await authorize(request, teamId, true);
       await find(teamId, projectId);
       await validateDiary(request, teamId, request.body.defaultDiaryId);

@@ -22350,6 +22350,90 @@ var getProblemType = (options) => (options.client ?? client).get({
 	url: "/problems/{type}",
 	...options
 });
+var listProjects = (options) => (options?.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/projects",
+	...options
+});
+var createProject = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/projects",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var getProject = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/projects/{projectId}",
+	...options
+});
+var updateProject = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/projects/{projectId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
 /**
 * Get a single public diary entry by ID with author info. No authentication required.
 */
@@ -23667,90 +23751,6 @@ var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 		}
 	],
 	url: "/teams/{id}/members/{subjectId}",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-var listProjects = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/teams/{id}/projects",
-	...options
-});
-var createProject = (options) => (options.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/teams/{id}/projects",
-	...options,
-	headers: {
-		"Content-Type": "application/json",
-		...options.headers
-	}
-});
-var getProject = (options) => (options.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/teams/{id}/projects/{projectId}",
-	...options
-});
-var updateProject = (options) => (options.client ?? client).patch({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/teams/{id}/projects/{projectId}",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -25817,74 +25817,56 @@ function createProblemsNamespace(context) {
 //#endregion
 //#region ../../libs/sdk/src/namespaces/projects.ts
 function createProjectsNamespace({ client, auth }) {
-	const headers = (teamId) => requiredTeamHeaders({ teamId });
 	return {
-		async create(teamId, body) {
+		async create(body, options) {
 			return unwrapResult(await createProject({
 				client,
 				auth,
-				path: { id: teamId },
-				headers: headers(teamId),
-				body
+				body,
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async list(teamId, options) {
+		async list(query, options) {
 			return unwrapResult(await listProjects({
 				client,
 				auth,
-				path: { id: teamId },
-				headers: headers(teamId),
-				query: {
-					...options,
-					includeArchived: options?.includeArchived ?? false
-				}
+				query,
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async get(teamId, projectId) {
+		async get(projectId, options) {
 			return unwrapResult(await getProject({
 				client,
 				auth,
-				path: {
-					id: teamId,
-					projectId
-				},
-				headers: headers(teamId)
+				path: { projectId },
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async update(teamId, projectId, body) {
+		async update(projectId, body, options) {
 			return unwrapResult(await updateProject({
 				client,
 				auth,
-				path: {
-					id: teamId,
-					projectId
-				},
-				headers: headers(teamId),
-				body
+				path: { projectId },
+				body,
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async archive(teamId, projectId) {
+		async archive(projectId, options) {
 			return unwrapResult(await updateProject({
 				client,
 				auth,
-				path: {
-					id: teamId,
-					projectId
-				},
-				headers: headers(teamId),
-				body: { archived: true }
+				path: { projectId },
+				body: { archived: true },
+				headers: requiredTeamHeaders(options)
 			}));
 		},
-		async unarchive(teamId, projectId) {
+		async unarchive(projectId, options) {
 			return unwrapResult(await updateProject({
 				client,
 				auth,
-				path: {
-					id: teamId,
-					projectId
-				},
-				headers: headers(teamId),
-				body: { archived: false }
+				path: { projectId },
+				body: { archived: false },
+				headers: requiredTeamHeaders(options)
 			}));
 		}
 	};

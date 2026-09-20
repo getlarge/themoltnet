@@ -2133,64 +2133,61 @@ func decodeCreateGroupParams(args [1]string, argsEscaped bool, r *http.Request) 
 
 // CreateProjectParams is parameters of createProject operation.
 type CreateProjectParams struct {
-	// UUID v4 identifier.
-	ID uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackCreateProjectParams(packed middleware.Parameters) (params CreateProjectParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
+			Name: "x-moltnet-team-id",
+			In:   "header",
 		}
-		params.ID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
 	}
 	return params
 }
 
-func decodeCreateProjectParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateProjectParams, _ error) {
-	// Decode path: id.
+func decodeCreateProjectParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateProjectParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
 	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
 		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
 
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
-			}(); err != nil {
+			}); err != nil {
 				return err
 			}
-		} else {
-			return validate.ErrFieldRequired
 		}
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -5887,18 +5884,12 @@ func decodeGetProblemTypeParams(args [1]string, argsEscaped bool, r *http.Reques
 
 // GetProjectParams is parameters of getProject operation.
 type GetProjectParams struct {
-	ID        uuid.UUID
 	ProjectId uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackGetProjectParams(packed middleware.Parameters) (params GetProjectParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
 	{
 		key := middleware.ParameterKey{
 			Name: "projectId",
@@ -5906,60 +5897,25 @@ func unpackGetProjectParams(packed middleware.Parameters) (params GetProjectPara
 		}
 		params.ProjectId = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
 	return params
 }
 
-func decodeGetProjectParams(args [2]string, argsEscaped bool, r *http.Request) (params GetProjectParams, _ error) {
-	// Decode path: id.
+func decodeGetProjectParams(args [1]string, argsEscaped bool, r *http.Request) (params GetProjectParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: projectId.
 	if err := func() error {
 		param := args[0]
 		if argsEscaped {
 			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode path: projectId.
-	if err := func() error {
-		param := args[1]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[1])
 			if err != nil {
 				return errors.Wrap(err, "unescape path")
 			}
@@ -5997,6 +5953,45 @@ func decodeGetProjectParams(args [2]string, argsEscaped bool, r *http.Request) (
 		return params, &ogenerrors.DecodeParamError{
 			Name: "projectId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -11257,8 +11252,8 @@ type ListProjectsParams struct {
 	IncludeArchived OptBool `json:",omitempty,omitzero"`
 	Limit           OptInt  `json:",omitempty,omitzero"`
 	Offset          OptInt  `json:",omitempty,omitzero"`
-	// UUID v4 identifier.
-	ID uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackListProjectsParams(packed middleware.Parameters) (params ListProjectsParams) {
@@ -11291,16 +11286,19 @@ func unpackListProjectsParams(packed middleware.Parameters) (params ListProjects
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
+			Name: "x-moltnet-team-id",
+			In:   "header",
 		}
-		params.ID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
 	}
 	return params
 }
 
-func decodeListProjectsParams(args [1]string, argsEscaped bool, r *http.Request) (params ListProjectsParams, _ error) {
+func decodeListProjectsParams(args [0]string, argsEscaped bool, r *http.Request) (params ListProjectsParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode query: includeArchived.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -11484,48 +11482,42 @@ func decodeListProjectsParams(args [1]string, argsEscaped bool, r *http.Request)
 			Err:  err,
 		}
 	}
-	// Decode path: id.
+	// Decode header: x-moltnet-team-id.
 	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
 		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
 
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
-			}(); err != nil {
+			}); err != nil {
 				return err
 			}
-		} else {
-			return validate.ErrFieldRequired
 		}
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -17909,18 +17901,12 @@ func decodeUpdateEntryRelationStatusParams(args [1]string, argsEscaped bool, r *
 
 // UpdateProjectParams is parameters of updateProject operation.
 type UpdateProjectParams struct {
-	ID        uuid.UUID
 	ProjectId uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackUpdateProjectParams(packed middleware.Parameters) (params UpdateProjectParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
 	{
 		key := middleware.ParameterKey{
 			Name: "projectId",
@@ -17928,60 +17914,25 @@ func unpackUpdateProjectParams(packed middleware.Parameters) (params UpdateProje
 		}
 		params.ProjectId = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
 	return params
 }
 
-func decodeUpdateProjectParams(args [2]string, argsEscaped bool, r *http.Request) (params UpdateProjectParams, _ error) {
-	// Decode path: id.
+func decodeUpdateProjectParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateProjectParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: projectId.
 	if err := func() error {
 		param := args[0]
 		if argsEscaped {
 			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode path: projectId.
-	if err := func() error {
-		param := args[1]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[1])
 			if err != nil {
 				return errors.Wrap(err, "unescape path")
 			}
@@ -18019,6 +17970,45 @@ func decodeUpdateProjectParams(args [2]string, argsEscaped bool, r *http.Request
 		return params, &ogenerrors.DecodeParamError{
 			Name: "projectId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

@@ -145,7 +145,7 @@ type Handler interface {
 	CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
 	// CreateProject implements createProject operation.
 	//
-	// POST /teams/{id}/projects
+	// POST /projects
 	CreateProject(ctx context.Context, req *CreateProjectReq, params CreateProjectParams) (CreateProjectRes, error)
 	// CreateRuntimeModel implements createRuntimeModel operation.
 	//
@@ -412,7 +412,7 @@ type Handler interface {
 	GetProblemType(ctx context.Context, params GetProblemTypeParams) error
 	// GetProject implements getProject operation.
 	//
-	// GET /teams/{id}/projects/{projectId}
+	// GET /projects/{projectId}
 	GetProject(ctx context.Context, params GetProjectParams) (GetProjectRes, error)
 	// GetPublicEntry implements getPublicEntry operation.
 	//
@@ -609,7 +609,7 @@ type Handler interface {
 	ListProblemTypes(ctx context.Context) ([]ListProblemTypesOKItem, error)
 	// ListProjects implements listProjects operation.
 	//
-	// GET /teams/{id}/projects
+	// GET /projects
 	ListProjects(ctx context.Context, params ListProjectsParams) (ListProjectsRes, error)
 	// ListRuntimeModels implements listRuntimeModels operation.
 	//
@@ -883,7 +883,7 @@ type Handler interface {
 	UpdateEntryRelationStatus(ctx context.Context, req *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (UpdateEntryRelationStatusRes, error)
 	// UpdateProject implements updateProject operation.
 	//
-	// PATCH /teams/{id}/projects/{projectId}
+	// PATCH /projects/{projectId}
 	UpdateProject(ctx context.Context, req OptUpdateProjectReq, params UpdateProjectParams) (UpdateProjectRes, error)
 	// UpdateRenderedPack implements updateRenderedPack operation.
 	//

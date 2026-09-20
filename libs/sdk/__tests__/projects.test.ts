@@ -14,20 +14,20 @@ describe('projects namespace', () => {
     const projects = createProjectsNamespace({
       client: createClient({ baseUrl: 'https://api.example', fetch }),
     });
-    await projects.create('team', { name: 'Project' });
-    await projects.list('team');
-    await projects.get('team', 'project');
-    await projects.update('team', 'project', { name: 'Renamed' });
-    await projects.archive('team', 'project');
-    await projects.unarchive('team', 'project');
+    await projects.create({ name: 'Project' }, { teamId: 'team' });
+    await projects.list(undefined, { teamId: 'team' });
+    await projects.get('project', { teamId: 'team' });
+    await projects.update('project', { name: 'Renamed' }, { teamId: 'team' });
+    await projects.archive('project', { teamId: 'team' });
+    await projects.unarchive('project', { teamId: 'team' });
     const requests = fetch.mock.calls.map(([request]) => request as Request);
     expect(requests.map((r) => [r.method, new URL(r.url).pathname])).toEqual([
-      ['POST', '/teams/team/projects'],
-      ['GET', '/teams/team/projects'],
-      ['GET', '/teams/team/projects/project'],
-      ['PATCH', '/teams/team/projects/project'],
-      ['PATCH', '/teams/team/projects/project'],
-      ['PATCH', '/teams/team/projects/project'],
+      ['POST', '/projects'],
+      ['GET', '/projects'],
+      ['GET', '/projects/project'],
+      ['PATCH', '/projects/project'],
+      ['PATCH', '/projects/project'],
+      ['PATCH', '/projects/project'],
     ]);
     expect(await requests[4].json()).toEqual({ archived: true });
     expect(await requests[5].json()).toEqual({ archived: false });

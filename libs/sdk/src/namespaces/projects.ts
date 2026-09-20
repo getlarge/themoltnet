@@ -12,102 +12,106 @@ import {
 } from '@moltnet/api-client';
 
 import { type AgentContext, unwrapResult } from '../agent-context.js';
-import { requiredTeamHeaders } from './team-headers.js';
+import {
+  requiredTeamHeaders,
+  type RequiredTeamRequestOptions,
+} from './team-headers.js';
 
 export interface ProjectsNamespace {
   create(
-    teamId: string,
     body: CreateProjectData['body'],
+    options: RequiredTeamRequestOptions,
   ): Promise<CreateProjectResponse>;
   list(
-    teamId: string,
-    options?: { includeArchived?: boolean; limit?: number; offset?: number },
+    query:
+      | { includeArchived?: boolean; limit?: number; offset?: number }
+      | undefined,
+    options: RequiredTeamRequestOptions,
   ): Promise<ListProjectsResponse>;
-  get(teamId: string, projectId: string): Promise<GetProjectResponse>;
+  get(
+    projectId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<GetProjectResponse>;
   update(
-    teamId: string,
     projectId: string,
     body: UpdateProjectData['body'],
+    options: RequiredTeamRequestOptions,
   ): Promise<UpdateProjectResponse>;
-  archive(teamId: string, projectId: string): Promise<UpdateProjectResponse>;
-  unarchive(teamId: string, projectId: string): Promise<UpdateProjectResponse>;
+  archive(
+    projectId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<UpdateProjectResponse>;
+  unarchive(
+    projectId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<UpdateProjectResponse>;
 }
 
 export function createProjectsNamespace({
   client,
   auth,
 }: AgentContext): ProjectsNamespace {
-  const headers = (teamId: string) => requiredTeamHeaders({ teamId });
   return {
-    async create(teamId: string, body: CreateProjectData['body']) {
+    async create(body, options) {
       return unwrapResult(
         await createProject({
           client,
           auth,
-          path: { id: teamId },
-          headers: headers(teamId),
           body,
+          headers: requiredTeamHeaders(options),
         }),
       );
     },
-    async list(teamId, options) {
+    async list(query, options) {
       return unwrapResult(
         await listProjects({
           client,
           auth,
-          path: { id: teamId },
-          headers: headers(teamId),
-          query: {
-            ...options,
-            includeArchived: options?.includeArchived ?? false,
-          },
+          query,
+          headers: requiredTeamHeaders(options),
         }),
       );
     },
-    async get(teamId: string, projectId: string) {
+    async get(projectId, options) {
       return unwrapResult(
         await getProject({
           client,
           auth,
-          path: { id: teamId, projectId },
-          headers: headers(teamId),
+          path: { projectId },
+          headers: requiredTeamHeaders(options),
         }),
       );
     },
-    async update(
-      teamId: string,
-      projectId: string,
-      body: UpdateProjectData['body'],
-    ) {
+    async update(projectId, body, options) {
       return unwrapResult(
         await updateProject({
           client,
           auth,
-          path: { id: teamId, projectId },
-          headers: headers(teamId),
+          path: { projectId },
           body,
+          headers: requiredTeamHeaders(options),
         }),
       );
     },
-    async archive(teamId: string, projectId: string) {
+    async archive(projectId, options) {
       return unwrapResult(
         await updateProject({
           client,
           auth,
-          path: { id: teamId, projectId },
-          headers: headers(teamId),
+          path: { projectId },
           body: { archived: true },
+          headers: requiredTeamHeaders(options),
         }),
       );
     },
-    async unarchive(teamId: string, projectId: string) {
+    async unarchive(projectId, options) {
       return unwrapResult(
         await updateProject({
           client,
           auth,
-          path: { id: teamId, projectId },
-          headers: headers(teamId),
+          path: { projectId },
           body: { archived: false },
+          headers: requiredTeamHeaders(options),
         }),
       );
     },

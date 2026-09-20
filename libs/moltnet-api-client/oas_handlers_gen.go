@@ -5458,14 +5458,14 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 
 // handleCreateProjectRequest handles createProject operation.
 //
-// POST /teams/{id}/projects
-func (s *Server) handleCreateProjectRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// POST /projects
+func (s *Server) handleCreateProjectRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createProject"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/teams/{id}/projects"),
+		semconv.HTTPRouteKey.String("/projects"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -5649,9 +5649,9 @@ func (s *Server) handleCreateProjectRequest(args [1]string, argsEscaped bool, w 
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "id",
-					In:   "path",
-				}: params.ID,
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
@@ -14520,14 +14520,14 @@ func (s *Server) handleGetProblemTypeRequest(args [1]string, argsEscaped bool, w
 
 // handleGetProjectRequest handles getProject operation.
 //
-// GET /teams/{id}/projects/{projectId}
-func (s *Server) handleGetProjectRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /projects/{projectId}
+func (s *Server) handleGetProjectRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getProject"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/teams/{id}/projects/{projectId}"),
+		semconv.HTTPRouteKey.String("/projects/{projectId}"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -14696,13 +14696,13 @@ func (s *Server) handleGetProjectRequest(args [2]string, argsEscaped bool, w htt
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "id",
-					In:   "path",
-				}: params.ID,
-				{
 					Name: "projectId",
 					In:   "path",
 				}: params.ProjectId,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
@@ -21511,14 +21511,14 @@ func (s *Server) handleListProblemTypesRequest(args [0]string, argsEscaped bool,
 
 // handleListProjectsRequest handles listProjects operation.
 //
-// GET /teams/{id}/projects
-func (s *Server) handleListProjectsRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// GET /projects
+func (s *Server) handleListProjectsRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listProjects"),
 		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/teams/{id}/projects"),
+		semconv.HTTPRouteKey.String("/projects"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -21699,9 +21699,9 @@ func (s *Server) handleListProjectsRequest(args [1]string, argsEscaped bool, w h
 					In:   "query",
 				}: params.Offset,
 				{
-					Name: "id",
-					In:   "path",
-				}: params.ID,
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
@@ -31603,14 +31603,14 @@ func (s *Server) handleUpdateEntryRelationStatusRequest(args [1]string, argsEsca
 
 // handleUpdateProjectRequest handles updateProject operation.
 //
-// PATCH /teams/{id}/projects/{projectId}
-func (s *Server) handleUpdateProjectRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// PATCH /projects/{projectId}
+func (s *Server) handleUpdateProjectRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("updateProject"),
 		semconv.HTTPRequestMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/teams/{id}/projects/{projectId}"),
+		semconv.HTTPRouteKey.String("/projects/{projectId}"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -31794,13 +31794,13 @@ func (s *Server) handleUpdateProjectRequest(args [2]string, argsEscaped bool, w 
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
-					Name: "id",
-					In:   "path",
-				}: params.ID,
-				{
 					Name: "projectId",
 					In:   "path",
 				}: params.ProjectId,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}

@@ -2263,6 +2263,98 @@ export const getProblemType = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({ url: '/problems/{type}', ...options });
 
+export const listProjects = <ThrowOnError extends boolean = false>(
+  options?: Options<ListProjectsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListProjectsResponses,
+    ListProjectsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/projects',
+    ...options,
+  });
+
+export const createProject = <ThrowOnError extends boolean = false>(
+  options: Options<CreateProjectData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateProjectResponses,
+    CreateProjectErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/projects',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const getProject = <ThrowOnError extends boolean = false>(
+  options: Options<GetProjectData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProjectResponses,
+    GetProjectErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/projects/{projectId}',
+    ...options,
+  });
+
+export const updateProject = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateProjectData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateProjectResponses,
+    UpdateProjectErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/projects/{projectId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
 /**
  * Get a single public diary entry by ID with author info. No authentication required.
  */
@@ -4121,98 +4213,6 @@ export const updateTeamMemberRole = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/teams/{id}/members/{subjectId}',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-export const listProjects = <ThrowOnError extends boolean = false>(
-  options: Options<ListProjectsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListProjectsResponses,
-    ListProjectsErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/projects',
-    ...options,
-  });
-
-export const createProject = <ThrowOnError extends boolean = false>(
-  options: Options<CreateProjectData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateProjectResponses,
-    CreateProjectErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/projects',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-export const getProject = <ThrowOnError extends boolean = false>(
-  options: Options<GetProjectData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetProjectResponses,
-    GetProjectErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/projects/{projectId}',
-    ...options,
-  });
-
-export const updateProject = <ThrowOnError extends boolean = false>(
-  options: Options<UpdateProjectData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    UpdateProjectResponses,
-    UpdateProjectErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/teams/{id}/projects/{projectId}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
