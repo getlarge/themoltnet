@@ -6,6 +6,7 @@ export default [
   {
     ignores: [
       'apps/agent-desktop/dist/**',
+      'apps/agent-desktop/dist-e2e/**',
       'apps/agent-desktop/**/out-rust/**',
       'apps/agent-desktop/**/out-tsc/**',
       'apps/agent-desktop/**/target/**',
