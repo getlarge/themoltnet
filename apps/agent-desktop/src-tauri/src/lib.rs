@@ -113,6 +113,15 @@ fn operate(
     result
 }
 
+async fn operate_async(
+    app: AppHandle,
+    operation: fn(&mut LifecycleManager) -> Result<DesktopStatus, String>,
+) -> Result<DesktopStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || operate(&app, operation))
+        .await
+        .map_err(|_| "Desktop lifecycle worker failed".to_string())?
+}
+
 fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let result = match state.lifecycle.lock() {
@@ -287,58 +296,63 @@ fn desktop_status(state: State<'_, AppState>) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
-fn install_agent(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::install_agent)
+async fn install_agent(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::install_agent).await
 }
 
 #[tauri::command]
-fn approve_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::approve_trust)
+async fn approve_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::approve_trust).await
 }
 
 #[tauri::command]
-fn retry_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::retry)
+async fn retry_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::retry).await
 }
 
 #[tauri::command]
-fn start_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::start_server)
+async fn start_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::start_server).await
 }
 
 #[tauri::command]
-fn stop_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::stop_server)
+async fn stop_agent_server(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::stop_server).await
 }
 
 #[tauri::command]
-fn check_for_agent_updates(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::check_for_updates)
+async fn check_for_agent_updates(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::check_for_updates).await
 }
 
 #[tauri::command]
-fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::install_update)
+async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::install_update).await
 }
 
 #[tauri::command]
-fn open_console() -> Result<(), String> {
-    lifecycle::open_console()
+async fn open_console() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(lifecycle::open_console)
+        .await
+        .map_err(|_| "Could not open Console".to_string())?
 }
 
 #[tauri::command]
-fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
-    lifecycle::open_logs(&state.logs_directory)
+async fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
+    let directory = state.logs_directory.clone();
+    tauri::async_runtime::spawn_blocking(move || lifecycle::open_logs(&directory))
+        .await
+        .map_err(|_| "Could not open logs".to_string())?
 }
 
 #[tauri::command]
-fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::remove_bundle)
+async fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::remove_bundle).await
 }
 
 #[tauri::command]
-fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate(&app, LifecycleManager::remove_trust)
+async fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
+    operate_async(app, LifecycleManager::remove_trust).await
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize)]

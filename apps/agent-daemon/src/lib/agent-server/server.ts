@@ -356,7 +356,7 @@ export function buildAgentServer(
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   void app.register(rateLimit, {
-    global: false,
+    global: true,
     max: options.rateLimitMax ?? RATE_LIMIT_MAX,
     timeWindow: RATE_LIMIT_WINDOW_MS,
     errorResponseBuilder: () =>
@@ -418,7 +418,6 @@ export function buildAgentServer(
   };
 
   app.after(() => {
-    app.addHook('onRequest', app.rateLimit());
     app.get(
       '/health',
       { schema: AgentServerRouteSchemas.health },

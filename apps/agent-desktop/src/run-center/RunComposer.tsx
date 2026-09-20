@@ -240,6 +240,7 @@ export function RunComposer({
                   : undefined
               }
             >
+              <option value="">Choose a team</option>
               {teams.map((candidate) => (
                 <option key={candidate.teamId} value={candidate.teamId}>
                   {candidate.teamName}

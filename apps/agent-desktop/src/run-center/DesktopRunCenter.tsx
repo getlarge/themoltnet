@@ -25,8 +25,15 @@ export function DesktopRunCenter() {
   const epoch = useRef(0);
   const failures = useRef(0);
   const lastCatalogue = useRef(0);
-  const refresh = useCallback((refreshCatalogue = true): Promise<void> => {
-    if (inFlight.current) return inFlight.current;
+  const refresh = useCallback(function refreshSnapshot(
+    refreshCatalogue = true,
+  ): Promise<void> {
+    if (inFlight.current) {
+      // Mutations need a read started after they completed, not an older poll.
+      return refreshCatalogue
+        ? inFlight.current.then(() => refreshSnapshot(true))
+        : inFlight.current;
+    }
     const currentEpoch = epoch.current;
     const pending = (async () => {
       try {

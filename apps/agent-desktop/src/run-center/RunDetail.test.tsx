@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -45,7 +45,7 @@ describe('captured run credential', () => {
         defaultTeamId: 'team',
       }),
       startRun: vi.fn(),
-      stopRun: vi.fn(),
+      stopRun: vi.fn().mockRejectedValue(new Error('unavailable')),
       savePreset: vi.fn(),
       deletePreset: vi.fn(),
       subscribeRunLogs: () => () => {},
@@ -68,5 +68,8 @@ describe('captured run credential', () => {
     ).toBeInTheDocument();
     expect(run.credential?.keyId).toBe('predecessor');
     expect(actions.stopRun).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    await screen.findByText('Run could not be stopped');
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled();
   });
 });

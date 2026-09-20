@@ -64,6 +64,7 @@ export function RunDetail({
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [stopping, setStopping] = useState(false);
+  const [stopError, setStopError] = useState(false);
   const logRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -81,6 +82,11 @@ export function RunDetail({
 
   return (
     <Stack gap={6}>
+      {stopError ? (
+        <InlineNotice tone="warning" title="Run could not be stopped">
+          Try again or check the Server view.
+        </InlineNotice>
+      ) : null}
       <Text variant="caption" color="secondary">
         Run credential: {expiryLabel(run.credential?.expiresAt)}
       </Text>
@@ -144,8 +150,10 @@ export function RunDetail({
                 loadingLabel="Stopping run"
                 onClick={() => {
                   setStopping(true);
+                  setStopError(false);
                   void actions
                     .stopRun(run.id)
+                    .catch(() => setStopError(true))
                     .finally(() => setStopping(false));
                 }}
               >
