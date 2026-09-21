@@ -6,6 +6,7 @@ import { AgentServerLockError } from '../lib/agent-server/lock.js';
 import {
   agentServerLockExitCode,
   installSupervisedStdinGuard,
+  nativeSocketValidationOptions,
   validateNativeSocketOptions,
 } from './server.js';
 
@@ -95,6 +96,21 @@ describe('native socket CLI configuration', () => {
         supervised: true,
       }),
     ).toBeUndefined();
+  });
+
+  it('ignores inherited standalone TCP environment configuration', () => {
+    const options = nativeSocketValidationOptions({
+      nativeSocket: '/tmp/control.sock',
+      supervised: true,
+      envPort: '17374',
+      envAllowedOrigins: 'https://console.themolt.net',
+    });
+
+    expect(options).toEqual({
+      nativeSocket: '/tmp/control.sock',
+      supervised: true,
+    });
+    expect(validateNativeSocketOptions(options)).toBeUndefined();
   });
 });
 

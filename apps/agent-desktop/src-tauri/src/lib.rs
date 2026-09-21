@@ -1,3 +1,5 @@
+#[path = "../build_support.rs"]
+mod build_support;
 mod control;
 mod lifecycle;
 mod native_socket;
@@ -5,10 +7,6 @@ mod operator_oauth {
     include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
 }
 mod tray;
-
-#[cfg(test)]
-#[path = "../build_support.rs"]
-mod build_support;
 
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager, LifecycleState};
 use serde::Serialize;

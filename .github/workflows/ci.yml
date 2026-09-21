@@ -278,6 +278,23 @@ jobs:
         run: |
           dbus-run-session -- bash -c 'rm -f "$HOME"/.local/share/keyrings/*; printf "test" | gnome-keyring-daemon --unlock; pnpm exec nx affected -t test-native'
 
+  agent-desktop-native-macos:
+    name: Agent Desktop native tests (macOS)
+    needs: [affected]
+    if: needs.affected.outputs.agent-desktop == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - name: Test macOS native control and peer credentials
+        run: cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-macos
+
   # Compute the affected project set once and expose per-suite / per-image
   # flags. Downstream jobs gate on these so e2e and image builds only run
   # when the projects they cover are actually affected by the diff.

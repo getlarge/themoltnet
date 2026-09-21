@@ -20,6 +20,12 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
 const DIRECTORY_PREFIX: &str = "moltnet-agent-";
 pub const SOCKET_NAME: &str = "control.sock";
 
+#[derive(Debug, Default, Eq, PartialEq)]
+pub struct SweepReport {
+    pub removed: usize,
+    pub errors: Vec<String>,
+}
+
 #[derive(Clone, Debug)]
 pub struct SocketConnector {
     pub directory: Arc<tempfile::TempDir>,
@@ -78,9 +84,9 @@ impl SocketConnector {
 /// Create a short private endpoint and remove endpoints left by dead Desktop
 /// processes. A live PID, a symlink, another owner or broader permissions is
 /// always left untouched.
-pub fn private_directory() -> Result<tempfile::TempDir, String> {
+pub fn private_directory() -> Result<(tempfile::TempDir, SweepReport), String> {
     let root = fs::canonicalize("/tmp").map_err(|error| error.to_string())?;
-    sweep_stale_directories(&root);
+    let cleanup = sweep_stale_directories(&root);
     let directory = tempfile::Builder::new()
         .prefix(&format!("{DIRECTORY_PREFIX}{}-", std::process::id()))
         .tempdir_in(root)
@@ -90,16 +96,32 @@ pub fn private_directory() -> Result<tempfile::TempDir, String> {
         <fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
     )
     .map_err(|error| error.to_string())?;
-    Ok(directory)
+    Ok((directory, cleanup))
 }
 
-fn sweep_stale_directories(root: &std::path::Path) {
-    let Ok(entries) = fs::read_dir(root) else {
-        return;
+fn sweep_stale_directories(root: &std::path::Path) -> SweepReport {
+    let mut report = SweepReport::default();
+    let entries = match fs::read_dir(root) {
+        Ok(entries) => entries,
+        Err(error) => {
+            report
+                .errors
+                .push(format!("could not inspect {}: {error}", root.display()));
+            return report;
+        }
     };
     // SAFETY: geteuid takes no arguments and returns the current identity.
     let uid = unsafe { libc::geteuid() };
-    for entry in entries.flatten() {
+    for entry in entries {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                report.errors.push(format!(
+                    "could not inspect a socket directory entry: {error}"
+                ));
+                continue;
+            }
+        };
         let name = entry.file_name();
         let Some(pid) = name
             .to_str()
@@ -114,17 +136,31 @@ fn sweep_stale_directories(root: &std::path::Path) {
             continue;
         }
         let path = entry.path();
-        let Ok(metadata) = fs::symlink_metadata(&path) else {
-            continue;
+        let metadata = match fs::symlink_metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                report.errors.push(format!(
+                    "could not inspect stale socket directory {}: {error}",
+                    path.display()
+                ));
+                continue;
+            }
         };
         if metadata.is_dir()
             && !metadata.file_type().is_symlink()
             && metadata.uid() == uid
             && metadata.mode() & 0o777 == 0o700
         {
-            let _ = fs::remove_dir_all(path);
+            match fs::remove_dir_all(&path) {
+                Ok(()) => report.removed += 1,
+                Err(error) => report.errors.push(format!(
+                    "could not remove stale socket directory {}: {error}",
+                    path.display()
+                )),
+            }
         }
     }
+    report
 }
 
 fn process_is_alive(pid: u32) -> bool {
@@ -134,6 +170,8 @@ fn process_is_alive(pid: u32) -> bool {
 }
 
 // Nonblocking connect bounds startup even if another listener fills its backlog.
+// Linux reports EAGAIN when an AF_UNIX listener backlog is full or the peer is
+// not yet ready, which is the socket equivalent of a connection in progress.
 fn connect_bounded(path: &std::path::Path) -> io::Result<UnixStream> {
     // SAFETY: sockaddr_un is zero initialized and filled within sun_path bounds.
     // UnixStream takes ownership immediately, closing the fd on every error.
@@ -353,7 +391,7 @@ mod tests {
     use std::os::unix::net::UnixListener;
 
     fn endpoint() -> (SocketConnector, UnixListener) {
-        let directory = Arc::new(private_directory().unwrap());
+        let directory = Arc::new(private_directory().unwrap().0);
         let connector = SocketConnector {
             directory,
             pid: std::process::id(),
@@ -393,6 +431,27 @@ mod tests {
         })
         .unwrap();
         assert_eq!(attempts, 2);
+    }
+
+    #[test]
+    fn stale_directory_cleanup_reports_removals_and_scan_errors() {
+        let root = tempfile::tempdir().unwrap();
+        let stale = root
+            .path()
+            .join(format!("{DIRECTORY_PREFIX}{}-stale", libc::pid_t::MAX));
+        fs::create_dir(&stale).unwrap();
+        fs::set_permissions(&stale, fs::Permissions::from_mode(0o700)).unwrap();
+
+        let report = sweep_stale_directories(root.path());
+        assert_eq!(report.removed, 1);
+        assert!(report.errors.is_empty());
+        assert!(!stale.exists());
+
+        let file = root.path().join("not-a-directory");
+        fs::write(&file, "not a directory").unwrap();
+        let report = sweep_stale_directories(&file);
+        assert_eq!(report.removed, 0);
+        assert_eq!(report.errors.len(), 1);
     }
 
     #[test]

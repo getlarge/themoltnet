@@ -45,6 +45,7 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
+// Keep aligned with AGENT_SERVER_LOCK_HELD_EXIT_CODE in Desktop lifecycle.rs.
 const LOCK_HELD_EXIT_CODE = 75;
 
 export function agentServerLockExitCode(error: AgentServerLockError): number {
@@ -62,6 +63,28 @@ export function validateNativeSocketOptions(options: {
   if (options.port || options.allowedOrigins)
     return '--native-socket cannot be combined with TCP options';
   return undefined;
+}
+
+export function nativeSocketValidationOptions(input: {
+  nativeSocket?: string;
+  supervised?: boolean;
+  cliPort?: string;
+  cliAllowedOrigins?: string;
+  envPort?: string;
+  envAllowedOrigins?: string;
+}): Parameters<typeof validateNativeSocketOptions>[0] {
+  // Native mode does not bind TCP. Inherited standalone-mode environment
+  // settings have no effect; only contradictory CLI flags are an invocation
+  // error. Keep the environment fields in this boundary input so this policy
+  // remains explicit and regression-testable where CLI and env config meet.
+  return {
+    ...(input.nativeSocket ? { nativeSocket: input.nativeSocket } : {}),
+    ...(input.supervised ? { supervised: true } : {}),
+    ...(input.cliPort ? { port: input.cliPort } : {}),
+    ...(input.cliAllowedOrigins
+      ? { allowedOrigins: input.cliAllowedOrigins }
+      : {}),
+  };
 }
 
 export async function runAgentServer(argv: string[]): Promise<number> {
@@ -86,15 +109,20 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   });
 
   const nativeSocket = values['native-socket'];
-  const nativeSocketError = validateNativeSocketOptions({
-    ...(nativeSocket ? { nativeSocket } : {}),
-    ...(values.supervised ? { supervised: true } : {}),
-    // Native mode does not bind TCP. Inherited standalone-mode environment
-    // settings therefore have no effect; only contradictory CLI flags are an
-    // invocation error.
-    port: values.port,
-    allowedOrigins: values['allowed-origins'],
-  });
+  const nativeSocketError = validateNativeSocketOptions(
+    nativeSocketValidationOptions({
+      ...(nativeSocket ? { nativeSocket } : {}),
+      ...(values.supervised ? { supervised: true } : {}),
+      ...(values.port ? { cliPort: values.port } : {}),
+      ...(values['allowed-origins']
+        ? { cliAllowedOrigins: values['allowed-origins'] }
+        : {}),
+      ...(envConfig.port ? { envPort: envConfig.port } : {}),
+      ...(envConfig.allowedOrigins
+        ? { envAllowedOrigins: envConfig.allowedOrigins }
+        : {}),
+    }),
+  );
   if (nativeSocketError) {
     console.error(nativeSocketError);
     return 1;

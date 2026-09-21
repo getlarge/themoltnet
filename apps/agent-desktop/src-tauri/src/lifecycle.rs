@@ -1,9 +1,8 @@
+use crate::build_support::{valid_version, version_at_least};
 #[cfg(unix)]
 use crate::control::{NativeConnection, NativeToken, NATIVE_TOKEN_ENV};
 use serde::{Deserialize, Serialize};
 use std::ffi::{OsStr, OsString};
-#[cfg(target_os = "macos")]
-use std::io::Read;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
@@ -25,9 +24,8 @@ const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
+// Keep aligned with LOCK_HELD_EXIT_CODE in agent-daemon/src/cli/server.ts.
 const AGENT_SERVER_LOCK_HELD_EXIT_CODE: i32 = 75;
-#[cfg(target_os = "macos")]
-const LEGACY_CERTIFICATE_CLEANUP_TIMEOUT: Duration = Duration::from_secs(2);
 const EMBEDDED_AGENT_VERSION: &str = env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION");
 const EMBEDDED_INSTALLER: &str = include_str!(concat!(env!("OUT_DIR"), "/install-agent.sh"));
 
@@ -230,13 +228,6 @@ impl LifecycleManager {
     }
 
     pub fn initialize(&mut self) -> Result<DesktopStatus, String> {
-        match retire_legacy_local_ca(&self.home) {
-            Ok(true) => self.push_log("Removed obsolete Desktop certificate material."),
-            Ok(false) => {}
-            Err(error) => self.push_log(&format!(
-                "Could not remove obsolete Desktop certificate material: {error}"
-            )),
-        }
         if !self.executable().is_file() {
             self.set_state(
                 LifecycleState::NeedsInstall,
@@ -471,7 +462,21 @@ impl LifecycleManager {
             };
             // A short canonical path fits sockaddr_un on macOS and Linux.
             let directory = match crate::native_socket::private_directory() {
-                Ok(directory) => Arc::new(directory),
+                Ok((directory, cleanup)) => {
+                    if cleanup.removed > 0 || !cleanup.errors.is_empty() {
+                        self.push_log(&format!(
+                            "Native socket cleanup removed {} stale director{} and encountered {} error{}.",
+                            cleanup.removed,
+                            if cleanup.removed == 1 { "y" } else { "ies" },
+                            cleanup.errors.len(),
+                            if cleanup.errors.len() == 1 { "" } else { "s" },
+                        ));
+                    }
+                    for error in cleanup.errors {
+                        self.push_log(&format!("Native socket cleanup warning: {error}"));
+                    }
+                    Arc::new(directory)
+                }
                 Err(error) => {
                     return self.fail(&format!(
                         "could not prepare private control socket directory: {error}"
@@ -520,9 +525,14 @@ impl LifecycleManager {
                 match child.try_wait() {
                     Ok(Some(status)) => {
                         connection.deactivate();
+                        let should_retry = startup_should_retry(&status, attempt);
                         last_failure = startup_failure(status);
                         self.push_log(&last_failure);
-                        if attempt + 1 < MAX_START_ATTEMPTS {
+                        if !should_retry && status.code() == Some(AGENT_SERVER_LOCK_HELD_EXIT_CODE)
+                        {
+                            return self.fail(&last_failure);
+                        }
+                        if should_retry {
                             self.push_log("Retrying Agent Server startup once.");
                         }
                         break;
@@ -888,6 +898,10 @@ fn startup_failure(status: ExitStatus) -> String {
     )
 }
 
+fn startup_should_retry(status: &ExitStatus, attempt: usize) -> bool {
+    status.code() != Some(AGENT_SERVER_LOCK_HELD_EXIT_CODE) && attempt + 1 < MAX_START_ATTEMPTS
+}
+
 fn execute_update(
     version: &str,
     previous_version: &str,
@@ -916,143 +930,6 @@ fn home_directory() -> Result<PathBuf, String> {
         .map(PathBuf::from)
         .filter(|path| path.is_absolute())
         .ok_or_else(|| "HOME must be an absolute path".into())
-}
-
-#[cfg(target_os = "macos")]
-fn retire_legacy_local_ca(home: &Path) -> Result<bool, String> {
-    retire_legacy_local_ca_with(home, |program, args| {
-        let mut command = host_command(program);
-        command
-            .args(args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-        let mut child = command
-            .spawn()
-            .map_err(|error| format!("{} failed: {error}", program.display()))?;
-        let deadline = Instant::now() + LEGACY_CERTIFICATE_CLEANUP_TIMEOUT;
-        let status = loop {
-            match child.try_wait() {
-                Ok(Some(status)) => break status,
-                Ok(None) if Instant::now() < deadline => {
-                    thread::sleep(Duration::from_millis(25));
-                }
-                Ok(None) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(format!(
-                        "{} exceeded the certificate cleanup timeout",
-                        program.display()
-                    ));
-                }
-                Err(error) => return Err(format!("{} failed: {error}", program.display())),
-            }
-        };
-        let mut stdout = Vec::new();
-        let mut stderr = Vec::new();
-        child
-            .stdout
-            .take()
-            .ok_or_else(|| "certificate cleanup stdout was unavailable".to_string())?
-            .read_to_end(&mut stdout)
-            .map_err(|error| error.to_string())?;
-        child
-            .stderr
-            .take()
-            .ok_or_else(|| "certificate cleanup stderr was unavailable".to_string())?
-            .read_to_end(&mut stderr)
-            .map_err(|error| error.to_string())?;
-        let output = Output {
-            status,
-            stdout,
-            stderr,
-        };
-        if output.status.success() {
-            return Ok(());
-        }
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        if stderr.contains("No Trust Settings were found")
-            || stderr.contains("specified item could not be found")
-        {
-            return Ok(());
-        }
-        Err(command_failure(&program.display().to_string(), &output))
-    })
-}
-
-#[cfg(not(target_os = "macos"))]
-fn retire_legacy_local_ca(_home: &Path) -> Result<bool, String> {
-    Ok(false)
-}
-
-#[cfg(any(target_os = "macos", test))]
-fn retire_legacy_local_ca_with(
-    home: &Path,
-    mut run: impl FnMut(&Path, &[OsString]) -> Result<(), String>,
-) -> Result<bool, String> {
-    let directory = home.join(".config/moltnet/agent-server/tls");
-    let metadata = match fs::symlink_metadata(&directory) {
-        Ok(metadata) => metadata,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(error) => return Err(error.to_string()),
-    };
-    if metadata.file_type().is_symlink() || !metadata.is_dir() {
-        return Err("legacy TLS material path must be a real directory".into());
-    }
-
-    let security = Path::new("/usr/bin/security");
-    let certificate = directory.join("local-ca.pem");
-    if certificate.is_file() {
-        run(
-            security,
-            &[
-                OsString::from("remove-trusted-cert"),
-                certificate.as_os_str().to_owned(),
-            ],
-        )?;
-    }
-    run(
-        security,
-        &[
-            OsString::from("delete-certificate"),
-            OsString::from("-c"),
-            OsString::from("MoltNet Local Agent CA"),
-            home.join("Library/Keychains/login.keychain-db")
-                .into_os_string(),
-        ],
-    )?;
-    fs::remove_dir_all(directory).map_err(|error| error.to_string())?;
-    Ok(true)
-}
-
-fn valid_version(value: &str) -> bool {
-    // Keep this stable X.Y.Z rule aligned with tools/release/sync-cli-go-mod.sh
-    // and tools/release/propose-download-pin.sh.
-    parse_version(value).is_some()
-}
-
-fn parse_version(value: &str) -> Option<(u64, u64, u64)> {
-    let pieces = value.split('.').collect::<Vec<_>>();
-    if pieces.len() != 3
-        || pieces.iter().any(|piece| {
-            piece.is_empty()
-                || (piece.len() > 1 && piece.starts_with('0'))
-                || !piece.chars().all(|char| char.is_ascii_digit())
-        })
-    {
-        return None;
-    }
-    Some((
-        pieces[0].parse().ok()?,
-        pieces[1].parse().ok()?,
-        pieces[2].parse().ok()?,
-    ))
-}
-
-fn version_at_least(installed: &str, required: &str) -> bool {
-    match (parse_version(installed), parse_version(required)) {
-        (Some(installed), Some(required)) => installed >= required,
-        _ => false,
-    }
 }
 
 fn agent_server_command(executable: &Path, socket: &Path) -> Command {
@@ -1131,6 +1008,9 @@ mod tests {
             "Another Agent Server is already using this data directory. Stop it before retrying."
         );
         assert!(startup_failure(other).contains("Review the bounded server logs"));
+        assert!(!startup_should_retry(&held, 0));
+        assert!(startup_should_retry(&other, 0));
+        assert!(!startup_should_retry(&other, MAX_START_ATTEMPTS - 1));
     }
 
     #[test]
@@ -1174,35 +1054,6 @@ mod tests {
                 "/Users/test/.local/share/moltnet/agent/current/bin/moltnet-agent"
             )
         );
-    }
-
-    #[test]
-    fn legacy_local_ca_cleanup_is_bounded_to_owned_material() {
-        let home = tempfile::tempdir().unwrap();
-        let directory = home.path().join(".config/moltnet/agent-server/tls");
-        fs::create_dir_all(&directory).unwrap();
-        fs::write(directory.join("local-ca.pem"), "legacy certificate").unwrap();
-        let mut calls = Vec::new();
-
-        let removed = retire_legacy_local_ca_with(home.path(), |program, args| {
-            calls.push((program.to_path_buf(), args.to_vec()));
-            Ok(())
-        })
-        .unwrap();
-
-        assert!(removed);
-        assert_eq!(calls.len(), 2);
-        assert_eq!(calls[0].0, Path::new("/usr/bin/security"));
-        assert_eq!(calls[0].1[0], "remove-trusted-cert");
-        assert_eq!(calls[0].1[1], directory.join("local-ca.pem"));
-        assert_eq!(calls[1].1[0], "delete-certificate");
-        assert_eq!(calls[1].1[1], "-c");
-        assert_eq!(calls[1].1[2], "MoltNet Local Agent CA");
-        assert_eq!(
-            calls[1].1[3],
-            home.path().join("Library/Keychains/login.keychain-db")
-        );
-        assert!(!directory.exists());
     }
 
     #[test]

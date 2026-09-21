@@ -23,7 +23,7 @@ fn main() {
             .expect("resolve embedded Agent CLI version");
     assert!(
         version_at_least(agent_cli_version, NATIVE_SOCKET_MIN_VERSION),
-        "embedded Agent CLI must support native socket control"
+        "embedded Agent CLI version {agent_cli_version} is below native socket minimum {NATIVE_SOCKET_MIN_VERSION}; update apps/agent-desktop/agent-cli.version"
     );
     println!("cargo:rustc-env=MOLTNET_EMBEDDED_AGENT_CLI_VERSION={agent_cli_version}");
 
