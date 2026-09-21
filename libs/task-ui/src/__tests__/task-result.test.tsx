@@ -12,6 +12,7 @@ import {
   taskDetailScenarios,
 } from '../fixtures/task-detail.js';
 import { FreeformArtifactList } from '../freeform-artifact-list.js';
+import { CompactIdentifiersProvider } from '../identifier.js';
 import { TaskDetailHeader } from '../task-detail-header.js';
 import { TaskDetailView } from '../task-detail-view.js';
 import { readEntryAttempt, TaskKnowledgeList } from '../task-knowledge-list.js';
@@ -105,11 +106,12 @@ describe('TaskResultPanel — accepted freeform result', () => {
 
   it('shortens identifiers in presentation mode while keeping the full value copyable', () => {
     renderWithTheme(
-      <TaskResultPanel
-        task={projectBriefTask}
-        attempts={[projectBriefAttempt]}
-        compactIdentifiers
-      />,
+      <CompactIdentifiersProvider compact>
+        <TaskResultPanel
+          task={projectBriefTask}
+          attempts={[projectBriefAttempt]}
+        />
+      </CompactIdentifiersProvider>,
     );
 
     expect(screen.getByText('bafyreiz…srn5dr')).toHaveAttribute(
@@ -220,9 +222,7 @@ describe('Task output renderers', () => {
 
   it('lets a host register a renderer ahead of the defaults', () => {
     const custom: TaskOutputRenderer = {
-      id: 'survey',
       matches: ({ task }) => task.taskType === 'site_survey_digest',
-      summary: () => 'Custom lead',
       Body: () => <p>Custom body</p>,
     };
     const { task, attempts } = taskDetailScenarios['unknown-output'];
@@ -231,23 +231,48 @@ describe('Task output renderers', () => {
       <TaskResultPanel task={task} attempts={attempts} renderers={[custom]} />,
     );
 
-    expect(screen.getByText('Custom lead')).toBeVisible();
     expect(screen.getByText('Custom body')).toBeVisible();
+    // The panel still leads with the output's own summary.
+    expect(
+      screen.getByText(/Survey measurements were grouped by room/),
+    ).toBeVisible();
+    // The custom renderer replaced the generic field list.
+    expect(screen.queryByText('discrepancies')).toBeNull();
   });
 
   it('resolves freeform only when the output carries a summary', () => {
-    const context = {
-      task: projectBriefTask,
-      attempt: projectBriefAttempt,
-      compactIdentifiers: false,
+    const context = { task: projectBriefTask, attempt: projectBriefAttempt };
+    const freeform = resolveTaskOutputRenderer({
+      ...context,
+      output: projectBriefOutput,
+    });
+    const fallback = resolveTaskOutputRenderer({
+      ...context,
+      output: { artifacts: [] },
+    });
+
+    expect(freeform).not.toBe(fallback);
+    expect(
+      resolveTaskOutputRenderer({ ...context, output: { anything: 1 } }),
+    ).toBe(fallback);
+  });
+
+  it('tries host renderers before the built-in freeform renderer', () => {
+    const custom: TaskOutputRenderer = {
+      matches: () => true,
+      Body: () => null,
     };
 
     expect(
-      resolveTaskOutputRenderer({ ...context, output: projectBriefOutput }).id,
-    ).toBe('freeform');
-    expect(
-      resolveTaskOutputRenderer({ ...context, output: { artifacts: [] } }).id,
-    ).toBe('generic');
+      resolveTaskOutputRenderer(
+        {
+          task: projectBriefTask,
+          attempt: projectBriefAttempt,
+          output: projectBriefOutput,
+        },
+        [custom],
+      ),
+    ).toBe(custom);
   });
 });
 
@@ -260,12 +285,10 @@ describe('Structured artifacts', () => {
             kind: 'requirements',
             title: 'JSON requirements',
             contentType: 'application/json',
-            body: JSON.stringify({
-              requirements: [
-                { statement: 'Keep the wall', rationale: 'Named as fixed' },
-                { statement: 'Quiet workspace' },
-              ],
-            }),
+            body: JSON.stringify([
+              { statement: 'Keep the wall', rationale: 'Named as fixed' },
+              { statement: 'Quiet workspace' },
+            ]),
           },
           {
             kind: 'diff',
@@ -327,11 +350,12 @@ describe('Structured artifacts', () => {
       },
       { type: 'paragraph', text: 'Closing line.' },
     ]);
-    expect(readJsonList('["a","b"]')).toEqual([
+    expect(readJsonList(['a', 'b'])).toEqual([
       { primary: 'a' },
       { primary: 'b' },
     ]);
-    expect(readJsonList('{"n": 1}')).toBeNull();
+    expect(readJsonList({ n: 1 })).toBeNull();
+    expect(readJsonList([{ n: 1 }])).toBeNull();
   });
 });
 

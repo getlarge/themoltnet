@@ -5,7 +5,6 @@ export interface DisclosureProps {
   summary: ReactNode;
   /** Secondary text after the summary label, e.g. what the section holds. */
   hint?: ReactNode;
-  defaultOpen?: boolean;
   children: ReactNode;
 }
 
@@ -13,14 +12,9 @@ export interface DisclosureProps {
  * Progressive disclosure built on native `<details>`, so keyboard, screen
  * reader, and find-in-page behaviour come from the browser.
  */
-export function Disclosure({
-  summary,
-  hint,
-  defaultOpen = false,
-  children,
-}: DisclosureProps) {
+export function Disclosure({ summary, hint, children }: DisclosureProps) {
   const theme = useTheme();
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
 
   return (
     <details

@@ -1,11 +1,5 @@
 export * from './analytics/index.js';
 export {
-  ArtifactBody,
-  type ArtifactBodyProps,
-  parseReadableBlocks,
-  readJsonList,
-} from './artifact-body.js';
-export {
   buildClaimCondition,
   type DependsRow,
   MAX_DEPENDS_DEPTH,
@@ -26,7 +20,6 @@ export {
   DependsOnBuilder,
   type DependsOnBuilderProps,
 } from './depends-on-builder.js';
-export { Disclosure, type DisclosureProps } from './disclosure.js';
 export {
   formatDateTime,
   formatRelativeAge,
@@ -35,10 +28,6 @@ export {
   joinTextDeltas,
   taskStatusTone,
 } from './format.js';
-export {
-  FreeformArtifactList,
-  type FreeformArtifactListProps,
-} from './freeform-artifact-list.js';
 export {
   FreeformArtifactsCard,
   type FreeformArtifactsCardProps,
@@ -103,12 +92,7 @@ export {
   TaskInputViewer,
   type TaskInputViewerProps,
 } from './task-input-viewer.js';
-export {
-  readEntryAttempt,
-  type TaskKnowledgeEntry,
-  TaskKnowledgeList,
-  type TaskKnowledgeListProps,
-} from './task-knowledge-list.js';
+export { type TaskKnowledgeEntry } from './task-knowledge-list.js';
 export {
   TaskLaneBoard,
   type TaskLaneBoardProps,
@@ -136,23 +120,6 @@ export {
   type TaskMessagesTimelineProps,
 } from './task-messages-timeline.js';
 export {
-  compactIdentifier,
-  type FreeformArtifactView,
-  type FreeformOutputView,
-  readFreeformArtifacts,
-  readFreeformOutput,
-  readOutputSummary,
-  readVerification,
-  summarizeVerification,
-  type VerificationResultStatus,
-  type VerificationResultView,
-  type VerificationView,
-} from './task-output.js';
-export {
-  defaultTaskOutputRenderers,
-  freeformOutputRenderer,
-  genericOutputRenderer,
-  resolveTaskOutputRenderer,
   type TaskOutputRenderContext,
   type TaskOutputRenderer,
 } from './task-output-renderers.js';
@@ -161,11 +128,6 @@ export {
   type TaskQueueTableProps,
 } from './task-queue-table.js';
 export { TaskRefsList, type TaskRefsListProps } from './task-refs-list.js';
-export {
-  getTaskResultState,
-  TaskResultPanel,
-  type TaskResultPanelProps,
-} from './task-result-panel.js';
 export {
   TaskStatusBadge,
   type TaskStatusBadgeProps,
@@ -179,10 +141,6 @@ export {
   type TaskTurnStreamProps,
 } from './task-turn-stream.js';
 export { TaskTypeFacet, type TaskTypeFacetProps } from './task-type-facet.js';
-export {
-  TaskVerificationSummary,
-  type TaskVerificationSummaryProps,
-} from './task-verification-summary.js';
 export type {
   DaemonState,
   ExecutorTrustLevel,

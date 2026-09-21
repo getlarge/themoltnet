@@ -2,6 +2,7 @@ import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { Disclosure } from './disclosure.js';
 import { humanizeToken } from './format.js';
+import { MEASURE, SectionLabel } from './layout.js';
 import {
   summarizeVerification,
   type VerificationResultStatus,
@@ -35,13 +36,12 @@ export function TaskVerificationSummary({
   criteriaDeclared,
 }: TaskVerificationSummaryProps) {
   const theme = useTheme();
+  const label = <SectionLabel>Agent self-check</SectionLabel>;
 
   if (!verification) {
     return (
       <Stack gap={1}>
-        <Text as="h3" variant="caption" weight="semibold" color="secondary">
-          Agent self-check
-        </Text>
+        {label}
         <Text variant="caption" color="muted">
           {criteriaDeclared
             ? 'The output has no self-check record.'
@@ -64,9 +64,7 @@ export function TaskVerificationSummary({
   return (
     <Stack gap={2}>
       <Stack gap={1}>
-        <Text as="h3" variant="caption" weight="semibold" color="secondary">
-          Agent self-check
-        </Text>
+        {label}
         <Stack direction="row" gap={2} align="baseline" wrap>
           <span
             aria-hidden="true"
@@ -78,7 +76,7 @@ export function TaskVerificationSummary({
             {headline}
           </Text>
         </Stack>
-        <Text variant="caption" color="muted" style={{ maxWidth: '72ch' }}>
+        <Text variant="caption" color="muted" style={{ maxWidth: MEASURE }}>
           Reported by the agent against the task’s success criteria. Advisory:
           it does not decide acceptance and is not an independent review.
         </Text>

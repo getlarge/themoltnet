@@ -2,7 +2,7 @@ import { RecordTrace, Stack, Text } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 
 import { formatDateTime, humanizeToken } from './format.js';
-import { compactIdentifier } from './task-output.js';
+import { Identifier } from './identifier.js';
 import type { TaskAttemptSummary, TaskSummary } from './types.js';
 
 export interface TaskKnowledgeState {
@@ -17,8 +17,6 @@ export interface TaskExecutionRecordProps {
   attemptAction?: ReactNode;
   runtimeAction?: ReactNode;
   knowledgeAction?: ReactNode;
-  /** Shorten UUIDs, CIDs, and hashes; the full value stays in the title. */
-  compactIdentifiers?: boolean;
 }
 
 export function TaskExecutionRecord({
@@ -28,15 +26,8 @@ export function TaskExecutionRecord({
   attemptAction,
   runtimeAction,
   knowledgeAction,
-  compactIdentifiers = false,
 }: TaskExecutionRecordProps) {
   const result = resultState(task, attempt);
-  const id = (value: string): ReactNode =>
-    compactIdentifiers && value.length > 20 ? (
-      <span title={value}>{compactIdentifier(value)}</span>
-    ) : (
-      value
-    );
   const knowledgeStatus = getKnowledgeStatus(task, knowledge);
 
   return (
@@ -62,7 +53,10 @@ export function TaskExecutionRecord({
             active: !attempt,
             details: [
               { label: 'Task type', value: humanizeToken(task.taskType) },
-              { label: 'Input CID', value: id(task.inputCid), mono: true },
+              {
+                label: 'Input CID',
+                value: <Identifier value={task.inputCid} />,
+              },
               {
                 label: 'Executor trust',
                 value: humanizeToken(task.requiredExecutorTrustLevel),
@@ -81,8 +75,7 @@ export function TaskExecutionRecord({
                   { label: 'Attempt', value: `#${attempt.attemptN}` },
                   {
                     label: 'Agent',
-                    value: id(attempt.claimedByAgentId),
-                    mono: true,
+                    value: <Identifier value={attempt.claimedByAgentId} />,
                   },
                   {
                     label: 'Executor',
@@ -103,18 +96,15 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Profile',
-                value: id(runtimeProfile(attempt)),
-                mono: Boolean(attempt?.runtimeProfileId),
+                value: idOr(runtimeProfile(attempt), 'Not recorded'),
               },
               {
                 label: 'Policy snapshot',
-                value: id(attempt?.policySnapshotHash ?? 'Not recorded'),
-                mono: Boolean(attempt?.policySnapshotHash),
+                value: idOr(attempt?.policySnapshotHash, 'Not recorded'),
               },
               {
                 label: 'Runtime ID',
-                value: id(attempt?.runtimeId ?? 'Not started'),
-                mono: Boolean(attempt?.runtimeId),
+                value: idOr(attempt?.runtimeId, 'Not started'),
               },
             ],
             action: runtimeAction,
@@ -128,8 +118,7 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Output CID',
-                value: id(attempt?.outputCid ?? 'Not reported'),
-                mono: Boolean(attempt?.outputCid),
+                value: idOr(attempt?.outputCid, 'Not reported'),
               },
               {
                 label: 'Signature',
@@ -160,8 +149,7 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Diary',
-                value: id(task.diaryId ?? 'Not configured'),
-                mono: Boolean(task.diaryId),
+                value: idOr(task.diaryId, 'Not configured'),
               },
               {
                 label: 'Task entries',
@@ -186,8 +174,12 @@ function runtimeStatus(attempt?: TaskAttemptSummary | null) {
   return 'Recorded';
 }
 
+function idOr(value: string | null | undefined, fallback: string): ReactNode {
+  return value ? <Identifier value={value} /> : fallback;
+}
+
 function runtimeProfile(attempt?: TaskAttemptSummary | null) {
-  if (!attempt?.runtimeProfileId) return 'Not recorded';
+  if (!attempt?.runtimeProfileId) return null;
   return attempt.runtimeProfileRevision
     ? `${attempt.runtimeProfileId}@${attempt.runtimeProfileRevision}`
     : attempt.runtimeProfileId;

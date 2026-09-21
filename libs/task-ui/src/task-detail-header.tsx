@@ -7,10 +7,15 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
-import { type ReactNode, useId, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { formatDateTime, humanizeToken } from './format.js';
-import { compactIdentifier } from './task-output.js';
+import {
+  compactIdentifier,
+  Identifier,
+  useCompactIdentifiers,
+} from './identifier.js';
+import { lineClamp, MEASURE, useExpandable } from './layout.js';
 import { TaskStatusBadge } from './task-status-badge.js';
 import type { TaskLabelRenderer, TaskSummary } from './types.js';
 
@@ -20,15 +25,12 @@ export interface TaskDetailHeaderProps {
   renderDiaryLabel?: TaskLabelRenderer;
   renderActorLabel?: TaskLabelRenderer;
   onOpenConsole?: (task: TaskSummary) => void;
-  /** Shorten the task ID chip; copying still yields the full ID. */
-  compactIdentifiers?: boolean;
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REQUEST_FIELDS = ['brief', 'taskPrompt', 'prompt', 'instructions'];
-/** Briefs longer than this start clamped to three lines. */
+/** Briefs longer than this, in characters or lines, start clamped. */
 const REQUEST_CLAMP_CHARS = 320;
-const REQUEST_CLAMP_LINES = 4;
+const REQUEST_CLAMP_LINES = 3;
 
 /**
  * The natural-language request in a task input, when its type has one
@@ -48,32 +50,36 @@ export function TaskDetailHeader({
   renderDiaryLabel,
   renderActorLabel,
   onOpenConsole,
-  compactIdentifiers = false,
 }: TaskDetailHeaderProps) {
   const actorId = task.proposedByAgentId ?? task.proposedByHumanId;
   const taskTitle = task.title || humanizeToken(task.taskType);
   const request = readTaskRequest(task.input);
-  const requestId = useId();
-  const [requestOpen, setRequestOpen] = useState(false);
+  const compact = useCompactIdentifiers();
+  const expandable = useExpandable();
   const requestIsLong = Boolean(
     request &&
     (request.length > REQUEST_CLAMP_CHARS ||
       request.split('\n').length > REQUEST_CLAMP_LINES),
   );
-  const requestClamped = requestIsLong && !requestOpen;
+  const requestClamped = requestIsLong && !expandable.expanded;
 
-  // Mono only for raw identifiers, never for labels a host substituted.
   const fact = (label: string, value: ReactNode): DescriptionListItem => ({
     label,
     value,
-    mono: typeof value === 'string' && UUID.test(value),
   });
+  // A host label when one is rendered, otherwise the raw identifier.
+  const idFact = (
+    label: string,
+    raw: string | null,
+    render?: TaskLabelRenderer,
+  ): DescriptionListItem =>
+    fact(label, render?.(raw) ?? (raw ? <Identifier value={raw} /> : '—'));
 
   const facts: DescriptionListItem[] = [
     fact('Task type', humanizeToken(task.taskType)),
-    fact('Proposer', renderActorLabel?.(actorId) ?? actorId ?? '—'),
-    fact('Team', renderTeamLabel?.(task.teamId) ?? task.teamId),
-    fact('Diary', renderDiaryLabel?.(task.diaryId) ?? task.diaryId ?? '—'),
+    idFact('Proposer', actorId, renderActorLabel),
+    idFact('Team', task.teamId, renderTeamLabel),
+    idFact('Diary', task.diaryId, renderDiaryLabel),
     fact('Queued', formatDateTime(task.queuedAt)),
     ...(task.completedAt
       ? [fact('Completed', formatDateTime(task.completedAt))]
@@ -86,10 +92,9 @@ export function TaskDetailHeader({
           {
             label: 'Correlation ID',
             value: (
-              <CopyButton
+              <Identifier
                 value={task.correlationId}
-                size="sm"
-                ariaLabel="Copy correlation ID"
+                copyLabel="Copy correlation ID"
               />
             ),
           },
@@ -120,20 +125,13 @@ export function TaskDetailHeader({
                   Asked
                 </Text>
                 <Text
-                  id={requestId}
+                  id={expandable.regionId}
                   color="secondary"
                   style={{
-                    maxWidth: '72ch',
+                    maxWidth: MEASURE,
                     overflowWrap: 'anywhere',
                     whiteSpace: 'pre-line',
-                    ...(requestClamped
-                      ? {
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }
-                      : null),
+                    ...(requestClamped ? lineClamp(REQUEST_CLAMP_LINES) : null),
                   }}
                 >
                   {request}
@@ -142,12 +140,10 @@ export function TaskDetailHeader({
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-expanded={requestOpen}
-                    aria-controls={requestId}
-                    onClick={() => setRequestOpen((open) => !open)}
+                    {...expandable.toggleProps}
                     style={{ alignSelf: 'flex-start' }}
                   >
-                    {requestOpen ? 'Show less' : 'Show the full brief'}
+                    {expandable.expanded ? 'Show less' : 'Show the full brief'}
                   </Button>
                 ) : null}
               </Stack>
@@ -157,7 +153,7 @@ export function TaskDetailHeader({
           <Stack gap={2} align="flex-start" style={{ minWidth: 0 }}>
             <CopyButton
               value={task.id}
-              text={compactIdentifiers ? compactIdentifier(task.id) : undefined}
+              text={compact ? compactIdentifier(task.id) : undefined}
               size="sm"
               ariaLabel="Copy task ID"
             />

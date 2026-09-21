@@ -4,7 +4,7 @@ import { FreeformArtifactList } from './freeform-artifact-list.js';
 import { readFreeformArtifacts } from './task-output.js';
 
 export interface FreeformArtifactsCardProps {
-  output: { summary?: unknown; artifacts?: unknown } | null | undefined;
+  output: unknown;
 }
 
 /**

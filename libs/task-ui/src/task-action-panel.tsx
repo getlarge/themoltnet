@@ -105,14 +105,14 @@ export function TaskActionPanel({
                     ) : null}
                   </Stack>
 
-                  <Stack
-                    direction="row"
-                    gap={2}
-                    align="center"
-                    style={{ minWidth: 0, maxWidth: '100%' }}
-                  >
+                  <Stack direction="row" gap={2} align="center">
                     {action.prompt ? (
-                      <CopyButton value={action.prompt} label="Copy" />
+                      <CopyButton
+                        value={action.prompt}
+                        text="Copy"
+                        size="sm"
+                        ariaLabel={`Copy ${action.label} prompt`}
+                      />
                     ) : null}
                     {onAction ? (
                       <Button

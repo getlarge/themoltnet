@@ -4,11 +4,11 @@ import {
   ControlSurface,
   Stack,
   Text,
-  useTheme,
 } from '@themoltnet/design-system';
 import { type ReactNode, useId } from 'react';
 
 import { formatDateTime, humanizeToken } from './format.js';
+import { lineClamp, MEASURE, RuledList } from './layout.js';
 
 /** The fields of a diary entry the task view needs. */
 export interface TaskKnowledgeEntry {
@@ -74,7 +74,6 @@ export function TaskKnowledgeList({
   onOpenDiary,
   onRetry,
 }: TaskKnowledgeListProps) {
-  const theme = useTheme();
   const headingId = useId();
   const cited = new Set(citedEntryIds);
   const shown = entries.length;
@@ -125,30 +124,15 @@ export function TaskKnowledgeList({
     );
   } else {
     body = (
-      <ul
-        aria-labelledby={headingId}
-        style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid' }}
-      >
-        {ordered.map((entry, index) => {
+      <RuledList labelledBy={headingId}>
+        {ordered.map((entry) => {
           const title = entry.title?.trim() || 'Untitled entry';
           const attemptN = readEntryAttempt(entry);
           const fromAccepted =
             attemptN !== null && attemptN === acceptedAttemptN;
           const excerpt = entry.content ? toExcerpt(entry.content) : null;
           return (
-            <li
-              key={entry.id}
-              style={{
-                display: 'grid',
-                gap: theme.spacing[1],
-                borderTop:
-                  index === 0
-                    ? 'none'
-                    : `1px solid ${theme.color.border.DEFAULT}`,
-                paddingTop: index === 0 ? 0 : theme.spacing[4],
-                paddingBottom: index === shown - 1 ? 0 : theme.spacing[4],
-              }}
-            >
+            <Stack key={entry.id} gap={1}>
               <Text as="h3" variant="body" weight="medium">
                 {renderEntryLink ? renderEntryLink(entry, title) : title}
               </Text>
@@ -173,21 +157,15 @@ export function TaskKnowledgeList({
                 <Text
                   variant="caption"
                   color="secondary"
-                  style={{
-                    maxWidth: '72ch',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
+                  style={{ maxWidth: MEASURE, ...lineClamp(2) }}
                 >
                   {excerpt}
                 </Text>
               ) : null}
-            </li>
+            </Stack>
           );
         })}
-      </ul>
+      </RuledList>
     );
   }
 
@@ -206,7 +184,7 @@ export function TaskKnowledgeList({
           <Text
             variant="caption"
             color="secondary"
-            style={{ maxWidth: '72ch' }}
+            style={{ maxWidth: MEASURE }}
           >
             Diary entries tagged to this task, kept for later work. They are not
             part of the result.
@@ -234,7 +212,9 @@ export function TaskKnowledgeList({
 }
 
 function toExcerpt(content: string) {
+  // Entries can hold up to 100k characters; only the opening matters here.
   const text = content
+    .slice(0, 1200)
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/^\s*#{1,6}\s+/gm, '')
     .replace(/[*_`>]/g, '')

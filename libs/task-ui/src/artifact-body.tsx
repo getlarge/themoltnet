@@ -1,5 +1,7 @@
 import { Button, CodeBlock, useTheme } from '@themoltnet/design-system';
-import { type ReactNode, useId, useState } from 'react';
+import { memo, useMemo } from 'react';
+
+import { MEASURE, useExpandable } from './layout.js';
 
 /**
  * Readable preview for an artifact's inline `body`.
@@ -106,18 +108,8 @@ const PRIMARY_KEYS = [
 ];
 const SECONDARY_KEYS = ['detail', 'description', 'rationale', 'note'];
 
-/** Reads a JSON list of strings or labelled objects into list items. */
-export function readJsonList(body: string): ListItem[] | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(body);
-  } catch {
-    return null;
-  }
-  const list =
-    Array.isArray(parsed) || typeof parsed !== 'object' || parsed === null
-      ? parsed
-      : Object.values(parsed).find(Array.isArray);
+/** Reads a parsed JSON array of strings or labelled objects as list items. */
+export function readJsonList(list: unknown): ListItem[] | null {
   if (!Array.isArray(list) || list.length === 0) return null;
 
   const items: ListItem[] = [];
@@ -277,41 +269,56 @@ function ReadableBlocks({ blocks }: { blocks: Block[] }) {
   );
 }
 
+type ParsedBody =
+  | { type: 'code'; text: string }
+  | { type: 'list'; items: ListItem[] }
+  | { type: 'readable'; blocks: Block[] };
+
+function parseBody(
+  body: string,
+  contentType?: string,
+  kind?: string,
+): ParsedBody {
+  if (isCodeLike(contentType, kind)) return { type: 'code', text: body };
+  if (isJsonLike(body, contentType)) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      return { type: 'code', text: body };
+    }
+    const items = readJsonList(parsed);
+    return items
+      ? { type: 'list', items }
+      : { type: 'code', text: JSON.stringify(parsed, null, 2) };
+  }
+  return { type: 'readable', blocks: parseReadableBlocks(body) };
+}
+
+/** Bodies longer than this start collapsed. */
+const COLLAPSE_AFTER = 1400;
+
 export interface ArtifactBodyProps {
   body: string;
   contentType?: string;
   kind?: string;
-  /** Characters above which the preview starts collapsed. */
-  collapseAfter?: number;
 }
 
-export function ArtifactBody({
+// Memoised on its string props: bodies are up to 64 KiB and the page
+// re-renders on every disclosure toggle and query refresh.
+export const ArtifactBody = memo(function ArtifactBody({
   body,
   contentType,
   kind,
-  collapseAfter = 1400,
 }: ArtifactBodyProps) {
   const theme = useTheme();
-  const regionId = useId();
-  const isLong = body.length > collapseAfter;
-  const [expanded, setExpanded] = useState(false);
+  const { expanded, regionId, toggleProps } = useExpandable();
+  const parsed = useMemo(
+    () => parseBody(body, contentType, kind),
+    [body, contentType, kind],
+  );
+  const isLong = body.length > COLLAPSE_AFTER;
   const collapsed = isLong && !expanded;
-
-  let content: ReactNode;
-  if (isCodeLike(contentType, kind)) {
-    content = <CodeBlock style={{ overflow: 'auto' }}>{body}</CodeBlock>;
-  } else if (isJsonLike(body, contentType)) {
-    const items = readJsonList(body);
-    content = items ? (
-      <ListBlock ordered items={items} />
-    ) : (
-      <CodeBlock language="json" style={{ overflow: 'auto' }}>
-        {prettyJson(body)}
-      </CodeBlock>
-    );
-  } else {
-    content = <ReadableBlocks blocks={parseReadableBlocks(body)} />;
-  }
 
   return (
     <div>
@@ -320,7 +327,7 @@ export function ArtifactBody({
         style={{
           display: 'grid',
           gap: theme.spacing[3],
-          maxWidth: '72ch',
+          maxWidth: MEASURE,
           color: theme.color.text.secondary,
           fontSize: theme.font.size.md,
           lineHeight: theme.font.lineHeight.relaxed,
@@ -337,15 +344,19 @@ export function ArtifactBody({
             : null),
         }}
       >
-        {content}
+        {parsed.type === 'code' ? (
+          <CodeBlock style={{ overflow: 'auto' }}>{parsed.text}</CodeBlock>
+        ) : parsed.type === 'list' ? (
+          <ListBlock ordered items={parsed.items} />
+        ) : (
+          <ReadableBlocks blocks={parsed.blocks} />
+        )}
       </div>
       {isLong ? (
         <Button
           variant="ghost"
           size="sm"
-          aria-expanded={expanded}
-          aria-controls={regionId}
-          onClick={() => setExpanded((value) => !value)}
+          {...toggleProps}
           style={{ marginTop: theme.spacing[2] }}
         >
           {expanded ? 'Show less' : 'Show the full artifact'}
@@ -353,12 +364,4 @@ export function ArtifactBody({
       ) : null}
     </div>
   );
-}
-
-function prettyJson(body: string) {
-  try {
-    return JSON.stringify(JSON.parse(body), null, 2);
-  } catch {
-    return body;
-  }
-}
+});

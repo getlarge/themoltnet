@@ -1,13 +1,14 @@
-import { CopyButton, Stack, Text, useTheme } from '@themoltnet/design-system';
+import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { ArtifactBody } from './artifact-body.js';
-import { compactIdentifier, type FreeformArtifactView } from './task-output.js';
+import { Identifier } from './identifier.js';
+import { MEASURE, RuledList, visuallyHidden } from './layout.js';
+import type { FreeformArtifactView } from './task-output.js';
 
 export interface FreeformArtifactListProps {
   artifacts: FreeformArtifactView[];
   /** Heading level used for each artifact title (defaults to h4). */
-  titleLevel?: 'h3' | 'h4' | 'h5';
-  compactIdentifiers?: boolean;
+  titleLevel?: 'h4' | 'h5';
 }
 
 /**
@@ -18,46 +19,28 @@ export interface FreeformArtifactListProps {
 export function FreeformArtifactList({
   artifacts,
   titleLevel = 'h4',
-  compactIdentifiers = false,
 }: FreeformArtifactListProps) {
-  const theme = useTheme();
   if (artifacts.length === 0) return null;
 
   return (
-    <ul
-      aria-label="Artifacts"
-      style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid' }}
-    >
+    <RuledList label="Artifacts" gap={5}>
       {artifacts.map((artifact, index) => (
-        <li
+        <ArtifactItem
           key={`${artifact.title}-${index}`}
-          style={{
-            paddingTop: index === 0 ? 0 : theme.spacing[5],
-            paddingBottom:
-              index === artifacts.length - 1 ? 0 : theme.spacing[5],
-            borderTop:
-              index === 0 ? 'none' : `1px solid ${theme.color.border.DEFAULT}`,
-          }}
-        >
-          <ArtifactItem
-            artifact={artifact}
-            titleLevel={titleLevel}
-            compactIdentifiers={compactIdentifiers}
-          />
-        </li>
+          artifact={artifact}
+          titleLevel={titleLevel}
+        />
       ))}
-    </ul>
+    </RuledList>
   );
 }
 
 function ArtifactItem({
   artifact,
   titleLevel,
-  compactIdentifiers,
 }: {
   artifact: FreeformArtifactView;
-  titleLevel: 'h3' | 'h4' | 'h5';
-  compactIdentifiers: boolean;
+  titleLevel: 'h4' | 'h5';
 }) {
   const theme = useTheme();
   const meta = [
@@ -85,7 +68,7 @@ function ArtifactItem({
           <Text
             variant="caption"
             color="secondary"
-            style={{ maxWidth: '72ch' }}
+            style={{ maxWidth: MEASURE }}
           >
             {artifact.description}
           </Text>
@@ -120,19 +103,12 @@ function ArtifactItem({
               <Text variant="caption" color="muted">
                 Stored artifact
               </Text>
-              <Text variant="caption" mono style={{ overflowWrap: 'anywhere' }}>
-                <span title={compactIdentifiers ? artifact.cid : undefined}>
-                  {compactIdentifiers
-                    ? compactIdentifier(artifact.cid)
-                    : artifact.cid}
-                </span>
+              <Text variant="caption">
+                <Identifier
+                  value={artifact.cid}
+                  copyLabel="Copy artifact CID"
+                />
               </Text>
-              <CopyButton
-                value={artifact.cid}
-                text="Copy"
-                size="sm"
-                ariaLabel="Copy artifact CID"
-              />
             </Stack>
           ) : null}
           {artifact.path && !artifact.body ? (
@@ -152,18 +128,6 @@ function ArtifactItem({
     </Stack>
   );
 }
-
-const visuallyHidden: React.CSSProperties = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  margin: -1,
-  padding: 0,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-};
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;

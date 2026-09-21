@@ -6,6 +6,7 @@
  * narrow what the UI renders; the server has already validated the output
  * against the task type when the attempt completed.
  */
+import type { TaskAttemptSummary, TaskSummary } from './types.js';
 
 export interface FreeformArtifactView {
   kind: string;
@@ -160,12 +161,14 @@ export function readOutputSummary(output: unknown): string | null {
   return isRecord(output) ? (optionalString(output.summary) ?? null) : null;
 }
 
-/**
- * Shortens long identifiers (UUIDs, CIDs, hashes) for presentation surfaces.
- * Values at or under `max` characters are returned unchanged.
- */
-export function compactIdentifier(value: string, max = 20): string {
-  if (value.length <= max) return value;
-  const prefix = value.includes(':') ? value.indexOf(':') + 1 : 0;
-  return `${value.slice(0, prefix + 8)}…${value.slice(-6)}`;
+/** The attempt the Task Engine recorded as the task's result, if loaded. */
+export function findAcceptedAttempt(
+  task: TaskSummary,
+  attempts: readonly TaskAttemptSummary[],
+): TaskAttemptSummary | null {
+  if (task.acceptedAttemptN === null) return null;
+  return (
+    attempts.find((attempt) => attempt.attemptN === task.acceptedAttemptN) ??
+    null
+  );
 }

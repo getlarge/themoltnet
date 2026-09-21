@@ -9,6 +9,7 @@ import {
 } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 
+import { CompactIdentifiersProvider } from './identifier.js';
 import { TaskActionPanel } from './task-action-panel.js';
 import { TaskAttemptsTable } from './task-attempts-table.js';
 import { TaskDetailHeader } from './task-detail-header.js';
@@ -18,7 +19,7 @@ import {
   type TaskKnowledgeEntry,
   TaskKnowledgeList,
 } from './task-knowledge-list.js';
-import { readFreeformOutput } from './task-output.js';
+import { findAcceptedAttempt, readFreeformOutput } from './task-output.js';
 import type { TaskOutputRenderer } from './task-output-renderers.js';
 import { TaskRefsList } from './task-refs-list.js';
 import { TaskResultPanel } from './task-result-panel.js';
@@ -102,194 +103,181 @@ export function TaskDetailView({
   onRetryKnowledge,
 }: TaskDetailViewProps) {
   const latestAttempt = attempts.at(-1) ?? null;
-  const recordAttempt = task.acceptedAttemptN
-    ? (attempts.find((attempt) => attempt.attemptN === task.acceptedAttemptN) ??
-      latestAttempt)
-    : latestAttempt;
-  const acceptedOutput =
-    task.acceptedAttemptN === recordAttempt?.attemptN
-      ? recordAttempt.output
-      : null;
-  const citedEntryIds = readFreeformOutput(acceptedOutput)?.diaryEntryIds ?? [];
+  const acceptedAttempt = findAcceptedAttempt(task, attempts);
+  const recordAttempt = acceptedAttempt ?? latestAttempt;
+  const citedEntryIds =
+    readFreeformOutput(acceptedAttempt?.output)?.diaryEntryIds ?? [];
   const diaryId = task.diaryId;
+  const openDiary =
+    diaryId && onOpenDiary ? () => onOpenDiary(diaryId) : undefined;
+  // No diary means nothing can be retained; otherwise the count is known
+  // only once the entries have loaded.
+  const knowledgeCount = !diaryId
+    ? 0
+    : knowledge.status === 'ready'
+      ? knowledge.total
+      : null;
 
   return (
-    <Stack gap={6}>
-      <PageHeader
-        eyebrow="Task Engine"
-        title="Task execution"
-        description="What this task asked for, what it produced, and the authority and evidence behind it."
-        backLink={backLink}
-      />
+    <CompactIdentifiersProvider compact={presentation}>
+      <Stack gap={6}>
+        <PageHeader
+          eyebrow="Task Engine"
+          title="Task execution"
+          description="What this task asked for, what it produced, and the authority and evidence behind it."
+          backLink={backLink}
+        />
 
-      {notice}
+        {notice}
 
-      <TaskDetailHeader
-        task={task}
-        renderTeamLabel={renderTeamLabel}
-        renderDiaryLabel={renderDiaryLabel}
-        renderActorLabel={renderActorLabel}
-        onOpenConsole={presentation ? undefined : onOpenConsole}
-        compactIdentifiers={presentation}
-      />
+        <TaskDetailHeader
+          task={task}
+          renderTeamLabel={renderTeamLabel}
+          renderDiaryLabel={renderDiaryLabel}
+          renderActorLabel={renderActorLabel}
+          onOpenConsole={presentation ? undefined : onOpenConsole}
+        />
 
-      {attemptsStatus === 'loading' ? (
-        <Card variant="surface" padding="md">
-          <Text color="muted">Loading attempt evidence…</Text>
-        </Card>
-      ) : attemptsStatus === 'error' ? (
-        <InlineNotice tone="warning" title="Attempt evidence unavailable">
-          <Stack gap={3}>
-            <Text>
-              The result, claim, and runtime state cannot be shown until the
-              attempt history is available.
-            </Text>
-            {onRetryAttempts ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onRetryAttempts}
-                style={{ alignSelf: 'flex-start' }}
-              >
-                Retry attempt evidence
-              </Button>
-            ) : null}
-          </Stack>
-        </InlineNotice>
-      ) : (
-        <>
-          <SplitRow
-            main={
-              <TaskResultPanel
-                task={task}
-                attempts={attempts}
-                renderers={renderers}
-                compactIdentifiers={presentation}
-                onOpenAttempt={onOpenAttempt}
-              />
-            }
-            rail={
-              <TaskKnowledgeList
-                entries={knowledge.entries}
-                total={knowledge.total}
-                status={knowledge.status}
-                diaryConfigured={Boolean(diaryId)}
-                citedEntryIds={citedEntryIds}
-                acceptedAttemptN={task.acceptedAttemptN}
-                renderEntryLink={renderEntryLink}
-                onOpenDiary={
-                  diaryId && onOpenDiary
-                    ? () => onOpenDiary(diaryId)
-                    : undefined
-                }
-                onRetry={onRetryKnowledge}
-              />
-            }
-          />
-
-          <TaskExecutionRecord
-            task={task}
-            attempt={recordAttempt}
-            compactIdentifiers={presentation}
-            knowledge={{
-              count: diaryId
-                ? knowledge.status === 'ready'
-                  ? knowledge.total
-                  : null
-                : 0,
-              unavailable: knowledge.status === 'error',
-            }}
-            attemptAction={
-              recordAttempt && onOpenAttempt ? (
+        {attemptsStatus === 'loading' ? (
+          <Card variant="surface" padding="md">
+            <Text color="muted">Loading attempt evidence…</Text>
+          </Card>
+        ) : attemptsStatus === 'error' ? (
+          <InlineNotice tone="warning" title="Attempt evidence unavailable">
+            <Stack gap={3}>
+              <Text>
+                The result, claim, and runtime state cannot be shown until the
+                attempt history is available.
+              </Text>
+              {onRetryAttempts ? (
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  onClick={() => onOpenAttempt(recordAttempt.attemptN)}
+                  onClick={onRetryAttempts}
+                  style={{ alignSelf: 'flex-start' }}
                 >
-                  Inspect attempt
+                  Retry attempt evidence
                 </Button>
-              ) : undefined
-            }
-            runtimeAction={
-              recordAttempt?.runtimeProfileId && onOpenRuntimeProfile ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onOpenRuntimeProfile(recordAttempt)}
-                >
-                  Open profile
-                </Button>
-              ) : undefined
-            }
-            knowledgeAction={
-              diaryId && onOpenDiary ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onOpenDiary(diaryId)}
-                >
-                  Open diary
-                </Button>
-              ) : undefined
-            }
-          />
-        </>
-      )}
-
-      <SplitRow
-        main={
-          <Stack gap={5}>
-            <Card variant="surface" padding="md">
-              <TaskInputViewer
-                input={task.input}
-                inputCid={task.inputCid}
-                compactCid={presentation}
-              />
-            </Card>
-
-            <Card variant="surface" padding="md">
-              <Stack gap={3}>
-                <Text variant="h3" style={{ margin: 0 }}>
-                  References
-                </Text>
-                <TaskRefsList
-                  refs={task.references}
-                  onOpenTaskRef={onOpenTaskRef}
-                  onOpenExternalRef={onOpenExternalRef}
+              ) : null}
+            </Stack>
+          </InlineNotice>
+        ) : (
+          <>
+            <SplitRow
+              main={
+                <TaskResultPanel
+                  task={task}
+                  attempts={attempts}
+                  renderers={renderers}
+                  onOpenAttempt={onOpenAttempt}
                 />
-              </Stack>
-            </Card>
+              }
+              rail={
+                <TaskKnowledgeList
+                  entries={knowledge.entries}
+                  total={knowledge.total}
+                  status={knowledge.status}
+                  diaryConfigured={Boolean(diaryId)}
+                  citedEntryIds={citedEntryIds}
+                  acceptedAttemptN={task.acceptedAttemptN}
+                  renderEntryLink={renderEntryLink}
+                  onOpenDiary={openDiary}
+                  onRetry={onRetryKnowledge}
+                />
+              }
+            />
 
-            <Card variant="surface" padding="md">
-              <Stack gap={3}>
-                <Text variant="h3" style={{ margin: 0 }}>
-                  Attempts
-                </Text>
-                {attemptsStatus === 'error' ? (
-                  <Text color="muted">Attempt history unavailable.</Text>
-                ) : (
-                  <TaskAttemptsTable
-                    attempts={attempts}
-                    onSelectAttempt={
-                      onOpenAttempt
-                        ? (attempt) => onOpenAttempt(attempt.attemptN)
-                        : undefined
-                    }
+            <TaskExecutionRecord
+              task={task}
+              attempt={recordAttempt}
+              knowledge={{
+                count: knowledgeCount,
+                unavailable: knowledge.status === 'error',
+              }}
+              attemptAction={
+                recordAttempt && onOpenAttempt ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onOpenAttempt(recordAttempt.attemptN)}
+                  >
+                    Inspect attempt
+                  </Button>
+                ) : undefined
+              }
+              runtimeAction={
+                recordAttempt?.runtimeProfileId && onOpenRuntimeProfile ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onOpenRuntimeProfile(recordAttempt)}
+                  >
+                    Open profile
+                  </Button>
+                ) : undefined
+              }
+              knowledgeAction={
+                openDiary ? (
+                  <Button variant="ghost" size="sm" onClick={openDiary}>
+                    Open diary
+                  </Button>
+                ) : undefined
+              }
+            />
+          </>
+        )}
+
+        <SplitRow
+          main={
+            <Stack gap={5}>
+              <Card variant="surface" padding="md">
+                <TaskInputViewer input={task.input} inputCid={task.inputCid} />
+              </Card>
+
+              <Card variant="surface" padding="md">
+                <Stack gap={3}>
+                  <Text variant="h3" style={{ margin: 0 }}>
+                    References
+                  </Text>
+                  <TaskRefsList
+                    refs={task.references}
+                    onOpenTaskRef={onOpenTaskRef}
+                    onOpenExternalRef={onOpenExternalRef}
                   />
-                )}
-              </Stack>
-            </Card>
-          </Stack>
-        }
-        rail={
-          presentation ? null : (
-            <TaskActionPanel task={task} selectedAttempt={latestAttempt} />
-          )
-        }
-      />
+                </Stack>
+              </Card>
 
-      {footer}
-    </Stack>
+              <Card variant="surface" padding="md">
+                <Stack gap={3}>
+                  <Text variant="h3" style={{ margin: 0 }}>
+                    Attempts
+                  </Text>
+                  {attemptsStatus === 'error' ? (
+                    <Text color="muted">Attempt history unavailable.</Text>
+                  ) : (
+                    <TaskAttemptsTable
+                      attempts={attempts}
+                      onSelectAttempt={
+                        onOpenAttempt
+                          ? (attempt) => onOpenAttempt(attempt.attemptN)
+                          : undefined
+                      }
+                    />
+                  )}
+                </Stack>
+              </Card>
+            </Stack>
+          }
+          rail={
+            presentation ? null : (
+              <TaskActionPanel task={task} selectedAttempt={latestAttempt} />
+            )
+          }
+        />
+
+        {footer}
+      </Stack>
+    </CompactIdentifiersProvider>
   );
 }
 

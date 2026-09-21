@@ -2,52 +2,40 @@ import { DescriptionList, Stack, Text } from '@themoltnet/design-system';
 import type { ComponentType } from 'react';
 
 import { FreeformArtifactList } from './freeform-artifact-list.js';
-import { readFreeformOutput, readOutputSummary } from './task-output.js';
+import { MEASURE, SectionLabel } from './layout.js';
+import { readFreeformOutput } from './task-output.js';
 import type { TaskAttemptSummary, TaskSummary } from './types.js';
 
 export interface TaskOutputRenderContext {
   task: TaskSummary;
   attempt: TaskAttemptSummary;
   output: Record<string, unknown>;
-  /** Shorten long identifiers (presentation surfaces). */
-  compactIdentifiers: boolean;
 }
 
 /**
  * Presents one family of task outputs inside the accepted-result panel.
  *
- * The panel owns everything common to every task type — acceptance state,
- * `output.verification`, and the evidence disclosure. A renderer only
- * decides whether it understands the output, what its one-paragraph lead
- * is, and what goes beneath it. Register renderers in order; the first
- * match wins and `genericOutputRenderer` catches everything else.
+ * The panel owns everything common to every task type: acceptance state,
+ * the `summary` lead paragraph, `output.verification`, and the evidence
+ * disclosure. A renderer only decides whether it understands the output and
+ * what goes beneath the summary. Host renderers are tried first, then the
+ * built-in ones; the generic view catches everything else.
  */
 export interface TaskOutputRenderer {
-  id: string;
   matches: (context: TaskOutputRenderContext) => boolean;
-  /** The result's lead paragraph, or null when the output carries none. */
-  summary: (context: TaskOutputRenderContext) => string | null;
   Body: ComponentType<TaskOutputRenderContext>;
 }
 
-function FreeformOutputBody({
-  output,
-  compactIdentifiers,
-}: TaskOutputRenderContext) {
+function FreeformOutputBody({ output }: TaskOutputRenderContext) {
   const freeform = readFreeformOutput(output);
   if (!freeform) return null;
 
   return (
     <Stack gap={5}>
       <Stack gap={4}>
-        <Text as="h3" variant="caption" weight="semibold" color="secondary">
-          What the agent produced
-        </Text>
+        <SectionLabel>What the agent produced</SectionLabel>
         {freeform.artifacts.length > 0 ? (
-          <FreeformArtifactList
-            artifacts={freeform.artifacts}
-            compactIdentifiers={compactIdentifiers}
-          />
+          <FreeformArtifactList artifacts={freeform.artifacts} />
         ) : (
           <Text color="secondary">
             No artifacts were attached. The summary above is the whole result.
@@ -78,11 +66,9 @@ function FreeformOutputBody({
   );
 }
 
-export const freeformOutputRenderer: TaskOutputRenderer = {
-  id: 'freeform',
+const freeformOutputRenderer: TaskOutputRenderer = {
   matches: ({ task, output }) =>
     task.taskType === 'freeform' && readFreeformOutput(output) !== null,
-  summary: ({ output }) => readFreeformOutput(output)?.summary ?? null,
   Body: FreeformOutputBody,
 };
 
@@ -97,12 +83,7 @@ function describeValue(value: unknown): string {
     const count = Object.keys(value).length;
     return count === 1 ? '1 field' : `${count} fields`;
   }
-  const text =
-    typeof value === 'string'
-      ? value
-      : typeof value === 'number' || typeof value === 'boolean'
-        ? String(value)
-        : JSON.stringify(value);
+  const text = String(value as string | number | boolean);
   return text.length > 160 ? `${text.slice(0, 157)}…` : text;
 }
 
@@ -113,7 +94,7 @@ function GenericOutputBody({ task, output }: TaskOutputRenderContext) {
 
   return (
     <Stack gap={3}>
-      <Text color="secondary" style={{ maxWidth: '72ch' }}>
+      <Text color="secondary" style={{ maxWidth: MEASURE }}>
         The Console has no dedicated view for{' '}
         <Text as="span" mono>
           {task.taskType}
@@ -144,23 +125,23 @@ function GenericOutputBody({ task, output }: TaskOutputRenderContext) {
   );
 }
 
-export const genericOutputRenderer: TaskOutputRenderer = {
-  id: 'generic',
+const genericOutputRenderer: TaskOutputRenderer = {
   matches: () => true,
-  summary: ({ output }) => readOutputSummary(output),
   Body: GenericOutputBody,
 };
 
-export const defaultTaskOutputRenderers: readonly TaskOutputRenderer[] = [
+const BUILT_IN_RENDERERS: readonly TaskOutputRenderer[] = [
   freeformOutputRenderer,
 ];
 
+/** Host renderers first, then built-ins, then the generic view. */
 export function resolveTaskOutputRenderer(
   context: TaskOutputRenderContext,
-  renderers: readonly TaskOutputRenderer[] = defaultTaskOutputRenderers,
+  renderers: readonly TaskOutputRenderer[] = [],
 ): TaskOutputRenderer {
   return (
-    renderers.find((renderer) => renderer.matches(context)) ??
-    genericOutputRenderer
+    [...renderers, ...BUILT_IN_RENDERERS].find((renderer) =>
+      renderer.matches(context),
+    ) ?? genericOutputRenderer
   );
 }
