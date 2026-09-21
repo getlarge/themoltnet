@@ -216,11 +216,11 @@ describe('Nx release configuration', () => {
     'uses matching %s release and package-check targets',
     (platform) => {
       expect(workflow).toContain(
-        `pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:${platform} --configuration=release`,
+        `pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${platform}-release`,
       );
-      const target = agentDesktopPackage.nx.targets[`tauri:bundle:${platform}`];
-      expect(target.configurations.release.command).toBe(
-        `${target.options.command} release`,
+      const target = agentDesktopPackage.nx.targets['tauri:bundle'];
+      expect(target.configurations[`${platform}-release`].command).toBe(
+        `${target.configurations[platform].command} release`,
       );
       const bundler = readFileSync(
         join(workspaceRoot, 'tools/release/agent-desktop/bundle.sh'),
@@ -245,16 +245,23 @@ describe('Nx release configuration', () => {
       expect.arrayContaining([
         'qemu-utils',
         'qemu-system-x86',
-        'gnome-keyring',
         'libsecret-1-0',
+        'dbus-bin',
       ]),
     );
+    expect(config.bundle.linux.deb.recommends).toContain('gnome-keyring');
   });
 
   it('notarizes and staples the outer desktop DMG before validation', () => {
     const submit = desktopReleaseJob.indexOf('xcrun notarytool submit "$dmg"');
     const staple = desktopReleaseJob.indexOf('xcrun stapler staple "$dmg"');
-    const validate = desktopReleaseJob.indexOf('xcrun stapler validate "$dmg"');
+    const materialize = desktopReleaseJob.indexOf(
+      'bash tools/release/agent-desktop/materialize.sh mac-os',
+    );
+    const materializeScript = readFileSync(
+      join(workspaceRoot, 'tools/release/agent-desktop/materialize.sh'),
+      'utf8',
+    );
 
     expect(submit).toBeGreaterThan(-1);
     expect(desktopReleaseJob).toContain('--key "$APPLE_API_KEY_PATH"');
@@ -262,7 +269,8 @@ describe('Nx release configuration', () => {
     expect(desktopReleaseJob).toContain('--issuer "$APPLE_API_ISSUER"');
     expect(desktopReleaseJob).toContain('--timeout 45m');
     expect(staple).toBeGreaterThan(submit);
-    expect(validate).toBeGreaterThan(staple);
+    expect(materialize).toBeGreaterThan(staple);
+    expect(materializeScript).toContain('xcrun stapler validate "$dmg"');
   });
 
   it('binds a desktop release to one reviewed main revision', () => {

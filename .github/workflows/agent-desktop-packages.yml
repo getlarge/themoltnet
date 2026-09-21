@@ -47,7 +47,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - name: Build unsigned CI packages
-        run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:${{ matrix.platform }} --excludeTaskDependencies
+        run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch
         run: bash tools/release/agent-desktop/${{ matrix.platform }}-smoke.sh
       - uses: actions/upload-artifact@v7

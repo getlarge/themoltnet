@@ -2626,7 +2626,7 @@ jobs:
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:mac-os --configuration=release
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=mac-os-release
 
       - name: Remove signing identity
         if: ${{ always() }}
@@ -2721,7 +2721,7 @@ jobs:
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:linux --configuration=release
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux-release
 
       - name: Verify and materialize Linux assets
         env:

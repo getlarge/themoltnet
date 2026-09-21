@@ -238,7 +238,7 @@
           "command": "bash tools/release/agent-desktop/validate.sh ."
         }
       },
-      "tauri:bundle:mac-os": {
+      "tauri:bundle": {
         "executor": "nx:run-commands",
         "cache": false,
         "outputs": [
@@ -252,34 +252,17 @@
           "sharedGlobals",
           "{workspaceRoot}/tools/release/agent-desktop/bundle.sh"
         ],
-        "options": {
-          "command": "bash tools/release/agent-desktop/bundle.sh mac-os"
-        },
         "configurations": {
-          "release": {
+          "mac-os": {
+            "command": "bash tools/release/agent-desktop/bundle.sh mac-os"
+          },
+          "linux": {
+            "command": "bash tools/release/agent-desktop/bundle.sh linux"
+          },
+          "mac-os-release": {
             "command": "bash tools/release/agent-desktop/bundle.sh mac-os release"
-          }
-        }
-      },
-      "tauri:bundle:linux": {
-        "executor": "nx:run-commands",
-        "cache": false,
-        "outputs": [
-          "{projectRoot}/out-rust/bundle"
-        ],
-        "inputs": [
-          "agentDesktopRendererProduction",
-          "agentDesktopNative",
-          "agentDesktopInstaller",
-          "^production",
-          "sharedGlobals",
-          "{workspaceRoot}/tools/release/agent-desktop/bundle.sh"
-        ],
-        "options": {
-          "command": "bash tools/release/agent-desktop/bundle.sh linux"
-        },
-        "configurations": {
-          "release": {
+          },
+          "linux-release": {
             "command": "bash tools/release/agent-desktop/bundle.sh linux release"
           }
         }
