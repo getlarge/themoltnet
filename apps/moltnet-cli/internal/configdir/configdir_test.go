@@ -310,7 +310,9 @@ func TestFullStoreAliasConformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(cwd)
-	for _, row := range strings.Split(string(contents), "\n") {
+	scanner := bufio.NewScanner(strings.NewReader(string(contents)))
+	for scanner.Scan() {
+		row := scanner.Text()
 		if row == "" || strings.HasPrefix(row, "#") {
 			continue
 		}
@@ -337,6 +339,9 @@ func TestFullStoreAliasConformance(t *testing.T) {
 			}
 		})
 	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestWorkerDefaultStoreNamespace(t *testing.T) {
@@ -357,7 +362,9 @@ func TestSharedDefaultIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, row := range strings.Split(string(rows), "\n") {
+	scanner := bufio.NewScanner(strings.NewReader(string(rows)))
+	for scanner.Scan() {
+		row := scanner.Text()
 		if row == "" || strings.HasPrefix(row, "#") {
 			continue
 		}
@@ -390,5 +397,8 @@ func TestSharedDefaultIdentity(t *testing.T) {
 				t.Fatalf("IsDefault = %v, %v", actual, err)
 			}
 		})
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
 	}
 }
