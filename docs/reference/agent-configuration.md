@@ -53,6 +53,47 @@ See
 [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
 for the full exchange.
 
+## Store selection and keyring namespaces
+
+The shared store API selects an explicit `root` option first, then
+`MOLTNET_HOME`, then `~/.config/moltnet`. The variable names the store itself;
+no extra `.config/moltnet` suffix is appended. An explicitly empty, blank,
+NUL-containing, inaccessible, or non-directory path is an error, including an
+empty environment variable. Unset the variable to select the default.
+
+The default config/display path retains its established lexical spelling without
+filesystem access. Explicit and environment roots return absolute canonical
+paths; relative paths start at the caller's working directory. Existing symlinks
+and filesystem case aliases are resolved before parent (`..`) segments; missing
+directories are not created. Secret namespaces use canonical paths. File locks
+use the lock file's filesystem identity, so aliases to the same file share a
+lock. An unavailable default directory does not prevent access to an isolated
+store.
+
+The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
+`storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a
+persisted compatibility contract: the canonical default store uses
+`themolt.net`; other stores use `themolt.net/store/<digest>`, with the lowercase
+SHA-256 hex digest of the canonical absolute path's UTF-8 bytes. Account keys
+starting with `store/` are reserved so Windows service/account targets cannot
+overlap. Moving a store changes its namespace; copying its files does not copy
+keyring secrets. Re-enroll credentials in the destination store. Symlinks to the
+same existing directory retain its namespace.
+
+Keyring providers resolve their namespace on first keyring access and retain it
+for their lifetime. Environment and file providers do not require a valid
+keyring store. Create a new registry when switching stores.
+
+`--credentials`, `MOLTNET_CREDENTIALS_PATH`, and an SDK `configDir` select a
+credentials document, not a keyring namespace. Set `MOLTNET_HOME` (or the Node
+registry's explicit store option) to read that document's isolated secrets.
+Explicit document paths do not seed the selected store's identity selector.
+
+This shared-library foundation does not yet provide complete process isolation.
+Do not use `MOLTNET_HOME` as an isolated CLI, daemon, or Desktop environment
+until the consumer integration is installed. That integration scopes discovery,
+locks, run state, and subprocesses as well as credentials.
+
 ## Which credentials file a command uses
 
 Every command resolves one credentials file, and uses it for authentication,

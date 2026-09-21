@@ -38,6 +38,7 @@
         "{workspaceRoot}/.github/workflows/release.yml"
       ],
       "agentDesktopNative": [
+        "{workspaceRoot}/test-fixtures/store-root-conformance.tsv",
         "{projectRoot}/src-tauri/src/**/*.rs",
         "{projectRoot}/src-tauri/build.rs",
         "{projectRoot}/src-tauri/build_support.rs",
@@ -270,6 +271,17 @@
           "linux": {
             "command": "bash tools/release/agent-desktop/bundle.sh linux"
           }
+        }
+      },
+      "test-native": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "agentDesktopNative",
+          "{projectRoot}/scripts/test-store-root.mjs"
+        ],
+        "options": {
+          "command": "node apps/agent-desktop/scripts/test-store-root.mjs"
         }
       }
     }

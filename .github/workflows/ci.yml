@@ -261,6 +261,7 @@ jobs:
       # prompt regardless of whether the keychain is unlocked, so those tests
       # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
       # provisions its own keychain and binds Security.framework directly.
+      - uses: dtolnay/rust-toolchain@1.88.0
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native
@@ -502,7 +503,7 @@ jobs:
             echo "check-dist-agent-daemon-action=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
+          if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli" "@moltnet/agent-config" "@moltnet/agent-desktop"; then
             echo "native-keyring=true" >> "$GITHUB_OUTPUT"
           else
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"

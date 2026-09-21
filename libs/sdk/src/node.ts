@@ -1,3 +1,10 @@
+import { homedir } from 'node:os';
+
+import {
+  type StoreRootOptions,
+  storeSecretService,
+} from '@moltnet/agent-config';
+
 import type { Agent } from './agent.js';
 import { readEnvironmentVariable } from './config.js';
 import {
@@ -45,6 +52,8 @@ type LoadedKeyringProvider = Required<
 type OSKeyringModule = {
   OSKeyringSecretProvider: new (
     platform?: NodeJS.Platform,
+    loader?: undefined,
+    service?: string,
   ) => LoadedKeyringProvider;
 };
 
@@ -57,8 +66,25 @@ export class OSKeyringSecretProvider implements SecretProvider {
   readonly name = OS_KEYRING_SECRET_PROVIDER;
   readonly capabilities = READ_WRITE_CAPABILITIES;
   private providerPromise: Promise<LoadedKeyringProvider> | undefined;
+  private readonly storeOptions: StoreRootOptions;
 
-  constructor(private readonly platform: NodeJS.Platform = process.platform) {}
+  constructor(
+    private readonly platform: NodeJS.Platform = process.platform,
+    storeOptions?: StoreRootOptions,
+  ) {
+    this.storeOptions = {
+      root: storeOptions?.root,
+      home: storeOptions?.home ?? homedir(),
+      cwd: storeOptions?.cwd ?? process.cwd(),
+      // Snapshot selection without filesystem access; env/file users never
+      // need to resolve a keyring namespace.
+      env: {
+        MOLTNET_HOME: storeOptions?.env
+          ? storeOptions.env.MOLTNET_HOME
+          : readEnvironmentVariable('MOLTNET_HOME'),
+      },
+    };
+  }
 
   async read(key: string): Promise<string | null> {
     return (await this.provider()).read(key);
@@ -83,18 +109,21 @@ export class OSKeyringSecretProvider implements SecretProvider {
   private provider(): Promise<LoadedKeyringProvider> {
     // The package remains isomorphic; this explicit /node entry is the only
     // surface allowed to load the optional Node-only adapter.
-    // eslint-disable-next-line @nx/enforce-module-boundaries
-    this.providerPromise ??= import('@themoltnet/os-keyring')
-      .then(
-        ({ OSKeyringSecretProvider: Provider }: OSKeyringModule) =>
-          new Provider(this.platform),
-      )
-      .catch((error: unknown) => {
-        throw new Error(
-          'OS keyring support requires @themoltnet/os-keyring; install it in this Node application',
-          { cause: error },
-        );
-      });
+    this.providerPromise ??= Promise.resolve().then(() => {
+      const service = storeSecretService(this.storeOptions);
+      // eslint-disable-next-line @nx/enforce-module-boundaries
+      return import('@themoltnet/os-keyring')
+        .then(
+          ({ OSKeyringSecretProvider: Provider }: OSKeyringModule) =>
+            new Provider(this.platform, undefined, service),
+        )
+        .catch((error: unknown) => {
+          throw new Error(
+            'OS keyring support requires @themoltnet/os-keyring; install it in this Node application',
+            { cause: error },
+          );
+        });
+    });
     return this.providerPromise;
   }
 }
@@ -114,9 +143,10 @@ export function windowsKeyringTarget(
 export function createNodeSecretProviderRegistry(
   platform: NodeJS.Platform = process.platform,
   readEnv: EnvironmentLookup = readEnvironmentVariable,
+  storeOptions?: StoreRootOptions,
 ): SecretProviderRegistry {
   return createDefaultSecretProviderRegistry()
-    .register(new OSKeyringSecretProvider(platform))
+    .register(new OSKeyringSecretProvider(platform, storeOptions))
     .register(
       new FileSecretProvider(
         fileSecretProviderOptionsFromEnv(readEnv, platform),
@@ -172,6 +202,7 @@ export {
 export type { ConnectForRegistration } from './register-node.js';
 export {
   canonicalDirectory,
+  canonicalStoreRoot,
   getProjectConfigPath,
   type ProjectBinding,
   type ProjectConfig,
@@ -179,6 +210,9 @@ export {
   type ProjectSelectionOptions,
   readProjectConfig,
   resolveProjectBinding,
+  resolveStoreRoot,
+  type StoreRootOptions,
+  storeSecretService,
   WORKSPACE_STRATEGIES,
   type WorkspaceStrategy,
 } from '@moltnet/agent-config';

@@ -1090,11 +1090,30 @@ func tokenCredentialsMatch(args []string, credentialsPath string) bool {
 		}
 		if configured == "" ||
 			!filepath.IsAbs(configured) ||
-			filepath.Clean(configured) != filepath.Clean(credentialsPath) {
+			!sameCredentialsPath(configured, credentialsPath) {
 			return false
 		}
 	}
 	return true
+}
+
+// Preserve lexical matches, and recognize symlink, case and hard-link aliases
+// only when the filesystem confirms that both refer to the same regular file.
+func sameCredentialsPath(first, second string) bool {
+	if filepath.Clean(first) == filepath.Clean(second) {
+		return true
+	}
+	// Only central identity documents need alias matching. Avoid filesystem
+	// probes of arbitrary credential arguments, which may cross automounts.
+	if filepath.Base(first) != "moltnet.json" || filepath.Base(second) != "moltnet.json" {
+		return false
+	}
+	a, err := os.Stat(first)
+	if err != nil || !a.Mode().IsRegular() {
+		return false
+	}
+	b, err := os.Stat(second)
+	return err == nil && b.Mode().IsRegular() && os.SameFile(a, b)
 }
 
 // classifyGitHubOperation's command taxonomy was audited against gh 2.95.0.

@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"os"
 	"path/filepath"
 	"strings"
@@ -402,5 +404,94 @@ func TestResolveAgentOAuth2EnvironmentRejectsUnboundReference(t *testing.T) {
 	_, err := resolveAgentOAuth2Environment(agentDir, "my-agent", registry)
 	if err == nil || !strings.Contains(err.Error(), "not bound") {
 		t.Fatalf("error = %v, want binding rejection", err)
+	}
+}
+
+// The real provider is exercised with an in-memory OS boundary, never the
+// developer's keychain. Registries must pin their selected store.
+type namespacedKeyring struct{ values map[string]string }
+
+func (p *namespacedKeyring) Get(service, key string) (string, error) {
+	return p.values[service+"/"+key], nil
+}
+func (p *namespacedKeyring) Set(service, key, value string) error {
+	p.values[service+"/"+key] = value
+	return nil
+}
+func (p *namespacedKeyring) Delete(service, key string) error {
+	delete(p.values, service+"/"+key)
+	return nil
+}
+func TestKeyringProviderStoreIsolationAndLifetime(t *testing.T) {
+	backend := &namespacedKeyring{values: make(map[string]string)}
+	t.Setenv("MOLTNET_HOME", filepath.Join(t.TempDir(), "A"))
+	a := NewSecretProviderRegistry().providers[osKeyringProviderName].(*OSKeyringSecretProvider)
+	a.backend = backend
+	t.Setenv("MOLTNET_HOME", filepath.Join(t.TempDir(), "B"))
+	b := NewSecretProviderRegistry().providers[osKeyringProviderName].(*OSKeyringSecretProvider)
+	b.backend = backend
+	if err := a.Set("same-key", "A"); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Set("same-key", "B"); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MOLTNET_HOME", "")
+	if got, err := a.Get("same-key"); err != nil || got != "A" {
+		t.Fatalf("A: %q, %v", got, err)
+	}
+	if err := a.Delete("same-key"); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := b.Get("same-key"); err != nil || got != "B" {
+		t.Fatalf("B after deleting A: %q, %v", got, err)
+	}
+	if len(backend.values) != 1 {
+		t.Fatalf("unexpected namespaces: %v", backend.values)
+	}
+}
+
+func TestKeyringProviderRejectsNamespaceAccount(t *testing.T) {
+	backend := &namespacedKeyring{values: make(map[string]string)}
+	provider := &OSKeyringSecretProvider{backend: backend}
+	if _, err := provider.Get("store/digest/account"); err == nil || !strings.Contains(err.Error(), "reserved") {
+		t.Fatalf("Get: %v", err)
+	}
+	if err := provider.Set("store/digest/account", "value"); err == nil || !strings.Contains(err.Error(), "reserved") {
+		t.Fatalf("Set: %v", err)
+	}
+	if err := provider.Delete("store/digest/account"); err == nil || !strings.Contains(err.Error(), "reserved") {
+		t.Fatalf("Delete: %v", err)
+	}
+	if len(backend.values) != 0 {
+		t.Fatal("reserved account reached OS adapter")
+	}
+}
+
+func TestKeyringRegistryRetainsSelectionProvenance(t *testing.T) {
+	t.Setenv("MOLTNET_HOME", "")
+	provider := NewSecretProviderRegistry().providers[osKeyringProviderName].(*OSKeyringSecretProvider)
+	t.Setenv("MOLTNET_HOME", t.TempDir())
+	_, err := provider.secretService()
+	if !errors.Is(err, configdir.ErrInvalidRoot) || !strings.Contains(err.Error(), "MOLTNET_HOME") {
+		t.Fatalf("lost environment provenance: %v", err)
+	}
+}
+
+func TestKeyringRegistrySnapshotsDefaultWithoutFilesystem(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("MOLTNET_HOME", "")
+	os.Unsetenv("MOLTNET_HOME")
+	if err := os.WriteFile(filepath.Join(home, ".config"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	provider := NewSecretProviderRegistry().providers[osKeyringProviderName].(*OSKeyringSecretProvider)
+	t.Setenv("MOLTNET_HOME", filepath.Join(home, "other"))
+	t.Setenv("HOME", filepath.Join(home, "different-home"))
+	service, err := provider.secretService()
+	if err != nil || service != configdir.SecretServiceName {
+		t.Fatalf("default snapshot: %q, %v", service, err)
 	}
 }

@@ -56,4 +56,11 @@ export {
   type WorkspaceStrategy,
 } from './project-bindings.js';
 export { exportSSHKey } from './ssh.js';
+export {
+  canonicalStoreRoot,
+  MOLTNET_SECRET_SERVICE,
+  resolveStoreRoot,
+  type StoreRootOptions,
+  storeSecretService,
+} from './store-root.js';
 export { updateTeamAgentKeyReference } from './team-key-update.js';

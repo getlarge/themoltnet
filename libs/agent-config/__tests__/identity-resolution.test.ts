@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  realpath,
+  writeFile,
+} from 'node:fs/promises';
 import type * as NodeOS from 'node:os';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -36,7 +43,9 @@ import {
 const savedEnv = { ...process.env };
 
 async function freshHome(): Promise<string> {
-  const home = await mkdtemp(join(tmpdir(), 'moltnet-identity-'));
+  const home = await realpath(
+    await mkdtemp(join(tmpdir(), 'moltnet-identity-')),
+  );
   homeRef.value = home;
   // Fail loudly rather than write to a real config directory.
   const dir = getConfigDir();

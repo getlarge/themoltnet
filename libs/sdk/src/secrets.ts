@@ -11,6 +11,7 @@ export { agentKeyKey, identitySeedKey, oauth2SecretKey };
 
 export const ENVIRONMENT_SECRET_PROVIDER = 'env';
 export const OS_KEYRING_SECRET_PROVIDER = 'os-keyring';
+// Protocol constant shared with the independently packaged native adapters.
 export const MOLTNET_SECRET_SERVICE = 'themolt.net';
 
 export interface SecretProviderCapabilities {

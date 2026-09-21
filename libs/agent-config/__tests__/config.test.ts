@@ -49,6 +49,13 @@ function config(): MoltNetConfig {
 }
 
 describe('OAuth2 config updates', () => {
+  it('does not select an identity in another store for a standalone credentials directory', async () => {
+    const dir = join(testHome, 'standalone');
+    await writeConfig(config(), dir);
+    await expect(
+      readFile(join(testHome, '.config/moltnet/identity-selector.json')),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
+  });
   it('round-trips a canonical subject anchor without identity_id', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     const path = await writeConfig(config(), dir);

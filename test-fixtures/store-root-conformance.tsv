@@ -1,0 +1,7 @@
+# root<TAB>expected path relative to caller CWD; ERROR rejects the root
+store	store
+./store	store
+parent/../store	store
+with spaces/store	with spaces/store
+	ERROR
+   	ERROR

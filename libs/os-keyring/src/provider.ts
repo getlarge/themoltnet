@@ -53,13 +53,13 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
   constructor(
     private readonly platform: NodeJS.Platform = process.platform,
     private readonly loadKeytar: KeytarLoader = loadNativeKeytar,
+    private readonly service: string = MOLTNET_SECRET_SERVICE,
   ) {}
 
   async read(key: string): Promise<string | null> {
     this.assertSupported();
-    const value = await (
-      await this.keytar()
-    ).getPassword(MOLTNET_SECRET_SERVICE, key);
+    assertAccountKey(key);
+    const value = await (await this.keytar()).getPassword(this.service, key);
     if (value === null || this.platform !== 'darwin') return value;
     return decodeGoKeyringPassword(value);
   }
@@ -72,16 +72,16 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
    */
   async write(key: string, value: string): Promise<void> {
     this.assertSupported();
+    assertAccountKey(key);
     const stored =
       this.platform === 'darwin' ? encodeGoKeyringPassword(value) : value;
-    await (
-      await this.keytar()
-    ).setPassword(MOLTNET_SECRET_SERVICE, key, stored);
+    await (await this.keytar()).setPassword(this.service, key, stored);
   }
 
   async delete(key: string): Promise<void> {
     this.assertSupported();
-    await (await this.keytar()).deletePassword(MOLTNET_SECRET_SERVICE, key);
+    assertAccountKey(key);
+    await (await this.keytar()).deletePassword(this.service, key);
   }
 
   async probe(key: string): Promise<KeyringProbeResult> {
@@ -135,4 +135,11 @@ export function windowsKeyringTarget(
   platform: NodeJS.Platform = process.platform,
 ): string | undefined {
   return platform === 'win32' ? `${service}/${key}` : undefined;
+}
+
+// Windows combines service and account with '/'. Reserve this prefix so a
+// default-store account cannot address an isolated store's target.
+function assertAccountKey(key: string): void {
+  if (key.startsWith('store/'))
+    throw new Error('OS keyring account prefix store/ is reserved');
 }

@@ -2,6 +2,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   stat,
   writeFile,
@@ -30,7 +31,7 @@ describe('credentials / config', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'moltnet-test-'));
+    tempDir = await realpath(await mkdtemp(join(tmpdir(), 'moltnet-test-')));
     mockedHomedir.mockReturnValue(tempDir);
     vi.stubEnv('MOLTNET_ACTIVE_IDENTITY', 'test-agent');
   });
