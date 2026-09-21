@@ -1103,6 +1103,11 @@ func sameCredentialsPath(first, second string) bool {
 	if filepath.Clean(first) == filepath.Clean(second) {
 		return true
 	}
+	// Only central identity documents need alias matching. Avoid filesystem
+	// probes of arbitrary credential arguments, which may cross automounts.
+	if filepath.Base(first) != "moltnet.json" || filepath.Base(second) != "moltnet.json" {
+		return false
+	}
 	a, err := os.Stat(first)
 	if err != nil || !a.Mode().IsRegular() {
 		return false

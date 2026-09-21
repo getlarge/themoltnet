@@ -1033,9 +1033,14 @@ func TestClassifyGhCommand_UnreadableGraphQLDocumentStaysUnknown(t *testing.T) {
 
 func TestTokenCredentialsMatchFileAliases(t *testing.T) {
 	root := t.TempDir()
-	actual := filepath.Join(root, "actual.json")
-	alias := filepath.Join(root, "alias.json")
-	other := filepath.Join(root, "other.json")
+	actual := filepath.Join(root, "actual", "moltnet.json")
+	alias := filepath.Join(root, "alias", "moltnet.json")
+	other := filepath.Join(root, "other", "moltnet.json")
+	for _, dir := range []string{"actual", "alias", "other"} {
+		if err := os.Mkdir(filepath.Join(root, dir), 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
 	for _, path := range []string{actual, other} {
 		if err := os.WriteFile(path, []byte("{}"), 0600); err != nil {
 			t.Fatal(err)
@@ -1049,5 +1054,23 @@ func TestTokenCredentialsMatchFileAliases(t *testing.T) {
 	}
 	if tokenCredentialsMatch([]string{"--credentials", other}, actual) {
 		t.Fatal("different credentials accepted")
+	}
+}
+
+func TestTokenCredentialsRejectsNonstandardFileAlias(t *testing.T) {
+	root := t.TempDir()
+	actual := filepath.Join(root, "moltnet.json")
+	alias := filepath.Join(root, "unrelated.json")
+	if err := os.WriteFile(actual, []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(actual, alias); err != nil {
+		t.Skip(err)
+	}
+	if tokenCredentialsMatch([]string{"--credentials", alias}, actual) {
+		t.Fatal("nonstandard filename must not trigger filesystem alias matching")
+	}
+	if !sameCredentialsPath(alias, alias) {
+		t.Fatal("explicit lexical matches must remain supported")
 	}
 }
