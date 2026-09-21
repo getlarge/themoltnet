@@ -1003,8 +1003,8 @@ func TestSecretsGuardConnectionEnvironment(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("MOLTNET_HOME", root)
 	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
-	for _, suffix := range []string{"secrets/key", "identities/agent/moltnet.json", "identity-selector.json"} {
-		path := filepath.Join(root, "environments", strings.Repeat("a", 64), suffix)
+	for _, suffix := range []string{"", strings.Repeat("a", 64), strings.Repeat("a", 64) + "/secrets/key", strings.Repeat("a", 64) + "/identities/agent/moltnet.json", strings.Repeat("a", 64) + "/identity-selector.json"} {
+		path := filepath.Join(root, "environments", suffix)
 		if got := classifyProtectedPathWithContext(path, newSecretGuardPathContext(root, root, root)); got != pathCredential {
 			t.Errorf("classification for %s = %v", suffix, got)
 		}

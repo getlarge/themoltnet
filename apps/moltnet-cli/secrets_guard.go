@@ -510,8 +510,8 @@ func classifyCentralStorePath(value string) pathClass {
 		value = ".config/moltnet/" + rest
 	}
 	switch {
-	case rest == "":
-		// The store root itself.
+	case rest == "" || rest == "environments":
+		// A parent directory can expose every credential beneath it.
 		return pathCredential
 	case rest == "agent-server-endpoint.json" || rest == "tls/local-ca.pem" || rest == "tls/loopback-cert.pem":
 		return pathManagedConfig
