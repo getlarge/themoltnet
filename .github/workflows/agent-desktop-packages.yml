@@ -38,6 +38,8 @@ jobs:
       - name: Install packaging and display dependencies
         if: matrix.platform == 'linux'
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
+      - name: Build Agent CLI payload for managed-startup smoke
+        run: pnpm exec nx run @themoltnet/agent-daemon:bundle -- --no-qemu-img
       - name: Build unsigned CI packages
         run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch

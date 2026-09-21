@@ -78,11 +78,15 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
   const [desktopUpdateVersion, setDesktopUpdateVersion] = useState<
     string | null
   >(null);
+  const [desktopVersion, setDesktopVersion] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     let unsubscribe: (() => void) | undefined;
     let unsubscribeRemove: (() => void) | undefined;
+    void desktopBridge
+      .appVersion()
+      .then((version) => active && setDesktopVersion(version));
     void desktopBridge.status().then((next) => active && setStatus(next));
     void desktopBridge
       .subscribe((next) => active && setStatus(next))
@@ -305,45 +309,72 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
           aria-labelledby="details-title"
         >
           <Stack gap={4}>
+            <Text id="details-title" as="h2" variant="h4">
+              Software
+            </Text>
+            <div className="software-list">
+              <div className="software-row">
+                <Stack gap={1}>
+                  <Text weight="semibold">Desktop app</Text>
+                  <Text mono variant="caption" color="muted">
+                    {desktopVersion
+                      ? `Version ${desktopVersion}`
+                      : 'Version unavailable'}
+                  </Text>
+                </Stack>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  aria-label="Check Desktop app updates"
+                  onClick={() => void checkDesktopUpdate()}
+                >
+                  Check for updates
+                </Button>
+              </div>
+              <div className="software-row">
+                <Stack gap={1}>
+                  <Text weight="semibold">Agent CLI</Text>
+                  <Text mono variant="caption" color="muted">
+                    {status.installedVersion
+                      ? `Version ${status.installedVersion}`
+                      : 'Not installed'}
+                  </Text>
+                </Stack>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={busy}
+                  aria-label={
+                    status.state === 'update_available'
+                      ? 'Review Agent CLI update'
+                      : 'Check Agent CLI updates'
+                  }
+                  onClick={() =>
+                    status.state === 'update_available'
+                      ? setConfirmation('update')
+                      : void run(
+                          desktopBridge.checkForUpdates,
+                          'Agent CLI update check finished.',
+                        )
+                  }
+                >
+                  {status.state === 'update_available'
+                    ? 'Review update'
+                    : 'Check for updates'}
+                </Button>
+              </div>
+            </div>
             <Stack direction="row" justify="space-between" align="center">
-              <Text id="details-title" as="h2" variant="h4">
-                Diagnostics and updates
+              <Text as="h3" variant="bodyLarge" weight="semibold">
+                Agent Server logs
               </Text>
-              <Text mono variant="caption" color="muted">
-                {status.installedVersion
-                  ? `agent ${status.installedVersion}`
-                  : 'not installed'}
-              </Text>
-            </Stack>
-            <Stack direction="row" gap={3} wrap>
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() =>
-                  status.state === 'update_available'
-                    ? setConfirmation('update')
-                    : void run(
-                        desktopBridge.checkForUpdates,
-                        'Agent CLI update check finished.',
-                      )
-                }
-              >
-                {status.state === 'update_available'
-                  ? 'Review Agent CLI update'
-                  : 'Check Agent CLI update'}
-              </Button>
               <Button
                 variant="ghost"
+                size="sm"
                 onClick={() => void desktopBridge.openLogs()}
               >
-                Open full logs
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={busy}
-                onClick={() => void checkDesktopUpdate()}
-              >
-                Check app update
+                Open logs
               </Button>
             </Stack>
             <pre className="log-preview" aria-label="Recent Agent Server logs">

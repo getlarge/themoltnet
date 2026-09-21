@@ -355,20 +355,28 @@ export function buildAgentServer(
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
 
-  // The native client is not a browser: CORS does not constrain it, its
-  // process-scoped token does. The reserved origin uses a scheme no browser
-  // can present, and `OriginAllowlist` only accepts https/loopback-http, so it
-  // is admitted through the predicate rather than the allowlist. Admitting it
-  // only lets the request reach the token check in `requireAuthorizedOrigin`.
-  const browserOrigins = new OriginAllowlist(options.allowedOrigins);
-  registerLoopbackSecurity(app, {
-    isOriginAllowed: (origin) =>
-      origin === NATIVE_CLIENT_ORIGIN ||
-      origin === options.selfOrigin ||
-      browserOrigins.has(origin),
+  // Native control is not a browser surface: its private socket and
+  // process-scoped token are the authority. Browser-origin configuration
+  // belongs exclusively to the separately invoked standalone TCP mode.
+  const securityOptions = {
     allowedHeaders: [AGENT_SERVER_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  });
+  } as const;
+  if (options.nativeOnly) {
+    registerLoopbackSecurity(app, {
+      ...securityOptions,
+      isOriginAllowed: (origin) => origin === NATIVE_CLIENT_ORIGIN,
+    });
+  } else {
+    const browserOrigins = new OriginAllowlist(options.allowedOrigins);
+    registerLoopbackSecurity(app, {
+      ...securityOptions,
+      isOriginAllowed: (origin) =>
+        origin === NATIVE_CLIENT_ORIGIN ||
+        origin === options.selfOrigin ||
+        browserOrigins.has(origin),
+    });
+  }
   // Bound browser signature work before attempting asymmetric verification.
   // A fixed process-wide bucket cannot grow with attacker-chosen origins/IPs;
   // native process grants retain their independent, inexpensive verification.

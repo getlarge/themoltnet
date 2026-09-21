@@ -9,3 +9,5 @@ executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Conten
 lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
 [ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = 13.0 ]
 hdiutil verify "$dmg"
+bash tools/release/agent-desktop/native-readiness-smoke.sh \
+  mac-os "$app/Contents/MacOS/$executable"
