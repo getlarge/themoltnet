@@ -1,7 +1,12 @@
 // Assemble only a complete release from metadata produced by verified platform jobs.
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { writeFileSync } from 'node:fs';
 import process from 'node:process';
+
+import {
+  DESKTOP_PLATFORMS,
+  desktopAssetName,
+  loadReleaseMetadata,
+} from './release-contract.mjs';
 
 const [directory, output, version, repository = 'getlarge/themoltnet'] =
   process.argv.slice(2);
@@ -15,22 +20,11 @@ if (
   );
 }
 const platforms = {};
-const metadata = readdirSync(directory)
-  .filter(
-    (name) => name.startsWith('release-metadata-') && name.endsWith('.json'),
-  )
-  .flatMap((name) => {
-    const value = JSON.parse(readFileSync(join(directory, name), 'utf8'));
-    if (value.version !== version)
-      throw new Error(`Metadata version mismatch: ${name}`);
-    return value.assets ?? [];
-  });
-for (const [target, suffix] of [
-  ['darwin-aarch64', 'aarch64.app.tar.gz'],
-  ['linux-x86_64-deb', 'amd64.deb'],
-  ['linux-x86_64-appimage', 'amd64.AppImage'],
-]) {
-  const name = `MoltNet-Agent_${version}_${suffix}`;
+const metadata = loadReleaseMetadata(directory, version);
+for (const { target, suffix } of Object.values(DESKTOP_PLATFORMS).flatMap(
+  ({ updaterTargets }) => updaterTargets,
+)) {
+  const name = desktopAssetName(version, suffix);
   const asset = metadata.find((candidate) => candidate.name === name);
   if (!asset || asset.size <= 0 || !/^[a-f0-9]{64}$/.test(asset.sha256 ?? ''))
     throw new Error(`Missing verified metadata: ${name}`);

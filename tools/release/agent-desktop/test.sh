@@ -124,22 +124,75 @@ for (const field of ['agent', 'agentCli']) {
     throw new Error(`download manifest is missing compatible ${field} data`);
   }
 }
+for (const route of [
+  '/download/desktop/macos-arm64',
+  '/download/desktop/linux-x64-deb',
+  '/download/desktop/linux-x64-appimage',
+]) {
+  if (!manifestTemplate.includes(`location = ${route}`)) {
+    throw new Error(`download manifest is missing Desktop route ${route}`);
+  }
+}
+for (const suffix of ['aarch64.dmg', 'amd64.deb', 'amd64.AppImage']) {
+  if (!manifestTemplate.includes(`MoltNet-Agent_\${agent_desktop_version}_${suffix}`)) {
+    throw new Error(`download manifest is missing Desktop artifact ${suffix}`);
+  }
+}
 NODE
-
-echo 'agent desktop release contract tests passed'
 
 # Linux signing does not require Apple material; all update formats are required.
 TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
   bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release linux
+
+# GitHub's releases/tags endpoint excludes drafts. Exercise the collection
+# lookup used by finalization with a fake gh response so that contract stays
+# testable without creating a release.
+mkdir -p "$fixture/bin"
+cat > "$fixture/bin/gh" <<'SH'
+#!/usr/bin/env bash
+cat "$FAKE_RELEASES"
+SH
+chmod +x "$fixture/bin/gh"
+printf '%s\n' \
+  '[{"tag_name":"agent-desktop-v1.2.3","draft":true,"assets":[]}]' \
+  > "$fixture/releases.json"
+PATH="$fixture/bin:$PATH" \
+  GITHUB_REPOSITORY=getlarge/themoltnet \
+  RELEASE_TAG=agent-desktop-v1.2.3 \
+  FAKE_RELEASES="$fixture/releases.json" \
+  bash "$repo/tools/release/agent-desktop/fetch-release.sh" "$fixture/draft.json"
+[ "$(jq -r .tag_name "$fixture/draft.json")" = agent-desktop-v1.2.3 ]
+printf '%s\n' \
+  '[{"tag_name":"agent-desktop-v1.2.3","draft":false,"assets":[]}]' \
+  > "$fixture/releases.json"
+if PATH="$fixture/bin:$PATH" \
+  GITHUB_REPOSITORY=getlarge/themoltnet \
+  RELEASE_TAG=agent-desktop-v1.2.3 \
+  FAKE_RELEASES="$fixture/releases.json" \
+  bash "$repo/tools/release/agent-desktop/fetch-release.sh" "$fixture/draft.json" 2>/dev/null; then
+  echo 'draft lookup accepted a published release' >&2
+  exit 1
+fi
+
 mkdir -p "$fixture/assets" "$fixture/metadata" "$fixture/output"
-for suffix in aarch64.app.tar.gz amd64.deb amd64.AppImage; do
-  printf 'artifact' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix"
-  printf 'signature' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix.sig"
-done
-for suffix in aarch64.app.zip aarch64.dmg; do
-  printf 'artifact' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix"
-done
+node --input-type=module - "$fixture/assets" <<'NODE'
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  DESKTOP_PLATFORMS,
+  desktopAssetName,
+} from './tools/release/agent-desktop/release-contract.mjs';
+
+const directory = process.argv[2];
+for (const { artifacts } of Object.values(DESKTOP_PLATFORMS)) {
+  for (const { suffix, updater } of artifacts) {
+    const path = join(directory, desktopAssetName('1.2.3', suffix));
+    writeFileSync(path, 'artifact');
+    if (updater) writeFileSync(`${path}.sig`, 'signature');
+  }
+}
+NODE
 node tools/release/agent-desktop/release-metadata.mjs \
   "$fixture/assets" 1.2.3 mac-os "$fixture/metadata/release-metadata-mac-os.json"
 node tools/release/agent-desktop/release-metadata.mjs \
@@ -156,14 +209,36 @@ const assets = fs.readdirSync(directory)
     name: asset.name,
     size: asset.size,
     digest: `sha256:${asset.sha256}`,
+    state: 'uploaded',
   }));
 fs.writeFileSync(output, JSON.stringify({ assets }));
 NODE
+cp "$fixture/published.json" "$fixture/published-good.json"
 node tools/release/agent-desktop/verify-published-assets.mjs \
   "$fixture/metadata" "$fixture/published.json" 1.2.3
 node tools/release/agent-desktop/manifest.mjs \
   "$fixture/metadata" "$fixture/output/latest.json" 1.2.3
 [ ! -e "$fixture/metadata/latest.json" ]
+node tools/release/agent-desktop/verify-published-assets.mjs \
+  "$fixture/metadata" "$fixture/published.json" 1.2.3 \
+  "$fixture/output/latest.json" optional
+node - "$fixture/published.json" "$fixture/output/latest.json" <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const [publishedPath, manifestPath] = process.argv.slice(2);
+const published = require(publishedPath);
+const bytes = fs.readFileSync(manifestPath);
+published.assets.push({
+  name: 'latest.json',
+  size: bytes.length,
+  digest: `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`,
+  state: 'uploaded',
+});
+fs.writeFileSync(publishedPath, JSON.stringify(published));
+NODE
+node tools/release/agent-desktop/verify-published-assets.mjs \
+  "$fixture/metadata" "$fixture/published.json" 1.2.3 \
+  "$fixture/output/latest.json" required
 node - "$fixture/output/latest.json" <<'NODE'
 const manifest = require(process.argv[2]);
 const targets = Object.keys(manifest.platforms).sort();
@@ -171,6 +246,7 @@ if (JSON.stringify(targets) !== JSON.stringify(['darwin-aarch64', 'linux-x86_64-
   throw new Error('Updater must select the installed package format');
 }
 NODE
+cp "$fixture/published-good.json" "$fixture/published.json"
 node - "$fixture/published.json" <<'NODE'
 const fs = require('node:fs');
 const path = process.argv[2];
@@ -185,6 +261,64 @@ if node tools/release/agent-desktop/verify-published-assets.mjs \
   echo 'published asset verification accepted a changed digest' >&2
   exit 1
 fi
+
+for failure in missing size extra digest; do
+  cp "$fixture/published-good.json" "$fixture/published-$failure.json"
+  node - "$fixture/published-$failure.json" "$failure" <<'NODE'
+const fs = require('node:fs');
+const [path, failure] = process.argv.slice(2);
+const published = require(path);
+if (failure === 'missing') published.assets.shift();
+if (failure === 'size') published.assets[0].size += 1;
+if (failure === 'extra') published.assets.push({ name: 'unexpected.bin', size: 1, digest: `sha256:${'0'.repeat(64)}`, state: 'uploaded' });
+if (failure === 'digest') published.assets[0].digest = null;
+fs.writeFileSync(path, JSON.stringify(published));
+NODE
+  if node tools/release/agent-desktop/verify-published-assets.mjs \
+    "$fixture/metadata" "$fixture/published-$failure.json" 1.2.3 \
+    2>"$fixture/$failure.err"; then
+    echo "published asset verification accepted a $failure release" >&2
+    exit 1
+  fi
+done
+grep -q 'missing .*; extra' "$fixture/missing.err"
+grep -q 'expected .*found' "$fixture/size.err"
+grep -q 'expected .*found none.*Rerunning finalization is safe' "$fixture/digest.err"
+
+# Exercise the exact selector shared by notarization and materialization.
+source "$repo/tools/release/agent-desktop/find-one.sh"
+for platform in mac-os linux; do
+  selector="$fixture/select-$platform"
+  mkdir -p "$selector"
+  if [ "$platform" = mac-os ]; then
+    pattern='*_1.2.3_*.dmg'
+    if find_one "$selector" "$pattern" >/dev/null 2>&1; then
+      echo 'macOS selector accepted zero artifacts' >&2
+      exit 1
+    fi
+    touch "$selector/MoltNet-Agent_1.2.3_aarch64.dmg"
+    [ "$(find_one "$selector" "$pattern")" = "$selector/MoltNet-Agent_1.2.3_aarch64.dmg" ]
+    touch "$selector/stale_1.2.3_aarch64.dmg"
+    if find_one "$selector" "$pattern" >/dev/null 2>&1; then
+      echo 'macOS selector accepted duplicate artifacts' >&2
+      exit 1
+    fi
+  else
+    pattern='*_1.2.3_*.deb'
+    if find_one "$selector" "$pattern" >/dev/null 2>&1; then
+      echo 'Linux selector accepted zero artifacts' >&2
+      exit 1
+    fi
+    touch "$selector/MoltNet-Agent_1.2.3_amd64.deb"
+    [ "$(find_one "$selector" "$pattern")" = "$selector/MoltNet-Agent_1.2.3_amd64.deb" ]
+    touch "$selector/stale_1.2.3_amd64.deb"
+    if find_one "$selector" "$pattern" >/dev/null 2>&1; then
+      echo 'Linux selector accepted duplicate artifacts' >&2
+      exit 1
+    fi
+  fi
+done
+
 node - "$fixture/metadata/release-metadata-linux.json" <<'NODE'
 const fs = require('node:fs');
 const path = process.argv[2];
@@ -197,3 +331,5 @@ if node tools/release/agent-desktop/manifest.mjs \
   echo 'manifest accepted an incomplete Linux release' >&2
   exit 1
 fi
+
+echo 'agent desktop release contract tests passed'

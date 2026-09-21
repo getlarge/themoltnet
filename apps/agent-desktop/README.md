@@ -39,8 +39,9 @@ For unsigned local packaging on Ubuntu:
 pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux
 ```
 
-For unsigned macOS packaging use `--configuration=mac-os`. Signed release
-packaging uses `mac-os-release` and `linux-release` configurations.
+For unsigned macOS packaging use `--configuration=mac-os`. Signed packaging
+uses the same platform configurations with a trailing `-- release` mode
+argument.
 Unsigned builds omit updater signatures so PR checks need no release secrets.
 
 CI checks both platforms in the same package workflow. On Ubuntu it builds both packages, installs the `.deb`, checks shared-library resolution,

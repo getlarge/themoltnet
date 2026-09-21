@@ -8,6 +8,7 @@ public_key=${3:?usage: materialize.sh <mac-os|linux> <version> <updater-public-k
 target_dir=apps/agent-desktop/out-rust/bundle
 output=dist/agent-desktop
 mkdir -p "$output"
+source "$(dirname "$0")/find-one.sh"
 
 verify() {
   local target=$1 signature=$2 artifact=$3
@@ -16,24 +17,15 @@ verify() {
     "$public_key" "$signature" "$artifact"
 }
 
-find_one() {
-  local directory=$1 pattern=$2 kind=${3:-f} matches count
-  matches=$(find "$directory" -maxdepth 1 -type "$kind" -name "$pattern" -print)
-  count=$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')
-  if [ "$count" != 1 ]; then
-    echo "Expected exactly one $pattern in $directory; found $count" >&2
-    exit 1
-  fi
-  printf '%s\n' "$matches"
-}
-
 case "$platform" in
   mac-os)
     target=aarch64-apple-darwin
     bundle=$target_dir/$target/release/bundle
-    app=$(find_one "$bundle/macos" '*.app' d)
+    # Tauri's canonical app and updater names do not contain a version. bundle.sh
+    # removes this target's prior bundle directory before each build.
+    app=$(find_one "$bundle/macos" 'MoltNet Agent.app' d)
     dmg=$(find_one "$bundle/dmg" "*_${version}_*.dmg")
-    updater=$(find_one "$bundle/macos" '*.app.tar.gz')
+    updater=$(find_one "$bundle/macos" 'MoltNet Agent.app.tar.gz')
     signature=$updater.sig
     [ -d "$app" ] && [ -s "$dmg" ] && [ -s "$updater" ] && [ -s "$signature" ] || {
       echo 'refusing incomplete Agent desktop macOS artifacts' >&2

@@ -20,8 +20,8 @@ inputs:
     description: Cache Cargo downloads and Desktop build outputs.
     default: 'false'
   rust-cache-key:
-    description: Cache partition for the Rust workload.
-    default: ci
+    description: Required cache partition when rust-cache is true.
+    default: ''
   rust-cache-targets:
     description: Cache compiled Cargo target directories as well as the registry.
     default: 'true'
@@ -53,13 +53,19 @@ runs:
           echo "The pinned Rust action provides 1.88.0, but .tool-versions declares ${rust_version:-nothing}" >&2
           exit 1
         }
+        if [ "${{ inputs.rust-cache }}" = true ] && [ -z "${{ inputs.rust-cache-key }}" ]; then
+          echo 'rust-cache-key is required when rust-cache is true' >&2
+          exit 1
+        fi
+    # dtolnay/rust-toolchain commit 688313b resolves the Rust 1.88.0 release.
     - if: inputs.rust == 'true' && inputs.rust-components == ''
       uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
+    # dtolnay/rust-toolchain commit 688313b resolves the Rust 1.88.0 release.
     - if: inputs.rust == 'true' && inputs.rust-components != ''
       uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
       with:
         components: ${{ inputs.rust-components }}
-    # Swatinem/rust-cache v2 at 49a0bdc is pinned for the Rust 1.88.0 toolchain above.
+    # Swatinem/rust-cache v2 is pinned by commit for reproducible cache behavior.
     - if: inputs.rust == 'true' && inputs.rust-cache == 'true'
       uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
       with:

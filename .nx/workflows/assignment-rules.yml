@@ -30,12 +30,17 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
-  # test/test-desktop-native/test-release-scripts/build/check:pack (whole-suite and native tests, release contracts, vite builds, npm tarball
+  # The release contract is a small shell/Node suite with no worker pool.
+  - targets: [test-release-scripts]
+    run-on:
+      - agent: linux-medium
+        parallelism: 3
+
+  # test/test-desktop-native/build/check:pack (whole-suite and native tests, vite builds, npm tarball
   # validation) cap at 1 per agent —
   # vitest worker IPC starts to time out under contention on 4-vCPU
   # runners when multiple non-atomized suites compound their fork pools.
-  - targets:
-      [test, test-desktop-native, test-release-scripts, build, 'check:pack']
+  - targets: [test, test-desktop-native, build, 'check:pack']
     run-on:
       - agent: linux-medium
         parallelism: 1

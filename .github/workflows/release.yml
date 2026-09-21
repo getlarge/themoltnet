@@ -2626,7 +2626,7 @@ jobs:
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=mac-os-release
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=mac-os -- release
 
       - name: Remove signing identity
         if: ${{ always() }}
@@ -2640,13 +2640,15 @@ jobs:
           APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
           APPLE_API_KEY_PATH: ${{ runner.temp }}/notary.p8
           NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
           umask 077
           trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
           printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
           chmod 600 "$APPLE_API_KEY_PATH"
-          dmg=$(find apps/agent-desktop/out-rust/bundle/aarch64-apple-darwin/release/bundle/dmg -maxdepth 1 -name '*.dmg' -print -quit)
-          [ -f "$dmg" ] || { echo "Agent desktop DMG is missing" >&2; exit 1; }
+          source tools/release/agent-desktop/find-one.sh
+          version=${RELEASE_TAG#agent-desktop-v}
+          dmg=$(find_one apps/agent-desktop/out-rust/bundle/aarch64-apple-darwin/release/bundle/dmg "*_${version}_*.dmg")
           xcrun notarytool submit "$dmg" \
             --key "$APPLE_API_KEY_PATH" \
             --key-id "$APPLE_API_KEY" \
@@ -2721,7 +2723,7 @@ jobs:
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux-release
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux -- release
 
       - name: Verify and materialize Linux assets
         env:
@@ -2787,20 +2789,21 @@ jobs:
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
           mkdir -p dist/agent-desktop
-          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > "$RUNNER_TEMP/release.json"
-          node tools/release/agent-desktop/verify-published-assets.mjs \
-            dist/agent-desktop-metadata "$RUNNER_TEMP/release.json" "${RELEASE_TAG#agent-desktop-v}"
           node tools/release/agent-desktop/manifest.mjs \
             dist/agent-desktop-metadata dist/agent-desktop/latest.json \
             "${RELEASE_TAG#agent-desktop-v}" "$GITHUB_REPOSITORY"
+          bash tools/release/agent-desktop/fetch-release.sh "$RUNNER_TEMP/release.json"
+          node tools/release/agent-desktop/verify-published-assets.mjs \
+            dist/agent-desktop-metadata "$RUNNER_TEMP/release.json" \
+            "${RELEASE_TAG#agent-desktop-v}" dist/agent-desktop/latest.json optional
           gh release upload "$RELEASE_TAG" dist/agent-desktop/latest.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir "$RUNNER_TEMP/manifest"
           cmp dist/agent-desktop/latest.json "$RUNNER_TEMP/manifest/latest.json"
-          revision=$(git rev-parse HEAD)
-          release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)
-          [ "$(jq -r .isDraft <<< "$release")" = true ]
-          [ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ]
-          [ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ]
+          bash tools/release/agent-desktop/verify-release-revision.sh
+          bash tools/release/agent-desktop/fetch-release.sh "$RUNNER_TEMP/release-final.json"
+          node tools/release/agent-desktop/verify-published-assets.mjs \
+            dist/agent-desktop-metadata "$RUNNER_TEMP/release-final.json" \
+            "${RELEASE_TAG#agent-desktop-v}" dist/agent-desktop/latest.json required
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
 
   # release-please's "go" release type tags the lib but never edits go.mod in

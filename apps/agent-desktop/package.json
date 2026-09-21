@@ -169,6 +169,7 @@
       },
       "test-release-scripts": {
         "executor": "nx:run-commands",
+        "cache": true,
         "inputs": [
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
@@ -252,18 +253,15 @@
           "sharedGlobals",
           "{workspaceRoot}/tools/release/agent-desktop/bundle.sh"
         ],
+        "options": {
+          "command": "bash tools/release/agent-desktop/bundle.sh host"
+        },
         "configurations": {
           "mac-os": {
             "command": "bash tools/release/agent-desktop/bundle.sh mac-os"
           },
           "linux": {
             "command": "bash tools/release/agent-desktop/bundle.sh linux"
-          },
-          "mac-os-release": {
-            "command": "bash tools/release/agent-desktop/bundle.sh mac-os release"
-          },
-          "linux-release": {
-            "command": "bash tools/release/agent-desktop/bundle.sh linux release"
           }
         }
       }

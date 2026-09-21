@@ -215,12 +215,10 @@ describe('Nx release configuration', () => {
   it.each(['mac-os', 'linux'])(
     'uses matching %s release and package-check targets',
     (platform) => {
-      expect(workflow).toContain(
-        `pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${platform}-release`,
-      );
       const target = agentDesktopPackage.nx.targets['tauri:bundle'];
-      expect(target.configurations[`${platform}-release`].command).toBe(
-        `${target.configurations[platform].command} release`,
+      expect(target.options.command).toContain('bundle.sh host');
+      expect(desktopReleaseJob).toContain(
+        `tauri:bundle --configuration=${platform} -- release`,
       );
       const bundler = readFileSync(
         join(workspaceRoot, 'tools/release/agent-desktop/bundle.sh'),
@@ -274,7 +272,12 @@ describe('Nx release configuration', () => {
   });
 
   it('binds a desktop release to one reviewed main revision', () => {
-    const releaseScripts = ['checkout-release.sh', 'upload.sh']
+    const releaseScripts = [
+      'checkout-release.sh',
+      'upload.sh',
+      'verify-release-revision.sh',
+      'fetch-release.sh',
+    ]
       .map((file) =>
         readFileSync(
           join(workspaceRoot, 'tools/release/agent-desktop', file),
@@ -295,13 +298,17 @@ describe('Nx release configuration', () => {
       'tag_revision=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)',
     );
     expect(releaseScripts).toContain('[ "$tag_revision" = "$revision" ]');
-    expect(releaseScripts).toContain(
-      '[ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ]',
+    expect(releaseScripts).toContain('if [ "$target" != "$revision" ]');
+    expect(releaseScripts.match(/verify-release-revision\.sh/g)).toHaveLength(
+      2,
     );
+    expect(
+      desktopReleaseJob.match(/verify-release-revision\.sh/g),
+    ).toHaveLength(1);
     expect(releaseScripts).toContain(
-      '[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ]',
+      'gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100"',
     );
-    expect(releaseScripts.match(/verify_release_revision/g)).toHaveLength(3);
+    expect(desktopReleaseJob).not.toContain('releases/tags/${RELEASE_TAG}');
   });
 
   it('can republish failed Docker releases from their existing drafts', () => {

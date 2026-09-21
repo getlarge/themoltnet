@@ -1,5 +1,15 @@
 name: Desktop packages
 on:
+  push:
+    branches: [main]
+    paths:
+      - apps/agent-desktop/**
+      - libs/design-system/**
+      - libs/task-ui/**
+      - tools/release/agent-desktop/**
+      - .github/actions/setup-workspace/**
+      - .github/workflows/agent-desktop-packages.yml
+      - .github/workflows/release.yml
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -9,6 +19,7 @@ on:
       - tools/release/agent-desktop/**
       - .github/actions/setup-workspace/**
       - .github/workflows/agent-desktop-packages.yml
+      - .github/workflows/release.yml
   workflow_dispatch:
 permissions:
   contents: read

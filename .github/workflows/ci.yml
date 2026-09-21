@@ -283,7 +283,10 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: ./.github/actions/setup-workspace
+        with:
+          install-dependencies: 'false'
+          rust: 'true'
       - name: Test macOS native control and peer credentials
         run: cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-macos
 
