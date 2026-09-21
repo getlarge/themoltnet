@@ -10,6 +10,7 @@ import {
 import { type ReactNode, useId, useState } from 'react';
 
 import { formatDateTime, humanizeToken } from './format.js';
+import { compactIdentifier } from './task-output.js';
 import { TaskStatusBadge } from './task-status-badge.js';
 import type { TaskLabelRenderer, TaskSummary } from './types.js';
 
@@ -19,6 +20,8 @@ export interface TaskDetailHeaderProps {
   renderDiaryLabel?: TaskLabelRenderer;
   renderActorLabel?: TaskLabelRenderer;
   onOpenConsole?: (task: TaskSummary) => void;
+  /** Shorten the task ID chip; copying still yields the full ID. */
+  compactIdentifiers?: boolean;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,6 +48,7 @@ export function TaskDetailHeader({
   renderDiaryLabel,
   renderActorLabel,
   onOpenConsole,
+  compactIdentifiers = false,
 }: TaskDetailHeaderProps) {
   const actorId = task.proposedByAgentId ?? task.proposedByHumanId;
   const taskTitle = task.title || humanizeToken(task.taskType);
@@ -151,7 +155,12 @@ export function TaskDetailHeader({
           </Stack>
 
           <Stack gap={2} align="flex-start" style={{ minWidth: 0 }}>
-            <CopyButton value={task.id} size="sm" ariaLabel="Copy task ID" />
+            <CopyButton
+              value={task.id}
+              text={compactIdentifiers ? compactIdentifier(task.id) : undefined}
+              size="sm"
+              ariaLabel="Copy task ID"
+            />
             {task.consoleUrl && onOpenConsole ? (
               <Button
                 variant="secondary"

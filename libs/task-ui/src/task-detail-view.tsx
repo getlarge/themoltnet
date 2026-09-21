@@ -130,6 +130,7 @@ export function TaskDetailView({
         renderDiaryLabel={renderDiaryLabel}
         renderActorLabel={renderActorLabel}
         onOpenConsole={presentation ? undefined : onOpenConsole}
+        compactIdentifiers={presentation}
       />
 
       {attemptsStatus === 'loading' ? (
@@ -239,7 +240,11 @@ export function TaskDetailView({
         main={
           <Stack gap={5}>
             <Card variant="surface" padding="md">
-              <TaskInputViewer input={task.input} inputCid={task.inputCid} />
+              <TaskInputViewer
+                input={task.input}
+                inputCid={task.inputCid}
+                compactCid={presentation}
+              />
             </Card>
 
             <Card variant="surface" padding="md">

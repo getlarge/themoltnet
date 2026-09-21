@@ -1,10 +1,14 @@
 import { CodeBlock, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { useState } from 'react';
 
+import { compactIdentifier } from './task-output.js';
+
 export interface JsonViewerProps {
   value: unknown;
   label?: string;
   cid?: string | null;
+  /** Shorten the CID; the full value stays in the title. */
+  compactCid?: boolean;
   defaultExpanded?: boolean;
 }
 
@@ -12,6 +16,7 @@ export function JsonViewer({
   value,
   label,
   cid,
+  compactCid = false,
   defaultExpanded = false,
 }: JsonViewerProps) {
   const theme = useTheme();
@@ -38,7 +43,9 @@ export function JsonViewer({
                 overflowWrap: 'anywhere',
               }}
             >
-              {cid}
+              <span title={compactCid ? cid : undefined}>
+                {compactCid ? compactIdentifier(cid) : cid}
+              </span>
             </Text>
           ) : null}
         </Stack>

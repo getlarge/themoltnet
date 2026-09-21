@@ -1,7 +1,7 @@
 import {
+  Badge,
   Button,
   Container,
-  InlineNotice,
   Stack,
   Text,
   useThemeMode,
@@ -71,7 +71,9 @@ export function TaskDetailDemo() {
   const label = (id: string | null) => (id ? (DEMO_LABELS[id] ?? id) : null);
 
   return (
-    <Container>
+    // xl sits within the Console's own content width (1128px beside the
+    // sidebar on a 1440px screen, up to 1392px on wider ones).
+    <Container maxWidth="xl">
       <Stack gap={5} style={{ padding: '2rem 0 4rem' }}>
         {initial.chrome ? (
           <Stack gap={3}>
@@ -122,10 +124,12 @@ export function TaskDetailDemo() {
           }}
           presentation={presentation}
           notice={
-            <InlineNotice tone="info" title="Illustrative data">
-              A synthetic task, agent, and diary rendered with the Console’s
-              task components. No identifier or text comes from a real task.
-            </InlineNotice>
+            <Stack direction="row" align="center" gap={2} wrap>
+              <Badge>Illustrative example</Badge>
+              <Text variant="caption" color="muted">
+                Synthetic data rendered with the Console’s task components
+              </Text>
+            </Stack>
           }
           renderTeamLabel={presentation ? label : undefined}
           renderDiaryLabel={presentation ? label : undefined}

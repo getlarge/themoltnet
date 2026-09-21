@@ -192,13 +192,13 @@ function AcceptedResult({
                 margin: 0,
                 maxWidth: '68ch',
                 color: theme.color.text.DEFAULT,
-                // Lead paragraph: one step up from body on phones, two on
-                // wider screens; long summaries stay at the smaller size.
+                // Lead paragraph: 17px on phones rising to 20px on wide
+                // screens; long summaries stay at 18px.
                 fontSize:
                   summary.length > 480
                     ? theme.font.size.lg
-                    : 'clamp(1.0625rem, 0.95rem + 0.5vw, 1.25rem)',
-                lineHeight: 1.6,
+                    : 'clamp(1.0625rem, 0.97rem + 0.4vw, 1.25rem)',
+                lineHeight: 1.45,
                 textWrap: 'pretty',
                 overflowWrap: 'anywhere',
               }}

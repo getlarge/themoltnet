@@ -611,3 +611,42 @@ describe('TaskDetailHeader — long briefs', () => {
     ).toBeNull();
   });
 });
+
+describe('TaskDetailView — presentation mode identifiers', () => {
+  it('compacts the task ID chip and input CID but copies the full ID', () => {
+    renderWithTheme(
+      <TaskDetailView
+        task={projectBriefTask}
+        attempts={[projectBriefAttempt]}
+        knowledge={{ entries: [], total: 0, status: 'ready' }}
+        presentation
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Copy task ID' }),
+    ).toHaveTextContent('b23bf6f2…ba9b11');
+    expect(screen.queryByText(projectBriefTask.id)).toBeNull();
+    // Input viewer and execution record both compact the input CID.
+    const inputCids = screen.getAllByText('bafyreiw…4gq4lu');
+    expect(inputCids.length).toBeGreaterThanOrEqual(2);
+    for (const cid of inputCids) {
+      expect(cid).toHaveAttribute('title', projectBriefTask.inputCid);
+    }
+    expect(screen.queryByText(projectBriefTask.inputCid)).toBeNull();
+  });
+
+  it('keeps full identifiers in the Console', () => {
+    renderWithTheme(
+      <TaskDetailView
+        task={projectBriefTask}
+        attempts={[projectBriefAttempt]}
+        knowledge={{ entries: [], total: 0, status: 'ready' }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Copy task ID' }),
+    ).toHaveTextContent(projectBriefTask.id);
+  });
+});
