@@ -149,7 +149,7 @@ func TestOnDiskCase(t *testing.T) {
 		t.Fatalf("case alias: %q, %v; want %q", got, err, actual)
 	}
 }
-func TestCanonicalDefault(t *testing.T) {
+func TestLexicalDefault(t *testing.T) {
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -167,7 +167,7 @@ func TestCanonicalDefault(t *testing.T) {
 	t.Setenv("MOLTNET_HOME", "")
 	os.Unsetenv("MOLTNET_HOME")
 	got, err := Dir()
-	if err != nil || got != filepath.Join(actual, ".config", "moltnet") {
+	if err != nil || got != filepath.Join(alias, ".config", "moltnet") {
 		t.Fatalf("default: %q, %v", got, err)
 	}
 }
@@ -187,5 +187,26 @@ func TestSymlinkBeforeParent(t *testing.T) {
 	expected, _ := Canonical(filepath.Join(root, "real/new"))
 	if err != nil || got != expected {
 		t.Fatalf("got %q, %v; want %q", got, err, expected)
+	}
+}
+
+func TestBrokenDefaultDoesNotAffectIsolatedNamespace(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("MOLTNET_HOME", "")
+	os.Unsetenv("MOLTNET_HOME")
+	if err := os.WriteFile(filepath.Join(home, ".config"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := Dir(); err != nil || got != filepath.Join(home, ".config", "moltnet") {
+		t.Fatalf("default lookup: %q, %v", got, err)
+	}
+	if got, err := SecretService(nil); err != nil || got != SecretServiceName {
+		t.Fatalf("default service: %q, %v", got, err)
+	}
+	root := filepath.Join(home, "isolated")
+	if got, err := SecretService(&root); err != nil || !strings.HasPrefix(got, SecretServiceName+"/store/") {
+		t.Fatalf("isolated service: %q, %v", got, err)
 	}
 }

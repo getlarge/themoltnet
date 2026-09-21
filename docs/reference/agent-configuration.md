@@ -61,10 +61,12 @@ no extra `.config/moltnet` suffix is appended. An explicitly empty, blank,
 NUL-containing, inaccessible, or non-directory path is an error, including an
 empty environment variable. Unset the variable to select the default.
 
-All selections return an absolute canonical path. Relative paths start at the
-caller's working directory. Existing symlinks and filesystem case aliases are
-resolved before parent (`..`) segments; missing directories are not created. The
-default path receives the same normalization as explicit paths.
+The default config/display path retains its established lexical spelling without
+filesystem access. Explicit and environment roots return absolute canonical
+paths; relative paths start at the caller's working directory. Existing symlinks
+and filesystem case aliases are resolved before parent (`..`) segments; missing
+directories are not created. Namespace and lock identity use canonical paths. An
+unavailable default directory does not prevent access to an isolated store.
 
 The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
 `storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a

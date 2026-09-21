@@ -691,10 +691,7 @@ func isolateIdentityEnv(t *testing.T) {
 func setupGitHubGuardIdentity(t *testing.T) string {
 	t.Helper()
 	isolateIdentityEnv(t)
-	home, canonicalErr := filepath.EvalSymlinks(t.TempDir())
-	if canonicalErr != nil {
-		t.Fatal(canonicalErr)
-	}
+	home := t.TempDir()
 	t.Setenv("HOME", home)
 	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
@@ -1031,5 +1028,26 @@ func TestClassifyGhCommand_UnreadableGraphQLDocumentStaysUnknown(t *testing.T) {
 			guardPermissions(map[string]string{})); reason == "" {
 			t.Fatalf("expected unreadable GraphQL to stay unknown: %s", command)
 		}
+	}
+}
+
+func TestTokenCredentialsMatchFileAliases(t *testing.T) {
+	root := t.TempDir()
+	actual := filepath.Join(root, "actual.json")
+	alias := filepath.Join(root, "alias.json")
+	other := filepath.Join(root, "other.json")
+	for _, path := range []string{actual, other} {
+		if err := os.WriteFile(path, []byte("{}"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink(actual, alias); err != nil {
+		t.Skip(err)
+	}
+	if !tokenCredentialsMatch([]string{"--credentials", alias}, actual) {
+		t.Fatal("same file alias rejected")
+	}
+	if tokenCredentialsMatch([]string{"--credentials", other}, actual) {
+		t.Fatal("different credentials accepted")
 	}
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"os"
 	"path/filepath"
 	"strings"
@@ -463,5 +465,33 @@ func TestKeyringProviderRejectsNamespaceAccount(t *testing.T) {
 	}
 	if len(backend.values) != 0 {
 		t.Fatal("reserved account reached OS adapter")
+	}
+}
+
+func TestKeyringRegistryRetainsSelectionProvenance(t *testing.T) {
+	t.Setenv("MOLTNET_HOME", "")
+	provider := NewSecretProviderRegistry().providers[osKeyringProviderName].(*OSKeyringSecretProvider)
+	t.Setenv("MOLTNET_HOME", t.TempDir())
+	_, err := provider.secretService()
+	if !errors.Is(err, configdir.ErrInvalidRoot) || !strings.Contains(err.Error(), "MOLTNET_HOME") {
+		t.Fatalf("lost environment provenance: %v", err)
+	}
+}
+
+func TestKeyringRegistrySnapshotsDefaultWithoutFilesystem(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("MOLTNET_HOME", "")
+	os.Unsetenv("MOLTNET_HOME")
+	if err := os.WriteFile(filepath.Join(home, ".config"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	provider := NewSecretProviderRegistry().providers[osKeyringProviderName].(*OSKeyringSecretProvider)
+	t.Setenv("MOLTNET_HOME", filepath.Join(home, "other"))
+	t.Setenv("HOME", filepath.Join(home, "different-home"))
+	service, err := provider.secretService()
+	if err != nil || service != configdir.SecretServiceName {
+		t.Fatalf("default snapshot: %q, %v", service, err)
 	}
 }

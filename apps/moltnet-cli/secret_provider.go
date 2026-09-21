@@ -202,8 +202,8 @@ type SecretProviderRegistry struct {
 func NewSecretProviderRegistry() *SecretProviderRegistry {
 	registry := &SecretProviderRegistry{providers: make(map[string]SecretProvider)}
 	registry.Register(environmentProviderName, EnvironmentSecretProvider{})
-	root, selectionErr := configdir.SelectedRoot()
-	keyring := &OSKeyringSecretProvider{StoreRoot: &root, serviceErr: selectionErr}
+	selection, selectionErr := configdir.Select(nil)
+	keyring := &OSKeyringSecretProvider{selection: &selection, serviceErr: selectionErr}
 	registry.Register(osKeyringProviderName, keyring)
 	registry.Register(fileProviderName, newFileSecretProviderFromEnv(os.LookupEnv))
 	return registry
@@ -412,6 +412,7 @@ func (EnvironmentSecretProvider) Delete(_ string) error {
 // credential store under the selected store's service name.
 type OSKeyringSecretProvider struct {
 	StoreRoot   *string
+	selection   *configdir.Selection
 	backend     keyringBackend
 	serviceOnce sync.Once
 	service     string
@@ -442,7 +443,11 @@ func (p *OSKeyringSecretProvider) keyring() keyringBackend {
 func (p *OSKeyringSecretProvider) secretService() (string, error) {
 	p.serviceOnce.Do(func() {
 		if p.serviceErr == nil {
-			p.service, p.serviceErr = configdir.SecretService(p.StoreRoot)
+			if p.selection != nil {
+				p.service, p.serviceErr = p.selection.SecretService()
+			} else {
+				p.service, p.serviceErr = configdir.SecretService(p.StoreRoot)
+			}
 		}
 	})
 	return p.service, p.serviceErr

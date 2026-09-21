@@ -21,51 +21,63 @@ func Dir() (string, error) {
 	return Resolve(nil)
 }
 
-// Resolve selects an explicit root, MOLTNET_HOME, then the established default.
-// A pointer distinguishes an explicitly empty root from an absent option.
-func Resolve(root *string) (string, error) {
-	source := "explicit root"
-	var selected string
+// Selection captures the root and its provenance before lazy keyring access.
+type Selection struct {
+	Root        string
+	source      string
+	defaultRoot string
+}
+
+// Select snapshots environment, HOME and CWD without touching store directories.
+func Select(root *string) (Selection, error) {
+	selection := Selection{source: "explicit root"}
+	selection.defaultRoot, _ = defaultDir()
 	if root != nil {
-		selected = *root
+		selection.Root = *root
+	} else if value, present := os.LookupEnv("MOLTNET_HOME"); present {
+		selection.Root, selection.source = value, "MOLTNET_HOME"
 	} else {
-		source = "default root"
-		if _, present := os.LookupEnv("MOLTNET_HOME"); present {
-			source = "MOLTNET_HOME"
-		}
+		selection.source = "default root"
 		var err error
-		selected, err = SelectedRoot()
+		selection.Root, err = defaultDir()
 		if err != nil {
-			return "", fmt.Errorf("%w (%s): %w", ErrInvalidRoot, source, err)
+			return selection, fmt.Errorf("%w (%s): %w", ErrInvalidRoot, selection.source, err)
 		}
 	}
-	result, err := Canonical(selected)
+	if strings.TrimSpace(selection.Root) != "" && !filepath.IsAbs(selection.Root) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return selection, fmt.Errorf("%w (%s): %w", ErrInvalidRoot, selection.source, err)
+		}
+		selection.Root = cwd + string(filepath.Separator) + selection.Root
+	}
+	return selection, nil
+}
+
+// Resolve preserves the lexical default; explicit selections are canonical.
+func Resolve(root *string) (string, error) {
+	selection, err := Select(root)
 	if err != nil {
-		return "", fmt.Errorf("%w (%s): %w", ErrInvalidRoot, source, err)
+		return "", err
+	}
+	return selection.resolve()
+}
+
+func (s Selection) resolve() (string, error) {
+	if s.source == "default root" {
+		return s.Root, nil
+	}
+	result, err := Canonical(s.Root)
+	if err != nil {
+		return "", fmt.Errorf("%w (%s): %w", ErrInvalidRoot, s.source, err)
 	}
 	return result, nil
 }
 
-// SelectedRoot snapshots the environment/default selection without filesystem
-// access. Relative roots are anchored to the current directory without cleaning
-// parent segments, which must be evaluated after symlinks.
+// SelectedRoot returns the uncanonicalized selection anchored to the caller CWD.
 func SelectedRoot() (string, error) {
-	root, present := os.LookupEnv("MOLTNET_HOME")
-	if !present {
-		var err error
-		root, err = defaultDir()
-		if err != nil {
-			return "", err
-		}
-	}
-	if strings.TrimSpace(root) == "" || filepath.IsAbs(root) {
-		return root, nil
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	return cwd + string(filepath.Separator) + root, nil
+	selection, err := Select(nil)
+	return selection.Root, err
 }
 
 func defaultDir() (string, error) {
@@ -95,7 +107,10 @@ func Canonical(root string) (string, error) {
 		absolute = cwd + string(filepath.Separator) + root
 	}
 	volume := filepath.VolumeName(absolute)
-	current := volume + string(filepath.Separator)
+	current, err := canonicalExisting(volume + string(filepath.Separator))
+	if err != nil {
+		return "", err
+	}
 	for _, segment := range strings.FieldsFunc(absolute[len(volume):], func(r rune) bool { return r == '/' || (runtime.GOOS == "windows" && r == '\\') }) {
 		if segment == "." {
 			continue
@@ -129,20 +144,30 @@ func Canonical(root string) (string, error) {
 
 // SecretService preserves default-store keyring references and separates stores.
 func SecretService(root *string) (string, error) {
-	selected, err := Resolve(root)
+	selection, err := Select(root)
 	if err != nil {
 		return "", err
 	}
-	defaultRoot, err := defaultDir()
-	if err != nil {
-		return "", err
-	}
-	defaultRoot, err = Canonical(defaultRoot)
-	if err != nil {
-		return "", err
-	}
-	if selected == defaultRoot {
+	return selection.SecretService()
+}
+
+// SecretService keeps the default namespace independent of directory health.
+func (s Selection) SecretService() (string, error) {
+	if s.source == "default root" {
 		return SecretServiceName, nil
+	}
+	selected, err := s.resolve()
+	if err != nil {
+		return "", err
+	}
+	if s.defaultRoot != "" {
+		if canonical, err := Canonical(s.defaultRoot); err == nil && selected == canonical {
+			return SecretServiceName, nil
+		}
 	}
 	return fmt.Sprintf("%s/store/%x", SecretServiceName, sha256.Sum256([]byte(selected))), nil
 }
+
+// CanonicalExisting returns the filesystem spelling of an existing path.
+// Project bindings use the same platform implementation as store identity.
+func CanonicalExisting(path string) (string, error) { return canonicalExisting(path) }

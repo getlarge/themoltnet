@@ -55,21 +55,32 @@ describe('MoltNet store selection', () => {
       join(home, 'real/new'),
     );
   });
-  it('canonicalizes the default through an aliased home', () => {
+  it('preserves the lexical default through an aliased home', () => {
     mkdirSync(join(home, 'real/.config/moltnet'), { recursive: true });
     symlinkSync(join(home, 'real'), join(home, 'alias'), 'dir');
     expect(getConfigDir({ home: join(home, 'alias') })).toBe(
-      join(home, 'real/.config/moltnet'),
+      join(home, 'alias/.config/moltnet'),
+    );
+    expect(storeSecretService({ home: join(home, 'alias') })).toBe(
+      'themolt.net',
     );
   });
-  it('uses on-disk case on case-insensitive volumes', () => {
+  it('uses on-disk case on case-insensitive volumes', (ctx) => {
     mkdirSync(join(home, 'CaseStore'));
-    if (!existsSync(join(home, 'casestore'))) return;
+    if (!existsSync(join(home, 'casestore'))) ctx.skip();
     expect(getConfigDir({ root: join(home, 'casestore') })).toBe(
       join(home, 'CaseStore'),
     );
     expect(storeSecretService({ root: join(home, 'casestore') })).toBe(
       storeSecretService({ root: join(home, 'CaseStore') }),
+    );
+  });
+  it('keeps default config lookup lexical even when .config is a file', () => {
+    writeFileSync(join(home, '.config'), 'fixture');
+    expect(getConfigDir()).toBe(join(home, '.config/moltnet'));
+    expect(storeSecretService()).toBe('themolt.net');
+    expect(storeSecretService({ root: join(home, 'isolated') })).toMatch(
+      /^themolt\.net\/store\/[a-f0-9]{64}$/,
     );
   });
   it('retains the established default', () => {

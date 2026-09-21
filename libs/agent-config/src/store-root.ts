@@ -22,7 +22,7 @@ export function canonicalStoreRoot(root: string, cwd = process.cwd()): string {
   // different directory from the OS when link points into another tree.
   const absolute = isAbsolute(root) ? root : `${cwd}${sep}${root}`;
   const prefix = parse(absolute).root;
-  let current = prefix;
+  let current = realpathSync.native(prefix);
   for (const segment of absolute
     .slice(prefix.length)
     .split(sep === '/' ? '/' : /[\\/]/)) {
@@ -58,6 +58,10 @@ export function resolveStoreRoot(options: StoreRootOptions = {}): string {
       : env.MOLTNET_HOME !== undefined
         ? 'MOLTNET_HOME'
         : 'default root';
+  if (root === undefined) {
+    // Preserve the established config/display path without filesystem access.
+    return join(options.home ?? homedir(), '.config', 'moltnet');
+  }
   try {
     return canonicalStoreRoot(
       root ?? join(options.home ?? homedir(), '.config', 'moltnet'),
@@ -73,12 +77,22 @@ export function resolveStoreRoot(options: StoreRootOptions = {}): string {
 
 /** The established default service remains readable without copying secrets. */
 export function storeSecretService(options: StoreRootOptions = {}): string {
-  const root = resolveStoreRoot(options);
-  const defaultRoot = canonicalStoreRoot(
-    join(options.home ?? homedir(), '.config', 'moltnet'),
-    options.cwd,
-  );
-  if (root === defaultRoot) return MOLTNET_SECRET_SERVICE;
+  // Default-store keyring access must not depend on its directory existing.
+  // eslint-disable-next-line no-restricted-syntax
+  const env = options.env ?? process.env;
+  if (options.root === undefined && env.MOLTNET_HOME === undefined) {
+    return MOLTNET_SECRET_SERVICE;
+  }
+  const root = canonicalStoreRoot(resolveStoreRoot(options), options.cwd);
+  try {
+    const defaultRoot = canonicalStoreRoot(
+      join(options.home ?? homedir(), '.config', 'moltnet'),
+      options.cwd,
+    );
+    if (root === defaultRoot) return MOLTNET_SECRET_SERVICE;
+  } catch {
+    // A valid isolated store does not depend on the default store's health.
+  }
   const digest = createHash('sha256').update(root, 'utf8').digest('hex');
   return `${MOLTNET_SECRET_SERVICE}/store/${digest}`;
 }
