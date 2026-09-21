@@ -16,13 +16,14 @@ The macOS native target builds a separately identified app with the explicit
 `desktop-e2e` Cargo feature and E2E Tauri configuration. Its parent launcher
 creates temporary store and installation roots before WebDriver starts the app,
 removes the inherited terminal bundle identity, and selects an available driver
-port. The fixture CLI uses the real daemon HTTP server, native grant, store,
-provider writer, and singleton lock. Trust responses are deterministic fixtures;
-no operating-system trust changes occur. The daemon exits when the native
+port. The fixture CLI uses the real daemon HTTPS server, native grant, store,
+provider writer, and singleton lock. The fixture generates a local CA and certificate inside the temporary store;
+Desktop pins that CA through the production control client. Trust approval is
+a deterministic fixture, with no operating-system trust changes. The daemon exits when the native
 supervisor closes its stdin pipe. Tests use real Tauri commands without IPC mocks.
 
-Only the explicit E2E build accepts loopback HTTP fixture discovery and loads the
-WebDriver plugins, permissions, and frontend helper. Normal debug and release
+Only the explicit E2E build loads the WebDriver plugins, permissions, and
+frontend helper. Every build uses the same HTTPS-only control contract. Normal debug and release
 builds exclude them. The release-boundary target checks the normal Cargo
 dependency graph and builds and inspects the production renderer.
 

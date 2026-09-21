@@ -1,4 +1,4 @@
-/** Real daemon HTTP/control stack with deterministic, local-only dependencies. */
+/** Real daemon HTTPS/control stack with deterministic, local-only dependencies. */
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -13,11 +13,13 @@ import { ProviderLoginService } from '../src/lib/agent-server/provider-login.js'
 import { RunManager } from '../src/lib/agent-server/runs.js';
 import { buildAgentServer } from '../src/lib/agent-server/server.js';
 import { AgentServerStore } from '../src/lib/agent-server/store.js';
+import { ensureLocalTlsMaterial } from '../src/lib/agent-server/tls.js';
 import { ProviderConfigurationService } from '../src/lib/provider-configuration.js';
 
 const root = process.env.MOLTNET_HOME;
 if (!root) throw new Error('Desktop fixture requires an isolated MOLTNET_HOME');
 const store = new AgentServerStore(root).ensure();
+const tls = await ensureLocalTlsMaterial(root);
 const args = process.argv.slice(2);
 const trustedPath = join(root, 'fixture-trusted');
 if (args[0] === 'server' && args[1] === 'trust') {
@@ -26,7 +28,7 @@ if (args[0] === 'server' && args[1] === 'trust') {
     JSON.stringify({
       supported: true,
       trusted: existsSync(trustedPath),
-      fingerprint: 'sha256:desktop-e2e',
+      fingerprint: tls.fingerprint,
     }),
   );
 } else if (args[0] === 'server') {
@@ -54,6 +56,7 @@ if (args[0] === 'server' && args[1] === 'trust') {
     },
   });
   const app = buildAgentServer({
+    tls: { key: tls.key, cert: tls.cert },
     store,
     secrets,
     secretProviders: providers,
@@ -84,6 +87,12 @@ if (args[0] === 'server' && args[1] === 'trust') {
   });
   const url = await app.listen({ host: '127.0.0.1', port: 0 });
   const discovery = publishAgentServerEndpoint(root, url);
+  console.log(
+    JSON.stringify({
+      event: 'moltnet.agent-server.ready',
+      ...discovery.record,
+    }),
+  );
   const stop = async () => {
     discovery.release();
     await app.close();
