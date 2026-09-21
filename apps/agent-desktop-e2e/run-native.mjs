@@ -14,6 +14,7 @@ import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
+const docker = process.argv.includes('--docker');
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 if (!['darwin', 'linux'].includes(process.platform))
   throw new Error('Native Desktop journeys require macOS or Linux');
@@ -56,7 +57,12 @@ try {
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = import.meta.resolve('tsx');
   const fixture = fileURLToPath(
-    new URL('./src/fixtures/desktop-fixture.ts', import.meta.url),
+    new URL(
+      docker
+        ? '../agent-daemon/src/main.ts'
+        : './src/fixtures/desktop-fixture.ts',
+      import.meta.url,
+    ),
   );
   writeFileSync(
     join(current, 'bin/moltnet-agent'),
@@ -98,6 +104,31 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
     env.XDG_RUNTIME_DIR,
   ])
     mkdirSync(path, { recursive: true, mode: 0o700 });
+  if (docker) {
+    env.MOLTNET_DESKTOP_E2E_DOCKER = '1';
+    for (const key of [
+      'MOLTNET_API_URL',
+      'MOLTNET_OPERATOR_API_URL',
+      'MOLTNET_OPERATOR_OAUTH_ISSUER',
+      'MOLTNET_OPERATOR_OAUTH_PUBLIC_URL',
+    ])
+      delete env[key];
+    for (const script of ['setup.ts', 'desktop-docker-setup.ts']) {
+      abort.signal.throwIfAborted();
+      child = spawn(process.execPath, [
+        '--import', tsx,
+        fileURLToPath(new URL(`./src/fixtures/${script}`, import.meta.url)),
+      ], { cwd: projectRoot, env, stdio: 'inherit', detached: true });
+      const code = await new Promise((resolve, reject) => {
+        child.once('error', reject);
+        child.once('close', resolve);
+      });
+      terminate('SIGKILL');
+      child = undefined;
+      abort.signal.throwIfAborted();
+      if (code !== 0) throw new Error(`Docker journey provisioning failed in ${script}; see the setup error above`);
+    }
+  } else delete env.MOLTNET_DESKTOP_E2E_DOCKER;
   // Resolve and compile the real CLI before Desktop's bounded startup probe.
   // A cold TypeScript module graph is fixture preparation, not daemon readiness.
   const prepare = spawn(

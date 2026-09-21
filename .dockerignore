@@ -35,6 +35,8 @@ node_modules
 # sibling models/ are NOT excluded. But typescript incremental + Nx caches
 # are never consumed by any Dockerfile.
 **/out-tsc
+**/out-rust
+**/dist-e2e
 **/.tsbuildinfo
 .nx
 .nxignore

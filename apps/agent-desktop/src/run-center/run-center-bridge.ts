@@ -171,6 +171,12 @@ export const runCenterActions: RunCenterActions = {
       agent: input.agent,
       teamId: input.teamId,
       diaryId: input.diaryId,
+      ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
+      ...(input.binding ? { binding: input.binding } : {}),
+      ...(input.source ? { source: input.source } : {}),
+      ...(input.workspaceStrategy
+        ? { workspaceStrategy: input.workspaceStrategy }
+        : {}),
       profileIds: input.profileIds,
       taskTypes: input.taskTypes,
       createdAt: existing?.createdAt ?? new Date().toISOString(),

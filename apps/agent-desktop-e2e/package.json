@@ -17,9 +17,7 @@
     "tsx": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "@axe-core/webdriverio": "catalog:",
-    "@themoltnet/agent-daemon": "workspace:*",
-    "@themoltnet/sdk": "workspace:*"
+    "@axe-core/webdriverio": "catalog:"
   },
   "nx": {
     "projectType": "application",
@@ -30,7 +28,8 @@
     ],
     "implicitDependencies": [
       "@moltnet/agent-desktop",
-      "@themoltnet/agent-daemon"
+      "@themoltnet/agent-daemon",
+      "@moltnet/rest-api"
     ],
     "targets": {
       "build-native": {
@@ -46,7 +45,8 @@
         "parallelism": false,
         "options": {
           "commands": [
-            "pnpm --dir apps/agent-desktop-e2e exec wdio run wdio.chrome.conf.ts"
+            "node apps/agent-desktop-e2e/build-native.mjs",
+            "node apps/agent-desktop-e2e/run-native.mjs --docker"
           ],
           "parallel": false
         },
@@ -67,6 +67,12 @@
     }
   },
   "dependencies": {
-    "@moltnet/agent-desktop": "workspace:*"
+    "@moltnet/agent-desktop": "workspace:*",
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@themoltnet/agent-daemon": "workspace:*",
+    "@themoltnet/design-system": "workspace:*",
+    "@themoltnet/sdk": "workspace:*"
   }
 }

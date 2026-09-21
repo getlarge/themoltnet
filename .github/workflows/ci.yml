@@ -343,6 +343,7 @@ jobs:
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
       e2e-agent-daemon: ${{ steps.compute.outputs.e2e-agent-daemon }}
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
+      e2e-desktop: ${{ steps.compute.outputs.e2e-desktop }}
       e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-cpp-sdk: ${{ steps.compute.outputs.e2e-cpp-sdk }}
@@ -461,6 +462,12 @@ jobs:
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if contains "@moltnet/agent-desktop-e2e"; then
+            echo "e2e-desktop=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-desktop=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if contains "@moltnet/console-e2e"; then
             echo "e2e-browser=true" >> "$GITHUB_OUTPUT"
           else
@@ -501,7 +508,7 @@ jobs:
           # e2e-any: true iff any suite should run. The e2e stack images
           # (rest-api, mcp-server, db-migrate, console, mcp-host) are shared by
           # all suites, so this single flag gates the image builds.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap" "@moltnet/agent-desktop-e2e"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -1280,9 +1287,8 @@ jobs:
             exit 1
           fi
 
-  # E2E jobs gate on the docker images they consume, but do not wait for
-  # `orchestrator` (lint+typecheck+test+build via Nx Cloud DTE). They manage
-  # their own docker compose stack and stay outside DTE per issue #985 scope.
+  # E2E jobs wait for affected image builds in the orchestrator, then run
+  # in parallel with separate Compose stacks outside Nx Cloud DTE.
   e2e-node:
     name: E2E Tests (Node / Shard ${{ matrix.shard.index }})
     runs-on: ubuntu-latest
@@ -1362,6 +1368,116 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
+
+  # Desktop owns its runner and Compose stack, parallel to sibling E2E jobs.
+  e2e-desktop:
+    name: E2E Tests (Desktop / ${{ matrix.lane.name }})
+    runs-on: ${{ matrix.lane.os }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: read
+    needs: [affected, orchestrator]
+    strategy:
+      fail-fast: false
+      matrix:
+        lane:
+          - name: Linux Docker and Chrome
+            os: ubuntu-latest
+            docker: true
+          - name: macOS native
+            os: macos-15
+            docker: false
+    env:
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
+      # Pre-set the URLs the e2e tests need. Without this, Nx's bin/nx.js
+      # loads workspace-root .env at startup; our .env is dotenvx-encrypted,
+      # so plain-dotenv pulls ciphertext into DATABASE_URL and pg silently
+      # falls back to its ::1:5432 default. Values mirror docker-compose.base
+      # host-port mappings.
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_HYDRA_ADMIN_URL: http://localhost:4445
+      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+      ORY_KETO_PUBLIC_URL: http://localhost:4466
+      ORY_KETO_ADMIN_URL: http://localhost:4467
+      ORY_KRATOS_ADMIN_URL: http://localhost:4434
+      ORY_KRATOS_PUBLIC_URL: http://localhost:4433
+      SERVER_BASE_URL: http://localhost:8080
+      # Must match the value injected into the rest-api container in
+      # docker-compose.e2e.yaml. The test reads it from process.env to sign
+      # webhook calls; if the encrypted .env gets loaded first, the test
+      # uses ciphertext and the server returns 403.
+      ORY_ACTION_API_KEY: local-dev-webhook-key
+    steps:
+      - name: Skip if Desktop E2E not affected
+        if: needs.affected.outputs.e2e-desktop != 'true'
+        run: echo "Desktop E2E project not affected."
+
+      - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-desktop == 'true'
+      - uses: pnpm/action-setup@v6
+        if: needs.affected.outputs.e2e-desktop == 'true'
+      - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-desktop == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        if: needs.affected.outputs.e2e-desktop == 'true'
+        with:
+          go-version: '1.26'
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
+      - name: Install Linux native dependencies
+        if: needs.affected.outputs.e2e-desktop == 'true' && matrix.lane.docker
+        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
+      - uses: dtolnay/rust-toolchain@1.88.0
+        if: needs.affected.outputs.e2e-desktop == 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: needs.affected.outputs.e2e-desktop == 'true'
+        with:
+          workspaces: apps/agent-desktop/src-tauri -> ../out-rust/e2e
+      - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-desktop == 'true'
+      - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-desktop == 'true' && matrix.lane.docker
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-desktop == 'true' && matrix.lane.docker
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml up -d rest-api
+      - name: Run Desktop Docker journey
+        if: needs.affected.outputs.e2e-desktop == 'true' && matrix.lane.docker
+        run: xvfb-run -a dbus-run-session -- pnpm exec nx run @moltnet/agent-desktop-e2e:e2e
+      - name: Run macOS native journeys
+        if: needs.affected.outputs.e2e-desktop == 'true' && !matrix.lane.docker
+        run: pnpm exec nx run @moltnet/agent-desktop-e2e:e2e --configuration=native
+      - name: Verify release excludes automation
+        if: needs.affected.outputs.e2e-desktop == 'true'
+        run: pnpm exec nx run @moltnet/agent-desktop:verify-release
+      - name: Docker Compose logs
+        if: failure() && needs.affected.outputs.e2e-desktop == 'true' && matrix.lane.docker
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
+      - name: Upload Desktop diagnostics
+        if: failure() && needs.affected.outputs.e2e-desktop == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-e2e-${{ matrix.lane.os }}
+          path: apps/agent-desktop-e2e/test-results
+          if-no-files-found: ignore
 
   e2e-agent-daemon:
     name: E2E Tests (Agent Daemon / ${{ matrix.lane.name }})

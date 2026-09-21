@@ -37,13 +37,20 @@ import {
 
 import { ServerPanel } from '../App.js';
 import { desktopBridge } from '../bridge.js';
+import { projectActions } from './run-center-bridge.js';
+import { type ProjectContext, ProjectsView } from './ProjectsView.js';
 import { ProvidersView } from './ProvidersView.js';
 import { providerActions, subscriptionActions } from './run-center-bridge.js';
 import { RunsView } from './RunsView.js';
 import { TeamsView } from './TeamsView.js';
 import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
 
-export type RunCenterScreen = 'runs' | 'teams' | 'providers' | 'server';
+export type RunCenterScreen =
+  | 'runs'
+  | 'projects'
+  | 'teams'
+  | 'providers'
+  | 'server';
 
 /** Where the Runs pane is: the list, the composer, or one run's detail. */
 export type RunsRoute =
@@ -86,6 +93,7 @@ export function RunCenterApp({
   notice,
 }: RunCenterAppProps) {
   const theme = useTheme();
+  const [projectContext, setProjectContext] = useState<ProjectContext>();
   const [screen, setScreen] = useState<RunCenterScreen>(initialScreen);
   useEffect(() => {
     let active = true;
@@ -114,7 +122,8 @@ export function RunCenterApp({
       .subscribeNavigation((next) => {
         if (
           active &&
-          (next === 'teams' ||
+          (next === 'projects' ||
+            next === 'teams' ||
             next === 'providers' ||
             next === 'runs' ||
             next === 'server')
@@ -175,6 +184,12 @@ export function RunCenterApp({
       badge: activeRuns.length ? (
         <Badge variant="success">{activeRuns.length}</Badge>
       ) : undefined,
+    },
+    {
+      id: 'projects',
+      label: 'Projects',
+      href: '#projects',
+      current: screen === 'projects',
     },
     {
       id: 'teams',
@@ -309,8 +324,22 @@ export function RunCenterApp({
               route={runsRoute}
               onRoute={setRunsRoute}
               onTeams={() => setScreen('teams')}
+              onProjects={(context) => {
+                setProjectContext(context);
+                setScreen('projects');
+              }}
             />
           </div>
+          {screen === 'projects' ? (
+            <ProjectsView
+              data={data}
+              actions={actions}
+              projects={actions.projects ?? projectActions}
+              initialSelection={projectContext}
+              onTeams={() => setScreen('teams')}
+              onServer={() => setScreen('server')}
+            />
+          ) : null}
           {screen === 'teams' ? (
             <TeamsView data={data} actions={actions} now={now} />
           ) : null}

@@ -5,19 +5,27 @@ import { join } from 'node:path';
 import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { $, browser, expect } from '@wdio/globals';
 
+import { enableNativePolling, selectNative } from './native-visibility.js';
 import { expectNoAxeViolations, preset, WINDOW_SIZES } from './run-fixtures.js';
 
 // Native refresh and explicit operations intentionally share a nonblocking lock.
 // Retry only a rejected operation that has not acquired the lock or mutated state.
-async function lifecycle(command: string): Promise<DesktopStatus> {
-  let result: DesktopStatus | undefined;
+async function lifecycle<T = DesktopStatus>(
+  command: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  let result: T | undefined;
   let failure: unknown;
   await browser.waitUntil(
     async () => {
       try {
-        result = await browser.tauri.execute<Promise<DesktopStatus>, [string]>(
-          ({ core }, name) => core.invoke(name) as Promise<DesktopStatus>,
+        result = await browser.tauri.execute<
+          Promise<T>,
+          [string, Record<string, unknown> | undefined]
+        >(
+          ({ core }, name, values) => core.invoke(name, values) as Promise<T>,
           command,
+          args,
         );
         return true;
       } catch (error) {
@@ -101,17 +109,15 @@ describe('Native Desktop and real fixture daemon', () => {
   it('starts, persists a provider, stops, and reads it after restart', async () => {
     const started = await lifecycle('start_agent_server');
     expect(started.state).toBe('running');
-    const saved = await browser.tauri.execute(({ core }) =>
-      core.invoke('desktop_put_provider', {
-        providerId: 'ollama',
-        config: {
-          api: 'openai-completions',
-          envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-          baseUrl: 'http://127.0.0.1:11434',
-          models: [{ id: 'fixture-model' }],
-        },
-      }),
-    );
+    const saved = await lifecycle('desktop_put_provider', {
+      providerId: 'ollama',
+      config: {
+        api: 'openai-completions',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
+        baseUrl: 'http://127.0.0.1:11434',
+        models: [{ id: 'fixture-model' }],
+      },
+    });
     expect(saved).toEqual(
       expect.objectContaining({
         api: 'openai-completions',
@@ -310,4 +316,87 @@ describe('Native window accessibility', () => {
       await $('button=Cancel').click();
     });
   }
+});
+
+describe('Native Projects screen', () => {
+  afterEach(async function () {
+    if (this.currentTest?.state === 'failed')
+      console.error(await browser.execute(() => document.body.innerText));
+  });
+  it('explicitly saves and removes a local registration through the rendered interface', async () => {
+    await enableNativePolling();
+    await lifecycle('start_agent_server');
+    await $('a=Projects').click();
+    await expect($('h2=Shared with the team')).toBeDisplayed({ wait: 15000 });
+    await $('button=Add local location').click();
+    await $(
+      '//label[normalize-space()="Location name"]/following-sibling::input',
+    ).setValue('Native UI location');
+    await selectNative(
+      $(
+        '//label[normalize-space()="Workspace default"]/following-sibling::select',
+      ),
+      'none',
+    );
+    await browser.execute(() =>
+      Array.from(document.querySelectorAll('button'))
+        .find((button) => button.textContent === 'Save location')
+        ?.scrollIntoView({ behavior: 'instant', block: 'center' }),
+    );
+    await $('button=Save location').click();
+    await expect($('h3=Native UI location')).toBeDisplayed();
+    const persisted = await browser.tauri.execute(({ core }) =>
+      core.invoke('desktop_project_locations'),
+    );
+    expect(persisted).toMatchObject({
+      locations: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Native UI location',
+          strategy: 'none',
+        }),
+      ]),
+    });
+    for (const [width, height] of [
+      [820, 720],
+      [640, 560],
+    ]) {
+      await browser.setWindowSize(width, height);
+      await browser.execute(() => {
+        for (const animation of document.getAnimations()) {
+          if (animation.effect?.getComputedTiming().iterations !== Infinity)
+            animation.finish();
+        }
+      });
+      const audit = await new AxeBuilder({ client: browser })
+        .setLegacyMode()
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+        .analyze();
+      expect(
+        audit.violations.map(({ id, nodes }) => ({
+          id,
+          nodes: nodes.map(({ target, failureSummary }) => ({
+            target,
+            failureSummary,
+          })),
+        })),
+      ).toEqual([]);
+      expect(
+        await browser.execute(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await browser.saveScreenshot(
+        `test-results/desktop-native-projects-${width}.png`,
+      );
+    }
+    const remove = $('button[aria-label="Remove Native UI location"]');
+    await browser.execute(() =>
+      document
+        .querySelector('button[aria-label="Remove Native UI location"]')
+        ?.scrollIntoView({ behavior: 'instant' }),
+    );
+    await remove.click();
+    await expect($('h3=Native UI location')).not.toExist();
+    await lifecycle('stop_agent_server');
+  });
 });

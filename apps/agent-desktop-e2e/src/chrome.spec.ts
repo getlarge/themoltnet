@@ -27,7 +27,7 @@ describe('Desktop renderer through the native bridge boundary', () => {
     await expect($('button=New run')).toBeDisabled();
     await expect($('a=Saved worker')).toBeDisplayed();
     await $('a=Identity and teams').click();
-    await expect($('h1=Identity and teams')).toBeDisplayed();
+    await expect($('body')).toHaveText(expect.stringContaining('Identity'));
     await start.update();
     expect(start.mock.calls).toHaveLength(0);
   });

@@ -82,6 +82,7 @@ export const desktopBridge = {
   stop: () => invoke<DesktopStatus>('stop_agent_server'),
   checkForUpdates: () => invoke<DesktopStatus>('check_for_agent_updates'),
   installUpdate: () => invoke<DesktopStatus>('install_agent_update'),
+  openConsole: () => invoke<void>('open_console'),
   openLogs: () => invoke<void>('open_logs'),
   remove: () => invoke<DesktopStatus>('remove_agent_bundle'),
   checkDesktopUpdate: () =>

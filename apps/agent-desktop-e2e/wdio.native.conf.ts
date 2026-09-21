@@ -21,14 +21,18 @@ export const config = {
     mkdirSync('test-results', { recursive: true });
   },
   runner: 'local',
-  specs: ['./src/native.spec.ts'],
+  specs: [
+    process.env.MOLTNET_DESKTOP_E2E_DOCKER === '1'
+      ? './src/docker.spec.ts'
+      : './src/native.spec.ts',
+  ],
   maxInstances: 1,
   framework: 'mocha',
   reporters: ['spec'],
   logLevel: 'warn',
   mochaOpts: {
-    // Persistence journeys perform two bounded starts and shutdown.
-    timeout: 60_000,
+    // Persistence journeys perform two bounded starts plus trust and shutdown.
+    timeout: process.env.MOLTNET_DESKTOP_E2E_DOCKER === '1' ? 180_000 : 60_000,
   },
   services: [
     [

@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '../bridge.js';
 import { expiryLabel } from './credential-health.js';
 import { duration, pluralize, relativeTime } from './format.js';
+import { workspaceLabel } from './ProjectsView.js';
 import { ProfileChain, TaskTypeRow } from './RunsView.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
 
@@ -86,6 +87,41 @@ export function RunDetail({
 
   return (
     <Stack gap={6}>
+      {run.workspace ? (
+        <ControlSurface padding="md" as="section">
+          <Stack gap={3}>
+            <Text as="h2" variant="h4">
+              Captured workspace
+            </Text>
+            <Text variant="caption" color="secondary">
+              These settings were captured when the run started. Later location
+              edits apply to subsequent runs.
+            </Text>
+            <DescriptionList
+              items={[
+                {
+                  label: 'Project',
+                  value: run.workspace.projectId ?? 'General work',
+                },
+                {
+                  label: 'Location',
+                  value: run.workspace.binding ?? 'Run only',
+                },
+                { label: 'Diary', value: run.workspace.diaryId ?? 'No diary' },
+                {
+                  label: 'Folder',
+                  value: run.workspace.source ?? 'No source folder',
+                  mono: true,
+                },
+                {
+                  label: 'Workspace',
+                  value: workspaceLabel(run.workspace.strategy),
+                },
+              ]}
+            />
+          </Stack>
+        </ControlSurface>
+      ) : null}
       {stopError ? (
         <InlineNotice tone="warning" title="Run could not be stopped">
           Try again or check the Server view.

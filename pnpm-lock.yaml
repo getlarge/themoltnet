@@ -888,16 +888,28 @@ importers:
       '@moltnet/agent-desktop':
         specifier: workspace:*
         version: link:../agent-desktop
+      '@moltnet/bootstrap':
+        specifier: workspace:*
+        version: link:../../libs/bootstrap
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
+      '@themoltnet/agent-daemon':
+        specifier: workspace:*
+        version: link:../agent-daemon
+      '@themoltnet/design-system':
+        specifier: workspace:*
+        version: link:../../libs/design-system
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
     devDependencies:
       '@axe-core/webdriverio':
         specifier: 'catalog:'
         version: 4.13.0(webdriverio@9.31.9)
-      '@themoltnet/agent-daemon':
-        specifier: workspace:*
-        version: link:../agent-daemon
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../../libs/sdk
       '@wdio/cli':
         specifier: 'catalog:'
         version: 9.31.9(@types/node@25.1.0)(expect-webdriverio@6.0.10)

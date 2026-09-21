@@ -742,6 +742,10 @@ impl LifecycleManager {
     }
 }
 
+pub fn open_console() -> Result<(), String> {
+    fixed_command(platform_opener(), &["https://console.themolt.net/projects"]).map(|_| ())
+}
+
 pub fn open_logs(directory: &Path) -> Result<(), String> {
     prepare_private_directory(directory)?;
     let path = directory.to_string_lossy().into_owned();
