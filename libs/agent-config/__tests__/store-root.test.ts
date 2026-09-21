@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
   existsSync,
@@ -16,7 +17,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getConfigDir } from '../src/config.js';
-import { storeSecretService } from '../src/store-root.js';
+import { isDefaultStore, storeSecretService } from '../src/store-root.js';
 
 describe('MoltNet store selection', () => {
   it.skipIf(process.platform === 'win32')(
@@ -50,6 +51,60 @@ describe('MoltNet store selection', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     rmSync(home, { recursive: true, force: true });
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'shares default identity cases with Go and Rust',
+    () => {
+      const rows = readFileSync(
+        new URL(
+          '../../../test-fixtures/store-default-conformance.tsv',
+          import.meta.url,
+        ),
+        'utf8',
+      );
+      for (const row of rows
+        .split('\n')
+        .filter((line) => line && !line.startsWith('#'))) {
+        const [layout, selection, expected] = row.split('\t');
+        const base = join(home, `${layout}-${selection}`);
+        mkdirSync(base);
+        if (layout === 'unhealthy')
+          writeFileSync(join(base, '.config'), 'file');
+        else {
+          mkdirSync(join(base, '.config/moltnet'), { recursive: true });
+          symlinkSync(
+            join(base, '.config/moltnet'),
+            join(base, 'alias'),
+            'dir',
+          );
+        }
+        const root =
+          selection === 'default' ? undefined : join(base, selection!);
+        expect(isDefaultStore({ root, home: base, env: {} })).toBe(
+          expected === 'true',
+        );
+      }
+    },
+  );
+
+  it('preserves the default keyring namespace in a spawned worker with isolated HOME', () => {
+    const root = join(home, '.config', 'moltnet');
+    const script = `import { isDefaultStore, storeSecretService } from ${JSON.stringify(new URL('../src/store-root.ts', import.meta.url).href)}; process.stdout.write(storeSecretService());`;
+    const service = execFileSync(
+      process.execPath,
+      ['--import', 'tsx', '--input-type=module', '--eval', script],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          HOME: join(home, 'worker'),
+          MOLTNET_HOME: root,
+          MOLTNET_DEFAULT_STORE_ROOT: root,
+        },
+      },
+    );
+    expect(service).toBe('themolt.net');
   });
 
   it('resolves symlinks before parent segments', () => {

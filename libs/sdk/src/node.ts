@@ -143,16 +143,38 @@ export function windowsKeyringTarget(
   return platform === 'win32' ? `${service}/${key}` : undefined;
 }
 
+export interface NodeSecretProviderRegistryOptions {
+  platform?: NodeJS.Platform;
+  readEnv?: EnvironmentLookup;
+  store?: StoreRootOptions;
+}
+
 export function createNodeSecretProviderRegistry(
-  platform: NodeJS.Platform = process.platform,
+  options?: NodeSecretProviderRegistryOptions,
+): SecretProviderRegistry;
+export function createNodeSecretProviderRegistry(
+  platform?: NodeJS.Platform,
+  readEnv?: EnvironmentLookup,
+  storeOptions?: StoreRootOptions,
+): SecretProviderRegistry;
+export function createNodeSecretProviderRegistry(
+  options: NodeSecretProviderRegistryOptions | NodeJS.Platform = {},
   readEnv: EnvironmentLookup = readEnvironmentVariable,
   storeOptions?: StoreRootOptions,
 ): SecretProviderRegistry {
+  const selected =
+    typeof options === 'string'
+      ? { platform: options, readEnv, store: storeOptions }
+      : { readEnv, store: storeOptions, ...options };
+  const platform = selected.platform ?? process.platform;
   return createDefaultSecretProviderRegistry()
-    .register(new OSKeyringSecretProvider(platform, storeOptions))
+    .register(new OSKeyringSecretProvider(platform, selected.store))
     .register(
       new FileSecretProvider(
-        fileSecretProviderOptionsFromEnv(readEnv, platform),
+        fileSecretProviderOptionsFromEnv(
+          selected.readEnv ?? readEnvironmentVariable,
+          platform,
+        ),
       ),
     );
 }
@@ -206,6 +228,7 @@ export type { ConnectForRegistration } from './register-node.js';
 export {
   canonicalDirectory,
   canonicalStoreRoot,
+  defaultStoreRoot,
   getProjectConfigPath,
   isDefaultStore,
   type ProjectBinding,

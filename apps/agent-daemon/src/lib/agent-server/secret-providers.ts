@@ -16,9 +16,7 @@ export function createAgentServerSecretProviders(
   });
   // Connection directories own file secrets; keyring references belong to the store.
   const registry = () =>
-    createNodeSecretProviderRegistry(undefined, undefined, {
-      root: settings.root,
-    });
+    createNodeSecretProviderRegistry({ store: { root: settings.root } });
   return {
     secrets,
     secretProviders: registry().register(secrets),

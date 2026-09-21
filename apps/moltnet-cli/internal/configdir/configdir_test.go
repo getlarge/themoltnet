@@ -338,3 +338,57 @@ func TestFullStoreAliasConformance(t *testing.T) {
 		})
 	}
 }
+
+func TestWorkerDefaultStoreNamespace(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, ".config", "moltnet")
+	t.Setenv("HOME", filepath.Join(home, "worker"))
+	t.Setenv("USERPROFILE", filepath.Join(home, "worker"))
+	t.Setenv("MOLTNET_HOME", root)
+	t.Setenv("MOLTNET_DEFAULT_STORE_ROOT", root)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
+	if got, err := SecretService(nil); err != nil || got != SecretServiceName {
+		t.Fatalf("worker service = %q, %v", got, err)
+	}
+}
+
+func TestSharedDefaultIdentity(t *testing.T) {
+	rows, err := os.ReadFile("../../../../test-fixtures/store-default-conformance.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range strings.Split(string(rows), "\n") {
+		if row == "" || strings.HasPrefix(row, "#") {
+			continue
+		}
+		fields := strings.Split(row, "\t")
+		t.Run(fields[0]+fields[1], func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			root := filepath.Join(home, ".config", "moltnet")
+			if fields[0] == "unhealthy" {
+				os.WriteFile(filepath.Join(home, ".config"), []byte("file"), 0600)
+			} else {
+				os.MkdirAll(root, 0700)
+			}
+			selected := root
+			if fields[1] == "alias" {
+				selected = filepath.Join(home, "alias")
+				if err := os.Symlink(root, selected); err != nil {
+					t.Skipf("symlink unavailable: %v", err)
+				}
+			} else if fields[1] == "isolated" {
+				selected = filepath.Join(home, "isolated")
+			}
+			selection, err := Select(&selected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actual, err := selection.IsDefault()
+			if err != nil || actual != (fields[2] == "true") {
+				t.Fatalf("IsDefault = %v, %v", actual, err)
+			}
+		})
+	}
+}

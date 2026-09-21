@@ -30,6 +30,7 @@ import {
   resolveIdentitySeed,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
+import { defaultStoreRoot } from '@themoltnet/sdk/node';
 
 import {
   DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
@@ -264,6 +265,9 @@ export class RunManager {
     const env: Record<string, string> = {
       HOME: homeDir,
       // Preserve store identity across the isolated worker HOME; file refs use MOLTNET_SECRET_ROOT below.
+      MOLTNET_DEFAULT_STORE_ROOT: defaultStoreRoot({
+        env: this.options.baseEnv,
+      }),
       MOLTNET_HOME: getConfigDir({
         root: this.options.storeRoot ?? this.store.root,
       }),

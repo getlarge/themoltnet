@@ -32,6 +32,12 @@ type Selection struct {
 func Select(root *string) (Selection, error) {
 	selection := Selection{source: "explicit root"}
 	selection.defaultRoot, _ = defaultDir()
+	if inherited, present := os.LookupEnv("MOLTNET_DEFAULT_STORE_ROOT"); present {
+		if !filepath.IsAbs(inherited) || strings.ContainsRune(inherited, 0) {
+			return selection, fmt.Errorf("%w: MOLTNET_DEFAULT_STORE_ROOT must be an absolute directory path", ErrInvalidRoot)
+		}
+		selection.defaultRoot = inherited
+	}
 	if root == nil {
 		shared, hasShared := os.LookupEnv("MOLTNET_HOME")
 		legacy, hasLegacy := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT")
@@ -170,19 +176,31 @@ func SecretService(root *string) (string, error) {
 	return selection.SecretService()
 }
 
+// IsDefault compares store identity without requiring a healthy default directory.
+func (s Selection) IsDefault() (bool, error) {
+	if s.source == "default root" {
+		return true, nil
+	}
+	selected, err := s.resolve()
+	if err != nil {
+		return false, err
+	}
+	canonical, err := Canonical(s.defaultRoot)
+	return err == nil && selected == canonical, nil
+}
+
 // SecretService keeps the default namespace independent of directory health.
 func (s Selection) SecretService() (string, error) {
-	if s.source == "default root" {
+	isDefault, err := s.IsDefault()
+	if err != nil {
+		return "", err
+	}
+	if isDefault {
 		return SecretServiceName, nil
 	}
 	selected, err := s.resolve()
 	if err != nil {
 		return "", err
-	}
-	if s.defaultRoot != "" {
-		if canonical, err := Canonical(s.defaultRoot); err == nil && selected == canonical {
-			return SecretServiceName, nil
-		}
 	}
 	return fmt.Sprintf("%s/store/%x", SecretServiceName, sha256.Sum256([]byte(selected))), nil
 }
@@ -201,11 +219,15 @@ func CacheDir() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		service, err := SecretService(nil)
+		selection, err := Select(nil)
 		if err != nil {
 			return "", err
 		}
-		if service != SecretServiceName {
+		isDefault, err := selection.IsDefault()
+		if err != nil {
+			return "", err
+		}
+		if !isDefault {
 			return filepath.Join(root, "cache"), nil
 		}
 	}

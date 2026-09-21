@@ -660,6 +660,7 @@ describe('agent server providers and runs', () => {
     );
     expect(options.env['MOLTNET_SECRET_ROOT']).toBe(store.secretsDir);
     expect(options.env['MOLTNET_HOME']).toBe(realpathSync(storeRoot));
+    expect(options.env['MOLTNET_DEFAULT_STORE_ROOT']).toBeTruthy();
     expect(options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe('agent-1');
     expect(options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe('agent');
     expect(options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');

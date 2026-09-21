@@ -98,6 +98,21 @@ export function resolveStoreSelection(options: StoreRootOptions = {}): {
   }
 }
 
+/** Parent-process default used only for namespace comparison across worker HOME changes. */
+export function defaultStoreRoot(options: StoreRootOptions = {}): string {
+  // eslint-disable-next-line no-restricted-syntax
+  const inherited = (options.env ?? process.env).MOLTNET_DEFAULT_STORE_ROOT;
+  if (inherited !== undefined) {
+    if (!isAbsolute(inherited) || inherited.includes('\u0000')) {
+      throw new Error(
+        'MOLTNET_DEFAULT_STORE_ROOT must be an absolute directory path',
+      );
+    }
+    return inherited;
+  }
+  return join(options.home ?? homedir(), '.config', 'moltnet');
+}
+
 /** Compare store identity, including aliases of the default directory. */
 export function isDefaultStore(options: StoreRootOptions = {}): boolean {
   // eslint-disable-next-line no-restricted-syntax
@@ -109,13 +124,11 @@ export function isDefaultStore(options: StoreRootOptions = {}): boolean {
   )
     return true;
   const root = resolveStoreRoot(options);
+  const defaultRoot = defaultStoreRoot(options);
   try {
     return (
       canonicalStoreRoot(root, options.cwd) ===
-      canonicalStoreRoot(
-        join(options.home ?? homedir(), '.config', 'moltnet'),
-        options.cwd,
-      )
+      canonicalStoreRoot(defaultRoot, options.cwd)
     );
   } catch {
     // A valid isolated store does not depend on the default store's health.

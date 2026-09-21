@@ -24,6 +24,19 @@ pub fn resolve_environment_store_root(
     resolve_store_path(shared.or(legacy), None, home, cwd)
 }
 
+/// Compare canonical store identity; isolated stores do not depend on default health.
+pub fn is_default_store(root: &Path, home: &Path) -> bool {
+    let default = home.join(".config/moltnet");
+    if root == default {
+        return true;
+    }
+    let canonical = |path: &Path| resolve_store_path(Some(path), None, home, home);
+    match (canonical(root), canonical(&default)) {
+        (Ok(root), Ok(default)) => root == default,
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 pub fn resolve_store_root(
     explicit: Option<&str>,
@@ -123,6 +136,44 @@ mod tests {
         fs,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    #[cfg(unix)]
+    #[test]
+    fn shared_default_identity() {
+        for row in include_str!("../../../../test-fixtures/store-default-conformance.tsv")
+            .lines()
+            .filter(|row| !row.starts_with('#'))
+        {
+            let fields: Vec<_> = row.split('\t').collect();
+            let unique = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let home = std::env::temp_dir().join(format!("moltnet-default-{unique}"));
+            fs::create_dir(&home).unwrap();
+            let root = home.join(".config/moltnet");
+            if fields[0] == "unhealthy" {
+                fs::write(home.join(".config"), b"file").unwrap();
+            } else {
+                fs::create_dir_all(&root).unwrap();
+            }
+            let selected = match fields[1] {
+                "alias" => {
+                    let alias = home.join("alias");
+                    std::os::unix::fs::symlink(&root, &alias).unwrap();
+                    alias
+                }
+                "isolated" => home.join("isolated"),
+                _ => root,
+            };
+            assert_eq!(
+                is_default_store(&selected, &home),
+                fields[2] == "true",
+                "{row}"
+            );
+            fs::remove_dir_all(home).unwrap();
+        }
+    }
 
     #[test]
     fn environment_aliases_agree_or_fail() {

@@ -234,19 +234,25 @@ describe('Node secret providers', () => {
     ).resolves.toBe('present');
     expect(keyring.constructor).toHaveBeenCalledOnce();
   });
-  it('configures the file provider from the supplied environment', async () => {
-    const env: Record<string, string> = {
-      MOLTNET_SECRET_ROOT: '/nonexistent/root',
-      MOLTNET_SECRET_ROOT_WRITABLE: '1',
-    };
-    const registry = createNodeSecretProviderRegistry(
-      'linux',
-      (name) => env[name],
-    );
+  it.each(['positional', 'options'] as const)(
+    'configures the file provider from the supplied %s environment',
+    async (signature) => {
+      const env: Record<string, string> = {
+        MOLTNET_SECRET_ROOT: '/nonexistent/root',
+        MOLTNET_SECRET_ROOT_WRITABLE: '1',
+      };
+      const registry =
+        signature === 'positional'
+          ? createNodeSecretProviderRegistry('linux', (name) => env[name])
+          : createNodeSecretProviderRegistry({
+              platform: 'linux',
+              readEnv: (name) => env[name],
+            });
 
-    expect(registry.get('file')?.capabilities.write).toBe(true);
-    await expect(registry.probe({ provider: 'file', key: 'k' })).resolves.toBe(
-      'inaccessible',
-    );
-  });
+      expect(registry.get('file')?.capabilities.write).toBe(true);
+      await expect(
+        registry.probe({ provider: 'file', key: 'k' }),
+      ).resolves.toBe('inaccessible');
+    },
+  );
 });
