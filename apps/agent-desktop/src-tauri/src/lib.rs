@@ -17,6 +17,7 @@ use std::{
     thread,
     time::Duration,
 };
+use tauri::utils::config::BundleType;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State, WindowEvent};
 use tauri_plugin_updater::UpdaterExt;
 
@@ -601,16 +602,23 @@ enum DesktopUpdateInstaller {
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn desktop_update_installer(
     linux: bool,
-    bundle_type: Option<&str>,
+    bundle_type: Option<BundleType>,
 ) -> Result<DesktopUpdateInstaller, String> {
     if !linux {
         return Ok(DesktopUpdateInstaller::BuiltIn);
     }
     match bundle_type {
-        Some("deb") => Ok(DesktopUpdateInstaller::Deb),
-        Some("appimage") => Ok(DesktopUpdateInstaller::BuiltIn),
+        Some(BundleType::Deb) => Ok(DesktopUpdateInstaller::Deb),
+        Some(BundleType::AppImage) => Ok(DesktopUpdateInstaller::BuiltIn),
         _ => Err("In-app Linux updates require an installed deb or AppImage".into()),
     }
+}
+
+fn record_desktop_log(app: &AppHandle, message: &str) {
+    if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
+        lifecycle.push_log(message);
+    }
+    eprintln!("{message}");
 }
 
 fn record_desktop_update_error(
@@ -619,10 +627,7 @@ fn record_desktop_update_error(
     error: impl std::fmt::Display,
 ) -> String {
     let message = format!("Desktop update {stage} failed: {error}");
-    if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
-        lifecycle.push_log(&message);
-    }
-    eprintln!("{message}");
+    record_desktop_log(app, &message);
     message
 }
 
@@ -672,15 +677,7 @@ async fn install_desktop_update(app: AppHandle) -> Result<(), String> {
     // download() verifies the updater signature before either installer receives bytes.
     let install = tauri::async_runtime::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
-        match desktop_update_installer(
-            true,
-            match tauri::utils::platform::bundle_type() {
-                Some(tauri::utils::config::BundleType::Deb) => Some("deb"),
-                Some(tauri::utils::config::BundleType::AppImage) => Some("appimage"),
-                Some(_) => Some("other"),
-                None => None,
-            },
-        )? {
+        match desktop_update_installer(true, tauri::utils::platform::bundle_type())? {
             DesktopUpdateInstaller::Deb => return linux_setup::install_deb(&bytes),
             DesktopUpdateInstaller::BuiltIn => {}
         }
@@ -762,9 +759,7 @@ async fn desktop_repair_linux_setup(
         .await
         .map_err(|error| error.to_string())?;
     if let Err(error) = &result {
-        if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
-            lifecycle.push_log(&format!("Linux system setup failed: {error}"));
-        }
+        record_desktop_log(&app, &format!("Linux system setup failed: {error}"));
     }
     result
 }
@@ -911,15 +906,15 @@ mod tests {
     #[test]
     fn desktop_update_installer_matches_the_running_bundle() {
         assert_eq!(
-            desktop_update_installer(true, Some("deb")),
+            desktop_update_installer(true, Some(BundleType::Deb)),
             Ok(DesktopUpdateInstaller::Deb)
         );
         assert_eq!(
-            desktop_update_installer(true, Some("appimage")),
+            desktop_update_installer(true, Some(BundleType::AppImage)),
             Ok(DesktopUpdateInstaller::BuiltIn)
         );
         assert!(desktop_update_installer(true, None).is_err());
-        assert!(desktop_update_installer(true, Some("other")).is_err());
+        assert!(desktop_update_installer(true, Some(BundleType::Dmg)).is_err());
         assert_eq!(
             desktop_update_installer(false, None),
             Ok(DesktopUpdateInstaller::BuiltIn)

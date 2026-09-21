@@ -2565,7 +2565,6 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           rust: 'true'
-          rust-cache: 'true'
 
       - name: Refuse incomplete signing material
         env:
@@ -2676,7 +2675,7 @@ jobs:
         with:
           name: agent-desktop-release-metadata-mac-os
           path: ${{ runner.temp }}/release-metadata-mac-os.json
-          retention-days: 1
+          retention-days: 7
 
   release-agent-desktop-linux:
     name: Package signed MoltNet Agent for Ubuntu
@@ -2705,7 +2704,6 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           rust: 'true'
-          rust-cache: 'true'
 
       - name: Install Linux packaging dependencies
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
@@ -2748,7 +2746,7 @@ jobs:
         with:
           name: agent-desktop-release-metadata-linux
           path: ${{ runner.temp }}/release-metadata-linux.json
-          retention-days: 1
+          retention-days: 7
 
   finalize-agent-desktop-release:
     name: Publish complete desktop release
@@ -2789,7 +2787,12 @@ jobs:
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
           mkdir -p dist/agent-desktop
-          node tools/release/agent-desktop/manifest.mjs dist/agent-desktop-metadata "${RELEASE_TAG#agent-desktop-v}" "$GITHUB_REPOSITORY"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > "$RUNNER_TEMP/release.json"
+          node tools/release/agent-desktop/verify-published-assets.mjs \
+            dist/agent-desktop-metadata "$RUNNER_TEMP/release.json" "${RELEASE_TAG#agent-desktop-v}"
+          node tools/release/agent-desktop/manifest.mjs \
+            dist/agent-desktop-metadata dist/agent-desktop/latest.json \
+            "${RELEASE_TAG#agent-desktop-v}" "$GITHUB_REPOSITORY"
           gh release upload "$RELEASE_TAG" dist/agent-desktop/latest.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir "$RUNNER_TEMP/manifest"
           cmp dist/agent-desktop/latest.json "$RUNNER_TEMP/manifest/latest.json"

@@ -42,6 +42,7 @@ jobs:
         with:
           rust: 'true'
           rust-cache: 'true'
+          rust-cache-key: package
       - name: Install packaging and display dependencies
         if: matrix.platform == 'linux'
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh

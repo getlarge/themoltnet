@@ -16,13 +16,24 @@ verify() {
     "$public_key" "$signature" "$artifact"
 }
 
+find_one() {
+  local directory=$1 pattern=$2 kind=${3:-f} matches count
+  matches=$(find "$directory" -maxdepth 1 -type "$kind" -name "$pattern" -print)
+  count=$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')
+  if [ "$count" != 1 ]; then
+    echo "Expected exactly one $pattern in $directory; found $count" >&2
+    exit 1
+  fi
+  printf '%s\n' "$matches"
+}
+
 case "$platform" in
   mac-os)
     target=aarch64-apple-darwin
     bundle=$target_dir/$target/release/bundle
-    app=$(find "$bundle/macos" -maxdepth 1 -name '*.app' -print -quit)
-    dmg=$(find "$bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)
-    updater=$(find "$bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)
+    app=$(find_one "$bundle/macos" '*.app' d)
+    dmg=$(find_one "$bundle/dmg" "*_${version}_*.dmg")
+    updater=$(find_one "$bundle/macos" '*.app.tar.gz')
     signature=$updater.sig
     [ -d "$app" ] && [ -s "$dmg" ] && [ -s "$updater" ] && [ -s "$signature" ] || {
       echo 'refusing incomplete Agent desktop macOS artifacts' >&2
@@ -43,7 +54,13 @@ case "$platform" in
     target=x86_64-unknown-linux-gnu
     bundle=$target_dir/$target/release/bundle
     for format in deb AppImage; do
-      artifact=$(find "$bundle" -type f -name "*.$format" -print -quit)
+      matches=$(find "$bundle" -type f -name "*_${version}_*.$format" -print)
+      count=$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d ' ')
+      [ "$count" = 1 ] || {
+        echo "Expected exactly one version $version $format; found $count" >&2
+        exit 1
+      }
+      artifact=$matches
       [ -s "$artifact" ] && [ -s "$artifact.sig" ] || {
         echo "Missing signed $format" >&2
         exit 1

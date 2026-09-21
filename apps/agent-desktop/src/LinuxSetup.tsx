@@ -33,12 +33,18 @@ export function LinuxSetup() {
     setPending(null);
     setBusy(true);
     setError(null);
+    let repairFailed = false;
     try {
       await desktopBridge.repairLinuxSetup(action);
     } catch (cause) {
+      repairFailed = true;
       setError(String(cause));
     } finally {
-      await refresh(false);
+      try {
+        setStatus(await desktopBridge.linuxSetup());
+      } catch (cause) {
+        if (!repairFailed) setError(String(cause));
+      }
       setBusy(false);
     }
   };
@@ -93,6 +99,18 @@ export function LinuxSetup() {
             title="Sign out of Ubuntu and sign in again"
           >
             Your new KVM group membership takes effect in a new desktop session.
+            If access is still unavailable afterward, check{' '}
+            <code>ls -l /dev/kvm</code> for the device permissions.
+          </InlineNotice>
+        ) : null}
+        {status.kvmPresent &&
+        !status.kvmAccessible &&
+        !status.kvmPendingRelogin &&
+        !status.canEnableKvm ? (
+          <InlineNotice tone="warning" title="KVM access needs attention">
+            Your current session has the KVM group but cannot open{' '}
+            <code>/dev/kvm</code>. Check <code>ls -l /dev/kvm</code> and the
+            local udev or virtualization configuration.
           </InlineNotice>
         ) : null}
         {!status.canInstall ? (

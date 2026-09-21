@@ -23,7 +23,7 @@ const missing: LinuxSetupStatus = {
   kvmPendingRelogin: false,
   canEnableKvm: true,
   installCommand:
-    'apt-get install --yes qemu-utils qemu-system-x86 gnome-keyring libsecret-1-0 dbus-bin',
+    'apt-get install --yes --no-remove --no-install-recommends qemu-utils qemu-system-x86 gnome-keyring libsecret-1-0 dbus-bin',
   enableKvmCommand: 'usermod --append --groups kvm -- alice',
 };
 function setup() {
@@ -75,6 +75,9 @@ describe('Linux setup consent', () => {
     expect(desktopBridge.linuxSetup).toHaveBeenCalledTimes(2);
   });
   it('shows authorization cancellation without a second attempt', async () => {
+    vi.mocked(desktopBridge.linuxSetup)
+      .mockResolvedValueOnce(missing)
+      .mockRejectedValueOnce(new Error('refresh failed'));
     vi.mocked(desktopBridge.repairLinuxSetup).mockRejectedValue(
       new Error('Authorization cancelled'),
     );
@@ -90,6 +93,21 @@ describe('Linux setup consent', () => {
     );
     expect(desktopBridge.repairLinuxSetup).toHaveBeenCalledTimes(1);
     expect(desktopBridge.linuxSetup).toHaveBeenCalledTimes(2);
+  });
+  it('distinguishes invalid KVM device permissions from a pending login', async () => {
+    vi.mocked(desktopBridge.linuxSetup).mockResolvedValue({
+      ...missing,
+      canEnableKvm: false,
+      kvmPendingRelogin: false,
+    });
+    setup();
+    expect(
+      await screen.findByText('KVM access needs attention'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('/dev/kvm')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Sign out of Ubuntu and sign in again'),
+    ).not.toBeInTheDocument();
   });
   it('does not offer automatic repair on unsupported distributions', async () => {
     vi.mocked(desktopBridge.linuxSetup).mockResolvedValue({

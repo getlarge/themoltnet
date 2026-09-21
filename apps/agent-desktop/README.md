@@ -48,7 +48,10 @@ and launches each format under a virtual display. Release jobs verify signed
 artifacts after upload and publish only after both macOS and Ubuntu packages
 are complete. The combined updater manifest is therefore published only when
 the macOS archive, Ubuntu `.deb`, and Ubuntu AppImage have all passed their
-platform release jobs. The updater selects `linux-x86_64-deb` or
+platform release jobs. A Linux packaging failure therefore blocks the macOS
+release from being published. If finalization leaves a draft release, rerun
+the failed workflow within seven days so it can reuse the verified platform
+metadata; after that retention window, rerun both platform package jobs. The updater selects `linux-x86_64-deb` or
 `linux-x86_64-appimage`; `.deb` updates use Ubuntu authorization and cancellation
 does not trigger a fallback password dialog.
 

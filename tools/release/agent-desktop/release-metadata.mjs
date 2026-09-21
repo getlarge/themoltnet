@@ -10,26 +10,38 @@ if (!directory || !version || !platform || !output)
     'Usage: release-metadata.mjs <assets> <version> <mac-os|linux> <output>',
   );
 
-const suffixes =
+const artifacts =
   platform === 'mac-os'
-    ? ['aarch64.app.tar.gz']
+    ? [
+        { suffix: 'aarch64.app.tar.gz', updater: true },
+        { suffix: 'aarch64.app.zip', updater: false },
+        { suffix: 'aarch64.dmg', updater: false },
+      ]
     : platform === 'linux'
-      ? ['amd64.deb', 'amd64.AppImage']
+      ? [
+          { suffix: 'amd64.deb', updater: true },
+          { suffix: 'amd64.AppImage', updater: true },
+        ]
       : null;
-if (!suffixes) throw new Error(`Unknown desktop platform: ${platform}`);
+if (!artifacts) throw new Error(`Unknown desktop platform: ${platform}`);
 
-const assets = suffixes.map((suffix) => {
-  const name = `MoltNet-Agent_${version}_${suffix}`;
-  const path = join(directory, name);
+const assetMetadata = (path, extra = {}) => {
   const bytes = readFileSync(path);
-  const signature = readFileSync(`${path}.sig`, 'utf8').trim();
-  if (!signature) throw new Error(`Missing signature: ${name}`);
   return {
     name: basename(path),
     size: statSync(path).size,
     sha256: createHash('sha256').update(bytes).digest('hex'),
-    signature,
+    ...extra,
   };
+};
+const assets = artifacts.flatMap(({ suffix, updater }) => {
+  const name = `MoltNet-Agent_${version}_${suffix}`;
+  const path = join(directory, name);
+  if (!updater) return [assetMetadata(path)];
+  const signaturePath = `${path}.sig`;
+  const signature = readFileSync(signaturePath, 'utf8').trim();
+  if (!signature) throw new Error(`Missing signature: ${name}`);
+  return [assetMetadata(path, { signature }), assetMetadata(signaturePath)];
 });
 writeFileSync(
   output,

@@ -8,6 +8,8 @@ use std::process::Stdio;
 use std::sync::{Mutex, TryLockError};
 
 static REPAIR: Mutex<()> = Mutex::new(());
+const QEMU_PACKAGES: &[&str] = &["qemu-utils", "qemu-system-x86"];
+const SECRET_SERVICE_PACKAGES: &[&str] = &["gnome-keyring", "libsecret-1-0", "dbus-bin"];
 const DEPENDENCY_PACKAGES: &[&str] = &[
     "qemu-utils",
     "qemu-system-x86",
@@ -15,6 +17,8 @@ const DEPENDENCY_PACKAGES: &[&str] = &[
     "libsecret-1-0",
     "dbus-bin",
 ];
+const PKEXEC_CANCELLED: i32 = 126;
+const PKEXEC_DENIED: i32 = 127;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -62,6 +66,17 @@ fn current_username() -> Option<String> {
     (!username.is_empty()).then(|| username.to_string())
 }
 
+fn current_groups() -> Option<String> {
+    let output = host_command(Path::new("/usr/bin/id"))
+        .arg("-Gn")
+        .output()
+        .ok()?;
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
 fn group_contains_user(groups: &str, group: &str, username: &str) -> bool {
     groups.lines().any(|line| {
         let mut fields = line.splitn(4, ':');
@@ -70,6 +85,21 @@ fn group_contains_user(groups: &str, group: &str, username: &str) -> bool {
                 .nth(2)
                 .is_some_and(|members| members.split(',').any(|member| member == username))
     })
+}
+
+fn group_list_contains(groups: &str, group: &str) -> bool {
+    groups
+        .split_whitespace()
+        .any(|candidate| candidate == group)
+}
+
+fn kvm_pending_relogin(
+    present: bool,
+    accessible: bool,
+    configured_member: bool,
+    active_member: bool,
+) -> bool {
+    present && !accessible && configured_member && !active_member
 }
 
 fn dbus_has_secret_service(method: &str) -> bool {
@@ -97,8 +127,26 @@ fn secret_service_available() -> bool {
             || dbus_has_secret_service("org.freedesktop.DBus.ListActivatableNames"))
 }
 
-fn install_command() -> String {
-    format!("apt-get install --yes {}", DEPENDENCY_PACKAGES.join(" "))
+fn required_packages(
+    qemu_ready: bool,
+    secret_service_available: bool,
+    keyring_installed: bool,
+) -> Vec<&'static str> {
+    let mut packages = Vec::new();
+    if !qemu_ready {
+        packages.extend_from_slice(QEMU_PACKAGES);
+    }
+    if !secret_service_available && !keyring_installed {
+        packages.extend_from_slice(SECRET_SERVICE_PACKAGES);
+    }
+    packages
+}
+
+fn install_command(packages: &[&str]) -> String {
+    format!(
+        "apt-get install --yes --no-remove --no-install-recommends {}",
+        packages.join(" ")
+    )
 }
 
 fn empty_setup() -> LinuxSetup {
@@ -113,7 +161,7 @@ fn empty_setup() -> LinuxSetup {
         kvm_accessible: false,
         kvm_pending_relogin: false,
         can_enable_kvm: false,
-        install_command: install_command(),
+        install_command: install_command(DEPENDENCY_PACKAGES),
         enable_kvm_command: "usermod --append --groups kvm -- <current user>".into(),
     }
 }
@@ -142,25 +190,37 @@ pub fn inspect() -> LinuxSetup {
         .write(true)
         .open("/dev/kvm")
         .is_ok();
+    let active_kvm_member = current_groups()
+        .as_deref()
+        .is_some_and(|groups| group_list_contains(groups, "kvm"));
+    let qemu_ready = Path::new("/usr/bin/qemu-img").is_file()
+        && Path::new("/usr/bin/qemu-system-x86_64").is_file();
+    let keyring_installed = Path::new("/usr/bin/gnome-keyring-daemon").is_file();
+    let secret_service_available = secret_service_available();
+    let packages = required_packages(qemu_ready, secret_service_available, keyring_installed);
     LinuxSetup {
         linux: true,
         distribution,
         can_install: supported
             && Path::new("/usr/bin/pkexec").is_file()
             && Path::new("/usr/bin/apt-get").is_file(),
-        qemu_ready: Path::new("/usr/bin/qemu-img").is_file()
-            && Path::new("/usr/bin/qemu-system-x86_64").is_file(),
-        keyring_installed: Path::new("/usr/bin/gnome-keyring-daemon").is_file(),
-        secret_service_available: secret_service_available(),
+        qemu_ready,
+        keyring_installed,
+        secret_service_available,
         kvm_present,
         kvm_accessible,
-        kvm_pending_relogin: kvm_present && kvm_member && !kvm_accessible,
+        kvm_pending_relogin: kvm_pending_relogin(
+            kvm_present,
+            kvm_accessible,
+            kvm_member,
+            active_kvm_member,
+        ),
         can_enable_kvm: supported
             && kvm_present
             && !kvm_member
             && Path::new("/usr/bin/pkexec").is_file()
             && kvm_group_exists,
-        install_command: install_command(),
+        install_command: install_command(&packages),
         enable_kvm_command: username
             .map(|username| format!("usermod --append --groups kvm -- {username}"))
             .unwrap_or_else(|| "usermod --append --groups kvm -- <current user>".into()),
@@ -173,16 +233,29 @@ fn repair_arguments(
     username: Option<&str>,
 ) -> Result<Vec<OsString>, String> {
     match repair {
-        Repair::InstallDependencies if status.can_install => Ok(std::iter::once(OsString::from(
-            "/usr/bin/apt-get",
-        ))
-        .chain(["install", "--yes"].into_iter().map(OsString::from))
-        .chain(
-            DEPENDENCY_PACKAGES
-                .iter()
-                .map(|package| OsString::from(*package)),
-        )
-        .collect()),
+        Repair::InstallDependencies if status.can_install => {
+            let packages = required_packages(
+                status.qemu_ready,
+                status.secret_service_available,
+                status.keyring_installed,
+            );
+            if packages.is_empty() {
+                return Err("System requirements are already installed".into());
+            }
+            Ok(std::iter::once(OsString::from("/usr/bin/apt-get"))
+                .chain(
+                    [
+                        "install",
+                        "--yes",
+                        "--no-remove",
+                        "--no-install-recommends",
+                    ]
+                    .into_iter()
+                    .map(OsString::from),
+                )
+                .chain(packages.into_iter().map(OsString::from))
+                .collect())
+        }
         Repair::EnableKvm if status.can_enable_kvm => {
             let username = username.ok_or("Could not identify the current local user")?;
             if username.is_empty() {
@@ -215,25 +288,58 @@ fn stderr_tail(stderr: &[u8]) -> String {
         .replace(['\n', '\r'], " ")
 }
 
-fn privileged_failure(code: Option<i32>, stderr: &[u8], action: &str) -> String {
+#[derive(Clone, Copy)]
+enum RecoveryHint {
+    Apt,
+    System,
+}
+
+fn privileged_failure(
+    code: Option<i32>,
+    stderr: &[u8],
+    action: &str,
+    recovery: RecoveryHint,
+) -> String {
     match code {
-        Some(126) => return "Authorization was cancelled. No system changes were requested.".into(),
-        Some(127) => return "System authorization was denied or is unavailable. Check that an Ubuntu polkit agent is running.".into(),
+        Some(PKEXEC_CANCELLED) => return "Authorization was cancelled. No system changes were requested.".into(),
+        Some(PKEXEC_DENIED) => return "System authorization was denied or is unavailable. Check that an Ubuntu polkit agent is running.".into(),
         _ => {}
     }
     let output = stderr_tail(stderr);
+    let lowercase = output.to_ascii_lowercase();
     let detail = if output.is_empty() {
         String::new()
     } else {
         format!(" Last output: {output}")
     };
+    let recovery = match recovery {
+        RecoveryHint::Apt if lowercase.contains("could not get lock") => {
+            " Another package update is running; wait for it to finish, then retry."
+        }
+        RecoveryHint::Apt
+            if lowercase.contains("failed to fetch")
+                || lowercase.contains("temporary failure resolving") =>
+        {
+            " Connect this machine to the package repository, then retry."
+        }
+        RecoveryHint::Apt => {
+            " Retry later. If packages were left incomplete, run sudo apt-get --fix-broken install."
+        }
+        RecoveryHint::System => {
+            " Review the local group configuration and system logs, then retry."
+        }
+    };
     format!(
-        "{action} failed (exit code {}).{detail} Retry after other package updates finish. If packages were left incomplete, run sudo apt-get --fix-broken install.",
+        "{action} failed (exit code {}).{detail}{recovery}",
         code.map_or_else(|| "unknown".into(), |code| code.to_string())
     )
 }
 
-fn run_privileged(arguments: &[OsString], action: &str) -> Result<(), String> {
+fn run_privileged(
+    arguments: &[OsString],
+    action: &str,
+    recovery: RecoveryHint,
+) -> Result<(), String> {
     let output = host_command(Path::new("/usr/bin/pkexec"))
         .args(arguments)
         .stdin(Stdio::null())
@@ -246,6 +352,7 @@ fn run_privileged(arguments: &[OsString], action: &str) -> Result<(), String> {
             output.status.code(),
             &output.stderr,
             action,
+            recovery,
         ))
     }
 }
@@ -268,7 +375,11 @@ pub fn repair(repair: Repair) -> Result<LinuxSetup, String> {
         .then(current_username)
         .flatten();
     let arguments = repair_arguments(repair, &status, username.as_deref())?;
-    run_privileged(&arguments, "System setup")?;
+    let (action, recovery) = match repair {
+        Repair::InstallDependencies => ("Package installation", RecoveryHint::Apt),
+        Repair::EnableKvm => ("KVM access setup", RecoveryHint::System),
+    };
+    run_privileged(&arguments, action, recovery)?;
     Ok(inspect())
 }
 
@@ -281,6 +392,8 @@ fn deb_install_arguments(package: &Path) -> Result<Vec<OsString>, String> {
         OsString::from("/usr/bin/apt-get"),
         OsString::from("install"),
         OsString::from("--yes"),
+        OsString::from("--no-remove"),
+        OsString::from("--no-install-recommends"),
         package.as_os_str().to_owned(),
     ]
     .into())
@@ -294,7 +407,11 @@ pub fn install_deb(bytes: &[u8]) -> Result<(), String> {
     let package = directory.path().join("update.deb");
     fs::write(&package, bytes).map_err(|error| error.to_string())?;
     let package = fs::canonicalize(package).map_err(|error| error.to_string())?;
-    run_privileged(&deb_install_arguments(&package)?, "Desktop update")
+    run_privileged(
+        &deb_install_arguments(&package)?,
+        "Package installation",
+        RecoveryHint::Apt,
+    )
 }
 
 #[cfg(test)]
@@ -333,6 +450,8 @@ mod tests {
                 "/usr/bin/apt-get",
                 "install",
                 "--yes",
+                "--no-remove",
+                "--no-install-recommends",
                 "qemu-utils",
                 "qemu-system-x86",
                 "gnome-keyring",
@@ -355,7 +474,15 @@ mod tests {
         );
         assert_eq!(
             deb_install_arguments(Path::new("/tmp/update.deb")).unwrap(),
-            ["/usr/bin/apt-get", "install", "--yes", "/tmp/update.deb"].map(OsString::from)
+            [
+                "/usr/bin/apt-get",
+                "install",
+                "--yes",
+                "--no-remove",
+                "--no-install-recommends",
+                "/tmp/update.deb",
+            ]
+            .map(OsString::from)
         );
     }
 
@@ -366,11 +493,32 @@ mod tests {
                 .unwrap_err()
                 .contains("unavailable")
         );
-        assert!(privileged_failure(Some(126), b"", "Setup").contains("cancelled"));
-        assert!(privileged_failure(Some(127), b"", "Setup").contains("denied"));
-        let failed = privileged_failure(Some(100), b"apt lock held\n", "Setup");
-        assert!(failed.contains("apt lock held"));
-        assert!(failed.contains("--fix-broken"));
+        assert!(
+            privileged_failure(Some(PKEXEC_CANCELLED), b"", "Setup", RecoveryHint::Apt)
+                .contains("cancelled")
+        );
+        assert!(
+            privileged_failure(Some(PKEXEC_DENIED), b"", "Setup", RecoveryHint::Apt)
+                .contains("denied")
+        );
+        let failed = privileged_failure(
+            Some(100),
+            b"Could not get lock\n",
+            "Setup",
+            RecoveryHint::Apt,
+        );
+        assert!(failed.contains("package update is running"));
+        let offline = privileged_failure(
+            Some(100),
+            b"Temporary failure resolving archive.ubuntu.com\n",
+            "Setup",
+            RecoveryHint::Apt,
+        );
+        assert!(offline.contains("Connect this machine"));
+        let group = privileged_failure(Some(1), b"usermod failed", "KVM", RecoveryHint::System);
+        assert!(group.contains("group configuration"));
+        let generic = privileged_failure(Some(100), b"broken", "Setup", RecoveryHint::Apt);
+        assert!(generic.contains("--fix-broken"));
     }
 
     #[test]
@@ -380,6 +528,47 @@ mod tests {
         assert!(group_contains_user(groups, "kvm", "bob"));
         assert!(!group_contains_user(groups, "kvm", "ali"));
         assert!(!group_contains_user(groups, "other", "alice"));
+        assert!(group_list_contains("alice adm kvm sudo", "kvm"));
+        assert!(!group_list_contains("alice adm kvm-user sudo", "kvm"));
+    }
+
+    #[test]
+    fn pending_kvm_relogin_requires_membership_missing_from_the_active_session() {
+        assert!(kvm_pending_relogin(true, false, true, false));
+        assert!(!kvm_pending_relogin(true, false, true, true));
+        assert!(!kvm_pending_relogin(true, true, true, false));
+        assert!(!kvm_pending_relogin(false, false, true, false));
+    }
+
+    #[test]
+    fn dependency_repairs_install_only_missing_capabilities() {
+        assert_eq!(
+            required_packages(false, true, false),
+            ["qemu-utils", "qemu-system-x86"]
+        );
+        assert_eq!(
+            required_packages(true, false, false),
+            ["gnome-keyring", "libsecret-1-0", "dbus-bin"]
+        );
+        assert!(required_packages(true, true, false).is_empty());
+
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.linux.conf.json")).unwrap();
+        let depends = config["bundle"]["linux"]["deb"]["depends"]
+            .as_array()
+            .unwrap();
+        let recommends = config["bundle"]["linux"]["deb"]["recommends"]
+            .as_array()
+            .unwrap();
+        for package in DEPENDENCY_PACKAGES {
+            assert!(
+                depends
+                    .iter()
+                    .chain(recommends)
+                    .any(|value| value.as_str() == Some(*package)),
+                "{package} is absent from the deb package metadata"
+            );
+        }
     }
 
     #[test]

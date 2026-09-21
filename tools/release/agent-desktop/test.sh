@@ -132,31 +132,68 @@ echo 'agent desktop release contract tests passed'
 TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
   bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release linux
-mkdir -p "$fixture/assets"
+mkdir -p "$fixture/assets" "$fixture/metadata" "$fixture/output"
 for suffix in aarch64.app.tar.gz amd64.deb amd64.AppImage; do
   printf 'artifact' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix"
   printf 'signature' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix.sig"
 done
+for suffix in aarch64.app.zip aarch64.dmg; do
+  printf 'artifact' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix"
+done
 node tools/release/agent-desktop/release-metadata.mjs \
-  "$fixture/assets" 1.2.3 mac-os "$fixture/assets/release-metadata-mac-os.json"
+  "$fixture/assets" 1.2.3 mac-os "$fixture/metadata/release-metadata-mac-os.json"
 node tools/release/agent-desktop/release-metadata.mjs \
-  "$fixture/assets" 1.2.3 linux "$fixture/assets/release-metadata-linux.json"
-node tools/release/agent-desktop/manifest.mjs "$fixture/assets" 1.2.3
-node - "$fixture/assets/latest.json" <<'NODE'
+  "$fixture/assets" 1.2.3 linux "$fixture/metadata/release-metadata-linux.json"
+node - "$fixture/metadata" "$fixture/published.json" <<'NODE'
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const [directory, output] = process.argv.slice(2);
+const assets = fs.readdirSync(directory)
+  .filter((name) => name.startsWith('release-metadata-'))
+  .flatMap((name) => require(path.join(directory, name)).assets)
+  .map((asset) => ({
+    name: asset.name,
+    size: asset.size,
+    digest: `sha256:${asset.sha256}`,
+  }));
+fs.writeFileSync(output, JSON.stringify({ assets }));
+NODE
+node tools/release/agent-desktop/verify-published-assets.mjs \
+  "$fixture/metadata" "$fixture/published.json" 1.2.3
+node tools/release/agent-desktop/manifest.mjs \
+  "$fixture/metadata" "$fixture/output/latest.json" 1.2.3
+[ ! -e "$fixture/metadata/latest.json" ]
+node - "$fixture/output/latest.json" <<'NODE'
 const manifest = require(process.argv[2]);
 const targets = Object.keys(manifest.platforms).sort();
 if (JSON.stringify(targets) !== JSON.stringify(['darwin-aarch64', 'linux-x86_64-appimage', 'linux-x86_64-deb'])) {
   throw new Error('Updater must select the installed package format');
 }
 NODE
-node - "$fixture/assets/release-metadata-linux.json" <<'NODE'
+node - "$fixture/published.json" <<'NODE'
+const fs = require('node:fs');
+const path = process.argv[2];
+const published = require(path);
+const appImage = published.assets.find((asset) => asset.name.endsWith('.AppImage'));
+if (!appImage) throw new Error('AppImage fixture is missing');
+appImage.digest = `sha256:${'0'.repeat(64)}`;
+fs.writeFileSync(path, JSON.stringify(published));
+NODE
+if node tools/release/agent-desktop/verify-published-assets.mjs \
+  "$fixture/metadata" "$fixture/published.json" 1.2.3 2>/dev/null; then
+  echo 'published asset verification accepted a changed digest' >&2
+  exit 1
+fi
+node - "$fixture/metadata/release-metadata-linux.json" <<'NODE'
 const fs = require('node:fs');
 const path = process.argv[2];
 const metadata = require(path);
 metadata.assets = metadata.assets.filter((asset) => !asset.name.endsWith('.deb'));
 fs.writeFileSync(path, JSON.stringify(metadata));
 NODE
-if node tools/release/agent-desktop/manifest.mjs "$fixture/assets" 1.2.3 2>/dev/null; then
+if node tools/release/agent-desktop/manifest.mjs \
+  "$fixture/metadata" "$fixture/output/latest.json" 1.2.3 2>/dev/null; then
   echo 'manifest accepted an incomplete Linux release' >&2
   exit 1
 fi

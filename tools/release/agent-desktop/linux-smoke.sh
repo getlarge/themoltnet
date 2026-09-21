@@ -11,7 +11,6 @@ sudo apt-get install -y "$(realpath "$deb")"
 # These must arrive through Desktop's package dependency installation.
 command -v qemu-img
 command -v qemu-system-x86_64
-command -v gnome-keyring-daemon
 command -v moltnet-agent-desktop
 check_libraries() {
   local executable=$1 missing

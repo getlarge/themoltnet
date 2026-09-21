@@ -167,6 +167,22 @@
           "command": "cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-ci"
         }
       },
+      "test-release-scripts": {
+        "executor": "nx:run-commands",
+        "inputs": [
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
+          "{workspaceRoot}/release-please-config.json",
+          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
+          "{projectRoot}/agent-cli.version",
+          "{projectRoot}/src-tauri/build.rs",
+          "{projectRoot}/src-tauri/Cargo.toml",
+          "{projectRoot}/src-tauri/tauri.conf.json"
+        ],
+        "options": {
+          "command": "bash tools/release/agent-desktop/test.sh"
+        }
+      },
       "build": {
         "executor": "nx:run-commands",
         "outputs": [

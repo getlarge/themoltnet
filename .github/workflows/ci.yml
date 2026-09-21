@@ -625,6 +625,8 @@ jobs:
           rust: ${{ needs.affected.outputs.agent-desktop }}
           rust-components: rustfmt, clippy
           rust-cache: ${{ needs.affected.outputs.agent-desktop }}
+          rust-cache-key: ci-registry
+          rust-cache-targets: 'false'
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then
@@ -769,7 +771,7 @@ jobs:
           # to have published first. Release jobs run those smokes in order;
           # pre-merge CI still runs every package's tarball checks.
           MOLTNET_SKIP_REGISTRY_SMOKE: '1'
-        run: pnpm exec nx affected -t lint typecheck test-ci test-desktop-native build check:pack docker:build --configuration=ci
+        run: pnpm exec nx affected -t lint typecheck test-ci test-desktop-native test-release-scripts build check:pack docker:build --configuration=ci
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'

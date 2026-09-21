@@ -3,14 +3,15 @@ import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 
-const [directory, version, repository = 'getlarge/themoltnet'] =
+const [directory, output, version, repository = 'getlarge/themoltnet'] =
   process.argv.slice(2);
 if (
   !directory ||
+  !output ||
   !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version ?? '')
 ) {
   throw new Error(
-    'Usage: manifest.mjs <downloaded-assets> <version> [repository]',
+    'Usage: manifest.mjs <metadata-directory> <output> <version> [repository]',
   );
 }
 const platforms = {};
@@ -40,7 +41,7 @@ for (const [target, suffix] of [
   };
 }
 writeFileSync(
-  join(directory, 'latest.json'),
+  output,
   `${JSON.stringify(
     {
       version,
