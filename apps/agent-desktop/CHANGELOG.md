@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.4.0...agent-desktop-v0.5.0) (2026-09-21)
+
+
+### Features
+
+* **agent-desktop:** add Ubuntu setup and package distribution ([1b65eea](https://github.com/getlarge/themoltnet/commit/1b65eea588a4331746483bc70170e479fd3ee9a2))
+* **agent-desktop:** use authenticated native Unix sockets ([a4048a6](https://github.com/getlarge/themoltnet/commit/a4048a6a74b203aa963039b3846ec5ceb7f5c89f))
+* **console:** move local runtime control to Desktop ([1f934aa](https://github.com/getlarge/themoltnet/commit/1f934aae8b837c88b0d052e0cdfd7a2b84828000))
+* **console:** move local runtime control to Desktop ([9f3c644](https://github.com/getlarge/themoltnet/commit/9f3c644391a1e9b40d6f36c2943a26b5eccd162b))
+
+
+### Bug Fixes
+
+* **agent-desktop:** clarify Linux setup state ([5111671](https://github.com/getlarge/themoltnet/commit/51116713696e7eb2a74450a0ae017a19ee173586))
+* **agent-desktop:** close native socket review gaps ([d77c695](https://github.com/getlarge/themoltnet/commit/d77c695882beb9c5fbb15b491b44c3cc64879ddb))
+* **agent-desktop:** close Ubuntu release review gaps ([46cc9a6](https://github.com/getlarge/themoltnet/commit/46cc9a6589696c916f68624821442b2cf440dbba))
+* **agent-desktop:** harden draft release publication ([a3c653c](https://github.com/getlarge/themoltnet/commit/a3c653c1986e94621ae68db314e061a0315c55cb))
+* **agent-desktop:** harden native socket lifecycle ([4c892e5](https://github.com/getlarge/themoltnet/commit/4c892e5b635a40a768825232bc1c1cc46716dac6))
+* **agent-desktop:** harden Ubuntu setup and release ([69b8ca0](https://github.com/getlarge/themoltnet/commit/69b8ca0ce2fef3b45c9b9d320b666bc12d92d26b))
+* **agent-desktop:** remove local CA trust ([32c5dcf](https://github.com/getlarge/themoltnet/commit/32c5dcfd348e8d52e8fc866205cf7919bc4c0a1e))
+* **agent-desktop:** remove obsolete local-control paths ([2759833](https://github.com/getlarge/themoltnet/commit/2759833ead39bfd65d911fad23bc32946033890a))
+* **landing:** publish stable download pins ([aa24f14](https://github.com/getlarge/themoltnet/commit/aa24f1487b04b6c91e2168395aeec92c179ef065))
+* **landing:** publish stable download pins ([7a23abf](https://github.com/getlarge/themoltnet/commit/7a23abfa648c5d62c0a0cee0b48a6c3336d1a76c))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.3.0...agent-desktop-v0.4.0) (2026-09-20)
 
 
