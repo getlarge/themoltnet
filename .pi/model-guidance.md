@@ -53,6 +53,8 @@ Retirement cleanup applied in July 2026:
 | `glm-5:cloud`                  | `glm-5.2:cloud`      |
 | `minimax-m2.1:cloud`           | `minimax-m3:cloud`   |
 | `qwen3-coder:480b-cloud`       | `qwen3.5:397b-cloud` |
+| `qwen3.5:397b-cloud`           | `gemma4:31b-cloud`   |
 
-Production runtime profiles were also moved from `qwen3-coder:480b-cloud` to
-`qwen3.5:397b-cloud`.
+The retired Qwen 397B target was removed from the local model registry. CI uses
+`gemma4:31b-cloud` for both the pinned eval judge and the matrix slot that
+previously exercised Qwen.

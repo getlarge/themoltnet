@@ -143,8 +143,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   const producerSandboxRoots = new Map<string, string>();
   const tempRoots: string[] = [];
   const models = parseModels();
-  const judgeModel =
-    process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'qwen3.5:397b-cloud';
+  const judgeModel = process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'gemma4:31b-cloud';
   const scenarios = loadScenarios();
 
   beforeAll(async () => {
