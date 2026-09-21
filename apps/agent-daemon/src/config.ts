@@ -73,8 +73,13 @@ export interface DaemonConfig {
 }
 
 /** All daemon commands announce the same legacy alias policy as Go and Desktop. */
+export function markLegacyStoreNoticeShown(): void {
+  process.env['MOLTNET_LEGACY_STORE_NOTICE_SHOWN'] = '1';
+}
+
 export function legacyStoreNotice(): string | undefined {
-  return process.env['MOLTNET_AGENT_SERVER_ROOT'] !== undefined
+  return process.env['MOLTNET_AGENT_SERVER_ROOT'] !== undefined &&
+    process.env['MOLTNET_LEGACY_STORE_NOTICE_SHOWN'] !== '1'
     ? 'MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.'
     : undefined;
 }

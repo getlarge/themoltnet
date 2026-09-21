@@ -7,7 +7,6 @@ if (!root) throw new Error('agent server lock fixture requires a root');
 mkdirSync(root, { recursive: true });
 
 const held = await acquireAgentServerLock(root);
-process.stdout.write('locked\n');
 
 const shutdown = (): void => {
   void held.release().then(() => process.exit(0));
@@ -15,3 +14,4 @@ const shutdown = (): void => {
 process.once('SIGINT', shutdown);
 process.once('SIGTERM', shutdown);
 setInterval(() => undefined, 1_000);
+process.send?.('locked');

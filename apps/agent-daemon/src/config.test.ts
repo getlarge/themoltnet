@@ -15,6 +15,11 @@ describe('loadConfig observability settings', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
+  it('does not repeat a notice inherited from the parent CLI', () => {
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/store');
+    vi.stubEnv('MOLTNET_LEGACY_STORE_NOTICE_SHOWN', '1');
+    expect(legacyStoreNotice()).toBeUndefined();
+  });
   it.each([undefined, '/same-store'])(
     'announces the legacy name even with MOLTNET_HOME=%s',
     (shared) => {

@@ -128,6 +128,13 @@ Desktop runs under the actual user HOME and its Rust default-store comparison
 does not consume this worker-only hint. Desktop's `MOLTNET_AGENT_HOME` selects
 its installation directory independently.
 
+For the default store, Go CLI caches still follow the process's operating-system
+cache directory. A managed worker with an isolated `HOME` therefore keeps its
+resource locks and recovery files in that worker's cache;
+`MOLTNET_DEFAULT_STORE_ROOT` preserves store/keyring identity, not the
+supervisor's cache location. An isolated store selected with `MOLTNET_HOME`
+instead keeps its cache under `<store>/cache`.
+
 ## Upgrading from MOLTNET_AGENT_SERVER_ROOT
 
 The old variable name is deprecated. Replace it with `MOLTNET_HOME` and unset
