@@ -20,8 +20,8 @@ pnpm exec nx run-many -t lint typecheck test build \
 
 ## Ubuntu packages
 
-The initial Linux target is Ubuntu 24.04 LTS, x86-64. The `.deb` installs system
-GUI dependencies; AppImage users also need the Ubuntu WebKit/GTK runtime and
+The initial Linux target is Ubuntu 24.04 LTS, x86-64. The `.deb` installs QEMU, GNOME Keyring, and system
+GUI dependencies through Ubuntu’s package manager; AppImage users also need the Ubuntu WebKit/GTK runtime and
 FUSE support (`libfuse2t64`). Neither format bundles the Agent CLI: Desktop
 installs the same signed, pinned bundle used on macOS.
 
@@ -36,10 +36,14 @@ available and does not enable an unsandboxed worker fallback.
 For unsigned local packaging on Ubuntu:
 
 ```bash
-pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux-ci
+pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:linux
 ```
 
-CI builds both packages, installs the `.deb`, checks shared-library resolution,
+For unsigned macOS packaging use `@moltnet/agent-desktop:tauri:bundle:mac-os`.
+Both targets use `--configuration=release` for signed release packaging.
+Unsigned builds omit updater signatures so PR checks need no release secrets.
+
+CI checks both platforms in the same package workflow. On Ubuntu it builds both packages, installs the `.deb`, checks shared-library resolution,
 and launches each format under a virtual display. Release jobs verify signed
 artifacts after upload and publish only after both macOS and Ubuntu packages
 are complete. The updater selects `linux-x86_64-deb` or

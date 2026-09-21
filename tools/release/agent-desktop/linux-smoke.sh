@@ -8,6 +8,10 @@ appimage=$(find "$bundle/appimage" -maxdepth 1 -name '*.AppImage' -print -quit)
 [ -s "$deb" ] && [ -s "$appimage" ]
 [ "$(dpkg-deb -f "$deb" Architecture)" = amd64 ]
 sudo apt-get install -y "$(realpath "$deb")"
+# These must arrive through Desktop's package dependency installation.
+command -v qemu-img
+command -v qemu-system-x86_64
+command -v gnome-keyring-daemon
 command -v moltnet-agent-desktop
 if ldd /usr/bin/moltnet-agent-desktop | grep -q 'not found'; then
   echo 'The installed executable has unresolved shared libraries' >&2

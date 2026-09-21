@@ -131,7 +131,7 @@ echo 'agent desktop release contract tests passed'
 # Linux signing does not require Apple material; all update formats are required.
 TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
-  bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --linux-release
+  bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release linux
 mkdir -p "$fixture/assets"
 for suffix in aarch64.app.tar.gz amd64.deb amd64.AppImage; do
   printf 'artifact' > "$fixture/assets/MoltNet-Agent_1.2.3_$suffix"

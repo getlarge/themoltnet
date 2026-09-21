@@ -2,7 +2,9 @@
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
     "linux": {
-      "appimage": { "bundleMediaFramework": false },
+      "appimage": {
+        "bundleMediaFramework": false
+      },
       "deb": {
         "depends": [
           "libwebkit2gtk-4.1-0",
@@ -14,7 +16,11 @@
           "xdg-utils",
           "curl",
           "openssh-client",
-          "ca-certificates"
+          "ca-certificates",
+          "qemu-utils",
+          "qemu-system-x86",
+          "gnome-keyring",
+          "libsecret-1-0"
         ]
       }
     },

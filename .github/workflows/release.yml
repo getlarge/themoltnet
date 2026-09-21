@@ -2552,7 +2552,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release-agent-desktop:
+  release-agent-desktop-mac-os:
     name: Package signed MoltNet Agent for Mac
     needs: [resolve-publish, finalize-agent-daemon-release]
     if: >-
@@ -2602,7 +2602,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
           AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
-        run: bash tools/release/agent-desktop/validate.sh . --release
+        run: bash tools/release/agent-desktop/validate.sh . --release mac-os
 
       - name: Import Developer ID identity
         id: certificate
@@ -2652,7 +2652,7 @@ jobs:
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=release
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:mac-os --configuration=release
 
       - name: Remove signing identity
         if: ${{ always() }}
@@ -2774,12 +2774,12 @@ jobs:
           AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
           APPIMAGE_EXTRACT_AND_RUN: '1'
         run: |
-          bash tools/release/agent-desktop/validate.sh . --linux-release
+          bash tools/release/agent-desktop/validate.sh . --release linux
           export TAURI_CONFIG=$(jq -cn --arg key "$TAURI_UPDATER_PUBLIC_KEY" '{plugins:{updater:{pubkey:$key}}}')
           if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
             export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
           fi
-          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux-release
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:linux --configuration=release
 
       - name: Verify and materialize Linux assets
         env:
@@ -2809,10 +2809,15 @@ jobs:
 
   finalize-agent-desktop-release:
     name: Publish complete desktop release
-    needs: [resolve-publish, release-agent-desktop, release-agent-desktop-linux]
+    needs:
+      [
+        resolve-publish,
+        release-agent-desktop-mac-os,
+        release-agent-desktop-linux,
+      ]
     if: >-
       ${{ always() && needs.resolve-publish.outputs.agent-desktop == 'true' &&
-      needs.release-agent-desktop.result == 'success' &&
+      needs.release-agent-desktop-mac-os.result == 'success' &&
       needs.release-agent-desktop-linux.result == 'success' && !cancelled() }}
     runs-on: ubuntu-24.04
     permissions:

@@ -1,4 +1,4 @@
-name: Ubuntu desktop packages
+name: Desktop packages
 on:
   pull_request:
     paths:
@@ -6,18 +6,27 @@ on:
       - libs/design-system/**
       - libs/task-ui/**
       - tools/release/agent-desktop/**
-      - .github/workflows/agent-desktop-linux.yml
+      - .github/workflows/agent-desktop-packages.yml
       - .github/workflows/release.yml
       - pnpm-lock.yaml
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: desktop-linux-${{ github.event.pull_request.number || github.ref }}
+  group: desktop-packages-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   packages:
-    runs-on: ubuntu-24.04
+    name: Package ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac-os
+            runner: macos-14
+          - platform: linux
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     env:
       NX_LOAD_DOT_ENV_FILES: 'false'
@@ -35,19 +44,21 @@ jobs:
           cache: pnpm
       - uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884 # 1.88.0
       - name: Install packaging and display dependencies
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential file libayatana-appindicator3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf libfuse2t64 xvfb dbus-x11
       - run: pnpm install --frozen-lockfile
       - name: Build unsigned CI packages
-        run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux-ci --excludeTaskDependencies
+        run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch
-        run: bash tools/release/agent-desktop/linux-smoke.sh
+        run: bash tools/release/agent-desktop/${{ matrix.platform }}-smoke.sh
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: ubuntu-desktop-packages
+          name: desktop-packages-${{ matrix.platform }}
           path: |
-            apps/agent-desktop/out-rust/bundle/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
-            apps/agent-desktop/out-rust/bundle/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
+            apps/agent-desktop/out-rust/bundle/*/release/bundle/deb/*.deb
+            apps/agent-desktop/out-rust/bundle/*/release/bundle/appimage/*.AppImage
+            apps/agent-desktop/out-rust/bundle/*/release/bundle/dmg/*.dmg
             /tmp/moltnet-desktop-smoke-*.log

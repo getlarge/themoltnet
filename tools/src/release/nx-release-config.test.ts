@@ -15,7 +15,7 @@ const workflow = readFileSync(
   'utf8',
 );
 const desktopReleaseJob = workflow.slice(
-  workflow.indexOf('  release-agent-desktop:'),
+  workflow.indexOf('  release-agent-desktop-mac-os:'),
   workflow.indexOf('  propose-cli-go-mod-sync:'),
 );
 const ciWorkflow = readFileSync(
@@ -212,15 +212,42 @@ describe('Nx release configuration', () => {
     );
   });
 
-  it('passes the updater public-key override to the Tauri bundle command', () => {
-    expect(workflow).toContain(
-      'pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=release',
-    );
-    const bundleTarget = agentDesktopPackage.nx.targets['tauri:bundle'];
-    const releaseCommand = bundleTarget.configurations.release.command;
+  it.each(['mac-os', 'linux'])(
+    'uses matching %s release and package-check targets',
+    (platform) => {
+      expect(workflow).toContain(
+        `pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:${platform} --configuration=release`,
+      );
+      const target = agentDesktopPackage.nx.targets[`tauri:bundle:${platform}`];
+      expect(target.configurations.release.command).toBe(
+        `${target.options.command} release`,
+      );
+      const bundler = readFileSync(
+        join(workspaceRoot, 'tools/release/agent-desktop/bundle.sh'),
+        'utf8',
+      );
+      expect(bundler).toContain('args+=(--config "$TAURI_CONFIG")');
+      expect(bundler).toContain('TAURI_SIGNING_PRIVATE_KEY:?');
+    },
+  );
 
-    expect(releaseCommand).toBe(
-      `${bundleTarget.options.command} --config "$TAURI_CONFIG"`,
+  it('installs sandbox and secret-storage dependencies with the Ubuntu package', () => {
+    const config = JSON.parse(
+      readFileSync(
+        join(
+          workspaceRoot,
+          'apps/agent-desktop/src-tauri/tauri.linux.conf.json',
+        ),
+        'utf8',
+      ),
+    );
+    expect(config.bundle.linux.deb.depends).toEqual(
+      expect.arrayContaining([
+        'qemu-utils',
+        'qemu-system-x86',
+        'gnome-keyring',
+        'libsecret-1-0',
+      ]),
     );
   });
 
@@ -239,20 +266,34 @@ describe('Nx release configuration', () => {
   });
 
   it('binds a desktop release to one reviewed main revision', () => {
+    const releaseScripts = ['checkout-release.sh', 'upload.sh']
+      .map((file) =>
+        readFileSync(
+          join(workspaceRoot, 'tools/release/agent-desktop', file),
+          'utf8',
+        ),
+      )
+      .join('\n');
     expect(desktopReleaseJob).toContain(
+      'bash tools/release/agent-desktop/checkout-release.sh',
+    );
+    expect(desktopReleaseJob).toContain(
+      'bash tools/release/agent-desktop/upload.sh',
+    );
+    expect(releaseScripts).toContain(
       'git merge-base --is-ancestor "$revision" origin/main',
     );
-    expect(desktopReleaseJob).toContain(
+    expect(releaseScripts).toContain(
       'tag_revision=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)',
     );
-    expect(desktopReleaseJob).toContain('[ "$tag_revision" = "$revision" ]');
-    expect(desktopReleaseJob).toContain(
+    expect(releaseScripts).toContain('[ "$tag_revision" = "$revision" ]');
+    expect(releaseScripts).toContain(
       '[ "$(jq -r .targetCommitish <<< "$release")" = "$revision" ]',
     );
-    expect(desktopReleaseJob).toContain(
+    expect(releaseScripts).toContain(
       '[ "$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)" = "$revision" ]',
     );
-    expect(desktopReleaseJob.match(/verify_release_revision/g)).toHaveLength(3);
+    expect(releaseScripts.match(/verify_release_revision/g)).toHaveLength(3);
   });
 
   it('can republish failed Docker releases from their existing drafts', () => {

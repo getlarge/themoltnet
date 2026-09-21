@@ -59,7 +59,10 @@ grep -q '^rust 1\.88\.0$' "$root/.tool-versions" || {
   exit 1
 }
 
-if [ "${2:-}" = "--release" ] || [ "${2:-}" = "--linux-release" ]; then
+platform=${3:-mac-os}
+case "$platform" in mac-os|linux) ;; *) echo "Unknown desktop platform: $platform" >&2; exit 1 ;; esac
+
+if [ "${2:-}" = "--release" ]; then
   [ -n "${TAURI_UPDATER_PUBLIC_KEY:-}" ] || {
     echo "TAURI_UPDATER_PUBLIC_KEY is required for release packaging" >&2
     exit 1
@@ -76,7 +79,7 @@ if [ "${2:-}" = "--release" ] || [ "${2:-}" = "--linux-release" ]; then
   }
 fi
 
-if [ "${2:-}" = "--release" ]; then
+if [ "${2:-}" = "--release" ] && [ "$platform" = mac-os ]; then
   [ -n "${APPLE_CERT_P12:-}" ] || {
     echo "APPLE_CERT_P12 is required for Developer ID signing" >&2
     exit 1
