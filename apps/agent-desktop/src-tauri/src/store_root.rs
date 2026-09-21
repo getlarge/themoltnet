@@ -112,7 +112,7 @@ mod tests {
             .as_nanos();
         let temporary = std::env::temp_dir().join(format!("moltnet-store-{unique}"));
         fs::create_dir(&temporary).unwrap();
-        let cwd = fs::canonicalize(&temporary).unwrap();
+        let cwd = normalize_windows_path(fs::canonicalize(&temporary).unwrap());
         for row in include_str!("../../../../test-fixtures/store-root-conformance.tsv").lines() {
             if row.starts_with('#') || row.is_empty() {
                 continue;
@@ -161,20 +161,49 @@ mod tests {
         fs::remove_dir_all(temporary).unwrap();
     }
     #[test]
-    #[ignore = "requires a case-insensitive filesystem; run explicitly with --ignored"]
     fn case_insensitive_volume() {
         let temporary = std::env::temp_dir().join(format!("moltnet-case-{}", std::process::id()));
         fs::create_dir_all(temporary.join("CaseStore")).unwrap();
-        let cwd = fs::canonicalize(&temporary).unwrap();
-        assert!(
-            cwd.join("casestore").exists(),
-            "requires a case-insensitive filesystem"
-        );
+        let cwd = normalize_windows_path(fs::canonicalize(&temporary).unwrap());
+        if !cwd.join("casestore").exists() {
+            fs::remove_dir_all(temporary).unwrap();
+            eprintln!("SKIP case_insensitive_volume: requires a case-insensitive filesystem");
+            return;
+        }
         assert_eq!(
             resolve_store_root(Some("casestore"), None, &cwd, &cwd).unwrap(),
             cwd.join("CaseStore")
         );
         fs::remove_dir_all(temporary).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn traverse_only_directory() {
+        use std::os::unix::fs::PermissionsExt;
+        let temporary =
+            std::env::temp_dir().join(format!("moltnet-traverse-{}", std::process::id()));
+        fs::create_dir_all(temporary.join("CaseStore")).unwrap();
+        let cwd = normalize_windows_path(fs::canonicalize(&temporary).unwrap());
+        let actual = cwd.join("CaseStore");
+        let alias = if cwd.join("casestore").exists() {
+            cwd.join("casestore")
+        } else {
+            actual.clone()
+        };
+        fs::set_permissions(&actual, fs::Permissions::from_mode(0o111)).unwrap();
+        let readable = fs::read_dir(&actual);
+        let result = resolve_store_path(Some(&alias.join("new")), None, &cwd, &cwd);
+        fs::set_permissions(&actual, fs::Permissions::from_mode(0o700)).unwrap();
+        fs::remove_dir_all(temporary).unwrap();
+        match readable {
+            Ok(_) => {
+                eprintln!("SKIP traverse_only_directory: filesystem or user bypasses directory read permissions");
+                return;
+            }
+            Err(error) => assert_eq!(error.kind(), ErrorKind::PermissionDenied),
+        }
+        assert_eq!(result.unwrap(), actual.join("new"));
     }
 
     #[test]

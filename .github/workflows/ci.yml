@@ -261,6 +261,16 @@ jobs:
       # prompt regardless of whether the keychain is unlocked, so those tests
       # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
       # provisions its own keychain and binds Security.framework directly.
+      - uses: dtolnay/rust-toolchain@1.88.0
+      # This std-only module can exercise Windows paths without Tauri's GUI
+      # toolchain. --nocapture makes runtime filesystem skip reasons visible.
+      - name: Test Rust store path conformance on the native filesystem
+        shell: bash
+        run: |
+          rustc --edition=2021 --test apps/agent-desktop/src-tauri/src/store_root.rs -o "$RUNNER_TEMP/store-root-tests.exe"
+          "$RUNNER_TEMP/store-root-tests.exe" --nocapture
+      - name: Test Node store path conformance on the native filesystem
+        run: pnpm exec nx run @moltnet/agent-config:test --testNamePattern="MoltNet store selection" --skipNxCache
       - name: Test store path conformance on the native filesystem
         working-directory: apps/moltnet-cli
         run: go test ./internal/configdir/
@@ -505,7 +515,7 @@ jobs:
             echo "check-dist-agent-daemon-action=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
+          if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli" "@moltnet/agent-config" "@moltnet/agent-desktop"; then
             echo "native-keyring=true" >> "$GITHUB_OUTPUT"
           else
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
