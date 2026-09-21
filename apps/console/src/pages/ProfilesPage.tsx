@@ -23,6 +23,7 @@ import {
   Badge,
   Button,
   Card,
+  Disclosure,
   Stack,
   Text,
   Tooltip,
@@ -1090,56 +1091,56 @@ function AdvancedContextJson({
   }
 
   return (
-    <details style={panelStyle(theme)}>
-      <summary style={{ cursor: 'pointer' }}>
-        <Text variant="caption" color="muted">
-          Advanced — edit as raw JSON
-        </Text>
-      </summary>
-      <Stack gap={2} style={{ marginTop: theme.spacing[2] }}>
-        <textarea
-          aria-label="Context JSON"
-          value={draft}
-          rows={8}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            setDirty(true);
-          }}
-          style={{
-            ...fieldStyle(theme),
-            fontFamily: theme.font.family.mono,
-            resize: 'vertical',
-          }}
-        />
-        {error ? (
-          <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>
-            {error}
-          </Text>
-        ) : null}
-        <Stack direction="row" gap={2}>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!dirty}
-            onClick={apply}
-          >
-            Apply JSON
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!dirty}
-            onClick={() => {
-              setDraft(serialized);
-              setDirty(false);
-              setError(null);
+    <div style={panelStyle(theme)}>
+      <Disclosure summary="Advanced — edit as raw JSON">
+        <Stack gap={2}>
+          <textarea
+            aria-label="Context JSON"
+            value={draft}
+            rows={8}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setDirty(true);
             }}
-          >
-            Revert
-          </Button>
+            style={{
+              ...fieldStyle(theme),
+              fontFamily: theme.font.family.mono,
+              resize: 'vertical',
+            }}
+          />
+          {error ? (
+            <Text
+              variant="caption"
+              style={{ color: theme.color.error.DEFAULT }}
+            >
+              {error}
+            </Text>
+          ) : null}
+          <Stack direction="row" gap={2}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!dirty}
+              onClick={apply}
+            >
+              Apply JSON
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!dirty}
+              onClick={() => {
+                setDraft(serialized);
+                setDirty(false);
+                setError(null);
+              }}
+            >
+              Revert
+            </Button>
+          </Stack>
         </Stack>
-      </Stack>
-    </details>
+      </Disclosure>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   DescriptionList,
+  Disclosure,
   KeyFingerprint,
   Stack,
   Text,
@@ -415,18 +416,7 @@ export function ProvenanceExplorer({
               />
             </div>
 
-            <details>
-              <summary
-                style={{
-                  cursor: 'pointer',
-                  color: theme.color.text.secondary,
-                  minHeight: 44,
-                  paddingBlock: theme.spacing[2],
-                  boxSizing: 'border-box',
-                }}
-              >
-                Accessible graph outline
-              </summary>
+            <Disclosure summary="Accessible graph outline">
               <Stack gap={3} style={{ paddingTop: theme.spacing[3] }}>
                 <ul style={{ margin: 0, paddingInlineStart: theme.spacing[5] }}>
                   {visibleGraph.nodes.map((node) => (
@@ -452,7 +442,7 @@ export function ProvenanceExplorer({
                     .join('; ') || 'No relationships'}
                 </Text>
               </Stack>
-            </details>
+            </Disclosure>
           </Stack>
         </Card>
 
@@ -507,18 +497,7 @@ export function ProvenanceExplorer({
                   beyond the requested depth or outside your readable diaries.
                 </Text>
               ) : null}
-              <details>
-                <summary
-                  style={{
-                    cursor: 'pointer',
-                    color: theme.color.text.secondary,
-                    minHeight: 44,
-                    paddingBlock: theme.spacing[2],
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  Technical metadata
-                </summary>
+              <Disclosure summary="Technical metadata">
                 <div style={{ paddingTop: theme.spacing[3] }}>
                   <DescriptionList
                     ariaLabel="Technical metadata"
@@ -527,7 +506,7 @@ export function ProvenanceExplorer({
                     items={selectedMetadata}
                   />
                 </div>
-              </details>
+              </Disclosure>
               {selectedNode.kind === 'pack' &&
               selectedIncludedEvidenceCount > 0 ? (
                 <Button
