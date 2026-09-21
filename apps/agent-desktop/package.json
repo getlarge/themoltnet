@@ -31,6 +31,12 @@
       "agentDesktopInstaller": [
         "{workspaceRoot}/tools/release/agent-bundle/install.sh"
       ],
+      "agentDesktopPackaging": [
+        "{workspaceRoot}/tools/release/agent-desktop/**/*",
+        "{workspaceRoot}/.github/actions/setup-workspace/**/*",
+        "{workspaceRoot}/.github/workflows/agent-desktop-packages.yml",
+        "{workspaceRoot}/.github/workflows/release.yml"
+      ],
       "agentDesktopNative": [
         "{projectRoot}/src-tauri/src/**/*.rs",
         "{projectRoot}/src-tauri/build.rs",
@@ -249,9 +255,9 @@
           "agentDesktopRendererProduction",
           "agentDesktopNative",
           "agentDesktopInstaller",
+          "agentDesktopPackaging",
           "^production",
-          "sharedGlobals",
-          "{workspaceRoot}/tools/release/agent-desktop/bundle.sh"
+          "sharedGlobals"
         ],
         "options": {
           "command": "bash tools/release/agent-desktop/bundle.sh host"
