@@ -291,6 +291,12 @@ jobs:
       - name: Test macOS native control and peer credentials
         run: cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-macos
 
+  agent-desktop-packages:
+    name: Desktop packages
+    needs: [affected]
+    if: needs.affected.outputs.agent-desktop == 'true'
+    uses: ./.github/workflows/agent-desktop-packages.yml
+
   # Compute the affected project set once and expose per-suite / per-image
   # flags. Downstream jobs gate on these so e2e and image builds only run
   # when the projects they cover are actually affected by the diff.
@@ -1346,6 +1352,10 @@ jobs:
           - name: Shard 2
             configuration: shard-2
             cache_key: shard-2
+            vm_integration: false
+          - name: Shard 3
+            configuration: shard-3
+            cache_key: shard-3
             vm_integration: false
     env:
       # Per-image: ci-<sha> if affected this run, else the moving :ci-main
