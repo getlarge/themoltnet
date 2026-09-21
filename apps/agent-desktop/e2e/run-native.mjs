@@ -15,6 +15,8 @@ import { fileURLToPath, URL } from 'node:url';
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const root = mkdtempSync(join(tmpdir(), 'moltnet-desktop-e2e-'));
 try {
+  const home = join(root, 'home');
+  mkdirSync(home, { mode: 0o700 });
   const current = join(root, 'agent/current');
   mkdirSync(join(current, 'bin'), { recursive: true });
   const version = readFileSync(
@@ -38,6 +40,7 @@ exec ${[process.execPath, tsx, fixture].map(shellQuote).join(' ')} "$@"
   );
   const env = {
     ...process.env,
+    HOME: home,
     MOLTNET_DESKTOP_E2E_FIXTURE_ROOT: root,
     MOLTNET_HOME: join(root, 'store'),
     MOLTNET_AGENT_HOME: join(root, 'agent'),
@@ -45,6 +48,8 @@ exec ${[process.execPath, tsx, fixture].map(shellQuote).join(' ')} "$@"
   delete env.MOLTNET_AGENT_SERVER_ROOT;
   // A terminal's bundle identity must not be inherited by an AppKit application.
   delete env.__CFBundleIdentifier;
+  // The embedded driver requires a fixed port, not an inherited listener.
+  // This probe is not a reservation: a bind conflict must fail the run visibly.
   const portProbe = createServer();
   await new Promise((resolve, reject) => {
     portProbe.once('error', reject);

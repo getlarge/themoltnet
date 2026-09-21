@@ -5,6 +5,7 @@ const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
 if (
   !root ||
+  process.env.HOME !== join(root, 'home') ||
   process.env.MOLTNET_HOME !== join(root, 'store') ||
   process.env.MOLTNET_AGENT_HOME !== join(root, 'agent')
 ) {
