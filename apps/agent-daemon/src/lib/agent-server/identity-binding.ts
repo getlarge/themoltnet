@@ -1,17 +1,17 @@
 /**
  * The identity-wide team/diary binding, read from `<identityDir>/env`.
  *
- * This mirrors the Go CLI's `identityDefaultBinding` (`context_store.go:219`),
+ * This mirrors the Go CLI's `identityDefaultBinding` (`project_selection.go`),
  * which is the fallback the CLI uses when a working directory has no
- * location-keyed binding in `contexts.json`.
+ * registered project binding.
  *
  * The desktop cannot use the CLI's *location* bindings at all — its composer
  * has no working directory to key on — but it can honour this identity-wide
- * default, so an operator who ran `moltnet context set` sees their familiar
- * team preselected rather than an arbitrary first entry.
+ * default, so an operator sees their familiar team preselected rather than an
+ * arbitrary first entry.
  *
  * Like the CLI, a half-filled pair is treated as no binding: a team without a
- * diary is exactly the state `validateContextBinding` rejects.
+ * diary is ignored.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

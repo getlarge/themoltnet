@@ -11,38 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestOAuthAuthenticationIgnoresOptionalContextState(t *testing.T) {
-	t.Setenv(agentKeyEnv, "")
-	t.Setenv(agentKeyRefEnv, "")
-	t.Setenv("MOLTNET_TEAM_ID", "")
-	for _, state := range []string{"malformed", "unsupported", "directory"} {
-		t.Run(state, func(t *testing.T) {
-			dir := t.TempDir()
-			path := filepath.Join(dir, "moltnet.json")
-			if err := os.WriteFile(path, []byte(`{"oauth2":{"client_id":"client","client_secret":"secret"}}`), 0600); err != nil {
-				t.Fatal(err)
-			}
-			contextPath := filepath.Join(dir, "contexts.json")
-			if state == "directory" {
-				if err := os.Mkdir(contextPath, 0700); err != nil {
-					t.Fatal(err)
-				}
-			} else {
-				data := "{"
-				if state == "unsupported" {
-					data = `{"version":999,"contexts":{}}`
-				}
-				if err := os.WriteFile(contextPath, []byte(data), 0600); err != nil {
-					t.Fatal(err)
-				}
-			}
-			if _, err := newAuthenticatedClient("https://api.example.test", path); err != nil {
-				t.Fatalf("optional context broke OAuth: %v", err)
-			}
-		})
-	}
-}
-
 func TestGuidedContextBootstrapsMultipleTeamKeys(t *testing.T) {
 	t.Setenv(agentKeyEnv, "")
 	t.Setenv(agentKeyRefEnv, "")

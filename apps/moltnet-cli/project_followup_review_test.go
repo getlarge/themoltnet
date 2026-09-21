@@ -116,17 +116,11 @@ func TestActivationClearRecoversWithInvalidProjectConfiguration(t *testing.T) {
 	if err := os.WriteFile(cache, []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(contextStorePath(dir), []byte(`{"version":1,"contexts":{"dir:/old":{"teamId":"team","diaryId":"diary"}}}`), 0600); err != nil {
-		t.Fatal(err)
-	}
 	if err := runAgentsActivationClearCmd(&bytes.Buffer{}, "test-agent"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(cache); !os.IsNotExist(err) {
 		t.Fatalf("cache still exists: %v", err)
-	}
-	if _, err := os.Stat(contextStorePath(dir)); err != nil {
-		t.Fatalf("registration removed: %v", err)
 	}
 }
 func TestBindingsResolveNoMatchFails(t *testing.T) {

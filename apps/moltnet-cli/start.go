@@ -52,9 +52,6 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 		return err
 	}
 	apiURL := resolveAPIURL(cmd, filepath.Join(agentDir, "moltnet.json"))
-	if _, e := os.Lstat(contextStorePath(agentDir)); e == nil {
-		fmt.Fprintln(cmd.ErrOrStderr(), "notice: contexts.json is no longer used; run 'moltnet projects setup' to register this folder, or 'moltnet projects bindings set' for noninteractive registration.")
-	}
 	resolvedContext, err := resolveContextBindingWithProjectOptions(agentDir, "", configPath, bindingName, apiURL)
 	if err != nil {
 		return err

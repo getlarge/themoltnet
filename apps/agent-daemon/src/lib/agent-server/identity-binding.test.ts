@@ -73,7 +73,7 @@ describe('readIdentityDefaultBinding', () => {
     // Arrange: shapes a hand-edited env file realistically takes.
     const dir = identityDir(
       [
-        '# bound by moltnet context set',
+        '# hand-edited identity defaults',
         '',
         '  MOLTNET_TEAM_ID = "team-uuid" ',
         "MOLTNET_DIARY_ID='diary-uuid'",

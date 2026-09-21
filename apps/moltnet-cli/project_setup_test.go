@@ -41,7 +41,7 @@ func (h *setupProjectHandler) GetDiary(_ context.Context, p moltnetapi.GetDiaryP
 }
 
 func TestStartInteractiveProjectRegistration(t *testing.T) {
-	for _, scenario := range []string{"existing", "isolated", "cancel", "decline", "invalid-choice", "offline", "endpoint-override", "dry-run", "noninteractive", "noninteractive-legacy", "dry-run-legacy"} {
+	for _, scenario := range []string{"existing", "isolated", "cancel", "decline", "invalid-choice", "offline", "endpoint-override", "dry-run", "noninteractive"} {
 		t.Run(scenario, func(t *testing.T) {
 			_ = setupStartUnboundFixture(t, fmt.Sprintf("MOLTNET_TEAM_ID='%s'\nMOLTNET_DIARY_ID='%s'\n", contextTestTeam, contextTestDiary))
 			t.Setenv("USERPROFILE", os.Getenv("HOME"))
@@ -89,13 +89,6 @@ func TestStartInteractiveProjectRegistration(t *testing.T) {
 			if scenario == "cancel" {
 				cmd.SetIn(strings.NewReader("1\n1\n3\n"))
 			}
-			if strings.HasSuffix(scenario, "-legacy") {
-				data := []byte("malformed legacy file: must never be parsed")
-				if err := os.WriteFile(contextStorePath(dir), data, 0600); err != nil {
-					t.Fatal(err)
-				}
-				cmd.SetIn(strings.NewReader("1\n1\nlocal\n1\n"))
-			}
 			if err := cmd.Flags().Set("config-file", path); err != nil {
 				t.Fatal(err)
 			}
@@ -135,15 +128,6 @@ func TestStartInteractiveProjectRegistration(t *testing.T) {
 				}
 			} else if len(config.Bindings) != 0 {
 				t.Fatal("unexpected saved config")
-			}
-			if strings.HasSuffix(scenario, "-legacy") {
-				data, e := os.ReadFile(contextStorePath(dir))
-				if e != nil || string(data) != "malformed legacy file: must never be parsed" {
-					t.Fatal("legacy file changed")
-				}
-				if !strings.Contains(notices.String(), "projects setup") {
-					t.Fatalf("missing registration hint: %s", notices.String())
-				}
 			}
 		})
 	}

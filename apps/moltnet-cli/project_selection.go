@@ -52,10 +52,6 @@ func (r resolvedContextBinding) diaryID() string {
 	return r.Binding.DiaryID
 }
 
-func contextStorePath(agentDir string) string {
-	return filepath.Join(agentDir, "contexts.json")
-}
-
 var contextWorkingDirectory = os.Getwd
 
 func canonicalDirectory(value string) (string, error) {
@@ -93,8 +89,8 @@ func identityDefaultBinding(agentDir string) (contextBinding, bool) {
 	return binding, true
 }
 
-// resolveContextBinding resolves the team/diary for directory: the binding
-// stored for its location if there is one, otherwise the identity default.
+// resolveContextBinding resolves the team/diary for directory: its registered
+// project binding if there is one, otherwise the identity default.
 func resolveContextBinding(agentDir, directory string) (resolvedContextBinding, error) {
 	return resolveNativeProjectContext(agentDir, directory)
 }

@@ -21,8 +21,8 @@ import (
 // discovered or reused.
 const activationCacheVersion = 9
 
-// contexts.json is deliberately not a hashed input. The resolved team, diary,
-// context key and source are compared field by field in
+// Project bindings are deliberately not a hashed input. The resolved team,
+// diary, context key and source are compared field by field in
 // activationMetadataEqual, so binding one location does not invalidate the
 // warm cache of every other location.
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
