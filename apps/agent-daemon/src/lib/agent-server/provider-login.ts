@@ -1,8 +1,8 @@
 /**
  * Subscription-provider OAuth brokering for Agent Server (#2061 slice 4).
  *
- * The console clicks "Connect"; agent server runs the Pi OAuth flow host-side via
- * `ModelRuntime.login()` (which owns persistence into the shared
+ * An authorized controller starts the flow; Agent Server runs Pi OAuth
+ * host-side via `ModelRuntime.login()` (which owns persistence into the shared
  * `pi/auth.json` and token rotation thereafter). The browser only ever sees
  * the provider's authorize URL or device code — never tokens.
  *
@@ -13,7 +13,7 @@
 // TODO(upstream): Anthropic logins end on pi's own callback server with a
 // Pi-branded success page (`oauthSuccessHtml` in pi-ai's anthropic flow;
 // redirect_uri is hardcoded to localhost:53692). A `successRedirectUrl`
-// option upstream would let us bounce the tab back to the Console like the
+// option upstream would let us bounce the tab back to the controller like the
 // Codex device-code flow does. Tracked here instead of vendoring the PKCE
 // flow into Agent Server.
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -65,7 +65,7 @@ export interface SubscriptionProviderView {
 export interface SubscriptionLoginView {
   providerId: string;
   status: 'pending' | 'completed' | 'failed';
-  /** Authorize URL the console should open (browser-redirect flows). */
+  /** Authorize URL the controller should open (browser-redirect flows). */
   authUrl?: string;
   instructions?: string;
   /** Device-code flows: what the user types where. */
@@ -596,7 +596,7 @@ function createLoginCallbacks(
       ),
     // Some flows ask which login method to use (Codex offers browser vs
     // device code; answering `undefined` cancels the login outright).
-    // Prefer the device-code method: the console shows the code inline,
+    // Prefer the device-code method: the controller shows the code inline,
     // no localhost callback server involved. Otherwise take the first
     // (default) option.
     onSelect: (prompt) =>

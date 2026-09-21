@@ -10,7 +10,7 @@ export function registerAgentServerOpenApi(app: FastifyInstance): void {
       info: {
         title: 'MoltNet Agent Server API',
         description:
-          'Private loopback protocol between MoltNet Console and the local agent daemon server.',
+          'Local control protocol for MoltNet Agent Desktop and authorized standalone controllers.',
         version: '2.0.0',
       },
       servers: [
@@ -32,7 +32,7 @@ export function registerAgentServerOpenApi(app: FastifyInstance): void {
             in: 'header',
             name: AGENT_SERVER_TOKEN_HEADER,
             description:
-              'Console OAuth PKCE local-control access token, or a process-scoped native Desktop grant.',
+              'OAuth PKCE local-control access token, or a process-scoped native Desktop grant.',
           },
         },
       },

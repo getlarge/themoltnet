@@ -38,8 +38,9 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 /**
  * `moltnet-agent server` — per-user loopback supervisor (#2061).
  *
- * Starts nothing on its own: it binds 127.0.0.1 and waits for an authorized
- * Console origin to configure agents/providers and start/stop runs.
+ * Starts nothing on its own: it binds 127.0.0.1 or a private native socket and
+ * waits for an authorized controller to configure agents/providers and
+ * start or stop runs.
  */
 
 const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
@@ -184,8 +185,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             // token. Refuse to start instead of appearing healthy.
             console.error(
               `A supervised Agent Server requires ${NATIVE_TOKEN_ENV}. ` +
-                'Start it from MoltNet Agent, or omit --supervised to run it ' +
-                'to reconnect Console to an operator already established by Desktop.',
+                'Start it from MoltNet Agent, or omit --supervised for an ' +
+                'authorized standalone controller.',
             );
             return 1;
           }

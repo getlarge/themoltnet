@@ -51,9 +51,9 @@ Commands:
   once      Claim and execute one specific queued task by id, then exit.
   drain     Poll until the queue has nothing claimable, then exit.
             Useful for batch eval runs and demos.
-  server    Loopback supervisor for console-managed runs: OAuth local control,
-            agent/provider config store, and start/stop of poll/drain
-            child processes. Binds 127.0.0.1 only.
+  server    Supervisor for managed runs: authorized standalone local control,
+            agent/provider config store, and start/stop of poll/drain child
+            processes. Binds 127.0.0.1 or a private native socket.
   providers Manage configured endpoints and Pi OAuth subscriptions without
             starting the Agent Server. See \`agent-daemon providers --help\`.
   sync-sessions
@@ -218,7 +218,8 @@ Both modes configure agents and providers and start/stop child runs.
 Options:
   --port <n>                  Loopback port. Default: 17374.
                               Env: MOLTNET_AGENT_SERVER_PORT.
-  --allowed-origins <csv>     Exact Console origins allowed local control.
+  --allowed-origins <csv>     Exact browser-controller origins allowed
+                              local control.
                               Default: https://console.themolt.net.
                               Env: MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS.
   --root <path>               Config root. Default: ~/.config/moltnet

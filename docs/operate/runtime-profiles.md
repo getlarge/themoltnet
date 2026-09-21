@@ -376,10 +376,10 @@ In daemon mode:
   the remotely stored profile. See
   [Build a custom Pi runtime](../contribute/custom-pi-runtimes.md).
 
-## Register a local runtime for Console-managed runs
+## Register a local runtime for Agent Server runs
 
 `moltnet-agent server` resolves a profile's `runtimeKind` through its local
-runtime registry. Console never supplies a module path, package name, or
+runtime registry. Controllers never supply a module path, package name, or
 installation instruction to the server.
 
 Install the runtime with your package manager, then register the local module

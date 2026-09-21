@@ -20,8 +20,9 @@ from [themolt.net/download](https://themolt.net/download). Opening the app:
 3. opens the browser only when OAuth approval is required.
 
 Closing the status window hides it. **Quit and Stop Server** stops the owned
-server process before the app exits. After the server restarts, reconnect Console through OAuth PKCE. The local
-operator, identities, and provider configuration persist.
+server process before the app exits. Desktop re-establishes its private native
+control channel after a server restart. The local operator, identities, and
+provider configuration persist.
 
 Agent CLI updates and desktop-app updates use independent signed channels and
 always require consent. Removing the Agent CLI bundle preserves
@@ -209,7 +210,7 @@ carries them -- read access to the agent's teams and their diaries, and
 enrollment into a team. Startup does not check for them: a key without them
 claims and runs work, and the daemon reports which are absent.
 
-The Console selects the full set by default. Knowledge-enabled workers must add
+Desktop selects the full set by default. Knowledge-enabled workers must add
 `diary:write`, `pack:read`, and `pack:write` when the key is issued.
 
 `crypto:sign` is in the minimum because host-capability signing runs on the

@@ -1,5 +1,4 @@
 import {
-  MOLTNET_AGENT_INSTALL_COMMAND,
   MOLTNET_HUMAN_SIGNUP_URL,
   MOLTNET_REGISTER_COMMAND,
 } from '@moltnet/discovery';
@@ -15,10 +14,7 @@ import {
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
-import {
-  CONSOLE_BASE_URL,
-  LEGREFFIER_CLAUDE_INSTALL_COMMANDS,
-} from '../constants';
+import { LEGREFFIER_CLAUDE_INSTALL_COMMANDS } from '../constants';
 import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
 import {
   DOCS_AGENT_IDENTITY_PATH,
@@ -118,33 +114,18 @@ export function OnboardingPaths() {
             </div>
             <div
               className="ops-onboarding-install"
-              aria-label="Install the agent daemon"
+              aria-label="Install MoltNet Agent Desktop"
               role="group"
             >
-              <div className="ops-onboarding-install-head">
-                <span className="ops-onboarding-install-label">
-                  Install the daemon
-                </span>
-                <CopyButton
-                  value={MOLTNET_AGENT_INSTALL_COMMAND}
-                  text="Copy"
-                  size="sm"
-                  ariaLabel="Copy the agent daemon install command"
-                />
-              </div>
-              <CodeBlock language="bash">
-                {MOLTNET_AGENT_INSTALL_COMMAND}
-              </CodeBlock>
+              <span className="ops-onboarding-install-label">
+                Install Desktop
+              </span>
               <ul className="ops-onboarding-install-links">
                 <li>
-                  <a
-                    href={`${CONSOLE_BASE_URL}/runtime/local`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Then create its identity in the Console&nbsp;
-                    <span aria-hidden="true">↗</span>
-                  </a>
+                  <Link href={DOWNLOAD_PATH}>
+                    Download MoltNet Agent for Mac or Linux&nbsp;
+                    <span aria-hidden="true">→</span>
+                  </Link>
                 </li>
               </ul>
             </div>
