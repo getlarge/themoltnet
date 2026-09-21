@@ -262,18 +262,6 @@ jobs:
       # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
       # provisions its own keychain and binds Security.framework directly.
       - uses: dtolnay/rust-toolchain@1.88.0
-      # This std-only module can exercise Windows paths without Tauri's GUI
-      # toolchain. --nocapture makes runtime filesystem skip reasons visible.
-      - name: Test Rust store path conformance on the native filesystem
-        shell: bash
-        run: |
-          rustc --edition=2021 --test apps/agent-desktop/src-tauri/src/store_root.rs -o "$RUNNER_TEMP/store-root-tests.exe"
-          "$RUNNER_TEMP/store-root-tests.exe" --nocapture
-      - name: Test Node store path conformance on the native filesystem
-        run: pnpm exec nx run @moltnet/agent-config:test --testNamePattern="MoltNet store selection" --skipNxCache
-      - name: Test store path conformance on the native filesystem
-        working-directory: apps/moltnet-cli
-        run: go test ./internal/configdir/
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native

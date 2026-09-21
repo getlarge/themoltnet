@@ -271,6 +271,17 @@
             "command": "bash tools/release/agent-desktop/bundle.sh linux"
           }
         }
+      },
+      "test-native": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "agentDesktopNative",
+          "{projectRoot}/scripts/test-store-root.mjs"
+        ],
+        "options": {
+          "command": "node apps/agent-desktop/scripts/test-store-root.mjs"
+        }
       }
     }
   }

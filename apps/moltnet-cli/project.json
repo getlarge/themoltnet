@@ -42,10 +42,15 @@
       }
     },
     "test-native": {
+      "cache": false,
       "executor": "nx:run-commands",
       "options": {
-        "command": "go test . -run \"^(TestOSKeyringSecretProviderRoundTrip|TestAgentsActivationRefreshResolvesOSKeyringAgentKey|TestWindowsKeyringTargetMatchesCrossRuntimeConformance|TestWindowsLaunchProcessPropagatesExitCode)$\"",
-        "cwd": "apps/moltnet-cli"
+        "commands": [
+          "go test ./internal/configdir/",
+          "go test . -run \"^(TestOSKeyringSecretProviderRoundTrip|TestAgentsActivationRefreshResolvesOSKeyringAgentKey|TestWindowsKeyringTargetMatchesCrossRuntimeConformance|TestWindowsLaunchProcessPropagatesExitCode)$\""
+        ],
+        "cwd": "apps/moltnet-cli",
+        "parallel": false
       }
     }
   }
