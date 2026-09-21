@@ -4,6 +4,9 @@ inputs:
   install-dependencies:
     description: Run the frozen pnpm workspace install after toolchain setup.
     default: 'true'
+  pnpm-cache:
+    description: Restore and save the pnpm store cache.
+    default: 'true'
   go-cache:
     description: Enable the setup-go module and build cache.
     default: 'false'
@@ -32,7 +35,7 @@ runs:
     - uses: actions/setup-node@v6
       with:
         node-version-file: .tool-versions
-        cache: pnpm
+        cache: ${{ inputs.pnpm-cache == 'true' && 'pnpm' || '' }}
     - if: inputs.go-cache-dependency-path == ''
       uses: actions/setup-go@v6
       with:

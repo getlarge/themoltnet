@@ -286,6 +286,7 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           install-dependencies: 'false'
+          pnpm-cache: 'false'
           rust: 'true'
       - name: Test macOS native control and peer credentials
         run: cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-macos
