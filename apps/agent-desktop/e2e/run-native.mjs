@@ -3,7 +3,6 @@ import { spawn } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -19,10 +18,9 @@ try {
   mkdirSync(home, { mode: 0o700 });
   const current = join(root, 'agent/current');
   mkdirSync(join(current, 'bin'), { recursive: true });
-  const version = readFileSync(
-    join(projectRoot, 'agent-cli.version'),
-    'utf8',
-  ).trim();
+  // This source-backed fixture implements the isolated-store protocol. Its
+  // synthetic manifest is independent of the currently published installer pin.
+  const version = '0.62.0';
   writeFileSync(join(current, 'manifest.json'), JSON.stringify({ version }));
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = fileURLToPath(
