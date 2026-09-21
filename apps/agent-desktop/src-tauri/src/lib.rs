@@ -171,9 +171,9 @@ async fn desktop_catalogue(
     state: State<'_, AppState>,
     identity: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::get(
-            token,
+            connection,
             &format!("/v1/catalogue?identity={}", urlencode(&identity)),
         )
     })
@@ -184,8 +184,10 @@ async fn desktop_catalogue(
 
 #[tauri::command]
 async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body =
-        with_control_connection(&state, move |token| control::get(token, "/v1/status")).await?;
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/status")
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned an unreadable status".to_string())
 }
@@ -194,8 +196,8 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 async fn desktop_connection_settings(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
-        control::get(token, "/v1/native/connection-settings")
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/native/connection-settings")
     })
     .await?;
     serde_json::from_str(&body)
@@ -209,11 +211,11 @@ async fn desktop_apply_connection_settings(
 ) -> Result<DesktopStatus, String> {
     tauri::async_runtime::spawn_blocking(move || {
         operate(&app, |lifecycle| {
-            let token = lifecycle
+            let connection = lifecycle
                 .control_connection()
                 .ok_or("Start the Agent Server before changing its connection settings")?;
             control::post(
-                token,
+                connection,
                 "/v1/native/connection-settings",
                 &overrides.to_string(),
             )?;
@@ -227,8 +229,10 @@ async fn desktop_apply_connection_settings(
 
 #[tauri::command]
 async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
-    let body = with_control_connection(&state, move |token| control::get(token, "/oauth/metadata"))
-        .await?;
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/oauth/metadata")
+    })
+    .await?;
     let metadata: serde_json::Value = serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
     Ok(metadata
@@ -242,8 +246,8 @@ async fn desktop_operator_sign_in(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    with_control_connection(&state, move |token| {
-        control::post(token, "/v1/operator/sign-in", "{}")
+    with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/operator/sign-in", "{}")
     })
     .await?;
     show_status(&app);
@@ -252,8 +256,8 @@ async fn desktop_operator_sign_in(
 
 #[tauri::command]
 async fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
-    with_control_connection(&state, move |token| {
-        control::post(token, "/v1/operator/cancel", "{}")
+    with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/operator/cancel", "{}")
     })
     .await?;
     Ok(())
@@ -268,9 +272,9 @@ async fn desktop_enroll_team(
 ) -> Result<serde_json::Value, String> {
     let payload =
         serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::post(
-            token,
+            connection,
             &format!("/v1/agents/{}/teams", urlencode(&identity)),
             &payload,
         )
@@ -326,8 +330,8 @@ async fn desktop_start_run(
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&spec)
         .map_err(|error| format!("the run could not be encoded: {error}"))?;
-    let body = with_control_connection(&state, move |token| {
-        control::post(token, "/v1/runs", &payload)
+    let body = with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/runs", &payload)
     })
     .await?;
     serde_json::from_str(&body)
@@ -340,9 +344,9 @@ async fn desktop_run_logs(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::get(
-            token,
+            connection,
             &format!("/v1/runs/{}/logs/snapshot", urlencode(&run_id)),
         )
     })
@@ -356,8 +360,8 @@ async fn desktop_stop_run(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
-        control::delete(token, &format!("/v1/runs/{}", urlencode(&run_id)))
+    let body = with_control_connection(&state, move |connection| {
+        control::delete(connection, &format!("/v1/runs/{}", urlencode(&run_id)))
     })
     .await?;
     serde_json::from_str(&body)
@@ -367,8 +371,8 @@ async fn desktop_stop_run(
 /// Subscriptions this machine can sign in to, and whether it already has.
 #[tauri::command]
 async fn desktop_subscriptions(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
-        control::get(token, "/v1/subscriptions")
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/subscriptions")
     })
     .await?;
     serde_json::from_str(&body)
@@ -381,9 +385,9 @@ async fn desktop_start_subscription_login(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::post(
-            token,
+            connection,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
             "{}",
         )
@@ -399,9 +403,9 @@ async fn desktop_subscription_login_status(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::get(
-            token,
+            connection,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
         )
     })
@@ -416,9 +420,9 @@ async fn desktop_cancel_subscription_login(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), String> {
-    with_control_connection(&state, move |token| {
+    with_control_connection(&state, move |connection| {
         control::delete(
-            token,
+            connection,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
         )
     })
@@ -443,8 +447,10 @@ async fn desktop_open_sign_in(url: String) -> Result<(), String> {
 /// WebView even by the surface that wrote it.
 #[tauri::command]
 async fn desktop_providers(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body =
-        with_control_connection(&state, move |token| control::get(token, "/v1/providers")).await?;
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/providers")
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned unreadable providers: {error}"))
 }
@@ -461,9 +467,9 @@ async fn desktop_put_provider(
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&config)
         .map_err(|error| format!("the provider could not be encoded: {error}"))?;
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::put(
-            token,
+            connection,
             &format!("/v1/providers/{}", urlencode(&provider_id)),
             &payload,
         )
@@ -479,9 +485,9 @@ async fn desktop_discover_provider_models(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::post(
-            token,
+            connection,
             &format!("/v1/providers/{}/discover-models", urlencode(&provider_id)),
             "{}",
         )
@@ -497,8 +503,11 @@ async fn desktop_delete_provider(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), String> {
-    with_control_connection(&state, move |token| {
-        control::delete(token, &format!("/v1/providers/{}", urlencode(&provider_id)))
+    with_control_connection(&state, move |connection| {
+        control::delete(
+            connection,
+            &format!("/v1/providers/{}", urlencode(&provider_id)),
+        )
     })
     .await?;
     Ok(())

@@ -13,7 +13,10 @@
 use crate::native_socket::SocketConnector;
 use std::fs::File;
 use std::io::Read;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use std::time::Duration;
 
 /// Environment variable the Agent Server reads its native grant from.
@@ -26,6 +29,7 @@ const NATIVE_ORIGIN: &str = "moltnet-agent-desktop://native";
 use crate::operator_oauth::APPROVAL_TIMEOUT_SECONDS;
 const BASE_URL: &str = "http://127.0.0.1";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
+const HEALTH_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// 32 bytes of entropy, base64url-encoded without padding.
 const TOKEN_BYTES: usize = 32;
@@ -70,15 +74,18 @@ pub struct NativeConnection {
     client: ureq::Agent,
     approval_client: ureq::Agent,
     health_client: ureq::Agent,
+    alive: Arc<AtomicBool>,
     // Keep the private directory alive until every in-flight request finishes.
     _directory: Arc<tempfile::TempDir>,
 }
 
 impl NativeConnection {
     pub fn new(token: NativeToken, directory: Arc<tempfile::TempDir>, pid: u32) -> Self {
+        let alive = Arc::new(AtomicBool::new(true));
         let connector = SocketConnector {
             directory: directory.clone(),
             pid,
+            alive: Arc::clone(&alive),
         };
         let client = |timeout| {
             ureq::Agent::with_parts(
@@ -96,9 +103,15 @@ impl NativeConnection {
             token,
             client: client(REQUEST_TIMEOUT),
             approval_client: client(Duration::from_secs(APPROVAL_TIMEOUT_SECONDS)),
-            health_client: client(Duration::from_secs(1)),
+            health_client: client(HEALTH_TIMEOUT),
+            alive,
             _directory: directory,
         }
+    }
+
+    /// Revoke every clone before the managed child is reaped.
+    pub fn deactivate(&self) {
+        self.alive.store(false, Ordering::Release);
     }
 
     pub fn health(&self) -> Result<(), String> {
@@ -127,9 +140,7 @@ pub fn get(connection: &NativeConnection, path: &str) -> Result<String, String> 
 
 /// Write to the control API with a JSON payload.
 pub fn post(connection: &NativeConnection, path: &str, body: &str) -> Result<String, String> {
-    let client = if path == "/v1/operator/sign-in"
-        || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
-    {
+    let client = if needs_approval_timeout(path) {
         connection.approval_client.clone()
     } else {
         connection.client.clone()
@@ -141,6 +152,10 @@ pub fn post(connection: &NativeConnection, path: &str, body: &str) -> Result<Str
         .header("content-type", "application/json")
         .send(body);
     finish(response)
+}
+
+fn needs_approval_timeout(path: &str) -> bool {
+    path == "/v1/operator/sign-in" || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
 }
 
 /// Replace a resource through the control API.
@@ -262,6 +277,14 @@ mod tests {
         let rendered = format!("{token:?}");
         assert_eq!(rendered, "NativeToken(redacted)");
         assert!(!rendered.contains(token.expose()));
+    }
+
+    #[test]
+    fn only_interactive_approval_routes_receive_the_long_timeout() {
+        assert!(needs_approval_timeout("/v1/operator/sign-in"));
+        assert!(needs_approval_timeout("/v1/agents/agent-id/teams"));
+        assert!(!needs_approval_timeout("/v1/operator/cancel"));
+        assert!(!needs_approval_timeout("/v1/providers"));
     }
 
     #[test]

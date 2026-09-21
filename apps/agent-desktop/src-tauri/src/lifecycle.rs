@@ -1,8 +1,7 @@
 #[cfg(unix)]
 use crate::control::{NativeConnection, NativeToken, NATIVE_TOKEN_ENV};
 use serde::{Deserialize, Serialize};
-#[cfg(any(target_os = "macos", test))]
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 #[cfg(target_os = "macos")]
 use std::io::Read;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
@@ -10,6 +9,7 @@ use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::os::unix::process::ExitStatusExt;
 use std::{
     collections::VecDeque,
+    env,
     fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -25,6 +25,7 @@ const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
+const AGENT_SERVER_LOCK_HELD_EXIT_CODE: i32 = 75;
 #[cfg(target_os = "macos")]
 const LEGACY_CERTIFICATE_CLEANUP_TIMEOUT: Duration = Duration::from_secs(2);
 const EMBEDDED_AGENT_VERSION: &str = env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION");
@@ -367,6 +368,9 @@ impl LifecycleManager {
         let Some(mut child) = self.child.take() else {
             return Ok(self.snapshot());
         };
+        if let Some(connection) = self.control_connection.take() {
+            connection.deactivate();
+        }
         self.set_state(LifecycleState::Stopping, "Stopping the Agent Server…");
         drop(child.stdin.take());
         let pid = child.id() as libc::pid_t;
@@ -399,7 +403,6 @@ impl LifecycleManager {
                 }
             }
         }
-        self.control_connection = None;
         self.set_state(LifecycleState::Stopped, "The Agent Server is stopped.");
         Ok(self.snapshot())
     }
@@ -419,7 +422,9 @@ impl LifecycleManager {
             return ExitAction::None;
         };
         self.child = None;
-        self.control_connection = None;
+        if let Some(connection) = self.control_connection.take() {
+            connection.deactivate();
+        }
         self.push_log(&format!(
             "Agent Server exited unexpectedly ({}).",
             describe_exit_status(status)
@@ -456,19 +461,6 @@ impl LifecycleManager {
         if self.child.is_some() {
             return Ok(self.snapshot());
         }
-        // Remove once the reviewed embedded pin is itself socket-capable. Until
-        // then a Desktop/Agent co-release may update the bundle at build time.
-        let help = match self.run_agent(&["server", "--help"]) {
-            Ok(help) => help,
-            Err(error) => {
-                return self.fail(&format!(
-                    "could not verify Agent CLI native-socket support: {error}"
-                ))
-            }
-        };
-        if !String::from_utf8_lossy(&help.stdout).contains("--native-socket") {
-            return self.fail("The installed Agent CLI does not support native sockets. Reinstall or update MoltNet Agent Desktop.");
-        }
         self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
 
         let mut last_failure = "Agent Server failed to start".to_string();
@@ -478,7 +470,7 @@ impl LifecycleManager {
                 Err(error) => return self.fail(&error),
             };
             // A short canonical path fits sockaddr_un on macOS and Linux.
-            let directory = match native_socket_directory() {
+            let directory = match crate::native_socket::private_directory() {
                 Ok(directory) => Arc::new(directory),
                 Err(error) => {
                     return self.fail(&format!(
@@ -486,10 +478,10 @@ impl LifecycleManager {
                     ))
                 }
             };
-            let mut command = agent_server_command(&self.executable());
-            command
-                .arg("--native-socket")
-                .arg(directory.path().join(crate::native_socket::SOCKET_NAME));
+            let mut command = agent_server_command(
+                &self.executable(),
+                &directory.path().join(crate::native_socket::SOCKET_NAME),
+            );
             // The child consumes and unsets this, so its own run children
             // cannot inherit the desktop's control grant. Process environments
             // are readable inside the same user boundary on supported hosts;
@@ -527,10 +519,8 @@ impl LifecycleManager {
                 };
                 match child.try_wait() {
                     Ok(Some(status)) => {
-                        last_failure = format!(
-                            "Agent Server exited before readiness ({}). Check the logs; another Agent Server may already own the local lock.",
-                            describe_exit_status(status)
-                        );
+                        connection.deactivate();
+                        last_failure = startup_failure(status);
                         self.push_log(&last_failure);
                         if attempt + 1 < MAX_START_ATTEMPTS {
                             self.push_log("Retrying Agent Server startup once.");
@@ -538,6 +528,7 @@ impl LifecycleManager {
                         break;
                     }
                     Err(error) => {
+                        connection.deactivate();
                         let _ = child.kill();
                         let _ = child.wait();
                         return self.fail(&format!(
@@ -547,6 +538,7 @@ impl LifecycleManager {
                     Ok(None) => {}
                 }
                 if Instant::now() >= deadline {
+                    connection.deactivate();
                     self.push_log(&format!(
                         "Agent Server readiness exceeded {} seconds; force-stopping child.",
                         START_TIMEOUT.as_secs()
@@ -843,7 +835,11 @@ fn fixed_command(program: &str, args: &[&str]) -> Result<Output, String> {
     if !PROGRAMS.contains(&program) {
         return Err("program is not allowlisted".into());
     }
-    let output = host_command(Path::new(program))
+    // xdg-open is a shell script, so give it only system helper locations;
+    // the Agent Server itself keeps the user's PATH for worker tools.
+    let mut command = host_command(Path::new(program));
+    command.env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin");
+    let output = command
         .args(args)
         .output()
         .map_err(|error| format!("{program} failed: {error}"))?;
@@ -879,6 +875,17 @@ fn describe_exit_status(status: ExitStatus) -> String {
         return format!("signal {signal}");
     }
     "unknown exit status".to_string()
+}
+
+fn startup_failure(status: ExitStatus) -> String {
+    if status.code() == Some(AGENT_SERVER_LOCK_HELD_EXIT_CODE) {
+        return "Another Agent Server is already using this data directory. Stop it before retrying."
+            .to_string();
+    }
+    format!(
+        "Agent Server exited before readiness ({}). Review the bounded server logs for the startup error.",
+        describe_exit_status(status)
+    )
 }
 
 fn execute_update(
@@ -1048,15 +1055,18 @@ fn version_at_least(installed: &str, required: &str) -> bool {
     }
 }
 
-fn agent_server_command(executable: &Path) -> Command {
+fn agent_server_command(executable: &Path, socket: &Path) -> Command {
     let mut command = host_command(executable);
-    command.args(["server", "--supervised"]);
+    command
+        .args(["server", "--supervised", "--native-socket"])
+        .arg(socket);
     command
 }
 
 /// Strip AppImage loader/module overrides before starting host programs. They
 /// point inside the mounted image and can make an otherwise valid system
-/// binary load incompatible libraries. Product configuration remains inherited.
+/// binary load incompatible libraries. PATH and product configuration remain
+/// inherited so managed runs can still find the operator's installed tools.
 fn host_command(program: &Path) -> Command {
     const APPIMAGE_ENV: &[&str] = &[
         "LD_LIBRARY_PATH",
@@ -1071,19 +1081,16 @@ fn host_command(program: &Path) -> Command {
     for variable in APPIMAGE_ENV {
         command.env_remove(variable);
     }
-    command.env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin");
+    if let (Some(path), Some(appdir)) = (env::var_os("PATH"), env::var_os("APPDIR")) {
+        if let Some(path) = path_without_directory(&path, Path::new(&appdir)) {
+            command.env("PATH", path);
+        }
+    }
     command
 }
 
-fn native_socket_directory() -> Result<tempfile::TempDir, String> {
-    let temporary_root = fs::canonicalize("/tmp").map_err(|error| error.to_string())?;
-    let directory = tempfile::Builder::new()
-        .prefix("moltnet-")
-        .tempdir_in(temporary_root)
-        .map_err(|error| error.to_string())?;
-    fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o700))
-        .map_err(|error| error.to_string())?;
-    Ok(directory)
+fn path_without_directory(path: &OsStr, directory: &Path) -> Option<OsString> {
+    env::join_paths(env::split_paths(path).filter(|entry| !entry.starts_with(directory))).ok()
 }
 
 /// Open a provider sign-in page in the operator's browser.
@@ -1113,7 +1120,18 @@ fn is_https_url(url: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::OsStr;
+
+    #[test]
+    fn startup_failure_identifies_an_existing_server_lock() {
+        let held = ExitStatus::from_raw(AGENT_SERVER_LOCK_HELD_EXIT_CODE << 8);
+        let other = ExitStatus::from_raw(1 << 8);
+
+        assert_eq!(
+            startup_failure(held),
+            "Another Agent Server is already using this data directory. Stop it before retrying."
+        );
+        assert!(startup_failure(other).contains("Review the bounded server logs"));
+    }
 
     #[test]
     fn only_https_sign_in_pages_may_be_opened() {
@@ -1210,11 +1228,29 @@ mod tests {
     #[test]
     fn server_launch_always_uses_supervised_contract() {
         let executable = Path::new("/canonical/moltnet-agent");
-        let command = agent_server_command(executable);
+        let socket = Path::new("/tmp/private/control.sock");
+        let command = agent_server_command(executable, socket);
         assert_eq!(command.get_program(), executable.as_os_str());
         assert_eq!(
             command.get_args().collect::<Vec<_>>(),
-            [OsStr::new("server"), OsStr::new("--supervised")]
+            [
+                OsStr::new("server"),
+                OsStr::new("--supervised"),
+                OsStr::new("--native-socket"),
+                socket.as_os_str(),
+            ]
+        );
+        assert!(command
+            .get_envs()
+            .all(|(key, value)| key != OsStr::new("PATH") || value.is_none()));
+    }
+
+    #[test]
+    fn appimage_directory_is_removed_without_dropping_user_tools() {
+        let path = OsStr::new("/tmp/App/usr/bin:/opt/homebrew/bin:/usr/bin");
+        assert_eq!(
+            path_without_directory(path, Path::new("/tmp/App")),
+            Some(OsString::from("/opt/homebrew/bin:/usr/bin"))
         );
     }
 

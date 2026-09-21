@@ -7,18 +7,24 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{FileTypeExt, MetadataExt};
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::time::{Duration, Instant};
 use ureq::unversioned::transport::{
     Buffers, ConnectionDetails, Connector, LazyBuffers, NextTimeout, Transport,
 };
 
-const CONNECT_TIMEOUT_MS: libc::c_int = 1_000;
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
+const DIRECTORY_PREFIX: &str = "moltnet-agent-";
 pub const SOCKET_NAME: &str = "control.sock";
 
 #[derive(Clone, Debug)]
 pub struct SocketConnector {
     pub directory: Arc<tempfile::TempDir>,
     pub pid: u32,
+    pub alive: Arc<AtomicBool>,
 }
 
 impl SocketConnector {
@@ -27,6 +33,12 @@ impl SocketConnector {
     }
 
     fn open(&self) -> io::Result<UnixStream> {
+        if !self.alive.load(Ordering::Acquire) {
+            return Err(io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Managed Agent Server is no longer running",
+            ));
+        }
         let directory = fs::symlink_metadata(self.directory.path())?;
         let socket = fs::symlink_metadata(self.path())?;
         // SAFETY: geteuid takes no arguments and returns the current identity.
@@ -47,11 +59,78 @@ impl SocketConnector {
         if peer_uid != uid || peer_pid != self.pid {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
-                "Native socket peer is not the managed Agent Server",
+                format!(
+                    "Native socket peer uid/pid {peer_uid}/{peer_pid} did not match expected {uid}/{}",
+                    self.pid
+                ),
+            ));
+        }
+        if !self.alive.load(Ordering::Acquire) {
+            return Err(io::Error::new(
+                io::ErrorKind::NotConnected,
+                "Managed Agent Server stopped during connection",
             ));
         }
         Ok(stream)
     }
+}
+
+/// Create a short private endpoint and remove endpoints left by dead Desktop
+/// processes. A live PID, a symlink, another owner or broader permissions is
+/// always left untouched.
+pub fn private_directory() -> Result<tempfile::TempDir, String> {
+    let root = fs::canonicalize("/tmp").map_err(|error| error.to_string())?;
+    sweep_stale_directories(&root);
+    let directory = tempfile::Builder::new()
+        .prefix(&format!("{DIRECTORY_PREFIX}{}-", std::process::id()))
+        .tempdir_in(root)
+        .map_err(|error| error.to_string())?;
+    fs::set_permissions(
+        directory.path(),
+        <fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(directory)
+}
+
+fn sweep_stale_directories(root: &std::path::Path) {
+    let Ok(entries) = fs::read_dir(root) else {
+        return;
+    };
+    // SAFETY: geteuid takes no arguments and returns the current identity.
+    let uid = unsafe { libc::geteuid() };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(pid) = name
+            .to_str()
+            .and_then(|value| value.strip_prefix(DIRECTORY_PREFIX))
+            .and_then(|value| value.split_once('-'))
+            .and_then(|(pid, _)| pid.parse::<u32>().ok())
+            .filter(|pid| *pid > 0 && *pid <= libc::pid_t::MAX as u32)
+        else {
+            continue;
+        };
+        if pid == std::process::id() || process_is_alive(pid) {
+            continue;
+        }
+        let path = entry.path();
+        let Ok(metadata) = fs::symlink_metadata(&path) else {
+            continue;
+        };
+        if metadata.is_dir()
+            && !metadata.file_type().is_symlink()
+            && metadata.uid() == uid
+            && metadata.mode() & 0o777 == 0o700
+        {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+}
+
+fn process_is_alive(pid: u32) -> bool {
+    // SAFETY: signal 0 performs an existence/permission check only.
+    let result = unsafe { libc::kill(pid as libc::pid_t, 0) };
+    result == 0 || io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
 }
 
 // Nonblocking connect bounds startup even if another listener fills its backlog.
@@ -94,10 +173,10 @@ fn connect_bounded(path: &std::path::Path) -> io::Result<UnixStream> {
         stream.set_nonblocking(true)?;
         if libc::connect(fd, &address as *const _ as *const libc::sockaddr, length) != 0 {
             let error = io::Error::last_os_error();
-            if !matches!(
-                error.raw_os_error(),
-                Some(libc::EINPROGRESS) | Some(libc::EAGAIN)
-            ) {
+            if error.raw_os_error() == Some(libc::EAGAIN) {
+                return Err(io::Error::from(io::ErrorKind::WouldBlock));
+            }
+            if error.raw_os_error() != Some(libc::EINPROGRESS) {
                 return Err(error);
             }
             let mut event = libc::pollfd {
@@ -105,8 +184,8 @@ fn connect_bounded(path: &std::path::Path) -> io::Result<UnixStream> {
                 events: libc::POLLOUT,
                 revents: 0,
             };
-            wait_for_connect(|| {
-                let result = libc::poll(&mut event, 1, CONNECT_TIMEOUT_MS);
+            wait_for_connect(CONNECT_TIMEOUT, |remaining_ms| {
+                let result = libc::poll(&mut event, 1, remaining_ms);
                 if result < 0 {
                     Err(io::Error::last_os_error())
                 } else {
@@ -122,9 +201,21 @@ fn connect_bounded(path: &std::path::Path) -> io::Result<UnixStream> {
     }
 }
 
-fn wait_for_connect(mut poll: impl FnMut() -> io::Result<libc::c_int>) -> io::Result<()> {
+fn wait_for_connect(
+    timeout: Duration,
+    mut poll: impl FnMut(libc::c_int) -> io::Result<libc::c_int>,
+) -> io::Result<()> {
+    let deadline = Instant::now() + timeout;
     loop {
-        match poll() {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "Native socket connect timed out",
+            ));
+        }
+        let remaining_ms = remaining.as_millis().clamp(1, libc::c_int::MAX as u128) as libc::c_int;
+        match poll(remaining_ms) {
             Ok(0) => {
                 return Err(io::Error::new(
                     io::ErrorKind::TimedOut,
@@ -262,16 +353,11 @@ mod tests {
     use std::os::unix::net::UnixListener;
 
     fn endpoint() -> (SocketConnector, UnixListener) {
-        let directory = Arc::new(
-            tempfile::Builder::new()
-                .prefix("mn-")
-                .tempdir_in(fs::canonicalize("/tmp").unwrap())
-                .unwrap(),
-        );
-        fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o700)).unwrap();
+        let directory = Arc::new(private_directory().unwrap());
         let connector = SocketConnector {
             directory,
             pid: std::process::id(),
+            alive: Arc::new(AtomicBool::new(true)),
         };
         let listener = UnixListener::bind(connector.path()).unwrap();
         (connector, listener)
@@ -293,11 +379,11 @@ mod tests {
 
     #[test]
     fn connect_wait_is_bounded_and_retries_interrupts() {
-        let timeout = wait_for_connect(|| Ok(0)).unwrap_err();
+        let timeout = wait_for_connect(Duration::from_millis(1), |_| Ok(0)).unwrap_err();
         assert_eq!(timeout.kind(), io::ErrorKind::TimedOut);
 
         let mut attempts = 0;
-        wait_for_connect(|| {
+        wait_for_connect(Duration::from_secs(1), |_| {
             attempts += 1;
             if attempts == 1 {
                 Err(io::Error::from(io::ErrorKind::Interrupted))
@@ -317,6 +403,14 @@ mod tests {
         let (mut peer, _) = listener.accept().unwrap();
         let mut bytes = [0; 1];
         assert_eq!(peer.read(&mut bytes).unwrap(), 0);
+    }
+
+    #[test]
+    fn refuses_connections_after_the_managed_process_is_reaped() {
+        let (connector, _listener) = endpoint();
+        connector.alive.store(false, Ordering::Release);
+        let error = connector.open().unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::NotConnected);
     }
 
     #[test]
