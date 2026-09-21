@@ -737,7 +737,6 @@ impl LifecycleManager {
         self.install_root().join("current/bin/moltnet-agent")
     }
 
-
     pub fn logs_directory(&self) -> PathBuf {
         self.store_root.join("agent-server/logs")
     }
