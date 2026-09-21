@@ -262,7 +262,7 @@ describe('Native managed project execution', () => {
 
 // Rendered acceptance uses the actual WebKit window and native bridge, including
 // the stopped-daemon recovery state. Tray behavior remains a separate OS check.
-describe('Native window accessibility', () => {
+(process.platform === 'darwin' ? describe : describe.skip)('Native window accessibility', () => {
   for (const [width, height] of WINDOW_SIZES) {
     it(`supports keyboard recovery and scrolling at ${width}×${height}`, async () => {
       await browser.setWindowSize(width, height);

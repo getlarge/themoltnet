@@ -31,3 +31,6 @@ The CLI still owns grants, connection settings, locks, socket binding, and shutd
 
 Managed-run tests inject credential/runtime ports and run a deterministic worker
 through the production run manager, including isolated HOME and absolute project paths.
+
+The two native keyboard/layout checks require AppKit and run only on macOS;
+Linux retains Chrome keyboard coverage and the native lifecycle/project checks.
