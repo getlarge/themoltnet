@@ -3,6 +3,7 @@ import {
   Button,
   ControlSurface,
   DescriptionList,
+  Disclosure,
   Divider,
   Stack,
   Text,
@@ -10,7 +11,6 @@ import {
 } from '@themoltnet/design-system';
 import { useId } from 'react';
 
-import { Disclosure } from './disclosure.js';
 import { formatDateTime } from './format.js';
 import { Identifier } from './identifier.js';
 import { JsonViewer } from './json-viewer.js';
@@ -138,7 +138,7 @@ function AcceptedResult({
             gap={3}
             wrap
           >
-            <Stack gap={2} style={{ minWidth: 0, flex: '1 1 20rem' }}>
+            <Stack gap={2} shrink style={{ flex: '1 1 20rem' }}>
               <Stack direction="row" align="center" gap={3} wrap>
                 <Text as="h2" variant="h3" id={headingId}>
                   Result

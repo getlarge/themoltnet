@@ -19,18 +19,6 @@ export function lineClamp(lines: number): CSSProperties {
   };
 }
 
-export const visuallyHidden: CSSProperties = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  margin: -1,
-  padding: 0,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-};
-
 /** The small heading that names a part of a panel. */
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (

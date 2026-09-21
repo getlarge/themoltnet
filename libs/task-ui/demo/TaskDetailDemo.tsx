@@ -2,8 +2,10 @@ import {
   Badge,
   Button,
   Container,
+  type MoltTheme,
   Stack,
   Text,
+  useTheme,
   useThemeMode,
 } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
@@ -25,6 +27,9 @@ import { TaskDetailView } from '../src/index';
  *   presentation=1              compact identifiers, hide operator panels
  *   chrome=0                    hide the harness toolbar (for captures)
  *   theme=dark|light
+ *   width=laptop|wide           the Console's content width beside the
+ *                               expanded sidebar on a 1440px screen (default),
+ *                               or at its maximum on wider screens
  */
 function readParams() {
   const params = new URLSearchParams(window.location.search);
@@ -35,7 +40,21 @@ function readParams() {
     presentation: params.get('presentation') === '1',
     chrome: params.get('chrome') !== '0',
     theme: params.get('theme'),
+    width: params.get('width') === 'wide' ? 'wide' : 'laptop',
   } as const;
+}
+
+/** A common laptop viewport, the width the Console is most often read at. */
+const LAPTOP_VIEWPORT = '90rem';
+
+/**
+ * Width of the Console's <main> (content plus its padding, which Container
+ * reproduces), derived from the same layout tokens the Console shell uses.
+ */
+function consoleMainWidth(width: 'laptop' | 'wide', theme: MoltTheme) {
+  return width === 'wide'
+    ? theme.layout.contentMax
+    : `calc(${LAPTOP_VIEWPORT} - ${theme.layout.sidebarExpanded})`;
 }
 
 function writeParams(scenario: string, presentation: boolean) {
@@ -50,6 +69,7 @@ function writeParams(scenario: string, presentation: boolean) {
 export function TaskDetailDemo() {
   const initial = readParams();
   const { resolvedMode, setMode } = useThemeMode();
+  const theme = useTheme();
   const [scenarioId, setScenarioId] = useState<TaskDetailScenarioId>(
     initial.scenario,
   );
@@ -71,9 +91,10 @@ export function TaskDetailDemo() {
   const label = (id: string | null) => (id ? (DEMO_LABELS[id] ?? id) : null);
 
   return (
-    // xl sits within the Console's own content width (1128px beside the
-    // sidebar on a 1440px screen, up to 1392px on wider ones).
-    <Container maxWidth="xl">
+    <Container
+      maxWidth="full"
+      style={{ maxWidth: consoleMainWidth(initial.width, theme) }}
+    >
       <Stack gap={5} style={{ padding: '2rem 0 4rem' }}>
         {initial.chrome ? (
           <Stack gap={3}>

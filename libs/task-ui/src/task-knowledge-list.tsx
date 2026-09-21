@@ -172,7 +172,7 @@ export function TaskKnowledgeList({
   return (
     <ControlSurface as="section" aria-labelledby={headingId} padding="md">
       <Stack gap={4}>
-        <Stack gap={1} style={{ minWidth: 0 }}>
+        <Stack gap={1} shrink>
           <Stack direction="row" align="center" gap={2} wrap>
             <Text as="h2" variant="h4" id={headingId}>
               Knowledge retained

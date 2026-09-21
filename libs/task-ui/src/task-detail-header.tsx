@@ -112,7 +112,7 @@ export function TaskDetailHeader({
           gap={4}
           wrap
         >
-          <Stack gap={3} style={{ minWidth: 0, flex: '1 1 28rem' }}>
+          <Stack gap={3} shrink style={{ flex: '1 1 28rem' }}>
             <Stack direction="row" align="center" gap={3} wrap>
               <TaskStatusBadge status={task.status} />
               <Text variant="h2" style={{ margin: 0 }}>
@@ -150,7 +150,7 @@ export function TaskDetailHeader({
             ) : null}
           </Stack>
 
-          <Stack gap={2} align="flex-start" style={{ minWidth: 0 }}>
+          <Stack gap={2} align="flex-start" shrink>
             <CopyButton
               value={task.id}
               text={compact ? compactIdentifier(task.id) : undefined}

@@ -105,7 +105,7 @@ export function TaskLivePane({
           justifyContent: 'space-between',
         }}
       >
-        <Stack direction="row" align="center" gap={2} style={{ minWidth: 0 }}>
+        <Stack direction="row" align="center" gap={2} shrink>
           <Text style={{ fontWeight: theme.font.weight.semibold }}>
             {taskTitle}
           </Text>

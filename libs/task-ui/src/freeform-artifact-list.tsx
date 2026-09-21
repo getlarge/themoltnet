@@ -1,8 +1,13 @@
-import { Stack, Text, useTheme } from '@themoltnet/design-system';
+import {
+  Stack,
+  Text,
+  useTheme,
+  VisuallyHidden,
+} from '@themoltnet/design-system';
 
 import { ArtifactBody } from './artifact-body.js';
 import { Identifier } from './identifier.js';
-import { MEASURE, RuledList, visuallyHidden } from './layout.js';
+import { MEASURE, RuledList } from './layout.js';
 import type { FreeformArtifactView } from './task-output.js';
 
 export interface FreeformArtifactListProps {
@@ -94,7 +99,7 @@ function ArtifactItem({
                 style={{ color: theme.color.primary.DEFAULT }}
               >
                 {artifact.url}
-                <span style={visuallyHidden}> (opens in a new tab)</span>
+                <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
               </a>
             </Text>
           ) : null}

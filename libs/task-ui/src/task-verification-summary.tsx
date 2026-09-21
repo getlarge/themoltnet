@@ -1,6 +1,5 @@
-import { Stack, Text, useTheme } from '@themoltnet/design-system';
+import { Disclosure, Stack, Text, useTheme } from '@themoltnet/design-system';
 
-import { Disclosure } from './disclosure.js';
 import { humanizeToken } from './format.js';
 import { MEASURE, SectionLabel } from './layout.js';
 import {
