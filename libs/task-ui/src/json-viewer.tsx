@@ -32,7 +32,11 @@ export function JsonViewer({
             <Text
               variant="caption"
               color="muted"
-              style={{ fontFamily: theme.font.family.mono }}
+              style={{
+                fontFamily: theme.font.family.mono,
+                minWidth: 0,
+                overflowWrap: 'anywhere',
+              }}
             >
               {cid}
             </Text>

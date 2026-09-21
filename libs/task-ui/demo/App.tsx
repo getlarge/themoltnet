@@ -16,6 +16,7 @@ import {
   makeResponse,
   type TaskActivityAnalyticsResponse,
 } from '../src/index';
+import { TaskDetailDemo } from './TaskDetailDemo';
 
 // Host-supplied filter options (in a real app these come from the API/session).
 const FILTER_OPTIONS = {
@@ -140,9 +141,10 @@ function DemoContent() {
 }
 
 export function App() {
+  const view = new URLSearchParams(window.location.search).get('view');
   return (
     <MoltThemeProvider mode="dark">
-      <DemoContent />
+      {view === 'task-detail' ? <TaskDetailDemo /> : <DemoContent />}
     </MoltThemeProvider>
   );
 }

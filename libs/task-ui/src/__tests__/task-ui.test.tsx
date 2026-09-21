@@ -90,8 +90,10 @@ describe('@moltnet/task-ui', () => {
     renderWithTheme(<TaskDetailHeader task={taskFixture} />);
 
     expect(screen.getByText('Correlation ID')).toBeInTheDocument();
-    expect(screen.getAllByText(taskFixture.correlationId!)).toHaveLength(2);
-    expect(screen.getByText('Copy correlation ID')).toBeInTheDocument();
+    expect(screen.getByText(taskFixture.correlationId!)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Copy correlation ID' }),
+    ).toBeInTheDocument();
   });
 
   it('joins adjacent text deltas for readable attempt timelines', () => {

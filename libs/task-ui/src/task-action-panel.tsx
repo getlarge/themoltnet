@@ -105,7 +105,12 @@ export function TaskActionPanel({
                     ) : null}
                   </Stack>
 
-                  <Stack direction="row" gap={2} align="center">
+                  <Stack
+                    direction="row"
+                    gap={2}
+                    align="center"
+                    style={{ minWidth: 0, maxWidth: '100%' }}
+                  >
                     {action.prompt ? (
                       <CopyButton value={action.prompt} label="Copy" />
                     ) : null}

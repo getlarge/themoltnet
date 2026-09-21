@@ -2,6 +2,7 @@ import { RecordTrace, Stack, Text } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 
 import { formatDateTime, humanizeToken } from './format.js';
+import { compactIdentifier } from './task-output.js';
 import type { TaskAttemptSummary, TaskSummary } from './types.js';
 
 export interface TaskKnowledgeState {
@@ -16,6 +17,8 @@ export interface TaskExecutionRecordProps {
   attemptAction?: ReactNode;
   runtimeAction?: ReactNode;
   knowledgeAction?: ReactNode;
+  /** Shorten UUIDs, CIDs, and hashes; the full value stays in the title. */
+  compactIdentifiers?: boolean;
 }
 
 export function TaskExecutionRecord({
@@ -25,14 +28,23 @@ export function TaskExecutionRecord({
   attemptAction,
   runtimeAction,
   knowledgeAction,
+  compactIdentifiers = false,
 }: TaskExecutionRecordProps) {
   const result = resultState(task, attempt);
+  const id = (value: string): ReactNode =>
+    compactIdentifiers && value.length > 20 ? (
+      <span title={value}>{compactIdentifier(value)}</span>
+    ) : (
+      value
+    );
   const knowledgeStatus = getKnowledgeStatus(task, knowledge);
 
   return (
     <Stack gap={3}>
       <Stack gap={1}>
-        <Text variant="h2">Execution record</Text>
+        <Text as="h2" variant="h3">
+          Execution record
+        </Text>
         <Text color="secondary">
           The task contract, claimant, runtime authority, result, and retained
           knowledge remain attached to this record.
@@ -50,7 +62,7 @@ export function TaskExecutionRecord({
             active: !attempt,
             details: [
               { label: 'Task type', value: humanizeToken(task.taskType) },
-              { label: 'Input CID', value: task.inputCid, mono: true },
+              { label: 'Input CID', value: id(task.inputCid), mono: true },
               {
                 label: 'Executor trust',
                 value: humanizeToken(task.requiredExecutorTrustLevel),
@@ -69,7 +81,7 @@ export function TaskExecutionRecord({
                   { label: 'Attempt', value: `#${attempt.attemptN}` },
                   {
                     label: 'Agent',
-                    value: attempt.claimedByAgentId,
+                    value: id(attempt.claimedByAgentId),
                     mono: true,
                   },
                   {
@@ -91,17 +103,17 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Profile',
-                value: runtimeProfile(attempt),
+                value: id(runtimeProfile(attempt)),
                 mono: Boolean(attempt?.runtimeProfileId),
               },
               {
                 label: 'Policy snapshot',
-                value: attempt?.policySnapshotHash ?? 'Not recorded',
+                value: id(attempt?.policySnapshotHash ?? 'Not recorded'),
                 mono: Boolean(attempt?.policySnapshotHash),
               },
               {
                 label: 'Runtime ID',
-                value: attempt?.runtimeId ?? 'Not started',
+                value: id(attempt?.runtimeId ?? 'Not started'),
                 mono: Boolean(attempt?.runtimeId),
               },
             ],
@@ -116,7 +128,7 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Output CID',
-                value: attempt?.outputCid ?? 'Not reported',
+                value: id(attempt?.outputCid ?? 'Not reported'),
                 mono: Boolean(attempt?.outputCid),
               },
               {
@@ -148,7 +160,7 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Diary',
-                value: task.diaryId ?? 'Not configured',
+                value: id(task.diaryId ?? 'Not configured'),
                 mono: Boolean(task.diaryId),
               },
               {
