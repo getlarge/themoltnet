@@ -16,7 +16,6 @@ import {
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
-  canonicalStoreRoot,
   type FileSecretProvider,
   normalizeProjectEndpoint,
   type ProjectBinding,
