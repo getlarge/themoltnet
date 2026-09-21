@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/webdriverio';
+import type { RunPreset } from '@moltnet/agent-desktop/run-types';
 import { $, browser, expect } from '@wdio/globals';
 
 import { catalogue, preset, running, status } from './run-fixtures.js';
@@ -63,8 +64,11 @@ describe('Run-flow audit regressions', () => {
     await $('a=Saved worker').click();
     await field('Runtime profile').selectByAttribute('value', 'quick');
     await $('button=Start run').click();
-    const saved = await browser.execute(() =>
-      JSON.parse(localStorage.getItem('moltnet.run-presets.v1') ?? '[]'),
+    const saved = await browser.execute(
+      () =>
+        JSON.parse(
+          localStorage.getItem('moltnet.run-presets.v1') ?? '[]',
+        ) as RunPreset[],
     );
     expect(saved).toEqual([preset]);
     await start.update();
@@ -88,8 +92,11 @@ describe('Run-flow audit regressions', () => {
     await $('button=Update preset').click();
     await start.update();
     expect(start.mock.calls).toHaveLength(0);
-    const saved = await browser.execute(() =>
-      JSON.parse(localStorage.getItem('moltnet.run-presets.v1') ?? '[]'),
+    const saved = await browser.execute(
+      () =>
+        JSON.parse(
+          localStorage.getItem('moltnet.run-presets.v1') ?? '[]',
+        ) as RunPreset[],
     );
     expect(saved[0].profileIds).toEqual(['quick']);
   });
@@ -173,7 +180,7 @@ describe('Run-flow audit regressions', () => {
         ),
       ).toBe(true);
       await browser.saveScreenshot(
-        `/private/tmp/desktop-composer-${width}.png`,
+        `test-results/desktop-composer-${width}.png`,
       );
     });
   }
@@ -226,13 +233,15 @@ describe('Run-flow audit regressions', () => {
     await expect($('button=Update preset')).toBeDisplayed();
     await field('Runtime profile').selectByAttribute('value', 'quick');
     await $('button=Update preset').click();
-    const saved = await browser.execute(() =>
-      JSON.parse(localStorage.getItem('moltnet.run-presets.v1') ?? '[]'),
+    const saved = await browser.execute(
+      () =>
+        JSON.parse(
+          localStorage.getItem('moltnet.run-presets.v1') ?? '[]',
+        ) as RunPreset[],
     );
     expect(saved).toHaveLength(2);
     expect(
-      saved.find((entry: { name: string }) => entry.name === 'New worker')
-        .profileIds,
+      saved.find((entry) => entry.name === 'New worker')?.profileIds,
     ).toEqual(['quick']);
     await start.update();
     expect(start.mock.calls).toHaveLength(0);

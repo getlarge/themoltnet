@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 
 import AxeBuilder from '@axe-core/webdriverio';
+import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { $, browser, expect } from '@wdio/globals';
 
-import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { preset } from './run-fixtures.js';
 
 // Native refresh and explicit operations intentionally share a nonblocking lock.
@@ -36,7 +36,8 @@ async function lifecycle(command: string): Promise<DesktopStatus> {
       timeoutMsg: `Lifecycle lock did not become available for ${command}`,
     },
   );
-  if (failure !== undefined) throw failure;
+  if (failure !== undefined)
+    throw failure instanceof Error ? failure : new Error(String(failure));
   if (!result) throw new Error(`No lifecycle result for ${command}`);
   return result;
 }
@@ -131,7 +132,7 @@ describe('Native Desktop and real fixture daemon', () => {
 });
 
 // Rendered acceptance uses the actual WebKit window and native bridge, including
-// the stopped-daemon recovery state. Trust dialogs remain a separate OS check.
+// the stopped-daemon recovery state. Tray behavior remains a separate OS check.
 describe('Native window accessibility', () => {
   for (const [width, height] of [
     [820, 720],
@@ -162,7 +163,7 @@ describe('Native window accessibility', () => {
             behavior: 'instant',
           });
         },
-        await name,
+        await name.getElement(),
       );
       await name.click();
       await browser.tauri.execute(({ core }) => core.invoke('desktop_e2e_tab'));

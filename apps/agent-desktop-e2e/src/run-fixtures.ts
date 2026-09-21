@@ -9,8 +9,6 @@ export const running: DesktopStatus = {
   state: 'running',
   installedVersion: '1.0.0',
   availableVersion: null,
-  trustFingerprint: null,
-  trusted: true,
   message: 'Fixture server running.',
   logs: [],
 };

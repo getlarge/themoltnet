@@ -79,7 +79,7 @@ Before the Linux release, record results for both formats:
 
 ## Acceptance tests
 
-The [Desktop automation harness](e2e/README.md) covers Chrome renderer journeys
+The [Desktop automation harness](../agent-desktop-e2e/README.md) covers Chrome renderer journeys
 and native macOS flows against an isolated fixture daemon. Component and Rust
 tests cover the fast contracts. Signed installation, tray
 behavior, and the personal journey against Docker E2E services require their
