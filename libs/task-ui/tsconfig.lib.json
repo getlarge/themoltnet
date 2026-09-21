@@ -29,6 +29,9 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../tasks/tsconfig.lib.json"
+    },
+    {
       "path": "../agent-daemon-api-client/tsconfig.lib.json"
     },
     {

@@ -819,12 +819,12 @@ importers:
       '@moltnet/agent-daemon-api-client':
         specifier: workspace:*
         version: link:../../libs/agent-daemon-api-client
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../../libs/tasks
       '@moltnet/task-ui':
         specifier: workspace:*
         version: link:../../libs/task-ui
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@tauri-apps/cli':
         specifier: 2.11.4
         version: 2.11.4
@@ -3232,6 +3232,9 @@ importers:
       '@moltnet/agent-daemon-api-client':
         specifier: workspace:*
         version: link:../agent-daemon-api-client
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@testing-library/jest-dom':
         specifier: 'catalog:'
         version: 6.9.1
