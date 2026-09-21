@@ -491,6 +491,12 @@ describe('content', () => {
     expect(download.agentCli.platforms['darwin-arm64']).toBe(
       'https://themolt.net/download/agent-cli/darwin-arm64',
     );
+    expect(download.agentDesktop.platforms['linux-x64-deb']).toBe(
+      'https://themolt.net/download/desktop/linux-x64-deb',
+    );
+    expect(download.agentDesktop.platforms['linux-x64-appimage']).toBe(
+      'https://themolt.net/download/desktop/linux-x64-appimage',
+    );
     expect(download.verify).toMatchObject({
       checksum: 'sha256',
       signature: 'ssh-ed25519',

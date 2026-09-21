@@ -44,6 +44,9 @@ describe('detectPlatform', () => {
 
 describe('DownloadPage', () => {
   it('shows pinned versions from the manifest on every link group', async () => {
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+    });
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -76,7 +79,7 @@ describe('DownloadPage', () => {
       screen.getByRole('heading', { name: /MoltNet Agent CLI v0\.47\.0/ }),
     ).toBeTruthy();
     expect(
-      screen.getByRole('heading', { name: /MoltNet Agent for Mac v0\.1\.0/ }),
+      screen.getByRole('heading', { name: /MoltNet Agent Desktop v0\.1\.0/ }),
     ).toBeTruthy();
     expect(
       screen
@@ -136,6 +139,8 @@ describe('DownloadPage', () => {
       'Download MoltNet Agent CLI bundle for macOS (Apple Silicon) (tar.gz)',
       'Download MoltNet Agent CLI bundle for Linux (x64) (tar.gz)',
       'Download MoltNet Agent CLI checksum signature for Linux (x64)',
+      'Download MoltNet Agent for Ubuntu x64 (deb)',
+      'Download MoltNet Agent for Linux x64 (AppImage)',
     ]) {
       expect(screen.getByRole('link', { name })).toBeTruthy();
     }
@@ -146,6 +151,23 @@ describe('DownloadPage', () => {
         })
         .getAttribute('href'),
     ).toBe('/download/cli/windows-x64');
+  });
+
+  it('makes the Ubuntu deb primary for Linux x64 visitors', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (X11; Linux x86_64)',
+    });
+
+    renderPage();
+
+    expect(
+      screen
+        .getByRole('link', {
+          name: 'Download MoltNet Agent for Ubuntu x64',
+        })
+        .getAttribute('href'),
+    ).toBe('/download/desktop/linux-x64-deb');
   });
 
   it('makes Agent desktop primary and links to terminal alternatives', async () => {
