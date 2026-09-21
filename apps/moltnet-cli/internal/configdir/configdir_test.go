@@ -1,6 +1,8 @@
 package configdir
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -16,7 +18,9 @@ func TestSecretServiceConformance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, row := range strings.Split(string(contents), "\n") {
+	scanner := bufio.NewScanner(strings.NewReader(string(contents)))
+	for scanner.Scan() {
+		row := scanner.Text()
 		if row == "" || strings.HasPrefix(row, "#") {
 			continue
 		}
@@ -25,6 +29,9 @@ func TestSecretServiceConformance(t *testing.T) {
 		if err != nil || actual != "themolt.net/store/"+parts[1] {
 			t.Fatalf("service: %q, %v", actual, err)
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -38,20 +45,30 @@ func TestConformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(cwd)
-	for _, row := range strings.Split(string(contents), "\n") {
-		if row == "" || strings.HasPrefix(row, "#") {
-			continue
-		}
-		parts := strings.Split(row, "\t")
-		root := parts[0]
-		got, err := Resolve(&root)
-		if parts[1] == "ERROR" {
-			if err == nil {
-				t.Errorf("accepted invalid root %q", root)
+	fixture := strings.ReplaceAll(string(contents), "\r\n", "\n")
+	for _, ending := range []string{"\n", "\r\n"} {
+		t.Run(fmt.Sprintf("line-ending-%q", ending), func(t *testing.T) {
+			scanner := bufio.NewScanner(strings.NewReader(strings.ReplaceAll(fixture, "\n", ending)))
+			for scanner.Scan() {
+				row := scanner.Text()
+				if row == "" || strings.HasPrefix(row, "#") {
+					continue
+				}
+				parts := strings.Split(row, "\t")
+				root := parts[0]
+				got, err := Resolve(&root)
+				if parts[1] == "ERROR" {
+					if err == nil {
+						t.Errorf("accepted invalid root %q", root)
+					}
+				} else if err != nil || got != filepath.Join(cwd, parts[1]) {
+					t.Errorf("%q => %q, %v", root, got, err)
+				}
 			}
-		} else if err != nil || got != filepath.Join(cwd, parts[1]) {
-			t.Errorf("%q => %q, %v", root, got, err)
-		}
+			if err := scanner.Err(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
