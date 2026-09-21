@@ -1,4 +1,4 @@
-//! Canonical store selection shared with Node and Go conformance fixtures.
+//! Store paths and canonical identity shared with Node and Go conformance fixtures.
 use std::{
     fs,
     io::ErrorKind,
@@ -11,18 +11,30 @@ pub fn resolve_store_root(
     home: &Path,
     cwd: &Path,
 ) -> Result<PathBuf, String> {
-    let default_root = home.join(".config/moltnet");
-    let root = explicit
-        .or(environment)
-        .map(Path::new)
-        .unwrap_or(&default_root);
-    let root = root
-        .to_str()
-        .ok_or("MoltNet store root must be valid UTF-8")?;
-    if root.trim().is_empty() || root.contains('\0') {
+    resolve_store_path(
+        explicit.map(Path::new),
+        environment.map(Path::new),
+        home,
+        cwd,
+    )
+}
+
+/// Native path variant preserves non-UTF-8 filesystem names.
+pub fn resolve_store_path(
+    explicit: Option<&Path>,
+    environment: Option<&Path>,
+    home: &Path,
+    cwd: &Path,
+) -> Result<PathBuf, String> {
+    let Some(root) = explicit.or(environment) else {
+        return Ok(home.join(".config/moltnet"));
+    };
+    if root.as_os_str().to_string_lossy().trim().is_empty()
+        || root.as_os_str().as_encoded_bytes().contains(&0)
+    {
         return Err("MoltNet store root must be a nonempty directory path".into());
     }
-    let absolute = if Path::new(root).is_absolute() {
+    let absolute = if root.is_absolute() {
         PathBuf::from(root)
     } else {
         cwd.join(root)
@@ -30,6 +42,10 @@ pub fn resolve_store_root(
     let mut current = PathBuf::new();
     for component in absolute.components() {
         match component {
+            Component::Prefix(prefix) => {
+                current.push(prefix.as_os_str());
+                continue;
+            }
             Component::CurDir => continue,
             Component::ParentDir => {
                 current.pop();
@@ -39,7 +55,8 @@ pub fn resolve_store_root(
         }
         match fs::symlink_metadata(&current) {
             Ok(_) => {
-                current = fs::canonicalize(&current).map_err(|e| e.to_string())?;
+                current =
+                    normalize_windows_path(fs::canonicalize(&current).map_err(|e| e.to_string())?);
                 if !current.is_dir() {
                     return Err("MoltNet store root must be a directory".into());
                 }
@@ -49,6 +66,34 @@ pub fn resolve_store_root(
         }
     }
     Ok(current)
+}
+
+#[cfg(not(windows))]
+fn normalize_windows_path(path: PathBuf) -> PathBuf {
+    path
+}
+
+#[cfg(windows)]
+fn normalize_windows_path(path: PathBuf) -> PathBuf {
+    use std::path::Prefix;
+    let mut components = path.components();
+    let Some(Component::Prefix(prefix)) = components.next() else {
+        return path;
+    };
+    let mut normalized = match prefix.kind() {
+        Prefix::VerbatimDisk(drive) => {
+            PathBuf::from(format!("{}:", char::from(drive).to_ascii_uppercase()))
+        }
+        Prefix::VerbatimUNC(server, share) => {
+            let mut root = PathBuf::from(r"\\");
+            root.push(server);
+            root.push(share);
+            root
+        }
+        _ => return path,
+    };
+    normalized.extend(components);
+    normalized
 }
 
 #[cfg(test)]
@@ -108,18 +153,55 @@ mod tests {
             );
             assert_eq!(
                 resolve_store_root(None, None, &cwd.join("alias"), &cwd).unwrap(),
-                cwd.join("real/.config/moltnet")
+                cwd.join("alias/.config/moltnet")
             );
-            fs::create_dir(cwd.join("CaseStore")).unwrap();
-            if cwd.join("casestore").exists() {
-                assert_eq!(
-                    resolve_store_root(Some("casestore"), None, &cwd, &cwd).unwrap(),
-                    cwd.join("CaseStore")
-                );
-            }
             std::os::unix::fs::symlink(cwd.join("missing"), cwd.join("broken")).unwrap();
             assert!(resolve_store_root(Some("broken/new"), None, &cwd, &cwd).is_err());
         }
         fs::remove_dir_all(temporary).unwrap();
+    }
+    #[test]
+    #[ignore = "requires a case-insensitive filesystem; run explicitly with --ignored"]
+    fn case_insensitive_volume() {
+        let temporary = std::env::temp_dir().join(format!("moltnet-case-{}", std::process::id()));
+        fs::create_dir_all(temporary.join("CaseStore")).unwrap();
+        let cwd = fs::canonicalize(&temporary).unwrap();
+        assert!(
+            cwd.join("casestore").exists(),
+            "requires a case-insensitive filesystem"
+        );
+        assert_eq!(
+            resolve_store_root(Some("casestore"), None, &cwd, &cwd).unwrap(),
+            cwd.join("CaseStore")
+        );
+        fs::remove_dir_all(temporary).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn native_path_bytes() {
+        use std::os::unix::ffi::OsStrExt;
+        let home = Path::new(std::ffi::OsStr::from_bytes(b"/non-utf8-\xff"));
+        assert_eq!(
+            resolve_store_root(None, None, home, Path::new("/")).unwrap(),
+            home.join(".config/moltnet")
+        );
+        assert_eq!(
+            resolve_store_path(Some(home), None, Path::new("/unused"), Path::new("/")).unwrap(),
+            home
+        );
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_paths_do_not_keep_verbatim_prefixes() {
+        let cwd = std::env::current_dir().unwrap();
+        let canonical = fs::canonicalize(&cwd).unwrap();
+        let resolved = resolve_store_path(Some(&canonical), None, &cwd, &cwd).unwrap();
+        assert!(!resolved.as_os_str().to_string_lossy().starts_with(r"\\?\"));
+        assert_eq!(
+            normalize_windows_path(PathBuf::from(r"\\?\UNC\host\share\folder")),
+            PathBuf::from(r"\\host\share\folder")
+        );
     }
 }

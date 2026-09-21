@@ -261,6 +261,9 @@ jobs:
       # prompt regardless of whether the keychain is unlocked, so those tests
       # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
       # provisions its own keychain and binds Security.framework directly.
+      - name: Test store path conformance on the native filesystem
+        working-directory: apps/moltnet-cli
+        run: go test ./internal/configdir/
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native

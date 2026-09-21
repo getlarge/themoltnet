@@ -2,20 +2,23 @@ package configdir
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"golang.org/x/sys/windows"
 )
 
 func canonicalExisting(path string) (string, error) {
-	file, err := os.Open(path)
+	name, err := windows.UTF16PtrFromString(path)
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	handle, err := windows.CreateFile(name, 0, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS, 0)
+	if err != nil {
+		return "", err
+	}
+	defer windows.CloseHandle(handle)
 	buffer := make([]uint16, 32768)
-	n, err := windows.GetFinalPathNameByHandle(windows.Handle(file.Fd()), &buffer[0], uint32(len(buffer)), 0)
+	n, err := windows.GetFinalPathNameByHandle(handle, &buffer[0], uint32(len(buffer)), 0)
 	if err != nil {
 		return "", err
 	}
