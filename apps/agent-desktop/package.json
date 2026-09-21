@@ -154,6 +154,17 @@
           ]
         }
       },
+      "test-desktop-native": {
+        "executor": "nx:run-commands",
+        "inputs": [
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "sharedGlobals"
+        ],
+        "options": {
+          "command": "cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-ci"
+        }
+      },
       "build": {
         "executor": "nx:run-commands",
         "outputs": [
