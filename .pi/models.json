@@ -273,20 +273,6 @@
             "off": "none",
             "xhigh": "max"
           }
-        },
-        {
-          "contextWindow": 262144,
-          "id": "qwen3.5:397b-cloud",
-          "input": ["text", "image"],
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
         }
       ]
     }
