@@ -15,11 +15,12 @@ concurrency:
 jobs:
   complexity-review:
     if: |
-      (github.event_name == 'issue_comment' &&
-        github.event.issue.pull_request != null &&
-        contains(github.event.comment.body, '@legreffier /complexity-review') &&
-        !endsWith(github.event.comment.user.login, '[bot]')) ||
-      (github.event_name == 'pull_request')
+      vars.MOLTNET_COMPLEXITY_REVIEW_ENABLED == 'true' &&
+      ((github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request != null &&
+          contains(github.event.comment.body, '@legreffier /complexity-review') &&
+          !endsWith(github.event.comment.user.login, '[bot]')) ||
+        (github.event_name == 'pull_request'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: legreffier

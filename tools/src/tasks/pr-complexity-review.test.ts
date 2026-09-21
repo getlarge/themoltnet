@@ -110,6 +110,12 @@ describe('buildPrReviewInput', () => {
     );
   });
 
+  it('requires the repository variable to enable complexity reviews', () => {
+    expect(workflow).toContain(
+      "vars.MOLTNET_COMPLEXITY_REVIEW_ENABLED == 'true'",
+    );
+  });
+
   it('rejects abbreviated revisions', () => {
     expect(() =>
       buildPrReviewInput({
