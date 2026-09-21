@@ -1,10 +1,16 @@
-import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { OPERATOR_OAUTH } from '@moltnet/models';
 import { resolveStoreRoot } from '@themoltnet/sdk/node';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   defaultAgentServerPort,
@@ -19,11 +25,18 @@ function freshRoot() {
   return root;
 }
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
 
 describe('per-store daemon discovery', () => {
+  it('assigns an isolated port even when the default config directory is broken', () => {
+    const home = freshRoot();
+    vi.stubEnv('HOME', home);
+    writeFileSync(join(home, '.config'), 'fixture');
+    expect(defaultAgentServerPort(freshRoot())).toBe(0);
+  });
   it('preserves the default port and assigns isolated roots an ephemeral port', () => {
     expect(defaultAgentServerPort(resolveStoreRoot({ env: {} }))).toBe(
       OPERATOR_OAUTH.serverPort,

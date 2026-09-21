@@ -281,3 +281,21 @@ func TestDefaultStoreAliasKeepsCacheLocation(t *testing.T) {
 		t.Fatalf("alias cache %q, %v; want %q", got, err, expected)
 	}
 }
+
+func TestIsolatedCacheWithBrokenDefault(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	if err := os.WriteFile(filepath.Join(home, ".config"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(home, "isolated")
+	t.Setenv("MOLTNET_HOME", root)
+	expected, err := Canonical(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := CacheDir(); err != nil || got != filepath.Join(expected, "cache") {
+		t.Fatalf("cache: %q, %v", got, err)
+	}
+}

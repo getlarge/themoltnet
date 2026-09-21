@@ -18,7 +18,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-use crate::store_root::{resolve_environment_store_root, resolve_store_root};
+use crate::store_root::{resolve_environment_store_root, resolve_store_path};
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
@@ -208,7 +208,7 @@ impl LifecycleManager {
             resolve_environment_store_root(shared.as_deref(), legacy.as_deref(), &home, &cwd)
                 .map_err(|error| format!("Invalid MoltNet store selection: {error}. Correct the environment and restart Desktop."))?;
         let installation = environment_path("MOLTNET_AGENT_HOME").map(|value| {
-            resolve_store_root(Some(&value), None, &home, &cwd)
+            resolve_store_path(Some(&value), None, &home, &cwd)
                 .map_err(|error| format!("Invalid MOLTNET_AGENT_HOME: {error}. Correct the environment and restart Desktop."))
         }).transpose()?;
         Ok(Self::with_roots(home, root, installation))
@@ -861,12 +861,8 @@ fn installer_command(
     command
 }
 
-fn environment_path(name: &str) -> Option<String> {
-    std::env::var_os(name).map(|value| {
-        value
-            .into_string()
-            .expect("environment paths must be valid UTF-8")
-    })
+fn environment_path(name: &str) -> Option<PathBuf> {
+    std::env::var_os(name).map(PathBuf::from)
 }
 
 fn platform_opener() -> &'static str {

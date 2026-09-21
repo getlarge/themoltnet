@@ -6,14 +6,14 @@ use std::{
 };
 
 pub fn resolve_environment_store_root(
-    shared: Option<&str>,
-    legacy: Option<&str>,
+    shared: Option<&Path>,
+    legacy: Option<&Path>,
     home: &Path,
     cwd: &Path,
 ) -> Result<PathBuf, String> {
     if let (Some(shared), Some(legacy)) = (shared, legacy) {
-        let first = resolve_store_root(Some(shared), None, home, cwd)?;
-        let second = resolve_store_root(Some(legacy), None, home, cwd)?;
+        let first = resolve_store_path(Some(shared), None, home, cwd)?;
+        let second = resolve_store_path(Some(legacy), None, home, cwd)?;
         if first != second {
             return Err(
                 "Conflicting MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT; select one store root"
@@ -22,9 +22,10 @@ pub fn resolve_environment_store_root(
         }
         return Ok(first);
     }
-    resolve_store_root(shared.or(legacy), None, home, cwd)
+    resolve_store_path(shared.or(legacy), None, home, cwd)
 }
 
+#[cfg(test)]
 pub fn resolve_store_root(
     explicit: Option<&str>,
     environment: Option<&str>,
@@ -128,15 +129,27 @@ mod tests {
     fn environment_aliases_agree_or_fail() {
         let cwd = fs::canonicalize(std::env::temp_dir()).unwrap();
         assert_eq!(
-            resolve_environment_store_root(None, Some("legacy"), &cwd, &cwd).unwrap(),
+            resolve_environment_store_root(None, Some(Path::new("legacy")), &cwd, &cwd).unwrap(),
             cwd.join("legacy")
         );
         assert_eq!(
-            resolve_environment_store_root(Some("same"), Some("./same"), &cwd, &cwd).unwrap(),
+            resolve_environment_store_root(
+                Some(Path::new("same")),
+                Some(Path::new("./same")),
+                &cwd,
+                &cwd
+            )
+            .unwrap(),
             cwd.join("same")
         );
-        assert!(resolve_environment_store_root(Some("first"), Some("second"), &cwd, &cwd).is_err());
-        assert!(resolve_environment_store_root(Some(""), None, &cwd, &cwd).is_err());
+        assert!(resolve_environment_store_root(
+            Some(Path::new("first")),
+            Some(Path::new("second")),
+            &cwd,
+            &cwd
+        )
+        .is_err());
+        assert!(resolve_environment_store_root(Some(Path::new("")), None, &cwd, &cwd).is_err());
     }
 
     #[test]
@@ -246,6 +259,11 @@ mod tests {
     fn native_path_bytes() {
         use std::os::unix::ffi::OsStrExt;
         let home = Path::new(std::ffi::OsStr::from_bytes(b"/non-utf8-\xff"));
+        assert_eq!(
+            resolve_environment_store_root(Some(home), None, Path::new("/unused"), Path::new("/"))
+                .unwrap(),
+            home
+        );
         assert_eq!(
             resolve_store_root(None, None, home, Path::new("/")).unwrap(),
             home.join(".config/moltnet")

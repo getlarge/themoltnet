@@ -8,10 +8,15 @@ import { canonicalStoreRoot, resolveStoreRoot } from '@themoltnet/sdk/node';
 import { writeJsonAtomic } from './store.js';
 
 export function defaultAgentServerPort(root: string): number {
-  return canonicalStoreRoot(root) ===
-    canonicalStoreRoot(resolveStoreRoot({ env: {} }))
-    ? OPERATOR_OAUTH.serverPort
-    : 0;
+  const selected = canonicalStoreRoot(root);
+  try {
+    return selected === canonicalStoreRoot(resolveStoreRoot({ env: {} }))
+      ? OPERATOR_OAUTH.serverPort
+      : 0;
+  } catch {
+    // An unavailable default directory must not block an isolated daemon.
+    return 0;
+  }
 }
 
 interface AgentServerEndpoint {

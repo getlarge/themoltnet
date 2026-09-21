@@ -201,15 +201,11 @@ func CacheDir() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defaults, err := defaultDir()
+		service, err := SecretService(nil)
 		if err != nil {
 			return "", err
 		}
-		defaults, err = Canonical(defaults)
-		if err != nil {
-			return "", err
-		}
-		if root != defaults {
+		if service != SecretServiceName {
 			return filepath.Join(root, "cache"), nil
 		}
 	}
