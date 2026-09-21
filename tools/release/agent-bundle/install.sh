@@ -181,8 +181,7 @@ verify_launcher() {
 }
 
 unregister_legacy_service() {
-  # Independent installations never administer the user-global service.
-  [ "$HOME_DIR" = "$DEFAULT_HOME_DIR" ] || return 0
+  # Remove only a service whose executable belongs to this installation.
   service_file=$(legacy_service_definition_path)
   if [ ! -f "$service_file" ] || ! grep -qF "$HOME_DIR/current" "$service_file"; then
     return 0
@@ -201,6 +200,12 @@ unregister_legacy_service() {
   esac
 }
 
+remove_owned_launcher() {
+  case "$(readlink "$BIN_DIR/moltnet-agent" 2>/dev/null)" in
+    "$HOME_DIR"/*) rm -f "$BIN_DIR/moltnet-agent" ;;
+  esac
+}
+
 uninstall() {
   assert_owned_root
   if [ ! -e "$HOME_DIR/$SENTINEL" ]; then
@@ -208,16 +213,14 @@ uninstall() {
     # verifiably point INTO $HOME_DIR — never an unrelated executable or a
     # user-managed service definition.
     log "no installer-owned root at $HOME_DIR"
-    case "$(readlink "$BIN_DIR/moltnet-agent" 2>/dev/null)" in
-      "$HOME_DIR"/*) rm -f "$BIN_DIR/moltnet-agent" ;;
-    esac
+    remove_owned_launcher
     unregister_legacy_service
     return 0
   fi
   acquire_lock
   trap 'release_lock' EXIT
   unregister_legacy_service
-  rm -f "$BIN_DIR/moltnet-agent"
+  remove_owned_launcher
   # Hold the lock through the removal: the tree must be gone before any
   # concurrent install may proceed.
   rm -rf "$HOME_DIR"
@@ -323,7 +326,7 @@ install() {
     fi
     # First install: leave no broken activation behind.
     unregister_legacy_service
-    rm -f "$BIN_DIR/moltnet-agent"
+    remove_owned_launcher
     rm -f "$HOME_DIR/current"
     mv "$target" "$target.broken" 2>/dev/null || true
     die "install of $version failed its readiness check (broken payload kept at $target.broken)"

@@ -42,7 +42,14 @@ export function desktopDevelopmentEnvironment(
     MOLTNET_AGENT_HOME: installation,
     MOLTNET_AGENT_BIN_DIR: join(installation, 'bin'),
   };
-  delete childEnv.MOLTNET_AGENT_SERVER_ROOT;
+  for (const name of [
+    'MOLTNET_AGENT_SERVER_ROOT',
+    'MOLTNET_AGENT_SERVER_PORT',
+    'MOLTNET_CREDENTIALS_PATH',
+    'MOLTNET_ACTIVE_IDENTITY',
+    'MOLTNET_DEFAULT_STORE_ROOT',
+  ])
+    delete childEnv[name];
   return childEnv;
 }
 

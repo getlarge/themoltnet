@@ -65,12 +65,13 @@ empty environment variable. Unset the variable to select the default.
 The default config/display path retains its established lexical spelling without
 filesystem access. Explicit and environment roots return absolute canonical
 paths; relative paths start at the caller's working directory. Use absolute
-paths when opening Desktop from a graphical launcher, whose working directory
-may be `/`. Existing symlinks and filesystem case aliases are resolved before
-parent (`..`) segments; missing directories are not created. Secret namespaces
-use canonical paths. File locks use the lock file's filesystem identity, so
-aliases to the same file share a lock. An unavailable default directory does not
-prevent access to an isolated store.
+paths in Desktop: it rejects relative store and installation environment paths
+because graphical launchers do not provide a predictable working directory.
+Existing symlinks and filesystem case aliases are resolved before parent (`..`)
+segments; missing directories are not created. Secret namespaces use canonical
+paths. File locks use the lock file's filesystem identity, so aliases to the
+same file share a lock. An unavailable default directory does not prevent access
+to an isolated store.
 
 The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
 `storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a
@@ -106,16 +107,54 @@ Each store has one Agent Server singleton. The default store uses port 17374;
 isolated stores receive an available loopback port unless `--port` or
 `MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0` explicitly requests an
 available port. Desktop prefers the supervised child’s stdout readiness record,
-with `agent-server-endpoint.json` as a fallback for released children. Both
-contain public connection metadata. Native control pins the selected store’s CA
-before spawning the child; platform trust is used for browser pairing. Desktop
-requires HTTPS; non-macOS daemon discovery also supports loopback HTTP.
+with `agent-server-endpoint.json` as a fallback. Both contain public connection
+metadata. Native control pins the selected store’s CA before spawning the child;
+platform trust is used for browser pairing. Desktop requires HTTPS, and
+discovery records accept only HTTPS loopback origins and UUID instance
+identifiers. HTTP daemons remain available through their explicit URL but do not
+publish discovery records. Default-store Desktop starts retain a pinned
+`/health` check for older releases. Isolated Desktop starts require Agent CLI
+0.62.0 or newer; the pinned 0.61.0 installer cannot yet supply this capability.
 
 Desktop connection environments remain separate beneath the selected store.
 Presets use the effective environment's storage scope. `moltnet start` and
 managed workers pass an absolute `MOLTNET_HOME` to children so changing their
-working directory or `HOME` does not change their store. Desktop's
+working directory or `HOME` does not change their store. Managed workers also
+inherit `MOLTNET_DEFAULT_STORE_ROOT`, an internal absolute comparison hint that
+preserves the original default keyring namespace across `HOME` changes. It does
+not select a store and should not be set in launch profiles. Desktop's
 `MOLTNET_AGENT_HOME` selects its installation directory independently.
+
+## Upgrading from MOLTNET_AGENT_SERVER_ROOT
+
+The old variable name is deprecated. Replace it with `MOLTNET_HOME` and unset
+the old name. Both now select the **entire store**, including CLI/SDK
+identities, keyring namespaces, project bindings, providers, Desktop presets and
+run state. The old daemon-only behavior is not retained, and no files or keyring
+entries are migrated automatically.
+
+- If you want the established default identities and keyring entries, unset both
+  variables. Merely renaming a non-default legacy root does not restore them.
+- If you want isolation, select that root consistently in CLI, SDK and Desktop,
+  then enroll credentials there. Non-default roots use their own keyring
+  service; references created under the old shared `themolt.net` service need
+  new credentials in the selected store.
+- Empty values now fail. Two set aliases must resolve to the same directory;
+  conflicting roots fail. An explicit store option overrides both.
+- Custom stores use an available daemon port by default. Clients must use HTTPS
+  discovery or an explicit URL rather than assume port 17374.
+- Desktop presets are now scoped by store and effective API/issuer. Existing
+  presets for a default store with customized connection settings remain in the
+  old browser storage key but do not appear in the new scope. Recreate the
+  presets for that connection; there is no automatic copy.
+- Custom installation roots use their own `bin` directory unless
+  `MOLTNET_AGENT_BIN_DIR` is explicit. Update PATH accordingly. Install/upgrade
+  removes a login service only when it points into that installation; the daemon
+  no longer starts automatically at login through that old service.
+
+The default store path, its `themolt.net` keyring namespace, and port 17374
+remain unchanged. Moving an isolated store changes its keyring namespace; using
+a symlink to the same canonical directory does not.
 
 ## Which credentials file a command uses
 

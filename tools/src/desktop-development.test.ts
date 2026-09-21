@@ -41,6 +41,10 @@ describe('Desktop development environment', () => {
       {
         MOLTNET_HOME: join(home, '.config/moltnet'),
         MOLTNET_AGENT_SERVER_ROOT: './production',
+        MOLTNET_AGENT_SERVER_PORT: '17374',
+        MOLTNET_CREDENTIALS_PATH: '/production/credentials',
+        MOLTNET_ACTIVE_IDENTITY: 'production',
+        MOLTNET_DEFAULT_STORE_ROOT: '/production',
         MOLTNET_AGENT_HOME: join(home, '.local/share/moltnet/agent'),
         MOLTNET_AGENT_BIN_DIR: join(home, '.local/bin'),
       },
@@ -52,6 +56,13 @@ describe('Desktop development environment', () => {
     expect(inherited.MOLTNET_AGENT_BIN_DIR).toBe(
       join(first.MOLTNET_AGENT_HOME!, 'bin'),
     );
-    expect(inherited.MOLTNET_AGENT_SERVER_ROOT).toBeUndefined();
+    for (const name of [
+      'MOLTNET_AGENT_SERVER_ROOT',
+      'MOLTNET_AGENT_SERVER_PORT',
+      'MOLTNET_CREDENTIALS_PATH',
+      'MOLTNET_ACTIVE_IDENTITY',
+      'MOLTNET_DEFAULT_STORE_ROOT',
+    ])
+      expect(inherited[name]).toBeUndefined();
   });
 });

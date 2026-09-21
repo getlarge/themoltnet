@@ -676,6 +676,6 @@ The launchers ignore inherited production store and installation selectors.
 The renderer-only Desktop `dev` target starts Vite without a native server.
 
 For direct CLI or SDK development commands, set `MOLTNET_HOME` explicitly. See
-[Select a local store](../../docs/reference/agent-configuration.md#store-selection-and-keyring-namespaces)
+[Store selection and keyring namespaces](../../docs/reference/agent-configuration.md#store-selection-and-keyring-namespaces)
 for precedence, secret namespaces and daemon discovery. Automated tests use fresh
 temporary roots.

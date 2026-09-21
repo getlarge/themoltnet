@@ -263,7 +263,7 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     assert.equal(existsSync(join(context.binDir, 'moltnet-agent')), false);
   });
 
-  it('keeps independent installations away from global links and services', async () => {
+  it('keeps global links but removes a service pointing at this independent installation', async () => {
     const fixture = createBundle();
     const context = createInstallContext(fixture);
     const globalBinary = join(context.binDir, 'moltnet-agent');
@@ -278,7 +278,6 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
         : join(context.home, '.config/systemd/user/moltnet-agent.service');
     mkdirSync(dirname(service), { recursive: true });
     const independent = join(context.home, 'independent');
-    // Even an old same-labelled service must remain outside an isolated install's authority.
     writeFileSync(service, `${independent}/current/bin/moltnet-agent server\n`);
     context.env.MOLTNET_AGENT_HOME = independent;
     delete context.env.MOLTNET_AGENT_BIN_DIR;
@@ -292,7 +291,20 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     const removed = await runInstaller(context, ['--uninstall']);
     assert.equal(removed.status, 0, removed.stderr);
     assert.equal(readFileSync(globalBinary, 'utf8'), 'global fixture');
-    assert.equal(existsSync(service), true);
+    assert.equal(existsSync(service), false);
+  });
+
+  it('preserves a replaced launcher when uninstalling an owned root', async () => {
+    const context = createInstallContext(createBundle());
+    const installed = await runInstaller(context);
+    assert.equal(installed.status, 0, installed.stderr);
+    const launcher = join(context.binDir, 'moltnet-agent');
+    rmSync(launcher);
+    writeFileSync(launcher, 'replacement');
+    const removed = await runInstaller(context, ['--uninstall']);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.equal(readFileSync(launcher, 'utf8'), 'replacement');
+    assert.equal(existsSync(context.installRoot), false);
   });
 
   it('preserves unowned links and service definitions', async () => {

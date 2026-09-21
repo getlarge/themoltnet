@@ -32,6 +32,9 @@ without human intervention.`,
 	)
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		if _, present := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT"); present {
+			fmt.Fprintln(cmd.ErrOrStderr(), "MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.")
+		}
 		if shouldAnnouncePendingMigration(cmd) {
 			// A local file read, so it runs inline rather than racing command
 			// output from a goroutine.
