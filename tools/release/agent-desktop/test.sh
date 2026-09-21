@@ -26,17 +26,20 @@ printf '%s\n' \
 printf '%s\n' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' > "$fixture/apps/landing/fly.toml"
 printf '%s\n' 'rust 1.88.0' > "$fixture/.tool-versions"
 
-bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
+validate_release() {
+  TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
+    TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
+    APPLE_CERT_P12='certificate' \
+    APPLE_CERT_PASSWORD='password' \
+    NOTARY_KEY='notary-key' \
+    NOTARY_ISSUER_ID='issuer' \
+    NOTARY_KEY_ID='key-id' \
+    AGENT_CLI_RELEASE_TAG="${1:-}" \
+    bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release
+}
 
-TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
-  TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
-  APPLE_CERT_P12='certificate' \
-  APPLE_CERT_PASSWORD='password' \
-  NOTARY_KEY='notary-key' \
-  NOTARY_ISSUER_ID='issuer' \
-  NOTARY_KEY_ID='key-id' \
-  AGENT_CLI_RELEASE_TAG='agent-daemon-v0.58.0' \
-  bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release
+bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
+validate_release 'agent-daemon-v0.57.0'
 
 if TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
@@ -51,7 +54,19 @@ fi
 
 printf '%s\n' '0.56.2' > "$fixture/apps/agent-desktop/agent-cli.version"
 if bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" 2>/dev/null; then
-  echo 'validation accepted a desktop Agent CLI pin that differs from the public pin' >&2
+  echo 'validation accepted a desktop Agent CLI pin behind the public pin' >&2
+  exit 1
+fi
+
+printf '%s\n' '0.58.0' > "$fixture/apps/agent-desktop/agent-cli.version"
+bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
+if validate_release 2>/dev/null; then
+  echo 'release validation accepted an ahead Agent CLI pin without its release tag' >&2
+  exit 1
+fi
+validate_release 'agent-daemon-v0.58.0'
+if validate_release 'agent-daemon-v0.59.0' 2>/dev/null; then
+  echo 'release validation accepted a tag that differs from the embedded Agent CLI pin' >&2
   exit 1
 fi
 printf '%s\n' '0.57.0' > "$fixture/apps/agent-desktop/agent-cli.version"
@@ -90,6 +105,7 @@ node - <<'NODE'
 const fs = require('node:fs');
 const config = require('./release-please-config.json');
 const files = config.packages['apps/agent-desktop']['extra-files'];
+const desktopPackage = require('./apps/agent-desktop/package.json');
 const expected = new Map([
   ['src-tauri/tauri.conf.json', '$.version'],
   ['src-tauri/Cargo.toml', '$.package.version'],
@@ -103,6 +119,11 @@ for (const file of files) {
 }
 if (expected.size) {
   throw new Error(`missing desktop release version updaters: ${[...expected.keys()]}`);
+}
+if (!desktopPackage.nx.targets['release:validate'].inputs.includes(
+  '{workspaceRoot}/apps/landing/nginx/default.conf.template',
+)) {
+  throw new Error('desktop release validation must track the public Agent CLI pin');
 }
 
 const tauriConfigPath = 'apps/agent-desktop/src-tauri/tauri.conf.json';

@@ -13,6 +13,17 @@ landing_template="$root/apps/landing/nginx/default.conf.template"
 landing_fly="$root/apps/landing/fly.toml"
 
 valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
+version_at_least() {
+  local candidate_major candidate_minor candidate_patch
+  local floor_major floor_minor floor_patch
+  IFS=. read -r candidate_major candidate_minor candidate_patch <<< "$1"
+  IFS=. read -r floor_major floor_minor floor_patch <<< "$2"
+  ((
+    candidate_major > floor_major ||
+      (candidate_major == floor_major && candidate_minor > floor_minor) ||
+      (candidate_major == floor_major && candidate_minor == floor_minor && candidate_patch >= floor_patch)
+  ))
+}
 
 package_version=$(node -p "require(process.argv[1]).version" "$package_json")
 tauri_version=$(node -p "require(process.argv[1]).version" "$tauri_config")
@@ -22,29 +33,40 @@ cargo_version=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$cargo_
   exit 1
 }
 
-agent_cli_version=$(tr -d '\n' < "$agent_cli_pin")
-[ -n "$agent_cli_version" ] || {
+embedded_agent_cli_version=$(tr -d '\n' < "$agent_cli_pin")
+[ -n "$embedded_agent_cli_version" ] || {
   echo "embedded Agent CLI release pin is empty or invalid" >&2
   exit 1
 }
-valid_version "$agent_cli_version" || {
+valid_version "$embedded_agent_cli_version" || {
   echo "embedded Agent CLI release pin is not canonical" >&2
   exit 1
 }
 public_agent_cli_version=$(sed -nE 's/^    set \$agent_cli_version ([0-9]+\.[0-9]+\.[0-9]+);/\1/p' "$landing_template")
-[ -n "$public_agent_cli_version" ] && [ "$agent_cli_version" = "$public_agent_cli_version" ] || {
-  echo "embedded Agent CLI release pin must match the public Agent CLI pin" >&2
+[ -n "$public_agent_cli_version" ] && valid_version "$public_agent_cli_version" || {
+  echo "public Agent CLI release pin is empty or invalid" >&2
+  exit 1
+}
+version_at_least "$embedded_agent_cli_version" "$public_agent_cli_version" || {
+  echo "embedded Agent CLI release pin must not trail the public Agent CLI pin" >&2
   exit 1
 }
 if [ -n "${AGENT_CLI_RELEASE_TAG:-}" ]; then
   case "$AGENT_CLI_RELEASE_TAG" in
-    agent-daemon-v*) agent_cli_version=${AGENT_CLI_RELEASE_TAG#agent-daemon-v} ;;
+    agent-daemon-v*) agent_cli_release_version=${AGENT_CLI_RELEASE_TAG#agent-daemon-v} ;;
     *) echo "invalid Agent CLI release tag: $AGENT_CLI_RELEASE_TAG" >&2; exit 1 ;;
   esac
-  valid_version "$agent_cli_version" || {
-    echo "invalid Agent CLI release version: $agent_cli_version" >&2
+  valid_version "$agent_cli_release_version" || {
+    echo "invalid Agent CLI release version: $agent_cli_release_version" >&2
     exit 1
   }
+  [ "$agent_cli_release_version" = "$embedded_agent_cli_version" ] || {
+    echo "Agent CLI release tag must match the embedded Agent CLI pin" >&2
+    exit 1
+  }
+elif [ "${2:-}" = "--release" ] && [ "$embedded_agent_cli_version" != "$public_agent_cli_version" ]; then
+  echo "an ahead embedded Agent CLI pin requires its coordinated release tag" >&2
+  exit 1
 fi
 
 embedded_key=$(sed -nE 's/^    "(ssh-ed25519 [^"]+)";/\1/p' "$build_rs")
