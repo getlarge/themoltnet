@@ -691,7 +691,10 @@ func isolateIdentityEnv(t *testing.T) {
 func setupGitHubGuardIdentity(t *testing.T) string {
 	t.Helper()
 	isolateIdentityEnv(t)
-	home := t.TempDir()
+	home, canonicalErr := filepath.EvalSymlinks(t.TempDir())
+	if canonicalErr != nil {
+		t.Fatal(canonicalErr)
+	}
 	t.Setenv("HOME", home)
 	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {

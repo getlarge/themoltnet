@@ -58,6 +58,7 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
 
   async read(key: string): Promise<string | null> {
     this.assertSupported();
+    assertAccountKey(key);
     const value = await (await this.keytar()).getPassword(this.service, key);
     if (value === null || this.platform !== 'darwin') return value;
     return decodeGoKeyringPassword(value);
@@ -71,6 +72,7 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
    */
   async write(key: string, value: string): Promise<void> {
     this.assertSupported();
+    assertAccountKey(key);
     const stored =
       this.platform === 'darwin' ? encodeGoKeyringPassword(value) : value;
     await (await this.keytar()).setPassword(this.service, key, stored);
@@ -78,6 +80,7 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
 
   async delete(key: string): Promise<void> {
     this.assertSupported();
+    assertAccountKey(key);
     await (await this.keytar()).deletePassword(this.service, key);
   }
 
@@ -132,4 +135,11 @@ export function windowsKeyringTarget(
   platform: NodeJS.Platform = process.platform,
 ): string | undefined {
   return platform === 'win32' ? `${service}/${key}` : undefined;
+}
+
+// Windows combines service and account with '/'. Reserve this prefix so a
+// default-store account cannot address an isolated store's target.
+function assertAccountKey(key: string): void {
+  if (key.startsWith('store/'))
+    throw new Error('OS keyring account prefix store/ is reserved');
 }

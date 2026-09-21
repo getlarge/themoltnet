@@ -2,12 +2,19 @@ package configdir
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
+
+// SecretServiceName is the legacy default-store keyring service.
+const SecretServiceName = "themolt.net"
+
+// ErrInvalidRoot identifies a store selection failure independently of its source.
+var ErrInvalidRoot = errors.New("invalid MoltNet store root")
 
 // Dir is the central store root shared by credentials and project bindings.
 func Dir() (string, error) {
@@ -17,13 +24,48 @@ func Dir() (string, error) {
 // Resolve selects an explicit root, MOLTNET_HOME, then the established default.
 // A pointer distinguishes an explicitly empty root from an absent option.
 func Resolve(root *string) (string, error) {
+	source := "explicit root"
+	var selected string
 	if root != nil {
-		return Canonical(*root)
+		selected = *root
+	} else {
+		source = "default root"
+		if _, present := os.LookupEnv("MOLTNET_HOME"); present {
+			source = "MOLTNET_HOME"
+		}
+		var err error
+		selected, err = SelectedRoot()
+		if err != nil {
+			return "", fmt.Errorf("%w (%s): %w", ErrInvalidRoot, source, err)
+		}
 	}
-	if value, present := os.LookupEnv("MOLTNET_HOME"); present {
-		return Canonical(value)
+	result, err := Canonical(selected)
+	if err != nil {
+		return "", fmt.Errorf("%w (%s): %w", ErrInvalidRoot, source, err)
 	}
-	return defaultDir()
+	return result, nil
+}
+
+// SelectedRoot snapshots the environment/default selection without filesystem
+// access. Relative roots are anchored to the current directory without cleaning
+// parent segments, which must be evaluated after symlinks.
+func SelectedRoot() (string, error) {
+	root, present := os.LookupEnv("MOLTNET_HOME")
+	if !present {
+		var err error
+		root, err = defaultDir()
+		if err != nil {
+			return "", err
+		}
+	}
+	if strings.TrimSpace(root) == "" || filepath.IsAbs(root) {
+		return root, nil
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return cwd + string(filepath.Separator) + root, nil
 }
 
 func defaultDir() (string, error) {
@@ -44,26 +86,32 @@ func Canonical(root string) (string, error) {
 	if strings.TrimSpace(root) == "" || strings.ContainsRune(root, 0) {
 		return "", fmt.Errorf("MoltNet store root must be a nonempty directory path")
 	}
-	ancestor, err := filepath.Abs(root)
-	if err != nil {
-		return "", err
-	}
-	var missing []string
-	for {
-		_, err := os.Lstat(ancestor)
+	absolute := root
+	if !filepath.IsAbs(root) {
+		cwd, err := os.Getwd()
 		if err != nil {
-			if !os.IsNotExist(err) {
-				return "", err
-			}
-			parent := filepath.Dir(ancestor)
-			if parent == ancestor {
-				return "", err
-			}
-			missing = append(missing, filepath.Base(ancestor))
-			ancestor = parent
+			return "", err
+		}
+		absolute = cwd + string(filepath.Separator) + root
+	}
+	volume := filepath.VolumeName(absolute)
+	current := volume + string(filepath.Separator)
+	for _, segment := range strings.FieldsFunc(absolute[len(volume):], func(r rune) bool { return r == '/' || (runtime.GOOS == "windows" && r == '\\') }) {
+		if segment == "." {
 			continue
 		}
-		canonical, err := filepath.EvalSymlinks(ancestor)
+		if segment == ".." {
+			current = filepath.Dir(current)
+			continue
+		}
+		current = filepath.Join(current, segment)
+		if _, err := os.Lstat(current); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return "", err
+		}
+		canonical, err := canonicalExisting(current)
 		if err != nil {
 			return "", err
 		}
@@ -74,20 +122,14 @@ func Canonical(root string) (string, error) {
 		if !info.IsDir() {
 			return "", fmt.Errorf("MoltNet store root must be a directory")
 		}
-		for i := len(missing) - 1; i >= 0; i-- {
-			canonical = filepath.Join(canonical, missing[i])
-		}
-		return canonical, nil
+		current = canonical
 	}
+	return current, nil
 }
 
 // SecretService preserves default-store keyring references and separates stores.
 func SecretService(root *string) (string, error) {
 	selected, err := Resolve(root)
-	if err != nil {
-		return "", err
-	}
-	selected, err = Canonical(selected)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +142,7 @@ func SecretService(root *string) (string, error) {
 		return "", err
 	}
 	if selected == defaultRoot {
-		return "themolt.net", nil
+		return SecretServiceName, nil
 	}
-	return fmt.Sprintf("themolt.net/store/%x", sha256.Sum256([]byte(selected))), nil
+	return fmt.Sprintf("%s/store/%x", SecretServiceName, sha256.Sum256([]byte(selected))), nil
 }

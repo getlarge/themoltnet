@@ -8,6 +8,20 @@ import {
 } from '../src/index.js';
 
 describe('OSKeyringSecretProvider', () => {
+  it('rejects account keys reserved for store namespaces before loading the OS adapter', async () => {
+    const load = vi.fn();
+    const provider = new OSKeyringSecretProvider('win32', load);
+    await expect(provider.read('store/digest/account')).rejects.toThrow(
+      'reserved',
+    );
+    await expect(
+      provider.write('store/digest/account', 'value'),
+    ).rejects.toThrow('reserved');
+    await expect(provider.delete('store/digest/account')).rejects.toThrow(
+      'reserved',
+    );
+    expect(load).not.toHaveBeenCalled();
+  });
   it('keeps writes, reads, and deletion within the selected service', async () => {
     const secrets = new Map<string, string>();
     const load = async () => ({

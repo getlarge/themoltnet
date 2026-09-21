@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/oskeyring"
@@ -201,7 +202,9 @@ type SecretProviderRegistry struct {
 func NewSecretProviderRegistry() *SecretProviderRegistry {
 	registry := &SecretProviderRegistry{providers: make(map[string]SecretProvider)}
 	registry.Register(environmentProviderName, EnvironmentSecretProvider{})
-	registry.Register(osKeyringProviderName, OSKeyringSecretProvider{})
+	root, selectionErr := configdir.SelectedRoot()
+	keyring := &OSKeyringSecretProvider{StoreRoot: &root, serviceErr: selectionErr}
+	registry.Register(osKeyringProviderName, keyring)
 	registry.Register(fileProviderName, newFileSecretProviderFromEnv(os.LookupEnv))
 	return registry
 }
@@ -407,36 +410,81 @@ func (EnvironmentSecretProvider) Delete(_ string) error {
 
 // OSKeyringSecretProvider stores secrets in the current operating system's
 // credential store under the selected store's service name.
-type OSKeyringSecretProvider struct{ StoreRoot *string }
+type OSKeyringSecretProvider struct {
+	StoreRoot   *string
+	backend     keyringBackend
+	serviceOnce sync.Once
+	service     string
+	serviceErr  error
+}
 
-func (p OSKeyringSecretProvider) Get(key string) (string, error) {
-	service, err := configdir.SecretService(p.StoreRoot)
+type keyringBackend interface {
+	Get(service, key string) (string, error)
+	Set(service, key, value string) error
+	Delete(service, key string) error
+}
+type nativeKeyringBackend struct{}
+
+func (nativeKeyringBackend) Get(service, key string) (string, error) {
+	return oskeyring.Get(service, key)
+}
+func (nativeKeyringBackend) Set(service, key, value string) error {
+	return oskeyring.Set(service, key, value)
+}
+func (nativeKeyringBackend) Delete(service, key string) error { return oskeyring.Delete(service, key) }
+func (p *OSKeyringSecretProvider) keyring() keyringBackend {
+	if p.backend != nil {
+		return p.backend
+	}
+	return nativeKeyringBackend{}
+}
+
+func (p *OSKeyringSecretProvider) secretService() (string, error) {
+	p.serviceOnce.Do(func() {
+		if p.serviceErr == nil {
+			p.service, p.serviceErr = configdir.SecretService(p.StoreRoot)
+		}
+	})
+	return p.service, p.serviceErr
+}
+
+func (p *OSKeyringSecretProvider) Get(key string) (string, error) {
+	if strings.HasPrefix(key, "store/") {
+		return "", fmt.Errorf("OS keyring account prefix store/ is reserved")
+	}
+	service, err := p.secretService()
 	if err != nil {
 		return "", err
 	}
-	value, err := oskeyring.Get(service, key)
+	value, err := p.keyring().Get(service, key)
 	if errors.Is(err, oskeyring.ErrNotFound) {
 		return "", ErrSecretNotFound
 	}
 	return value, err
 }
 
-func (OSKeyringSecretProvider) CanWrite() bool { return true }
+func (*OSKeyringSecretProvider) CanWrite() bool { return true }
 
-func (p OSKeyringSecretProvider) Set(key, value string) error {
-	service, err := configdir.SecretService(p.StoreRoot)
+func (p *OSKeyringSecretProvider) Set(key, value string) error {
+	if strings.HasPrefix(key, "store/") {
+		return fmt.Errorf("OS keyring account prefix store/ is reserved")
+	}
+	service, err := p.secretService()
 	if err != nil {
 		return err
 	}
-	return oskeyring.Set(service, key, value)
+	return p.keyring().Set(service, key, value)
 }
 
-func (p OSKeyringSecretProvider) Delete(key string) error {
-	service, err := configdir.SecretService(p.StoreRoot)
+func (p *OSKeyringSecretProvider) Delete(key string) error {
+	if strings.HasPrefix(key, "store/") {
+		return fmt.Errorf("OS keyring account prefix store/ is reserved")
+	}
+	service, err := p.secretService()
 	if err != nil {
 		return err
 	}
-	err = oskeyring.Delete(service, key)
+	err = p.keyring().Delete(service, key)
 	if errors.Is(err, oskeyring.ErrNotFound) {
 		return nil
 	}

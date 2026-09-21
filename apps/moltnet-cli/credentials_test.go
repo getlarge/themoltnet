@@ -105,7 +105,10 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 
 func TestWriteConfig(t *testing.T) {
 	isolateIdentityEnv(t)
-	tmpDir := t.TempDir()
+	tmpDir, canonicalErr := filepath.EvalSymlinks(t.TempDir())
+	if canonicalErr != nil {
+		t.Fatal(canonicalErr)
+	}
 	t.Setenv("HOME", tmpDir)
 
 	config := &CredentialsFile{

@@ -129,3 +129,63 @@ func TestStoreAlias(t *testing.T) {
 		t.Fatalf("Dir() = %q, %v", got, err)
 	}
 }
+
+func TestOnDiskCase(t *testing.T) {
+	root := t.TempDir()
+	canonical, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := filepath.Join(canonical, "CaseStore")
+	if err := os.Mkdir(actual, 0700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(canonical, "casestore")
+	if _, err := os.Stat(alias); err != nil {
+		t.Skip("case-sensitive filesystem")
+	}
+	got, err := Canonical(alias)
+	if err != nil || got != actual {
+		t.Fatalf("case alias: %q, %v; want %q", got, err, actual)
+	}
+}
+func TestCanonicalDefault(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual := filepath.Join(root, "actual")
+	if err := os.MkdirAll(filepath.Join(actual, ".config", "moltnet"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(root, "alias")
+	if err := os.Symlink(actual, alias); err != nil {
+		t.Skip(err)
+	}
+	t.Setenv("HOME", alias)
+	t.Setenv("USERPROFILE", alias)
+	t.Setenv("MOLTNET_HOME", "")
+	os.Unsetenv("MOLTNET_HOME")
+	got, err := Dir()
+	if err != nil || got != filepath.Join(actual, ".config", "moltnet") {
+		t.Fatalf("default: %q, %v", got, err)
+	}
+}
+
+func TestSymlinkBeforeParent(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink permission")
+	}
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "real/nested"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "real/nested"), filepath.Join(root, "link")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Canonical(root + "/link/../new")
+	expected, _ := Canonical(filepath.Join(root, "real/new"))
+	if err != nil || got != expected {
+		t.Fatalf("got %q, %v; want %q", got, err, expected)
+	}
+}

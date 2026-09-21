@@ -66,6 +66,18 @@ describe('Node secret providers', () => {
 
   afterEach(() => vi.unstubAllEnvs());
 
+  it('does not resolve an invalid store for env-only registry users', async () => {
+    vi.stubEnv('MOLTNET_HOME', '');
+    vi.stubEnv('ENV_ONLY', 'env-value');
+    const registry = createNodeSecretProviderRegistry('linux');
+    await expect(
+      registry.resolve({ provider: 'env', key: 'ENV_ONLY' }),
+    ).resolves.toBe('env-value');
+    await expect(
+      registry.resolve({ provider: 'os-keyring', key: 'test' }),
+    ).rejects.toThrow(/store root/);
+  });
+
   it('registers both env and a lazy OS-keyring provider for Node consumers', async () => {
     const registry = createNodeSecretProviderRegistry('linux');
 

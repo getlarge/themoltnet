@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -47,6 +48,30 @@ describe('MoltNet store selection', () => {
     rmSync(home, { recursive: true, force: true });
   });
 
+  it('resolves symlinks before parent segments', () => {
+    mkdirSync(join(home, 'real/nested'), { recursive: true });
+    symlinkSync(join(home, 'real/nested'), join(home, 'link'), 'dir');
+    expect(getConfigDir({ root: 'link/../new', cwd: home })).toBe(
+      join(home, 'real/new'),
+    );
+  });
+  it('canonicalizes the default through an aliased home', () => {
+    mkdirSync(join(home, 'real/.config/moltnet'), { recursive: true });
+    symlinkSync(join(home, 'real'), join(home, 'alias'), 'dir');
+    expect(getConfigDir({ home: join(home, 'alias') })).toBe(
+      join(home, 'real/.config/moltnet'),
+    );
+  });
+  it('uses on-disk case on case-insensitive volumes', () => {
+    mkdirSync(join(home, 'CaseStore'));
+    if (!existsSync(join(home, 'casestore'))) return;
+    expect(getConfigDir({ root: join(home, 'casestore') })).toBe(
+      join(home, 'CaseStore'),
+    );
+    expect(storeSecretService({ root: join(home, 'casestore') })).toBe(
+      storeSecretService({ root: join(home, 'CaseStore') }),
+    );
+  });
   it('retains the established default', () => {
     expect(getConfigDir()).toBe(join(home, '.config/moltnet'));
   });

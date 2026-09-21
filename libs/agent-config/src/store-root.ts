@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { lstatSync, realpathSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, parse, sep } from 'node:path';
+
+export const MOLTNET_SECRET_SERVICE = 'themolt.net';
 
 export interface StoreRootOptions {
   /** The store itself, not an OS home or an identity directory. */
@@ -16,25 +18,32 @@ export function canonicalStoreRoot(root: string, cwd = process.cwd()): string {
   if (!root.trim() || root.includes('\u0000')) {
     throw new Error('MoltNet store root must be a nonempty directory path');
   }
-  let ancestor = resolve(cwd, root);
-  const missing: string[] = [];
-  for (;;) {
-    try {
-      lstatSync(ancestor);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      const parent = dirname(ancestor);
-      if (parent === ancestor) throw error;
-      missing.unshift(basename(ancestor));
-      ancestor = parent;
+  // Walk in filesystem order: resolving `link/..` lexically can select a
+  // different directory from the OS when link points into another tree.
+  const absolute = isAbsolute(root) ? root : `${cwd}${sep}${root}`;
+  const prefix = parse(absolute).root;
+  let current = prefix;
+  for (const segment of absolute
+    .slice(prefix.length)
+    .split(sep === '/' ? '/' : /[\\/]/)) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') {
+      current = dirname(current);
       continue;
     }
-    const canonical = realpathSync(ancestor);
-    if (!statSync(canonical).isDirectory()) {
+    current = join(current, segment);
+    try {
+      lstatSync(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      throw error;
+    }
+    current = realpathSync.native(current);
+    if (!statSync(current).isDirectory()) {
       throw new Error('MoltNet store root must be a directory');
     }
-    return join(canonical, ...missing);
   }
+  return current;
 }
 
 /** Explicit root > MOLTNET_HOME > the established user-local default. */
@@ -43,21 +52,33 @@ export function resolveStoreRoot(options: StoreRootOptions = {}): string {
   // eslint-disable-next-line no-restricted-syntax
   const env = options.env ?? process.env;
   const root = options.root ?? env.MOLTNET_HOME;
-  // Keep the public default path unchanged. Consumers needing a canonical
-  // lock/namespace identity use canonicalStoreRoot on this same selection.
-  if (root === undefined)
-    return join(options.home ?? homedir(), '.config', 'moltnet');
-  return canonicalStoreRoot(root, options.cwd);
+  const source =
+    options.root !== undefined
+      ? 'explicit root'
+      : env.MOLTNET_HOME !== undefined
+        ? 'MOLTNET_HOME'
+        : 'default root';
+  try {
+    return canonicalStoreRoot(
+      root ?? join(options.home ?? homedir(), '.config', 'moltnet'),
+      options.cwd,
+    );
+  } catch (cause) {
+    throw new Error(
+      `Invalid MoltNet store root (${source}): ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    );
+  }
 }
 
 /** The established default service remains readable without copying secrets. */
 export function storeSecretService(options: StoreRootOptions = {}): string {
-  const root = canonicalStoreRoot(resolveStoreRoot(options), options.cwd);
+  const root = resolveStoreRoot(options);
   const defaultRoot = canonicalStoreRoot(
     join(options.home ?? homedir(), '.config', 'moltnet'),
     options.cwd,
   );
-  if (root === defaultRoot) return 'themolt.net';
+  if (root === defaultRoot) return MOLTNET_SECRET_SERVICE;
   const digest = createHash('sha256').update(root, 'utf8').digest('hex');
-  return `themolt.net/store/${digest}`;
+  return `${MOLTNET_SECRET_SERVICE}/store/${digest}`;
 }

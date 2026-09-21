@@ -272,7 +272,10 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 // resolves it the way the CLI does for an operator.
 func selectTestIdentity(t *testing.T, creds CredentialsFile) string {
 	t.Helper()
-	home := t.TempDir()
+	home, canonicalErr := filepath.EvalSymlinks(t.TempDir())
+	if canonicalErr != nil {
+		t.Fatal(canonicalErr)
+	}
 	t.Setenv("HOME", home)
 	t.Setenv(activeIdentityEnv, "")
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
