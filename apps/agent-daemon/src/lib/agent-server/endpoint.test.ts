@@ -66,25 +66,25 @@ describe('per-store daemon discovery', () => {
     const secondRoot = freshRoot();
     const first = publishAgentServerEndpoint(
       firstRoot,
-      'http://127.0.0.1:41001',
+      'https://127.0.0.1:41001',
     );
     const second = publishAgentServerEndpoint(
       secondRoot,
-      'http://127.0.0.1:41002',
+      'https://127.0.0.1:41002',
     );
     expect(readAgentServerEndpoint(firstRoot)?.url).toBe(
-      'http://127.0.0.1:41001',
+      'https://127.0.0.1:41001',
     );
     expect(readAgentServerEndpoint(secondRoot)?.url).toBe(
-      'http://127.0.0.1:41002',
+      'https://127.0.0.1:41002',
     );
     const replacement = publishAgentServerEndpoint(
       firstRoot,
-      'http://127.0.0.1:41003',
+      'https://127.0.0.1:41003',
     );
     first.release();
     expect(readAgentServerEndpoint(firstRoot)?.url).toBe(
-      'http://127.0.0.1:41003',
+      'https://127.0.0.1:41003',
     );
     replacement.release();
     expect(readAgentServerEndpoint(firstRoot)).toBeNull();
@@ -98,7 +98,7 @@ describe('per-store daemon discovery', () => {
       join(root, 'agent-server-endpoint.json'),
       JSON.stringify({
         version: 1,
-        instanceId: 'old',
+        instanceId: '12345678-1234-4123-8123-123456789abc',
         pid: 2147483647,
         url: 'https://127.0.0.1:41001',
       }),
@@ -125,12 +125,28 @@ describe('per-store daemon discovery', () => {
     expect(() => published.release()).not.toThrow();
   });
 
-  it.each(['http://127.0.0.1:80', 'https://127.0.0.1:443'])(
+  it.each(['https://127.0.0.1:443'])(
     'accepts explicit standard port %s',
     (url) => {
       const root = freshRoot();
       publishAgentServerEndpoint(root, url);
       expect(readAgentServerEndpoint(root)?.url).toBe(url);
+    },
+  );
+
+  it.each(['', 'fixture', '12345678-1234-4123-8123-123456789abc\nforged'])(
+    'rejects invalid instance ID %j',
+    (instanceId) => {
+      const root = freshRoot();
+      writeFileSync(
+        join(root, 'agent-server-endpoint.json'),
+        JSON.stringify({
+          version: 1,
+          instanceId,
+          url: 'https://127.0.0.1:41001',
+        }),
+      );
+      expect(() => readAgentServerEndpoint(root)).toThrow('metadata');
     },
   );
 
@@ -148,7 +164,7 @@ describe('per-store daemon discovery', () => {
     'https://example.com:41001',
     'http://127.0.0.1:0',
     'http://user:pass@127.0.0.1:41001',
-    'http://127.0.0.1:41001/path',
+    'https://127.0.0.1:41001/path',
   ])('rejects invalid discovery address %s', (url) => {
     expect(() => publishAgentServerEndpoint(freshRoot(), url)).toThrow();
   });

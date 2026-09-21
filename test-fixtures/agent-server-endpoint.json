@@ -2,7 +2,7 @@
   {
     "desktop": false,
     "url": "http://127.0.0.1:17374",
-    "valid": true
+    "valid": false
   },
   {
     "desktop": true,
@@ -12,7 +12,7 @@
   {
     "desktop": false,
     "url": "http://127.0.0.1:80",
-    "valid": true
+    "valid": false
   },
   {
     "desktop": true,
@@ -22,7 +22,7 @@
   {
     "desktop": false,
     "url": "http://127.0.0.1",
-    "valid": true
+    "valid": false
   },
   {
     "desktop": true,

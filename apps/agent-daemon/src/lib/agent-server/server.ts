@@ -15,10 +15,7 @@ import {
   hasAgentKeyConfiguration,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import {
-  canonicalStoreRoot,
-  type FileSecretProvider,
-} from '@themoltnet/sdk/node';
+import { type FileSecretProvider } from '@themoltnet/sdk/node';
 import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
@@ -36,7 +33,6 @@ import {
 import { safeErrorContext } from '../safe-error-context.js';
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
-import { defaultAgentServerPort } from './endpoint.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
 import {
   AgentServerIdentityError,
@@ -580,13 +576,7 @@ export function buildAgentServer(
             'native_required',
             'Native administration required',
           );
-        return {
-          ...options.connectionSettings.view(),
-          storageScope:
-            defaultAgentServerPort(options.store.root) === 0
-              ? canonicalStoreRoot(options.store.root)
-              : '',
-        };
+        return options.connectionSettings.view();
       },
     );
     app.post(

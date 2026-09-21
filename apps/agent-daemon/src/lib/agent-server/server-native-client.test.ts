@@ -5,7 +5,8 @@
  * token and passes it in the child's environment, so no browser ceremony is
  * involved and the native origin must never be reachable through one.
  */
-import { realpathSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
+import { request } from 'node:https';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,6 +32,7 @@ import {
   fixture,
   HOST,
 } from './server-test-harness.js';
+import { ensureLocalTlsMaterial } from './tls.js';
 
 afterEach(cleanupAll);
 
@@ -40,8 +42,8 @@ describe('native desktop client', () => {
     const secondGrant = new NativeGrantService();
     firstGrant.grantNative('first-token');
     secondGrant.grantNative('second-token');
-    const first = await fixture({ nativeGrant: firstGrant });
-    const second = await fixture({ nativeGrant: secondGrant });
+    const first = await fixture({ nativeGrant: firstGrant, tls: true });
+    const second = await fixture({ nativeGrant: secondGrant, tls: true });
     const firstLock = await acquireAgentServerLock(first.store.root);
     const secondLock = await acquireAgentServerLock(second.store.root);
     try {
@@ -66,20 +68,27 @@ describe('native desktop client', () => {
           origin: NATIVE_CLIENT_ORIGIN,
           [AGENT_SERVER_TOKEN_HEADER]: 'first-token',
         };
-        expect(
-          (
-            await fetch(`${firstUrl}/v1/native/connection-settings`, {
-              headers,
-            })
-          ).status,
-        ).toBe(200);
-        expect(
-          (
-            await fetch(`${secondUrl}/v1/native/connection-settings`, {
-              headers,
-            })
-          ).status,
-        ).toBe(401);
+        for (const [server, url, expected] of [
+          [first, firstUrl, 200],
+          [second, secondUrl, 401],
+        ] as const) {
+          const material = await ensureLocalTlsMaterial(server.storeRoot);
+          const status = await new Promise<number | undefined>(
+            (resolve, reject) => {
+              const req = request(
+                `${url}/v1/native/connection-settings`,
+                { headers, ca: material.ca },
+                (response) => {
+                  response.resume();
+                  resolve(response.statusCode);
+                },
+              );
+              req.on('error', reject);
+              req.end();
+            },
+          );
+          expect(status).toBe(expected);
+        }
       } finally {
         firstRecord.release();
         secondRecord.release();
@@ -88,25 +97,6 @@ describe('native desktop client', () => {
       await firstLock.release();
       await secondLock.release();
     }
-  });
-
-  it('returns the effective store scope only through native administration', async () => {
-    const nativeGrant = new NativeGrantService();
-    nativeGrant.grantNative('scope-token');
-    const { app, store } = await fixture({ nativeGrant });
-    const response = await app.inject({
-      method: 'GET',
-      url: '/v1/native/connection-settings',
-      headers: {
-        host: HOST,
-        origin: NATIVE_CLIENT_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: 'scope-token',
-      },
-    });
-    expect(response.statusCode).toBe(200);
-    expect(response.json<{ storageScope: string }>().storageScope).toBe(
-      realpathSync(store.root),
-    );
   });
 
   it('admits its actual loopback origin after binding an ephemeral port', async () => {

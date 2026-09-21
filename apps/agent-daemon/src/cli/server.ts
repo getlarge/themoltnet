@@ -130,6 +130,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     return 1;
   }
 
+  if (envConfig.rootSource === 'MOLTNET_AGENT_SERVER_ROOT') {
+    console.error(
+      'MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.',
+    );
+  }
   const port = Number.parseInt(
     values.port ??
       (envConfig.port || `${defaultAgentServerPort(envConfig.root)}`),

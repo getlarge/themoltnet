@@ -500,6 +500,15 @@ func classifyCentralStorePath(value string) pathClass {
 		return pathNone
 	}
 	rest := strings.TrimPrefix(value[index+len(storeMarker):], "/")
+	// Connection environments use the same protected layout as the store.
+	if strings.HasPrefix(rest, "environments/") {
+		parts := strings.SplitN(rest, "/", 3)
+		if len(parts) < 3 {
+			return pathCredential
+		}
+		rest = parts[2]
+		value = ".config/moltnet/" + rest
+	}
 	switch {
 	case rest == "":
 		// The store root itself.

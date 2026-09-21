@@ -122,5 +122,14 @@
     "error": true,
     "name": "invalid structure",
     "overrides": []
+  },
+  {
+    "environment": {},
+    "name": "release repeated trailing slashes",
+    "overrides": {
+      "apiUrl": "https://api.themolt.net///",
+      "issuer": "https://auth.themolt.net///"
+    },
+    "suffix": ""
   }
 ]

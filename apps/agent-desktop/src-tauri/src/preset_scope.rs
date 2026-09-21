@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::store_root::resolve_store_path;
+use crate::store_root::{is_default_store, resolve_store_path};
 
 const API: &str = "https://api.themolt.net";
 const ISSUER: &str = "https://auth.themolt.net";
@@ -51,14 +51,7 @@ impl PresetScope {
         };
         let root = resolve_store_path(Some(&self.root), None, &self.home, &self.home)?;
         let effective = connection_root(&root, &overrides, environment)?;
-        let default = resolve_store_path(
-            Some(&self.home.join(".config/moltnet")),
-            None,
-            &self.home,
-            &self.home,
-        );
-        // Isolated presets remain available when the default directory is broken.
-        if default.as_ref().is_ok_and(|default| &effective == default) {
+        if is_default_store(&effective, &self.home) {
             return Ok(String::new());
         }
         effective
@@ -129,10 +122,7 @@ fn connection_root(root: &Path, overrides: &Value, environment: &Value) -> Resul
         .get("issuer")
         .and_then(Value::as_str)
         .unwrap_or(ISSUER);
-    let identity = [
-        api.strip_suffix('/').unwrap_or(api),
-        issuer.strip_suffix('/').unwrap_or(issuer),
-    ];
+    let identity = [api.trim_end_matches('/'), issuer.trim_end_matches('/')];
     if identity == [API, ISSUER] {
         return Ok(root.to_path_buf());
     }

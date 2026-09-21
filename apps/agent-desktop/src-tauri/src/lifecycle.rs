@@ -203,14 +203,17 @@ impl LifecycleManager {
         let shared = environment_path("MOLTNET_HOME");
         let legacy = environment_path("MOLTNET_AGENT_SERVER_ROOT");
         let installation = environment_path("MOLTNET_AGENT_HOME");
-        let cwd = if [&shared, &legacy, &installation]
-            .iter()
-            .any(|value| value.as_ref().is_some_and(|path| path.is_relative()))
-        {
-            std::env::current_dir().map_err(|error| format!("Cannot resolve a relative store or installation path: {error}. Use an absolute path and restart Desktop."))?
-        } else {
-            home.clone()
-        };
+        for (name, path) in [
+            ("MOLTNET_HOME", &shared),
+            ("MOLTNET_AGENT_SERVER_ROOT", &legacy),
+            ("MOLTNET_AGENT_HOME", &installation),
+        ] {
+            validate_desktop_path(name, path.as_deref())?;
+        }
+        let cwd = home.clone();
+        if legacy.is_some() {
+            eprintln!("MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.");
+        }
         let root =
             resolve_environment_store_root(shared.as_deref(), legacy.as_deref(), &home, &cwd)
                 .map_err(|error| format!("Invalid MoltNet store selection: {error}. Correct the environment and restart Desktop."))?;
@@ -744,6 +747,14 @@ pub fn open_logs(directory: &Path) -> Result<(), String> {
     fixed_command(platform_opener(), &[&path]).map(|_| ())
 }
 
+fn validate_desktop_path(name: &str, path: Option<&Path>) -> Result<(), String> {
+    if path.is_some_and(|path| !path.is_absolute()) {
+        return Err(format!("{name} must be an absolute path in Desktop. Correct the environment and restart Desktop."));
+    }
+    Ok(())
+
+}
+
 fn capture_lines(
     reader: impl std::io::Read + Send + 'static,
     logs: Arc<Mutex<LogBuffer>>,
@@ -1091,6 +1102,14 @@ mod tests {
 
     const RELEASE_SIGNER_PUBKEY_FOR_TEST: &str =
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y";
+
+    #[test]
+    fn desktop_requires_absolute_environment_paths() {
+        assert!(validate_desktop_path("MOLTNET_HOME", Some(Path::new("relative"))).is_err());
+        assert!(validate_desktop_path("MOLTNET_AGENT_HOME", Some(Path::new(""))).is_err());
+        assert!(validate_desktop_path("MOLTNET_HOME", Some(Path::new("/absolute"))).is_ok());
+        assert!(validate_desktop_path("MOLTNET_HOME", None).is_ok());
+    }
 
     #[test]
     fn selected_store_scopes_logs() {

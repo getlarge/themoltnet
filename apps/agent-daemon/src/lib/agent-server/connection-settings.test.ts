@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  type ConnectionSettings,
   ConnectionSettingsStore,
   connectionStateRoot,
   RELEASE_CONNECTION,
@@ -21,7 +22,37 @@ afterEach(() => {
     rmSync(path, { recursive: true, force: true });
 });
 
+const fixtures = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../../../../test-fixtures/connection-state-root.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+) as {
+  name: string;
+  environment: Partial<ConnectionSettings>;
+  overrides: Partial<ConnectionSettings>;
+  suffix?: string;
+  error?: boolean;
+}[];
+
 describe('local connection settings', () => {
+  it.each(fixtures)(
+    'shares native connection scope: $name',
+    ({ environment, overrides, suffix, error }) => {
+      const path = root();
+      writeFileSync(
+        join(path, 'connection-settings.json'),
+        JSON.stringify(overrides),
+      );
+      const stateRoot = () =>
+        new ConnectionSettingsStore(path, environment).stateRoot();
+      if (error) expect(stateRoot).toThrow();
+      else expect(stateRoot()).toBe(join(path, suffix!));
+    },
+  );
   it('starts from release defaults and stores only overrides', () => {
     const path = root();
     const store = new ConnectionSettingsStore(path);

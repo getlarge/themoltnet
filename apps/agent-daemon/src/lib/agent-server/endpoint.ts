@@ -25,7 +25,7 @@ function endpointPath(root: string): string {
 function validateUrl(value: string): void {
   const url = new URL(value);
   if (
-    !['http:', 'https:'].includes(url.protocol) ||
+    url.protocol !== 'https:' ||
     url.hostname !== '127.0.0.1' ||
     url.port === '0' ||
     url.username ||
@@ -33,11 +33,9 @@ function validateUrl(value: string): void {
     url.pathname !== '/' ||
     url.search ||
     url.hash ||
-    !/^https?:\/\/127\.0\.0\.1(?::[1-9]\d{0,4})?$/.test(value)
+    !/^https:\/\/127\.0\.0\.1(?::[1-9]\d{0,4})?$/.test(value)
   ) {
-    throw new Error(
-      'Agent Server discovery requires a loopback HTTP(S) origin',
-    );
+    throw new Error('Agent Server discovery requires a loopback HTTPS origin');
   }
 }
 
@@ -56,7 +54,10 @@ export function readAgentServerEndpoint(
     if (
       value.version !== 1 ||
       typeof value.instanceId !== 'string' ||
-      !value.instanceId.trim() ||
+      value.instanceId.length !== 36 ||
+      !/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/iu.test(
+        value.instanceId,
+      ) ||
       typeof value.url !== 'string'
     ) {
       throw new Error('Invalid Agent Server discovery metadata');
