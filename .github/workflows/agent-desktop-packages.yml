@@ -40,6 +40,8 @@ jobs:
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - name: Build Agent CLI payload for managed-startup smoke
         run: pnpm exec nx run @themoltnet/agent-daemon:bundle -- --no-qemu-img
+      - name: Verify release automation boundary
+        run: pnpm exec nx run @moltnet/agent-desktop:verify-release
       - name: Build unsigned CI packages
         run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch

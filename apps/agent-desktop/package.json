@@ -24,16 +24,7 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
-    "@moltnet/task-ui": "workspace:*",
-    "@wdio/cli": "catalog:",
-    "@wdio/local-runner": "catalog:",
-    "@wdio/mocha-framework": "catalog:",
-    "@wdio/spec-reporter": "catalog:",
-    "@wdio/globals": "catalog:",
-    "@wdio/tauri-service": "catalog:",
-    "@wdio/tauri-plugin": "catalog:",
-    "webdriverio": "catalog:",
-    "@axe-core/webdriverio": "catalog:"
+    "@moltnet/task-ui": "workspace:*"
   },
   "nx": {
     "namedInputs": {
@@ -281,7 +272,10 @@
           "linux": {
             "command": "bash tools/release/agent-desktop/bundle.sh linux"
           }
-        }
+        },
+        "dependsOn": [
+          "verify-release"
+        ]
       },
       "test-native": {
         "executor": "nx:run-commands",
@@ -294,47 +288,34 @@
           "command": "node apps/agent-desktop/scripts/test-store-root.mjs"
         }
       },
-      "e2e:chrome": {
+      "verify-release": {
         "executor": "nx:run-commands",
         "cache": false,
-        "options": {
-          "command": "pnpm --dir apps/agent-desktop exec wdio run e2e/wdio.chrome.conf.ts"
-        }
-      },
-      "build:e2e": {
-        "executor": "nx:run-commands",
-        "cache": false,
-        "options": {
-          "command": "CARGO_TARGET_DIR=../out-rust/e2e pnpm --dir apps/agent-desktop exec tauri build --debug --bundles app --features desktop-e2e --config src-tauri/tauri.e2e.conf.json"
-        }
-      },
-      "e2e:native": {
-        "executor": "nx:run-commands",
-        "cache": false,
+        "parallelism": false,
         "dependsOn": [
-          "build:e2e"
+          "build"
         ],
         "options": {
-          "command": "node apps/agent-desktop/e2e/run-native.mjs"
-        }
-      },
-      "e2e:verify-release": {
-        "executor": "nx:run-commands",
-        "cache": false,
-        "options": {
-          "command": "node apps/agent-desktop/e2e/verify-release-boundary.mjs"
-        }
-      },
-      "e2e:typecheck": {
-        "executor": "nx:run-commands",
-        "options": {
-          "commands": [
-            "tsc -p apps/agent-desktop/e2e/tsconfig.json",
-            "tsc -p apps/agent-daemon/e2e/tsconfig.json"
-          ],
-          "parallel": false
-        }
+          "command": "node tools/release/agent-desktop/verify-boundary.mjs"
+        },
+        "inputs": [
+          "agentDesktopRendererProduction",
+          "agentDesktopNative",
+          "agentDesktopPackaging",
+          "^production",
+          "sharedGlobals"
+        ]
       }
+    }
+  },
+  "exports": {
+    "./main": {
+      "import": "./src/main.tsx",
+      "types": "./src/main.tsx"
+    },
+    "./bridge": {
+      "import": "./src/bridge.ts",
+      "types": "./src/bridge.ts"
     }
   }
 }

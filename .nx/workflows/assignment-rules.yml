@@ -40,7 +40,7 @@ assignment-rules:
   # validation) cap at 1 per agent —
   # vitest worker IPC starts to time out under contention on 4-vCPU
   # runners when multiple non-atomized suites compound their fork pools.
-  - targets: [test, test-desktop-native, build, 'check:pack']
+  - targets: [test, test-desktop-native, verify-release, build, 'check:pack']
     run-on:
       - agent: linux-medium
         parallelism: 1

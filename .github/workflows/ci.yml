@@ -292,6 +292,23 @@ jobs:
       - name: Test macOS native control and peer credentials
         run: cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-macos
 
+  desktop-e2e:
+    name: Desktop renderer journeys
+    needs: affected
+    if: needs.affected.outputs.desktop-e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run @moltnet/agent-desktop-e2e:e2e --configuration=chrome --excludeTaskDependencies
+
   agent-desktop-packages:
     name: Desktop packages
     needs: [affected]
@@ -327,6 +344,7 @@ jobs:
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
       agent-desktop: ${{ steps.compute.outputs.agent-desktop }}
+      desktop-e2e: ${{ steps.compute.outputs.desktop-e2e }}
       agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       landing: ${{ steps.compute.outputs.landing }}
@@ -509,6 +527,11 @@ jobs:
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if contains "@moltnet/agent-desktop-e2e"; then
+            echo "desktop-e2e=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "desktop-e2e=false" >> "$GITHUB_OUTPUT"
+          fi
           if contains "@moltnet/agent-desktop"; then
             echo "agent-desktop=true" >> "$GITHUB_OUTPUT"
           else
@@ -633,9 +656,9 @@ jobs:
         with:
           go-cache: 'true'
           install-dependencies: 'false'
-          rust: ${{ needs.affected.outputs.agent-desktop }}
+          rust: ${{ needs.affected.outputs.agent-desktop == 'true' || needs.affected.outputs.desktop-e2e == 'true' }}
           rust-components: rustfmt, clippy
-          rust-cache: ${{ needs.affected.outputs.agent-desktop }}
+          rust-cache: ${{ needs.affected.outputs.agent-desktop == 'true' || needs.affected.outputs.desktop-e2e == 'true' }}
           rust-cache-key: ci-registry
           rust-cache-targets: 'false'
       - name: Install native build tools
@@ -645,7 +668,7 @@ jobs:
             sudo apt-get install -y cmake ninja-build
           fi
       - name: Install Agent desktop native dependencies
-        if: needs.affected.outputs.agent-desktop == 'true'
+        if: needs.affected.outputs.agent-desktop == 'true' || needs.affected.outputs.desktop-e2e == 'true'
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - name: Restore golangci-lint
         id: golangci-lint-cache
@@ -782,7 +805,7 @@ jobs:
           # to have published first. Release jobs run those smokes in order;
           # pre-merge CI still runs every package's tarball checks.
           MOLTNET_SKIP_REGISTRY_SMOKE: '1'
-        run: pnpm exec nx affected -t lint typecheck test-ci test-desktop-native test-release-scripts build check:pack docker:build --configuration=ci
+        run: pnpm exec nx affected -t lint typecheck test-ci test-desktop-native test-release-scripts verify-release build check:pack docker:build --configuration=ci
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'

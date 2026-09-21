@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": "./out-tsc/spec",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": [
+      "node",
+      "@wdio/globals/types",
+      "@wdio/mocha-framework",
+      "@wdio/tauri-service"
+    ]
+  },
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.mts", "*.config.ts", "wdio.*.conf.ts"],
+  "references": [
+    {
+      "path": "../agent-desktop/tsconfig.lib.json"
+    }
+  ]
+}

@@ -1,16 +1,20 @@
+import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { createServer } from 'vite';
 
-const projectRoot = fileURLToPath(new URL('..', import.meta.url));
+const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export const config = {
+  onPrepare() {
+    mkdirSync('test-results', { recursive: true });
+  },
   runner: 'local',
-  specs: ['./chrome.spec.ts'],
+  specs: ['./src/chrome.spec.ts'],
   maxInstances: 1,
   framework: 'mocha',
   reporters: ['spec'],
-  logLevel: 'warn',
+  logLevel: 'error',
   mochaOpts: { timeout: 30_000 },
   services: [
     [
@@ -19,7 +23,7 @@ export const config = {
         mode: 'browser',
         devServer: async () => {
           const server = await createServer({
-            configFile: `${projectRoot}/e2e/vite.config.ts`,
+            configFile: `${projectRoot}/vite.config.ts`,
             server: { host: '127.0.0.1', port: 0, strictPort: false },
           });
           await server.listen();

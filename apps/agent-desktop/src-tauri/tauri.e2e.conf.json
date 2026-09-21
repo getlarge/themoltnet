@@ -13,12 +13,17 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeBuildCommand": "pnpm exec vite build --config e2e/vite.config.ts --mode native-e2e",
-    "frontendDist": "../dist-e2e"
+    "beforeBuildCommand": "pnpm --dir ../agent-desktop-e2e exec vite build --mode native-e2e",
+    "frontendDist": "../../agent-desktop-e2e/dist"
   },
   "bundle": {
     "createUpdaterArtifacts": false
   },
   "identifier": "net.themolt.agent.e2e",
+  "plugins": {
+    "updater": {
+      "active": false
+    }
+  },
   "productName": "MoltNet Agent E2E"
 }

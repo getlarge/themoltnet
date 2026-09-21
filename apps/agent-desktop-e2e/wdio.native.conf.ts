@@ -1,7 +1,8 @@
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const projectRoot = fileURLToPath(new URL('..', import.meta.url));
+const projectRoot = fileURLToPath(new URL('../agent-desktop', import.meta.url));
 const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
 if (
   !root ||
@@ -9,24 +10,32 @@ if (
   process.env.MOLTNET_HOME !== join(root, 'store') ||
   process.env.MOLTNET_AGENT_HOME !== join(root, 'agent')
 ) {
-  throw new Error('Use the isolated e2e:native launcher');
+  throw new Error('Use the agent-desktop-e2e e2e target');
 }
 
 export const config = {
+  onPrepare() {
+    mkdirSync('test-results', { recursive: true });
+  },
   runner: 'local',
-  specs: ['./native.spec.ts'],
+  specs: ['./src/native.spec.ts'],
   maxInstances: 1,
   framework: 'mocha',
   reporters: ['spec'],
-  logLevel: 'info',
-  mochaOpts: { timeout: 30_000 },
+  logLevel: 'warn',
+  mochaOpts: {
+    // Persistence journeys perform two bounded starts and shutdown.
+    timeout: 60_000,
+  },
   services: [
     [
       '@wdio/tauri-service',
       {
         appBinaryPath:
           process.env.MOLTNET_DESKTOP_E2E_BINARY ??
-          `${projectRoot}/out-rust/e2e/debug/bundle/macos/MoltNet Agent E2E.app/Contents/MacOS/moltnet-agent-desktop`,
+          (process.platform === 'darwin'
+            ? `${projectRoot}/out-rust/e2e/debug/bundle/macos/MoltNet Agent E2E.app/Contents/MacOS/moltnet-agent-desktop`
+            : `${projectRoot}/out-rust/e2e/debug/moltnet-agent-desktop`),
         driverProvider: 'embedded',
         embeddedPort: Number(process.env.MOLTNET_DESKTOP_WEBDRIVER_PORT),
       },

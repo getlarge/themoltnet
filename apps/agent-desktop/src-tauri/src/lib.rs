@@ -823,13 +823,32 @@ async fn desktop_repair_linux_setup(
 }
 
 pub fn run() {
+    #[cfg(feature = "desktop-e2e")]
+    {
+        let fixture = std::env::var_os("MOLTNET_DESKTOP_E2E_FIXTURE_ROOT")
+            .and_then(|path| std::fs::canonicalize(path).ok())
+            .expect("Desktop automation requires an isolated fixture root");
+        for (name, child) in [
+            ("HOME", "home"),
+            ("MOLTNET_HOME", "store"),
+            ("MOLTNET_AGENT_HOME", "agent"),
+        ] {
+            let actual = std::env::var_os(name).and_then(|path| std::fs::canonicalize(path).ok());
+            assert_eq!(
+                actual.as_deref(),
+                Some(fixture.join(child).as_path()),
+                "Desktop automation requires isolated {name}"
+            );
+        }
+    }
     let builder = tauri::Builder::default();
     #[cfg(feature = "desktop-e2e")]
     let builder = builder
         .plugin(tauri_plugin_wdio::init())
         .plugin(tauri_plugin_wdio_webdriver::init());
+    #[cfg(not(feature = "desktop-e2e"))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     let app = builder
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             desktop_status,

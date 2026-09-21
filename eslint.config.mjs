@@ -5,7 +5,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
-const moduleBoundaryOptions = {
+export const moduleBoundaryOptions = {
   enforceBuildableLibDependency: false,
   allow: [],
   depConstraints: [

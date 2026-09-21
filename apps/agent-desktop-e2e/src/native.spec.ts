@@ -1,15 +1,17 @@
+import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { browser, expect } from '@wdio/globals';
-
-import type { DesktopStatus } from '../src/bridge.js';
 
 describe('Native Desktop with an isolated installation', () => {
   it('reads the real supervised lifecycle without launching work', async () => {
-    await browser.waitUntil(async () => {
-      const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
-        ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
-      );
-      return status.state === 'running';
-    });
+    await browser.waitUntil(
+      async () => {
+        const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
+          ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
+        );
+        return status.state === 'running';
+      },
+      { timeout: 30_000, timeoutMsg: 'Supervised daemon did not become ready' },
+    );
     const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
       ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
     );
