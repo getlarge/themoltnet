@@ -82,6 +82,9 @@ export class OSKeyringSecretProvider implements SecretProvider {
         MOLTNET_AGENT_SERVER_ROOT: storeOptions?.env
           ? storeOptions.env.MOLTNET_AGENT_SERVER_ROOT
           : readEnvironmentVariable('MOLTNET_AGENT_SERVER_ROOT'),
+        MOLTNET_DEFAULT_STORE_ROOT: storeOptions?.env
+          ? storeOptions.env.MOLTNET_DEFAULT_STORE_ROOT
+          : readEnvironmentVariable('MOLTNET_DEFAULT_STORE_ROOT'),
         MOLTNET_HOME: storeOptions?.env
           ? storeOptions.env.MOLTNET_HOME
           : readEnvironmentVariable('MOLTNET_HOME'),

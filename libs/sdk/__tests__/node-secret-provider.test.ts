@@ -79,6 +79,32 @@ describe('Node secret providers', () => {
     ).rejects.toThrow(/store root/);
   });
 
+  it.each(['ambient', 'options'] as const)(
+    'captures the original default store under a worker HOME (%s)',
+    async (selection) => {
+      const original = join(tmpdir(), 'original-home', '.config', 'moltnet');
+      const worker = join(tmpdir(), 'worker-home');
+      vi.stubEnv('HOME', worker);
+      vi.stubEnv('USERPROFILE', worker);
+      vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+      vi.stubEnv('MOLTNET_HOME', original);
+      vi.stubEnv('MOLTNET_DEFAULT_STORE_ROOT', original);
+      const env = {
+        MOLTNET_HOME: original,
+        MOLTNET_DEFAULT_STORE_ROOT: original,
+      };
+      const registry = createNodeSecretProviderRegistry({
+        platform: 'linux',
+        ...(selection === 'options' ? { store: { env, home: worker } } : {}),
+      });
+      // Lazy access must keep the complete selection captured at construction.
+      vi.stubEnv('MOLTNET_DEFAULT_STORE_ROOT', join(tmpdir(), 'changed'));
+      env.MOLTNET_DEFAULT_STORE_ROOT = join(tmpdir(), 'changed');
+      await registry.get('os-keyring')?.read('identity/same/seed');
+      expect(keyring.constructor).toHaveBeenCalledWith('linux', 'themolt.net');
+    },
+  );
+
   it('captures the legacy store alias before lazy initialization', async () => {
     vi.stubEnv('MOLTNET_HOME', undefined);
     vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/missing-keyring-legacy-store');

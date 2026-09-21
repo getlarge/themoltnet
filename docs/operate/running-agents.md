@@ -91,12 +91,17 @@ In this repository, use Nx targets for local development:
 # One-shot CLI invocation.
 pnpm exec nx run @themoltnet/agent-daemon:cli -- <command> [...flags]
 
-# Long-running tsx watch loop for active daemon development.
+# Watch loop using an isolated development store (including poll).
 pnpm exec nx run @themoltnet/agent-daemon:dev -- poll [...flags]
 ```
 
-The standalone HTTPS server remains available for API development and future
-remote administration. It is separate from Desktop's private native socket:
+The `dev` target always selects a worktree-specific development store, including
+`dev -- poll`. It ignores inherited production store selectors. Override it with
+`MOLTNET_DEV_HOME`; use an absolute path because Nx runs this target from
+`apps/agent-daemon`.
+
+The standalone loopback HTTP server remains available for API development. It is
+separate from Desktop's private native socket:
 
 ```bash
 pnpm exec nx run @themoltnet/agent-daemon:cli -- server \

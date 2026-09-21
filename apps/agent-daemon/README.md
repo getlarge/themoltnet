@@ -671,7 +671,10 @@ The launchers choose `~/.local/share/moltnet/development/<worktree-id>/store`
 and the sibling `agent` installation directory. The worktree ID is a stable
 hash of the canonical checkout path. Repeated launches reuse that environment;
 another worktree gets its own environment. Use `MOLTNET_DEV_HOME` and `MOLTNET_DEV_AGENT_HOME` to override these development
-locations. Relative paths resolve against the caller’s working directory.
+locations. Use absolute overrides: relative paths start at the Nx target’s
+working directory (`apps/agent-daemon` for daemon `dev`, the repository root
+for Desktop `tauri:dev`). All daemon `dev` commands, including `poll`, use
+this isolated store.
 The launchers ignore inherited production store and installation selectors.
 The renderer-only Desktop `dev` target starts Vite without a native server.
 

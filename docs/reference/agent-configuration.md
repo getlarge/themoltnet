@@ -73,15 +73,15 @@ paths. File locks use the lock file's filesystem identity, so aliases to the
 same file share a lock. An unavailable default directory does not prevent access
 to an isolated store.
 
-The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
-`storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a
-persisted compatibility contract: the canonical default store uses
-`themolt.net`; other stores use `themolt.net/store/<digest>`, with the lowercase
-SHA-256 hex digest of the canonical absolute path's UTF-8 bytes. Account keys
-starting with `store/` are reserved so Windows service/account targets cannot
-overlap. Moving a store changes its namespace; copying its files does not copy
-keyring secrets. Re-enroll credentials in the destination store. Symlinks to the
-same existing directory retain its namespace.
+The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, `isDefaultStore`,
+`defaultStoreRoot`, and `storeSecretService` from `@themoltnet/sdk/node`. Their
+namespace format is a persisted compatibility contract: the canonical default
+store uses `themolt.net`; other stores use `themolt.net/store/<digest>`, with
+the lowercase SHA-256 hex digest of the canonical absolute path's UTF-8 bytes.
+Account keys starting with `store/` are reserved so Windows service/account
+targets cannot overlap. Moving a store changes its namespace; copying its files
+does not copy keyring secrets. Re-enroll credentials in the destination store.
+Symlinks to the same existing directory retain its namespace.
 
 Keyring providers resolve their namespace on first keyring access and retain it
 for their lifetime. Environment and file providers do not require a valid
@@ -107,7 +107,8 @@ Each store has one Agent Server singleton. Standalone servers use loopback HTTP:
 the default store uses port 17374, while isolated stores receive an available
 port unless `--port` or `MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0`
 explicitly requests an available port. `agent-server-endpoint.json` contains
-public connection metadata, with a loopback HTTP origin and UUID instance ID.
+public connection metadata, with an `http:`-only loopback origin and UUID
+instance ID. Standalone clients reject HTTPS discovery records.
 
 Desktop starts its managed child on a private Unix socket on macOS and Linux.
 The native client verifies the peer UID and child PID before sending its
@@ -121,8 +122,11 @@ managed workers pass an absolute `MOLTNET_HOME` to children so changing their
 working directory or `HOME` does not change their store. Managed workers also
 inherit `MOLTNET_DEFAULT_STORE_ROOT`, an internal absolute comparison hint that
 preserves the original default keyring namespace across `HOME` changes. It does
-not select a store and should not be set in launch profiles. Desktop's
-`MOLTNET_AGENT_HOME` selects its installation directory independently.
+not select a store and should not be set in launch profiles. It is not a
+security control: same-user processes can change their store environment.
+Desktop runs under the actual user HOME and its Rust default-store comparison
+does not consume this worker-only hint. Desktop's `MOLTNET_AGENT_HOME` selects
+its installation directory independently.
 
 ## Upgrading from MOLTNET_AGENT_SERVER_ROOT
 

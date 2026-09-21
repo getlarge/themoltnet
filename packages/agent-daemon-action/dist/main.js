@@ -19871,26 +19871,54 @@ function canonicalStoreRoot(root, cwd = process.cwd()) {
 	}
 	return current;
 }
-/** Explicit root > MOLTNET_HOME > the established user-local default. */
+/** Explicit root > MOLTNET_HOME (or its full-store alias) > user-local default. */
 function resolveStoreRoot(options = {}) {
+	return resolveStoreSelection(options).root;
+}
+/** Store selection together with its diagnostic provenance. */
+function resolveStoreSelection(options = {}) {
 	const env = options.env ?? process.env;
-	const root = options.root ?? env.MOLTNET_HOME;
-	const source = options.root !== void 0 ? "explicit root" : env.MOLTNET_HOME !== void 0 ? "MOLTNET_HOME" : "default root";
-	if (root === void 0) return join(options.home ?? homedir(), ".config", "moltnet");
+	if (options.root === void 0 && env.MOLTNET_HOME !== void 0 && env.MOLTNET_AGENT_SERVER_ROOT !== void 0 && canonicalStoreRoot(env.MOLTNET_HOME, options.cwd) !== canonicalStoreRoot(env.MOLTNET_AGENT_SERVER_ROOT, options.cwd)) throw new Error(`Conflicting MOLTNET_HOME=${JSON.stringify(env.MOLTNET_HOME)} and MOLTNET_AGENT_SERVER_ROOT=${JSON.stringify(env.MOLTNET_AGENT_SERVER_ROOT)}; select one store root`);
+	const root = options.root ?? env.MOLTNET_HOME ?? env.MOLTNET_AGENT_SERVER_ROOT;
+	const source = options.root !== void 0 ? "explicit root" : env.MOLTNET_HOME !== void 0 ? "MOLTNET_HOME" : env.MOLTNET_AGENT_SERVER_ROOT !== void 0 ? "MOLTNET_AGENT_SERVER_ROOT" : "default root";
+	if (root === void 0) return {
+		root: join(options.home ?? homedir(), ".config", "moltnet"),
+		source
+	};
 	try {
-		return canonicalStoreRoot(root ?? join(options.home ?? homedir(), ".config", "moltnet"), options.cwd);
+		return {
+			root: canonicalStoreRoot(root, options.cwd),
+			source
+		};
 	} catch (cause) {
 		throw new Error(`Invalid MoltNet store root (${source}): ${cause instanceof Error ? cause.message : String(cause)}`, { cause });
 	}
 }
+/** Parent-process default used only for namespace comparison across worker HOME changes. */
+function defaultStoreRoot(options = {}) {
+	const inherited = (options.env ?? process.env).MOLTNET_DEFAULT_STORE_ROOT;
+	if (inherited !== void 0) {
+		if (!isAbsolute(inherited) || inherited.includes("\0")) throw new Error("MOLTNET_DEFAULT_STORE_ROOT must be an absolute directory path");
+		return inherited;
+	}
+	return join(options.home ?? homedir(), ".config", "moltnet");
+}
+/** Compare store identity, including aliases of the default directory. */
+function isDefaultStore(options = {}) {
+	const env = options.env ?? process.env;
+	if (options.root === void 0 && env.MOLTNET_HOME === void 0 && env.MOLTNET_AGENT_SERVER_ROOT === void 0) return true;
+	const root = resolveStoreRoot(options);
+	const defaultRoot = defaultStoreRoot(options);
+	try {
+		return canonicalStoreRoot(root, options.cwd) === canonicalStoreRoot(defaultRoot, options.cwd);
+	} catch {
+		return false;
+	}
+}
 /** The established default service remains readable without copying secrets. */
 function storeSecretService(options = {}) {
-	const env = options.env ?? process.env;
-	if (options.root === void 0 && env.MOLTNET_HOME === void 0) return MOLTNET_SECRET_SERVICE;
+	if (isDefaultStore(options)) return MOLTNET_SECRET_SERVICE;
 	const root = resolveStoreRoot(options);
-	try {
-		if (root === canonicalStoreRoot(join(options.home ?? homedir(), ".config", "moltnet"), options.cwd)) return MOLTNET_SECRET_SERVICE;
-	} catch {}
 	return `${MOLTNET_SECRET_SERVICE}/store/${createHash$1("sha256").update(root, "utf8").digest("hex")}`;
 }
 //#endregion
@@ -40504,7 +40532,11 @@ var OSKeyringSecretProvider = class {
 			root: storeOptions?.root,
 			home: storeOptions?.home ?? homedir(),
 			cwd: storeOptions?.cwd ?? process.cwd(),
-			env: { MOLTNET_HOME: storeOptions?.env ? storeOptions.env.MOLTNET_HOME : readEnvironmentVariable("MOLTNET_HOME") }
+			env: {
+				MOLTNET_AGENT_SERVER_ROOT: storeOptions?.env ? storeOptions.env.MOLTNET_AGENT_SERVER_ROOT : readEnvironmentVariable("MOLTNET_AGENT_SERVER_ROOT"),
+				MOLTNET_DEFAULT_STORE_ROOT: storeOptions?.env ? storeOptions.env.MOLTNET_DEFAULT_STORE_ROOT : readEnvironmentVariable("MOLTNET_DEFAULT_STORE_ROOT"),
+				MOLTNET_HOME: storeOptions?.env ? storeOptions.env.MOLTNET_HOME : readEnvironmentVariable("MOLTNET_HOME")
+			}
 		};
 	}
 	async read(key) {
@@ -40534,8 +40566,18 @@ var OSKeyringSecretProvider = class {
 	}
 };
 setDefaultRegistrationSecretProvider(() => new OSKeyringSecretProvider());
-function createNodeSecretProviderRegistry(platform = process.platform, readEnv = readEnvironmentVariable, storeOptions) {
-	return createDefaultSecretProviderRegistry().register(new OSKeyringSecretProvider(platform, storeOptions)).register(new FileSecretProvider(fileSecretProviderOptionsFromEnv(readEnv, platform)));
+function createNodeSecretProviderRegistry(options = {}, readEnv = readEnvironmentVariable, storeOptions) {
+	const selected = typeof options === "string" ? {
+		platform: options,
+		readEnv,
+		store: storeOptions
+	} : {
+		readEnv,
+		store: storeOptions,
+		...options
+	};
+	const platform = selected.platform ?? process.platform;
+	return createDefaultSecretProviderRegistry().register(new OSKeyringSecretProvider(platform, selected.store)).register(new FileSecretProvider(fileSecretProviderOptionsFromEnv(selected.readEnv ?? readEnvironmentVariable, platform)));
 }
 /** Node entry point: includes the lazy OS keyring unless callers supply a registry. */
 function connect(options = {}) {

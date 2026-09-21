@@ -513,10 +513,8 @@ func classifyCentralStorePath(value string) pathClass {
 	case rest == "" || rest == "environments":
 		// A parent directory can expose every credential beneath it.
 		return pathCredential
-	case rest == "agent-server-endpoint.json" || rest == "tls/local-ca.pem" || rest == "tls/loopback-cert.pem":
+	case rest == "agent-server-endpoint.json":
 		return pathManagedConfig
-	case rest == "tls" || strings.HasPrefix(rest, "tls/"):
-		return pathCredential
 	case rest == identitySelectorFile || rest == "secrets" || strings.HasPrefix(rest, "secrets/"):
 		return pathCredential
 	case rest == identitiesDirName ||

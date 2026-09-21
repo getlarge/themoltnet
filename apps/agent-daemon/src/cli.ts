@@ -6,7 +6,7 @@ import { runPoll } from './cli/poll.js';
 import { runProviders } from './cli/providers.js';
 import { runAgentServer } from './cli/server.js';
 import { runSyncSessions } from './cli/sync-sessions.js';
-import { loadAgentServerEnvConfig } from './config.js';
+import { legacyStoreNotice, loadAgentServerEnvConfig } from './config.js';
 import { RuntimeRegistry } from './lib/agent-server/runtime-registry.js';
 import { resolveAgentServerRoot } from './lib/agent-server/store.js';
 import { ROOT_USAGE } from './lib/help.js';
@@ -18,9 +18,11 @@ export async function runAgentDaemonCli(options: {
   runtime: DaemonRuntimeAdapter;
   argv?: string[];
 }): Promise<number> {
+  const notice = legacyStoreNotice();
+  if (notice) console.error(notice);
   const [subcommand, ...rest] = options.argv ?? process.argv.slice(2);
   if (
-    ['poll', 'drain', 'serve'].includes(subcommand ?? '') &&
+    ['poll', 'drain'].includes(subcommand ?? '') &&
     !isWorkspaceInvocation()
   ) {
     void checkDaemonUpdate({ currentVersion: DAEMON_VERSION })

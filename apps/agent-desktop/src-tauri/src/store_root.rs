@@ -25,6 +25,8 @@ pub fn resolve_environment_store_root(
 }
 
 /// Compare canonical store identity; isolated stores do not depend on default health.
+/// Desktop retains the real user HOME, so it does not consume the worker-only
+/// MOLTNET_DEFAULT_STORE_ROOT namespace hint used by the Go and Node workers.
 pub fn is_default_store(root: &Path, home: &Path) -> bool {
     let default = home.join(".config/moltnet");
     if root == default {

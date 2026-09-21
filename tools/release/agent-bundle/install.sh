@@ -183,15 +183,26 @@ verify_launcher() {
 unregister_legacy_service() {
   # Remove only a service whose executable belongs to this installation.
   service_file=$(legacy_service_definition_path)
-  if [ ! -f "$service_file" ] || ! grep -qF "$HOME_DIR/current" "$service_file"; then
-    return 0
-  fi
+  [ -f "$service_file" ] || return 0
+  executable="$HOME_DIR/current/bin/moltnet-agent"
   case "$(host_os)" in
     darwin)
+      launcher=$(/usr/libexec/PlistBuddy -c 'Print :ProgramArguments:0' "$service_file" 2>/dev/null) || return 0
+      [ "$launcher" = "$executable" ] || return 0
       launchctl bootout "gui/$(id -u)/$LEGACY_SERVICE_LABEL" >/dev/null 2>&1 || true
       rm -f "$service_file"
       ;;
     linux)
+      # Match the complete ExecStart executable, including quoted paths.
+      awk -v executable="$executable" '
+        /^ExecStart=/ {
+          command = substr($0, 11)
+          quoted = "\"" executable "\""
+          if (command == executable || index(command, executable " ") == 1 ||
+              command == quoted || index(command, quoted " ") == 1) owned = 1
+        }
+        END { exit !owned }
+      ' "$service_file" || return 0
       if command -v systemctl >/dev/null 2>&1; then
         systemctl --user disable --now moltnet-agent.service >/dev/null 2>&1 || true
       fi

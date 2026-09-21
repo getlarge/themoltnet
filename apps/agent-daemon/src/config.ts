@@ -72,6 +72,13 @@ export interface DaemonConfig {
   expectedAgent?: SubjectPin;
 }
 
+/** All daemon commands announce the same legacy alias policy as Go and Desktop. */
+export function legacyStoreNotice(): string | undefined {
+  return process.env['MOLTNET_AGENT_SERVER_ROOT'] !== undefined
+    ? 'MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.'
+    : undefined;
+}
+
 export function loadConfig(): DaemonConfig {
   assertSingleCredentialForm('MOLTNET_AGENT_KEY', 'MOLTNET_AGENT_KEY_REF');
   assertSingleCredentialForm('MOLTNET_PRIVATE_KEY', 'MOLTNET_PRIVATE_KEY_REF');

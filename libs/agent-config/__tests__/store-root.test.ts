@@ -64,7 +64,7 @@ describe('MoltNet store selection', () => {
         'utf8',
       );
       for (const row of rows
-        .split('\n')
+        .split(/\r?\n/)
         .filter((line) => line && !line.startsWith('#'))) {
         const [layout, selection, expected] = row.split('\t');
         const base = join(home, `${layout}-${selection}`);

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  legacyStoreNotice,
   loadAgentServerEnvConfig,
   loadConfig,
   loadUpdateEnvConfig,
@@ -14,6 +15,17 @@ describe('loadConfig observability settings', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
+  it.each([undefined, '/same-store'])(
+    'announces the legacy name even with MOLTNET_HOME=%s',
+    (shared) => {
+      vi.stubEnv('MOLTNET_HOME', shared);
+      vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+      expect(legacyStoreNotice()).toBeUndefined();
+      vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/same-store');
+      expect(legacyStoreNotice()).toContain('is deprecated; use MOLTNET_HOME');
+    },
+  );
+
   it('shares MOLTNET_HOME across direct workers and the server', () => {
     vi.stubEnv('MOLTNET_HOME', '/isolated-moltnet-store');
     vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);

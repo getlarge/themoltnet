@@ -212,24 +212,20 @@ func CanonicalExisting(path string) (string, error) { return canonicalExisting(p
 // CacheDir keeps the established default cache location while isolating all
 // store-owned recovery artifacts, resource locks, and update metadata.
 func CacheDir() (string, error) {
-	_, shared := os.LookupEnv("MOLTNET_HOME")
-	_, legacy := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT")
-	if shared || legacy {
-		root, err := Dir()
+	selection, err := Select(nil)
+	if err != nil {
+		return "", err
+	}
+	isDefault, err := selection.IsDefault()
+	if err != nil {
+		return "", err
+	}
+	if !isDefault {
+		root, err := selection.resolve()
 		if err != nil {
 			return "", err
 		}
-		selection, err := Select(nil)
-		if err != nil {
-			return "", err
-		}
-		isDefault, err := selection.IsDefault()
-		if err != nil {
-			return "", err
-		}
-		if !isDefault {
-			return filepath.Join(root, "cache"), nil
-		}
+		return filepath.Join(root, "cache"), nil
 	}
 	root, err := os.UserCacheDir()
 	if err != nil {

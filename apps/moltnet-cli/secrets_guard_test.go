@@ -982,20 +982,13 @@ func TestSecretsGuardDeniesInvalidStoreSelection(t *testing.T) {
 	}
 }
 
-func TestSecretsGuardProtectsNativeControlMaterial(t *testing.T) {
+func TestSecretsGuardProtectsStandaloneDiscovery(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("MOLTNET_HOME", root)
 	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
 	context := newSecretGuardPathContext(root, root, root)
-	for _, name := range []string{"agent-server-endpoint.json", "tls/local-ca.pem", "tls/loopback-cert.pem"} {
-		if got := classifyProtectedPathWithContext(filepath.Join(root, name), context); got != pathManagedConfig {
-			t.Errorf("%s: want managed config, got %v", name, got)
-		}
-	}
-	for _, name := range []string{"tls", "tls/loopback-key.pem", "tls/local-ca-key.pem"} {
-		if got := classifyProtectedPathWithContext(filepath.Join(root, name), context); got != pathCredential {
-			t.Errorf("%s: want credential, got %v", name, got)
-		}
+	if got := classifyProtectedPathWithContext(filepath.Join(root, "agent-server-endpoint.json"), context); got != pathManagedConfig {
+		t.Errorf("discovery: want managed config, got %v", got)
 	}
 }
 

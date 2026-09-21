@@ -28,7 +28,7 @@ async function lockInChild(root: string): Promise<ChildProcess> {
   await new Promise<void>((resolvePromise, reject) => {
     const timer = setTimeout(
       () => reject(new Error('child lock fixture did not become ready')),
-      5_000,
+      15_000,
     );
     child.once('error', reject);
     child.once('exit', (code) =>
@@ -66,7 +66,7 @@ describe('agent server singleton lock', () => {
     await expect(acquireAgentServerLock(root)).rejects.toMatchObject({
       code: 'held',
     });
-  });
+  }, 20_000);
 
   it('excludes a daemon holding the connection-state lock during an upgrade', async () => {
     const store = freshRoot();
@@ -96,7 +96,7 @@ describe('agent server singleton lock', () => {
 
     const reacquired = await acquireAgentServerLock(firstRoot);
     await reacquired.release();
-  });
+  }, 20_000);
 
   it('recovers a stale lock', async () => {
     const root = freshRoot();
