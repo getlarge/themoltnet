@@ -21,6 +21,8 @@
       "scope:public",
       "platform:browser"
     ],
-    "implicitDependencies": ["@moltnet/console"]
+    "implicitDependencies": [
+      "@moltnet/console"
+    ]
   }
 }
