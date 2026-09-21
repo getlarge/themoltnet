@@ -250,3 +250,34 @@ func TestRelativeHomeDefaultStaysLexical(t *testing.T) {
 		t.Fatalf("relative default: %q, %v", got, err)
 	}
 }
+
+func TestIsolatedCacheDir(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("MOLTNET_HOME", root)
+	got, err := CacheDir()
+	canonical, _ := Canonical(root)
+	if err != nil || got != filepath.Join(canonical, "cache") {
+		t.Fatalf("cache: %q, %v", got, err)
+	}
+}
+
+func TestDefaultStoreAliasKeepsCacheLocation(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("MOLTNET_HOME", "")
+	os.Unsetenv("MOLTNET_HOME")
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", "")
+	os.Unsetenv("MOLTNET_AGENT_SERVER_ROOT")
+	expected, err := CacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := Dir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MOLTNET_HOME", root)
+	got, err := CacheDir()
+	if err != nil || got != expected {
+		t.Fatalf("alias cache %q, %v; want %q", got, err, expected)
+	}
+}

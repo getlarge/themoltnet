@@ -306,10 +306,13 @@ export class RunManager {
     env['MOLTNET_API_URL'] =
       activation.apiUrl ??
       (activation.source === 'external' ? activation.configApiUrl : '');
-    if (activation.source === 'managed' && !config.keys.private_key_ref) {
+    if (
+      activation.source === 'managed' &&
+      config.keys.private_key_ref?.provider !== 'file'
+    ) {
       throw new AgentServerRunError(
         'invalid_spec',
-        'The managed signing key reference is missing',
+        'Managed runs require a file-backed signing key; enroll the identity again in this store',
       );
     }
     if (
@@ -321,7 +324,7 @@ export class RunManager {
       );
       env['MOLTNET_SECRET_ROOT'] = this.store.secretsDir;
     } else {
-      // Resolve native keyring references before the worker receives its isolated HOME.
+      // External identities retain their existing launch-time projection contract.
       try {
         env['MOLTNET_PRIVATE_KEY'] = await resolveIdentitySeed(
           config,

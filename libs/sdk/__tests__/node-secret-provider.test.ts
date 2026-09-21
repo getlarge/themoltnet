@@ -38,6 +38,7 @@ import {
   connect,
   createNodeSecretProviderRegistry,
   resolveNodeOAuth2ClientSecret,
+  storeSecretService,
   windowsKeyringTarget,
 } from '../src/node.js';
 
@@ -76,6 +77,16 @@ describe('Node secret providers', () => {
     await expect(
       registry.resolve({ provider: 'os-keyring', key: 'test' }),
     ).rejects.toThrow(/store root/);
+  });
+
+  it('captures the legacy store alias before lazy initialization', async () => {
+    vi.stubEnv('MOLTNET_HOME', undefined);
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/missing-keyring-legacy-store');
+    const expected = storeSecretService();
+    const registry = createNodeSecretProviderRegistry('linux');
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/different-keyring-legacy-store');
+    await registry.get('os-keyring')?.read('identity/same/seed');
+    expect(keyring.constructor.mock.calls[0]?.[1]).toBe(expected);
   });
 
   it('registers both env and a lazy OS-keyring provider for Node consumers', async () => {

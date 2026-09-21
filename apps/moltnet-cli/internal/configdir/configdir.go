@@ -190,3 +190,32 @@ func (s Selection) SecretService() (string, error) {
 // CanonicalExisting returns the filesystem spelling of an existing path.
 // Project bindings use the same platform implementation as store identity.
 func CanonicalExisting(path string) (string, error) { return canonicalExisting(path) }
+
+// CacheDir keeps the established default cache location while isolating all
+// store-owned recovery artifacts, resource locks, and update metadata.
+func CacheDir() (string, error) {
+	_, shared := os.LookupEnv("MOLTNET_HOME")
+	_, legacy := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT")
+	if shared || legacy {
+		root, err := Dir()
+		if err != nil {
+			return "", err
+		}
+		defaults, err := defaultDir()
+		if err != nil {
+			return "", err
+		}
+		defaults, err = Canonical(defaults)
+		if err != nil {
+			return "", err
+		}
+		if root != defaults {
+			return filepath.Join(root, "cache"), nil
+		}
+	}
+	root, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "moltnet"), nil
+}

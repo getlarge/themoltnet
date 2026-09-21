@@ -79,6 +79,9 @@ export class OSKeyringSecretProvider implements SecretProvider {
       // Snapshot selection without filesystem access; env/file users never
       // need to resolve a keyring namespace.
       env: {
+        MOLTNET_AGENT_SERVER_ROOT: storeOptions?.env
+          ? storeOptions.env.MOLTNET_AGENT_SERVER_ROOT
+          : readEnvironmentVariable('MOLTNET_AGENT_SERVER_ROOT'),
         MOLTNET_HOME: storeOptions?.env
           ? storeOptions.env.MOLTNET_HOME
           : readEnvironmentVariable('MOLTNET_HOME'),

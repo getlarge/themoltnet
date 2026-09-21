@@ -26,16 +26,31 @@ use tauri_plugin_updater::UpdaterExt;
 const STATUS_EVENT: &str = "agent-desktop://status";
 
 struct AppState {
-    lifecycle: Mutex<LifecycleManager>,
+    lifecycle: Mutex<Result<LifecycleManager, String>>,
     latest_status: Mutex<DesktopStatus>,
-    logs_directory: PathBuf,
+    logs_directory: Option<PathBuf>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
-        let lifecycle = LifecycleManager::default();
-        let latest_status = lifecycle.snapshot();
-        let logs_directory = lifecycle.logs_directory();
+        Self::from_lifecycle(LifecycleManager::from_environment())
+    }
+}
+
+impl AppState {
+    fn from_lifecycle(lifecycle: Result<LifecycleManager, String>) -> Self {
+        let latest_status = match &lifecycle {
+            Ok(manager) => manager.snapshot(),
+            Err(error) => DesktopStatus {
+                state: LifecycleState::Failed,
+                message: error.clone(),
+                ..DesktopStatus::default()
+            },
+        };
+        let logs_directory = lifecycle
+            .as_ref()
+            .ok()
+            .map(LifecycleManager::logs_directory);
         Self {
             lifecycle: Mutex::new(lifecycle),
             latest_status: Mutex::new(latest_status),
@@ -123,6 +138,7 @@ fn operate_with_pending(
             }
             Err(TryLockError::Poisoned(_)) => return Err(poisoned_status(app)),
         };
+        let lifecycle = lifecycle.as_mut().map_err(|error| error.clone())?;
         // Published only once the lock is ours, so a rejected concurrent
         // request never announces a transition that will not happen.
         if let Some(pending) = pending {
@@ -130,7 +146,7 @@ fn operate_with_pending(
             interim.state = pending;
             publish(app, &interim);
         }
-        let result = operation(&mut lifecycle);
+        let result = operation(lifecycle);
         let snapshot = lifecycle.snapshot();
         publish(app, &snapshot);
         result.map(|_| snapshot)
@@ -152,9 +168,15 @@ fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     let result = match state.lifecycle.lock() {
         Ok(mut lifecycle) => {
-            let result = lifecycle.stop_server();
-            let snapshot = lifecycle.snapshot();
-            publish(app, &snapshot);
+            let result = lifecycle
+                .as_mut()
+                .map_or(Ok(DesktopStatus::default()), |manager| {
+                    manager.stop_server()
+                });
+            let snapshot = lifecycle.as_ref().ok().map(LifecycleManager::snapshot);
+            if let Some(snapshot) = snapshot {
+                publish(app, &snapshot);
+            }
             result.map(|_| ())
         }
         Err(_) => Err(poisoned_status(app)),
@@ -300,6 +322,8 @@ async fn with_control_connection(
         // recoverable - the callers already poll on an interval.
         let lifecycle = state.lifecycle.try_lock().map_err(lifecycle_lock_error)?;
         lifecycle
+            .as_ref()
+            .map_err(|error| error.clone())?
             .control_connection()
             .cloned()
             .ok_or_else(|| "the Agent Server is not running".to_string())?
@@ -576,7 +600,10 @@ async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 
 #[tauri::command]
 async fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
-    let directory = state.logs_directory.clone();
+    let directory = state
+        .logs_directory
+        .clone()
+        .ok_or("No log directory is available until the store configuration is valid")?;
     tauri::async_runtime::spawn_blocking(move || lifecycle::open_logs(&directory))
         .await
         .map_err(|_| "Could not open logs".to_string())?
@@ -709,6 +736,9 @@ fn start_lifecycle(app: AppHandle) {
         let state = app.state::<AppState>();
         let action = match state.lifecycle.try_lock() {
             Ok(mut lifecycle) => {
+                let Ok(lifecycle) = lifecycle.as_mut() else {
+                    break;
+                };
                 let action = lifecycle.inspect_exit();
                 let snapshot = lifecycle.snapshot();
                 publish(&app, &snapshot);
@@ -726,6 +756,9 @@ fn start_lifecycle(app: AppHandle) {
                 let state = retry.state::<AppState>();
                 let result = match state.lifecycle.lock() {
                     Ok(mut lifecycle) => {
+                        let Ok(lifecycle) = lifecycle.as_mut() else {
+                            return;
+                        };
                         let result = lifecycle.retry_after_exit();
                         let snapshot = lifecycle.snapshot();
                         publish(&retry, &snapshot);
@@ -841,6 +874,17 @@ pub fn run() {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn invalid_environment_is_a_visible_failure_without_a_lifecycle() {
+        let state =
+            AppState::from_lifecycle(Err("Invalid MOLTNET_HOME; correct it and restart".into()));
+        let status = state.latest_status.lock().unwrap();
+        assert_eq!(status.state, LifecycleState::Failed);
+        assert!(status.message.contains("MOLTNET_HOME"));
+        assert!(state.lifecycle.lock().unwrap().is_err());
+        assert!(state.logs_directory.is_none());
+    }
 
     #[test]
     fn status_updates_are_emitted_only_when_observable_state_changes() {

@@ -197,20 +197,21 @@ impl LifecycleManager {
     }
 }
 
-impl Default for LifecycleManager {
-    fn default() -> Self {
-        let home = home_directory().expect("HOME is required");
-        let cwd = std::env::current_dir().expect("current directory is required");
+impl LifecycleManager {
+    pub fn from_environment() -> Result<Self, String> {
+        let home = home_directory()?;
+        let cwd = std::env::current_dir()
+            .map_err(|error| format!("Cannot read working directory: {error}"))?;
         let shared = environment_path("MOLTNET_HOME");
         let legacy = environment_path("MOLTNET_AGENT_SERVER_ROOT");
         let root =
             resolve_environment_store_root(shared.as_deref(), legacy.as_deref(), &home, &cwd)
-                .expect("invalid MoltNet store selection");
+                .map_err(|error| format!("Invalid MoltNet store selection: {error}. Correct the environment and restart Desktop."))?;
         let installation = environment_path("MOLTNET_AGENT_HOME").map(|value| {
             resolve_store_root(Some(&value), None, &home, &cwd)
-                .expect("invalid Agent installation root")
-        });
-        Self::with_roots(home, root, installation)
+                .map_err(|error| format!("Invalid MOLTNET_AGENT_HOME: {error}. Correct the environment and restart Desktop."))
+        }).transpose()?;
+        Ok(Self::with_roots(home, root, installation))
     }
 }
 

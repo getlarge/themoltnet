@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { cryptoService } from '@moltnet/crypto-service';
 import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import { SecretProviderRegistry } from '@themoltnet/sdk';
+import * as Sdk from '@themoltnet/sdk';
 import * as SdkNode from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -46,6 +47,40 @@ afterEach(async () => {
 });
 
 describe('agent server providers and runs', () => {
+  it('rejects unsupported managed signing providers before spawning', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const config = store.readAgentConfig('course-bot')!;
+    config.keys.private_key_ref = {
+      provider: 'os-keyring',
+      key: 'identity/FP-1/seed',
+    };
+    store.writeAgentConfig('course-bot', config);
+    vi.spyOn(Sdk, 'resolveIdentitySeed').mockResolvedValue('resolved-seed');
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json<{ message: string }>().message).toContain(
+      'file-backed',
+    );
+    expect(spawned).toHaveLength(0);
+    expect(Sdk.resolveIdentitySeed).not.toHaveBeenCalled();
+  });
   it('returns an authenticated bounded log snapshot for Desktop', async () => {
     const { app, store } = await fixture();
     const token = await authorize(app);
@@ -487,7 +522,7 @@ describe('agent server providers and runs', () => {
     );
   });
 
-  it('resolves non-file signing references before changing a managed worker HOME', async () => {
+  it('rejects non-file managed signing references after a configuration change', async () => {
     const signing = await cryptoService.generateKeyPair();
     const key = `identity/${signing.fingerprint}/seed`;
     const { app, store, spawned } = await fixture({
@@ -528,9 +563,11 @@ describe('agent server providers and runs', () => {
         mode: 'poll',
       },
     });
-    expect(response.statusCode).toBe(201);
-    expect(spawned[0].options.env.MOLTNET_PRIVATE_KEY).toBe(signing.privateKey);
-    expect(spawned[0].options.env.MOLTNET_PRIVATE_KEY_REF).toBeUndefined();
+    expect(response.statusCode).toBe(400);
+    expect(response.json<{ message: string }>().message).toContain(
+      'file-backed',
+    );
+    expect(spawned).toHaveLength(0);
   });
 
   it('starts and stops a run for a managed agent with resolved provider env', async () => {
