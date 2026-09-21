@@ -103,18 +103,17 @@ export MOLTNET_HOME="$HOME/.local/share/moltnet/development/personal"
 moltnet agents list
 ```
 
-Each store has one Agent Server singleton. The default store uses port 17374;
-isolated stores receive an available loopback port unless `--port` or
-`MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0` explicitly requests an
-available port. Desktop prefers the supervised child’s stdout readiness record,
-with `agent-server-endpoint.json` as a fallback. Both contain public connection
-metadata. Native control pins the selected store’s CA before spawning the child;
-platform trust is used for browser pairing. Desktop requires HTTPS, and
-discovery records accept only HTTPS loopback origins and UUID instance
-identifiers. HTTP daemons remain available through their explicit URL but do not
-publish discovery records. Default-store Desktop starts retain a pinned
-`/health` check for older releases. Isolated Desktop starts require Agent CLI
-0.62.0 or newer; the pinned 0.61.0 installer cannot yet supply this capability.
+Each store has one Agent Server singleton. Standalone servers use loopback HTTP:
+the default store uses port 17374, while isolated stores receive an available
+port unless `--port` or `MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0`
+explicitly requests an available port. `agent-server-endpoint.json` contains
+public connection metadata, with a loopback HTTP origin and UUID instance ID.
+
+Desktop starts its managed child on a private Unix socket on macOS and Linux.
+The native client verifies the peer UID and child PID before sending its
+process-scoped grant. It does not use TCP discovery, CA certificates, or OS
+trust installation. Every store requires the socket-capable Agent CLI version
+pinned by Desktop's build; there is no fallback to an older TCP transport.
 
 Desktop connection environments remain separate beneath the selected store.
 Presets use the effective environment's storage scope. `moltnet start` and
@@ -141,8 +140,8 @@ entries are migrated automatically.
   new credentials in the selected store.
 - Empty values now fail. Two set aliases must resolve to the same directory;
   conflicting roots fail. An explicit store option overrides both.
-- Custom stores use an available daemon port by default. Clients must use HTTPS
-  discovery or an explicit URL rather than assume port 17374.
+- Custom stores use an available daemon port by default. Standalone clients must
+  use discovery or an explicit URL rather than assume port 17374.
 - Desktop presets are now scoped by store and effective API/issuer. Existing
   presets for a default store with customized connection settings remain in the
   old browser storage key but do not appear in the new scope. Recreate the

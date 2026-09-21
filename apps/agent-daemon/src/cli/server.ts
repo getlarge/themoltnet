@@ -27,10 +27,7 @@ import { RunManager } from '../lib/agent-server/runs.js';
 import { RuntimeRegistry } from '../lib/agent-server/runtime-registry.js';
 import { createAgentServerSecretProviders } from '../lib/agent-server/secret-providers.js';
 import { buildAgentServer } from '../lib/agent-server/server.js';
-import {
-  AgentServerStore,
-  resolveAgentServerRoot,
-} from '../lib/agent-server/store.js';
+import { AgentServerStore } from '../lib/agent-server/store.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
 import { parseLocalOperationalSettings } from '../lib/options.js';
@@ -271,11 +268,21 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             if (nativeSocket) await chmod(nativeSocket, 0o600);
             if (!nativeSocket) {
               endpoint = publishAgentServerEndpoint(settingsRoot, address);
-              if (values.supervised) console.log(JSON.stringify({event: 'moltnet.agent-server.ready', ...endpoint.record}));
-              console.error(`discovery: ${join(settingsRoot, 'agent-server-endpoint.json')}`);
+              if (values.supervised)
+                console.log(
+                  JSON.stringify({
+                    event: 'moltnet.agent-server.ready',
+                    ...endpoint.record,
+                  }),
+                );
+              console.error(
+                `discovery: ${join(settingsRoot, 'agent-server-endpoint.json')}`,
+              );
             }
             console.error(`moltnet-agent server listening on ${address}`);
-            console.error(`store root: ${settingsRoot} (${envConfig.rootSource})`);
+            console.error(
+              `store root: ${settingsRoot} (${envConfig.rootSource})`,
+            );
             console.error(`connection state: ${root}`);
             if (nativeSocket)
               console.error(`native control socket: ${nativeSocket}`);

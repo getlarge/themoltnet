@@ -526,7 +526,8 @@ impl LifecycleManager {
             // the private directory plus kernel UID/PID peer check is the
             // transport boundary, while this grant prevents accidental use by
             // another client in that boundary.
-            command.env(NATIVE_TOKEN_ENV, token.expose())
+            command
+                .env(NATIVE_TOKEN_ENV, token.expose())
                 .env("MOLTNET_HOME", &self.store_root)
                 .env_remove("MOLTNET_AGENT_SERVER_ROOT");
             let mut child = match command
@@ -752,7 +753,6 @@ fn validate_desktop_path(name: &str, path: Option<&Path>) -> Result<(), String> 
         return Err(format!("{name} must be an absolute path in Desktop. Correct the environment and restart Desktop."));
     }
     Ok(())
-
 }
 
 fn capture_lines(

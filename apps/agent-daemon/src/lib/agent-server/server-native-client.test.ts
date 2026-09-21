@@ -6,7 +6,7 @@
  * involved and the native origin must never be reachable through one.
  */
 import { writeFileSync } from 'node:fs';
-import { request } from 'node:https';
+import { request } from 'node:http';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,7 +32,6 @@ import {
   fixture,
   HOST,
 } from './server-test-harness.js';
-import { ensureLocalTlsMaterial } from './tls.js';
 
 afterEach(cleanupAll);
 
@@ -42,8 +41,8 @@ describe('native desktop client', () => {
     const secondGrant = new NativeGrantService();
     firstGrant.grantNative('first-token');
     secondGrant.grantNative('second-token');
-    const first = await fixture({ nativeGrant: firstGrant, tls: true });
-    const second = await fixture({ nativeGrant: secondGrant, tls: true });
+    const first = await fixture({ nativeGrant: firstGrant });
+    const second = await fixture({ nativeGrant: secondGrant });
     const firstLock = await acquireAgentServerLock(first.store.root);
     const secondLock = await acquireAgentServerLock(second.store.root);
     try {
@@ -68,16 +67,15 @@ describe('native desktop client', () => {
           origin: NATIVE_CLIENT_ORIGIN,
           [AGENT_SERVER_TOKEN_HEADER]: 'first-token',
         };
-        for (const [server, url, expected] of [
-          [first, firstUrl, 200],
-          [second, secondUrl, 401],
+        for (const [url, expected] of [
+          [firstUrl, 200],
+          [secondUrl, 401],
         ] as const) {
-          const material = await ensureLocalTlsMaterial(server.storeRoot);
           const status = await new Promise<number | undefined>(
             (resolve, reject) => {
               const req = request(
                 `${url}/v1/native/connection-settings`,
-                { headers, ca: material.ca },
+                { headers },
                 (response) => {
                   response.resume();
                   resolve(response.statusCode);

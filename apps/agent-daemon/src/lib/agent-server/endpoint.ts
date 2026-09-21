@@ -25,7 +25,7 @@ function endpointPath(root: string): string {
 function validateUrl(value: string): void {
   const url = new URL(value);
   if (
-    url.protocol !== 'https:' ||
+    url.protocol !== 'http:' ||
     url.hostname !== '127.0.0.1' ||
     url.port === '0' ||
     url.username ||
@@ -33,9 +33,9 @@ function validateUrl(value: string): void {
     url.pathname !== '/' ||
     url.search ||
     url.hash ||
-    !/^https:\/\/127\.0\.0\.1(?::[1-9]\d{0,4})?$/.test(value)
+    !/^http:\/\/127\.0\.0\.1(?::[1-9]\d{0,4})?$/.test(value)
   ) {
-    throw new Error('Agent Server discovery requires a loopback HTTPS origin');
+    throw new Error('Agent Server discovery requires a loopback HTTP origin');
   }
 }
 

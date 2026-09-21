@@ -348,7 +348,7 @@ export function buildAgentServer(
   app.addHook('onListen', async () => {
     const address = app.server.address();
     if (address && typeof address !== 'string') {
-      options.selfOrigin = `${options.tls ? 'https' : 'http'}://127.0.0.1:${address.port}`;
+      options.selfOrigin = `http://127.0.0.1:${address.port}`;
     }
   });
 

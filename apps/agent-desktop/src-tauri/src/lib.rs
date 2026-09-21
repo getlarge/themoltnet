@@ -666,7 +666,9 @@ fn desktop_update_installer(
 
 fn record_desktop_log(app: &AppHandle, message: &str) {
     if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
-        lifecycle.push_log(message);
+        if let Ok(lifecycle) = lifecycle.as_ref() {
+            lifecycle.push_log(message);
+        }
     }
     eprintln!("{message}");
 }

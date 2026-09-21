@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 describe('per-store daemon discovery', () => {
-  it('shares loopback discovery validation fixtures with Desktop', () => {
+  it('validates standalone loopback discovery origins', () => {
     const fixtures = JSON.parse(
       readFileSync(
         new URL(
@@ -66,25 +66,25 @@ describe('per-store daemon discovery', () => {
     const secondRoot = freshRoot();
     const first = publishAgentServerEndpoint(
       firstRoot,
-      'https://127.0.0.1:41001',
+      'http://127.0.0.1:41001',
     );
     const second = publishAgentServerEndpoint(
       secondRoot,
-      'https://127.0.0.1:41002',
+      'http://127.0.0.1:41002',
     );
     expect(readAgentServerEndpoint(firstRoot)?.url).toBe(
-      'https://127.0.0.1:41001',
+      'http://127.0.0.1:41001',
     );
     expect(readAgentServerEndpoint(secondRoot)?.url).toBe(
-      'https://127.0.0.1:41002',
+      'http://127.0.0.1:41002',
     );
     const replacement = publishAgentServerEndpoint(
       firstRoot,
-      'https://127.0.0.1:41003',
+      'http://127.0.0.1:41003',
     );
     first.release();
     expect(readAgentServerEndpoint(firstRoot)?.url).toBe(
-      'https://127.0.0.1:41003',
+      'http://127.0.0.1:41003',
     );
     replacement.release();
     expect(readAgentServerEndpoint(firstRoot)).toBeNull();
@@ -100,7 +100,7 @@ describe('per-store daemon discovery', () => {
         version: 1,
         instanceId: '12345678-1234-4123-8123-123456789abc',
         pid: 2147483647,
-        url: 'https://127.0.0.1:41001',
+        url: 'http://127.0.0.1:41001',
       }),
     );
     const kill = vi.spyOn(process, 'kill').mockImplementation(() => {
@@ -117,7 +117,7 @@ describe('per-store daemon discovery', () => {
     const root = freshRoot();
     const published = publishAgentServerEndpoint(
       root,
-      'https://127.0.0.1:41001',
+      'http://127.0.0.1:41001',
     );
     const path = join(root, 'agent-server-endpoint.json');
     writeFileSync(path, '{');
@@ -125,7 +125,7 @@ describe('per-store daemon discovery', () => {
     expect(() => published.release()).not.toThrow();
   });
 
-  it.each(['https://127.0.0.1:443'])(
+  it.each(['http://127.0.0.1:80'])(
     'accepts explicit standard port %s',
     (url) => {
       const root = freshRoot();
@@ -143,7 +143,7 @@ describe('per-store daemon discovery', () => {
         JSON.stringify({
           version: 1,
           instanceId,
-          url: 'https://127.0.0.1:41001',
+          url: 'http://127.0.0.1:41001',
         }),
       );
       expect(() => readAgentServerEndpoint(root)).toThrow('metadata');
@@ -152,7 +152,7 @@ describe('per-store daemon discovery', () => {
 
   it('writes owner-readable metadata without a client token', () => {
     const root = freshRoot();
-    publishAgentServerEndpoint(root, 'https://127.0.0.1:41001');
+    publishAgentServerEndpoint(root, 'http://127.0.0.1:41001');
     const path = join(root, 'agent-server-endpoint.json');
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(
@@ -164,7 +164,7 @@ describe('per-store daemon discovery', () => {
     'https://example.com:41001',
     'http://127.0.0.1:0',
     'http://user:pass@127.0.0.1:41001',
-    'https://127.0.0.1:41001/path',
+    'http://127.0.0.1:41001/path',
   ])('rejects invalid discovery address %s', (url) => {
     expect(() => publishAgentServerEndpoint(freshRoot(), url)).toThrow();
   });

@@ -33,7 +33,6 @@ import {
   captureTeamCredential,
   verifyTeamActivation,
 } from './team-credentials.js';
-import { ensureLocalTlsMaterial } from './tls.js';
 
 /**
  * Shared harness for the AgentServer HTTP suites.
@@ -104,7 +103,6 @@ export async function cleanupAll(): Promise<void> {
 export async function fixture(
   options: {
     connectionState?: boolean;
-    tls?: boolean;
     rateLimitMax?: number;
     nativeOnly?: boolean;
     operatorOAuth?: OperatorOAuth;
@@ -132,7 +130,6 @@ export async function fixture(
     externalSecrets = {},
     realCredentialPreflight = false,
     connectionState = false,
-    tls = false,
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
@@ -268,7 +265,6 @@ export async function fixture(
   });
   const browserToken = randomUUID();
   const app = buildAgentServer({
-    ...(tls ? { tls: await ensureLocalTlsMaterial(storeRoot) } : {}),
     operatorOAuth: {
       cancel: () => undefined,
       removeOperator: () => undefined,
