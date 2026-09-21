@@ -66,6 +66,8 @@ export function CopyButton({
         display: 'inline-flex',
         flexDirection: 'column',
         gap: theme.spacing[1],
+        maxWidth: '100%',
+        minWidth: 0,
       }}
     >
       {label && (

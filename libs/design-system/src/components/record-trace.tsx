@@ -26,25 +26,43 @@ export interface RecordTraceStep {
 export interface RecordTraceProps {
   steps: RecordTraceStep[];
   ariaLabel: string;
+  /** Narrowest a step may be while all steps share one row. */
+  minStepWidth?: string;
 }
 
-export function RecordTrace({ steps, ariaLabel }: RecordTraceProps) {
+export function RecordTrace({
+  steps,
+  ariaLabel,
+  minStepWidth = '10.5rem',
+}: RecordTraceProps) {
   const theme = useTheme();
+  const rowWidth = `(${minStepWidth} * ${steps.length} + ${theme.spacing[3]} * ${Math.max(steps.length - 1, 0)})`;
 
   return (
     <ol
       aria-label={ariaLabel}
       style={{
-        display: 'grid',
+        display: 'flex',
+        flexWrap: 'wrap',
         gap: theme.spacing[3],
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 12rem), 1fr))',
         listStyle: 'none',
         margin: 0,
         padding: 0,
       }}
     >
       {steps.map((step, index) => (
-        <li key={step.id} style={{ minWidth: 0, position: 'relative' }}>
+        <li
+          key={step.id}
+          style={{
+            minWidth: 0,
+            position: 'relative',
+            flexGrow: 1,
+            // All steps share one row when the trace is at least `rowWidth`
+            // wide; below that each step takes the full width, so the trace
+            // reads as one vertical sequence and never wraps part-way.
+            flexBasis: `calc((${rowWidth} - 100%) * 999)`,
+          }}
+        >
           <ControlSurface
             as="article"
             tone={step.tone}
