@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { constants, readFileSync } from "node:fs";
+import { constants, lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import * as os$1 from "os";
 import os, { EOL } from "os";
 import * as crypto$2 from "crypto";
@@ -14,9 +14,9 @@ import { createHash as createHash$1, randomBytes } from "node:crypto";
 import "string_decoder";
 import "child_process";
 import "timers";
-import { lstat, mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { homedir } from "node:os";
+import { lstat, mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -17414,7 +17414,7 @@ function expand(template, context) {
 	if (template === "/") return template;
 	else return template.replace(/\/$/, "");
 }
-function parse$1(options) {
+function parse$2(options) {
 	let method = options.method.toUpperCase();
 	let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
 	let headers = Object.assign({}, options.headers);
@@ -17451,7 +17451,7 @@ function parse$1(options) {
 	}, typeof body !== "undefined" ? { body } : null, options.request ? { request: options.request } : null);
 }
 function endpointWithDefaults(defaults, route, options) {
-	return parse$1(merge(defaults, route, options));
+	return parse$2(merge(defaults, route, options));
 }
 function withDefaults$2(oldDefaults, newDefaults) {
 	const DEFAULTS2 = merge(oldDefaults, newDefaults);
@@ -17460,7 +17460,7 @@ function withDefaults$2(oldDefaults, newDefaults) {
 		DEFAULTS: DEFAULTS2,
 		defaults: withDefaults$2.bind(null, DEFAULTS2),
 		merge: merge.bind(null, DEFAULTS2),
-		parse: parse$1
+		parse: parse$2
 	});
 }
 var endpoint = withDefaults$2(null, DEFAULTS);
@@ -19845,26 +19845,53 @@ function getOctokit(token, options, ...additionalPlugins) {
 	return new (GitHub.plugin(...additionalPlugins))(getOctokitOptions(token, options));
 }
 //#endregion
-//#region ../../libs/sdk/src/config.ts
-/** Read one environment value behind the SDK's config boundary. */
-function readEnvironmentVariable(name) {
-	return globalThis.process?.env?.[name];
+//#region ../../libs/agent-config/src/store-root.ts
+var MOLTNET_SECRET_SERVICE = "themolt.net";
+/** Resolve existing ancestors without creating anything or following a broken link. */
+function canonicalStoreRoot(root, cwd = process.cwd()) {
+	if (!root.trim() || root.includes("\0")) throw new Error("MoltNet store root must be a nonempty directory path");
+	const absolute = isAbsolute(root) ? root : `${cwd}${sep}${root}`;
+	const prefix = parse(absolute).root;
+	let current = realpathSync.native(prefix);
+	for (const segment of absolute.slice(prefix.length).split(sep === "/" ? "/" : /[\\/]/)) {
+		if (!segment || segment === ".") continue;
+		if (segment === "..") {
+			current = dirname(current);
+			continue;
+		}
+		current = join(current, segment);
+		try {
+			lstatSync(current);
+		} catch (error) {
+			if (error.code === "ENOENT") continue;
+			throw error;
+		}
+		current = realpathSync.native(current);
+		if (!statSync(current).isDirectory()) throw new Error("MoltNet store root must be a directory");
+	}
+	return current;
 }
-/**
-* Read MoltNet credentials from environment variables.
-* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL,
-* MOLTNET_AGENT_KEY, MOLTNET_AGENT_KEY_REF, and MOLTNET_PRIVATE_KEY_REF.
-*/
-function readEnvCredentials() {
-	return {
-		clientId: readEnvironmentVariable("MOLTNET_CLIENT_ID"),
-		clientSecret: readEnvironmentVariable("MOLTNET_CLIENT_SECRET"),
-		apiUrl: readEnvironmentVariable("MOLTNET_API_URL"),
-		agentKey: readEnvironmentVariable("MOLTNET_AGENT_KEY"),
-		agentKeyRef: readEnvironmentVariable("MOLTNET_AGENT_KEY_REF"),
-		privateKeyRef: readEnvironmentVariable("MOLTNET_PRIVATE_KEY_REF"),
-		credentialsPath: readEnvironmentVariable("MOLTNET_CREDENTIALS_PATH")
-	};
+/** Explicit root > MOLTNET_HOME > the established user-local default. */
+function resolveStoreRoot(options = {}) {
+	const env = options.env ?? process.env;
+	const root = options.root ?? env.MOLTNET_HOME;
+	const source = options.root !== void 0 ? "explicit root" : env.MOLTNET_HOME !== void 0 ? "MOLTNET_HOME" : "default root";
+	if (root === void 0) return join(options.home ?? homedir(), ".config", "moltnet");
+	try {
+		return canonicalStoreRoot(root ?? join(options.home ?? homedir(), ".config", "moltnet"), options.cwd);
+	} catch (cause) {
+		throw new Error(`Invalid MoltNet store root (${source}): ${cause instanceof Error ? cause.message : String(cause)}`, { cause });
+	}
+}
+/** The established default service remains readable without copying secrets. */
+function storeSecretService(options = {}) {
+	const env = options.env ?? process.env;
+	if (options.root === void 0 && env.MOLTNET_HOME === void 0) return MOLTNET_SECRET_SERVICE;
+	const root = resolveStoreRoot(options);
+	try {
+		if (root === canonicalStoreRoot(join(options.home ?? homedir(), ".config", "moltnet"), options.cwd)) return MOLTNET_SECRET_SERVICE;
+	} catch {}
+	return `${MOLTNET_SECRET_SERVICE}/store/${createHash$1("sha256").update(root, "utf8").digest("hex")}`;
 }
 //#endregion
 //#region ../../libs/agent-config/src/config.ts
@@ -19877,8 +19904,8 @@ function identitySeedKey(fingerprint) {
 function agentKeyKey(subjectId, teamId) {
 	return `agent-key/${subjectId}${teamId ? `/${teamId}` : ""}`;
 }
-function getConfigDir() {
-	return join(homedir(), ".config", "moltnet");
+function getConfigDir(options) {
+	return resolveStoreRoot(options);
 }
 /**
 * The one identity-alias grammar. Must stay identical to `AGENT_ALIAS_PATTERN`
@@ -20402,6 +20429,28 @@ if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
 	m.forEach((msg) => hash.update(msg));
 	return hash.digest();
 };
+//#endregion
+//#region ../../libs/sdk/src/config.ts
+/** Read one environment value behind the SDK's config boundary. */
+function readEnvironmentVariable(name) {
+	return globalThis.process?.env?.[name];
+}
+/**
+* Read MoltNet credentials from environment variables.
+* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL,
+* MOLTNET_AGENT_KEY, MOLTNET_AGENT_KEY_REF, and MOLTNET_PRIVATE_KEY_REF.
+*/
+function readEnvCredentials() {
+	return {
+		clientId: readEnvironmentVariable("MOLTNET_CLIENT_ID"),
+		clientSecret: readEnvironmentVariable("MOLTNET_CLIENT_SECRET"),
+		apiUrl: readEnvironmentVariable("MOLTNET_API_URL"),
+		agentKey: readEnvironmentVariable("MOLTNET_AGENT_KEY"),
+		agentKeyRef: readEnvironmentVariable("MOLTNET_AGENT_KEY_REF"),
+		privateKeyRef: readEnvironmentVariable("MOLTNET_PRIVATE_KEY_REF"),
+		credentialsPath: readEnvironmentVariable("MOLTNET_CREDENTIALS_PATH")
+	};
+}
 //#endregion
 //#region ../../libs/sdk/src/errors.ts
 var MoltNetError = class extends Error {
@@ -40448,8 +40497,15 @@ var OSKeyringSecretProvider = class {
 	name = OS_KEYRING_SECRET_PROVIDER;
 	capabilities = READ_WRITE_CAPABILITIES;
 	providerPromise;
-	constructor(platform = process.platform) {
+	storeOptions;
+	constructor(platform = process.platform, storeOptions) {
 		this.platform = platform;
+		this.storeOptions = {
+			root: storeOptions?.root,
+			home: storeOptions?.home ?? homedir(),
+			cwd: storeOptions?.cwd ?? process.cwd(),
+			env: { MOLTNET_HOME: storeOptions?.env ? storeOptions.env.MOLTNET_HOME : readEnvironmentVariable("MOLTNET_HOME") }
+		};
 	}
 	async read(key) {
 		return (await this.provider()).read(key);
@@ -40468,15 +40524,18 @@ var OSKeyringSecretProvider = class {
 		}
 	}
 	provider() {
-		this.providerPromise ??= import("./assets/src-ZLiymdU8.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform)).catch((error) => {
-			throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
+		this.providerPromise ??= Promise.resolve().then(() => {
+			const service = storeSecretService(this.storeOptions);
+			return import("./assets/src-Dh3PWWtC.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
+				throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
+			});
 		});
 		return this.providerPromise;
 	}
 };
 setDefaultRegistrationSecretProvider(() => new OSKeyringSecretProvider());
-function createNodeSecretProviderRegistry(platform = process.platform, readEnv = readEnvironmentVariable) {
-	return createDefaultSecretProviderRegistry().register(new OSKeyringSecretProvider(platform)).register(new FileSecretProvider(fileSecretProviderOptionsFromEnv(readEnv, platform)));
+function createNodeSecretProviderRegistry(platform = process.platform, readEnv = readEnvironmentVariable, storeOptions) {
+	return createDefaultSecretProviderRegistry().register(new OSKeyringSecretProvider(platform, storeOptions)).register(new FileSecretProvider(fileSecretProviderOptionsFromEnv(readEnv, platform)));
 }
 /** Node entry point: includes the lazy OS keyring unless callers supply a registry. */
 function connect(options = {}) {

@@ -16,13 +16,15 @@ var OSKeyringSecretProvider = class {
 		delete: true
 	});
 	keytarPromise;
-	constructor(platform = process.platform, loadKeytar = loadNativeKeytar) {
+	constructor(platform = process.platform, loadKeytar = loadNativeKeytar, service = MOLTNET_SECRET_SERVICE) {
 		this.platform = platform;
 		this.loadKeytar = loadKeytar;
+		this.service = service;
 	}
 	async read(key) {
 		this.assertSupported();
-		const value = await (await this.keytar()).getPassword(MOLTNET_SECRET_SERVICE, key);
+		assertAccountKey(key);
+		const value = await (await this.keytar()).getPassword(this.service, key);
 		if (value === null || this.platform !== "darwin") return value;
 		return decodeGoKeyringPassword(value);
 	}
@@ -34,12 +36,14 @@ var OSKeyringSecretProvider = class {
 	*/
 	async write(key, value) {
 		this.assertSupported();
+		assertAccountKey(key);
 		const stored = this.platform === "darwin" ? encodeGoKeyringPassword(value) : value;
-		await (await this.keytar()).setPassword(MOLTNET_SECRET_SERVICE, key, stored);
+		await (await this.keytar()).setPassword(this.service, key, stored);
 	}
 	async delete(key) {
 		this.assertSupported();
-		await (await this.keytar()).deletePassword(MOLTNET_SECRET_SERVICE, key);
+		assertAccountKey(key);
+		await (await this.keytar()).deletePassword(this.service, key);
 	}
 	async probe(key) {
 		try {
@@ -70,6 +74,9 @@ function encodeGoKeyringPassword(value) {
 function decodeGoKeyringPassword(value) {
 	if (!value.startsWith(GO_KEYRING_BASE64_PREFIX)) return value;
 	return Buffer.from(value.slice(18), "base64").toString("utf8");
+}
+function assertAccountKey(key) {
+	if (key.startsWith("store/")) throw new Error("OS keyring account prefix store/ is reserved");
 }
 //#endregion
 export { OSKeyringSecretProvider };

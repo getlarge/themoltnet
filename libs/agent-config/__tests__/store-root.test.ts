@@ -30,7 +30,7 @@ describe('MoltNet store selection', () => {
         'utf8',
       );
       for (const row of rows
-        .split('\n')
+        .split(/\r?\n/)
         .filter((line) => line && !line.startsWith('#'))) {
         const [root, digest] = row.split('\t');
         expect(storeSecretService({ root })).toBe(
@@ -41,8 +41,9 @@ describe('MoltNet store selection', () => {
   );
   let home: string;
   beforeEach(() => {
-    home = realpathSync(mkdtempSync(join(tmpdir(), 'moltnet-store-')));
+    home = realpathSync.native(mkdtempSync(join(tmpdir(), 'moltnet-store-')));
     vi.stubEnv('HOME', home);
+    vi.stubEnv('USERPROFILE', home);
     vi.stubEnv('MOLTNET_HOME', undefined);
   });
   afterEach(() => {
@@ -120,23 +121,26 @@ describe('MoltNet store selection', () => {
   it('retains the established default', () => {
     expect(getConfigDir()).toBe(join(home, '.config/moltnet'));
   });
-  it('conforms to the shared root fixtures', () => {
-    const rows = readFileSync(
-      new URL(
-        '../../../test-fixtures/store-root-conformance.tsv',
-        import.meta.url,
-      ),
-      'utf8',
-    );
-    for (const row of rows
-      .split('\n')
-      .filter((line) => line && !line.startsWith('#'))) {
-      const [root, expected] = row.split('\t');
-      const read = () => getConfigDir({ root, cwd: home });
-      if (expected === 'ERROR') expect(read).toThrow();
-      else expect(read()).toBe(join(home, expected!));
-    }
-  });
+  it.each(['\n', '\r\n'])(
+    'conforms to root fixtures with %j line endings',
+    (newline) => {
+      const rows = readFileSync(
+        new URL(
+          '../../../test-fixtures/store-root-conformance.tsv',
+          import.meta.url,
+        ),
+        'utf8',
+      ).replace(/\r?\n/g, newline);
+      for (const row of rows
+        .split(/\r?\n/)
+        .filter((line) => line && !line.startsWith('#'))) {
+        const [root, expected] = row.split('\t');
+        const read = () => getConfigDir({ root, cwd: home });
+        if (expected === 'ERROR') expect(read).toThrow();
+        else expect(read()).toBe(join(home, expected!));
+      }
+    },
+  );
   it('lets an explicit root override even an invalid environment root', () => {
     vi.stubEnv('MOLTNET_HOME', '');
     expect(getConfigDir({ root: join(home, 'explicit') })).toBe(
@@ -164,7 +168,7 @@ describe('MoltNet store selection', () => {
   it('resolves relative roots against the caller directory', () => {
     vi.stubEnv('MOLTNET_HOME', 'relative-store');
     expect(getConfigDir()).toBe(
-      join(realpathSync(process.cwd()), 'relative-store'),
+      join(realpathSync.native(process.cwd()), 'relative-store'),
     );
   });
   it('canonicalizes existing ancestors for a not-yet-created store', () => {
