@@ -71,10 +71,10 @@
       "Bash(pnpm run validate*)",
       "Bash(pnpm run format*)",
       "Bash(pnpm run db:*)",
-      "Bash(pnpm --filter * run test*)",
-      "Bash(pnpm --filter * run build*)",
-      "Bash(pnpm --filter * run typecheck*)",
-      "Bash(pnpm --filter * run lint*)"
+      "Bash(pnpm exec nx test *)",
+      "Bash(pnpm exec nx build *)",
+      "Bash(pnpm exec nx typecheck *)",
+      "Bash(pnpm exec nx lint *)"
     ]
   },
   "teammateMode": "tmux",
