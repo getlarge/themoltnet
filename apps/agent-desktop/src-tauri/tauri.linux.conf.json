@@ -19,9 +19,10 @@
           "ca-certificates",
           "qemu-utils",
           "qemu-system-x86",
-          "gnome-keyring",
-          "libsecret-1-0"
-        ]
+          "libsecret-1-0",
+          "dbus-bin"
+        ],
+        "recommends": ["gnome-keyring"]
       }
     },
     "targets": ["deb", "appimage"]

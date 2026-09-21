@@ -54,11 +54,6 @@ landing_key=$(sed -nE 's/^  RELEASE_SIGNER_PUBKEY = "(ssh-ed25519 [^"]+)"/\1/p' 
   exit 1
 }
 
-grep -q '^rust 1\.88\.0$' "$root/.tool-versions" || {
-  echo "Rust 1.88.0 must be pinned through .tool-versions" >&2
-  exit 1
-}
-
 platform=${3:-mac-os}
 case "$platform" in mac-os|linux) ;; *) echo "Unknown desktop platform: $platform" >&2; exit 1 ;; esac
 

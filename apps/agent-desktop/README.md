@@ -46,7 +46,9 @@ Unsigned builds omit updater signatures so PR checks need no release secrets.
 CI checks both platforms in the same package workflow. On Ubuntu it builds both packages, installs the `.deb`, checks shared-library resolution,
 and launches each format under a virtual display. Release jobs verify signed
 artifacts after upload and publish only after both macOS and Ubuntu packages
-are complete. The updater selects `linux-x86_64-deb` or
+are complete. The combined updater manifest is therefore published only when
+the macOS archive, Ubuntu `.deb`, and Ubuntu AppImage have all passed their
+platform release jobs. The updater selects `linux-x86_64-deb` or
 `linux-x86_64-appimage`; `.deb` updates use Ubuntu authorization and cancellation
 does not trigger a fallback password dialog.
 

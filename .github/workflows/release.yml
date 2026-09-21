@@ -2313,24 +2313,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
-
-      # The root postinstall constructs the Nx project graph; @nx-go/nx-go
-      # invokes `go list -m -json` during it, and the macOS runner image has
-      # no Go on PATH ('/bin/sh: go: command not found'). Install it
-      # explicitly on both matrix legs, mirroring ci.yml.
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache-dependency-path: |
-            go.work.sum
-
-      - run: pnpm install --frozen-lockfile
+          go-cache: 'true'
+          go-cache-dependency-path: go.work.sum
 
       - name: Assemble payload
         run: pnpm exec nx run @themoltnet/agent-daemon:bundle
@@ -2579,6 +2565,7 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           rust: 'true'
+          rust-cache: 'true'
 
       - name: Refuse incomplete signing material
         env:
@@ -2675,39 +2662,21 @@ jobs:
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
         run: |
           version=${RELEASE_TAG#agent-desktop-v}
-          bundle=apps/agent-desktop/out-rust/bundle/aarch64-apple-darwin/release/bundle
-          app=$(find "$bundle/macos" -maxdepth 1 -name '*.app' -print -quit)
-          dmg=$(find "$bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)
-          updater=$(find "$bundle/macos" -maxdepth 1 -name '*.app.tar.gz' -print -quit)
-          signature="$updater.sig"
-          [ -d "$app" ] && [ -f "$dmg" ] && [ -f "$updater" ] && [ -s "$signature" ] || {
-            echo "refusing incomplete Agent desktop artifacts" >&2
-            exit 1
-          }
-          cargo run \
-            --manifest-path apps/agent-desktop/src-tauri/Cargo.toml \
-            --locked \
-            --release \
-            --target aarch64-apple-darwin \
-            --target-dir apps/agent-desktop/out-rust/bundle \
-            --bin verify-updater-signature \
-            -- "$TAURI_UPDATER_PUBLIC_KEY" "$signature" "$updater"
-          codesign --verify --deep --strict --verbose=2 "$app"
-          spctl --assess --type execute --verbose=2 "$app"
-          xcrun stapler validate "$app"
-          xcrun stapler validate "$dmg"
-          [ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = "13.0" ]
-          mkdir -p dist/agent-desktop
-          ditto -c -k --keepParent "$app" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.zip"
-          cp "$dmg" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.dmg"
-          cp "$updater" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.tar.gz"
-          cp "$signature" "dist/agent-desktop/MoltNet-Agent_${version}_aarch64.app.tar.gz.sig"
+          bash tools/release/agent-desktop/materialize.sh mac-os "$version" "$TAURI_UPDATER_PUBLIC_KEY"
+          node tools/release/agent-desktop/release-metadata.mjs \
+            dist/agent-desktop "$version" mac-os "$RUNNER_TEMP/release-metadata-mac-os.json"
 
       - name: Upload and verify every release artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: bash tools/release/agent-desktop/upload.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: agent-desktop-release-metadata-mac-os
+          path: ${{ runner.temp }}/release-metadata-mac-os.json
+          retention-days: 1
 
   release-agent-desktop-linux:
     name: Package signed MoltNet Agent for Ubuntu
@@ -2736,11 +2705,10 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           rust: 'true'
+          rust-cache: 'true'
 
       - name: Install Linux packaging dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential file libayatana-appindicator3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf libfuse2t64
+        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
 
       - name: Build signed deb and AppImage
         env:
@@ -2763,25 +2731,24 @@ jobs:
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
         run: |
           version=${RELEASE_TAG#agent-desktop-v}
-          bundle=apps/agent-desktop/out-rust/bundle/x86_64-unknown-linux-gnu/release/bundle
-          mkdir -p dist/agent-desktop
-          for format in deb AppImage; do
-            artifact=$(find "$bundle" -type f -name "*.$format" -print -quit)
-            [ -s "$artifact" ] && [ -s "$artifact.sig" ] || { echo "Missing signed $format" >&2; exit 1; }
-            cargo run --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --release \
-              --target x86_64-unknown-linux-gnu --target-dir apps/agent-desktop/out-rust/bundle \
-              --bin verify-updater-signature -- "$TAURI_UPDATER_PUBLIC_KEY" "$artifact.sig" "$artifact"
-            cp "$artifact" "dist/agent-desktop/MoltNet-Agent_${version}_amd64.$format"
-            cp "$artifact.sig" "dist/agent-desktop/MoltNet-Agent_${version}_amd64.$format.sig"
-          done
-          [ "$(dpkg-deb -f dist/agent-desktop/*.deb Architecture)" = amd64 ]
-          [ "$(dpkg-deb -f dist/agent-desktop/*.deb Version)" = "$version" ]
+          bash tools/release/agent-desktop/materialize.sh linux "$version" "$TAURI_UPDATER_PUBLIC_KEY"
+          node tools/release/agent-desktop/release-metadata.mjs \
+            dist/agent-desktop "$version" linux "$RUNNER_TEMP/release-metadata-linux.json"
+
+      - name: Smoke-test the signed Linux packages
+        run: bash tools/release/agent-desktop/linux-smoke.sh
 
       - name: Upload and verify every release artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: bash tools/release/agent-desktop/upload.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: agent-desktop-release-metadata-linux
+          path: ${{ runner.temp }}/release-metadata-linux.json
+          retention-days: 1
 
   finalize-agent-desktop-release:
     name: Publish complete desktop release
@@ -2810,14 +2777,19 @@ jobs:
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: bash tools/release/agent-desktop/checkout-release.sh
 
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: agent-desktop-release-metadata-*
+          path: dist/agent-desktop-metadata
+          merge-multiple: true
+
       - name: Assemble, verify, and publish update manifest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-desktop-tag }}
         run: |
           mkdir -p dist/agent-desktop
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern 'MoltNet-Agent_*' --dir dist/agent-desktop
-          node tools/release/agent-desktop/manifest.mjs dist/agent-desktop "${RELEASE_TAG#agent-desktop-v}" "$GITHUB_REPOSITORY"
+          node tools/release/agent-desktop/manifest.mjs dist/agent-desktop-metadata "${RELEASE_TAG#agent-desktop-v}" "$GITHUB_REPOSITORY"
           gh release upload "$RELEASE_TAG" dist/agent-desktop/latest.json --repo "$GITHUB_REPOSITORY" --clobber
           gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir "$RUNNER_TEMP/manifest"
           cmp dist/agent-desktop/latest.json "$RUNNER_TEMP/manifest/latest.json"

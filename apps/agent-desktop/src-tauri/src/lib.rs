@@ -591,6 +591,47 @@ struct DesktopUpdateCheck {
     message: String,
 }
 
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DesktopUpdateInstaller {
+    Deb,
+    BuiltIn,
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn desktop_update_installer(
+    linux: bool,
+    bundle_type: Option<&str>,
+) -> Result<DesktopUpdateInstaller, String> {
+    if !linux {
+        return Ok(DesktopUpdateInstaller::BuiltIn);
+    }
+    match bundle_type {
+        Some("deb") => Ok(DesktopUpdateInstaller::Deb),
+        Some("appimage") => Ok(DesktopUpdateInstaller::BuiltIn),
+        _ => Err("In-app Linux updates require an installed deb or AppImage".into()),
+    }
+}
+
+fn record_desktop_update_error(
+    app: &AppHandle,
+    stage: &str,
+    error: impl std::fmt::Display,
+) -> String {
+    let message = format!("Desktop update {stage} failed: {error}");
+    if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
+        lifecycle.push_log(&message);
+    }
+    eprintln!("{message}");
+    message
+}
+
+fn restart_after_success(result: Result<(), String>, restart: impl FnOnce()) -> Result<(), String> {
+    result?;
+    restart();
+    Ok(())
+}
+
 fn development_update_check(is_debug: bool) -> Option<DesktopUpdateCheck> {
     is_debug.then(|| DesktopUpdateCheck {
         available_version: None,
@@ -605,10 +646,10 @@ async fn check_for_desktop_update(app: AppHandle) -> Result<DesktopUpdateCheck, 
     }
     let update = app
         .updater()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| record_desktop_update_error(&app, "setup", error))?
         .check()
         .await
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| record_desktop_update_error(&app, "check", error))?;
     Ok(DesktopUpdateCheck {
         available_version: update.map(|update| update.version),
         message: "This signed MoltNet Agent build is up to date.".into(),
@@ -619,28 +660,36 @@ async fn check_for_desktop_update(app: AppHandle) -> Result<DesktopUpdateCheck, 
 async fn install_desktop_update(app: AppHandle) -> Result<(), String> {
     let update = app
         .updater()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| record_desktop_update_error(&app, "setup", error))?
         .check()
         .await
-        .map_err(|error| error.to_string())?
+        .map_err(|error| record_desktop_update_error(&app, "check", error))?
         .ok_or_else(|| "MoltNet Agent is already up to date".to_string())?;
     let bytes = update
         .download(|_, _| {}, || {})
         .await
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| record_desktop_update_error(&app, "download", error))?;
     // download() verifies the updater signature before either installer receives bytes.
-    tauri::async_runtime::spawn_blocking(move || {
+    let install = tauri::async_runtime::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
-        match tauri::utils::platform::bundle_type() {
-            Some(tauri::utils::config::BundleType::Deb) => return linux_setup::install_deb(&bytes),
-            Some(tauri::utils::config::BundleType::AppImage) => {}
-            _ => return Err("In-app Linux updates require an installed deb or AppImage".into()),
+        match desktop_update_installer(
+            true,
+            match tauri::utils::platform::bundle_type() {
+                Some(tauri::utils::config::BundleType::Deb) => Some("deb"),
+                Some(tauri::utils::config::BundleType::AppImage) => Some("appimage"),
+                Some(_) => Some("other"),
+                None => None,
+            },
+        )? {
+            DesktopUpdateInstaller::Deb => return linux_setup::install_deb(&bytes),
+            DesktopUpdateInstaller::BuiltIn => {}
         }
         update.install(bytes).map_err(|error| error.to_string())
     })
     .await
-    .map_err(|error| error.to_string())??;
-    app.restart();
+    .map_err(|error| record_desktop_update_error(&app, "worker", error))?
+    .map_err(|error| record_desktop_update_error(&app, "install", error));
+    restart_after_success(install, || app.restart())
 }
 
 fn show_status(app: &AppHandle) {
@@ -706,11 +755,18 @@ async fn desktop_linux_setup() -> Result<linux_setup::LinuxSetup, String> {
 
 #[tauri::command]
 async fn desktop_repair_linux_setup(
+    app: AppHandle,
     repair: linux_setup::Repair,
 ) -> Result<linux_setup::LinuxSetup, String> {
-    tauri::async_runtime::spawn_blocking(move || linux_setup::repair(repair))
+    let result = tauri::async_runtime::spawn_blocking(move || linux_setup::repair(repair))
         .await
-        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())?;
+    if let Err(error) = &result {
+        if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
+            lifecycle.push_log(&format!("Linux system setup failed: {error}"));
+        }
+    }
+    result
 }
 
 pub fn run() {
@@ -850,5 +906,34 @@ mod tests {
             })
         );
         assert_eq!(development_update_check(false), None);
+    }
+
+    #[test]
+    fn desktop_update_installer_matches_the_running_bundle() {
+        assert_eq!(
+            desktop_update_installer(true, Some("deb")),
+            Ok(DesktopUpdateInstaller::Deb)
+        );
+        assert_eq!(
+            desktop_update_installer(true, Some("appimage")),
+            Ok(DesktopUpdateInstaller::BuiltIn)
+        );
+        assert!(desktop_update_installer(true, None).is_err());
+        assert!(desktop_update_installer(true, Some("other")).is_err());
+        assert_eq!(
+            desktop_update_installer(false, None),
+            Ok(DesktopUpdateInstaller::BuiltIn)
+        );
+    }
+
+    #[test]
+    fn failed_desktop_install_never_restarts_the_app() {
+        let mut restarted = false;
+        let failure = restart_after_success(Err("install failed".into()), || restarted = true);
+        assert_eq!(failure, Err("install failed".into()));
+        assert!(!restarted);
+
+        restart_after_success(Ok(()), || restarted = true).unwrap();
+        assert!(restarted);
     }
 }

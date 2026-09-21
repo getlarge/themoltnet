@@ -20,7 +20,11 @@ const missing: LinuxSetupStatus = {
   secretServiceAvailable: false,
   kvmPresent: true,
   kvmAccessible: false,
+  kvmPendingRelogin: false,
   canEnableKvm: true,
+  installCommand:
+    'apt-get install --yes qemu-utils qemu-system-x86 gnome-keyring libsecret-1-0 dbus-bin',
+  enableKvmCommand: 'usermod --append --groups kvm -- alice',
 };
 function setup() {
   return render(
@@ -46,6 +50,13 @@ describe('Linux setup consent', () => {
     expect(desktopBridge.repairLinuxSetup).not.toHaveBeenCalled();
   });
   it('repairs only after confirmation and explains the new session requirement', async () => {
+    vi.mocked(desktopBridge.linuxSetup)
+      .mockResolvedValueOnce(missing)
+      .mockResolvedValue({
+        ...missing,
+        canEnableKvm: false,
+        kvmPendingRelogin: true,
+      });
     setup();
     fireEvent.click(
       await screen.findByRole('button', {
@@ -61,6 +72,7 @@ describe('Linux setup consent', () => {
     expect(
       await screen.findByText('Sign out of Ubuntu and sign in again'),
     ).toBeInTheDocument();
+    expect(desktopBridge.linuxSetup).toHaveBeenCalledTimes(2);
   });
   it('shows authorization cancellation without a second attempt', async () => {
     vi.mocked(desktopBridge.repairLinuxSetup).mockRejectedValue(
@@ -77,6 +89,7 @@ describe('Linux setup consent', () => {
       'Authorization cancelled',
     );
     expect(desktopBridge.repairLinuxSetup).toHaveBeenCalledTimes(1);
+    expect(desktopBridge.linuxSetup).toHaveBeenCalledTimes(2);
   });
   it('does not offer automatic repair on unsupported distributions', async () => {
     vi.mocked(desktopBridge.linuxSetup).mockResolvedValue({

@@ -1,5 +1,5 @@
-// Assemble only a complete, format-specific desktop update release.
-import { readFileSync, statSync, writeFileSync } from 'node:fs';
+// Assemble only a complete release from metadata produced by verified platform jobs.
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 
@@ -14,18 +14,28 @@ if (
   );
 }
 const platforms = {};
+const metadata = readdirSync(directory)
+  .filter(
+    (name) => name.startsWith('release-metadata-') && name.endsWith('.json'),
+  )
+  .flatMap((name) => {
+    const value = JSON.parse(readFileSync(join(directory, name), 'utf8'));
+    if (value.version !== version)
+      throw new Error(`Metadata version mismatch: ${name}`);
+    return value.assets ?? [];
+  });
 for (const [target, suffix] of [
   ['darwin-aarch64', 'aarch64.app.tar.gz'],
   ['linux-x86_64-deb', 'amd64.deb'],
   ['linux-x86_64-appimage', 'amd64.AppImage'],
 ]) {
   const name = `MoltNet-Agent_${version}_${suffix}`;
-  if (statSync(join(directory, name)).size === 0)
-    throw new Error(`Empty artifact: ${name}`);
-  const signature = readFileSync(join(directory, `${name}.sig`), 'utf8').trim();
-  if (!signature) throw new Error(`Missing signature: ${name}`);
+  const asset = metadata.find((candidate) => candidate.name === name);
+  if (!asset || asset.size <= 0 || !/^[a-f0-9]{64}$/.test(asset.sha256 ?? ''))
+    throw new Error(`Missing verified metadata: ${name}`);
+  if (!asset.signature) throw new Error(`Missing signature: ${name}`);
   platforms[target] = {
-    signature,
+    signature: asset.signature,
     url: `https://github.com/${repository}/releases/download/agent-desktop-v${version}/${name}`,
   };
 }

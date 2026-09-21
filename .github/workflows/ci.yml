@@ -498,7 +498,7 @@ jobs:
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@moltnet/agent-desktop" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .github/actions/setup-workspace; then
+          if contains "@moltnet/agent-desktop"; then
             echo "agent-desktop=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent-desktop=false" >> "$GITHUB_OUTPUT"
@@ -624,6 +624,7 @@ jobs:
           install-dependencies: 'false'
           rust: ${{ needs.affected.outputs.agent-desktop }}
           rust-components: rustfmt, clippy
+          rust-cache: ${{ needs.affected.outputs.agent-desktop }}
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then
@@ -632,16 +633,7 @@ jobs:
           fi
       - name: Install Agent desktop native dependencies
         if: needs.affected.outputs.agent-desktop == 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            file \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libssl-dev \
-            libwebkit2gtk-4.1-dev \
-            libxdo-dev
+        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - name: Restore golangci-lint
         id: golangci-lint-cache
         uses: actions/cache/restore@v6

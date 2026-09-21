@@ -1,6 +1,7 @@
 name: Desktop packages
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - apps/agent-desktop/**
       - libs/design-system/**
@@ -8,8 +9,6 @@ on:
       - tools/release/agent-desktop/**
       - .github/actions/setup-workspace/**
       - .github/workflows/agent-desktop-packages.yml
-      - .github/workflows/release.yml
-      - pnpm-lock.yaml
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,6 +18,7 @@ concurrency:
 jobs:
   packages:
     name: Package ${{ matrix.platform }}
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       matrix:
@@ -41,17 +41,16 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           rust: 'true'
+          rust-cache: 'true'
       - name: Install packaging and display dependencies
         if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential file libayatana-appindicator3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf libfuse2t64 xvfb dbus-x11
+        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - name: Build unsigned CI packages
         run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch
         run: bash tools/release/agent-desktop/${{ matrix.platform }}-smoke.sh
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: failure()
         with:
           name: desktop-packages-${{ matrix.platform }}
           path: |
@@ -59,3 +58,4 @@ jobs:
             apps/agent-desktop/out-rust/bundle/*/release/bundle/appimage/*.AppImage
             apps/agent-desktop/out-rust/bundle/*/release/bundle/dmg/*.dmg
             /tmp/moltnet-desktop-smoke-*.log
+          retention-days: 1

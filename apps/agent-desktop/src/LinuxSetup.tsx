@@ -18,11 +18,10 @@ export function LinuxSetup() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<LinuxRepair | null>(null);
   const [busy, setBusy] = useState(false);
-  const [relogin, setRelogin] = useState(false);
-  const refresh = async () => {
+  const refresh = async (clearError = true) => {
     try {
       setStatus(await desktopBridge.linuxSetup());
-      setError(null);
+      if (clearError) setError(null);
     } catch (cause) {
       setError(String(cause));
     }
@@ -35,11 +34,11 @@ export function LinuxSetup() {
     setBusy(true);
     setError(null);
     try {
-      setStatus(await desktopBridge.repairLinuxSetup(action));
-      if (action === 'enable_kvm') setRelogin(true);
+      await desktopBridge.repairLinuxSetup(action);
     } catch (cause) {
       setError(String(cause));
     } finally {
+      await refresh(false);
       setBusy(false);
     }
   };
@@ -63,18 +62,20 @@ export function LinuxSetup() {
         <Text>
           Secret storage:{' '}
           {status.secretServiceAvailable
-            ? 'Secret Service is running — unlock the keyring when prompted'
+            ? 'Secret Service is available — unlock it when prompted'
             : status.keyringInstalled
-              ? 'Keyring installed — sign out of Ubuntu and sign in to start it'
+              ? 'Keyring installed but not advertised by this desktop session'
               : 'GNOME Keyring is missing'}
         </Text>
         <Text>
           Hardware acceleration:{' '}
           {status.kvmAccessible
             ? 'Available'
-            : status.kvmPresent
-              ? 'Your account needs KVM access'
-              : 'KVM is unavailable on this machine'}
+            : status.kvmPendingRelogin
+              ? 'Enabled — sign out and back in to activate it'
+              : status.kvmPresent
+                ? 'Your account needs KVM access'
+                : 'KVM is unavailable on this machine'}
         </Text>
         <Text variant="caption" color="secondary">
           Sandboxed workers need QEMU and hardware acceleration. Credentials
@@ -86,7 +87,7 @@ export function LinuxSetup() {
             {error}
           </InlineNotice>
         ) : null}
-        {relogin ? (
+        {status.kvmPendingRelogin ? (
           <InlineNotice
             tone="info"
             title="Sign out of Ubuntu and sign in again"
@@ -112,7 +113,7 @@ export function LinuxSetup() {
               Install requirements…
             </Button>
           ) : null}
-          {!status.kvmAccessible && status.canEnableKvm && !relogin ? (
+          {!status.kvmAccessible && status.canEnableKvm ? (
             <Button
               disabled={busy}
               variant="secondary"
@@ -144,8 +145,8 @@ export function LinuxSetup() {
         }
         message={
           pending === 'enable_kvm'
-            ? 'Ubuntu will ask for administrator authorization to add your current account to the kvm group. This permits hardware-accelerated virtual machines. Sign out and back in afterward. Command: usermod --append --groups kvm -- <current user>.'
-            : 'Ubuntu will ask for administrator authorization to install QEMU and GNOME Keyring from your configured package repositories. Command: apt-get install --yes qemu-utils qemu-system-x86 gnome-keyring libsecret-1-0. You can cancel and install them later.'
+            ? `Ubuntu will ask for administrator authorization to add your current account to the kvm group. This permits hardware-accelerated virtual machines. Sign out and back in afterward. Command: ${status.enableKvmCommand}.`
+            : `Ubuntu will ask for administrator authorization to install QEMU and a Secret Service from your configured package repositories. Command: ${status.installCommand}. You can cancel and install them later.`
         }
         confirmLabel="Continue to authorization"
         onCancel={() => setPending(null)}

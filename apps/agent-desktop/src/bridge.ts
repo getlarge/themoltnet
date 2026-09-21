@@ -57,7 +57,10 @@ export interface LinuxSetupStatus {
   secretServiceAvailable: boolean;
   kvmPresent: boolean;
   kvmAccessible: boolean;
+  kvmPendingRelogin: boolean;
   canEnableKvm: boolean;
+  installCommand: string;
+  enableKvmCommand: string;
 }
 export type LinuxRepair = 'install_dependencies' | 'enable_kvm';
 

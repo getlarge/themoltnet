@@ -674,7 +674,7 @@ impl LifecycleManager {
         Err(message.into())
     }
 
-    fn push_log(&self, line: &str) {
+    pub(crate) fn push_log(&self, line: &str) {
         if let Ok(mut logs) = self.logs.lock() {
             if let Err(error) = logs.push(line.to_string()) {
                 eprintln!("could not persist Agent desktop supervisor log: {error}");
@@ -944,7 +944,7 @@ fn agent_server_command(executable: &Path, socket: &Path) -> Command {
 /// point inside the mounted image and can make an otherwise valid system
 /// binary load incompatible libraries. PATH and product configuration remain
 /// inherited so managed runs can still find the operator's installed tools.
-fn host_command(program: &Path) -> Command {
+pub(crate) fn host_command(program: &Path) -> Command {
     const APPIMAGE_ENV: &[&str] = &[
         "LD_LIBRARY_PATH",
         "LD_PRELOAD",

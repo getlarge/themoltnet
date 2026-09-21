@@ -13,15 +13,22 @@ command -v qemu-img
 command -v qemu-system-x86_64
 command -v gnome-keyring-daemon
 command -v moltnet-agent-desktop
-if ldd /usr/bin/moltnet-agent-desktop | grep -q 'not found'; then
-  echo 'The installed executable has unresolved shared libraries' >&2
-  exit 1
-fi
+check_libraries() {
+  local executable=$1 missing
+  missing=$(ldd "$executable" | grep 'not found' || true)
+  if [ -n "$missing" ]; then
+    echo "Unresolved shared libraries in $executable:" >&2
+    printf '%s\n' "$missing" >&2
+    exit 1
+  fi
+}
+check_libraries /usr/bin/moltnet-agent-desktop
 for format in deb appimage; do
   executable=/usr/bin/moltnet-agent-desktop
   if [ "$format" = appimage ]; then
     executable=$(realpath "$appimage")
     chmod +x "$executable"
+    check_libraries "$executable"
   fi
   config=$(mktemp -d)
   result=0

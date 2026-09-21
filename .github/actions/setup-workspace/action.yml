@@ -16,6 +16,9 @@ inputs:
   rust-components:
     description: Optional comma-separated Rust components.
     default: ''
+  rust-cache:
+    description: Cache Cargo downloads and Desktop build outputs.
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -50,6 +53,13 @@ runs:
       uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
       with:
         components: ${{ inputs.rust-components }}
+    # 49a0bdc is the reviewed v2 action used with the Rust 1.88 toolchain above.
+    - if: inputs.rust == 'true' && inputs.rust-cache == 'true'
+      uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+      with:
+        workspaces: apps/agent-desktop/src-tauri -> apps/agent-desktop/out-rust
+        shared-key: agent-desktop-${{ runner.os }}-${{ runner.arch }}
+        save-if: ${{ github.ref == 'refs/heads/main' }}
     - if: inputs.install-dependencies == 'true'
       shell: bash
       run: pnpm install --frozen-lockfile
