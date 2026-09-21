@@ -157,6 +157,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     name: 'agent-daemon.server',
     level: envConfig.logLevel || 'info',
   });
+  const shutdownDisposers: (() => void)[] = [];
   try {
     try {
       return await withAgentServerLock(
@@ -288,6 +289,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
               app,
               shutdownController,
               Boolean(values.supervised),
+              (dispose) => shutdownDisposers.push(dispose),
             );
           } catch (cause) {
             await app.close().catch(() => undefined);
@@ -313,7 +315,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       throw cause;
     }
   } finally {
-    await shutdownLogger();
+    try {
+      await shutdownLogger();
+    } finally {
+      for (const dispose of shutdownDisposers) dispose();
+    }
   }
 }
 
@@ -325,6 +331,7 @@ function waitForAgentServerShutdown(
   },
   shutdownController: AbortController,
   supervised: boolean,
+  registerDisposer: (dispose: () => void) => void,
 ): Promise<number> {
   return new Promise<number>((resolvePromise) => {
     let shuttingDown = false;
@@ -374,8 +381,6 @@ function waitForAgentServerShutdown(
             `shutdown cleanup failed: ${(failure.reason as Error).message}`,
           );
         }
-        handlers.dispose();
-        stdinGuard.dispose();
         const exitCode =
           typeof process.exitCode === 'number' ? process.exitCode : 0;
         resolvePromise(failures.length > 0 ? 1 : exitCode);
@@ -388,6 +393,13 @@ function waitForAgentServerShutdown(
     const stdinGuard = installSupervisedStdinGuard({
       enabled: supervised,
       shutdown: () => shutdown('stdin'),
+    });
+    // Desktop closes stdin and sends SIGTERM. Keep both handlers installed
+    // until the outer lock and logger cleanup finish, so a late signal cannot
+    // terminate this process while it still owns the store lock.
+    registerDisposer(() => {
+      handlers.dispose();
+      stdinGuard.dispose();
     });
   });
 }
