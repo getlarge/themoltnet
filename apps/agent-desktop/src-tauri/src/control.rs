@@ -6,6 +6,10 @@
 //! results; it never holds a credential it could leak through a bug, an
 //! extension, or a devtools session.
 //!
+//! Transport is HTTP over a private Unix socket. `native_socket.rs` verifies
+//! the server's UID and managed child PID through kernel peer credentials
+//! before this module sends the grant or any other HTTP bytes.
+//!
 use crate::native_socket::SocketConnector;
 use std::fs::File;
 use std::io::Read;

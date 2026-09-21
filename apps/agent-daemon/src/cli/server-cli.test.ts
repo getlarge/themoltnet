@@ -2,7 +2,10 @@ import { EventEmitter } from 'node:events';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { installSupervisedStdinGuard } from './server.js';
+import {
+  installSupervisedStdinGuard,
+  validateNativeSocketOptions,
+} from './server.js';
 
 class FakeStdin extends EventEmitter {
   readableEnded = false;
@@ -60,5 +63,35 @@ describe('installSupervisedStdinGuard', () => {
 
     expect(input.resumed).toBe(true);
     expect(shutdown).toHaveBeenCalledOnce();
+  });
+});
+
+describe('native socket CLI configuration', () => {
+  it('requires supervised mode', () => {
+    expect(
+      validateNativeSocketOptions({ nativeSocket: '/tmp/control.sock' }),
+    ).toBe('--native-socket requires --supervised');
+  });
+
+  it.each([
+    { port: '17374' },
+    { allowedOrigins: 'https://console.themolt.net' },
+  ])('rejects TCP configuration: %o', (tcp) => {
+    expect(
+      validateNativeSocketOptions({
+        nativeSocket: '/tmp/control.sock',
+        supervised: true,
+        ...tcp,
+      }),
+    ).toBe('--native-socket cannot be combined with TCP options');
+  });
+
+  it('accepts a supervised socket without TCP configuration', () => {
+    expect(
+      validateNativeSocketOptions({
+        nativeSocket: '/tmp/control.sock',
+        supervised: true,
+      }),
+    ).toBeUndefined();
   });
 });

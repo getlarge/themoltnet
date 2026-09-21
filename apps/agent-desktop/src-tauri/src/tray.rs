@@ -57,7 +57,6 @@ fn state_label(status: &DesktopStatus) -> &'static str {
         LifecycleState::Starting => "Agent Server — Starting…",
         LifecycleState::Stopping => "Agent Server — Stopping…",
         LifecycleState::NeedsInstall => "Agent Server — Not installed",
-        LifecycleState::NeedsTrust => "Agent Server — Trust required",
         LifecycleState::Installing => "Agent Server — Installing…",
         LifecycleState::Failed => "Agent Server — Needs attention",
         LifecycleState::Checking => "Agent Server — Checking…",
@@ -275,7 +274,6 @@ fn menu(app: &AppHandle, overview: &Overview) -> tauri::Result<Menu<tauri::Wry>>
         .separator()
         .item(&settings)
         .text("show", "Open MoltNet…")
-        .text("console", "Open Console")
         .separator()
         .text("quit", "Quit and Stop Server")
         .build()
@@ -326,12 +324,6 @@ pub fn install(app: &mut tauri::App) -> tauri::Result<()> {
                     if result.is_err() {
                         show_status(&handle);
                     }
-                });
-            }
-            "console" => {
-                // `open` spawns a process; keep it off the menu-event thread.
-                tauri::async_runtime::spawn_blocking(|| {
-                    let _ = lifecycle::open_console();
                 });
             }
             "logs" => {
@@ -464,7 +456,6 @@ mod tests {
     #[test]
     fn updating_bundle_is_still_a_running_server() {
         assert!(running(LifecycleState::UpdateAvailable));
-        assert!(!running(LifecycleState::NeedsTrust));
         assert!(!running(LifecycleState::Stopped));
     }
 

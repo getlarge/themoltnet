@@ -211,11 +211,11 @@ export function isHelpFlag(args: readonly string[]): boolean {
 }
 
 export const AGENT_SERVER_HELP = `\
-agent-daemon server — loopback supervisor for console-managed runs.
+agent-daemon server — local supervisor for managed runs.
 
-Binds 127.0.0.1 only. An authorized Console origin configures agents and
-providers (secret references only) and starts/stops poll/drain runs as
-child processes of this supervisor.
+Standalone mode binds 127.0.0.1 for authorized local-control clients. MoltNet
+Agent Desktop instead uses a private Unix socket with a process-scoped grant.
+Both modes configure agents and providers and start/stop child runs.
 
 Options:
   --port <n>                  Loopback port. Default: 17374.
@@ -230,15 +230,15 @@ Options:
   --heartbeat-interval-ms <n> Child reporter heartbeat cadence. Default: 60000.
   --warm-retention-sec <n>    Child session/workspace retention. Default: 1800.
   --supervised                Also stop gracefully when stdin reaches EOF.
-  --native-socket <path>       Private native-only socket (requires --supervised).
+  --native-socket <path>      Private native-only socket (requires --supervised).
 
-On macOS, the first interactive run asks to trust a per-user local CA in the
-login keychain and serves HTTPS. Native supervisors use:
+On macOS, standalone loopback mode asks to trust a per-user local CA and serves
+HTTPS. Desktop socket mode does not use that CA. Standalone trust commands are:
   server trust --status --json
   server trust --yes --json
   server trust --remove --yes --json
 Run \`agent-daemon server trust --remove\` interactively to remove that exact
-CA. Linux continues to use the Chromium PNA HTTP path.
+CA. Linux standalone mode continues to use loopback HTTP.
 `;
 
 export const PROVIDERS_HELP = `\

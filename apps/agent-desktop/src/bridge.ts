@@ -5,7 +5,6 @@ export type LifecycleState =
   | 'checking'
   | 'needs_install'
   | 'installing'
-  | 'needs_trust'
   | 'starting'
   | 'running'
   | 'update_available'
@@ -18,8 +17,6 @@ export interface DesktopStatus {
   state: LifecycleState;
   installedVersion: string | null;
   availableVersion: string | null;
-  trustFingerprint: string | null;
-  trusted: boolean;
   message: string;
   logs: string[];
 }
@@ -33,8 +30,6 @@ export const INITIAL_STATUS: DesktopStatus = {
   state: 'checking',
   installedVersion: null,
   availableVersion: null,
-  trustFingerprint: null,
-  trusted: false,
   message: 'Checking the local agent bundle…',
   logs: [],
 };
@@ -60,15 +55,12 @@ export const desktopBridge = {
     invoke<DesktopStatus>('desktop_apply_connection_settings', { overrides }),
   status: () => invoke<DesktopStatus>('desktop_status'),
   install: () => invoke<DesktopStatus>('install_agent'),
-  trust: () => invoke<DesktopStatus>('approve_local_trust'),
   retry: () => invoke<DesktopStatus>('retry_server'),
   start: () => invoke<DesktopStatus>('start_agent_server'),
   stop: () => invoke<DesktopStatus>('stop_agent_server'),
   checkForUpdates: () => invoke<DesktopStatus>('check_for_agent_updates'),
   installUpdate: () => invoke<DesktopStatus>('install_agent_update'),
-  openConsole: () => invoke<void>('open_console'),
   openLogs: () => invoke<void>('open_logs'),
-  removeTrust: () => invoke<DesktopStatus>('remove_local_trust'),
   remove: () => invoke<DesktopStatus>('remove_agent_bundle'),
   checkDesktopUpdate: () =>
     invoke<DesktopUpdateCheck>('check_for_desktop_update'),

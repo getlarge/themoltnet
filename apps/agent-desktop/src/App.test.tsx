@@ -16,23 +16,18 @@ vi.mock('./bridge.js', () => ({
     state: 'checking',
     installedVersion: null,
     availableVersion: null,
-    trustFingerprint: null,
-    trusted: false,
     message: 'Checking the local agent bundle…',
     logs: [],
   },
   desktopBridge: {
     status: vi.fn(),
     install: vi.fn(),
-    trust: vi.fn(),
     retry: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     checkForUpdates: vi.fn(),
     installUpdate: vi.fn(),
-    openConsole: vi.fn(),
     openLogs: vi.fn(),
-    removeTrust: vi.fn(),
     remove: vi.fn(),
     quit: vi.fn(),
     checkDesktopUpdate: vi.fn(),
@@ -46,10 +41,8 @@ const status = (overrides: Partial<DesktopStatus> = {}): DesktopStatus => ({
   state: 'running',
   installedVersion: '0.56.2',
   availableVersion: null,
-  trustFingerprint: 'AA:BB:CC',
-  trusted: true,
-  message: 'Ready for Console local control.',
-  logs: ['server listening on https://127.0.0.1:17374'],
+  message: 'Ready for local work.',
+  logs: ['server listening on private native socket'],
   ...overrides,
 });
 
@@ -83,42 +76,23 @@ beforeEach(() => {
 });
 
 describe('MoltNet Agent desktop renderer', () => {
-  it('shows non-color lifecycle and verified native connection status', async () => {
+  it('shows non-color lifecycle and active native control status', async () => {
     renderApp();
 
     expect(
       await screen.findByRole('heading', { name: 'Agent Server running' }),
     ).toBeVisible();
     expect(
-      screen.getByLabelText('Signature status: Native connection verified'),
+      screen.getByLabelText('Signature status: Native control active'),
     ).toBeVisible();
     expect(
       screen.queryByRole('list', { name: 'Agent setup progress' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open Console' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Stop Agent Server' }));
     await waitFor(() => expect(desktopBridge.stop).toHaveBeenCalledOnce());
   });
 
-  it('requires confirmation before changing macOS trust', async () => {
-    vi.mocked(desktopBridge.status).mockResolvedValue(
-      status({ state: 'needs_trust', trusted: false }),
-    );
-    vi.mocked(desktopBridge.trust).mockResolvedValue(status());
-    renderApp();
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Review local HTTPS trust' }),
-    );
-    expect(screen.getByRole('dialog')).toHaveAccessibleName(
-      'Trust MoltNet local HTTPS?',
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Trust local CA' }));
-
-    await waitFor(() => expect(desktopBridge.trust).toHaveBeenCalledOnce());
-  });
-
-  it('preserves configuration and keeps CA cleanup a separate opt-in', async () => {
+  it('preserves configuration when removing the agent bundle', async () => {
     vi.mocked(desktopBridge.remove).mockResolvedValue(
       status({ state: 'removed', installedVersion: null }),
     );
@@ -129,9 +103,6 @@ describe('MoltNet Agent desktop renderer', () => {
       await screen.findByRole('button', { name: 'Remove agent bundle' }),
     );
     expect(screen.getByText(/\.config\/moltnet are preserved/)).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Remove local CA…' }),
-    ).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Remove bundle' }));
     await waitFor(() => expect(desktopBridge.remove).toHaveBeenCalledWith());
   });
@@ -169,6 +140,9 @@ describe('MoltNet Agent desktop renderer', () => {
     expect(
       screen.getByRole('heading', { name: 'Update available' }),
     ).toBeVisible();
+    expect(
+      screen.getByLabelText('Signature status: Native control active'),
+    ).toBeVisible();
   });
 
   it('surfaces operation failures and lets a failed lifecycle retry', async () => {
@@ -201,6 +175,9 @@ describe('MoltNet Agent desktop renderer', () => {
     expect(
       screen.getByRole('button', { name: 'Start Agent Server' }),
     ).toBeEnabled();
+    expect(
+      screen.getByLabelText('Signature status: Native connection idle'),
+    ).toBeVisible();
 
     act(() => requestRemove?.());
     expect(screen.getByRole('dialog')).toHaveAccessibleName(
@@ -210,27 +187,27 @@ describe('MoltNet Agent desktop renderer', () => {
 
   it('guards confirmed operations against repeated activation', async () => {
     vi.mocked(desktopBridge.status).mockResolvedValue(
-      status({ state: 'needs_trust', trusted: false }),
+      status({ state: 'update_available', availableVersion: '0.57.0' }),
     );
-    let finishTrust: ((next: DesktopStatus) => void) | undefined;
-    vi.mocked(desktopBridge.trust).mockImplementation(
+    let finishUpdate: ((next: DesktopStatus) => void) | undefined;
+    vi.mocked(desktopBridge.installUpdate).mockImplementation(
       () =>
         new Promise((resolve) => {
-          finishTrust = resolve;
+          finishUpdate = resolve;
         }),
     );
     renderApp();
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Review local HTTPS trust' }),
+      await screen.findByRole('button', { name: 'Review Agent CLI update' }),
     );
-    const confirm = screen.getByRole('button', { name: 'Trust local CA' });
+    const confirm = screen.getByRole('button', { name: 'Install and restart' });
 
     fireEvent.click(confirm);
     fireEvent.click(confirm);
 
-    expect(desktopBridge.trust).toHaveBeenCalledOnce();
+    expect(desktopBridge.installUpdate).toHaveBeenCalledOnce();
     expect(screen.getByRole('dialog')).toBeVisible();
-    act(() => finishTrust?.(status()));
+    act(() => finishUpdate?.(status()));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 });

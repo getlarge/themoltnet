@@ -10,17 +10,25 @@ export async function validateNativeSocket(path: string): Promise<void> {
   }
   const parent = dirname(path);
   const metadata = await lstat(parent);
-  if (
-    !metadata.isDirectory() ||
-    metadata.isSymbolicLink() ||
-    metadata.uid !== process.getuid?.() ||
-    (metadata.mode & 0o777) !== 0o700 ||
-    (await realpath(parent)) !== resolve(parent)
-  ) {
+  if (!metadata.isDirectory())
+    throw new Error(`Native socket parent is not a directory: ${parent}`);
+  if (metadata.isSymbolicLink())
+    throw new Error(`Native socket parent is a symlink: ${parent}`);
+  const expectedUid = process.getuid?.();
+  if (expectedUid === undefined || metadata.uid !== expectedUid)
     throw new Error(
-      'Native socket requires a private, owned directory without symlinks',
+      `Native socket parent has uid ${metadata.uid}; expected ${String(expectedUid)}: ${parent}`,
     );
-  }
+  const mode = metadata.mode & 0o777;
+  if (mode !== 0o700)
+    throw new Error(
+      `Native socket parent has mode ${mode.toString(8)}; expected 700: ${parent}`,
+    );
+  const canonical = await realpath(parent);
+  if (canonical !== resolve(parent))
+    throw new Error(
+      `Native socket parent contains a symlink: ${parent} resolves to ${canonical}`,
+    );
   try {
     await lstat(path);
   } catch (error) {

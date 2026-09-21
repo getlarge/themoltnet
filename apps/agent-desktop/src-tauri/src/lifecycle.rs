@@ -15,7 +15,6 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
@@ -32,7 +31,6 @@ pub enum LifecycleState {
     Checking,
     NeedsInstall,
     Installing,
-    NeedsTrust,
     Starting,
     Running,
     UpdateAvailable,
@@ -48,8 +46,6 @@ pub struct DesktopStatus {
     pub state: LifecycleState,
     pub installed_version: Option<String>,
     pub available_version: Option<String>,
-    pub trust_fingerprint: Option<String>,
-    pub trusted: bool,
     pub message: String,
     pub logs: Arc<VecDeque<String>>,
 }
@@ -59,13 +55,6 @@ pub struct DesktopStatus {
 struct UpdateResult {
     latest_version: Option<String>,
     update_available: bool,
-}
-
-#[derive(Debug, Deserialize)]
-struct TrustResult {
-    supported: bool,
-    trusted: bool,
-    fingerprint: Option<String>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -258,17 +247,6 @@ impl LifecycleManager {
         self.start_server()
     }
 
-    pub fn approve_trust(&mut self) -> Result<DesktopStatus, String> {
-        self.ensure_supported_agent()?;
-        let output = self.run_agent(&["server", "trust", "--yes", "--json"])?;
-        let trust = parse_trust_result(&output.stdout, "trust response")?;
-        if !trust.trusted {
-            return self.fail("macOS did not report the local CA as trusted");
-        }
-        self.apply_trust(&trust);
-        self.start_server()
-    }
-
     pub fn check_for_updates(&mut self) -> Result<DesktopStatus, String> {
         self.require_installed()?;
         let output = self.run_agent(&["update", "check", "--json"])?;
@@ -363,17 +341,6 @@ impl LifecycleManager {
         self.set_state(
             LifecycleState::Removed,
             "The agent bundle was removed. ~/.config/moltnet was preserved.",
-        );
-        Ok(self.snapshot())
-    }
-
-    pub fn remove_trust(&mut self) -> Result<DesktopStatus, String> {
-        self.ensure_supported_agent()?;
-        let trust = self.remove_local_trust()?;
-        self.apply_trust(&trust);
-        self.set_state(
-            LifecycleState::NeedsTrust,
-            "Local HTTPS trust was removed. Re-approve it before starting the server.",
         );
         Ok(self.snapshot())
     }
@@ -476,9 +443,18 @@ impl LifecycleManager {
         if self.child.is_some() {
             return Ok(self.snapshot());
         }
-        let help = self.run_agent(&["server", "--help"])?;
+        // Remove once the reviewed embedded pin is itself socket-capable. Until
+        // then a Desktop/Agent co-release may update the bundle at build time.
+        let help = match self.run_agent(&["server", "--help"]) {
+            Ok(help) => help,
+            Err(error) => {
+                return self.fail(&format!(
+                    "could not verify Agent CLI native-socket support: {error}"
+                ))
+            }
+        };
         if !String::from_utf8_lossy(&help.stdout).contains("--native-socket") {
-            return self.fail("The installed Agent CLI does not support native sockets. Update the Agent CLI before starting this Desktop version.");
+            return self.fail("The installed Agent CLI does not support native sockets. Reinstall or update MoltNet Agent Desktop.");
         }
         self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
 
@@ -489,21 +465,24 @@ impl LifecycleManager {
                 Err(error) => return self.fail(&error),
             };
             // A short canonical path fits sockaddr_un on macOS and Linux.
-            let temporary_root = fs::canonicalize("/tmp").map_err(|error| error.to_string())?;
-            let directory = Arc::new(
-                tempfile::Builder::new()
-                    .prefix("moltnet-")
-                    .tempdir_in(temporary_root)
-                    .map_err(|error| error.to_string())?,
-            );
-            fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o700))
-                .map_err(|error| error.to_string())?;
+            let directory = match native_socket_directory() {
+                Ok(directory) => Arc::new(directory),
+                Err(error) => {
+                    return self.fail(&format!(
+                        "could not prepare private control socket directory: {error}"
+                    ))
+                }
+            };
             let mut command = agent_server_command(&self.executable());
             command
                 .arg("--native-socket")
-                .arg(directory.path().join("control.sock"));
+                .arg(directory.path().join(crate::native_socket::SOCKET_NAME));
             // The child consumes and unsets this, so its own run children
-            // cannot inherit the desktop's control grant.
+            // cannot inherit the desktop's control grant. Process environments
+            // are readable inside the same user boundary on supported hosts;
+            // the private directory plus kernel UID/PID peer check is the
+            // transport boundary, while this grant prevents accidental use by
+            // another client in that boundary.
             command.env(NATIVE_TOKEN_ENV, token.expose());
             let mut child = match command
                 .stdin(Stdio::piped())
@@ -533,16 +512,26 @@ impl LifecycleManager {
                     }
                     Err(error) => error,
                 };
-                if let Some(status) = child.try_wait().map_err(|error| error.to_string())? {
-                    last_failure = format!(
-                        "Agent Server exited before readiness ({})",
-                        describe_exit_status(status)
-                    );
-                    self.push_log(&last_failure);
-                    if attempt + 1 < MAX_START_ATTEMPTS {
-                        self.push_log("Retrying Agent Server startup once.");
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        last_failure = format!(
+                            "Agent Server exited before readiness ({}). Check the logs; another Agent Server may already own the local lock.",
+                            describe_exit_status(status)
+                        );
+                        self.push_log(&last_failure);
+                        if attempt + 1 < MAX_START_ATTEMPTS {
+                            self.push_log("Retrying Agent Server startup once.");
+                        }
+                        break;
                     }
-                    break;
+                    Err(error) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return self.fail(&format!(
+                            "could not inspect Agent Server readiness: {error}"
+                        ));
+                    }
+                    Ok(None) => {}
                 }
                 if Instant::now() >= deadline {
                     self.push_log(&format!(
@@ -562,18 +551,8 @@ impl LifecycleManager {
         self.fail(&last_failure)
     }
 
-    fn remove_local_trust(&self) -> Result<TrustResult, String> {
-        let output = self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
-        parse_trust_result(&output.stdout, "trust removal response")
-    }
-
-    fn apply_trust(&mut self, trust: &TrustResult) {
-        self.status.trusted = trust.trusted;
-        self.status.trust_fingerprint = trust.fingerprint.clone();
-    }
-
     fn run_agent(&self, args: &[&str]) -> Result<Output, String> {
-        let output = Command::new(self.executable())
+        let output = host_command(&self.executable())
             .args(args)
             .output()
             .map_err(|error| format!("agent command failed: {error}"))?;
@@ -699,10 +678,6 @@ impl LifecycleManager {
     pub fn logs_directory(&self) -> PathBuf {
         self.home.join(".config/moltnet/agent-server/logs")
     }
-}
-
-pub fn open_console() -> Result<(), String> {
-    fixed_command(platform_opener(), &[CONSOLE_URL]).map(|_| ())
 }
 
 pub fn open_logs(directory: &Path) -> Result<(), String> {
@@ -851,13 +826,11 @@ fn platform_opener() -> &'static str {
 }
 
 fn fixed_command(program: &str, args: &[&str]) -> Result<Output, String> {
-    const PROGRAMS: &[&str] = &["/usr/bin/curl", "/usr/bin/open", "/usr/bin/xdg-open"];
+    const PROGRAMS: &[&str] = &["/usr/bin/open", "/usr/bin/xdg-open"];
     if !PROGRAMS.contains(&program) {
         return Err("program is not allowlisted".into());
     }
-    let output = Command::new(program)
-        .env_remove("LD_LIBRARY_PATH")
-        .env_remove("LD_PRELOAD")
+    let output = host_command(Path::new(program))
         .args(args)
         .output()
         .map_err(|error| format!("{program} failed: {error}"))?;
@@ -956,23 +929,42 @@ fn version_at_least(installed: &str, required: &str) -> bool {
     }
 }
 
-fn parse_trust_result(stdout: &[u8], context: &str) -> Result<TrustResult, String> {
-    let result: TrustResult =
-        serde_json::from_slice(stdout).map_err(|error| format!("invalid {context}: {error}"))?;
-    if result.supported {
-        Ok(result)
-    } else {
-        Err("the installed Agent CLI does not support local HTTPS trust on this platform".into())
-    }
-}
-
 fn agent_server_command(executable: &Path) -> Command {
-    let mut command = Command::new(executable);
+    let mut command = host_command(executable);
     command.args(["server", "--supervised"]);
     command
-        .env_remove("LD_LIBRARY_PATH")
-        .env_remove("LD_PRELOAD");
+}
+
+/// Strip AppImage loader/module overrides before starting host programs. They
+/// point inside the mounted image and can make an otherwise valid system
+/// binary load incompatible libraries. Product configuration remains inherited.
+fn host_command(program: &Path) -> Command {
+    const APPIMAGE_ENV: &[&str] = &[
+        "LD_LIBRARY_PATH",
+        "LD_PRELOAD",
+        "GTK_PATH",
+        "GIO_MODULE_DIR",
+        "GDK_PIXBUF_MODULE_FILE",
+        "PYTHONHOME",
+        "PYTHONPATH",
+    ];
+    let mut command = Command::new(program);
+    for variable in APPIMAGE_ENV {
+        command.env_remove(variable);
+    }
+    command.env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin");
     command
+}
+
+fn native_socket_directory() -> Result<tempfile::TempDir, String> {
+    let temporary_root = fs::canonicalize("/tmp").map_err(|error| error.to_string())?;
+    let directory = tempfile::Builder::new()
+        .prefix("moltnet-")
+        .tempdir_in(temporary_root)
+        .map_err(|error| error.to_string())?;
+    fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o700))
+        .map_err(|error| error.to_string())?;
+    Ok(directory)
 }
 
 /// Open a provider sign-in page in the operator's browser.
@@ -1065,24 +1057,6 @@ mod tests {
         assert!(!version_at_least("0.57.9", "0.58.0"));
         assert!(!version_at_least("invalid", "0.58.0"));
         assert!(!version_at_least("0.58.0", "invalid"));
-    }
-
-    #[test]
-    fn trust_response_must_report_platform_support() {
-        let supported = br#"{"supported":true,"trusted":false,"fingerprint":"sha256:test"}"#;
-        assert_eq!(
-            parse_trust_result(supported, "trust status response")
-                .unwrap()
-                .fingerprint
-                .as_deref(),
-            Some("sha256:test")
-        );
-
-        let unsupported = br#"{"supported":false,"trusted":false,"fingerprint":null}"#;
-        assert_eq!(
-            parse_trust_result(unsupported, "trust status response").unwrap_err(),
-            "the installed Agent CLI does not support local HTTPS trust on this platform"
-        );
     }
 
     #[test]
@@ -1477,8 +1451,8 @@ mod tests {
     #[test]
     fn lifecycle_states_are_machine_readable() {
         assert_eq!(
-            serde_json::to_string(&LifecycleState::NeedsTrust).unwrap(),
-            "\"needs_trust\""
+            serde_json::to_string(&LifecycleState::Starting).unwrap(),
+            "\"starting\""
         );
         assert_eq!(
             serde_json::to_string(&LifecycleState::UpdateAvailable).unwrap(),

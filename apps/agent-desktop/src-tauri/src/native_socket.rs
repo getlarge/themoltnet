@@ -12,6 +12,9 @@ use ureq::unversioned::transport::{
     Buffers, ConnectionDetails, Connector, LazyBuffers, NextTimeout, Transport,
 };
 
+const CONNECT_TIMEOUT_MS: libc::c_int = 1_000;
+pub const SOCKET_NAME: &str = "control.sock";
+
 #[derive(Clone, Debug)]
 pub struct SocketConnector {
     pub directory: Arc<tempfile::TempDir>,
@@ -20,7 +23,7 @@ pub struct SocketConnector {
 
 impl SocketConnector {
     pub fn path(&self) -> PathBuf {
-        self.directory.path().join("control.sock")
+        self.directory.path().join(SOCKET_NAME)
     }
 
     fn open(&self) -> io::Result<UnixStream> {
@@ -73,18 +76,28 @@ fn connect_bounded(path: &std::path::Path) -> io::Result<UnixStream> {
         {
             address.sun_len = length as u8;
         }
-        let fd = libc::socket(libc::AF_UNIX, libc::SOCK_STREAM, 0);
+        #[cfg(target_os = "linux")]
+        let socket_type = libc::SOCK_STREAM | libc::SOCK_CLOEXEC;
+        #[cfg(not(target_os = "linux"))]
+        let socket_type = libc::SOCK_STREAM;
+        let fd = libc::socket(libc::AF_UNIX, socket_type, 0);
         if fd < 0 {
             return Err(io::Error::last_os_error());
         }
         let stream = UnixStream::from_raw_fd(fd);
-        if libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) < 0 {
-            return Err(io::Error::last_os_error());
+        #[cfg(not(target_os = "linux"))]
+        {
+            if libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) < 0 {
+                return Err(io::Error::last_os_error());
+            }
         }
         stream.set_nonblocking(true)?;
         if libc::connect(fd, &address as *const _ as *const libc::sockaddr, length) != 0 {
             let error = io::Error::last_os_error();
-            if error.raw_os_error() != Some(libc::EINPROGRESS) {
+            if !matches!(
+                error.raw_os_error(),
+                Some(libc::EINPROGRESS) | Some(libc::EAGAIN)
+            ) {
                 return Err(error);
             }
             let mut event = libc::pollfd {
@@ -92,22 +105,36 @@ fn connect_bounded(path: &std::path::Path) -> io::Result<UnixStream> {
                 events: libc::POLLOUT,
                 revents: 0,
             };
-            match libc::poll(&mut event, 1, 1000) {
-                0 => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::TimedOut,
-                        "Native socket connect timed out",
-                    ))
+            wait_for_connect(|| {
+                let result = libc::poll(&mut event, 1, CONNECT_TIMEOUT_MS);
+                if result < 0 {
+                    Err(io::Error::last_os_error())
+                } else {
+                    Ok(result)
                 }
-                -1 => return Err(io::Error::last_os_error()),
-                _ => {}
-            }
+            })?;
             if let Some(error) = stream.take_error()? {
                 return Err(error);
             }
         }
         stream.set_nonblocking(false)?;
         Ok(stream)
+    }
+}
+
+fn wait_for_connect(mut poll: impl FnMut() -> io::Result<libc::c_int>) -> io::Result<()> {
+    loop {
+        match poll() {
+            Ok(0) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "Native socket connect timed out",
+                ))
+            }
+            Ok(_) => return Ok(()),
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        }
     }
 }
 
@@ -163,7 +190,7 @@ impl Connector for SocketConnector {
         details: &ConnectionDetails,
         _: Option<()>,
     ) -> Result<Option<Self::Out>, ureq::Error> {
-        if details.uri.scheme_str() != Some("http") || details.uri.host() != Some("127.0.0.1") {
+        if !allowed_authority(details.uri.scheme_str(), details.uri.host()) {
             return Err(io::Error::new(
                 io::ErrorKind::PermissionDenied,
                 "Unexpected native request authority",
@@ -178,6 +205,10 @@ impl Connector for SocketConnector {
             ),
         }))
     }
+}
+
+fn allowed_authority(scheme: Option<&str>, host: Option<&str>) -> bool {
+    scheme == Some("http") && host == Some("127.0.0.1")
 }
 
 #[derive(Debug)]
@@ -250,6 +281,32 @@ mod tests {
     fn accepts_owned_socket_from_expected_process() {
         let (connector, _listener) = endpoint();
         connector.open().unwrap();
+    }
+
+    #[test]
+    fn accepts_only_the_fixed_http_authority() {
+        assert!(allowed_authority(Some("http"), Some("127.0.0.1")));
+        assert!(!allowed_authority(Some("https"), Some("127.0.0.1")));
+        assert!(!allowed_authority(Some("http"), Some("localhost")));
+        assert!(!allowed_authority(None, Some("127.0.0.1")));
+    }
+
+    #[test]
+    fn connect_wait_is_bounded_and_retries_interrupts() {
+        let timeout = wait_for_connect(|| Ok(0)).unwrap_err();
+        assert_eq!(timeout.kind(), io::ErrorKind::TimedOut);
+
+        let mut attempts = 0;
+        wait_for_connect(|| {
+            attempts += 1;
+            if attempts == 1 {
+                Err(io::Error::from(io::ErrorKind::Interrupted))
+            } else {
+                Ok(1)
+            }
+        })
+        .unwrap();
+        assert_eq!(attempts, 2);
     }
 
     #[test]

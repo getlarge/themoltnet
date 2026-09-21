@@ -71,7 +71,6 @@ const SERVER_TONE: Record<
   checking: { label: 'Checking…', variant: 'default' },
   needs_install: { label: 'Agent not installed', variant: 'warning' },
   installing: { label: 'Installing…', variant: 'default' },
-  needs_trust: { label: 'Trust required', variant: 'warning' },
   removed: { label: 'Agent removed', variant: 'warning' },
   failed: { label: 'Server needs attention', variant: 'error' },
 };
@@ -155,7 +154,7 @@ export function RunCenterApp({
   const serverTone = notice
     ? { label: 'Connection needs attention', variant: 'warning' }
     : (SERVER_TONE[data.server.state] ?? SERVER_TONE.checking);
-  const serverNeedsUser = ['needs_trust', 'needs_install', 'failed'].includes(
+  const serverNeedsUser = ['needs_install', 'failed'].includes(
     data.server.state,
   );
 

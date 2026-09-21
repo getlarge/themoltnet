@@ -25,6 +25,5 @@ serde_json = "1"
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-updater = "2"
 tempfile = "3"
-# Blocking HTTP with the platform trust store, so the per-user local CA the
-# Agent Server uses is verified the same way curl verified it.
+# Blocking HTTP semantics over the authenticated Unix-socket connector.
 ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier", "json"] }

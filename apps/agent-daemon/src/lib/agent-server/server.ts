@@ -397,6 +397,24 @@ export function buildAgentServer(
     browserVerification.set(request, pending);
     return pending;
   }
+  function hasValidNativeGrant(
+    origin: string | undefined,
+    token: string | string[] | undefined,
+  ): boolean {
+    if (
+      origin !== NATIVE_CLIENT_ORIGIN ||
+      typeof token !== 'string' ||
+      token.length === 0
+    )
+      return false;
+    try {
+      nativeGrant.verify(origin, token);
+      return true;
+    } catch (error) {
+      if (error instanceof NativeGrantError) return false;
+      throw error;
+    }
+  }
   void app.register(rateLimit, {
     global: true,
     max: options.rateLimitMax ?? RATE_LIMIT_MAX,
@@ -416,20 +434,16 @@ export function buildAgentServer(
       if (typeof presented === 'string' && presented.length > 0) {
         try {
           if (origin === NATIVE_CLIENT_ORIGIN)
-            nativeGrant.verify(origin, presented);
+            authenticated = hasValidNativeGrant(origin, presented);
           else {
             if (!oauth) return `unauth:${origin}:${request.ip}`;
             await verifyBrowser(request, presented);
+            authenticated = true;
           }
-          authenticated = true;
         } catch (error) {
           if (error instanceof AgentServerHttpError && error.statusCode === 429)
             throw error;
-          if (
-            origin === NATIVE_CLIENT_ORIGIN &&
-            !(error instanceof NativeGrantError)
-          )
-            throw error;
+          if (origin === NATIVE_CLIENT_ORIGIN) throw error;
         }
       }
       return authenticated
@@ -456,8 +470,14 @@ export function buildAgentServer(
         'Local control token is required',
       );
     }
-    if (origin === NATIVE_CLIENT_ORIGIN) nativeGrant.verify(origin, token);
-    else {
+    if (origin === NATIVE_CLIENT_ORIGIN) {
+      if (!hasValidNativeGrant(origin, token))
+        throw new AgentServerHttpError(
+          401,
+          'authorization_required',
+          'Native authorization required',
+        );
+    } else {
       try {
         if (!oauth)
           throw new AgentServerHttpError(
@@ -518,20 +538,11 @@ export function buildAgentServer(
       app.addHook('preHandler', (request, _reply, done) => {
         const origin = request.headers.origin;
         const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
-        if (origin !== NATIVE_CLIENT_ORIGIN || typeof token !== 'string') {
-          done(
-            new AgentServerHttpError(
-              401,
-              'authorization_required',
-              'Native authorization required',
-            ),
-          );
-          return;
-        }
         try {
-          nativeGrant.verify(origin, token);
-          done();
-        } catch {
+          if (hasValidNativeGrant(origin, token)) {
+            done();
+            return;
+          }
           done(
             new AgentServerHttpError(
               401,
@@ -539,6 +550,8 @@ export function buildAgentServer(
               'Native authorization required',
             ),
           );
+        } catch (error) {
+          done(error as Error);
         }
       });
     }

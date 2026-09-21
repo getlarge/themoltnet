@@ -55,6 +55,19 @@ const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
 
+export function validateNativeSocketOptions(options: {
+  nativeSocket?: string;
+  supervised?: boolean;
+  port?: string;
+  allowedOrigins?: string;
+}): string | undefined {
+  if (!options.nativeSocket) return undefined;
+  if (!options.supervised) return '--native-socket requires --supervised';
+  if (options.port || options.allowedOrigins)
+    return '--native-socket cannot be combined with TCP options';
+  return undefined;
+}
+
 export async function runAgentServer(argv: string[]): Promise<number> {
   if (isHelpFlag(argv)) {
     console.log(AGENT_SERVER_HELP);
@@ -85,13 +98,14 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   });
 
   const nativeSocket = values['native-socket'];
-  if (
-    nativeSocket &&
-    (!values.supervised || values.port || values['allowed-origins'])
-  ) {
-    console.error(
-      '--native-socket requires --supervised and cannot be combined with TCP options',
-    );
+  const nativeSocketError = validateNativeSocketOptions({
+    ...(nativeSocket ? { nativeSocket } : {}),
+    ...(values.supervised ? { supervised: true } : {}),
+    port: values.port || envConfig.port,
+    allowedOrigins: values['allowed-origins'] || envConfig.allowedOrigins,
+  });
+  if (nativeSocketError) {
+    console.error(nativeSocketError);
     return 1;
   }
 
@@ -184,7 +198,9 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             !nativeSocket && isMacos()
               ? await ensureTrustedLocalTls(settingsRoot)
               : undefined;
-          const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
+          const selfOrigin = nativeSocket
+            ? undefined
+            : `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
           const operatorOAuth = new OperatorOAuth(
             {
               issuer: connection.issuer,
@@ -213,8 +229,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             subscriptions,
             providers,
             runtimeRegistry,
-            allowedOrigins,
-            selfOrigin,
+            allowedOrigins: nativeSocket ? [] : allowedOrigins,
+            ...(selfOrigin ? { selfOrigin } : {}),
             ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),
             defaultApiUrl,
             runtimeSettings,
@@ -235,13 +251,16 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             if (nativeSocket) await chmod(nativeSocket, 0o600);
             console.error(`moltnet-agent server listening on ${address}`);
             console.error(`config root: ${root}`);
-            console.error(`allowed origins: ${allowedOrigins.join(', ')}`);
+            if (nativeSocket)
+              console.error(`native control socket: ${nativeSocket}`);
+            else console.error(`allowed origins: ${allowedOrigins.join(', ')}`);
             if (nativeClient) {
               console.error('native desktop client: authorized');
             }
-            console.error(
-              'Sign in through Desktop, then connect from the Console "Local runtime" page.',
-            );
+            if (!nativeSocket)
+              console.error(
+                'Connect from an allowed local-control client after operator authorization.',
+              );
 
             return await waitForAgentServerShutdown(
               runs,

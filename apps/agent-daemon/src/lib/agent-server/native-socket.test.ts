@@ -104,13 +104,13 @@ describe('private native socket', () => {
     await chmod(root, 0o755);
     await expect(
       validateNativeSocket(join(root, 'control.sock')),
-    ).rejects.toThrow('private');
+    ).rejects.toThrow('mode 755; expected 700');
     await chmod(root, 0o700);
     const alias = join(await directory(), 'link');
     await symlink(root, alias);
     await expect(
       validateNativeSocket(join(alias, 'control.sock')),
-    ).rejects.toThrow('private');
+    ).rejects.toThrow('contains a symlink');
   });
 
   it('refuses relative and overlong socket paths', async () => {
