@@ -79,6 +79,12 @@ export class OSKeyringSecretProvider implements SecretProvider {
       // Snapshot selection without filesystem access; env/file users never
       // need to resolve a keyring namespace.
       env: {
+        MOLTNET_AGENT_SERVER_ROOT: storeOptions?.env
+          ? storeOptions.env.MOLTNET_AGENT_SERVER_ROOT
+          : readEnvironmentVariable('MOLTNET_AGENT_SERVER_ROOT'),
+        MOLTNET_DEFAULT_STORE_ROOT: storeOptions?.env
+          ? storeOptions.env.MOLTNET_DEFAULT_STORE_ROOT
+          : readEnvironmentVariable('MOLTNET_DEFAULT_STORE_ROOT'),
         MOLTNET_HOME: storeOptions?.env
           ? storeOptions.env.MOLTNET_HOME
           : readEnvironmentVariable('MOLTNET_HOME'),
@@ -140,16 +146,38 @@ export function windowsKeyringTarget(
   return platform === 'win32' ? `${service}/${key}` : undefined;
 }
 
+export interface NodeSecretProviderRegistryOptions {
+  platform?: NodeJS.Platform;
+  readEnv?: EnvironmentLookup;
+  store?: StoreRootOptions;
+}
+
 export function createNodeSecretProviderRegistry(
-  platform: NodeJS.Platform = process.platform,
+  options?: NodeSecretProviderRegistryOptions,
+): SecretProviderRegistry;
+export function createNodeSecretProviderRegistry(
+  platform?: NodeJS.Platform,
+  readEnv?: EnvironmentLookup,
+  storeOptions?: StoreRootOptions,
+): SecretProviderRegistry;
+export function createNodeSecretProviderRegistry(
+  options: NodeSecretProviderRegistryOptions | NodeJS.Platform = {},
   readEnv: EnvironmentLookup = readEnvironmentVariable,
   storeOptions?: StoreRootOptions,
 ): SecretProviderRegistry {
+  const selected =
+    typeof options === 'string'
+      ? { platform: options, readEnv, store: storeOptions }
+      : { readEnv, store: storeOptions, ...options };
+  const platform = selected.platform ?? process.platform;
   return createDefaultSecretProviderRegistry()
-    .register(new OSKeyringSecretProvider(platform, storeOptions))
+    .register(new OSKeyringSecretProvider(platform, selected.store))
     .register(
       new FileSecretProvider(
-        fileSecretProviderOptionsFromEnv(readEnv, platform),
+        fileSecretProviderOptionsFromEnv(
+          selected.readEnv ?? readEnvironmentVariable,
+          platform,
+        ),
       ),
     );
 }
@@ -203,7 +231,9 @@ export type { ConnectForRegistration } from './register-node.js';
 export {
   canonicalDirectory,
   canonicalStoreRoot,
+  defaultStoreRoot,
   getProjectConfigPath,
+  isDefaultStore,
   type ProjectBinding,
   type ProjectConfig,
   ProjectConfigError,
@@ -211,6 +241,7 @@ export {
   readProjectConfig,
   resolveProjectBinding,
   resolveStoreRoot,
+  resolveStoreSelection,
   type StoreRootOptions,
   storeSecretService,
   WORKSPACE_STRATEGIES,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"io"
 	"os"
 	"path/filepath"
@@ -719,11 +720,11 @@ func updateCredentialsDocument(
 func writeCredentialsRecoveryFile(
 	output rotateCredentialsOutput,
 ) (string, error) {
-	cacheDir, err := os.UserCacheDir()
+	cacheDir, err := configdir.CacheDir()
 	if err != nil {
 		return "", err
 	}
-	recoveryDir := filepath.Join(cacheDir, "moltnet", "recovery")
+	recoveryDir := filepath.Join(cacheDir, "recovery")
 	return writeCredentialsRecoveryFileToDir(recoveryDir, output)
 }
 
@@ -738,11 +739,11 @@ func writeCredentialsRecoveryFileToDir(
 // artifacts (secrets or partial-state diagnostics that must outlive a failed
 // stdout write).
 func defaultRecoveryDir() (string, error) {
-	cacheDir, err := os.UserCacheDir()
+	cacheDir, err := configdir.CacheDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(cacheDir, "moltnet", "recovery"), nil
+	return filepath.Join(cacheDir, "recovery"), nil
 }
 
 // writeRecoveryArtifact durably writes payload as a mode-0600 JSON file in

@@ -54,6 +54,16 @@ function tempDir(prefix) {
   return dir;
 }
 
+function legacyService(executable) {
+  if (process.platform !== 'darwin')
+    return `ExecStart="${executable}" server\n`;
+  const escaped = executable
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+  return `<?xml version="1.0"?><plist version="1.0"><dict><key>ProgramArguments</key><array><string>${escaped}</string><string>server</string></array></dict></plist>`;
+}
+
 function runSync(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: repoRoot,
@@ -263,6 +273,98 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     assert.equal(existsSync(join(context.binDir, 'moltnet-agent')), false);
   });
 
+  it('keeps global links but removes a service pointing at this independent installation', async () => {
+    const fixture = createBundle();
+    const context = createInstallContext(fixture);
+    const globalBinary = join(context.binDir, 'moltnet-agent');
+    mkdirSync(context.binDir, { recursive: true });
+    writeFileSync(globalBinary, 'global fixture');
+    const service =
+      process.platform === 'darwin'
+        ? join(
+            context.home,
+            'Library/LaunchAgents/net.themolt.agent.serve.plist',
+          )
+        : join(context.home, '.config/systemd/user/moltnet-agent.service');
+    mkdirSync(dirname(service), { recursive: true });
+    const independent = join(context.home, 'independent');
+    writeFileSync(
+      service,
+      legacyService(`${independent}/current/bin/moltnet-agent`),
+    );
+    context.env.MOLTNET_AGENT_HOME = independent;
+    delete context.env.MOLTNET_AGENT_BIN_DIR;
+    const installed = await runInstaller(context);
+    assert.equal(installed.status, 0, installed.stderr);
+    assert.equal(readFileSync(globalBinary, 'utf8'), 'global fixture');
+    assert.equal(
+      readlinkSync(join(independent, 'bin/moltnet-agent')),
+      join(independent, 'current/bin/moltnet-agent'),
+    );
+    const removed = await runInstaller(context, ['--uninstall']);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.equal(readFileSync(globalBinary, 'utf8'), 'global fixture');
+    assert.equal(existsSync(service), false);
+  });
+
+  it('preserves a service whose executable only contains the selected install path as a suffix', async () => {
+    const context = createInstallContext(createBundle());
+    const service =
+      process.platform === 'darwin'
+        ? join(
+            context.home,
+            'Library/LaunchAgents/net.themolt.agent.serve.plist',
+          )
+        : join(context.home, '.config/systemd/user/moltnet-agent.service');
+    mkdirSync(dirname(service), { recursive: true });
+    const contents = legacyService(
+      `/another${context.installRoot}/current/bin/moltnet-agent`,
+    );
+    writeFileSync(service, contents);
+    const removed = await runInstaller(context, ['--uninstall']);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.equal(readFileSync(service, 'utf8'), contents);
+  });
+
+  it('matches complete Linux ExecStart paths with and without quotes', async () => {
+    for (const [quoted, owned] of [
+      [false, true],
+      [true, true],
+      [false, false],
+      [true, false],
+    ]) {
+      const context = createInstallContext(createBundle());
+      addCommandStubs(context, {
+        uname: '#!/bin/sh\nprintf Linux\n',
+        systemctl: '#!/bin/sh\nexit 0\n',
+      });
+      const service = join(
+        context.home,
+        '.config/systemd/user/moltnet-agent.service',
+      );
+      mkdirSync(dirname(service), { recursive: true });
+      const executable = `${owned ? '' : '/another'}${context.installRoot}/current/bin/moltnet-agent`;
+      const contents = `ExecStart=${quoted ? `"${executable}"` : executable} server\n`;
+      writeFileSync(service, contents);
+      const removed = await runInstaller(context, ['--uninstall']);
+      assert.equal(removed.status, 0, removed.stderr);
+      assert.equal(existsSync(service), !owned);
+    }
+  });
+
+  it('preserves a replaced launcher when uninstalling an owned root', async () => {
+    const context = createInstallContext(createBundle());
+    const installed = await runInstaller(context);
+    assert.equal(installed.status, 0, installed.stderr);
+    const launcher = join(context.binDir, 'moltnet-agent');
+    rmSync(launcher);
+    writeFileSync(launcher, 'replacement');
+    const removed = await runInstaller(context, ['--uninstall']);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.equal(readFileSync(launcher, 'utf8'), 'replacement');
+    assert.equal(existsSync(context.installRoot), false);
+  });
+
   it('preserves unowned links and service definitions', async () => {
     const fixture = createBundle();
     const context = createInstallContext(fixture);
@@ -299,7 +401,7 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     mkdirSync(dirname(service), { recursive: true });
     writeFileSync(
       service,
-      `${context.installRoot}/current/bin/moltnet-agent server\n`,
+      legacyService(`${context.installRoot}/current/bin/moltnet-agent`),
     );
     addCommandStubs(context, {
       launchctl: '#!/bin/sh\nexit 0\n',

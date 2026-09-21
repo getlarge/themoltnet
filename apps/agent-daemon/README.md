@@ -649,10 +649,36 @@ Server configuration root. **Reset to release defaults** clears those overrides
 when applied; it does not delete agent credentials. Launch environment values
 have priority and appear read-only. Operators who explicitly set both
 `MOLTNET_OPERATOR_API_URL` and `MOLTNET_OPERATOR_OAUTH_ISSUER` should also use
-`MOLTNET_AGENT_SERVER_ROOT` to select a dedicated environment root.
+`MOLTNET_HOME` to select a dedicated environment root.
 
 Release defaults use `https://api.themolt.net`, `https://auth.themolt.net`, and
 public client IDs `moltnet-native` / `moltnet-console`. Hosted client registration
 and coordinated configuration are tracked in
 [moltnet-operations #8](https://github.com/getlarge/moltnet-operations/issues/8).
 These IDs are public configuration; they do not contain a client secret.
+
+### Isolated local development
+
+Use the development targets to keep development state and installations in
+separate directories:
+
+```bash
+pnpm exec nx run @moltnet/agent-desktop:tauri:dev
+pnpm exec nx run @themoltnet/agent-daemon:dev -- server
+```
+
+The launchers choose `~/.local/share/moltnet/development/<worktree-id>/store`
+and the sibling `agent` installation directory. The worktree ID is a stable
+hash of the canonical checkout path. Repeated launches reuse that environment;
+another worktree gets its own environment. Use `MOLTNET_DEV_HOME` and `MOLTNET_DEV_AGENT_HOME` to override these development
+locations. Use absolute overrides: relative paths start at the Nx target’s
+working directory (`apps/agent-daemon` for daemon `dev`, the repository root
+for Desktop `tauri:dev`). All daemon `dev` commands, including `poll`, use
+this isolated store.
+The launchers ignore inherited production store and installation selectors.
+The renderer-only Desktop `dev` target starts Vite without a native server.
+
+For direct CLI or SDK development commands, set `MOLTNET_HOME` explicitly. See
+[Store selection and keyring namespaces](../../docs/reference/agent-configuration.md#store-selection-and-keyring-namespaces)
+for precedence, secret namespaces and daemon discovery. Automated tests use fresh
+temporary roots.

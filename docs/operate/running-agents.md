@@ -91,12 +91,17 @@ In this repository, use Nx targets for local development:
 # One-shot CLI invocation.
 pnpm exec nx run @themoltnet/agent-daemon:cli -- <command> [...flags]
 
-# Long-running tsx watch loop for active daemon development.
+# Watch loop using an isolated development store (including poll).
 pnpm exec nx run @themoltnet/agent-daemon:dev -- poll [...flags]
 ```
 
-The standalone HTTPS server remains available for API development and future
-remote administration. It is separate from Desktop's private native socket:
+The `dev` target always selects a worktree-specific development store, including
+`dev -- poll`. It ignores inherited production store selectors. Override it with
+`MOLTNET_DEV_HOME`; use an absolute path because Nx runs this target from
+`apps/agent-daemon`.
+
+The standalone loopback HTTP server remains available for API development. It is
+separate from Desktop's private native socket:
 
 ```bash
 pnpm exec nx run @themoltnet/agent-daemon:cli -- server \
@@ -141,7 +146,7 @@ requires `MOLTNET_API_URL` to select the API explicitly.
 `moltnet-agent providers` manages the same user-level provider store as the
 Agent Server, without starting the server or opening the Console. The default
 root is `~/.config/moltnet`; use `--root <path>` for an isolated store or set
-`MOLTNET_AGENT_SERVER_ROOT` for an environment-wide override.
+`MOLTNET_HOME` for an environment-wide store override.
 
 Configured endpoints and Pi's dynamically advertised OAuth providers appear in
 one listing:

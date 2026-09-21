@@ -11,6 +11,7 @@ import type {
   AgentServerCatalogue,
   AgentServerStatus,
   RunCenterActions,
+  RunPreset,
 } from './types.js';
 
 /** Native IPC owns all server access; this renderer receives public state only. */
@@ -19,9 +20,30 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
-  const [presets, setPresets] = useState(listPresets);
+  const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [presetError, setPresetError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    let current = true;
+    void listPresets().then(
+      (value) => {
+        if (current) {
+          setPresets(value);
+          setPresetError(null);
+        }
+      },
+      (cause: unknown) => {
+        if (current) {
+          setPresets([]);
+          setPresetError(`Could not load presets: ${String(cause)}`);
+        }
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [server.state]);
   const inFlight = useRef<Promise<void> | null>(null);
   const epoch = useRef(0);
   const failures = useRef(0);
@@ -61,7 +83,6 @@ export function DesktopRunCenter() {
             lastCatalogue.current = Date.now();
           }
         }
-        setPresets(listPresets());
       } catch (cause) {
         if (currentEpoch !== epoch.current) return;
         failures.current++;
@@ -159,17 +180,18 @@ export function DesktopRunCenter() {
       },
       savePreset: async (input) => {
         await runCenterActions.savePreset(input);
-        setPresets(listPresets());
+        setPresets(await listPresets());
       },
       deletePreset: async (id) => {
         await runCenterActions.deletePreset(id);
-        setPresets(listPresets());
+        setPresets(await listPresets());
       },
     }),
     [refresh],
   );
   return (
     <>
+      {presetError && <InlineNotice tone="error">{presetError}</InlineNotice>}
       <RunCenterApp
         notice={
           error && ['running', 'update_available'].includes(server.state) ? (

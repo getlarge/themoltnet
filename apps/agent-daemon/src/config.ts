@@ -6,6 +6,12 @@
  * sprinkling string lookups across the codebase.
  */
 import {
+  isDefaultStore,
+  resolveStoreRoot,
+  resolveStoreSelection,
+} from '@themoltnet/sdk/node';
+
+import {
   type DaemonCredentialSource,
   detectCredentialSource,
 } from './lib/agent-context.js';
@@ -25,7 +31,7 @@ export interface DaemonConfig {
    * provider store when one exists, else repo-local .pi.
    */
   piCodingAgentDir: string;
-  /** `MOLTNET_AGENT_SERVER_ROOT`; empty = `~/.config/moltnet`. */
+  /** Effective shared MoltNet store root. */
   agentServerRoot: string;
   /**
    * Where the agent key comes from: `environment` when `MOLTNET_AGENT_KEY`
@@ -66,6 +72,13 @@ export interface DaemonConfig {
   expectedAgent?: SubjectPin;
 }
 
+/** All daemon commands announce the same legacy alias policy as Go and Desktop. */
+export function legacyStoreNotice(): string | undefined {
+  return process.env['MOLTNET_AGENT_SERVER_ROOT'] !== undefined
+    ? 'MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.'
+    : undefined;
+}
+
 export function loadConfig(): DaemonConfig {
   assertSingleCredentialForm('MOLTNET_AGENT_KEY', 'MOLTNET_AGENT_KEY_REF');
   assertSingleCredentialForm('MOLTNET_PRIVATE_KEY', 'MOLTNET_PRIVATE_KEY_REF');
@@ -76,7 +89,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
-    agentServerRoot: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
+    agentServerRoot: resolveStoreRoot(),
     credentialSource: detectCredentialSource(process.env),
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
@@ -146,6 +159,7 @@ export interface AgentServerEnvConfig {
   port: string;
   allowedOrigins: string;
   root: string;
+  rootSource: string;
   apiUrl: string;
   logLevel: string;
   activeIdentity: string;
@@ -158,7 +172,8 @@ export interface AgentServerEnvConfig {
   };
 }
 
-export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
+export function loadAgentServerEnvConfig(root?: string): AgentServerEnvConfig {
+  const selection = resolveStoreSelection({ root });
   const issuer = process.env['MOLTNET_OPERATOR_OAUTH_ISSUER'];
   const publicUrl = process.env['MOLTNET_OPERATOR_OAUTH_PUBLIC_URL'] ?? issuer;
   const nativeClientId = process.env['MOLTNET_NATIVE_OAUTH_CLIENT_ID'];
@@ -174,7 +189,8 @@ export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
     },
     port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',
     allowedOrigins: process.env['MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS'] ?? '',
-    root: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
+    root: selection.root,
+    rootSource: selection.source,
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
     activeIdentity: process.env['MOLTNET_ACTIVE_IDENTITY'] ?? '',
@@ -188,12 +204,15 @@ export function processEnvSnapshot(): NodeJS.ProcessEnv {
 
 /** Environment inputs used by the credential-free update cache. */
 export interface UpdateEnvConfig {
+  storeRoot?: string;
   xdgCacheHome: string;
   localAppData: string;
 }
 
-export function loadUpdateEnvConfig(): UpdateEnvConfig {
+export function loadUpdateEnvConfig(root?: string): UpdateEnvConfig {
+  const isolated = !isDefaultStore({ root });
   return {
+    ...(isolated ? { storeRoot: resolveStoreRoot({ root }) } : {}),
     xdgCacheHome: process.env['XDG_CACHE_HOME'] ?? '',
     localAppData: process.env['LOCALAPPDATA'] ?? '',
   };

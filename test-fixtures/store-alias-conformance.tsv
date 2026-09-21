@@ -1,0 +1,10 @@
+# MOLTNET_HOME<TAB>MOLTNET_AGENT_SERVER_ROOT<TAB>expected relative path; UNSET omits a variable
+UNSET	store	store
+store	UNSET	store
+store	./store	store
+parent/../store	store	store
+store	different	ERROR
+UNSET		ERROR
+	UNSET	ERROR
+store		ERROR
+	store	ERROR

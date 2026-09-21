@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runCenterActions } from './run-center-bridge.js';
+import { listPresets, runCenterActions } from './run-center-bridge.js';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -9,6 +9,47 @@ describe('native team enrollment bridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+  });
+
+  it('isolates presets by the native environment and preserves the default key', async () => {
+    const input = {
+      name: 'Repeat',
+      agent: 'agent',
+      teamId: 'team',
+      profileIds: ['profile'],
+      taskTypes: ['freeform'],
+    };
+    vi.mocked(invoke).mockResolvedValue({ storageScope: '' });
+    await runCenterActions.savePreset(input);
+    expect(localStorage.getItem('moltnet.run-presets.v1')).not.toBeNull();
+    vi.mocked(invoke).mockResolvedValue({
+      storageScope: '/stores/a/environments/one',
+    });
+    expect(await listPresets()).toEqual([]);
+    await runCenterActions.savePreset({ ...input, name: 'A' });
+    vi.mocked(invoke).mockResolvedValue({ storageScope: '/stores/b' });
+    expect(await listPresets()).toEqual([]);
+    vi.mocked(invoke).mockResolvedValue({
+      storageScope: '/stores/a/environments/one',
+    });
+    expect(await listPresets()).toEqual([
+      expect.objectContaining({ name: 'A' }),
+    ]);
+    vi.mocked(invoke).mockResolvedValue({});
+    await expect(runCenterActions.savePreset(input)).rejects.toThrow();
+  });
+
+  it('reads the selected preset namespace without requiring a running daemon', async () => {
+    localStorage.setItem(
+      'moltnet.run-presets.v1:/stores/offline',
+      JSON.stringify([{ name: 'Offline worker' }]),
+    );
+    vi.mocked(invoke).mockImplementation((command) =>
+      command === 'desktop_preset_storage_scope'
+        ? Promise.resolve({ storageScope: '/stores/offline' })
+        : Promise.reject(new Error('The Agent Server is stopped')),
+    );
+    await expect(listPresets()).resolves.toEqual([{ name: 'Offline worker' }]);
   });
 
   it('passes explicit replacement to native code without persisting the invitation', async () => {

@@ -119,6 +119,18 @@ func TestStoreOverride(t *testing.T) {
 	}
 }
 
+func TestLegacyStoreRootConflict(t *testing.T) {
+	t.Setenv("MOLTNET_HOME", filepath.Join(t.TempDir(), "a"))
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", filepath.Join(t.TempDir(), "b"))
+	if _, err := Dir(); err == nil {
+		t.Fatal("conflicting root aliases accepted")
+	}
+	explicit := t.TempDir()
+	if _, err := Resolve(&explicit); err != nil {
+		t.Fatalf("explicit override: %v", err)
+	}
+}
+
 func TestEmptyStoreRejected(t *testing.T) {
 	t.Setenv("MOLTNET_HOME", "")
 	if _, err := Dir(); err == nil {
@@ -236,5 +248,157 @@ func TestRelativeHomeDefaultStaysLexical(t *testing.T) {
 	got, err := Resolve(nil)
 	if err != nil || got != filepath.Join("relative-home", ".config", "moltnet") {
 		t.Fatalf("relative default: %q, %v", got, err)
+	}
+}
+
+func TestIsolatedCacheDir(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("MOLTNET_HOME", root)
+	got, err := CacheDir()
+	canonical, _ := Canonical(root)
+	if err != nil || got != filepath.Join(canonical, "cache") {
+		t.Fatalf("cache: %q, %v", got, err)
+	}
+}
+
+func TestDefaultStoreAliasKeepsCacheLocation(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("MOLTNET_HOME", "")
+	os.Unsetenv("MOLTNET_HOME")
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", "")
+	os.Unsetenv("MOLTNET_AGENT_SERVER_ROOT")
+	expected, err := CacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := Dir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MOLTNET_HOME", root)
+	got, err := CacheDir()
+	if err != nil || got != expected {
+		t.Fatalf("alias cache %q, %v; want %q", got, err, expected)
+	}
+}
+
+func TestIsolatedCacheWithBrokenDefault(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	if err := os.WriteFile(filepath.Join(home, ".config"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(home, "isolated")
+	t.Setenv("MOLTNET_HOME", root)
+	expected, err := Canonical(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := CacheDir(); err != nil || got != filepath.Join(expected, "cache") {
+		t.Fatalf("cache: %q, %v", got, err)
+	}
+}
+
+func TestFullStoreAliasConformance(t *testing.T) {
+	contents, err := os.ReadFile("../../../../test-fixtures/store-alias-conformance.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cwd, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(cwd)
+	scanner := bufio.NewScanner(strings.NewReader(string(contents)))
+	for scanner.Scan() {
+		row := scanner.Text()
+		if row == "" || strings.HasPrefix(row, "#") {
+			continue
+		}
+		t.Run(row, func(t *testing.T) {
+			parts := strings.Split(row, "\t")
+			for i, name := range []string{"MOLTNET_HOME", "MOLTNET_AGENT_SERVER_ROOT"} {
+				t.Setenv(name, parts[i])
+				if parts[i] == "UNSET" {
+					os.Unsetenv(name)
+				}
+			}
+			got, err := Dir()
+			service, serviceErr := SecretService(nil)
+			if parts[2] == "ERROR" {
+				if err == nil || serviceErr == nil {
+					t.Fatalf("accepted invalid selection: %q", row)
+				}
+			} else {
+				expected := filepath.Join(cwd, parts[2])
+				expectedService, _ := SecretService(&expected)
+				if err != nil || got != expected || serviceErr != nil || service != expectedService {
+					t.Fatalf("selection: %q, %v; service: %q, %v", got, err, service, serviceErr)
+				}
+			}
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWorkerDefaultStoreNamespace(t *testing.T) {
+	home := t.TempDir()
+	root := filepath.Join(home, ".config", "moltnet")
+	t.Setenv("HOME", filepath.Join(home, "worker"))
+	t.Setenv("USERPROFILE", filepath.Join(home, "worker"))
+	t.Setenv("MOLTNET_HOME", root)
+	t.Setenv("MOLTNET_DEFAULT_STORE_ROOT", root)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
+	if got, err := SecretService(nil); err != nil || got != SecretServiceName {
+		t.Fatalf("worker service = %q, %v", got, err)
+	}
+}
+
+func TestSharedDefaultIdentity(t *testing.T) {
+	rows, err := os.ReadFile("../../../../test-fixtures/store-default-conformance.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	scanner := bufio.NewScanner(strings.NewReader(string(rows)))
+	for scanner.Scan() {
+		row := scanner.Text()
+		if row == "" || strings.HasPrefix(row, "#") {
+			continue
+		}
+		fields := strings.Split(row, "\t")
+		t.Run(fields[0]+fields[1], func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			root := filepath.Join(home, ".config", "moltnet")
+			if fields[0] == "unhealthy" {
+				os.WriteFile(filepath.Join(home, ".config"), []byte("file"), 0600)
+			} else {
+				os.MkdirAll(root, 0700)
+			}
+			selected := root
+			if fields[1] == "alias" {
+				selected = filepath.Join(home, "alias")
+				if err := os.Symlink(root, selected); err != nil {
+					t.Skipf("symlink unavailable: %v", err)
+				}
+			} else if fields[1] == "isolated" {
+				selected = filepath.Join(home, "isolated")
+			}
+			selection, err := Select(&selected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actual, err := selection.IsDefault()
+			if err != nil || actual != (fields[2] == "true") {
+				t.Fatalf("IsDefault = %v, %v", actual, err)
+			}
+		})
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
 	}
 }

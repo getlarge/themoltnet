@@ -6,9 +6,15 @@
  * involved and the native origin must never be reachable through one.
  */
 import { writeFileSync } from 'node:fs';
+import { request } from 'node:http';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  publishAgentServerEndpoint,
+  readAgentServerEndpoint,
+} from './endpoint.js';
+import { acquireAgentServerLock } from './lock.js';
 import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
@@ -30,6 +36,77 @@ import {
 afterEach(cleanupAll);
 
 describe('native desktop client', () => {
+  it('runs two roots on separate endpoints while enforcing each singleton and native grant', async () => {
+    const firstGrant = new NativeGrantService();
+    const secondGrant = new NativeGrantService();
+    firstGrant.grantNative('first-token');
+    secondGrant.grantNative('second-token');
+    const first = await fixture({ nativeGrant: firstGrant });
+    const second = await fixture({ nativeGrant: secondGrant });
+    const firstLock = await acquireAgentServerLock(first.store.root);
+    const secondLock = await acquireAgentServerLock(second.store.root);
+    try {
+      await expect(
+        acquireAgentServerLock(first.store.root),
+      ).rejects.toMatchObject({ code: 'held' });
+      const firstUrl = await first.app.listen({ host: '127.0.0.1', port: 0 });
+      const secondUrl = await second.app.listen({ host: '127.0.0.1', port: 0 });
+      expect(firstUrl).not.toBe(secondUrl);
+      const firstRecord = publishAgentServerEndpoint(
+        first.store.root,
+        firstUrl,
+      );
+      const secondRecord = publishAgentServerEndpoint(
+        second.store.root,
+        secondUrl,
+      );
+      try {
+        expect(readAgentServerEndpoint(first.store.root)?.url).toBe(firstUrl);
+        expect(readAgentServerEndpoint(second.store.root)?.url).toBe(secondUrl);
+        const headers = {
+          origin: NATIVE_CLIENT_ORIGIN,
+          [AGENT_SERVER_TOKEN_HEADER]: 'first-token',
+        };
+        for (const [url, expected] of [
+          [firstUrl, 200],
+          [secondUrl, 401],
+        ] as const) {
+          const status = await new Promise<number | undefined>(
+            (resolve, reject) => {
+              const req = request(
+                `${url}/v1/native/connection-settings`,
+                { headers },
+                (response) => {
+                  response.resume();
+                  resolve(response.statusCode);
+                },
+              );
+              req.on('error', reject);
+              req.end();
+            },
+          );
+          expect(status).toBe(expected);
+        }
+      } finally {
+        firstRecord.release();
+        secondRecord.release();
+      }
+    } finally {
+      await firstLock.release();
+      await secondLock.release();
+    }
+  });
+
+  it('admits its actual loopback origin after binding an ephemeral port', async () => {
+    const { app } = await fixture();
+    const address = await app.listen({ host: '127.0.0.1', port: 0 });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { origin: address },
+    });
+    expect(response.headers['access-control-allow-origin']).toBe(address);
+  });
   it('restricts connection settings to native administration and requires restart after saving', async () => {
     const nativeGrant = new NativeGrantService();
     nativeGrant.grantNative('settings-token');

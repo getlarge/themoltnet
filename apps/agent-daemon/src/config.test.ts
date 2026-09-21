@@ -1,10 +1,36 @@
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadAgentServerEnvConfig, loadConfig } from './config.js';
+import {
+  legacyStoreNotice,
+  loadAgentServerEnvConfig,
+  loadConfig,
+  loadUpdateEnvConfig,
+} from './config.js';
 
 describe('loadConfig observability settings', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+  it.each([undefined, '/same-store'])(
+    'announces the legacy name even with MOLTNET_HOME=%s',
+    (shared) => {
+      vi.stubEnv('MOLTNET_HOME', shared);
+      vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+      expect(legacyStoreNotice()).toBeUndefined();
+      vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/same-store');
+      expect(legacyStoreNotice()).toContain('is deprecated; use MOLTNET_HOME');
+    },
+  );
+
+  it('shares MOLTNET_HOME across direct workers and the server', () => {
+    vi.stubEnv('MOLTNET_HOME', '/isolated-moltnet-store');
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+    expect(loadConfig().agentServerRoot).toBe('/isolated-moltnet-store');
+    expect(loadAgentServerEnvConfig().root).toBe('/isolated-moltnet-store');
   });
 
   it('keeps full idle polling traces disabled by default', () => {
@@ -70,4 +96,17 @@ describe('loadConfig observability settings', () => {
       'MOLTNET_EXPECTED_IDENTITY_ID is no longer supported',
     );
   });
+});
+
+it('keeps update caches stable through default-store aliases', () => {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'update-root-')));
+  try {
+    vi.stubEnv('HOME', home);
+    vi.stubEnv('MOLTNET_HOME', join(home, '.config/moltnet'));
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+    expect(loadUpdateEnvConfig().storeRoot).toBeUndefined();
+  } finally {
+    vi.unstubAllEnvs();
+    rmSync(home, { recursive: true, force: true });
+  }
 });

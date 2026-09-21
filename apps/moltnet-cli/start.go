@@ -11,6 +11,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/projectconfig"
 	"github.com/spf13/cobra"
 )
@@ -121,6 +122,15 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	}
 	vars["MOLTNET_CREDENTIALS_PATH"] = filepath.Clean(launchConfigPath)
 	vars["MOLTNET_ACTIVE_IDENTITY"] = agentName
+	storeRoot, err := GetConfigDir()
+	if err != nil {
+		return err
+	}
+	storeRoot, err = configdir.Canonical(storeRoot)
+	if err != nil {
+		return err
+	}
+	vars["MOLTNET_HOME"] = storeRoot
 
 	vars["PWD"] = workingDirectory
 	// Resolve relative targets against the selected source, including during dry runs.
@@ -148,6 +158,8 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, agentFlag, target string
 	for k, v := range vars {
 		envMap[k] = v
 	}
+	// The selected absolute root replaces a possibly relative legacy alias.
+	delete(envMap, "MOLTNET_AGENT_SERVER_ROOT")
 	env := make([]string, 0, len(envMap))
 	for k, v := range envMap {
 		env = append(env, k+"="+v)

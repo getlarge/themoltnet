@@ -11,7 +11,7 @@
 #   MOLTNET_AGENT_BASE_URL  release asset base URL
 #   MOLTNET_AGENT_ARCHIVE   path to a local .tar.gz (skips download; .sha256 beside it)
 #   MOLTNET_AGENT_HOME      install root (default ~/.local/share/moltnet/agent)
-#   MOLTNET_AGENT_BIN_DIR   where the `moltnet-agent` link goes (default ~/.local/bin)
+#   MOLTNET_AGENT_BIN_DIR   link directory (default ~/.local/bin, or $MOLTNET_AGENT_HOME/bin)
 #   MOLTNET_AGENT_ALLOW_UNSIGNED=1  accept an artifact carrying the UNSIGNED
 #       marker (local builds only — it waives the signing trust chain)
 #   MOLTNET_AGENT_ALLOW_UNVERIFIED=1  skip release-signature verification
@@ -20,8 +20,13 @@
 set -eu
 
 REPO="getlarge/themoltnet"
-HOME_DIR="${MOLTNET_AGENT_HOME:-$HOME/.local/share/moltnet/agent}"
-BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME/.local/bin}"
+DEFAULT_HOME_DIR="$HOME/.local/share/moltnet/agent"
+HOME_DIR="${MOLTNET_AGENT_HOME:-$DEFAULT_HOME_DIR}"
+if [ "$HOME_DIR" = "$DEFAULT_HOME_DIR" ]; then
+  BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME/.local/bin}"
+else
+  BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME_DIR/bin}"
+fi
 LEGACY_SERVICE_LABEL="net.themolt.agent.serve"
 
 SENTINEL=.moltnet-agent-root
@@ -176,21 +181,39 @@ verify_launcher() {
 }
 
 unregister_legacy_service() {
+  # Remove only a service whose executable belongs to this installation.
   service_file=$(legacy_service_definition_path)
-  if [ ! -f "$service_file" ] || ! grep -qF "$HOME_DIR/current" "$service_file"; then
-    return 0
-  fi
+  [ -f "$service_file" ] || return 0
+  executable="$HOME_DIR/current/bin/moltnet-agent"
   case "$(host_os)" in
     darwin)
+      launcher=$(/usr/libexec/PlistBuddy -c 'Print :ProgramArguments:0' "$service_file" 2>/dev/null) || return 0
+      [ "$launcher" = "$executable" ] || return 0
       launchctl bootout "gui/$(id -u)/$LEGACY_SERVICE_LABEL" >/dev/null 2>&1 || true
       rm -f "$service_file"
       ;;
     linux)
+      # Match the complete ExecStart executable, including quoted paths.
+      awk -v executable="$executable" '
+        /^ExecStart=/ {
+          command = substr($0, 11)
+          quoted = "\"" executable "\""
+          if (command == executable || index(command, executable " ") == 1 ||
+              command == quoted || index(command, quoted " ") == 1) owned = 1
+        }
+        END { exit !owned }
+      ' "$service_file" || return 0
       if command -v systemctl >/dev/null 2>&1; then
         systemctl --user disable --now moltnet-agent.service >/dev/null 2>&1 || true
       fi
       rm -f "$service_file"
       ;;
+  esac
+}
+
+remove_owned_launcher() {
+  case "$(readlink "$BIN_DIR/moltnet-agent" 2>/dev/null)" in
+    "$HOME_DIR"/*) rm -f "$BIN_DIR/moltnet-agent" ;;
   esac
 }
 
@@ -201,16 +224,14 @@ uninstall() {
     # verifiably point INTO $HOME_DIR — never an unrelated executable or a
     # user-managed service definition.
     log "no installer-owned root at $HOME_DIR"
-    case "$(readlink "$BIN_DIR/moltnet-agent" 2>/dev/null)" in
-      "$HOME_DIR"/*) rm -f "$BIN_DIR/moltnet-agent" ;;
-    esac
+    remove_owned_launcher
     unregister_legacy_service
     return 0
   fi
   acquire_lock
   trap 'release_lock' EXIT
   unregister_legacy_service
-  rm -f "$BIN_DIR/moltnet-agent"
+  remove_owned_launcher
   # Hold the lock through the removal: the tree must be gone before any
   # concurrent install may proceed.
   rm -rf "$HOME_DIR"
@@ -316,7 +337,7 @@ install() {
     fi
     # First install: leave no broken activation behind.
     unregister_legacy_service
-    rm -f "$BIN_DIR/moltnet-agent"
+    remove_owned_launcher
     rm -f "$HOME_DIR/current"
     mv "$target" "$target.broken" 2>/dev/null || true
     die "install of $version failed its readiness check (broken payload kept at $target.broken)"
@@ -330,7 +351,7 @@ install() {
   # Prune older versions only after the new launcher passes its self-check.
   for dir in "$HOME_DIR"/*/; do
     dir=${dir%/}
-    case "$dir" in "$target"|*/current|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
+    case "$dir" in "$target"|"$BIN_DIR"|*/current|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
   done
 
   sandbox_ready=1
@@ -368,7 +389,7 @@ Environment overrides:
   MOLTNET_AGENT_BASE_URL      release asset base URL
   MOLTNET_AGENT_ARCHIVE       local .tar.gz (skips download; .sha256 beside it)
   MOLTNET_AGENT_HOME          install root (default ~/.local/share/moltnet/agent)
-  MOLTNET_AGENT_BIN_DIR       bin link directory (default ~/.local/bin)
+  MOLTNET_AGENT_BIN_DIR       link directory (default ~/.local/bin, or $MOLTNET_AGENT_HOME/bin)
 Trust-chain escape hatches (only for artifacts you built yourself):
   MOLTNET_AGENT_ALLOW_UNSIGNED=1    accept an artifact carrying the UNSIGNED
                                     marker (waives the Apple code-signing chain)

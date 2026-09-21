@@ -1,8 +1,15 @@
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   checkDaemonUpdate,
@@ -15,6 +22,25 @@ import {
 } from './update.js';
 
 describe('daemon update discovery', () => {
+  let root: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'update-store-'));
+    vi.stubEnv('MOLTNET_HOME', root);
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    rmSync(root, { recursive: true, force: true });
+  });
+  it('uses the selected environment store for the update cache', async () => {
+    await checkDaemonUpdate({
+      currentVersion: '0.60.0',
+      executable: '/usr/lib/node_modules/@themoltnet/agent-daemon/dist/main.js',
+      fetchFn: vi.fn(async () => Response.json({ version: '0.61.0' })),
+    });
+    expect(existsSync(join(root, 'cache/updates/agent.json'))).toBe(true);
+  });
+
   it('compares stable semver versions', () => {
     expect(compareVersions('0.50.0', '0.49.1')).toBe(1);
     expect(compareVersions('0.49.1', '0.50.0')).toBe(-1);
@@ -48,6 +74,7 @@ describe('daemon update discovery', () => {
     });
     expect(result.latestVersion).toBe('0.50.0');
     expect(result.updateAvailable).toBe(true);
+    expect(existsSync(join(root, 'cache', 'updates', 'agent.json'))).toBe(true);
   });
 });
 

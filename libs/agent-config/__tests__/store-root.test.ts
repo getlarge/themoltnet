@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
   existsSync,
@@ -16,7 +17,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getConfigDir } from '../src/config.js';
-import { storeSecretService } from '../src/store-root.js';
+import { isDefaultStore, storeSecretService } from '../src/store-root.js';
 
 describe('MoltNet store selection', () => {
   it.skipIf(process.platform === 'win32')(
@@ -45,10 +46,65 @@ describe('MoltNet store selection', () => {
     vi.stubEnv('HOME', home);
     vi.stubEnv('USERPROFILE', home);
     vi.stubEnv('MOLTNET_HOME', undefined);
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
   });
   afterEach(() => {
     vi.unstubAllEnvs();
     rmSync(home, { recursive: true, force: true });
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'shares default identity cases with Go and Rust',
+    () => {
+      const rows = readFileSync(
+        new URL(
+          '../../../test-fixtures/store-default-conformance.tsv',
+          import.meta.url,
+        ),
+        'utf8',
+      );
+      for (const row of rows
+        .split(/\r?\n/)
+        .filter((line) => line && !line.startsWith('#'))) {
+        const [layout, selection, expected] = row.split('\t');
+        const base = join(home, `${layout}-${selection}`);
+        mkdirSync(base);
+        if (layout === 'unhealthy')
+          writeFileSync(join(base, '.config'), 'file');
+        else {
+          mkdirSync(join(base, '.config/moltnet'), { recursive: true });
+          symlinkSync(
+            join(base, '.config/moltnet'),
+            join(base, 'alias'),
+            'dir',
+          );
+        }
+        const root =
+          selection === 'default' ? undefined : join(base, selection!);
+        expect(isDefaultStore({ root, home: base, env: {} })).toBe(
+          expected === 'true',
+        );
+      }
+    },
+  );
+
+  it('preserves the default keyring namespace in a spawned worker with isolated HOME', () => {
+    const root = join(home, '.config', 'moltnet');
+    const script = `import { isDefaultStore, storeSecretService } from ${JSON.stringify(new URL('../src/store-root.ts', import.meta.url).href)}; process.stdout.write(storeSecretService());`;
+    const service = execFileSync(
+      process.execPath,
+      ['--import', 'tsx', '--input-type=module', '--eval', script],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          HOME: join(home, 'worker'),
+          MOLTNET_HOME: root,
+          MOLTNET_DEFAULT_STORE_ROOT: root,
+        },
+      },
+    );
+    expect(service).toBe('themolt.net');
   });
 
   it('resolves symlinks before parent segments', () => {
@@ -120,6 +176,53 @@ describe('MoltNet store selection', () => {
   });
   it('retains the established default', () => {
     expect(getConfigDir()).toBe(join(home, '.config/moltnet'));
+  });
+  it('accepts the legacy root alias and diagnoses conflicting roots', () => {
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', join(home, 'legacy'));
+    expect(getConfigDir()).toBe(join(home, 'legacy'));
+    vi.stubEnv('MOLTNET_HOME', join(home, 'different'));
+    expect(() => getConfigDir()).toThrow(/conflict/i);
+    expect(getConfigDir({ root: join(home, 'explicit') })).toBe(
+      join(home, 'explicit'),
+    );
+  });
+  it('conforms to shared full-store alias fixtures', () => {
+    const rows = readFileSync(
+      new URL(
+        '../../../test-fixtures/store-alias-conformance.tsv',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    for (const row of rows
+      .split(/\r?\n/)
+      .filter((line) => line && !line.startsWith('#'))) {
+      const [shared, alias, expected] = row.split('\t');
+      const env = {
+        MOLTNET_HOME: shared === 'UNSET' ? undefined : shared,
+        MOLTNET_AGENT_SERVER_ROOT: alias === 'UNSET' ? undefined : alias,
+      };
+      const options = { env, cwd: home, home };
+      if (expected === 'ERROR') {
+        expect(() => getConfigDir(options)).toThrow();
+        expect(() => storeSecretService(options)).toThrow();
+      } else {
+        expect(getConfigDir(options)).toBe(join(home, expected!));
+        expect(storeSecretService(options)).toBe(
+          storeSecretService({ root: join(home, expected!), home }),
+        );
+      }
+    }
+  });
+  it('names both conflicting selections', () => {
+    expect(() =>
+      getConfigDir({
+        env: {
+          MOLTNET_HOME: 'first-store',
+          MOLTNET_AGENT_SERVER_ROOT: 'second-store',
+        },
+      }),
+    ).toThrow(/first-store.*second-store/);
   });
   it.each(['\n', '\r\n'])(
     'conforms to root fixtures with %j line endings',

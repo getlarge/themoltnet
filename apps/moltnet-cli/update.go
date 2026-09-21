@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -203,11 +204,11 @@ func fetchCLILatestFromReleases(ctx context.Context) (string, error) {
 }
 
 func updateCachePath(product string) (string, error) {
-	d, err := os.UserCacheDir()
+	d, err := configdir.CacheDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(d, "moltnet", "updates", product+".json"), nil
+	return filepath.Join(d, "updates", product+".json"), nil
 }
 func readUpdateCache(product string) (updateCache, error) {
 	var c updateCache

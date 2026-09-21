@@ -38,6 +38,7 @@ import {
   connect,
   createNodeSecretProviderRegistry,
   resolveNodeOAuth2ClientSecret,
+  storeSecretService,
   windowsKeyringTarget,
 } from '../src/node.js';
 
@@ -76,6 +77,42 @@ describe('Node secret providers', () => {
     await expect(
       registry.resolve({ provider: 'os-keyring', key: 'test' }),
     ).rejects.toThrow(/store root/);
+  });
+
+  it.each(['ambient', 'options'] as const)(
+    'captures the original default store under a worker HOME (%s)',
+    async (selection) => {
+      const original = join(tmpdir(), 'original-home', '.config', 'moltnet');
+      const worker = join(tmpdir(), 'worker-home');
+      vi.stubEnv('HOME', worker);
+      vi.stubEnv('USERPROFILE', worker);
+      vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+      vi.stubEnv('MOLTNET_HOME', original);
+      vi.stubEnv('MOLTNET_DEFAULT_STORE_ROOT', original);
+      const env = {
+        MOLTNET_HOME: original,
+        MOLTNET_DEFAULT_STORE_ROOT: original,
+      };
+      const registry = createNodeSecretProviderRegistry({
+        platform: 'linux',
+        ...(selection === 'options' ? { store: { env, home: worker } } : {}),
+      });
+      // Lazy access must keep the complete selection captured at construction.
+      vi.stubEnv('MOLTNET_DEFAULT_STORE_ROOT', join(tmpdir(), 'changed'));
+      env.MOLTNET_DEFAULT_STORE_ROOT = join(tmpdir(), 'changed');
+      await registry.get('os-keyring')?.read('identity/same/seed');
+      expect(keyring.constructor).toHaveBeenCalledWith('linux', 'themolt.net');
+    },
+  );
+
+  it('captures the legacy store alias before lazy initialization', async () => {
+    vi.stubEnv('MOLTNET_HOME', undefined);
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/missing-keyring-legacy-store');
+    const expected = storeSecretService();
+    const registry = createNodeSecretProviderRegistry('linux');
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/different-keyring-legacy-store');
+    await registry.get('os-keyring')?.read('identity/same/seed');
+    expect(keyring.constructor.mock.calls[0]?.[1]).toBe(expected);
   });
 
   it('registers both env and a lazy OS-keyring provider for Node consumers', async () => {
@@ -223,19 +260,25 @@ describe('Node secret providers', () => {
     ).resolves.toBe('present');
     expect(keyring.constructor).toHaveBeenCalledOnce();
   });
-  it('configures the file provider from the supplied environment', async () => {
-    const env: Record<string, string> = {
-      MOLTNET_SECRET_ROOT: '/nonexistent/root',
-      MOLTNET_SECRET_ROOT_WRITABLE: '1',
-    };
-    const registry = createNodeSecretProviderRegistry(
-      'linux',
-      (name) => env[name],
-    );
+  it.each(['positional', 'options'] as const)(
+    'configures the file provider from the supplied %s environment',
+    async (signature) => {
+      const env: Record<string, string> = {
+        MOLTNET_SECRET_ROOT: '/nonexistent/root',
+        MOLTNET_SECRET_ROOT_WRITABLE: '1',
+      };
+      const registry =
+        signature === 'positional'
+          ? createNodeSecretProviderRegistry('linux', (name) => env[name])
+          : createNodeSecretProviderRegistry({
+              platform: 'linux',
+              readEnv: (name) => env[name],
+            });
 
-    expect(registry.get('file')?.capabilities.write).toBe(true);
-    await expect(registry.probe({ provider: 'file', key: 'k' })).resolves.toBe(
-      'inaccessible',
-    );
-  });
+      expect(registry.get('file')?.capabilities.write).toBe(true);
+      await expect(
+        registry.probe({ provider: 'file', key: 'k' }),
+      ).resolves.toBe('inaccessible');
+    },
+  );
 });

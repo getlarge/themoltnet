@@ -108,7 +108,7 @@
   },
   "scripts": {
     "cli": "tsx src/main.ts",
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx ../../tools/src/desktop-development.ts tsx watch src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
@@ -206,6 +206,8 @@
         "inputs": [
           "default",
           "^production",
+          "{workspaceRoot}/test-fixtures/agent-server-endpoint.json",
+          "{workspaceRoot}/test-fixtures/connection-state-root.json",
           "{workspaceRoot}/docs/operate/*.md",
           "{workspaceRoot}/docs/.vitepress/config.ts"
         ]

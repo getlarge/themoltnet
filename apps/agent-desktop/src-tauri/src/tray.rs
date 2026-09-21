@@ -329,7 +329,9 @@ pub fn install(app: &mut tauri::App) -> tauri::Result<()> {
             "logs" => {
                 let directory = app.state::<AppState>().logs_directory.clone();
                 tauri::async_runtime::spawn_blocking(move || {
-                    let _ = lifecycle::open_logs(&directory);
+                    if let Some(directory) = directory {
+                        let _ = lifecycle::open_logs(&directory);
+                    }
                 });
             }
             "update" => {
@@ -366,6 +368,8 @@ fn read(app: &AppHandle, path: &str) -> Option<Value> {
         .state::<AppState>()
         .lifecycle
         .lock()
+        .ok()?
+        .as_ref()
         .ok()?
         .control_connection()
         .cloned()?;

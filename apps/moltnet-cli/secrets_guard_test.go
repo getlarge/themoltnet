@@ -940,3 +940,66 @@ func TestSecretsGuardTeamEnrollmentUsesEffectiveStoreFlag(t *testing.T) {
 		}
 	}
 }
+
+func TestSecretsGuardSelectedStore(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("MOLTNET_HOME", root)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
+	repo := t.TempDir()
+	context := newSecretGuardPathContext(repo, repo, repo)
+	for _, relative := range []string{"", "identity-selector.json", "identities/agent/moltnet.json", "identities/agent/ssh/id_ed25519", "secrets/agent-key/id"} {
+		target := filepath.Join(root, relative)
+		if got := classifyProtectedPathWithContext(target, context); got != pathCredential {
+			t.Errorf("selected store %q = %v, want credential", relative, got)
+		}
+	}
+	for _, relative := range []string{"identities/agent/gitconfig", "identities/agent/ssh/id_ed25519.pub", "unrelated.txt"} {
+		if got := classifyProtectedPathWithContext(filepath.Join(root, relative), context); got != pathNone {
+			t.Errorf("public store file %q = %v, want none", relative, got)
+		}
+	}
+	for _, command := range []string{`cat "$MOLTNET_HOME/identities/agent/moltnet.json"`, `cat "${MOLTNET_AGENT_SERVER_ROOT}/identity-selector.json"`} {
+		if reason := evaluateSecretsShellWithContext(command, context); reason == "" {
+			t.Errorf("expected protected store expansion: %s", command)
+		}
+	}
+}
+
+func TestSecretsGuardDeniesInvalidStoreSelection(t *testing.T) {
+	for _, root := range []string{"", "conflicting-store"} {
+		t.Run(root, func(t *testing.T) {
+			t.Setenv("MOLTNET_HOME", root)
+			t.Setenv("MOLTNET_AGENT_SERVER_ROOT", t.TempDir())
+			var output bytes.Buffer
+			err := runActiveSecretsGuardCmd(strings.NewReader(`{"tool_name":"Read","tool_input":{"file_path":"/tmp/independent-store/identities/agent/moltnet.json"}}`), &output)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if output.Len() == 0 {
+				t.Fatal("invalid store selection must deny access")
+			}
+		})
+	}
+}
+
+func TestSecretsGuardProtectsStandaloneDiscovery(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("MOLTNET_HOME", root)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
+	context := newSecretGuardPathContext(root, root, root)
+	if got := classifyProtectedPathWithContext(filepath.Join(root, "agent-server-endpoint.json"), context); got != pathManagedConfig {
+		t.Errorf("discovery: want managed config, got %v", got)
+	}
+}
+
+func TestSecretsGuardConnectionEnvironment(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("MOLTNET_HOME", root)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
+	for _, suffix := range []string{"", strings.Repeat("a", 64), strings.Repeat("a", 64) + "/secrets/key", strings.Repeat("a", 64) + "/identities/agent/moltnet.json", strings.Repeat("a", 64) + "/identity-selector.json"} {
+		path := filepath.Join(root, "environments", suffix)
+		if got := classifyProtectedPathWithContext(path, newSecretGuardPathContext(root, root, root)); got != pathCredential {
+			t.Errorf("classification for %s = %v", suffix, got)
+		}
+	}
+}

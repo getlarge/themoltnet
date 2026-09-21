@@ -55,30 +55,33 @@ for the full exchange.
 
 ## Store selection and keyring namespaces
 
-The shared store API selects an explicit `root` option first, then
-`MOLTNET_HOME`, then `~/.config/moltnet`. The variable names the store itself;
-no extra `.config/moltnet` suffix is appended. An explicitly empty, blank,
+The CLI, SDK, Agent Server, and Desktop select an explicit store option first,
+then `MOLTNET_HOME` or its full-store alias `MOLTNET_AGENT_SERVER_ROOT`, then
+`~/.config/moltnet`. Each variable names the store itself; no extra
+`.config/moltnet` suffix is appended. An explicitly empty, blank,
 NUL-containing, inaccessible, or non-directory path is an error, including an
 empty environment variable. Unset the variable to select the default.
 
 The default config/display path retains its established lexical spelling without
 filesystem access. Explicit and environment roots return absolute canonical
-paths; relative paths start at the caller's working directory. Existing symlinks
-and filesystem case aliases are resolved before parent (`..`) segments; missing
-directories are not created. Secret namespaces use canonical paths. File locks
-use the lock file's filesystem identity, so aliases to the same file share a
-lock. An unavailable default directory does not prevent access to an isolated
-store.
+paths; relative paths start at the caller's working directory. Use absolute
+paths in Desktop: it rejects relative store and installation environment paths
+because graphical launchers do not provide a predictable working directory.
+Existing symlinks and filesystem case aliases are resolved before parent (`..`)
+segments; missing directories are not created. Secret namespaces use canonical
+paths. File locks use the lock file's filesystem identity, so aliases to the
+same file share a lock. An unavailable default directory does not prevent access
+to an isolated store.
 
-The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
-`storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a
-persisted compatibility contract: the canonical default store uses
-`themolt.net`; other stores use `themolt.net/store/<digest>`, with the lowercase
-SHA-256 hex digest of the canonical absolute path's UTF-8 bytes. Account keys
-starting with `store/` are reserved so Windows service/account targets cannot
-overlap. Moving a store changes its namespace; copying its files does not copy
-keyring secrets. Re-enroll credentials in the destination store. Symlinks to the
-same existing directory retain its namespace.
+The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, `isDefaultStore`,
+`defaultStoreRoot`, and `storeSecretService` from `@themoltnet/sdk/node`. Their
+namespace format is a persisted compatibility contract: the canonical default
+store uses `themolt.net`; other stores use `themolt.net/store/<digest>`, with
+the lowercase SHA-256 hex digest of the canonical absolute path's UTF-8 bytes.
+Account keys starting with `store/` are reserved so Windows service/account
+targets cannot overlap. Moving a store changes its namespace; copying its files
+does not copy keyring secrets. Re-enroll credentials in the destination store.
+Symlinks to the same existing directory retain its namespace.
 
 Keyring providers resolve their namespace on first keyring access and retain it
 for their lifetime. Environment and file providers do not require a valid
@@ -89,12 +92,76 @@ credentials document, not a keyring namespace. Set `MOLTNET_HOME` (or the Node
 registry's explicit store option) to read that document's isolated secrets.
 Explicit document paths do not seed the selected store's identity selector.
 
-This shared-library foundation does not yet provide complete process isolation.
-Do not use `MOLTNET_HOME` as an isolated CLI, daemon, or Desktop environment
-until the consumer integration is installed. That integration scopes discovery,
-locks, run state, and subprocesses as well as credentials.
+`MOLTNET_AGENT_SERVER_ROOT` selects the entire store, including identities,
+keyring namespaces, bindings, providers, presets, and run state. If both
+environment variables are set, their canonical roots must agree. An explicit
+store option takes precedence over both variables. The default does not consult
+`XDG_CONFIG_HOME`.
+
+```bash
+export MOLTNET_HOME="$HOME/.local/share/moltnet/development/personal"
+moltnet agents list
+```
+
+Each store has one Agent Server singleton. Standalone servers use loopback HTTP:
+the default store uses port 17374, while isolated stores receive an available
+port unless `--port` or `MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0`
+explicitly requests an available port. `agent-server-endpoint.json` contains
+public connection metadata, with an `http:`-only loopback origin and UUID
+instance ID. Standalone clients reject HTTPS discovery records.
+
+Desktop starts its managed child on a private Unix socket on macOS and Linux.
+The native client verifies the peer UID and child PID before sending its
+process-scoped grant. It does not use TCP discovery, CA certificates, or OS
+trust installation. Every store requires the socket-capable Agent CLI version
+pinned by Desktop's build; there is no fallback to an older TCP transport.
+
+Desktop connection environments remain separate beneath the selected store.
+Presets use the effective environment's storage scope. `moltnet start` and
+managed workers pass an absolute `MOLTNET_HOME` to children so changing their
+working directory or `HOME` does not change their store. Managed workers also
+inherit `MOLTNET_DEFAULT_STORE_ROOT`, an internal absolute comparison hint that
+preserves the original default keyring namespace across `HOME` changes. It does
+not select a store and should not be set in launch profiles. It is not a
+security control: same-user processes can change their store environment.
+Desktop runs under the actual user HOME and its Rust default-store comparison
+does not consume this worker-only hint. Desktop's `MOLTNET_AGENT_HOME` selects
+its installation directory independently.
+
+## Upgrading from MOLTNET_AGENT_SERVER_ROOT
+
+The old variable name is deprecated. Replace it with `MOLTNET_HOME` and unset
+the old name. Both now select the **entire store**, including CLI/SDK
+identities, keyring namespaces, project bindings, providers, Desktop presets and
+run state. The old daemon-only behavior is not retained, and no files or keyring
+entries are migrated automatically.
+
+- If you want the established default identities and keyring entries, unset both
+  variables. Merely renaming a non-default legacy root does not restore them.
+- If you want isolation, select that root consistently in CLI, SDK and Desktop,
+  then enroll credentials there. Non-default roots use their own keyring
+  service; references created under the old shared `themolt.net` service need
+  new credentials in the selected store.
+- Empty values now fail. Two set aliases must resolve to the same directory;
+  conflicting roots fail. An explicit store option overrides both.
+- Custom stores use an available daemon port by default. Standalone clients must
+  use discovery or an explicit URL rather than assume port 17374.
+- Desktop presets are now scoped by store and effective API/issuer. Existing
+  presets for a default store with customized connection settings remain in the
+  old browser storage key but do not appear in the new scope. Recreate the
+  presets for that connection; there is no automatic copy.
+- Custom installation roots use their own `bin` directory unless
+  `MOLTNET_AGENT_BIN_DIR` is explicit. Update PATH accordingly. Install/upgrade
+  removes a login service only when it points into that installation; the daemon
+  no longer starts automatically at login through that old service.
+
+The default store path, its `themolt.net` keyring namespace, and port 17374
+remain unchanged. Moving an isolated store changes its keyring namespace; using
+a symlink to the same canonical directory does not.
 
 ## Which credentials file a command uses
+
+The paths below use the default store; substitute `MOLTNET_HOME` when selected.
 
 Every command resolves one credentials file, and uses it for authentication,
 signing, and endpoint discovery alike. Resolution order, highest first:

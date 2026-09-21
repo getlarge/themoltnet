@@ -186,6 +186,8 @@ export function compareVersions(a: string | undefined, b: string): number {
 }
 function cachePath(): string {
   const env = loadUpdateEnvConfig();
+  if (env.storeRoot)
+    return join(env.storeRoot, 'cache', 'updates', 'agent.json');
   return join(
     env.xdgCacheHome ||
       (platform() === 'win32'

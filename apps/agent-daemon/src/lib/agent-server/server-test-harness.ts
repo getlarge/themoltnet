@@ -69,6 +69,7 @@ class FakeChild extends EventEmitter {
 export interface Fixture {
   app: FastifyInstance;
   store: AgentServerStore;
+  storeRoot: string;
   secrets: FileSecretProvider;
   spawned: {
     command: string;
@@ -101,6 +102,7 @@ export async function cleanupAll(): Promise<void> {
 
 export async function fixture(
   options: {
+    connectionState?: boolean;
     rateLimitMax?: number;
     nativeOnly?: boolean;
     operatorOAuth?: OperatorOAuth;
@@ -127,10 +129,14 @@ export async function fixture(
     resolveRuntimeModule,
     externalSecrets = {},
     realCredentialPreflight = false,
+    connectionState = false,
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
-  const store = new AgentServerStore(join(temp, 'moltnet')).ensure();
+  const storeRoot = join(temp, 'moltnet');
+  const store = new AgentServerStore(
+    connectionState ? join(storeRoot, 'environments', 'custom') : storeRoot,
+  ).ensure();
   const secrets = new FileSecretProvider({
     root: store.secretsDir,
     writable: true,
@@ -237,6 +243,7 @@ export async function fixture(
   };
   const runs = new RunManager({
     store,
+    storeRoot,
     secretProviders,
     externalSecretProviders,
     baseEnv,
@@ -302,7 +309,7 @@ export async function fixture(
     await app.close();
     rmSync(temp, { recursive: true, force: true });
   });
-  return { app, store, secrets, spawned, children };
+  return { app, store, storeRoot, secrets, spawned, children };
 }
 
 export function activateManaged(

@@ -5,6 +5,41 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+pub fn resolve_environment_store_root(
+    shared: Option<&Path>,
+    legacy: Option<&Path>,
+    home: &Path,
+    cwd: &Path,
+) -> Result<PathBuf, String> {
+    if let (Some(shared), Some(legacy)) = (shared, legacy) {
+        let first = resolve_store_path(Some(shared), None, home, cwd)?;
+        let second = resolve_store_path(Some(legacy), None, home, cwd)?;
+        if first != second {
+            return Err(format!(
+                "Conflicting MOLTNET_HOME={shared:?} and MOLTNET_AGENT_SERVER_ROOT={legacy:?}; select one store root"
+            ));
+        }
+        return Ok(first);
+    }
+    resolve_store_path(shared.or(legacy), None, home, cwd)
+}
+
+/// Compare canonical store identity; isolated stores do not depend on default health.
+/// Desktop retains the real user HOME, so it does not consume the worker-only
+/// MOLTNET_DEFAULT_STORE_ROOT namespace hint used by the Go and Node workers.
+pub fn is_default_store(root: &Path, home: &Path) -> bool {
+    let default = home.join(".config/moltnet");
+    if root == default {
+        return true;
+    }
+    let canonical = |path: &Path| resolve_store_path(Some(path), None, home, home);
+    match (canonical(root), canonical(&default)) {
+        (Ok(root), Ok(default)) => root == default,
+        _ => false,
+    }
+}
+
+#[cfg(test)]
 pub fn resolve_store_root(
     explicit: Option<&str>,
     environment: Option<&str>,
@@ -103,6 +138,96 @@ mod tests {
         fs,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    #[cfg(unix)]
+    #[test]
+    fn shared_default_identity() {
+        for row in include_str!("../../../../test-fixtures/store-default-conformance.tsv")
+            .lines()
+            .filter(|row| !row.starts_with('#'))
+        {
+            let fields: Vec<_> = row.split('\t').collect();
+            let unique = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let home = std::env::temp_dir().join(format!("moltnet-default-{unique}"));
+            fs::create_dir(&home).unwrap();
+            let root = home.join(".config/moltnet");
+            if fields[0] == "unhealthy" {
+                fs::write(home.join(".config"), b"file").unwrap();
+            } else {
+                fs::create_dir_all(&root).unwrap();
+            }
+            let selected = match fields[1] {
+                "alias" => {
+                    let alias = home.join("alias");
+                    std::os::unix::fs::symlink(&root, &alias).unwrap();
+                    alias
+                }
+                "isolated" => home.join("isolated"),
+                _ => root,
+            };
+            assert_eq!(
+                is_default_store(&selected, &home),
+                fields[2] == "true",
+                "{row}"
+            );
+            fs::remove_dir_all(home).unwrap();
+        }
+    }
+
+    #[test]
+    fn environment_aliases_agree_or_fail() {
+        let cwd = fs::canonicalize(std::env::temp_dir()).unwrap();
+        assert_eq!(
+            resolve_environment_store_root(None, Some(Path::new("legacy")), &cwd, &cwd).unwrap(),
+            cwd.join("legacy")
+        );
+        assert_eq!(
+            resolve_environment_store_root(
+                Some(Path::new("same")),
+                Some(Path::new("./same")),
+                &cwd,
+                &cwd
+            )
+            .unwrap(),
+            cwd.join("same")
+        );
+        assert!(resolve_environment_store_root(
+            Some(Path::new("first")),
+            Some(Path::new("second")),
+            &cwd,
+            &cwd
+        )
+        .is_err());
+        assert!(resolve_environment_store_root(Some(Path::new("")), None, &cwd, &cwd).is_err());
+    }
+
+    #[test]
+    fn shared_full_store_alias_conformance() {
+        let cwd = normalize_windows_path(fs::canonicalize(std::env::temp_dir()).unwrap());
+        for row in include_str!("../../../../test-fixtures/store-alias-conformance.tsv").lines() {
+            if row.is_empty() || row.starts_with('#') {
+                continue;
+            }
+            let fields: Vec<_> = row.split('\t').collect();
+            let value = |s| {
+                if s == "UNSET" {
+                    None
+                } else {
+                    Some(Path::new(s))
+                }
+            };
+            let result =
+                resolve_environment_store_root(value(fields[0]), value(fields[1]), &cwd, &cwd);
+            if fields[2] == "ERROR" {
+                assert!(result.is_err(), "accepted {row:?}");
+            } else {
+                assert_eq!(result.unwrap(), cwd.join(fields[2]));
+            }
+        }
+    }
 
     #[test]
     fn shared_conformance() {
@@ -211,6 +336,11 @@ mod tests {
     fn native_path_bytes() {
         use std::os::unix::ffi::OsStrExt;
         let home = Path::new(std::ffi::OsStr::from_bytes(b"/non-utf8-\xff"));
+        assert_eq!(
+            resolve_environment_store_root(Some(home), None, Path::new("/unused"), Path::new("/"))
+                .unwrap(),
+            home
+        );
         assert_eq!(
             resolve_store_root(None, None, home, Path::new("/")).unwrap(),
             home.join(".config/moltnet")

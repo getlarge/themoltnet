@@ -1,0 +1,5 @@
+# layout	selection	isDefault
+healthy	default	true
+healthy	alias	true
+healthy	isolated	false
+unhealthy	isolated	false

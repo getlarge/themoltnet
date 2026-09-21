@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configdir"
 	"hash/fnv"
 	"io"
 	"os"
@@ -52,11 +53,11 @@ func Acquire(path string) (*Lock, error) {
 // AcquireNamed serializes access to a non-file resource, such as a provider
 // credential. The lock name contains only a digest of the resource identifier.
 func AcquireNamed(namespace, resource string) (*Lock, error) {
-	cacheDir, err := os.UserCacheDir()
+	cacheDir, err := configdir.CacheDir()
 	if err != nil {
 		return nil, fmt.Errorf("locate user cache: %w", err)
 	}
-	lockDir := filepath.Join(cacheDir, "moltnet", "locks")
+	lockDir := filepath.Join(cacheDir, "locks")
 	if err := os.MkdirAll(lockDir, 0o700); err != nil {
 		return nil, fmt.Errorf("create lock directory: %w", err)
 	}

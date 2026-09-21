@@ -133,8 +133,8 @@ export function connectionStateRoot(
   settings: ConnectionSettings,
 ): string {
   const identity = [
-    settings.apiUrl.replace(/\/$/u, ''),
-    settings.issuer.replace(/\/$/u, ''),
+    settings.apiUrl.replace(/\/+$/u, ''),
+    settings.issuer.replace(/\/+$/u, ''),
   ];
   if (
     identity[0] === RELEASE_CONNECTION.apiUrl &&

@@ -38,7 +38,8 @@
         "{workspaceRoot}/.github/workflows/release.yml"
       ],
       "agentDesktopNative": [
-        "{workspaceRoot}/test-fixtures/store-root-conformance.tsv",
+        "{workspaceRoot}/test-fixtures/store-*-conformance.tsv",
+        "{workspaceRoot}/test-fixtures/connection-state-root.json",
         "{projectRoot}/src-tauri/src/**/*.rs",
         "{projectRoot}/src-tauri/build.rs",
         "{projectRoot}/src-tauri/build_support.rs",
@@ -230,7 +231,7 @@
           "sharedGlobals"
         ],
         "options": {
-          "command": "pnpm --dir apps/agent-desktop exec tauri dev"
+          "command": "tsx tools/src/desktop-development.ts pnpm --dir apps/agent-desktop exec tauri dev"
         }
       },
       "release:validate": {

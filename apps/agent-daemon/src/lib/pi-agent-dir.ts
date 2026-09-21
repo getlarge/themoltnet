@@ -82,7 +82,7 @@ export async function resolvePiAgentDir(
 
   const repoPiDir = join(agentRoot, '.pi');
   const store = new AgentServerStore(
-    resolveAgentServerRoot({ root: cfg.agentServerRoot }),
+    resolveAgentServerRoot({ root: cfg.agentServerRoot || undefined }),
   );
   const providers = store.readProviders();
   const storeHasAuth = existsSync(store.piAuthJsonPath);

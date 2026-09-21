@@ -333,8 +333,9 @@ function requestOperationSignal(
 }
 
 export function buildAgentServer(
-  options: BuildAgentServerOptions,
+  input: BuildAgentServerOptions,
 ): FastifyInstance {
+  const options = { ...input };
   const { nativeGrant } = options;
   const oauth = options.operatorOAuth;
   let restartRequired = false;
@@ -343,6 +344,13 @@ export function buildAgentServer(
   const app = options.logger
     ? Fastify({ ...fastifyOptions, loggerInstance: options.logger })
     : Fastify(fastifyOptions);
+
+  app.addHook('onListen', async () => {
+    const address = app.server.address();
+    if (address && typeof address !== 'string') {
+      options.selfOrigin = `http://127.0.0.1:${address.port}`;
+    }
+  });
 
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
@@ -355,8 +363,9 @@ export function buildAgentServer(
   const browserOrigins = new OriginAllowlist(options.allowedOrigins);
   registerLoopbackSecurity(app, {
     isOriginAllowed: (origin) =>
-      origin === NATIVE_CLIENT_ORIGIN || browserOrigins.has(origin),
-    ...(options.selfOrigin ? { selfOrigins: [options.selfOrigin] } : {}),
+      origin === NATIVE_CLIENT_ORIGIN ||
+      origin === options.selfOrigin ||
+      browserOrigins.has(origin),
     allowedHeaders: [AGENT_SERVER_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
@@ -1468,7 +1477,12 @@ function normalizeAgentServerError(error: unknown): {
   }
   if (error instanceof AgentServerRunError) {
     return {
-      statusCode: error.code === 'run_not_found' ? 404 : 400,
+      statusCode:
+        error.code === 'run_not_found'
+          ? 404
+          : error.code === 'invalid_store'
+            ? 409
+            : 400,
       code: error.code,
       message: error.message,
     };

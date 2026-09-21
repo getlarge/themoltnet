@@ -85,22 +85,11 @@ export class AgentServerStoreError extends Error {
   }
 }
 
-/**
- * `MOLTNET_AGENT_SERVER_ROOT` override, else `~/.config/moltnet`.
- *
- * Deliberately does NOT consult `XDG_CONFIG_HOME`. The Go CLI's GetConfigDir
- * and @moltnet/agent-config's getConfigDir both resolve `~/.config/moltnet`,
- * so honouring XDG here gave one application two config roots: on a machine
- * with the variable set, the daemon wrote identities the CLI and SDK could not
- * read. `MOLTNET_AGENT_SERVER_ROOT` remains the explicit escape hatch for a
- * genuinely custom location.
- */
+/** Explicit root, MOLTNET_HOME, legacy alias, then the unchanged default store. */
 export function resolveAgentServerRoot(input: { root?: string }): string {
-  const override = input.root?.trim();
-  if (override) return override;
   // Delegates to @moltnet/agent-config instead of rebuilding the path, so the
   // daemon cannot drift from the CLI and SDK the way it did with XDG.
-  return getConfigDir();
+  return getConfigDir(input);
 }
 
 export interface AgentServerState {
@@ -283,7 +272,7 @@ function readJson<T>(path: string): T | null {
   }
 }
 
-function writeJsonAtomic(path: string, value: unknown): void {
+export function writeJsonAtomic(path: string, value: unknown): void {
   const temp = `${path}.${randomBytes(6).toString('hex')}.tmp`;
   try {
     writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });

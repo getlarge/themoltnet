@@ -18,6 +18,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+use crate::store_root::{resolve_environment_store_root, resolve_store_path};
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
@@ -181,6 +182,8 @@ pub struct LifecycleManager {
     logs: Arc<Mutex<LogBuffer>>,
     retry_used: bool,
     home: PathBuf,
+    store_root: PathBuf,
+    installation: Option<PathBuf>,
     /// Grant for the server process currently running, if any. Regenerated on
     /// every spawn and dropped when the child stops, so it is scoped to one
     /// process exactly as the server's own grant map is.
@@ -194,15 +197,43 @@ impl LifecycleManager {
     }
 }
 
-impl Default for LifecycleManager {
-    fn default() -> Self {
-        Self::new(home_directory().expect("HOME is required"))
+impl LifecycleManager {
+    pub fn from_environment() -> Result<Self, String> {
+        let home = home_directory()?;
+        let shared = environment_path("MOLTNET_HOME");
+        let legacy = environment_path("MOLTNET_AGENT_SERVER_ROOT");
+        let installation = environment_path("MOLTNET_AGENT_HOME");
+        for (name, path) in [
+            ("MOLTNET_HOME", &shared),
+            ("MOLTNET_AGENT_SERVER_ROOT", &legacy),
+            ("MOLTNET_AGENT_HOME", &installation),
+        ] {
+            validate_desktop_path(name, path.as_deref())?;
+        }
+        let cwd = home.clone();
+        if legacy.is_some() {
+            eprintln!("MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.");
+        }
+        let root =
+            resolve_environment_store_root(shared.as_deref(), legacy.as_deref(), &home, &cwd)
+                .map_err(|error| format!("Invalid MoltNet store selection: {error}. Correct the environment and restart Desktop."))?;
+        let installation = installation.map(|value| {
+            resolve_store_path(Some(&value), None, &home, &cwd)
+                .map_err(|error| format!("Invalid MOLTNET_AGENT_HOME: {error}. Correct the environment and restart Desktop."))
+        }).transpose()?;
+        Ok(Self::with_roots(home, root, installation))
     }
 }
 
 impl LifecycleManager {
+    #[cfg(test)]
     pub fn new(home: PathBuf) -> Self {
-        let log_path = home.join(".config/moltnet/agent-server/logs/desktop-supervisor.log");
+        let root = home.join(".config/moltnet");
+        Self::with_roots(home, root, None)
+    }
+
+    fn with_roots(home: PathBuf, store_root: PathBuf, installation: Option<PathBuf>) -> Self {
+        let log_path = store_root.join("agent-server/logs/desktop-supervisor.log");
         Self {
             status: DesktopStatus {
                 state: LifecycleState::Checking,
@@ -214,6 +245,8 @@ impl LifecycleManager {
             retry_used: false,
             home,
             control_connection: None,
+            store_root,
+            installation,
         }
     }
 
@@ -345,7 +378,7 @@ impl LifecycleManager {
         self.status.available_version = None;
         self.set_state(
             LifecycleState::Removed,
-            "The agent bundle was removed. ~/.config/moltnet was preserved.",
+            "The agent bundle was removed. Your MoltNet store was preserved.",
         );
         Ok(self.snapshot())
     }
@@ -493,7 +526,10 @@ impl LifecycleManager {
             // the private directory plus kernel UID/PID peer check is the
             // transport boundary, while this grant prevents accidental use by
             // another client in that boundary.
-            command.env(NATIVE_TOKEN_ENV, token.expose());
+            command
+                .env(NATIVE_TOKEN_ENV, token.expose())
+                .env("MOLTNET_HOME", &self.store_root)
+                .env_remove("MOLTNET_AGENT_SERVER_ROOT");
             let mut child = match command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
@@ -569,6 +605,8 @@ impl LifecycleManager {
     fn run_agent(&self, args: &[&str]) -> Result<Output, String> {
         let output = host_command(&self.executable())
             .args(args)
+            .env("MOLTNET_HOME", &self.store_root)
+            .env_remove("MOLTNET_AGENT_SERVER_ROOT")
             .output()
             .map_err(|error| format!("agent command failed: {error}"))?;
         if output.status.success() {
@@ -683,15 +721,24 @@ impl LifecycleManager {
     }
 
     fn install_root(&self) -> PathBuf {
-        self.home.join(".local/share/moltnet/agent")
+        self.installation
+            .clone()
+            .unwrap_or_else(|| self.home.join(".local/share/moltnet/agent"))
     }
 
     fn executable(&self) -> PathBuf {
         self.install_root().join("current/bin/moltnet-agent")
     }
 
+    pub fn preset_scope(&self) -> crate::preset_scope::PresetScope {
+        crate::preset_scope::PresetScope {
+            root: self.store_root.clone(),
+            home: self.home.clone(),
+        }
+    }
+
     pub fn logs_directory(&self) -> PathBuf {
-        self.home.join(".config/moltnet/agent-server/logs")
+        self.store_root.join("agent-server/logs")
     }
 }
 
@@ -699,6 +746,13 @@ pub fn open_logs(directory: &Path) -> Result<(), String> {
     prepare_private_directory(directory)?;
     let path = directory.to_string_lossy().into_owned();
     fixed_command(platform_opener(), &[&path]).map(|_| ())
+}
+
+fn validate_desktop_path(name: &str, path: Option<&Path>) -> Result<(), String> {
+    if path.is_some_and(|path| !path.is_absolute()) {
+        return Err(format!("{name} must be an absolute path in Desktop. Correct the environment and restart Desktop."));
+    }
+    Ok(())
 }
 
 fn capture_lines(
@@ -830,6 +884,10 @@ fn installer_command(
         command.arg("--uninstall");
     }
     command
+}
+
+fn environment_path(name: &str) -> Option<PathBuf> {
+    std::env::var_os(name).map(PathBuf::from)
 }
 
 fn platform_opener() -> &'static str {
@@ -1044,6 +1102,22 @@ mod tests {
 
     const RELEASE_SIGNER_PUBKEY_FOR_TEST: &str =
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y";
+
+    #[test]
+    fn desktop_requires_absolute_environment_paths() {
+        assert!(validate_desktop_path("MOLTNET_HOME", Some(Path::new("relative"))).is_err());
+        assert!(validate_desktop_path("MOLTNET_AGENT_HOME", Some(Path::new(""))).is_err());
+        assert!(validate_desktop_path("MOLTNET_HOME", Some(Path::new("/absolute"))).is_ok());
+        assert!(validate_desktop_path("MOLTNET_HOME", None).is_ok());
+    }
+
+    #[test]
+    fn selected_store_scopes_logs() {
+        let home = tempfile::tempdir().unwrap();
+        let root = home.path().join("isolated");
+        let manager = LifecycleManager::with_roots(home.path().to_path_buf(), root.clone(), None);
+        assert_eq!(manager.logs_directory(), root.join("agent-server/logs"));
+    }
 
     #[test]
     fn canonical_paths_ignore_path_lookup() {

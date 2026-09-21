@@ -2,6 +2,8 @@ import { join } from 'node:path';
 
 import { lock } from 'proper-lockfile';
 
+import { readAgentServerEndpoint } from './endpoint.js';
+
 export class AgentServerLockError extends Error {
   override name = 'AgentServerLockError';
   constructor(
@@ -61,9 +63,17 @@ export async function acquireAgentServerLock(
   } catch (cause) {
     const code = (cause as NodeJS.ErrnoException).code;
     if (code === 'ELOCKED') {
+      let holder = '';
+      try {
+        const endpoint = readAgentServerEndpoint(root);
+        if (endpoint?.pid)
+          holder = ` (PID ${endpoint.pid}, instance ${endpoint.instanceId})`;
+      } catch {
+        /* Discovery is diagnostic only; lock ownership remains authoritative. */
+      }
       throw new AgentServerLockError(
         'held',
-        `another moltnet-agent server process already owns ${path}`,
+        `another moltnet-agent server process already owns ${path}${holder}; stop that process before retrying`,
         { cause },
       );
     }
@@ -89,12 +99,23 @@ export async function acquireAgentServerLock(
 export async function withAgentServerLock<T>(
   root: string,
   work: () => Promise<T>,
-  options?: AcquireAgentServerLockOptions,
+  options?: AcquireAgentServerLockOptions & { stateRoot?: string },
 ): Promise<T> {
-  const held = await acquireAgentServerLock(root, options);
+  const held: AgentServerLock[] = [];
   try {
+    held.push(await acquireAgentServerLock(root, options));
+    // Also participate in the connection-state lock used by running releases.
+    if (options?.stateRoot && options.stateRoot !== root) {
+      held.push(await acquireAgentServerLock(options.stateRoot, options));
+    }
     return await work();
   } finally {
-    await held.release();
+    for (const entry of held.reverse()) {
+      await entry.release().catch((error: unknown) => {
+        console.error(
+          `Could not release Agent Server lock ${entry.path}: ${String(error)}`,
+        );
+      });
+    }
   }
 }
