@@ -1,11 +1,6 @@
 import process from 'node:process';
 import { spawn } from 'node:child_process';
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
@@ -18,13 +13,14 @@ try {
   mkdirSync(home, { mode: 0o700 });
   const current = join(root, 'agent/current');
   mkdirSync(join(current, 'bin'), { recursive: true });
+  // Keep the fixture in the supervised process: native sockets verify its PID.
   // This source-backed fixture implements the isolated-store protocol. Its
   // synthetic manifest is independent of the currently published installer pin.
   const version = '0.62.0';
   writeFileSync(join(current, 'manifest.json'), JSON.stringify({ version }));
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = fileURLToPath(
-    new URL('../../../node_modules/tsx/dist/cli.mjs', import.meta.url),
+    new URL('../../../node_modules/tsx/dist/loader.mjs', import.meta.url),
   );
   const fixture = fileURLToPath(
     new URL('../../agent-daemon/e2e/desktop-fixture.ts', import.meta.url),
@@ -32,7 +28,7 @@ try {
   writeFileSync(
     join(current, 'bin/moltnet-agent'),
     `#!/bin/sh
-exec ${[process.execPath, tsx, fixture].map(shellQuote).join(' ')} "$@"
+exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "$@"
 `,
     { mode: 0o700 },
   );

@@ -1120,22 +1120,6 @@ mod tests {
     }
 
     #[test]
-    fn ordinary_build_rejects_unencrypted_discovery() {
-        let home = tempfile::tempdir().unwrap();
-        let manager = LifecycleManager::with_roots(
-            home.path().to_path_buf(),
-            home.path().to_path_buf(),
-            None,
-        );
-        fs::write(
-            home.path().join("agent-server-endpoint.json"),
-            r#"{"version":1,"instanceId":"fixture","url":"http://127.0.0.1:41001"}"#,
-        )
-        .unwrap();
-        assert!(manager.server_endpoint().is_err());
-    }
-
-    #[test]
     fn canonical_paths_ignore_path_lookup() {
         let manager = LifecycleManager::new(PathBuf::from("/Users/test"));
         assert_eq!(

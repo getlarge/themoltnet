@@ -4,8 +4,6 @@ const stopped = {
   state: 'stopped',
   installedVersion: '1.0.0',
   availableVersion: null,
-  trustFingerprint: null,
-  trusted: true,
   message: 'Server stopped.',
   logs: [],
 };

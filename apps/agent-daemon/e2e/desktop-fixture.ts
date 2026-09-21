@@ -1,37 +1,30 @@
-/** Real daemon HTTPS/control stack with deterministic, local-only dependencies. */
-import { existsSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+/** Real daemon native socket/control stack with deterministic, local-only dependencies. */
+import { chmod } from 'node:fs/promises';
 
 import { SecretProviderRegistry } from '@themoltnet/sdk';
 import { FileSecretProvider } from '@themoltnet/sdk/node';
 
 import { ConnectionSettingsStore } from '../src/lib/agent-server/connection-settings.js';
-import { publishAgentServerEndpoint } from '../src/lib/agent-server/endpoint.js';
 import { acquireAgentServerLock } from '../src/lib/agent-server/lock.js';
 import { NativeGrantService } from '../src/lib/agent-server/native-grant-service.js';
 import { ProviderLoginService } from '../src/lib/agent-server/provider-login.js';
 import { RunManager } from '../src/lib/agent-server/runs.js';
 import { buildAgentServer } from '../src/lib/agent-server/server.js';
 import { AgentServerStore } from '../src/lib/agent-server/store.js';
-import { ensureLocalTlsMaterial } from '../src/lib/agent-server/tls.js';
+import { validateNativeSocket } from '../src/lib/agent-server/native-socket.js';
 import { ProviderConfigurationService } from '../src/lib/provider-configuration.js';
 
 const root = process.env.MOLTNET_HOME;
 if (!root) throw new Error('Desktop fixture requires an isolated MOLTNET_HOME');
 const store = new AgentServerStore(root).ensure();
-const tls = await ensureLocalTlsMaterial(root);
 const args = process.argv.slice(2);
-const trustedPath = join(root, 'fixture-trusted');
-if (args[0] === 'server' && args[1] === 'trust') {
-  if (args.includes('--yes')) writeFileSync(trustedPath, 'fixture only');
-  process.stdout.write(
-    JSON.stringify({
-      supported: true,
-      trusted: existsSync(trustedPath),
-      fingerprint: tls.fingerprint,
-    }),
-  );
-} else if (args[0] === 'server') {
+if (args[0] === 'server') {
+  const socketIndex = args.indexOf('--native-socket');
+  const socket = socketIndex >= 0 ? args[socketIndex + 1] : undefined;
+  if (!socket || !args.includes('--supervised')) {
+    throw new Error('Desktop fixture requires a supervised native socket');
+  }
+  await validateNativeSocket(socket);
   const lock = await acquireAgentServerLock(root);
   const nativeGrant = new NativeGrantService();
   nativeGrant.grantNative(process.env.MOLTNET_AGENT_SERVER_NATIVE_TOKEN ?? '');
@@ -56,7 +49,7 @@ if (args[0] === 'server' && args[1] === 'trust') {
     },
   });
   const app = buildAgentServer({
-    tls: { key: tls.key, cert: tls.cert },
+    nativeOnly: true,
     store,
     secrets,
     secretProviders: providers,
@@ -85,16 +78,9 @@ if (args[0] === 'server' && args[1] === 'trust') {
     defaultApiUrl: 'http://127.0.0.1:1',
     version: 'desktop-fixture',
   });
-  const url = await app.listen({ host: '127.0.0.1', port: 0 });
-  const discovery = publishAgentServerEndpoint(root, url);
-  console.log(
-    JSON.stringify({
-      event: 'moltnet.agent-server.ready',
-      ...discovery.record,
-    }),
-  );
+  await app.listen({ path: socket });
+  await chmod(socket, 0o600);
   const stop = async () => {
-    discovery.release();
     await app.close();
     await lock.release();
     process.exit(0);

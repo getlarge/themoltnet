@@ -2,27 +2,25 @@ import { browser, expect } from '@wdio/globals';
 
 import type { DesktopStatus } from '../src/bridge.js';
 
-describe('Native Desktop with an isolated installation awaiting trust', () => {
-  it('reads real lifecycle state without installing or starting a daemon', async () => {
+describe('Native Desktop with an isolated installation', () => {
+  it('reads the real supervised lifecycle without launching work', async () => {
     await browser.waitUntil(async () => {
       const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
         ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
       );
-      return status.state === 'needs_trust';
+      return status.state === 'running';
     });
     const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
       ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
     );
     expect(status.installedVersion).not.toBeNull();
-    expect(status.trusted).toBe(false);
   });
 });
 
 describe('Native Desktop and real fixture daemon', () => {
   it('starts, persists a provider, stops, and reads it after restart', async () => {
     const started = await browser.tauri.execute<Promise<DesktopStatus>, []>(
-      ({ core }) =>
-        core.invoke('approve_local_trust') as Promise<DesktopStatus>,
+      ({ core }) => core.invoke('start_agent_server') as Promise<DesktopStatus>,
     );
     expect(started.state).toBe('running');
     await browser.tauri.execute(({ core }) =>
