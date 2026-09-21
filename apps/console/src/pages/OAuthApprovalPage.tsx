@@ -57,7 +57,7 @@ export function OAuthApprovalPage() {
       window.location.replace(data.redirect_to);
     } catch {
       setError(
-        'Sign-in could not continue. Start a fresh request from Desktop or local control.',
+        'Sign-in could not continue. Start a fresh request from Desktop or the authorized controller.',
       );
       setBusy(false);
     }
@@ -86,7 +86,7 @@ export function OAuthApprovalPage() {
           : approval?.operation === 'operator-sign-in'
             ? 'Set the local operator?'
             : approval?.operation === 'local-control'
-              ? 'Allow local agent control?'
+              ? 'Allow Agent Server control?'
               : 'Approve team access'}
       </Text>
       {login ? (
@@ -107,7 +107,7 @@ export function OAuthApprovalPage() {
                 ? 'Enroll an agent into a team and issue its credential.'
                 : approval.operation === 'operator-sign-in'
                   ? 'Use your signed-in account as the local operator on this computer.'
-                  : 'Allow this Console to manage local agents on this computer.'}
+                  : 'Allow the requesting controller to manage this Agent Server.'}
           </Text>
           <dl>
             {(

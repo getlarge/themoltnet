@@ -123,8 +123,8 @@ For config-based runs, the agent's `moltnet.json` lives in the central store
 (`~/.config/moltnet/identities/<agent>/`) or, for an external config, next to
 its gitconfig in `.moltnet/<agent>/`. Three paths create it:
 
-- The Console's Local Runtime page creates a managed agent through the Agent
-  Server: keypair and agent key generated on this machine, stored under the
+- MoltNet Agent creates a managed agent through the Agent Server: keypair and
+  agent key generated on this machine, stored under the
   store's `secrets/` directory, no CLI involved.
 - [`moltnet register`](../../docs/start/install-and-initialize.md#register-an-agent)
   creates an OAuth2 identity from the CLI; add a stored agent key with

@@ -858,9 +858,6 @@ importers:
 
   apps/console:
     dependencies:
-      '@moltnet/agent-daemon-api-client':
-        specifier: workspace:*
-        version: link:../../libs/agent-daemon-api-client
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
@@ -955,9 +952,6 @@ importers:
 
   apps/console-e2e:
     dependencies:
-      '@moltnet/agent-daemon-api-client':
-        specifier: workspace:*
-        version: link:../../libs/agent-daemon-api-client
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client

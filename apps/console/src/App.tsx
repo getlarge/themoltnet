@@ -10,7 +10,6 @@ import { DiaryExplorePage } from './pages/DiaryExplorePage.js';
 import { EntryDetailPage } from './pages/EntryDetailPage.js';
 import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { KnowledgePage } from './pages/KnowledgePage.js';
-import { LocalRuntimePage } from './pages/LocalRuntimePage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import {
   LocalOAuthCallback,
@@ -86,11 +85,6 @@ export function App() {
           <Route path="/runtime/policies">
             <RuntimePage>
               <RuntimePoliciesPage />
-            </RuntimePage>
-          </Route>
-          <Route path="/runtime/local">
-            <RuntimePage>
-              <LocalRuntimePage />
             </RuntimePage>
           </Route>
           <Route path="/runtime/agent-keys">

@@ -63,7 +63,7 @@ update the reviewed embedded pin first.
 ## Release acceptance
 
 Package smoke coverage does not replace a clean Ubuntu desktop walkthrough.
-Before the Linux release and Console cutover, record results for both formats:
+Before the Linux release, record results for both formats:
 
 - Install and launch without a terminal; check tray and Server status.
 - Decline setup, then approve QEMU installation and KVM access; sign out and
