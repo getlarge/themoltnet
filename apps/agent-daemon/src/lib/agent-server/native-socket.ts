@@ -10,10 +10,10 @@ export async function validateNativeSocket(path: string): Promise<void> {
   }
   const parent = dirname(path);
   const metadata = await lstat(parent);
+  if (metadata.isSymbolicLink())
+    throw new Error(`Native socket parent contains a symlink: ${parent}`);
   if (!metadata.isDirectory())
     throw new Error(`Native socket parent is not a directory: ${parent}`);
-  if (metadata.isSymbolicLink())
-    throw new Error(`Native socket parent is a symlink: ${parent}`);
   const expectedUid = process.getuid?.();
   if (expectedUid === undefined || metadata.uid !== expectedUid)
     throw new Error(
