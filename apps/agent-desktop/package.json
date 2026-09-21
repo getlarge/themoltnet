@@ -238,6 +238,7 @@
         "inputs": [
           "agentDesktopNative",
           "agentDesktopInstaller",
+          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "{workspaceRoot}/apps/landing/fly.toml",
           "{workspaceRoot}/tools/release/agent-desktop/validate.sh"
         ],
