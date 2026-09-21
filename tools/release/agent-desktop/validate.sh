@@ -54,10 +54,8 @@ landing_key=$(sed -nE 's/^  RELEASE_SIGNER_PUBKEY = "(ssh-ed25519 [^"]+)"/\1/p' 
   exit 1
 }
 
-grep -q '^rust 1\.88\.0$' "$root/.tool-versions" || {
-  echo "Rust 1.88.0 must be pinned through .tool-versions" >&2
-  exit 1
-}
+platform=${3:-mac-os}
+case "$platform" in mac-os|linux) ;; *) echo "Unknown desktop platform: $platform" >&2; exit 1 ;; esac
 
 if [ "${2:-}" = "--release" ]; then
   [ -n "${TAURI_UPDATER_PUBLIC_KEY:-}" ] || {
@@ -74,6 +72,9 @@ if [ "${2:-}" = "--release" ]; then
     echo "TAURI_SIGNING_PRIVATE_KEY is required for updater artifacts" >&2
     exit 1
   }
+fi
+
+if [ "${2:-}" = "--release" ] && [ "$platform" = mac-os ]; then
   [ -n "${APPLE_CERT_P12:-}" ] || {
     echo "APPLE_CERT_P12 is required for Developer ID signing" >&2
     exit 1

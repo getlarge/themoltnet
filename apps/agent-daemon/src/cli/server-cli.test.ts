@@ -2,7 +2,13 @@ import { EventEmitter } from 'node:events';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { installSupervisedStdinGuard } from './server.js';
+import { AgentServerLockError } from '../lib/agent-server/lock.js';
+import {
+  agentServerLockExitCode,
+  installSupervisedStdinGuard,
+  nativeSocketValidationOptions,
+  validateNativeSocketOptions,
+} from './server.js';
 
 class FakeStdin extends EventEmitter {
   readableEnded = false;
@@ -60,5 +66,65 @@ describe('installSupervisedStdinGuard', () => {
 
     expect(input.resumed).toBe(true);
     expect(shutdown).toHaveBeenCalledOnce();
+  });
+});
+
+describe('native socket CLI configuration', () => {
+  it('requires supervised mode', () => {
+    expect(
+      validateNativeSocketOptions({ nativeSocket: '/tmp/control.sock' }),
+    ).toBe('--native-socket requires --supervised');
+  });
+
+  it.each([
+    { port: '17374' },
+    { allowedOrigins: 'https://console.themolt.net' },
+  ])('rejects TCP configuration: %o', (tcp) => {
+    expect(
+      validateNativeSocketOptions({
+        nativeSocket: '/tmp/control.sock',
+        supervised: true,
+        ...tcp,
+      }),
+    ).toBe('--native-socket cannot be combined with TCP options');
+  });
+
+  it('accepts a supervised socket without TCP configuration', () => {
+    expect(
+      validateNativeSocketOptions({
+        nativeSocket: '/tmp/control.sock',
+        supervised: true,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('ignores inherited standalone TCP environment configuration', () => {
+    const options = nativeSocketValidationOptions({
+      nativeSocket: '/tmp/control.sock',
+      supervised: true,
+      envPort: '17374',
+      envAllowedOrigins: 'https://console.themolt.net',
+    });
+
+    expect(options).toEqual({
+      nativeSocket: '/tmp/control.sock',
+      supervised: true,
+    });
+    expect(validateNativeSocketOptions(options)).toBeUndefined();
+  });
+});
+
+describe('Agent Server lock exit status', () => {
+  it('gives lock contention a stable process classification', () => {
+    expect(
+      agentServerLockExitCode(
+        new AgentServerLockError('held', 'already running'),
+      ),
+    ).toBe(75);
+    expect(
+      agentServerLockExitCode(
+        new AgentServerLockError('failed', 'lock storage failed'),
+      ),
+    ).toBe(1);
   });
 });

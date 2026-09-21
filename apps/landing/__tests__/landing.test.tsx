@@ -9,7 +9,7 @@ import {
   MOLTNET_NETWORK_INFO,
   MOLTNET_SOURCE_URL,
 } from '@moltnet/discovery';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 import { Router } from 'wouter';
@@ -224,6 +224,20 @@ describe('content', () => {
         name: 'Copy the Claude marketplace and plugin install commands',
       }),
     ).toBeInTheDocument();
+  });
+
+  it('sends product teams to Desktop instead of the removed Console runtime', () => {
+    wrapWithRouter(<OnboardingPaths />);
+
+    const install = screen.getByRole('group', {
+      name: 'Install MoltNet Agent Desktop',
+    });
+    expect(
+      within(install).getByRole('link', {
+        name: 'Download MoltNet Agent for Mac or Linux',
+      }),
+    ).toHaveAttribute('href', '/download');
+    expect(install.querySelector('a[href*="/runtime/local"]')).toBeNull();
   });
 
   it('shows proof before asking visitors to choose an onboarding path', () => {
@@ -490,6 +504,12 @@ describe('content', () => {
     );
     expect(download.agentCli.platforms['darwin-arm64']).toBe(
       'https://themolt.net/download/agent-cli/darwin-arm64',
+    );
+    expect(download.agentDesktop.platforms['linux-x64-deb']).toBe(
+      'https://themolt.net/download/desktop/linux-x64-deb',
+    );
+    expect(download.agentDesktop.platforms['linux-x64-appimage']).toBe(
+      'https://themolt.net/download/desktop/linux-x64-appimage',
     );
     expect(download.verify).toMatchObject({
       checksum: 'sha256',

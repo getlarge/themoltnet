@@ -47,7 +47,8 @@
         "{workspaceRoot}/apps/landing/public/apple-touch-icon.png",
         {
           "runtime": "node -p \"process.platform + '-' + process.arch\""
-        }
+        },
+        "{projectRoot}/src-tauri/tauri.linux.conf.json"
       ],
       "agentDesktopRenderer": [
         "{projectRoot}/src/**/*",
@@ -134,7 +135,8 @@
           "{workspaceRoot}/release-please-config.json",
           "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "^production",
-          "sharedGlobals"
+          "sharedGlobals",
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs"
         ],
         "options": {
           "parallel": false,
@@ -152,6 +154,34 @@
               "forwardAllArgs": false
             }
           ]
+        }
+      },
+      "test-desktop-native": {
+        "executor": "nx:run-commands",
+        "inputs": [
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "sharedGlobals"
+        ],
+        "options": {
+          "command": "cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-ci"
+        }
+      },
+      "test-release-scripts": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
+          "{workspaceRoot}/release-please-config.json",
+          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
+          "{projectRoot}/agent-cli.version",
+          "{projectRoot}/src-tauri/build.rs",
+          "{projectRoot}/src-tauri/Cargo.toml",
+          "{projectRoot}/src-tauri/tauri.conf.json"
+        ],
+        "options": {
+          "command": "bash tools/release/agent-desktop/test.sh"
         }
       },
       "build": {
@@ -196,28 +226,6 @@
           "command": "pnpm --dir apps/agent-desktop exec tauri dev"
         }
       },
-      "tauri:bundle": {
-        "executor": "nx:run-commands",
-        "cache": false,
-        "outputs": [
-          "{projectRoot}/out-rust/bundle"
-        ],
-        "inputs": [
-          "agentDesktopRendererProduction",
-          "agentDesktopNative",
-          "agentDesktopInstaller",
-          "^production",
-          "sharedGlobals"
-        ],
-        "options": {
-          "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin"
-        },
-        "configurations": {
-          "release": {
-            "command": "CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build --bundles app,dmg --target aarch64-apple-darwin --config \"$TAURI_CONFIG\""
-          }
-        }
-      },
       "release:validate": {
         "executor": "nx:run-commands",
         "cache": false,
@@ -229,6 +237,32 @@
         ],
         "options": {
           "command": "bash tools/release/agent-desktop/validate.sh ."
+        }
+      },
+      "tauri:bundle": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "outputs": [
+          "{projectRoot}/out-rust/bundle"
+        ],
+        "inputs": [
+          "agentDesktopRendererProduction",
+          "agentDesktopNative",
+          "agentDesktopInstaller",
+          "^production",
+          "sharedGlobals",
+          "{workspaceRoot}/tools/release/agent-desktop/bundle.sh"
+        ],
+        "options": {
+          "command": "bash tools/release/agent-desktop/bundle.sh host"
+        },
+        "configurations": {
+          "mac-os": {
+            "command": "bash tools/release/agent-desktop/bundle.sh mac-os"
+          },
+          "linux": {
+            "command": "bash tools/release/agent-desktop/bundle.sh linux"
+          }
         }
       }
     }

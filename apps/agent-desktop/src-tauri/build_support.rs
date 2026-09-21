@@ -1,3 +1,6 @@
+// This file is compiled by both build.rs and the Desktop library so the two
+// consumers share one strict version parser.
+#[allow(dead_code)]
 pub fn resolve_agent_cli_version<'a>(
     default_version: &'a str,
     override_version: Option<&'a str>,
@@ -8,6 +11,11 @@ pub fn resolve_agent_cli_version<'a>(
         .ok_or("embedded Agent CLI version must be a stable semantic version")
 }
 
+pub fn version_at_least(version: &str, minimum: &str) -> bool {
+    matches!((parse_version(version), parse_version(minimum)), (Some(version), Some(minimum)) if version >= minimum)
+}
+
+#[allow(dead_code)]
 pub fn render_installer(
     template: &str,
     release_signer_pubkey: &str,
@@ -38,14 +46,26 @@ pub fn render_installer(
         ))
 }
 
-fn valid_version(value: &str) -> bool {
-    let mut pieces = value.split('.');
-    pieces.clone().count() == 3
-        && pieces.all(|piece| {
-            !piece.is_empty()
-                && (piece.len() == 1 || !piece.starts_with('0'))
-                && piece.chars().all(|char| char.is_ascii_digit())
+pub fn valid_version(value: &str) -> bool {
+    parse_version(value).is_some()
+}
+
+pub fn parse_version(value: &str) -> Option<(u64, u64, u64)> {
+    let pieces = value.split('.').collect::<Vec<_>>();
+    if pieces.len() != 3
+        || pieces.iter().any(|piece| {
+            piece.is_empty()
+                || (piece.len() > 1 && piece.starts_with('0'))
+                || !piece.chars().all(|character| character.is_ascii_digit())
         })
+    {
+        return None;
+    }
+    Some((
+        pieces[0].parse().ok()?,
+        pieces[1].parse().ok()?,
+        pieces[2].parse().ok()?,
+    ))
 }
 
 #[cfg(test)]
@@ -68,6 +88,16 @@ RELEASE_PINNED_VERSION=""
             assert!(resolve_agent_cli_version("0.57.0", Some(invalid)).is_err());
         }
         assert!(resolve_agent_cli_version("01.2.3", None).is_err());
+    }
+
+    #[test]
+    fn version_floor_uses_semantic_components() {
+        assert!(version_at_least("0.62.0", "0.62.0"));
+        assert!(version_at_least("1.0.0", "0.62.0"));
+        assert!(!version_at_least("0.61.9", "0.62.0"));
+        assert!(!version_at_least("invalid", "0.62.0"));
+        assert!(!version_at_least("01.62.0", "0.62.0"));
+        assert!(!version_at_least("+1.0.0", "0.62.0"));
     }
 
     #[test]

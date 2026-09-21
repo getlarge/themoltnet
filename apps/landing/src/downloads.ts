@@ -53,6 +53,8 @@ export const DOWNLOAD_PATH = '/download';
 export const DOWNLOAD_INSTALL_PATH = `${DOWNLOAD_PATH}#install`;
 export const DOWNLOAD_VERIFY_PATH = `${DOWNLOAD_PATH}#verify`;
 export const DESKTOP_MACOS_ARM64_PATH = `${DOWNLOAD_PATH}/desktop/macos-arm64`;
+export const DESKTOP_LINUX_X64_DEB_PATH = `${DOWNLOAD_PATH}/desktop/linux-x64-deb`;
+export const DESKTOP_LINUX_X64_APPIMAGE_PATH = `${DOWNLOAD_PATH}/desktop/linux-x64-appimage`;
 export const DESKTOP_UPDATE_MANIFEST_PATH = `${DOWNLOAD_PATH}/desktop/update.json`;
 
 /**
@@ -199,6 +201,10 @@ export function downloadBeaconData() {
     agentDesktop: {
       platforms: {
         'macos-arm64': absoluteDownloadUrl(DESKTOP_MACOS_ARM64_PATH),
+        'linux-x64-deb': absoluteDownloadUrl(DESKTOP_LINUX_X64_DEB_PATH),
+        'linux-x64-appimage': absoluteDownloadUrl(
+          DESKTOP_LINUX_X64_APPIMAGE_PATH,
+        ),
       },
       updaterManifest: absoluteDownloadUrl(DESKTOP_UPDATE_MANIFEST_PATH),
     },

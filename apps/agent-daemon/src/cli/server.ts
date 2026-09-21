@@ -1,4 +1,4 @@
-import { createInterface } from 'node:readline/promises';
+import { chmod } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 
 import { parseAllowedOrigins } from '@moltnet/loopback-companion';
@@ -19,6 +19,7 @@ import {
   NATIVE_TOKEN_ENV,
 } from '../lib/agent-server/native-grant.js';
 import { NativeGrantService } from '../lib/agent-server/native-grant-service.js';
+import { validateNativeSocket } from '../lib/agent-server/native-socket.js';
 import { OperatorOAuth } from '../lib/agent-server/operator-oauth.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
@@ -28,14 +29,6 @@ import {
   AgentServerStore,
   resolveAgentServerRoot,
 } from '../lib/agent-server/store.js';
-import {
-  ensureLocalTlsMaterial,
-  inspectLocalTlsMaterial,
-  isLocalCaTrusted,
-  isMacos,
-  removeLocalCa,
-  trustLocalCa,
-} from '../lib/agent-server/tls.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
 import { parseLocalOperationalSettings } from '../lib/options.js';
@@ -45,13 +38,55 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 /**
  * `moltnet-agent server` — per-user loopback supervisor (#2061).
  *
- * Starts nothing on its own: it binds 127.0.0.1 and waits for an authorized
- * Console origin to configure agents/providers and start/stop runs.
+ * Starts nothing on its own: it binds 127.0.0.1 or a private native socket and
+ * waits for an authorized controller to configure agents/providers and
+ * start or stop runs.
  */
 
 const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
+// Keep aligned with AGENT_SERVER_LOCK_HELD_EXIT_CODE in Desktop lifecycle.rs.
+const LOCK_HELD_EXIT_CODE = 75;
+
+export function agentServerLockExitCode(error: AgentServerLockError): number {
+  return error.code === 'held' ? LOCK_HELD_EXIT_CODE : 1;
+}
+
+export function validateNativeSocketOptions(options: {
+  nativeSocket?: string;
+  supervised?: boolean;
+  port?: string;
+  allowedOrigins?: string;
+}): string | undefined {
+  if (!options.nativeSocket) return undefined;
+  if (!options.supervised) return '--native-socket requires --supervised';
+  if (options.port || options.allowedOrigins)
+    return '--native-socket cannot be combined with TCP options';
+  return undefined;
+}
+
+export function nativeSocketValidationOptions(input: {
+  nativeSocket?: string;
+  supervised?: boolean;
+  cliPort?: string;
+  cliAllowedOrigins?: string;
+  envPort?: string;
+  envAllowedOrigins?: string;
+}): Parameters<typeof validateNativeSocketOptions>[0] {
+  // Native mode does not bind TCP. Inherited standalone-mode environment
+  // settings have no effect; only contradictory CLI flags are an invocation
+  // error. Keep the environment fields in this boundary input so this policy
+  // remains explicit and regression-testable where CLI and env config meet.
+  return {
+    ...(input.nativeSocket ? { nativeSocket: input.nativeSocket } : {}),
+    ...(input.supervised ? { supervised: true } : {}),
+    ...(input.cliPort ? { port: input.cliPort } : {}),
+    ...(input.cliAllowedOrigins
+      ? { allowedOrigins: input.cliAllowedOrigins }
+      : {}),
+  };
+}
 
 export async function runAgentServer(argv: string[]): Promise<number> {
   if (isHelpFlag(argv)) {
@@ -59,17 +94,9 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     return 0;
   }
 
-  const trustRequested = argv[0] === 'trust';
-  const commandArgs = trustRequested ? argv.slice(1) : argv;
   const envConfig = loadAgentServerEnvConfig();
-  if (trustRequested) {
-    return runTrustCommand(
-      commandArgs,
-      resolveAgentServerRoot({ root: envConfig.root }),
-    );
-  }
   const { values } = parseArgs({
-    args: commandArgs,
+    args: argv,
     options: {
       port: { type: 'string' },
       'allowed-origins': { type: 'string' },
@@ -78,8 +105,29 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       'heartbeat-interval-ms': { type: 'string' },
       'warm-retention-sec': { type: 'string' },
       supervised: { type: 'boolean' },
+      'native-socket': { type: 'string' },
     },
   });
+
+  const nativeSocket = values['native-socket'];
+  const nativeSocketError = validateNativeSocketOptions(
+    nativeSocketValidationOptions({
+      ...(nativeSocket ? { nativeSocket } : {}),
+      ...(values.supervised ? { supervised: true } : {}),
+      ...(values.port ? { cliPort: values.port } : {}),
+      ...(values['allowed-origins']
+        ? { cliAllowedOrigins: values['allowed-origins'] }
+        : {}),
+      ...(envConfig.port ? { envPort: envConfig.port } : {}),
+      ...(envConfig.allowedOrigins
+        ? { envAllowedOrigins: envConfig.allowedOrigins }
+        : {}),
+    }),
+  );
+  if (nativeSocketError) {
+    console.error(nativeSocketError);
+    return 1;
+  }
 
   const port = Number.parseInt(
     values.port ?? (envConfig.port || `${DEFAULT_PORT}`),
@@ -137,8 +185,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             // token. Refuse to start instead of appearing healthy.
             console.error(
               `A supervised Agent Server requires ${NATIVE_TOKEN_ENV}. ` +
-                'Start it from MoltNet Agent, or omit --supervised to run it ' +
-                'to reconnect Console to an operator already established by Desktop.',
+                'Start it from MoltNet Agent, or omit --supervised for an ' +
+                'authorized standalone controller.',
             );
             return 1;
           }
@@ -165,10 +213,10 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             runtimeRegistry,
             runtimeSettings,
           });
-          const tls = isMacos()
-            ? await ensureTrustedLocalTls(settingsRoot)
-            : undefined;
-          const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
+          if (nativeSocket) await validateNativeSocket(nativeSocket);
+          const selfOrigin = nativeSocket
+            ? undefined
+            : `http://127.0.0.1:${port}`;
           const operatorOAuth = new OperatorOAuth(
             {
               issuer: connection.issuer,
@@ -185,6 +233,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           );
           const app = buildAgentServer({
             operatorOAuth,
+            nativeOnly: Boolean(nativeSocket),
             connectionSettings,
             operatorApiUrl: connection.apiUrl,
             store,
@@ -196,9 +245,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             subscriptions,
             providers,
             runtimeRegistry,
-            allowedOrigins,
-            selfOrigin,
-            ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),
+            allowedOrigins: nativeSocket ? [] : allowedOrigins,
+            ...(selfOrigin ? { selfOrigin } : {}),
             defaultApiUrl,
             runtimeSettings,
             ...(envConfig.activeIdentity
@@ -210,16 +258,24 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           });
 
           try {
-            const address = await app.listen({ host: '127.0.0.1', port });
+            const address = await app.listen(
+              nativeSocket
+                ? { path: nativeSocket }
+                : { host: '127.0.0.1', port },
+            );
+            if (nativeSocket) await chmod(nativeSocket, 0o600);
             console.error(`moltnet-agent server listening on ${address}`);
             console.error(`config root: ${root}`);
-            console.error(`allowed origins: ${allowedOrigins.join(', ')}`);
+            if (nativeSocket)
+              console.error(`native control socket: ${nativeSocket}`);
+            else console.error(`allowed origins: ${allowedOrigins.join(', ')}`);
             if (nativeClient) {
               console.error('native desktop client: authorized');
             }
-            console.error(
-              'Sign in through Desktop, then connect from the Console "Local runtime" page.',
-            );
+            if (!nativeSocket)
+              console.error(
+                'Connect from an allowed local-control client after operator authorization.',
+              );
 
             return await waitForAgentServerShutdown(
               runs,
@@ -243,145 +299,13 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     } catch (cause) {
       if (cause instanceof AgentServerLockError) {
         console.error(cause.message);
-        return 1;
+        return agentServerLockExitCode(cause);
       }
       throw cause;
     }
   } finally {
     await shutdownLogger();
   }
-}
-
-interface TrustStatus {
-  supported: boolean;
-  trusted: boolean;
-  fingerprint: string | null;
-}
-
-export async function runTrustCommand(
-  argv: string[],
-  defaultRoot: string,
-): Promise<number> {
-  try {
-    const { values } = parseArgs({
-      args: argv,
-      options: {
-        root: { type: 'string' },
-        remove: { type: 'boolean' },
-        status: { type: 'boolean' },
-        yes: { type: 'boolean' },
-        json: { type: 'boolean' },
-      },
-    });
-    const root = values.root ?? defaultRoot;
-    const statusRequested = Boolean(values.status);
-    const removeRequested = Boolean(values.remove);
-    const yes = Boolean(values.yes);
-    const json = Boolean(values.json);
-    if (statusRequested && (removeRequested || yes)) {
-      console.error('Usage: moltnet-agent server trust --status [--json]');
-      return 1;
-    }
-    if (!isMacos()) {
-      if (json) {
-        printTrustStatus({
-          supported: false,
-          trusted: false,
-          fingerprint: null,
-        });
-        return 0;
-      }
-      console.error(
-        'Local HTTPS trust setup is currently supported on macOS only.',
-      );
-      return 1;
-    }
-
-    if (statusRequested) {
-      const material = await inspectLocalTlsMaterial(root);
-      const trusted = material !== null && (await isLocalCaTrusted(root));
-      if (json)
-        printTrustStatus({
-          supported: true,
-          trusted,
-          fingerprint: material?.fingerprint ?? null,
-        });
-      else
-        console.log(
-          trusted
-            ? `MoltNet local CA ${material?.fingerprint ?? '(not prepared)'} is trusted.`
-            : `MoltNet local CA ${material?.fingerprint ?? '(not prepared)'} is not trusted.`,
-        );
-      return 0;
-    }
-
-    if (json && !yes) {
-      console.error(
-        'Machine-readable trust changes require --yes after native app consent.',
-      );
-      return 1;
-    }
-
-    if (removeRequested) {
-      await removeLocalCa(root);
-      if (json)
-        printTrustStatus({
-          supported: true,
-          trusted: false,
-          fingerprint: null,
-        });
-      else
-        console.log('Removed the MoltNet local CA from your login keychain.');
-      return 0;
-    }
-
-    const material = await ensureLocalTlsMaterial(root);
-    if (yes) await trustLocalCa(root);
-    else await ensureTrustedLocalTls(root);
-    if (json)
-      printTrustStatus({
-        supported: true,
-        trusted: await isLocalCaTrusted(root),
-        fingerprint: material.fingerprint,
-      });
-    else console.log('MoltNet local HTTPS trust is ready for this macOS user.');
-    return 0;
-  } catch (cause) {
-    console.error(
-      `Agent Server trust command failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-    );
-    return 1;
-  }
-}
-
-function printTrustStatus(status: TrustStatus): void {
-  console.log(JSON.stringify(status));
-}
-
-async function ensureTrustedLocalTls(root: string) {
-  const material = await ensureLocalTlsMaterial(root);
-  if (await isLocalCaTrusted(root)) return material;
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    throw new Error(
-      'Local HTTPS trust is not configured. Run `moltnet-agent server trust` from an interactive terminal.',
-    );
-  }
-  const prompt = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  try {
-    const answer = await prompt.question(
-      `Trust MoltNet's local CA (${material.fingerprint}) in this macOS login keychain? [y/N] `,
-    );
-    if (!/^y(es)?$/i.test(answer.trim())) {
-      throw new Error('Local HTTPS trust was not approved.');
-    }
-  } finally {
-    prompt.close();
-  }
-  await trustLocalCa(root);
-  return material;
 }
 
 function waitForAgentServerShutdown(

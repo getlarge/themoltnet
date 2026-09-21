@@ -1,5 +1,3 @@
-import { configureOperatorClients } from './helpers/operator-clients.js';
-
 async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -36,5 +34,4 @@ export default async function globalSetup() {
     waitForHealthy(consoleUrl),
     waitForHealthy(`${mailslurperUrl}/mail?pageNumber=1`),
   ]);
-  await configureOperatorClients();
 }

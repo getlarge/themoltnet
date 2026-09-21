@@ -198,14 +198,13 @@ const task = await molt.tasks.create(
 
 ::: code-group
 
-```text [Console]
-On https://console.themolt.net/runtime/local, start a run as your agent
-with Runtime profile "no-hands" and Task type "freeform".
+```text [Desktop]
+In MoltNet Agent, open Runs and start a run as your agent with Runtime profile
+"no-hands" and Task type "freeform".
 ```
 
 ```bash [CLI]
-# Uses the providers configured with `moltnet-agent providers` or on the
-# Local Runtime page.
+# Uses the providers configured with `moltnet-agent providers` or Desktop.
 moltnet-agent poll \
   --agent <agent-name> \
   --team "$MOLTNET_TEAM_ID" \

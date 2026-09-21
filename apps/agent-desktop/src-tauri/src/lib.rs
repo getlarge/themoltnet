@@ -1,13 +1,13 @@
+#[path = "../build_support.rs"]
+mod build_support;
 mod control;
 mod lifecycle;
+mod linux_setup;
+mod native_socket;
 mod operator_oauth {
     include!(concat!(env!("OUT_DIR"), "/operator-oauth.rs"));
 }
 mod tray;
-
-#[cfg(test)]
-#[path = "../build_support.rs"]
-mod build_support;
 
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager, LifecycleState};
 use serde::Serialize;
@@ -17,6 +17,7 @@ use std::{
     thread,
     time::Duration,
 };
+use tauri::utils::config::BundleType;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State, WindowEvent};
 use tauri_plugin_updater::UpdaterExt;
 
@@ -170,9 +171,9 @@ async fn desktop_catalogue(
     state: State<'_, AppState>,
     identity: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::get(
-            token,
+            connection,
             &format!("/v1/catalogue?identity={}", urlencode(&identity)),
         )
     })
@@ -183,7 +184,10 @@ async fn desktop_catalogue(
 
 #[tauri::command]
 async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| control::get(token, "/v1/status")).await?;
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/status")
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned an unreadable status".to_string())
 }
@@ -192,8 +196,8 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
 async fn desktop_connection_settings(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
-        control::get(token, "/v1/native/connection-settings")
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/native/connection-settings")
     })
     .await?;
     serde_json::from_str(&body)
@@ -207,11 +211,11 @@ async fn desktop_apply_connection_settings(
 ) -> Result<DesktopStatus, String> {
     tauri::async_runtime::spawn_blocking(move || {
         operate(&app, |lifecycle| {
-            let token = lifecycle
-                .control_token()
+            let connection = lifecycle
+                .control_connection()
                 .ok_or("Start the Agent Server before changing its connection settings")?;
             control::post(
-                token,
+                connection,
                 "/v1/native/connection-settings",
                 &overrides.to_string(),
             )?;
@@ -225,8 +229,10 @@ async fn desktop_apply_connection_settings(
 
 #[tauri::command]
 async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
-    let body =
-        with_control_token(&state, move |token| control::get(token, "/oauth/metadata")).await?;
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/oauth/metadata")
+    })
+    .await?;
     let metadata: serde_json::Value = serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
     Ok(metadata
@@ -240,8 +246,8 @@ async fn desktop_operator_sign_in(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    with_control_token(&state, move |token| {
-        control::post(token, "/v1/operator/sign-in", "{}")
+    with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/operator/sign-in", "{}")
     })
     .await?;
     show_status(&app);
@@ -250,8 +256,8 @@ async fn desktop_operator_sign_in(
 
 #[tauri::command]
 async fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
-    with_control_token(&state, move |token| {
-        control::post(token, "/v1/operator/cancel", "{}")
+    with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/operator/cancel", "{}")
     })
     .await?;
     Ok(())
@@ -266,9 +272,9 @@ async fn desktop_enroll_team(
 ) -> Result<serde_json::Value, String> {
     let payload =
         serde_json::to_string(&request).map_err(|_| "Could not encode enrollment".to_string())?;
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::post(
-            token,
+            connection,
             &format!("/v1/agents/{}/teams", urlencode(&identity)),
             &payload,
         )
@@ -280,11 +286,11 @@ async fn desktop_enroll_team(
 }
 
 /// Run `operation` with the grant for the currently running server.
-async fn with_control_token(
+async fn with_control_connection(
     state: &State<'_, AppState>,
-    operation: impl FnOnce(&control::NativeToken) -> Result<String, String> + Send + 'static,
+    operation: impl FnOnce(&control::NativeConnection) -> Result<String, String> + Send + 'static,
 ) -> Result<String, String> {
-    let owned_token = {
+    let connection = {
         // `try_lock`, not `lock`: this runs on a tokio worker, and `operate`
         // holds this mutex for the whole of a start (<=24s) or stop (<=17s).
         // Blocking here parks a worker per polling command, so on a small
@@ -292,11 +298,11 @@ async fn with_control_token(
         // recoverable - the callers already poll on an interval.
         let lifecycle = state.lifecycle.try_lock().map_err(lifecycle_lock_error)?;
         lifecycle
-            .control_token()
+            .control_connection()
             .cloned()
             .ok_or_else(|| "the Agent Server is not running".to_string())?
     };
-    tauri::async_runtime::spawn_blocking(move || operation(&owned_token))
+    tauri::async_runtime::spawn_blocking(move || operation(&connection))
         .await
         .map_err(|_| "Local control task failed".to_string())?
 }
@@ -324,8 +330,8 @@ async fn desktop_start_run(
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&spec)
         .map_err(|error| format!("the run could not be encoded: {error}"))?;
-    let body = with_control_token(&state, move |token| {
-        control::post(token, "/v1/runs", &payload)
+    let body = with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/runs", &payload)
     })
     .await?;
     serde_json::from_str(&body)
@@ -338,9 +344,9 @@ async fn desktop_run_logs(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::get(
-            token,
+            connection,
             &format!("/v1/runs/{}/logs/snapshot", urlencode(&run_id)),
         )
     })
@@ -354,8 +360,8 @@ async fn desktop_stop_run(
     state: State<'_, AppState>,
     run_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
-        control::delete(token, &format!("/v1/runs/{}", urlencode(&run_id)))
+    let body = with_control_connection(&state, move |connection| {
+        control::delete(connection, &format!("/v1/runs/{}", urlencode(&run_id)))
     })
     .await?;
     serde_json::from_str(&body)
@@ -365,8 +371,8 @@ async fn desktop_stop_run(
 /// Subscriptions this machine can sign in to, and whether it already has.
 #[tauri::command]
 async fn desktop_subscriptions(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
-        control::get(token, "/v1/subscriptions")
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/subscriptions")
     })
     .await?;
     serde_json::from_str(&body)
@@ -379,9 +385,9 @@ async fn desktop_start_subscription_login(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::post(
-            token,
+            connection,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
             "{}",
         )
@@ -397,9 +403,9 @@ async fn desktop_subscription_login_status(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::get(
-            token,
+            connection,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
         )
     })
@@ -414,9 +420,9 @@ async fn desktop_cancel_subscription_login(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), String> {
-    with_control_token(&state, move |token| {
+    with_control_connection(&state, move |connection| {
         control::delete(
-            token,
+            connection,
             &format!("/v1/subscriptions/{}/login", urlencode(&provider_id)),
         )
     })
@@ -441,8 +447,10 @@ async fn desktop_open_sign_in(url: String) -> Result<(), String> {
 /// WebView even by the surface that wrote it.
 #[tauri::command]
 async fn desktop_providers(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    let body =
-        with_control_token(&state, move |token| control::get(token, "/v1/providers")).await?;
+    let body = with_control_connection(&state, move |connection| {
+        control::get(connection, "/v1/providers")
+    })
+    .await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned unreadable providers: {error}"))
 }
@@ -459,9 +467,9 @@ async fn desktop_put_provider(
 ) -> Result<serde_json::Value, String> {
     let payload = serde_json::to_string(&config)
         .map_err(|error| format!("the provider could not be encoded: {error}"))?;
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::put(
-            token,
+            connection,
             &format!("/v1/providers/{}", urlencode(&provider_id)),
             &payload,
         )
@@ -477,9 +485,9 @@ async fn desktop_discover_provider_models(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_token(&state, move |token| {
+    let body = with_control_connection(&state, move |connection| {
         control::post(
-            token,
+            connection,
             &format!("/v1/providers/{}/discover-models", urlencode(&provider_id)),
             "{}",
         )
@@ -495,8 +503,11 @@ async fn desktop_delete_provider(
     state: State<'_, AppState>,
     provider_id: String,
 ) -> Result<(), String> {
-    with_control_token(&state, move |token| {
-        control::delete(token, &format!("/v1/providers/{}", urlencode(&provider_id)))
+    with_control_connection(&state, move |connection| {
+        control::delete(
+            connection,
+            &format!("/v1/providers/{}", urlencode(&provider_id)),
+        )
     })
     .await?;
     Ok(())
@@ -519,11 +530,6 @@ async fn install_agent(app: AppHandle) -> Result<DesktopStatus, String> {
         LifecycleManager::install_agent,
     )
     .await
-}
-
-#[tauri::command]
-async fn approve_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, None, LifecycleManager::approve_trust).await
 }
 
 #[tauri::command]
@@ -567,13 +573,6 @@ async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
-async fn open_console() -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(lifecycle::open_console)
-        .await
-        .map_err(|_| "Could not open Console".to_string())?
-}
-
-#[tauri::command]
 async fn open_logs(state: State<'_, AppState>) -> Result<(), String> {
     let directory = state.logs_directory.clone();
     tauri::async_runtime::spawn_blocking(move || lifecycle::open_logs(&directory))
@@ -586,16 +585,56 @@ async fn remove_agent_bundle(app: AppHandle) -> Result<DesktopStatus, String> {
     operate_async(app, None, LifecycleManager::remove_bundle).await
 }
 
-#[tauri::command]
-async fn remove_local_trust(app: AppHandle) -> Result<DesktopStatus, String> {
-    operate_async(app, None, LifecycleManager::remove_trust).await
-}
-
 #[derive(Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopUpdateCheck {
     available_version: Option<String>,
     message: String,
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum DesktopUpdateInstaller {
+    Deb,
+    BuiltIn,
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn desktop_update_installer(
+    linux: bool,
+    bundle_type: Option<BundleType>,
+) -> Result<DesktopUpdateInstaller, String> {
+    if !linux {
+        return Ok(DesktopUpdateInstaller::BuiltIn);
+    }
+    match bundle_type {
+        Some(BundleType::Deb) => Ok(DesktopUpdateInstaller::Deb),
+        Some(BundleType::AppImage) => Ok(DesktopUpdateInstaller::BuiltIn),
+        _ => Err("In-app Linux updates require an installed deb or AppImage".into()),
+    }
+}
+
+fn record_desktop_log(app: &AppHandle, message: &str) {
+    if let Ok(lifecycle) = app.state::<AppState>().lifecycle.try_lock() {
+        lifecycle.push_log(message);
+    }
+    eprintln!("{message}");
+}
+
+fn record_desktop_update_error(
+    app: &AppHandle,
+    stage: &str,
+    error: impl std::fmt::Display,
+) -> String {
+    let message = format!("Desktop update {stage} failed: {error}");
+    record_desktop_log(app, &message);
+    message
+}
+
+fn restart_after_success(result: Result<(), String>, restart: impl FnOnce()) -> Result<(), String> {
+    result?;
+    restart();
+    Ok(())
 }
 
 fn development_update_check(is_debug: bool) -> Option<DesktopUpdateCheck> {
@@ -612,10 +651,10 @@ async fn check_for_desktop_update(app: AppHandle) -> Result<DesktopUpdateCheck, 
     }
     let update = app
         .updater()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| record_desktop_update_error(&app, "setup", error))?
         .check()
         .await
-        .map_err(|error| error.to_string())?;
+        .map_err(|error| record_desktop_update_error(&app, "check", error))?;
     Ok(DesktopUpdateCheck {
         available_version: update.map(|update| update.version),
         message: "This signed MoltNet Agent build is up to date.".into(),
@@ -626,16 +665,28 @@ async fn check_for_desktop_update(app: AppHandle) -> Result<DesktopUpdateCheck, 
 async fn install_desktop_update(app: AppHandle) -> Result<(), String> {
     let update = app
         .updater()
-        .map_err(|error| error.to_string())?
+        .map_err(|error| record_desktop_update_error(&app, "setup", error))?
         .check()
         .await
-        .map_err(|error| error.to_string())?
+        .map_err(|error| record_desktop_update_error(&app, "check", error))?
         .ok_or_else(|| "MoltNet Agent is already up to date".to_string())?;
-    update
-        .download_and_install(|_, _| {}, || {})
+    let bytes = update
+        .download(|_, _| {}, || {})
         .await
-        .map_err(|error| error.to_string())?;
-    app.restart();
+        .map_err(|error| record_desktop_update_error(&app, "download", error))?;
+    // download() verifies the updater signature before either installer receives bytes.
+    let install = tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        match desktop_update_installer(true, tauri::utils::platform::bundle_type())? {
+            DesktopUpdateInstaller::Deb => return linux_setup::install_deb(&bytes),
+            DesktopUpdateInstaller::BuiltIn => {}
+        }
+        update.install(bytes).map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| record_desktop_update_error(&app, "worker", error))?
+    .map_err(|error| record_desktop_update_error(&app, "install", error));
+    restart_after_success(install, || app.restart())
 }
 
 fn show_status(app: &AppHandle) {
@@ -692,12 +743,35 @@ fn start_lifecycle(app: AppHandle) {
     });
 }
 
+#[tauri::command]
+async fn desktop_linux_setup() -> Result<linux_setup::LinuxSetup, String> {
+    tauri::async_runtime::spawn_blocking(linux_setup::inspect)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn desktop_repair_linux_setup(
+    app: AppHandle,
+    repair: linux_setup::Repair,
+) -> Result<linux_setup::LinuxSetup, String> {
+    let result = tauri::async_runtime::spawn_blocking(move || linux_setup::repair(repair))
+        .await
+        .map_err(|error| error.to_string())?;
+    if let Err(error) = &result {
+        record_desktop_log(&app, &format!("Linux system setup failed: {error}"));
+    }
+    result
+}
+
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             desktop_status,
+            desktop_linux_setup,
+            desktop_repair_linux_setup,
             desktop_catalogue,
             desktop_control_status,
             desktop_enroll_team,
@@ -719,16 +793,13 @@ pub fn run() {
             desktop_cancel_subscription_login,
             desktop_open_sign_in,
             install_agent,
-            approve_local_trust,
             retry_server,
             start_agent_server,
             stop_agent_server,
             check_for_agent_updates,
             install_agent_update,
-            open_console,
             open_logs,
             remove_agent_bundle,
-            remove_local_trust,
             check_for_desktop_update,
             install_desktop_update
         ])
@@ -830,5 +901,34 @@ mod tests {
             })
         );
         assert_eq!(development_update_check(false), None);
+    }
+
+    #[test]
+    fn desktop_update_installer_matches_the_running_bundle() {
+        assert_eq!(
+            desktop_update_installer(true, Some(BundleType::Deb)),
+            Ok(DesktopUpdateInstaller::Deb)
+        );
+        assert_eq!(
+            desktop_update_installer(true, Some(BundleType::AppImage)),
+            Ok(DesktopUpdateInstaller::BuiltIn)
+        );
+        assert!(desktop_update_installer(true, None).is_err());
+        assert!(desktop_update_installer(true, Some(BundleType::Dmg)).is_err());
+        assert_eq!(
+            desktop_update_installer(false, None),
+            Ok(DesktopUpdateInstaller::BuiltIn)
+        );
+    }
+
+    #[test]
+    fn failed_desktop_install_never_restarts_the_app() {
+        let mut restarted = false;
+        let failure = restart_after_success(Err("install failed".into()), || restarted = true);
+        assert_eq!(failure, Err("install failed".into()));
+        assert!(!restarted);
+
+        restart_after_success(Ok(()), || restarted = true).unwrap();
+        assert!(restarted);
     }
 }

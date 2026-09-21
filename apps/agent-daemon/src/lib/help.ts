@@ -51,11 +51,9 @@ Commands:
   once      Claim and execute one specific queued task by id, then exit.
   drain     Poll until the queue has nothing claimable, then exit.
             Useful for batch eval runs and demos.
-  server    Loopback supervisor for console-managed runs: OAuth local control,
-            agent/provider config store, and start/stop of poll/drain
-            child processes. Binds 127.0.0.1 only.
-  server trust
-            Install the per-user macOS local-HTTPS CA after explicit consent.
+  server    Supervisor for managed runs: authorized standalone local control,
+            agent/provider config store, and start/stop of poll/drain child
+            processes. Binds 127.0.0.1 or a private native socket.
   providers Manage configured endpoints and Pi OAuth subscriptions without
             starting the Agent Server. See \`agent-daemon providers --help\`.
   sync-sessions
@@ -211,16 +209,17 @@ export function isHelpFlag(args: readonly string[]): boolean {
 }
 
 export const AGENT_SERVER_HELP = `\
-agent-daemon server — loopback supervisor for console-managed runs.
+agent-daemon server — local supervisor for managed runs.
 
-Binds 127.0.0.1 only. An authorized Console origin configures agents and
-providers (secret references only) and starts/stops poll/drain runs as
-child processes of this supervisor.
+Standalone mode binds 127.0.0.1 for authorized local-control clients. MoltNet
+Agent Desktop instead uses a private Unix socket with a process-scoped grant.
+Both modes configure agents and providers and start/stop child runs.
 
 Options:
   --port <n>                  Loopback port. Default: 17374.
                               Env: MOLTNET_AGENT_SERVER_PORT.
-  --allowed-origins <csv>     Exact Console origins allowed local control.
+  --allowed-origins <csv>     Exact browser-controller origins allowed
+                              local control.
                               Default: https://console.themolt.net.
                               Env: MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS.
   --root <path>               Config root. Default: ~/.config/moltnet
@@ -230,14 +229,13 @@ Options:
   --heartbeat-interval-ms <n> Child reporter heartbeat cadence. Default: 60000.
   --warm-retention-sec <n>    Child session/workspace retention. Default: 1800.
   --supervised                Also stop gracefully when stdin reaches EOF.
+  --native-socket <path>      Private native-only socket (requires --supervised).
+                              Absolute, at most 100 bytes, with a new socket in
+                              a caller-owned 0700 directory. TCP flags are not
+                              accepted; inherited TCP env settings are ignored.
 
-On macOS, the first interactive run asks to trust a per-user local CA in the
-login keychain and serves HTTPS. Native supervisors use:
-  server trust --status --json
-  server trust --yes --json
-  server trust --remove --yes --json
-Run \`agent-daemon server trust --remove\` interactively to remove that exact
-CA. Linux continues to use the Chromium PNA HTTP path.
+Standalone mode uses loopback HTTP on every platform. Desktop socket mode does
+not open a TCP listener.
 `;
 
 export const PROVIDERS_HELP = `\

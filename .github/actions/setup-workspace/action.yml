@@ -1,0 +1,81 @@
+name: Setup MoltNet workspace
+description: Install the toolchains required to construct the Nx project graph.
+inputs:
+  install-dependencies:
+    description: Run the frozen pnpm workspace install after toolchain setup.
+    default: 'true'
+  pnpm-cache:
+    description: Restore and save the pnpm store cache.
+    default: 'true'
+  go-cache:
+    description: Enable the setup-go module and build cache.
+    default: 'false'
+  go-cache-dependency-path:
+    description: Optional dependency files used to key the Go cache.
+    default: ''
+  rust:
+    description: Install the Rust version declared in .tool-versions.
+    default: 'false'
+  rust-components:
+    description: Optional comma-separated Rust components.
+    default: ''
+  rust-cache:
+    description: Cache Cargo downloads and Desktop build outputs.
+    default: 'false'
+  rust-cache-key:
+    description: Required cache partition when rust-cache is true.
+    default: ''
+  rust-cache-targets:
+    description: Cache compiled Cargo target directories as well as the registry.
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .tool-versions
+        cache: ${{ inputs.pnpm-cache == 'true' && 'pnpm' || '' }}
+    - if: inputs.go-cache-dependency-path == ''
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: .tool-versions
+        cache: ${{ inputs.go-cache }}
+    - if: inputs.go-cache-dependency-path != ''
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: .tool-versions
+        cache: ${{ inputs.go-cache }}
+        cache-dependency-path: ${{ inputs.go-cache-dependency-path }}
+    - name: Verify the pinned Rust toolchain
+      if: inputs.rust == 'true'
+      shell: bash
+      run: |
+        rust_version=$(awk '$1 == "rust" { print $2 }' .tool-versions)
+        [ "$rust_version" = '1.88.0' ] || {
+          echo "The pinned Rust action provides 1.88.0, but .tool-versions declares ${rust_version:-nothing}" >&2
+          exit 1
+        }
+        if [ "${{ inputs.rust-cache }}" = true ] && [ -z "${{ inputs.rust-cache-key }}" ]; then
+          echo 'rust-cache-key is required when rust-cache is true' >&2
+          exit 1
+        fi
+    # dtolnay/rust-toolchain commit 688313b resolves the Rust 1.88.0 release.
+    - if: inputs.rust == 'true' && inputs.rust-components == ''
+      uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
+    # dtolnay/rust-toolchain commit 688313b resolves the Rust 1.88.0 release.
+    - if: inputs.rust == 'true' && inputs.rust-components != ''
+      uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
+      with:
+        components: ${{ inputs.rust-components }}
+    # Swatinem/rust-cache v2 is pinned by commit for reproducible cache behavior.
+    - if: inputs.rust == 'true' && inputs.rust-cache == 'true'
+      uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c
+      with:
+        workspaces: apps/agent-desktop/src-tauri -> ../out-rust
+        shared-key: agent-desktop-${{ inputs.rust-cache-key }}-${{ runner.os }}-${{ runner.arch }}
+        cache-targets: ${{ inputs.rust-cache-targets }}
+        save-if: ${{ github.ref == 'refs/heads/main' }}
+    - if: inputs.install-dependencies == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile

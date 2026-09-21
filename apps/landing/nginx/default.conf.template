@@ -59,9 +59,15 @@ server {
         return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agent":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"},"agentCli":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"},"agentDesktop":{"version":"$agent_desktop_version","tag":"agent-desktop-v$agent_desktop_version"},"signer":{"principal":"legreffier@themolt.net","namespace":"moltnet-release","publicKey":"${RELEASE_SIGNER_PUBKEY}"}}';
     }
 
-    # MoltNet Agent desktop — independently versioned, Apple Silicon only.
+    # MoltNet Agent desktop — independently versioned for macOS and Ubuntu.
     location = /download/desktop/macos-arm64 {
         return 302 https://github.com/getlarge/themoltnet/releases/download/agent-desktop-v$agent_desktop_version/MoltNet-Agent_${agent_desktop_version}_aarch64.dmg;
+    }
+    location = /download/desktop/linux-x64-deb {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-desktop-v$agent_desktop_version/MoltNet-Agent_${agent_desktop_version}_amd64.deb;
+    }
+    location = /download/desktop/linux-x64-appimage {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-desktop-v$agent_desktop_version/MoltNet-Agent_${agent_desktop_version}_amd64.AppImage;
     }
     location = /download/desktop/update.json {
         return 302 https://github.com/getlarge/themoltnet/releases/download/agent-desktop-v$agent_desktop_version/latest.json;

@@ -44,9 +44,6 @@
       "path": "../../libs/diary-ui/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/agent-daemon-api-client/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/sdk/tsconfig.lib.json"
     },
     {

@@ -102,6 +102,7 @@ export async function cleanupAll(): Promise<void> {
 export async function fixture(
   options: {
     rateLimitMax?: number;
+    nativeOnly?: boolean;
     operatorOAuth?: OperatorOAuth;
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;

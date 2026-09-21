@@ -1,7 +1,7 @@
 /**
  * THESIS: Make foreground ownership visible; never disguise the agent as a service.
- * OWN-WORLD: Matte control surfaces, teal lifecycle flow, amber trust proof.
- * STORY: Inspect state, consent at protected transitions, continue in Console.
+ * OWN-WORLD: Matte control surfaces and teal lifecycle flow.
+ * STORY: Inspect state and consent at protected transitions.
  * FIRST VIEWPORT: Server status and controls, diagnostics, advanced settings.
  * FORM: Lifecycle ledger; sixth grounded Operate structure, seed 2688504d.
  */
@@ -31,12 +31,12 @@ import {
   type LifecycleState,
 } from './bridge.js';
 import { ConnectionSettings } from './ConnectionSettings.js';
+import { LinuxSetup } from './LinuxSetup.js';
 
 const STATE_LABELS: Record<LifecycleState, string> = {
   checking: 'Checking',
   needs_install: 'Agent bundle required',
   installing: 'Installing verified bundle',
-  needs_trust: 'Local HTTPS trust required',
   starting: 'Starting Agent Server',
   running: 'Agent Server running',
   update_available: 'Update available',
@@ -50,18 +50,11 @@ const FLOW: readonly LifecycleState[] = [
   'checking',
   'needs_install',
   'installing',
-  'needs_trust',
   'starting',
   'running',
 ] as const;
 
-type Confirmation =
-  | 'trust'
-  | 'update'
-  | 'desktop-update'
-  | 'remove'
-  | 'remove-ca'
-  | null;
+type Confirmation = 'update' | 'desktop-update' | 'remove' | null;
 
 type OperationFeedback = {
   tone: 'error' | 'success';
@@ -146,23 +139,15 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
     [],
   );
 
+  const nativeConnected =
+    status.state === 'running' || status.state === 'update_available';
   const currentIndex = FLOW.indexOf(status.state);
-  const statusTone =
-    status.state === 'needs_trust'
-      ? 'identity'
-      : status.state === 'failed'
-        ? 'neutral'
-        : 'network';
+  const statusTone = status.state === 'failed' ? 'neutral' : 'network';
   const primary = useMemo(() => {
     if (status.state === 'needs_install' || status.state === 'removed')
       return {
         label: 'Install verified agent',
         action: () => void run(desktopBridge.install),
-      };
-    if (status.state === 'needs_trust')
-      return {
-        label: 'Review local HTTPS trust',
-        action: () => setConfirmation('trust'),
       };
     if (status.state === 'running' || status.state === 'update_available')
       return {
@@ -188,9 +173,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
     const action = confirmation;
     try {
       switch (action) {
-        case 'trust':
-          await run(desktopBridge.trust);
-          break;
         case 'update':
           await run(desktopBridge.installUpdate);
           break;
@@ -212,9 +194,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
           break;
         case 'remove':
           await run(desktopBridge.remove);
-          break;
-        case 'remove-ca':
-          await run(desktopBridge.removeTrust);
           break;
         case null:
           break;
@@ -264,8 +243,12 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               </Text>
             </Stack>
             <SignatureStatus
-              state={status.trusted ? 'verified' : 'pending'}
-              label={status.trusted ? 'Local HTTPS trusted' : 'Trust pending'}
+              state={nativeConnected ? 'verified' : 'pending'}
+              label={
+                nativeConnected
+                  ? 'Native control active'
+                  : 'Native connection idle'
+              }
             />
           </Stack>
         </header>
@@ -285,7 +268,7 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               {notice}
             </Stack>
 
-            {!status.installedVersion || status.state === 'needs_trust' ? (
+            {!status.installedVersion ? (
               <Text variant="caption" color="secondary">
                 {currentIndex >= 0
                   ? `Setup step ${currentIndex + 1} of ${FLOW.length}`
@@ -310,16 +293,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
               {primary ? (
                 <Button onClick={primary.action} loading={busy}>
                   {primary.label}
-                </Button>
-              ) : null}
-              {status.state === 'running' ||
-              status.state === 'update_available' ? (
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => void desktopBridge.openConsole()}
-                >
-                  Open Console
                 </Button>
               ) : null}
             </Stack>
@@ -373,16 +346,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
                 Check app update
               </Button>
             </Stack>
-            {status.trustFingerprint ? (
-              <Text
-                mono
-                variant="caption"
-                color="accent"
-                style={{ overflowWrap: 'anywhere' }}
-              >
-                Local CA {status.trustFingerprint}
-              </Text>
-            ) : null}
             <pre className="log-preview" aria-label="Recent Agent Server logs">
               {status.logs.length
                 ? status.logs.slice(-12).join('\n')
@@ -401,14 +364,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
                   in ~/.config/moltnet.
                 </Text>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={busy || !status.trustFingerprint}
-                  onClick={() => setConfirmation('remove-ca')}
-                >
-                  Remove local CA…
-                </Button>
-                <Button
                   variant="danger"
                   size="sm"
                   disabled={busy}
@@ -421,6 +376,7 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
           </Stack>
         </ControlSurface>
         <ControlSurface as="section" padding="md">
+          <LinuxSetup />
           <ConnectionSettings
             running={
               status.state === 'running' || status.state === 'update_available'
@@ -431,14 +387,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
         </ControlSurface>
       </Stack>
 
-      <ConfirmDialog
-        open={confirmation === 'trust'}
-        title="Trust MoltNet local HTTPS?"
-        message={`macOS will add this per-user CA to your login Keychain so Console can reach the local Agent Server securely. Fingerprint: ${status.trustFingerprint ?? 'preparing…'}`}
-        confirmLabel="Trust local CA"
-        onCancel={() => setConfirmation(null)}
-        onConfirm={() => void confirm()}
-      />
       <ConfirmDialog
         open={confirmation === 'update'}
         title="Install agent update?"
@@ -460,16 +408,6 @@ export function ServerPanel({ notice }: { notice?: ReactNode } = {}) {
         title="Remove the agent bundle?"
         message="This stops the Agent Server and removes only the installer-owned bundle. Identities and provider configuration in ~/.config/moltnet are preserved."
         confirmLabel="Remove bundle"
-        destructive
-        onCancel={() => setConfirmation(null)}
-        onConfirm={() => void confirm()}
-      />
-      <ConfirmDialog
-        open={confirmation === 'remove-ca'}
-        title="Also remove local HTTPS trust?"
-        message="Remove only the per-user MoltNet local CA from the login Keychain. The agent bundle and ~/.config/moltnet configuration remain installed."
-        confirmLabel="Remove local CA"
-        cancelLabel="Keep local CA"
         destructive
         onCancel={() => setConfirmation(null)}
         onConfirm={() => void confirm()}

@@ -2,14 +2,10 @@
 
 interface MoltNetConfig {
   kratosUrl: string;
-  oauthConsoleClientId?: string;
-  oauthIssuer?: string;
-  oauthPublicUrl?: string;
   apiBaseUrl: string;
   consoleUrl: string;
   docsUrl?: string;
   signerUrl?: string;
-  agentServerUrl?: string;
 }
 
 interface Window {
@@ -17,15 +13,11 @@ interface Window {
 }
 
 interface ImportMetaEnv {
-  readonly VITE_OAUTH_PUBLIC_URL?: string;
-  readonly VITE_CONSOLE_OAUTH_CLIENT_ID?: string;
-  readonly VITE_OAUTH_ISSUER?: string;
   readonly VITE_KRATOS_URL?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_CONSOLE_URL?: string;
   readonly VITE_DOCS_URL?: string;
   readonly VITE_SIGNER_URL?: string;
-  readonly VITE_AGENT_SERVER_URL?: string;
 }
 
 interface ImportMeta {

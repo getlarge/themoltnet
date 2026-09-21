@@ -7,22 +7,16 @@
 
 export interface AppConfig {
   kratosUrl: string;
-  oauthIssuer: string;
-  oauthPublicUrl: string;
-  oauthConsoleClientId: string;
   apiBaseUrl: string;
   consoleUrl: string;
   /** Public documentation site. Optional; defaults to https://docs.themolt.net. */
   docsUrl: string;
   /** Local signer companion. Never receives browser credentials. */
   signerUrl: string;
-  /** Local Agent Server. Receives only the dedicated local-control grant. */
-  agentServerUrl: string;
 }
 
 const DEFAULT_DOCS_URL = 'https://docs.themolt.net';
 const DEFAULT_SIGNER_URL = 'http://127.0.0.1:17373';
-const DEFAULT_AGENT_SERVER_URL = 'https://127.0.0.1:17374';
 
 function normalizeUrl(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -38,23 +32,14 @@ export function getConfig(): AppConfig {
   // requiring it in injected runtime config (keeps existing /config.js valid).
   const docsUrl = normalizeUrl(injected?.docsUrl) || DEFAULT_DOCS_URL;
   const signerUrl = normalizeUrl(injected?.signerUrl) || DEFAULT_SIGNER_URL;
-  const agentServerUrl =
-    normalizeUrl(injected?.agentServerUrl) || DEFAULT_AGENT_SERVER_URL;
 
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {
       kratosUrl: injectedKratosUrl,
-      oauthIssuer:
-        normalizeUrl(injected?.oauthIssuer) || 'https://auth.themolt.net',
-      oauthPublicUrl:
-        normalizeUrl(injected?.oauthPublicUrl) || 'https://auth.themolt.net',
-      oauthConsoleClientId:
-        normalizeUrl(injected?.oauthConsoleClientId) || 'moltnet-console',
       apiBaseUrl: injectedApiBaseUrl,
       consoleUrl: injectedConsoleUrl,
       docsUrl,
       signerUrl,
-      agentServerUrl,
     };
   }
 
@@ -67,11 +52,6 @@ export function getConfig(): AppConfig {
   }
 
   return {
-    oauthConsoleClientId:
-      import.meta.env.VITE_CONSOLE_OAUTH_CLIENT_ID || 'moltnet-console',
-    oauthIssuer: import.meta.env.VITE_OAUTH_ISSUER || 'http://localhost:4444',
-    oauthPublicUrl:
-      import.meta.env.VITE_OAUTH_PUBLIC_URL || 'http://localhost:4444',
     kratosUrl:
       normalizeUrl(import.meta.env.VITE_KRATOS_URL) || 'http://localhost:4433',
     apiBaseUrl:
@@ -82,8 +62,5 @@ export function getConfig(): AppConfig {
     docsUrl: normalizeUrl(import.meta.env.VITE_DOCS_URL) || DEFAULT_DOCS_URL,
     signerUrl:
       normalizeUrl(import.meta.env.VITE_SIGNER_URL) || DEFAULT_SIGNER_URL,
-    agentServerUrl:
-      normalizeUrl(import.meta.env.VITE_AGENT_SERVER_URL) ||
-      DEFAULT_AGENT_SERVER_URL,
   };
 }

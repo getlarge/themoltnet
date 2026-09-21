@@ -1,11 +1,14 @@
+use crate::build_support::{valid_version, version_at_least};
 #[cfg(unix)]
-use crate::control::{NativeToken, NATIVE_TOKEN_ENV};
+use crate::control::{NativeConnection, NativeToken, NATIVE_TOKEN_ENV};
 use serde::{Deserialize, Serialize};
+use std::ffi::{OsStr, OsString};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
 use std::{
     collections::VecDeque,
+    env,
     fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
@@ -15,15 +18,14 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const CONSOLE_URL: &str = "https://console.themolt.net/runtime/local";
-use crate::operator_oauth::HEALTH_URL;
 const MAX_LOG_LINES: usize = 400;
 const MAX_LOG_LINE_BYTES: usize = 16 * 1024;
 const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
-const HEALTH_CHECK_TIMEOUT_SECS: &str = "1";
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
+// Keep aligned with LOCK_HELD_EXIT_CODE in agent-daemon/src/cli/server.ts.
+const AGENT_SERVER_LOCK_HELD_EXIT_CODE: i32 = 75;
 const EMBEDDED_AGENT_VERSION: &str = env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION");
 const EMBEDDED_INSTALLER: &str = include_str!(concat!(env!("OUT_DIR"), "/install-agent.sh"));
 
@@ -34,7 +36,6 @@ pub enum LifecycleState {
     Checking,
     NeedsInstall,
     Installing,
-    NeedsTrust,
     Starting,
     Running,
     UpdateAvailable,
@@ -50,8 +51,6 @@ pub struct DesktopStatus {
     pub state: LifecycleState,
     pub installed_version: Option<String>,
     pub available_version: Option<String>,
-    pub trust_fingerprint: Option<String>,
-    pub trusted: bool,
     pub message: String,
     pub logs: Arc<VecDeque<String>>,
 }
@@ -61,13 +60,6 @@ pub struct DesktopStatus {
 struct UpdateResult {
     latest_version: Option<String>,
     update_available: bool,
-}
-
-#[derive(Debug, Deserialize)]
-struct TrustResult {
-    supported: bool,
-    trusted: bool,
-    fingerprint: Option<String>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -192,19 +184,19 @@ pub struct LifecycleManager {
     /// Grant for the server process currently running, if any. Regenerated on
     /// every spawn and dropped when the child stops, so it is scoped to one
     /// process exactly as the server's own grant map is.
-    control_token: Option<NativeToken>,
+    control_connection: Option<NativeConnection>,
 }
 
 impl LifecycleManager {
     /// The grant for the running server, if one is running.
-    pub fn control_token(&self) -> Option<&NativeToken> {
-        self.child.as_ref().and(self.control_token.as_ref())
+    pub fn control_connection(&self) -> Option<&NativeConnection> {
+        self.child.as_ref().and(self.control_connection.as_ref())
     }
 }
 
 impl Default for LifecycleManager {
     fn default() -> Self {
-        Self::new(home_directory().expect("HOME is required on macOS"))
+        Self::new(home_directory().expect("HOME is required"))
     }
 }
 
@@ -221,7 +213,7 @@ impl LifecycleManager {
             logs: Arc::new(Mutex::new(LogBuffer::new(log_path))),
             retry_used: false,
             home,
-            control_token: None,
+            control_connection: None,
         }
     }
 
@@ -244,15 +236,6 @@ impl LifecycleManager {
             return self.install_agent();
         }
         self.ensure_supported_agent()?;
-        let trust = self.trust_status()?;
-        self.apply_trust(&trust);
-        if !trust.trusted {
-            self.set_state(
-                LifecycleState::NeedsTrust,
-                "Approve the per-user local CA before the Agent Server starts.",
-            );
-            return Ok(self.snapshot());
-        }
         self.start_server()
     }
 
@@ -266,27 +249,6 @@ impl LifecycleManager {
         }
         self.refresh_installed_version();
         self.require_supported_version()?;
-        let trust = self.trust_status()?;
-        self.apply_trust(&trust);
-        if trust.trusted {
-            self.start_server()
-        } else {
-            self.set_state(
-                LifecycleState::NeedsTrust,
-                "The verified bundle is installed. Local HTTPS trust needs consent.",
-            );
-            Ok(self.snapshot())
-        }
-    }
-
-    pub fn approve_trust(&mut self) -> Result<DesktopStatus, String> {
-        self.ensure_supported_agent()?;
-        let output = self.run_agent(&["server", "trust", "--yes", "--json"])?;
-        let trust = parse_trust_result(&output.stdout, "trust response")?;
-        if !trust.trusted {
-            return self.fail("macOS did not report the local CA as trusted");
-        }
-        self.apply_trust(&trust);
         self.start_server()
     }
 
@@ -388,17 +350,6 @@ impl LifecycleManager {
         Ok(self.snapshot())
     }
 
-    pub fn remove_trust(&mut self) -> Result<DesktopStatus, String> {
-        self.ensure_supported_agent()?;
-        let trust = self.remove_local_trust()?;
-        self.apply_trust(&trust);
-        self.set_state(
-            LifecycleState::NeedsTrust,
-            "Local HTTPS trust was removed. Re-approve it before starting the server.",
-        );
-        Ok(self.snapshot())
-    }
-
     pub fn retry(&mut self) -> Result<DesktopStatus, String> {
         self.retry_used = false;
         self.initialize()
@@ -408,6 +359,9 @@ impl LifecycleManager {
         let Some(mut child) = self.child.take() else {
             return Ok(self.snapshot());
         };
+        if let Some(connection) = self.control_connection.take() {
+            connection.deactivate();
+        }
         self.set_state(LifecycleState::Stopping, "Stopping the Agent Server…");
         drop(child.stdin.take());
         let pid = child.id() as libc::pid_t;
@@ -459,6 +413,9 @@ impl LifecycleManager {
             return ExitAction::None;
         };
         self.child = None;
+        if let Some(connection) = self.control_connection.take() {
+            connection.deactivate();
+        }
         self.push_log(&format!(
             "Agent Server exited unexpectedly ({}).",
             describe_exit_status(status)
@@ -492,10 +449,8 @@ impl LifecycleManager {
 
     fn start_server_for(&mut self, origin: StartOrigin) -> Result<DesktopStatus, String> {
         self.ensure_supported_agent()?;
-        if self.child.is_none() && health_ready().is_ok() {
-            return self.fail(
-                "Another process already owns the local Agent Server. It was left untouched.",
-            );
+        if self.child.is_some() {
+            return Ok(self.snapshot());
         }
         self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
 
@@ -505,9 +460,39 @@ impl LifecycleManager {
                 Ok(token) => token,
                 Err(error) => return self.fail(&error),
             };
-            let mut command = agent_server_command(&self.executable());
+            // A short canonical path fits sockaddr_un on macOS and Linux.
+            let directory = match crate::native_socket::private_directory() {
+                Ok((directory, cleanup)) => {
+                    if cleanup.removed > 0 || !cleanup.errors.is_empty() {
+                        self.push_log(&format!(
+                            "Native socket cleanup removed {} stale director{} and encountered {} error{}.",
+                            cleanup.removed,
+                            if cleanup.removed == 1 { "y" } else { "ies" },
+                            cleanup.errors.len(),
+                            if cleanup.errors.len() == 1 { "" } else { "s" },
+                        ));
+                    }
+                    for error in cleanup.errors {
+                        self.push_log(&format!("Native socket cleanup warning: {error}"));
+                    }
+                    Arc::new(directory)
+                }
+                Err(error) => {
+                    return self.fail(&format!(
+                        "could not prepare private control socket directory: {error}"
+                    ))
+                }
+            };
+            let mut command = agent_server_command(
+                &self.executable(),
+                &directory.path().join(crate::native_socket::SOCKET_NAME),
+            );
             // The child consumes and unsets this, so its own run children
-            // cannot inherit the desktop's control grant.
+            // cannot inherit the desktop's control grant. Process environments
+            // are readable inside the same user boundary on supported hosts;
+            // the private directory plus kernel UID/PID peer check is the
+            // transport boundary, while this grant prevents accidental use by
+            // another client in that boundary.
             command.env(NATIVE_TOKEN_ENV, token.expose());
             let mut child = match command
                 .stdin(Stdio::piped())
@@ -524,30 +509,46 @@ impl LifecycleManager {
             if let Some(stderr) = child.stderr.take() {
                 capture_lines(stderr, Arc::clone(&self.logs), attempt + 1, "stderr");
             }
+            let connection = NativeConnection::new(token, directory, child.id());
             let deadline = Instant::now() + START_TIMEOUT;
             loop {
-                let health_error = match health_ready() {
+                let health_error = match connection.health() {
                     Ok(()) => {
-                        self.control_token = Some(token.clone());
+                        self.control_connection = Some(connection.clone());
                         self.child = Some(child);
                         self.retry_used = retry_budget_after_start(origin, attempt);
-                        self.set_state(LifecycleState::Running, "Ready for Console local control.");
+                        self.set_state(LifecycleState::Running, "Ready for local work.");
                         return Ok(self.snapshot());
                     }
                     Err(error) => error,
                 };
-                if let Some(status) = child.try_wait().map_err(|error| error.to_string())? {
-                    last_failure = format!(
-                        "Agent Server exited before readiness ({})",
-                        describe_exit_status(status)
-                    );
-                    self.push_log(&last_failure);
-                    if attempt + 1 < MAX_START_ATTEMPTS {
-                        self.push_log("Retrying Agent Server startup once.");
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        connection.deactivate();
+                        let should_retry = startup_should_retry(&status, attempt);
+                        last_failure = startup_failure(status);
+                        self.push_log(&last_failure);
+                        if !should_retry && status.code() == Some(AGENT_SERVER_LOCK_HELD_EXIT_CODE)
+                        {
+                            return self.fail(&last_failure);
+                        }
+                        if should_retry {
+                            self.push_log("Retrying Agent Server startup once.");
+                        }
+                        break;
                     }
-                    break;
+                    Err(error) => {
+                        connection.deactivate();
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        return self.fail(&format!(
+                            "could not inspect Agent Server readiness: {error}"
+                        ));
+                    }
+                    Ok(None) => {}
                 }
                 if Instant::now() >= deadline {
+                    connection.deactivate();
                     self.push_log(&format!(
                         "Agent Server readiness exceeded {} seconds; force-stopping child.",
                         START_TIMEOUT.as_secs()
@@ -565,23 +566,8 @@ impl LifecycleManager {
         self.fail(&last_failure)
     }
 
-    fn trust_status(&self) -> Result<TrustResult, String> {
-        let output = self.run_agent(&["server", "trust", "--status", "--json"])?;
-        parse_trust_result(&output.stdout, "trust status response")
-    }
-
-    fn remove_local_trust(&self) -> Result<TrustResult, String> {
-        let output = self.run_agent(&["server", "trust", "--remove", "--yes", "--json"])?;
-        parse_trust_result(&output.stdout, "trust removal response")
-    }
-
-    fn apply_trust(&mut self, trust: &TrustResult) {
-        self.status.trusted = trust.trusted;
-        self.status.trust_fingerprint = trust.fingerprint.clone();
-    }
-
     fn run_agent(&self, args: &[&str]) -> Result<Output, String> {
-        let output = Command::new(self.executable())
+        let output = host_command(&self.executable())
             .args(args)
             .output()
             .map_err(|error| format!("agent command failed: {error}"))?;
@@ -688,7 +674,7 @@ impl LifecycleManager {
         Err(message.into())
     }
 
-    fn push_log(&self, line: &str) {
+    pub(crate) fn push_log(&self, line: &str) {
         if let Ok(mut logs) = self.logs.lock() {
             if let Err(error) = logs.push(line.to_string()) {
                 eprintln!("could not persist Agent desktop supervisor log: {error}");
@@ -709,14 +695,10 @@ impl LifecycleManager {
     }
 }
 
-pub fn open_console() -> Result<(), String> {
-    fixed_command("/usr/bin/open", &[CONSOLE_URL]).map(|_| ())
-}
-
 pub fn open_logs(directory: &Path) -> Result<(), String> {
     prepare_private_directory(directory)?;
     let path = directory.to_string_lossy().into_owned();
-    fixed_command("/usr/bin/open", &[&path]).map(|_| ())
+    fixed_command(platform_opener(), &[&path]).map(|_| ())
 }
 
 fn capture_lines(
@@ -850,27 +832,24 @@ fn installer_command(
     command
 }
 
-fn health_ready() -> Result<(), String> {
-    fixed_command(
-        "/usr/bin/curl",
-        &[
-            "--silent",
-            "--show-error",
-            "--fail",
-            "--max-time",
-            HEALTH_CHECK_TIMEOUT_SECS,
-            HEALTH_URL,
-        ],
-    )
-    .map(|_| ())
+fn platform_opener() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "/usr/bin/open"
+    } else {
+        "/usr/bin/xdg-open"
+    }
 }
 
 fn fixed_command(program: &str, args: &[&str]) -> Result<Output, String> {
-    const PROGRAMS: &[&str] = &["/usr/bin/curl", "/usr/bin/open"];
+    const PROGRAMS: &[&str] = &["/usr/bin/open", "/usr/bin/xdg-open"];
     if !PROGRAMS.contains(&program) {
         return Err("program is not allowlisted".into());
     }
-    let output = Command::new(program)
+    // xdg-open is a shell script, so give it only system helper locations;
+    // the Agent Server itself keeps the user's PATH for worker tools.
+    let mut command = host_command(Path::new(program));
+    command.env("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin");
+    let output = command
         .args(args)
         .output()
         .map_err(|error| format!("{program} failed: {error}"))?;
@@ -908,6 +887,21 @@ fn describe_exit_status(status: ExitStatus) -> String {
     "unknown exit status".to_string()
 }
 
+fn startup_failure(status: ExitStatus) -> String {
+    if status.code() == Some(AGENT_SERVER_LOCK_HELD_EXIT_CODE) {
+        return "Another Agent Server is already using this data directory. Stop it before retrying."
+            .to_string();
+    }
+    format!(
+        "Agent Server exited before readiness ({}). Review the bounded server logs for the startup error.",
+        describe_exit_status(status)
+    )
+}
+
+fn startup_should_retry(status: &ExitStatus, attempt: usize) -> bool {
+    status.code() != Some(AGENT_SERVER_LOCK_HELD_EXIT_CODE) && attempt + 1 < MAX_START_ATTEMPTS
+}
+
 fn execute_update(
     version: &str,
     previous_version: &str,
@@ -938,51 +932,42 @@ fn home_directory() -> Result<PathBuf, String> {
         .ok_or_else(|| "HOME must be an absolute path".into())
 }
 
-fn valid_version(value: &str) -> bool {
-    // Keep this stable X.Y.Z rule aligned with tools/release/sync-cli-go-mod.sh
-    // and tools/release/propose-download-pin.sh.
-    parse_version(value).is_some()
-}
-
-fn parse_version(value: &str) -> Option<(u64, u64, u64)> {
-    let pieces = value.split('.').collect::<Vec<_>>();
-    if pieces.len() != 3
-        || pieces.iter().any(|piece| {
-            piece.is_empty()
-                || (piece.len() > 1 && piece.starts_with('0'))
-                || !piece.chars().all(|char| char.is_ascii_digit())
-        })
-    {
-        return None;
-    }
-    Some((
-        pieces[0].parse().ok()?,
-        pieces[1].parse().ok()?,
-        pieces[2].parse().ok()?,
-    ))
-}
-
-fn version_at_least(installed: &str, required: &str) -> bool {
-    match (parse_version(installed), parse_version(required)) {
-        (Some(installed), Some(required)) => installed >= required,
-        _ => false,
-    }
-}
-
-fn parse_trust_result(stdout: &[u8], context: &str) -> Result<TrustResult, String> {
-    let result: TrustResult =
-        serde_json::from_slice(stdout).map_err(|error| format!("invalid {context}: {error}"))?;
-    if result.supported {
-        Ok(result)
-    } else {
-        Err("the installed Agent CLI does not support local HTTPS trust on this platform".into())
-    }
-}
-
-fn agent_server_command(executable: &Path) -> Command {
-    let mut command = Command::new(executable);
-    command.args(["server", "--supervised"]);
+fn agent_server_command(executable: &Path, socket: &Path) -> Command {
+    let mut command = host_command(executable);
     command
+        .args(["server", "--supervised", "--native-socket"])
+        .arg(socket);
+    command
+}
+
+/// Strip AppImage loader/module overrides before starting host programs. They
+/// point inside the mounted image and can make an otherwise valid system
+/// binary load incompatible libraries. PATH and product configuration remain
+/// inherited so managed runs can still find the operator's installed tools.
+pub(crate) fn host_command(program: &Path) -> Command {
+    const APPIMAGE_ENV: &[&str] = &[
+        "LD_LIBRARY_PATH",
+        "LD_PRELOAD",
+        "GTK_PATH",
+        "GIO_MODULE_DIR",
+        "GDK_PIXBUF_MODULE_FILE",
+        "PYTHONHOME",
+        "PYTHONPATH",
+    ];
+    let mut command = Command::new(program);
+    for variable in APPIMAGE_ENV {
+        command.env_remove(variable);
+    }
+    if let (Some(path), Some(appdir)) = (env::var_os("PATH"), env::var_os("APPDIR")) {
+        if let Some(path) = path_without_directory(&path, Path::new(&appdir)) {
+            command.env("PATH", path);
+        }
+    }
+    command
+}
+
+fn path_without_directory(path: &OsStr, directory: &Path) -> Option<OsString> {
+    env::join_paths(env::split_paths(path).filter(|entry| !entry.starts_with(directory))).ok()
 }
 
 /// Open a provider sign-in page in the operator's browser.
@@ -995,7 +980,7 @@ pub fn open_verification_url(url: &str) -> Result<(), String> {
     if !is_https_url(url) {
         return Err("the sign-in page must be a secure https address".into());
     }
-    fixed_command("/usr/bin/open", &[url]).map(|_| ())
+    fixed_command(platform_opener(), &[url]).map(|_| ())
 }
 
 fn is_https_url(url: &str) -> bool {
@@ -1012,7 +997,21 @@ fn is_https_url(url: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::OsStr;
+
+    #[test]
+    fn startup_failure_identifies_an_existing_server_lock() {
+        let held = ExitStatus::from_raw(AGENT_SERVER_LOCK_HELD_EXIT_CODE << 8);
+        let other = ExitStatus::from_raw(1 << 8);
+
+        assert_eq!(
+            startup_failure(held),
+            "Another Agent Server is already using this data directory. Stop it before retrying."
+        );
+        assert!(startup_failure(other).contains("Review the bounded server logs"));
+        assert!(!startup_should_retry(&held, 0));
+        assert!(startup_should_retry(&other, 0));
+        assert!(!startup_should_retry(&other, MAX_START_ATTEMPTS - 1));
+    }
 
     #[test]
     fn only_https_sign_in_pages_may_be_opened() {
@@ -1078,31 +1077,31 @@ mod tests {
     }
 
     #[test]
-    fn trust_response_must_report_platform_support() {
-        let supported = br#"{"supported":true,"trusted":false,"fingerprint":"sha256:test"}"#;
-        assert_eq!(
-            parse_trust_result(supported, "trust status response")
-                .unwrap()
-                .fingerprint
-                .as_deref(),
-            Some("sha256:test")
-        );
-
-        let unsupported = br#"{"supported":false,"trusted":false,"fingerprint":null}"#;
-        assert_eq!(
-            parse_trust_result(unsupported, "trust status response").unwrap_err(),
-            "the installed Agent CLI does not support local HTTPS trust on this platform"
-        );
-    }
-
-    #[test]
     fn server_launch_always_uses_supervised_contract() {
         let executable = Path::new("/canonical/moltnet-agent");
-        let command = agent_server_command(executable);
+        let socket = Path::new("/tmp/private/control.sock");
+        let command = agent_server_command(executable, socket);
         assert_eq!(command.get_program(), executable.as_os_str());
         assert_eq!(
             command.get_args().collect::<Vec<_>>(),
-            [OsStr::new("server"), OsStr::new("--supervised")]
+            [
+                OsStr::new("server"),
+                OsStr::new("--supervised"),
+                OsStr::new("--native-socket"),
+                socket.as_os_str(),
+            ]
+        );
+        assert!(command
+            .get_envs()
+            .all(|(key, value)| key != OsStr::new("PATH") || value.is_none()));
+    }
+
+    #[test]
+    fn appimage_directory_is_removed_without_dropping_user_tools() {
+        let path = OsStr::new("/tmp/App/usr/bin:/opt/homebrew/bin:/usr/bin");
+        assert_eq!(
+            path_without_directory(path, Path::new("/tmp/App")),
+            Some(OsString::from("/opt/homebrew/bin:/usr/bin"))
         );
     }
 
@@ -1487,8 +1486,8 @@ mod tests {
     #[test]
     fn lifecycle_states_are_machine_readable() {
         assert_eq!(
-            serde_json::to_string(&LifecycleState::NeedsTrust).unwrap(),
-            "\"needs_trust\""
+            serde_json::to_string(&LifecycleState::Starting).unwrap(),
+            "\"starting\""
         );
         assert_eq!(
             serde_json::to_string(&LifecycleState::UpdateAvailable).unwrap(),

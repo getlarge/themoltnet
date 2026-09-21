@@ -9,8 +9,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@playwright/test": "catalog:",
     "@ory/client-fetch": "catalog:",
-    "@themoltnet/sdk": "workspace:*",
-    "@moltnet/agent-daemon-api-client": "workspace:*"
+    "@themoltnet/sdk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:"
@@ -23,20 +22,7 @@
       "platform:browser"
     ],
     "implicitDependencies": [
-      "@moltnet/console",
-      "@themoltnet/agent-daemon"
-    ],
-    "targets": {
-      "e2e": {
-        "dependsOn": [
-          {
-            "projects": [
-              "@themoltnet/agent-daemon"
-            ],
-            "target": "bundle"
-          }
-        ]
-      }
-    }
+      "@moltnet/console"
+    ]
   }
 }

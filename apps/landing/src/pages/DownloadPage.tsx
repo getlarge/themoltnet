@@ -25,6 +25,8 @@ import {
   CLI_PLATFORMS,
   cliDownloadPath,
   cliVerifyCommands,
+  DESKTOP_LINUX_X64_APPIMAGE_PATH,
+  DESKTOP_LINUX_X64_DEB_PATH,
   DESKTOP_MACOS_ARM64_PATH,
   PLATFORM_LABELS,
   type PlatformId,
@@ -111,6 +113,18 @@ export function DownloadPage() {
   const cliVersion = manifest?.cli?.version;
   const agentCliVersion = (manifest?.agentCli ?? manifest?.agent)?.version;
   const agentDesktopVersion = manifest?.agentDesktop?.version;
+  const desktopPrimary =
+    primary === 'linux-x64'
+      ? {
+          href: DESKTOP_LINUX_X64_DEB_PATH,
+          label: `Download MoltNet Agent${versionSuffix(agentDesktopVersion)} for Ubuntu x64`,
+          text: 'Download MoltNet Agent for Ubuntu',
+        }
+      : {
+          href: DESKTOP_MACOS_ARM64_PATH,
+          label: `Download MoltNet Agent${versionSuffix(agentDesktopVersion)} for macOS Apple Silicon`,
+          text: 'Download MoltNet Agent for Mac',
+        };
   const signerKey = signerKeyOf(manifest);
   const cliVerify = cliVerifyCommands(primary);
   const agentVerify = agentCliVerifyCommands(signerKey);
@@ -141,17 +155,17 @@ export function DownloadPage() {
           <span className="ops-kicker">Official downloads</span>
           <Text variant="display">Download MoltNet</Text>
           <Text variant="bodyLarge" color="secondary">
-            Pinned, checksum-verified builds served from this domain. macOS
-            binaries are Developer&nbsp;ID signed and notarized; every archive
-            ships a publisher-signed checksum you can verify below.
+            Pinned builds served from this domain. The macOS app is
+            Developer&nbsp;ID signed and notarized; CLI archives ship a
+            publisher-signed checksum you can verify below.
           </Text>
           <div className="ops-download-primary">
             <ActionLink
-              href={DESKTOP_MACOS_ARM64_PATH}
+              href={desktopPrimary.href}
               size="lg"
-              aria-label={`Download MoltNet Agent${versionSuffix(agentDesktopVersion)} for macOS Apple Silicon`}
+              aria-label={desktopPrimary.label}
             >
-              Download MoltNet Agent for Mac
+              {desktopPrimary.text}
             </ActionLink>
             <a className="ops-download-alt" href="#install">
               Prefer the terminal or another platform?
@@ -173,16 +187,34 @@ export function DownloadPage() {
           <div className="ops-download-groups">
             <div>
               <Text variant="h3">
-                MoltNet Agent for Mac{versionSuffix(agentDesktopVersion)}
+                MoltNet Agent Desktop{versionSuffix(agentDesktopVersion)}
               </Text>
               <Text color="secondary">
-                Menu-bar setup, local HTTPS consent, lifecycle control, and
-                signed updates for Apple Silicon on macOS 13 or newer.
+                Local setup, lifecycle control, and signed updates for Apple
+                Silicon on macOS 13+ and x64 systems on Ubuntu 24.04.
               </Text>
               <ul className="ops-download-list">
                 <li>
                   <a href={DESKTOP_MACOS_ARM64_PATH}>macOS (Apple Silicon)</a>
                   <span className="ops-download-format">.dmg</span>
+                </li>
+                <li>
+                  <a
+                    href={DESKTOP_LINUX_X64_DEB_PATH}
+                    aria-label={`Download MoltNet Agent${versionSuffix(agentDesktopVersion)} for Ubuntu x64 (deb)`}
+                  >
+                    Ubuntu 24.04 (x64)
+                  </a>
+                  <span className="ops-download-format">.deb</span>
+                </li>
+                <li>
+                  <a
+                    href={DESKTOP_LINUX_X64_APPIMAGE_PATH}
+                    aria-label={`Download MoltNet Agent${versionSuffix(agentDesktopVersion)} for Linux x64 (AppImage)`}
+                  >
+                    Linux portable (x64)
+                  </a>
+                  <span className="ops-download-format">.AppImage</span>
                 </li>
               </ul>
             </div>
@@ -376,9 +408,10 @@ export function DownloadPage() {
             </li>
             <li>
               <Text>
-                <strong>Linux</strong> — archives are verified through the
-                signed checksums above; there is no OS-level signature. The APT
-                repository index is signed with the MoltNet apt key{' '}
+                <strong>Linux</strong> — CLI archives are verified through the
+                signed checksums above; Desktop verifies update signatures
+                before installation. The APT repository index is signed with the
+                MoltNet apt key{' '}
                 <code>{MOLTNET_APT_SIGNING_KEY_FINGERPRINT}</code>, which apt
                 verifies on every update.
               </Text>

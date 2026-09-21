@@ -166,6 +166,8 @@ export async function readAgentServerLogDelta(
 }
 
 export interface BuildAgentServerOptions {
+  /** Private socket listener accepts only the managed native process grant. */
+  nativeOnly?: boolean;
   store: AgentServerStore;
   secrets: FileSecretProvider;
   secretProviders: SecretProviderRegistry;
@@ -180,8 +182,6 @@ export interface BuildAgentServerOptions {
   allowedOrigins: readonly string[];
   /** The Agent Server base URL origin, so the approval page may CORS to itself. */
   selfOrigin?: string;
-  /** TLS credentials for the macOS loopback endpoint. */
-  tls?: { key: string; cert: string };
   /** Default MoltNet API URL for newly created managed agents. */
   defaultApiUrl: string;
   /** Effective settings inherited by every child run. */
@@ -339,10 +339,7 @@ export function buildAgentServer(
   const oauth = options.operatorOAuth;
   let restartRequired = false;
 
-  const fastifyOptions = {
-    bodyLimit: BODY_LIMIT,
-    ...(options.tls ? { https: options.tls } : {}),
-  };
+  const fastifyOptions = { bodyLimit: BODY_LIMIT };
   const app = options.logger
     ? Fastify({ ...fastifyOptions, loggerInstance: options.logger })
     : Fastify(fastifyOptions);
@@ -395,6 +392,43 @@ export function buildAgentServer(
     browserVerification.set(request, pending);
     return pending;
   }
+  function hasValidNativeGrant(
+    origin: string | undefined,
+    token: string | string[] | undefined,
+  ): boolean {
+    if (
+      origin !== NATIVE_CLIENT_ORIGIN ||
+      typeof token !== 'string' ||
+      token.length === 0
+    )
+      return false;
+    try {
+      nativeGrant.verify(origin, token);
+      return true;
+    } catch (error) {
+      if (error instanceof NativeGrantError) return false;
+      throw error;
+    }
+  }
+  const nativeVerification = new WeakSet<FastifyRequest>();
+  function requireNativeGrant(request: FastifyRequest): void {
+    if (nativeVerification.has(request)) return;
+    const origin = request.headers.origin;
+    const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
+    if (hasValidNativeGrant(origin, token)) {
+      nativeVerification.add(request);
+      return;
+    }
+    request.log.warn(
+      { stage: 'native-control-authorization', outcome: 'rejected' },
+      'Native control authorization failed',
+    );
+    throw new AgentServerHttpError(
+      401,
+      'native_token_invalid',
+      'Native authorization required',
+    );
+  }
   void app.register(rateLimit, {
     global: true,
     max: options.rateLimitMax ?? RATE_LIMIT_MAX,
@@ -414,20 +448,16 @@ export function buildAgentServer(
       if (typeof presented === 'string' && presented.length > 0) {
         try {
           if (origin === NATIVE_CLIENT_ORIGIN)
-            nativeGrant.verify(origin, presented);
+            authenticated = hasValidNativeGrant(origin, presented);
           else {
             if (!oauth) return `unauth:${origin}:${request.ip}`;
             await verifyBrowser(request, presented);
+            authenticated = true;
           }
-          authenticated = true;
         } catch (error) {
           if (error instanceof AgentServerHttpError && error.statusCode === 429)
             throw error;
-          if (
-            origin === NATIVE_CLIENT_ORIGIN &&
-            !(error instanceof NativeGrantError)
-          )
-            throw error;
+          if (origin === NATIVE_CLIENT_ORIGIN) throw error;
         }
       }
       return authenticated
@@ -454,8 +484,9 @@ export function buildAgentServer(
         'Local control token is required',
       );
     }
-    if (origin === NATIVE_CLIENT_ORIGIN) nativeGrant.verify(origin, token);
-    else {
+    if (origin === NATIVE_CLIENT_ORIGIN) {
+      requireNativeGrant(request);
+    } else {
       try {
         if (!oauth)
           throw new AgentServerHttpError(
@@ -511,6 +542,13 @@ export function buildAgentServer(
   };
 
   app.after(() => {
+    // preParsing is deliberately after the global onRequest rate limiter and
+    // before body parsing and schema validation.
+    if (options.nativeOnly) {
+      app.addHook('preParsing', async (request) => {
+        requireNativeGrant(request);
+      });
+    }
     app.get(
       '/health',
       { schema: AgentServerRouteSchemas.health },
