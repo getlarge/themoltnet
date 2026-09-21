@@ -514,8 +514,12 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 }
 
 func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
-	dir := t.TempDir()
+	dir, resolveErr := filepath.EvalSymlinks(t.TempDir())
+	if resolveErr != nil {
+		t.Fatal(resolveErr)
+	}
 	t.Setenv("HOME", dir)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", filepath.Join(dir, ".config", "moltnet"))
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -602,6 +606,9 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	storeRoot, err = filepath.EvalSymlinks(storeRoot)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, present := childEnv["MOLTNET_AGENT_SERVER_ROOT"]; present {
+		t.Fatal("child inherited the redundant store alias")
 	}
 	if childEnv["MOLTNET_HOME"] != storeRoot {
 		t.Fatalf("child store root = %q, want %q", childEnv["MOLTNET_HOME"], storeRoot)

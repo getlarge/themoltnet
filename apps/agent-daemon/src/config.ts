@@ -5,7 +5,11 @@
  * here, so the rest of the daemon imports typed values rather than
  * sprinkling string lookups across the codebase.
  */
-import { resolveStoreRoot } from '@themoltnet/sdk/node';
+import {
+  isDefaultStore,
+  resolveStoreRoot,
+  resolveStoreSelection,
+} from '@themoltnet/sdk/node';
 
 import {
   type DaemonCredentialSource,
@@ -148,6 +152,7 @@ export interface AgentServerEnvConfig {
   port: string;
   allowedOrigins: string;
   root: string;
+  rootSource: string;
   apiUrl: string;
   logLevel: string;
   activeIdentity: string;
@@ -161,6 +166,7 @@ export interface AgentServerEnvConfig {
 }
 
 export function loadAgentServerEnvConfig(root?: string): AgentServerEnvConfig {
+  const selection = resolveStoreSelection({ root });
   const issuer = process.env['MOLTNET_OPERATOR_OAUTH_ISSUER'];
   const publicUrl = process.env['MOLTNET_OPERATOR_OAUTH_PUBLIC_URL'] ?? issuer;
   const nativeClientId = process.env['MOLTNET_NATIVE_OAUTH_CLIENT_ID'];
@@ -176,7 +182,8 @@ export function loadAgentServerEnvConfig(root?: string): AgentServerEnvConfig {
     },
     port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',
     allowedOrigins: process.env['MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS'] ?? '',
-    root: resolveStoreRoot({ root }),
+    root: selection.root,
+    rootSource: selection.source,
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
     activeIdentity: process.env['MOLTNET_ACTIVE_IDENTITY'] ?? '',
@@ -195,12 +202,10 @@ export interface UpdateEnvConfig {
   localAppData: string;
 }
 
-export function loadUpdateEnvConfig(): UpdateEnvConfig {
-  const isolated =
-    process.env['MOLTNET_HOME'] !== undefined ||
-    process.env['MOLTNET_AGENT_SERVER_ROOT'] !== undefined;
+export function loadUpdateEnvConfig(root?: string): UpdateEnvConfig {
+  const isolated = !isDefaultStore({ root });
   return {
-    ...(isolated ? { storeRoot: resolveStoreRoot() } : {}),
+    ...(isolated ? { storeRoot: resolveStoreRoot({ root }) } : {}),
     xdgCacheHome: process.env['XDG_CACHE_HOME'] ?? '',
     localAppData: process.env['LOCALAPPDATA'] ?? '',
   };

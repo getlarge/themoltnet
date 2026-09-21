@@ -38,7 +38,9 @@
         "{workspaceRoot}/.github/workflows/release.yml"
       ],
       "agentDesktopNative": [
-        "{workspaceRoot}/test-fixtures/store-root-conformance.tsv",
+        "{workspaceRoot}/test-fixtures/store-*-conformance.tsv",
+        "{workspaceRoot}/test-fixtures/connection-state-root.json",
+        "{workspaceRoot}/test-fixtures/agent-server-endpoint.json",
         "{projectRoot}/src-tauri/src/**/*.rs",
         "{projectRoot}/src-tauri/build.rs",
         "{projectRoot}/src-tauri/build_support.rs",

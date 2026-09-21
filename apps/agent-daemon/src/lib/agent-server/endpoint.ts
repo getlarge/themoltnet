@@ -3,25 +3,18 @@ import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { OPERATOR_OAUTH } from '@moltnet/models';
-import { canonicalStoreRoot, resolveStoreRoot } from '@themoltnet/sdk/node';
+import { isDefaultStore } from '@themoltnet/sdk/node';
 
 import { writeJsonAtomic } from './store.js';
 
 export function defaultAgentServerPort(root: string): number {
-  const selected = canonicalStoreRoot(root);
-  try {
-    return selected === canonicalStoreRoot(resolveStoreRoot({ env: {} }))
-      ? OPERATOR_OAUTH.serverPort
-      : 0;
-  } catch {
-    // An unavailable default directory must not block an isolated daemon.
-    return 0;
-  }
+  return isDefaultStore({ root }) ? OPERATOR_OAUTH.serverPort : 0;
 }
 
 interface AgentServerEndpoint {
   version: 1;
   instanceId: string;
+  pid?: number;
   url: string;
 }
 
@@ -58,34 +51,62 @@ export function readAgentServerEndpoint(
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw cause;
   }
-  const value = JSON.parse(raw) as Partial<AgentServerEndpoint>;
-  if (
-    value.version !== 1 ||
-    typeof value.instanceId !== 'string' ||
-    typeof value.url !== 'string'
-  ) {
-    throw new Error('Invalid Agent Server discovery metadata');
+  try {
+    const value = JSON.parse(raw) as Partial<AgentServerEndpoint>;
+    if (
+      value.version !== 1 ||
+      typeof value.instanceId !== 'string' ||
+      !value.instanceId.trim() ||
+      typeof value.url !== 'string'
+    ) {
+      throw new Error('Invalid Agent Server discovery metadata');
+    }
+    validateUrl(value.url);
+    if (value.pid !== undefined) {
+      if (
+        !Number.isSafeInteger(value.pid) ||
+        value.pid <= 0 ||
+        value.pid > 2147483647
+      )
+        throw new Error('Invalid process ID');
+      try {
+        process.kill(value.pid, 0);
+      } catch (cause) {
+        if ((cause as NodeJS.ErrnoException).code === 'ESRCH') return null;
+      }
+    }
+    return value as AgentServerEndpoint;
+  } catch (cause) {
+    throw new Error(
+      `Invalid Agent Server discovery at ${endpointPath(root)}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    );
   }
-  validateUrl(value.url);
-  return value as AgentServerEndpoint;
 }
 
 /** Publish and release only while holding the selected store's singleton lock. */
 export function publishAgentServerEndpoint(
   root: string,
   url: string,
-): { release(): void } {
+): { record: AgentServerEndpoint; release(): void } {
   validateUrl(url);
   const endpoint: AgentServerEndpoint = {
     version: 1,
     instanceId: randomUUID(),
+    pid: process.pid,
     url,
   };
   writeJsonAtomic(endpointPath(root), endpoint);
   return {
+    record: endpoint,
     release() {
-      if (readAgentServerEndpoint(root)?.instanceId === endpoint.instanceId) {
-        rmSync(endpointPath(root), { force: true });
+      try {
+        if (readAgentServerEndpoint(root)?.instanceId === endpoint.instanceId) {
+          rmSync(endpointPath(root), { force: true });
+        }
+      } catch {
+        // Best-effort cleanup must preserve the server's original exit status.
+        // Unreadable or replaced metadata is not ours to remove.
       }
     },
   };

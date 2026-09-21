@@ -74,7 +74,8 @@ describe('agent server providers and runs', () => {
         mode: 'poll',
       },
     });
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'invalid_store' });
     expect(response.json<{ message: string }>().message).toContain(
       'file-backed',
     );
@@ -563,15 +564,18 @@ describe('agent server providers and runs', () => {
         mode: 'poll',
       },
     });
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'invalid_store' });
     expect(response.json<{ message: string }>().message).toContain(
       'file-backed',
     );
     expect(spawned).toHaveLength(0);
   });
 
-  it('starts and stops a run for a managed agent with resolved provider env', async () => {
-    const { app, store, spawned, children } = await fixture();
+  it('keeps worker store identity separate from connection state', async () => {
+    const { app, store, storeRoot, spawned, children } = await fixture({
+      connectionState: true,
+    });
     const token = await authorize(app);
     const headers = {
       host: HOST,
@@ -655,7 +659,7 @@ describe('agent server providers and runs', () => {
       'file:identity/FP-1/seed',
     );
     expect(options.env['MOLTNET_SECRET_ROOT']).toBe(store.secretsDir);
-    expect(options.env['MOLTNET_HOME']).toBe(realpathSync(store.root));
+    expect(options.env['MOLTNET_HOME']).toBe(realpathSync(storeRoot));
     expect(options.env['MOLTNET_EXPECTED_SUBJECT_ID']).toBe('agent-1');
     expect(options.env['MOLTNET_EXPECTED_SUBJECT_TYPE']).toBe('agent');
     expect(options.env['MOLTNET_EXPECTED_PUBLIC_KEY']).toBe('pk');

@@ -11,7 +11,7 @@
 #   MOLTNET_AGENT_BASE_URL  release asset base URL
 #   MOLTNET_AGENT_ARCHIVE   path to a local .tar.gz (skips download; .sha256 beside it)
 #   MOLTNET_AGENT_HOME      install root (default ~/.local/share/moltnet/agent)
-#   MOLTNET_AGENT_BIN_DIR   where the `moltnet-agent` link goes (default ~/.local/bin)
+#   MOLTNET_AGENT_BIN_DIR   link directory (default ~/.local/bin, or $MOLTNET_AGENT_HOME/bin)
 #   MOLTNET_AGENT_ALLOW_UNSIGNED=1  accept an artifact carrying the UNSIGNED
 #       marker (local builds only — it waives the signing trust chain)
 #   MOLTNET_AGENT_ALLOW_UNVERIFIED=1  skip release-signature verification
@@ -20,8 +20,13 @@
 set -eu
 
 REPO="getlarge/themoltnet"
-HOME_DIR="${MOLTNET_AGENT_HOME:-$HOME/.local/share/moltnet/agent}"
-BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME/.local/bin}"
+DEFAULT_HOME_DIR="$HOME/.local/share/moltnet/agent"
+HOME_DIR="${MOLTNET_AGENT_HOME:-$DEFAULT_HOME_DIR}"
+if [ "$HOME_DIR" = "$DEFAULT_HOME_DIR" ]; then
+  BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME/.local/bin}"
+else
+  BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME_DIR/bin}"
+fi
 LEGACY_SERVICE_LABEL="net.themolt.agent.serve"
 
 SENTINEL=.moltnet-agent-root
@@ -176,6 +181,8 @@ verify_launcher() {
 }
 
 unregister_legacy_service() {
+  # Independent installations never administer the user-global service.
+  [ "$HOME_DIR" = "$DEFAULT_HOME_DIR" ] || return 0
   service_file=$(legacy_service_definition_path)
   if [ ! -f "$service_file" ] || ! grep -qF "$HOME_DIR/current" "$service_file"; then
     return 0
@@ -330,7 +337,7 @@ install() {
   # Prune older versions only after the new launcher passes its self-check.
   for dir in "$HOME_DIR"/*/; do
     dir=${dir%/}
-    case "$dir" in "$target"|*/current|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
+    case "$dir" in "$target"|"$BIN_DIR"|*/current|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
   done
 
   sandbox_ready=1
@@ -368,7 +375,7 @@ Environment overrides:
   MOLTNET_AGENT_BASE_URL      release asset base URL
   MOLTNET_AGENT_ARCHIVE       local .tar.gz (skips download; .sha256 beside it)
   MOLTNET_AGENT_HOME          install root (default ~/.local/share/moltnet/agent)
-  MOLTNET_AGENT_BIN_DIR       bin link directory (default ~/.local/bin)
+  MOLTNET_AGENT_BIN_DIR       link directory (default ~/.local/bin, or $MOLTNET_AGENT_HOME/bin)
 Trust-chain escape hatches (only for artifacts you built yourself):
   MOLTNET_AGENT_ALLOW_UNSIGNED=1    accept an artifact carrying the UNSIGNED
                                     marker (waives the Apple code-signing chain)

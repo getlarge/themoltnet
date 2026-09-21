@@ -1,0 +1,126 @@
+[
+  {
+    "environment": {},
+    "name": "release",
+    "overrides": {},
+    "suffix": ""
+  },
+  {
+    "environment": {},
+    "name": "release trailing slash",
+    "overrides": {
+      "apiUrl": "https://api.themolt.net/",
+      "issuer": "https://auth.themolt.net/"
+    },
+    "suffix": ""
+  },
+  {
+    "environment": {},
+    "name": "custom api",
+    "overrides": {
+      "apiUrl": "https://api.example.test"
+    },
+    "suffix": "environments/77606540aa8b7e8d2ff914a7e2f9da9c2d715e2dac971680aa1837d7c14cea80"
+  },
+  {
+    "environment": {},
+    "name": "custom issuer",
+    "overrides": {
+      "issuer": "http://hydra:4444/"
+    },
+    "suffix": "environments/3aad01e8537323736b432bd283a64531011a539325340e01ff76c81cfb1ab11e"
+  },
+  {
+    "environment": {
+      "issuer": "https://auth.example.test"
+    },
+    "name": "partial launch override",
+    "overrides": {
+      "apiUrl": "https://api.example.test"
+    },
+    "suffix": "environments/7eeb28b5ba22cd08c7bc797b26ca365b37daac07ecac68e247f5c35d2fdbf6ac"
+  },
+  {
+    "environment": {
+      "apiUrl": "http://127.0.0.1:8080",
+      "issuer": "http://hydra:4444"
+    },
+    "name": "explicit launch environment",
+    "overrides": {
+      "apiUrl": "https://ignored.example.test"
+    },
+    "suffix": ""
+  },
+  {
+    "environment": {},
+    "name": "public URL has no namespace effect",
+    "overrides": {
+      "nativeClientId": "custom-native",
+      "publicUrl": "http://localhost:4444"
+    },
+    "suffix": ""
+  },
+  {
+    "environment": {},
+    "name": "trimmed endpoints",
+    "overrides": {
+      "apiUrl": " https://api.example.test/ ",
+      "issuer": "https://auth.example.test/"
+    },
+    "suffix": "environments/7eeb28b5ba22cd08c7bc797b26ca365b37daac07ecac68e247f5c35d2fdbf6ac"
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "blank",
+    "overrides": {
+      "apiUrl": ""
+    }
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "unknown",
+    "overrides": {
+      "unknown": "value"
+    }
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "remote HTTP",
+    "overrides": {
+      "apiUrl": "http://remote.example"
+    }
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "URL credentials",
+    "overrides": {
+      "issuer": "https://name:pass@auth.example"
+    }
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "fragment",
+    "overrides": {
+      "apiUrl": "https://api.example/#frag"
+    }
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "wrong type",
+    "overrides": {
+      "apiUrl": 12
+    }
+  },
+  {
+    "environment": {},
+    "error": true,
+    "name": "invalid structure",
+    "overrides": []
+  }
+]

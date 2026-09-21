@@ -117,7 +117,11 @@ function describeFailure(
 export class AgentServerRunError extends Error {
   override name = 'AgentServerRunError';
   constructor(
-    readonly code: 'invalid_spec' | 'run_not_found' | 'run_not_active',
+    readonly code:
+      | 'invalid_spec'
+      | 'invalid_store'
+      | 'run_not_found'
+      | 'run_not_active',
     message: string,
   ) {
     super(message);
@@ -143,6 +147,8 @@ export type SpawnImpl = (
 
 export interface RunManagerOptions {
   store: AgentServerStore;
+  /** Logical store identity; connection-scoped state must not select a keyring namespace. */
+  storeRoot?: string;
   /** AgentServer-managed refs (`file:` rooted under this agent server store plus env/keyring). */
   secretProviders: SecretProviderRegistry;
   /** Providers used by external configs at their original location. */
@@ -257,7 +263,10 @@ export class RunManager {
     const homeDir = join(dirname(piDir), 'home');
     const env: Record<string, string> = {
       HOME: homeDir,
-      MOLTNET_HOME: getConfigDir({ root: this.store.root }),
+      // Preserve store identity across the isolated worker HOME; file refs use MOLTNET_SECRET_ROOT below.
+      MOLTNET_HOME: getConfigDir({
+        root: this.options.storeRoot ?? this.store.root,
+      }),
       PI_CODING_AGENT_DIR: piDir,
       XDG_CACHE_HOME: join(homeDir, '.cache'),
       XDG_CONFIG_HOME: join(homeDir, '.config'),
@@ -306,19 +315,13 @@ export class RunManager {
     env['MOLTNET_API_URL'] =
       activation.apiUrl ??
       (activation.source === 'external' ? activation.configApiUrl : '');
-    if (
-      activation.source === 'managed' &&
-      config.keys.private_key_ref?.provider !== 'file'
-    ) {
-      throw new AgentServerRunError(
-        'invalid_spec',
-        'Managed runs require a file-backed signing key; enroll the identity again in this store',
-      );
-    }
-    if (
-      activation.source === 'managed' &&
-      config.keys.private_key_ref?.provider === 'file'
-    ) {
+    if (activation.source === 'managed') {
+      if (config.keys.private_key_ref?.provider !== 'file') {
+        throw new AgentServerRunError(
+          'invalid_store',
+          'The managed identity store is inconsistent: its signing key must be file-backed. Restore the identity store or use credential recovery.',
+        );
+      }
       env['MOLTNET_PRIVATE_KEY_REF'] = formatSecretReferenceString(
         config.keys.private_key_ref,
       );

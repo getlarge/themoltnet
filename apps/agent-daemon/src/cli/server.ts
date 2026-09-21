@@ -1,12 +1,9 @@
 import { chmod } from 'node:fs/promises';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { parseAllowedOrigins } from '@moltnet/loopback-companion';
 import { OPERATOR_OAUTH } from '@moltnet/models';
-import {
-  createNodeSecretProviderRegistry,
-  FileSecretProvider,
-} from '@themoltnet/sdk/node';
 
 import { loadAgentServerEnvConfig, processEnvSnapshot } from '../config.js';
 import { ConnectionSettingsStore } from '../lib/agent-server/connection-settings.js';
@@ -28,6 +25,7 @@ import { OperatorOAuth } from '../lib/agent-server/operator-oauth.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
 import { RuntimeRegistry } from '../lib/agent-server/runtime-registry.js';
+import { createAgentServerSecretProviders } from '../lib/agent-server/secret-providers.js';
 import { buildAgentServer } from '../lib/agent-server/server.js';
 import {
   AgentServerStore,
@@ -167,20 +165,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
       return await withAgentServerLock(
         settingsRoot,
         async () => {
-          const secrets = new FileSecretProvider({
-            root: store.secretsDir,
-            writable: true,
-          });
-          const secretProviders = createNodeSecretProviderRegistry(
-            undefined,
-            undefined,
-            { root },
-          ).register(secrets);
-          const externalSecretProviders = createNodeSecretProviderRegistry(
-            undefined,
-            undefined,
-            { root },
-          );
+          const { secrets, secretProviders, externalSecretProviders } =
+            createAgentServerSecretProviders(connectionSettings, store);
           const nativeGrant = new NativeGrantService();
           // Consumes MOLTNET_AGENT_SERVER_NATIVE_TOKEN from process.env, so
           // run children spawned later cannot inherit the desktop's token.
@@ -216,6 +202,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           const runtimeRegistry = new RuntimeRegistry(store.root);
           const runs = new RunManager({
             store,
+            storeRoot: settingsRoot,
             secretProviders,
             externalSecretProviders,
             baseEnv: processEnvSnapshot(),
@@ -277,9 +264,14 @@ export async function runAgentServer(argv: string[]): Promise<number> {
                 : { host: '127.0.0.1', port },
             );
             if (nativeSocket) await chmod(nativeSocket, 0o600);
-            if (!nativeSocket) endpoint = publishAgentServerEndpoint(settingsRoot, address);
+            if (!nativeSocket) {
+              endpoint = publishAgentServerEndpoint(settingsRoot, address);
+              if (values.supervised) console.log(JSON.stringify({event: 'moltnet.agent-server.ready', ...endpoint.record}));
+              console.error(`discovery: ${join(settingsRoot, 'agent-server-endpoint.json')}`);
+            }
             console.error(`moltnet-agent server listening on ${address}`);
-            console.error(`config root: ${root}`);
+            console.error(`store root: ${settingsRoot} (${envConfig.rootSource})`);
+            console.error(`connection state: ${root}`);
             if (nativeSocket)
               console.error(`native control socket: ${nativeSocket}`);
             else console.error(`allowed origins: ${allowedOrigins.join(', ')}`);
@@ -305,6 +297,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
           }
         },
         {
+          stateRoot: root,
           onCompromised: (error) => {
             console.error(error.message);
             process.exitCode = 1;

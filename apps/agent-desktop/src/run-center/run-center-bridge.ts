@@ -29,11 +29,11 @@ const PRESETS_KEY = 'moltnet.run-presets.v1';
 
 async function presetStorageKey(): Promise<string> {
   const settings = await invoke<{ storageScope?: string }>(
-    'desktop_connection_settings',
+    'desktop_preset_storage_scope',
   );
   if (typeof settings.storageScope !== 'string') {
     throw new Error(
-      'Restart an updated Agent Server to access presets for this environment.',
+      'Restart an updated Desktop app to access presets for this environment.',
     );
   }
   return settings.storageScope

@@ -1,0 +1,82 @@
+[
+  {
+    "desktop": false,
+    "url": "http://127.0.0.1:17374",
+    "valid": true
+  },
+  {
+    "desktop": true,
+    "url": "https://127.0.0.1:41001",
+    "valid": true
+  },
+  {
+    "desktop": false,
+    "url": "http://127.0.0.1:80",
+    "valid": true
+  },
+  {
+    "desktop": true,
+    "url": "https://127.0.0.1:443",
+    "valid": true
+  },
+  {
+    "desktop": false,
+    "url": "http://127.0.0.1",
+    "valid": true
+  },
+  {
+    "desktop": true,
+    "url": "https://127.0.0.1",
+    "valid": true
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:0",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:01",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:65536",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:1/",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:1/path",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:1?x",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://127.0.0.1:1#x",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://u:p@127.0.0.1:1",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://localhost:1",
+    "valid": false
+  },
+  {
+    "desktop": false,
+    "url": "https://example.com:1",
+    "valid": false
+  }
+]

@@ -58,8 +58,10 @@ export {
 export { exportSSHKey } from './ssh.js';
 export {
   canonicalStoreRoot,
+  isDefaultStore,
   MOLTNET_SECRET_SERVICE,
   resolveStoreRoot,
+  resolveStoreSelection,
   type StoreRootOptions,
   storeSecretService,
 } from './store-root.js';

@@ -141,7 +141,7 @@ requires `MOLTNET_API_URL` to select the API explicitly.
 `moltnet-agent providers` manages the same user-level provider store as the
 Agent Server, without starting the server or opening the Console. The default
 root is `~/.config/moltnet`; use `--root <path>` for an isolated store or set
-`MOLTNET_AGENT_SERVER_ROOT` for an environment-wide override.
+`MOLTNET_HOME` for an environment-wide store override.
 
 Configured endpoints and Pi's dynamically advertised OAuth providers appear in
 one listing:

@@ -15,10 +15,9 @@ pub fn resolve_environment_store_root(
         let first = resolve_store_path(Some(shared), None, home, cwd)?;
         let second = resolve_store_path(Some(legacy), None, home, cwd)?;
         if first != second {
-            return Err(
-                "Conflicting MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT; select one store root"
-                    .into(),
-            );
+            return Err(format!(
+                "Conflicting MOLTNET_HOME={shared:?} and MOLTNET_AGENT_SERVER_ROOT={legacy:?}; select one store root"
+            ));
         }
         return Ok(first);
     }
@@ -150,6 +149,31 @@ mod tests {
         )
         .is_err());
         assert!(resolve_environment_store_root(Some(Path::new("")), None, &cwd, &cwd).is_err());
+    }
+
+    #[test]
+    fn shared_full_store_alias_conformance() {
+        let cwd = normalize_windows_path(fs::canonicalize(std::env::temp_dir()).unwrap());
+        for row in include_str!("../../../../test-fixtures/store-alias-conformance.tsv").lines() {
+            if row.is_empty() || row.starts_with('#') {
+                continue;
+            }
+            let fields: Vec<_> = row.split('\t').collect();
+            let value = |s| {
+                if s == "UNSET" {
+                    None
+                } else {
+                    Some(Path::new(s))
+                }
+            };
+            let result =
+                resolve_environment_store_root(value(fields[0]), value(fields[1]), &cwd, &cwd);
+            if fields[2] == "ERROR" {
+                assert!(result.is_err(), "accepted {row:?}");
+            } else {
+                assert_eq!(result.unwrap(), cwd.join(fields[2]));
+            }
+        }
     }
 
     #[test]

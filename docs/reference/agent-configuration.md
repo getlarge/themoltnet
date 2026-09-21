@@ -56,20 +56,21 @@ for the full exchange.
 ## Store selection and keyring namespaces
 
 The CLI, SDK, Agent Server, and Desktop select an explicit store option first,
-then `MOLTNET_HOME`, then `~/.config/moltnet`. The variable names the store
-itself; no extra `.config/moltnet` suffix is appended. An explicitly empty,
-blank, NUL-containing, inaccessible, or non-directory path is an error,
-including an empty environment variable. Unset the variable to select the
-default.
+then `MOLTNET_HOME` or its full-store alias `MOLTNET_AGENT_SERVER_ROOT`, then
+`~/.config/moltnet`. Each variable names the store itself; no extra
+`.config/moltnet` suffix is appended. An explicitly empty, blank,
+NUL-containing, inaccessible, or non-directory path is an error, including an
+empty environment variable. Unset the variable to select the default.
 
 The default config/display path retains its established lexical spelling without
 filesystem access. Explicit and environment roots return absolute canonical
-paths; relative paths start at the caller's working directory. Existing symlinks
-and filesystem case aliases are resolved before parent (`..`) segments; missing
-directories are not created. Secret namespaces use canonical paths. File locks
-use the lock file's filesystem identity, so aliases to the same file share a
-lock. An unavailable default directory does not prevent access to an isolated
-store.
+paths; relative paths start at the caller's working directory. Use absolute
+paths when opening Desktop from a graphical launcher, whose working directory
+may be `/`. Existing symlinks and filesystem case aliases are resolved before
+parent (`..`) segments; missing directories are not created. Secret namespaces
+use canonical paths. File locks use the lock file's filesystem identity, so
+aliases to the same file share a lock. An unavailable default directory does not
+prevent access to an isolated store.
 
 The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
 `storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a
@@ -90,9 +91,11 @@ credentials document, not a keyring namespace. Set `MOLTNET_HOME` (or the Node
 registry's explicit store option) to read that document's isolated secrets.
 Explicit document paths do not seed the selected store's identity selector.
 
-`MOLTNET_AGENT_SERVER_ROOT` is a compatibility alias. If both environment
-variables are set, their canonical roots must agree. The default does not
-consult `XDG_CONFIG_HOME`.
+`MOLTNET_AGENT_SERVER_ROOT` selects the entire store, including identities,
+keyring namespaces, bindings, providers, presets, and run state. If both
+environment variables are set, their canonical roots must agree. An explicit
+store option takes precedence over both variables. The default does not consult
+`XDG_CONFIG_HOME`.
 
 ```bash
 export MOLTNET_HOME="$HOME/.local/share/moltnet/development/personal"
@@ -102,8 +105,11 @@ moltnet agents list
 Each store has one Agent Server singleton. The default store uses port 17374;
 isolated stores receive an available loopback port unless `--port` or
 `MOLTNET_AGENT_SERVER_PORT` is supplied. `--port 0` explicitly requests an
-available port. Desktop discovers it through `agent-server-endpoint.json` in the
-selected store. The record contains public connection metadata, not a token.
+available port. Desktop prefers the supervised child’s stdout readiness record,
+with `agent-server-endpoint.json` as a fallback for released children. Both
+contain public connection metadata. Native control pins the selected store’s CA
+before spawning the child; platform trust is used for browser pairing. Desktop
+requires HTTPS; non-macOS daemon discovery also supports loopback HTTP.
 
 Desktop connection environments remain separate beneath the selected store.
 Presets use the effective environment's storage scope. `moltnet start` and

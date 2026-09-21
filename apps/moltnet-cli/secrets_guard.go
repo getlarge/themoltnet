@@ -45,6 +45,9 @@ type secretGuardPathContext struct {
 }
 
 func resolveSecretGuardPathContext() (secretGuardPathContext, error) {
+	if _, err := GetConfigDir(); err != nil {
+		return secretGuardPathContext{}, fmt.Errorf("resolve protected store: %w", err)
+	}
 	cwd, err := os.Getwd()
 	if err != nil {
 		return secretGuardPathContext{}, fmt.Errorf("get working directory: %w", err)
@@ -500,6 +503,10 @@ func classifyCentralStorePath(value string) pathClass {
 	switch {
 	case rest == "":
 		// The store root itself.
+		return pathCredential
+	case rest == "agent-server-endpoint.json" || rest == "tls/local-ca.pem" || rest == "tls/loopback-cert.pem":
+		return pathManagedConfig
+	case rest == "tls" || strings.HasPrefix(rest, "tls/"):
 		return pathCredential
 	case rest == identitySelectorFile || rest == "secrets" || strings.HasPrefix(rest, "secrets/"):
 		return pathCredential

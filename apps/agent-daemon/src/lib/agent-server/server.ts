@@ -1487,7 +1487,12 @@ function normalizeAgentServerError(error: unknown): {
   }
   if (error instanceof AgentServerRunError) {
     return {
-      statusCode: error.code === 'run_not_found' ? 404 : 400,
+      statusCode:
+        error.code === 'run_not_found'
+          ? 404
+          : error.code === 'invalid_store'
+            ? 409
+            : 400,
       code: error.code,
       message: error.message,
     };

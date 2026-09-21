@@ -131,6 +131,44 @@ describe('MoltNet store selection', () => {
       join(home, 'explicit'),
     );
   });
+  it('conforms to shared full-store alias fixtures', () => {
+    const rows = readFileSync(
+      new URL(
+        '../../../test-fixtures/store-alias-conformance.tsv',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    for (const row of rows
+      .split(/\r?\n/)
+      .filter((line) => line && !line.startsWith('#'))) {
+      const [shared, alias, expected] = row.split('\t');
+      const env = {
+        MOLTNET_HOME: shared === 'UNSET' ? undefined : shared,
+        MOLTNET_AGENT_SERVER_ROOT: alias === 'UNSET' ? undefined : alias,
+      };
+      const options = { env, cwd: home, home };
+      if (expected === 'ERROR') {
+        expect(() => getConfigDir(options)).toThrow();
+        expect(() => storeSecretService(options)).toThrow();
+      } else {
+        expect(getConfigDir(options)).toBe(join(home, expected!));
+        expect(storeSecretService(options)).toBe(
+          storeSecretService({ root: join(home, expected!), home }),
+        );
+      }
+    }
+  });
+  it('names both conflicting selections', () => {
+    expect(() =>
+      getConfigDir({
+        env: {
+          MOLTNET_HOME: 'first-store',
+          MOLTNET_AGENT_SERVER_ROOT: 'second-store',
+        },
+      }),
+    ).toThrow(/first-store.*second-store/);
+  });
   it.each(['\n', '\r\n'])(
     'conforms to root fixtures with %j line endings',
     (newline) => {

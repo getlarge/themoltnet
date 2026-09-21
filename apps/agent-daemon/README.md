@@ -670,11 +670,12 @@ pnpm exec nx run @themoltnet/agent-daemon:dev -- server
 The launchers choose `~/.local/share/moltnet/development/<worktree-id>/store`
 and the sibling `agent` installation directory. The worktree ID is a stable
 hash of the canonical checkout path. Repeated launches reuse that environment;
-another worktree gets its own environment. Explicit `MOLTNET_HOME` and
-`MOLTNET_AGENT_HOME` overrides are resolved before launching subprocesses.
+another worktree gets its own environment. Use `MOLTNET_DEV_HOME` and `MOLTNET_DEV_AGENT_HOME` to override these development
+locations. Relative paths resolve against the caller’s working directory.
+The launchers ignore inherited production store and installation selectors.
 The renderer-only Desktop `dev` target starts Vite without a native server.
 
 For direct CLI or SDK development commands, set `MOLTNET_HOME` explicitly. See
-[Select a local store](../../docs/reference/agent-configuration.md#select-a-local-store)
+[Select a local store](../../docs/reference/agent-configuration.md#store-selection-and-keyring-namespaces)
 for precedence, secret namespaces and daemon discovery. Automated tests use fresh
 temporary roots.

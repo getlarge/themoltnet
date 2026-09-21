@@ -31,6 +31,23 @@ afterEach(() => {
 });
 
 describe('per-store daemon discovery', () => {
+  it('shares loopback discovery validation fixtures with Desktop', () => {
+    const fixtures = JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../../test-fixtures/agent-server-endpoint.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as { url: string; valid: boolean }[];
+    for (const fixture of fixtures) {
+      const root = freshRoot();
+      const publish = () => publishAgentServerEndpoint(root, fixture.url);
+      if (fixture.valid) expect(publish).not.toThrow();
+      else expect(publish).toThrow();
+    }
+  });
   it('assigns an isolated port even when the default config directory is broken', () => {
     const home = freshRoot();
     vi.stubEnv('HOME', home);
@@ -38,6 +55,7 @@ describe('per-store daemon discovery', () => {
     expect(defaultAgentServerPort(freshRoot())).toBe(0);
   });
   it('preserves the default port and assigns isolated roots an ephemeral port', () => {
+    vi.stubEnv('HOME', freshRoot());
     expect(defaultAgentServerPort(resolveStoreRoot({ env: {} }))).toBe(
       OPERATOR_OAUTH.serverPort,
     );
@@ -74,6 +92,39 @@ describe('per-store daemon discovery', () => {
     expect(readAgentServerEndpoint(secondRoot)).toBeNull();
   });
 
+  it('ignores discovery left by an exited process', () => {
+    const root = freshRoot();
+    writeFileSync(
+      join(root, 'agent-server-endpoint.json'),
+      JSON.stringify({
+        version: 1,
+        instanceId: 'old',
+        pid: 2147483647,
+        url: 'https://127.0.0.1:41001',
+      }),
+    );
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => {
+      throw Object.assign(new Error('exited'), { code: 'ESRCH' });
+    });
+    try {
+      expect(readAgentServerEndpoint(root)).toBeNull();
+    } finally {
+      kill.mockRestore();
+    }
+  });
+
+  it('reports malformed metadata with its path and preserves the shutdown result', () => {
+    const root = freshRoot();
+    const published = publishAgentServerEndpoint(
+      root,
+      'https://127.0.0.1:41001',
+    );
+    const path = join(root, 'agent-server-endpoint.json');
+    writeFileSync(path, '{');
+    expect(() => readAgentServerEndpoint(root)).toThrow(path);
+    expect(() => published.release()).not.toThrow();
+  });
+
   it.each(['http://127.0.0.1:80', 'https://127.0.0.1:443'])(
     'accepts explicit standard port %s',
     (url) => {
@@ -90,7 +141,7 @@ describe('per-store daemon discovery', () => {
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(
       Object.keys(JSON.parse(readFileSync(path, 'utf8')) as object).sort(),
-    ).toEqual(['instanceId', 'url', 'version']);
+    ).toEqual(['instanceId', 'pid', 'url', 'version']);
   });
 
   it.each([

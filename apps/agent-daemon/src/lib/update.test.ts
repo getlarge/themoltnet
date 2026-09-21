@@ -32,6 +32,18 @@ describe('daemon update discovery', () => {
     vi.unstubAllEnvs();
     rmSync(root, { recursive: true, force: true });
   });
+  it('uses an explicit store selection for the update cache', async () => {
+    const selected = join(root, 'explicit');
+    await checkDaemonUpdate({
+      currentVersion: '0.60.0',
+      storeRoot: selected,
+      executable: '/usr/lib/node_modules/@themoltnet/agent-daemon/dist/main.js',
+      fetchFn: vi.fn(async () => Response.json({ version: '0.61.0' })),
+    });
+    expect(existsSync(join(selected, 'cache/updates/agent.json'))).toBe(true);
+    expect(existsSync(join(root, 'cache/updates/agent.json'))).toBe(false);
+  });
+
   it('compares stable semver versions', () => {
     expect(compareVersions('0.50.0', '0.49.1')).toBe(1);
     expect(compareVersions('0.49.1', '0.50.0')).toBe(-1);

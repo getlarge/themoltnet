@@ -24,23 +24,23 @@ export function desktopDevelopmentEnvironment(
     'development',
     workspace,
   );
-  const hasSelection =
-    env.MOLTNET_HOME !== undefined ||
-    env.MOLTNET_AGENT_SERVER_ROOT !== undefined;
+  // Development requires its own explicit selectors; inherited production
+  // store/install variables must never redirect a dev launch.
   const root = resolveStoreRoot({
-    env,
+    root: env.MOLTNET_DEV_HOME ?? join(development, 'store'),
+    env: {},
     home,
     cwd,
-    ...(hasSelection ? {} : { root: join(development, 'store') }),
   });
   const installation = canonicalStoreRoot(
-    env.MOLTNET_AGENT_HOME ?? join(development, 'agent'),
+    env.MOLTNET_DEV_AGENT_HOME ?? join(development, 'agent'),
     cwd,
   );
   const childEnv: NodeJS.ProcessEnv = {
     ...env,
     MOLTNET_HOME: root,
     MOLTNET_AGENT_HOME: installation,
+    MOLTNET_AGENT_BIN_DIR: join(installation, 'bin'),
   };
   delete childEnv.MOLTNET_AGENT_SERVER_ROOT;
   return childEnv;

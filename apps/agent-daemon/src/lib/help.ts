@@ -216,7 +216,7 @@ Agent Desktop instead uses a private Unix socket with a process-scoped grant.
 Both modes configure agents and providers and start/stop child runs.
 
 Options:
-  --port <n>                  Loopback port. Default store: 17374; isolated: 0.
+  --port <n>                  Loopback port. Default store: 17374; isolated stores: an available port.
                               Env: MOLTNET_AGENT_SERVER_PORT.
   --allowed-origins <csv>     Exact browser-controller origins allowed
                               local control.

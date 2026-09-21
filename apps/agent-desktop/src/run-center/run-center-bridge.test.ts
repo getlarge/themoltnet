@@ -39,6 +39,19 @@ describe('native team enrollment bridge', () => {
     await expect(runCenterActions.savePreset(input)).rejects.toThrow();
   });
 
+  it('reads the selected preset namespace without requiring a running daemon', async () => {
+    localStorage.setItem(
+      'moltnet.run-presets.v1:/stores/offline',
+      JSON.stringify([{ name: 'Offline worker' }]),
+    );
+    vi.mocked(invoke).mockImplementation((command) =>
+      command === 'desktop_preset_storage_scope'
+        ? Promise.resolve({ storageScope: '/stores/offline' })
+        : Promise.reject(new Error('The Agent Server is stopped')),
+    );
+    await expect(listPresets()).resolves.toEqual([{ name: 'Offline worker' }]);
+  });
+
   it('passes explicit replacement to native code without persisting the invitation', async () => {
     const request = {
       mode: 'replace' as const,

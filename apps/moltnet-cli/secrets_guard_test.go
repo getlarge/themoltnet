@@ -964,3 +964,37 @@ func TestSecretsGuardSelectedStore(t *testing.T) {
 		}
 	}
 }
+
+func TestSecretsGuardDeniesInvalidStoreSelection(t *testing.T) {
+	for _, root := range []string{"", "conflicting-store"} {
+		t.Run(root, func(t *testing.T) {
+			t.Setenv("MOLTNET_HOME", root)
+			t.Setenv("MOLTNET_AGENT_SERVER_ROOT", t.TempDir())
+			var output bytes.Buffer
+			err := runActiveSecretsGuardCmd(strings.NewReader(`{"tool_name":"Read","tool_input":{"file_path":"/tmp/independent-store/identities/agent/moltnet.json"}}`), &output)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if output.Len() == 0 {
+				t.Fatal("invalid store selection must deny access")
+			}
+		})
+	}
+}
+
+func TestSecretsGuardProtectsNativeControlMaterial(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("MOLTNET_HOME", root)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", root)
+	context := newSecretGuardPathContext(root, root, root)
+	for _, name := range []string{"agent-server-endpoint.json", "tls/local-ca.pem", "tls/loopback-cert.pem"} {
+		if got := classifyProtectedPathWithContext(filepath.Join(root, name), context); got != pathManagedConfig {
+			t.Errorf("%s: want managed config, got %v", name, got)
+		}
+	}
+	for _, name := range []string{"tls", "tls/loopback-key.pem", "tls/local-ca-key.pem"} {
+		if got := classifyProtectedPathWithContext(filepath.Join(root, name), context); got != pathCredential {
+			t.Errorf("%s: want credential, got %v", name, got)
+		}
+	}
+}

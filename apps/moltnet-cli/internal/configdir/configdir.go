@@ -45,7 +45,7 @@ func Select(root *string) (Selection, error) {
 				return selection, fmt.Errorf("%w (MOLTNET_AGENT_SERVER_ROOT): %w", ErrInvalidRoot, err)
 			}
 			if a != b {
-				return selection, fmt.Errorf("%w: conflicting MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT; select one store root", ErrInvalidRoot)
+				return selection, fmt.Errorf("%w: conflicting MOLTNET_HOME=%q and MOLTNET_AGENT_SERVER_ROOT=%q; select one store root", ErrInvalidRoot, shared, legacy)
 			}
 		}
 	}

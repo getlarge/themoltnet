@@ -1,6 +1,6 @@
 import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -17,8 +17,8 @@ describe('Desktop development environment', () => {
     const home = realpathSync(mkdtempSync(join(tmpdir(), 'desktop-dev-')));
     roots.push(home);
     const first = desktopDevelopmentEnvironment({}, join(home, 'first'), home);
-    expect(first.MOLTNET_HOME).toContain('/development/');
-    expect(first.MOLTNET_AGENT_HOME).toContain('/development/');
+    expect(first.MOLTNET_HOME).toContain(`${sep}development${sep}`);
+    expect(first.MOLTNET_AGENT_HOME).toContain(`${sep}development${sep}`);
     expect(first.MOLTNET_HOME).not.toBe(first.MOLTNET_AGENT_HOME);
     expect(
       desktopDevelopmentEnvironment({}, join(home, 'first'), home),
@@ -28,21 +28,30 @@ describe('Desktop development environment', () => {
         .MOLTNET_HOME,
     ).not.toBe(first.MOLTNET_HOME);
     const explicit = desktopDevelopmentEnvironment(
-      { MOLTNET_HOME: './custom', MOLTNET_AGENT_HOME: './install' },
+      { MOLTNET_DEV_HOME: './custom', MOLTNET_DEV_AGENT_HOME: './install' },
       home,
       home,
     );
     expect(explicit.MOLTNET_HOME).toBe(join(home, 'custom'));
     expect(explicit.MOLTNET_AGENT_HOME).toBe(join(home, 'install'));
     expect(() =>
-      desktopDevelopmentEnvironment({ MOLTNET_HOME: '' }, home, home),
+      desktopDevelopmentEnvironment({ MOLTNET_DEV_HOME: '' }, home, home),
     ).toThrow();
-    expect(() =>
-      desktopDevelopmentEnvironment(
-        { MOLTNET_HOME: './a', MOLTNET_AGENT_SERVER_ROOT: './b' },
-        home,
-        home,
-      ),
-    ).toThrow();
+    const inherited = desktopDevelopmentEnvironment(
+      {
+        MOLTNET_HOME: join(home, '.config/moltnet'),
+        MOLTNET_AGENT_SERVER_ROOT: './production',
+        MOLTNET_AGENT_HOME: join(home, '.local/share/moltnet/agent'),
+        MOLTNET_AGENT_BIN_DIR: join(home, '.local/bin'),
+      },
+      join(home, 'first'),
+      home,
+    );
+    expect(inherited.MOLTNET_HOME).toBe(first.MOLTNET_HOME);
+    expect(inherited.MOLTNET_AGENT_HOME).toBe(first.MOLTNET_AGENT_HOME);
+    expect(inherited.MOLTNET_AGENT_BIN_DIR).toBe(
+      join(first.MOLTNET_AGENT_HOME!, 'bin'),
+    );
+    expect(inherited.MOLTNET_AGENT_SERVER_ROOT).toBeUndefined();
   });
 });

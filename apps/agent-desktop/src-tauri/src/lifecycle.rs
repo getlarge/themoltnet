@@ -200,14 +200,21 @@ impl LifecycleManager {
 impl LifecycleManager {
     pub fn from_environment() -> Result<Self, String> {
         let home = home_directory()?;
-        let cwd = std::env::current_dir()
-            .map_err(|error| format!("Cannot read working directory: {error}"))?;
         let shared = environment_path("MOLTNET_HOME");
         let legacy = environment_path("MOLTNET_AGENT_SERVER_ROOT");
+        let installation = environment_path("MOLTNET_AGENT_HOME");
+        let cwd = if [&shared, &legacy, &installation]
+            .iter()
+            .any(|value| value.as_ref().is_some_and(|path| path.is_relative()))
+        {
+            std::env::current_dir().map_err(|error| format!("Cannot resolve a relative store or installation path: {error}. Use an absolute path and restart Desktop."))?
+        } else {
+            home.clone()
+        };
         let root =
             resolve_environment_store_root(shared.as_deref(), legacy.as_deref(), &home, &cwd)
                 .map_err(|error| format!("Invalid MoltNet store selection: {error}. Correct the environment and restart Desktop."))?;
-        let installation = environment_path("MOLTNET_AGENT_HOME").map(|value| {
+        let installation = installation.map(|value| {
             resolve_store_path(Some(&value), None, &home, &cwd)
                 .map_err(|error| format!("Invalid MOLTNET_AGENT_HOME: {error}. Correct the environment and restart Desktop."))
         }).transpose()?;
@@ -717,6 +724,13 @@ impl LifecycleManager {
 
     fn executable(&self) -> PathBuf {
         self.install_root().join("current/bin/moltnet-agent")
+    }
+
+    pub fn preset_scope(&self) -> crate::preset_scope::PresetScope {
+        crate::preset_scope::PresetScope {
+            root: self.store_root.clone(),
+            home: self.home.clone(),
+        }
     }
 
     pub fn logs_directory(&self) -> PathBuf {

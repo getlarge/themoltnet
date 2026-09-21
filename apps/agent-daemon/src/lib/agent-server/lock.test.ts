@@ -68,6 +68,23 @@ describe('agent server singleton lock', () => {
     });
   });
 
+  it('excludes a daemon holding the connection-state lock during an upgrade', async () => {
+    const store = freshRoot();
+    const state = join(store, 'environments', 'fixture');
+    mkdirSync(state, { recursive: true });
+    const previous = await acquireAgentServerLock(state);
+    try {
+      await expect(
+        withAgentServerLock(store, async () => 'started', { stateRoot: state }),
+      ).rejects.toMatchObject({ code: 'held' });
+    } finally {
+      await previous.release();
+    }
+    await expect(
+      withAgentServerLock(store, async () => 'started', { stateRoot: state }),
+    ).resolves.toBe('started');
+  });
+
   it('allows independent roots and releases after signal shutdown', async () => {
     const firstRoot = freshRoot();
     const secondRoot = freshRoot();

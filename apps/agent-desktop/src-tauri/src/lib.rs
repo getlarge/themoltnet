@@ -9,6 +9,7 @@ mod operator_oauth {
 }
 mod tray;
 
+mod preset_scope;
 mod store_root;
 
 use lifecycle::{DesktopStatus, ExitAction, LifecycleManager, LifecycleState};
@@ -29,6 +30,7 @@ struct AppState {
     lifecycle: Mutex<Result<LifecycleManager, String>>,
     latest_status: Mutex<DesktopStatus>,
     logs_directory: Option<PathBuf>,
+    preset_scope: Result<preset_scope::PresetScope, String>,
 }
 
 impl Default for AppState {
@@ -51,7 +53,12 @@ impl AppState {
             .as_ref()
             .ok()
             .map(LifecycleManager::logs_directory);
+        let preset_scope = lifecycle
+            .as_ref()
+            .map(LifecycleManager::preset_scope)
+            .map_err(Clone::clone);
         Self {
+            preset_scope,
             lifecycle: Mutex::new(lifecycle),
             latest_status: Mutex::new(latest_status),
             logs_directory,
@@ -214,6 +221,20 @@ async fn desktop_control_status(state: State<'_, AppState>) -> Result<serde_json
     .await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned an unreadable status".to_string())
+}
+
+#[tauri::command]
+async fn desktop_preset_storage_scope(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let scope = state.preset_scope.clone()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        scope
+            .resolve()
+            .map(|value| serde_json::json!({ "storageScope": value }))
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -813,6 +834,7 @@ pub fn run() {
             desktop_operator_sign_in,
             desktop_operator_configured,
             desktop_connection_settings,
+            desktop_preset_storage_scope,
             desktop_apply_connection_settings,
             desktop_cancel_operator_approval,
             desktop_start_run,

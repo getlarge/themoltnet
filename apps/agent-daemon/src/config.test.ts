@@ -1,6 +1,14 @@
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadAgentServerEnvConfig, loadConfig } from './config.js';
+import {
+  loadAgentServerEnvConfig,
+  loadConfig,
+  loadUpdateEnvConfig,
+} from './config.js';
 
 describe('loadConfig observability settings', () => {
   afterEach(() => {
@@ -76,4 +84,17 @@ describe('loadConfig observability settings', () => {
       'MOLTNET_EXPECTED_IDENTITY_ID is no longer supported',
     );
   });
+});
+
+it('keeps update caches stable through default-store aliases', () => {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'update-root-')));
+  try {
+    vi.stubEnv('HOME', home);
+    vi.stubEnv('MOLTNET_HOME', join(home, '.config/moltnet'));
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
+    expect(loadUpdateEnvConfig().storeRoot).toBeUndefined();
+  } finally {
+    vi.unstubAllEnvs();
+    rmSync(home, { recursive: true, force: true });
+  }
 });

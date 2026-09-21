@@ -78,6 +78,7 @@ export function daemonUpdateCommand(method: DaemonInstallMethod): string {
 }
 export async function checkDaemonUpdate(input: {
   currentVersion: string;
+  storeRoot?: string;
   force?: boolean;
   executable?: string;
   fetchFn?: typeof fetch;
@@ -94,7 +95,7 @@ export async function checkDaemonUpdate(input: {
   };
   const now = input.now ?? new Date();
   if (!input.force) {
-    const cached = await readCache();
+    const cached = await readCache(input.storeRoot);
     const ttl = cached?.latest
       ? UPDATE_CACHE_TTL_MS
       : UPDATE_ERROR_CACHE_TTL_MS;
@@ -117,17 +118,21 @@ export async function checkDaemonUpdate(input: {
     const body: unknown = await response.json();
     const latest = viaNpm ? distTagVersion(body) : newestReleaseVersion(body);
     if (!latest) throw new Error(`${label} has no valid agent version`);
-    await writeCache({ checkedAt: now.toISOString(), latest }).catch(
-      () => undefined,
-    );
+    await writeCache(
+      { checkedAt: now.toISOString(), latest },
+      input.storeRoot,
+    ).catch(() => undefined);
     result.latestVersion = latest;
     result.updateAvailable = compareVersions(latest, result.currentVersion) > 0;
     return result;
   } catch (error) {
-    await writeCache({
-      checkedAt: now.toISOString(),
-      error: error instanceof Error ? error.message : String(error),
-    }).catch(() => undefined);
+    await writeCache(
+      {
+        checkedAt: now.toISOString(),
+        error: error instanceof Error ? error.message : String(error),
+      },
+      input.storeRoot,
+    ).catch(() => undefined);
     throw new Error(
       `could not check for MoltNet agent updates: ${error instanceof Error ? error.message : String(error)}`,
     );
@@ -184,8 +189,8 @@ export function compareVersions(a: string | undefined, b: string): number {
   }
   return 0;
 }
-function cachePath(): string {
-  const env = loadUpdateEnvConfig();
+function cachePath(root?: string): string {
+  const env = loadUpdateEnvConfig(root);
   if (env.storeRoot)
     return join(env.storeRoot, 'cache', 'updates', 'agent.json');
   return join(
@@ -198,15 +203,15 @@ function cachePath(): string {
     'agent.json',
   );
 }
-async function readCache(): Promise<UpdateCache | undefined> {
+async function readCache(root?: string): Promise<UpdateCache | undefined> {
   try {
-    return JSON.parse(await readFile(cachePath(), 'utf8')) as UpdateCache;
+    return JSON.parse(await readFile(cachePath(root), 'utf8')) as UpdateCache;
   } catch {
     return undefined;
   }
 }
-async function writeCache(cache: UpdateCache): Promise<void> {
-  const path = cachePath();
+async function writeCache(cache: UpdateCache, root?: string): Promise<void> {
+  const path = cachePath(root);
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   await writeFile(path, JSON.stringify(cache), { mode: 0o600 });
 }

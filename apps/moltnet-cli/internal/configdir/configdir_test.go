@@ -299,3 +299,42 @@ func TestIsolatedCacheWithBrokenDefault(t *testing.T) {
 		t.Fatalf("cache: %q, %v", got, err)
 	}
 }
+
+func TestFullStoreAliasConformance(t *testing.T) {
+	contents, err := os.ReadFile("../../../../test-fixtures/store-alias-conformance.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cwd, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(cwd)
+	for _, row := range strings.Split(string(contents), "\n") {
+		if row == "" || strings.HasPrefix(row, "#") {
+			continue
+		}
+		t.Run(row, func(t *testing.T) {
+			parts := strings.Split(row, "\t")
+			for i, name := range []string{"MOLTNET_HOME", "MOLTNET_AGENT_SERVER_ROOT"} {
+				t.Setenv(name, parts[i])
+				if parts[i] == "UNSET" {
+					os.Unsetenv(name)
+				}
+			}
+			got, err := Dir()
+			service, serviceErr := SecretService(nil)
+			if parts[2] == "ERROR" {
+				if err == nil || serviceErr == nil {
+					t.Fatalf("accepted invalid selection: %q", row)
+				}
+			} else {
+				expected := filepath.Join(cwd, parts[2])
+				expectedService, _ := SecretService(&expected)
+				if err != nil || got != expected || serviceErr != nil || service != expectedService {
+					t.Fatalf("selection: %q, %v; service: %q, %v", got, err, service, serviceErr)
+				}
+			}
+		})
+	}
+}

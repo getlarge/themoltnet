@@ -22,7 +22,28 @@ export function DesktopRunCenter() {
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
   const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [presetError, setPresetError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    let current = true;
+    void listPresets().then(
+      (value) => {
+        if (current) {
+          setPresets(value);
+          setPresetError(null);
+        }
+      },
+      (cause: unknown) => {
+        if (current) {
+          setPresets([]);
+          setPresetError(`Could not load presets: ${String(cause)}`);
+        }
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [server.state]);
   const inFlight = useRef<Promise<void> | null>(null);
   const epoch = useRef(0);
   const failures = useRef(0);
@@ -62,8 +83,6 @@ export function DesktopRunCenter() {
             lastCatalogue.current = Date.now();
           }
         }
-        const nextPresets = await listPresets();
-        if (currentEpoch === epoch.current) setPresets(nextPresets);
       } catch (cause) {
         if (currentEpoch !== epoch.current) return;
         failures.current++;
@@ -172,6 +191,7 @@ export function DesktopRunCenter() {
   );
   return (
     <>
+      {presetError && <InlineNotice tone="error">{presetError}</InlineNotice>}
       <RunCenterApp
         notice={
           error && ['running', 'update_available'].includes(server.state) ? (
