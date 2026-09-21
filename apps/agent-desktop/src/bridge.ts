@@ -57,6 +57,7 @@ export interface LinuxSetupStatus {
   secretServiceAvailable: boolean;
   kvmPresent: boolean;
   kvmAccessible: boolean;
+  activeKvmMember: boolean;
   kvmPendingRelogin: boolean;
   canEnableKvm: boolean;
   installCommand: string;

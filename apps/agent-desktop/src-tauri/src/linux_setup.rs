@@ -10,13 +10,7 @@ use std::sync::{Mutex, TryLockError};
 static REPAIR: Mutex<()> = Mutex::new(());
 const QEMU_PACKAGES: &[&str] = &["qemu-utils", "qemu-system-x86"];
 const SECRET_SERVICE_PACKAGES: &[&str] = &["gnome-keyring", "libsecret-1-0", "dbus-bin"];
-const DEPENDENCY_PACKAGES: &[&str] = &[
-    "qemu-utils",
-    "qemu-system-x86",
-    "gnome-keyring",
-    "libsecret-1-0",
-    "dbus-bin",
-];
+const APT_INSTALL_FLAGS: &[&str] = &["install", "--yes", "--no-remove", "--no-install-recommends"];
 const PKEXEC_CANCELLED: i32 = 126;
 const PKEXEC_DENIED: i32 = 127;
 
@@ -31,6 +25,7 @@ pub struct LinuxSetup {
     pub secret_service_available: bool,
     pub kvm_present: bool,
     pub kvm_accessible: bool,
+    pub active_kvm_member: bool,
     pub kvm_pending_relogin: bool,
     pub can_enable_kvm: bool,
     pub install_command: String,
@@ -93,13 +88,16 @@ fn group_list_contains(groups: &str, group: &str) -> bool {
         .any(|candidate| candidate == group)
 }
 
-fn kvm_pending_relogin(
+#[derive(Clone, Copy)]
+struct KvmState {
     present: bool,
     accessible: bool,
     configured_member: bool,
     active_member: bool,
-) -> bool {
-    present && !accessible && configured_member && !active_member
+}
+
+fn kvm_pending_relogin(state: KvmState) -> bool {
+    state.present && !state.accessible && state.configured_member && !state.active_member
 }
 
 fn dbus_has_secret_service(method: &str) -> bool {
@@ -142,11 +140,24 @@ fn required_packages(
     packages
 }
 
+fn dependency_packages() -> Vec<&'static str> {
+    QEMU_PACKAGES
+        .iter()
+        .chain(SECRET_SERVICE_PACKAGES)
+        .copied()
+        .collect()
+}
+
 fn install_command(packages: &[&str]) -> String {
-    format!(
-        "apt-get install --yes --no-remove --no-install-recommends {}",
-        packages.join(" ")
-    )
+    if packages.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "apt-get {} {}",
+            APT_INSTALL_FLAGS.join(" "),
+            packages.join(" ")
+        )
+    }
 }
 
 fn empty_setup() -> LinuxSetup {
@@ -159,9 +170,10 @@ fn empty_setup() -> LinuxSetup {
         secret_service_available: false,
         kvm_present: false,
         kvm_accessible: false,
+        active_kvm_member: false,
         kvm_pending_relogin: false,
         can_enable_kvm: false,
-        install_command: install_command(DEPENDENCY_PACKAGES),
+        install_command: install_command(&dependency_packages()),
         enable_kvm_command: "usermod --append --groups kvm -- <current user>".into(),
     }
 }
@@ -209,15 +221,17 @@ pub fn inspect() -> LinuxSetup {
         secret_service_available,
         kvm_present,
         kvm_accessible,
-        kvm_pending_relogin: kvm_pending_relogin(
-            kvm_present,
-            kvm_accessible,
-            kvm_member,
-            active_kvm_member,
-        ),
+        active_kvm_member,
+        kvm_pending_relogin: kvm_pending_relogin(KvmState {
+            present: kvm_present,
+            accessible: kvm_accessible,
+            configured_member: kvm_member,
+            active_member: active_kvm_member,
+        }),
         can_enable_kvm: supported
             && kvm_present
             && !kvm_member
+            && !active_kvm_member
             && Path::new("/usr/bin/pkexec").is_file()
             && kvm_group_exists,
         install_command: install_command(&packages),
@@ -243,16 +257,7 @@ fn repair_arguments(
                 return Err("System requirements are already installed".into());
             }
             Ok(std::iter::once(OsString::from("/usr/bin/apt-get"))
-                .chain(
-                    [
-                        "install",
-                        "--yes",
-                        "--no-remove",
-                        "--no-install-recommends",
-                    ]
-                    .into_iter()
-                    .map(OsString::from),
-                )
+                .chain(APT_INSTALL_FLAGS.iter().copied().map(OsString::from))
                 .chain(packages.into_iter().map(OsString::from))
                 .collect())
         }
@@ -388,15 +393,11 @@ fn deb_install_arguments(package: &Path) -> Result<Vec<OsString>, String> {
     if !package.is_absolute() {
         return Err("Desktop update package path must be absolute".into());
     }
-    Ok([
-        OsString::from("/usr/bin/apt-get"),
-        OsString::from("install"),
-        OsString::from("--yes"),
-        OsString::from("--no-remove"),
-        OsString::from("--no-install-recommends"),
-        package.as_os_str().to_owned(),
-    ]
-    .into())
+    Ok([OsString::from("/usr/bin/apt-get")]
+        .into_iter()
+        .chain(APT_INSTALL_FLAGS.iter().copied().map(OsString::from))
+        .chain(std::iter::once(package.as_os_str().to_owned()))
+        .collect())
 }
 
 /// The caller supplies bytes verified by the Tauri updater, never a renderer path.
@@ -534,10 +535,25 @@ mod tests {
 
     #[test]
     fn pending_kvm_relogin_requires_membership_missing_from_the_active_session() {
-        assert!(kvm_pending_relogin(true, false, true, false));
-        assert!(!kvm_pending_relogin(true, false, true, true));
-        assert!(!kvm_pending_relogin(true, true, true, false));
-        assert!(!kvm_pending_relogin(false, false, true, false));
+        let pending = KvmState {
+            present: true,
+            accessible: false,
+            configured_member: true,
+            active_member: false,
+        };
+        assert!(kvm_pending_relogin(pending));
+        assert!(!kvm_pending_relogin(KvmState {
+            active_member: true,
+            ..pending
+        }));
+        assert!(!kvm_pending_relogin(KvmState {
+            accessible: true,
+            ..pending
+        }));
+        assert!(!kvm_pending_relogin(KvmState {
+            present: false,
+            ..pending
+        }));
     }
 
     #[test]
@@ -560,15 +576,27 @@ mod tests {
         let recommends = config["bundle"]["linux"]["deb"]["recommends"]
             .as_array()
             .unwrap();
-        for package in DEPENDENCY_PACKAGES {
+        for package in dependency_packages() {
             assert!(
                 depends
                     .iter()
                     .chain(recommends)
-                    .any(|value| value.as_str() == Some(*package)),
+                    .any(|value| value.as_str() == Some(package)),
                 "{package} is absent from the deb package metadata"
             );
         }
+    }
+
+    #[test]
+    fn completed_dependency_setup_has_no_command_or_privileged_action() {
+        let mut status = installable();
+        status.qemu_ready = true;
+        status.secret_service_available = true;
+        assert!(install_command(&[]).is_empty());
+        assert_eq!(
+            repair_arguments(Repair::InstallDependencies, &status, None).unwrap_err(),
+            "System requirements are already installed"
+        );
     }
 
     #[test]

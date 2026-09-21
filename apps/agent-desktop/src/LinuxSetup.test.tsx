@@ -20,6 +20,7 @@ const missing: LinuxSetupStatus = {
   secretServiceAvailable: false,
   kvmPresent: true,
   kvmAccessible: false,
+  activeKvmMember: false,
   kvmPendingRelogin: false,
   canEnableKvm: true,
   installCommand:
@@ -98,6 +99,7 @@ describe('Linux setup consent', () => {
     vi.mocked(desktopBridge.linuxSetup).mockResolvedValue({
       ...missing,
       canEnableKvm: false,
+      activeKvmMember: true,
       kvmPendingRelogin: false,
     });
     setup();
@@ -108,6 +110,18 @@ describe('Linux setup consent', () => {
     expect(
       screen.queryByText('Sign out of Ubuntu and sign in again'),
     ).not.toBeInTheDocument();
+  });
+  it('explains manual group setup when automatic KVM repair is unavailable', async () => {
+    vi.mocked(desktopBridge.linuxSetup).mockResolvedValue({
+      ...missing,
+      canEnableKvm: false,
+      activeKvmMember: false,
+    });
+    setup();
+    expect(
+      await screen.findByText('KVM membership is required'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('kvm')).toBeInTheDocument();
   });
   it('does not offer automatic repair on unsupported distributions', async () => {
     vi.mocked(desktopBridge.linuxSetup).mockResolvedValue({

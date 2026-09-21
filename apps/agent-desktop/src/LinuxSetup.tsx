@@ -106,11 +106,22 @@ export function LinuxSetup() {
         {status.kvmPresent &&
         !status.kvmAccessible &&
         !status.kvmPendingRelogin &&
-        !status.canEnableKvm ? (
+        !status.canEnableKvm &&
+        status.activeKvmMember ? (
           <InlineNotice tone="warning" title="KVM access needs attention">
             Your current session has the KVM group but cannot open{' '}
             <code>/dev/kvm</code>. Check <code>ls -l /dev/kvm</code> and the
             local udev or virtualization configuration.
+          </InlineNotice>
+        ) : null}
+        {status.kvmPresent &&
+        !status.kvmAccessible &&
+        !status.kvmPendingRelogin &&
+        !status.canEnableKvm &&
+        !status.activeKvmMember ? (
+          <InlineNotice tone="warning" title="KVM membership is required">
+            Add your account to the <code>kvm</code> group using your system
+            administration tools, then sign out and back in.
           </InlineNotice>
         ) : null}
         {!status.canInstall ? (
