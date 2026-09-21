@@ -210,3 +210,14 @@ func TestBrokenDefaultDoesNotAffectIsolatedNamespace(t *testing.T) {
 		t.Fatalf("isolated service: %q, %v", got, err)
 	}
 }
+
+func TestRelativeHomeDefaultStaysLexical(t *testing.T) {
+	t.Setenv("HOME", "relative-home")
+	t.Setenv("USERPROFILE", "relative-home")
+	t.Setenv("MOLTNET_HOME", "ignored")
+	os.Unsetenv("MOLTNET_HOME")
+	got, err := Resolve(nil)
+	if err != nil || got != filepath.Join("relative-home", ".config", "moltnet") {
+		t.Fatalf("relative default: %q, %v", got, err)
+	}
+}

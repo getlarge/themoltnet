@@ -1,7 +1,9 @@
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -82,6 +84,38 @@ describe('MoltNet store selection', () => {
     expect(storeSecretService({ root: join(home, 'isolated') })).toMatch(
       /^themolt\.net\/store\/[a-f0-9]{64}$/,
     );
+  });
+  it.skipIf(process.platform === 'win32')(
+    'resolves traverse-only directories',
+    (ctx) => {
+      const actual = join(home, 'CaseStore');
+      mkdirSync(actual);
+      const alias = existsSync(join(home, 'casestore'))
+        ? join(home, 'casestore')
+        : actual;
+      chmodSync(actual, 0o111);
+      try {
+        let readable = false;
+        try {
+          readdirSync(actual);
+          readable = true;
+        } catch (error) {
+          expect((error as NodeJS.ErrnoException).code).toBe('EACCES');
+        }
+        if (readable)
+          ctx.skip('filesystem or user bypasses directory read permissions');
+        expect(getConfigDir({ root: join(alias, 'new') })).toBe(
+          join(actual, 'new'),
+        );
+      } finally {
+        chmodSync(actual, 0o700);
+      }
+    },
+  );
+  it('labels namespace selection errors with the environment source', () => {
+    expect(() =>
+      storeSecretService({ env: { MOLTNET_HOME: 'bad\u0000root' } }),
+    ).toThrow('Invalid MoltNet store root (MOLTNET_HOME)');
   });
   it('retains the established default', () => {
     expect(getConfigDir()).toBe(join(home, '.config/moltnet'));

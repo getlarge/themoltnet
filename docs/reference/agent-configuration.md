@@ -65,8 +65,10 @@ The default config/display path retains its established lexical spelling without
 filesystem access. Explicit and environment roots return absolute canonical
 paths; relative paths start at the caller's working directory. Existing symlinks
 and filesystem case aliases are resolved before parent (`..`) segments; missing
-directories are not created. Namespace and lock identity use canonical paths. An
-unavailable default directory does not prevent access to an isolated store.
+directories are not created. Secret namespaces use canonical paths. File locks
+use the lock file's filesystem identity, so aliases to the same file share a
+lock. An unavailable default directory does not prevent access to an isolated
+store.
 
 The Node SDK exports `resolveStoreRoot`, `canonicalStoreRoot`, and
 `storeSecretService` from `@themoltnet/sdk/node`. Their namespace format is a

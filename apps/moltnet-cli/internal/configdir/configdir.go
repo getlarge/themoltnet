@@ -44,7 +44,7 @@ func Select(root *string) (Selection, error) {
 			return selection, fmt.Errorf("%w (%s): %w", ErrInvalidRoot, selection.source, err)
 		}
 	}
-	if strings.TrimSpace(selection.Root) != "" && !filepath.IsAbs(selection.Root) {
+	if selection.source != "default root" && strings.TrimSpace(selection.Root) != "" && !filepath.IsAbs(selection.Root) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			return selection, fmt.Errorf("%w (%s): %w", ErrInvalidRoot, selection.source, err)
@@ -74,7 +74,7 @@ func (s Selection) resolve() (string, error) {
 	return result, nil
 }
 
-// SelectedRoot returns the uncanonicalized selection anchored to the caller CWD.
+// SelectedRoot anchors explicit selections to CWD and preserves lexical defaults.
 func SelectedRoot() (string, error) {
 	selection, err := Select(nil)
 	return selection.Root, err

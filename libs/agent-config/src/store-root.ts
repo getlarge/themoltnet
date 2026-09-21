@@ -83,7 +83,7 @@ export function storeSecretService(options: StoreRootOptions = {}): string {
   if (options.root === undefined && env.MOLTNET_HOME === undefined) {
     return MOLTNET_SECRET_SERVICE;
   }
-  const root = canonicalStoreRoot(resolveStoreRoot(options), options.cwd);
+  const root = resolveStoreRoot(options);
   try {
     const defaultRoot = canonicalStoreRoot(
       join(options.home ?? homedir(), '.config', 'moltnet'),

@@ -11,7 +11,10 @@ func TestTraverseOnlyDirectory(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX permissions")
 	}
-	root := t.TempDir()
+	root := filepath.Join(t.TempDir(), "CaseStore")
+	if err := os.Mkdir(root, 0700); err != nil {
+		t.Fatal(err)
+	}
 	actual, err := Canonical(root)
 	if err != nil {
 		t.Fatal(err)
@@ -23,7 +26,11 @@ func TestTraverseOnlyDirectory(t *testing.T) {
 	if _, err := os.ReadDir(root); err == nil {
 		t.Skip("filesystem or user bypasses directory read permissions")
 	}
-	got, err := Canonical(filepath.Join(root, "new"))
+	alias := filepath.Join(filepath.Dir(root), "casestore")
+	if _, err := os.Stat(alias); os.IsNotExist(err) {
+		alias = root
+	}
+	got, err := Canonical(filepath.Join(alias, "new"))
 	if err != nil || got != filepath.Join(actual, "new") {
 		t.Fatalf("traverse-only: %q, %v", got, err)
 	}
