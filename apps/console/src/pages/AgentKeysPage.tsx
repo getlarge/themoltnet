@@ -30,6 +30,7 @@ import {
   ConfirmDialog,
   CopyButton,
   Dialog,
+  Disclosure,
   Input,
   KeyFingerprint,
   Stack,
@@ -779,125 +780,119 @@ function CredentialScopeSelector({
   );
 
   return (
-    <details
+    <div
       style={{
         border: `1px solid ${theme.color.border.DEFAULT}`,
         borderRadius: theme.radius.md,
-        padding: theme.spacing[3],
+        paddingInline: theme.spacing[3],
+        paddingBottom: theme.spacing[1],
         background: theme.color.bg.surface,
       }}
     >
-      <summary
-        style={{
-          cursor: 'pointer',
-          color: theme.color.text.DEFAULT,
-          fontWeight: theme.font.weight.medium,
-        }}
-      >
-        Credential scopes ({value.length} selected)
-      </summary>
-      <Stack gap={3} style={{ marginTop: theme.spacing[3] }}>
-        <Text variant="caption" color="muted">
-          {purpose
-            ? 'A key can receive only scopes held by the credential creating it.'
-            : 'Select a credential purpose to load its exact scope set.'}
-        </Text>
-        {(purpose === 'daemon' || purpose === 'custom') &&
-        missingDaemonScopes.length > 0 ? (
-          <Text variant="caption" color="warning">
-            This key cannot run the agent daemon: it is missing{' '}
-            {missingDaemonScopes.join(', ')}. The daemon refuses to start
-            without the full minimum.
+      <Disclosure summary={`Credential scopes (${value.length} selected)`}>
+        <Stack gap={3} style={{ paddingBottom: theme.spacing[2] }}>
+          <Text variant="caption" color="muted">
+            {purpose
+              ? 'A key can receive only scopes held by the credential creating it.'
+              : 'Select a credential purpose to load its exact scope set.'}
           </Text>
-        ) : null}
-        <Stack direction="row" gap={2} wrap>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              onChange(CREDENTIAL_SCOPE_OPTIONS.map(({ scope }) => scope))
-            }
-          >
-            Select all
-          </Button>
-        </Stack>
-        <fieldset
-          style={{
-            border: 0,
-            margin: 0,
-            padding: 0,
-          }}
-        >
-          <legend
+          {(purpose === 'daemon' || purpose === 'custom') &&
+          missingDaemonScopes.length > 0 ? (
+            <Text variant="caption" color="warning">
+              This key cannot run the agent daemon: it is missing{' '}
+              {missingDaemonScopes.join(', ')}. The daemon refuses to start
+              without the full minimum.
+            </Text>
+          ) : null}
+          <Stack direction="row" gap={2} wrap>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                onChange(CREDENTIAL_SCOPE_OPTIONS.map(({ scope }) => scope))
+              }
+            >
+              Select all
+            </Button>
+          </Stack>
+          <fieldset
             style={{
-              marginBottom: theme.spacing[2],
-              fontSize: theme.font.size.sm,
-              fontWeight: theme.font.weight.medium,
+              border: 0,
+              margin: 0,
+              padding: 0,
             }}
           >
-            Granted capabilities
-          </legend>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: theme.spacing[2],
-            }}
-          >
-            {CREDENTIAL_SCOPE_OPTIONS.map(({ scope, description }) => {
-              const checked = value.includes(scope);
-              return (
-                <label
-                  key={scope}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'auto minmax(0, 1fr)',
-                    alignItems: 'start',
-                    gap: theme.spacing[2],
-                    padding: theme.spacing[2],
-                    borderRadius: theme.radius.md,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    aria-label={`${scope}: ${description}`}
-                    checked={checked}
-                    onChange={(event) => {
-                      const selected = event.target.checked
-                        ? [...value, scope]
-                        : value.filter((candidate) => candidate !== scope);
-                      onChange(
-                        CREDENTIAL_SCOPE_OPTIONS.map(
-                          (option) => option.scope,
-                        ).filter((candidate) => selected.includes(candidate)),
-                      );
+            <legend
+              style={{
+                marginBottom: theme.spacing[2],
+                fontSize: theme.font.size.sm,
+                fontWeight: theme.font.weight.medium,
+              }}
+            >
+              Granted capabilities
+            </legend>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: theme.spacing[2],
+              }}
+            >
+              {CREDENTIAL_SCOPE_OPTIONS.map(({ scope, description }) => {
+                const checked = value.includes(scope);
+                return (
+                  <label
+                    key={scope}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'auto minmax(0, 1fr)',
+                      alignItems: 'start',
+                      gap: theme.spacing[2],
+                      padding: theme.spacing[2],
+                      borderRadius: theme.radius.md,
+                      cursor: 'pointer',
                     }}
-                  />
-                  <Stack gap={0.5}>
-                    <Text
-                      variant="caption"
-                      weight="semibold"
-                      style={{ fontFamily: theme.font.family.mono }}
-                    >
-                      {scope}
-                      {(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
-                        scope,
-                      )
-                        ? ' · daemon minimum'
-                        : ''}
-                    </Text>
-                    <Text variant="caption" color="muted">
-                      {description}
-                    </Text>
-                  </Stack>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-      </Stack>
-    </details>
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={`${scope}: ${description}`}
+                      checked={checked}
+                      onChange={(event) => {
+                        const selected = event.target.checked
+                          ? [...value, scope]
+                          : value.filter((candidate) => candidate !== scope);
+                        onChange(
+                          CREDENTIAL_SCOPE_OPTIONS.map(
+                            (option) => option.scope,
+                          ).filter((candidate) => selected.includes(candidate)),
+                        );
+                      }}
+                    />
+                    <Stack gap={0.5}>
+                      <Text
+                        variant="caption"
+                        weight="semibold"
+                        style={{ fontFamily: theme.font.family.mono }}
+                      >
+                        {scope}
+                        {(
+                          AGENT_CREDENTIAL_SCOPES as readonly string[]
+                        ).includes(scope)
+                          ? ' · daemon minimum'
+                          : ''}
+                      </Text>
+                      <Text variant="caption" color="muted">
+                        {description}
+                      </Text>
+                    </Stack>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        </Stack>
+      </Disclosure>
+    </div>
   );
 }
 

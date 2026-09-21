@@ -2,9 +2,15 @@ import { useCallback, useState } from 'react';
 
 import { useTheme } from '../hooks.js';
 import type { Size } from '../types.js';
+import { VisuallyHidden } from './visually-hidden.js';
 
 export interface CopyButtonProps {
   value: string;
+  /**
+   * Visible field caption rendered above the chip ("Pack CID"); it also names
+   * the button ("Copy Pack CID"). For a bare "Copy" verb chip next to a value
+   * that is already shown, pass `text="Copy"` and `ariaLabel` instead.
+   */
   label?: string;
   /**
    * Visible chip text. Defaults to the value itself, which suits short
@@ -66,6 +72,8 @@ export function CopyButton({
         display: 'inline-flex',
         flexDirection: 'column',
         gap: theme.spacing[1],
+        maxWidth: '100%',
+        minWidth: 0,
       }}
     >
       {label && (
@@ -129,22 +137,9 @@ export function CopyButton({
         >
           {failed ? '✕' : copied ? '✓' : '⧉'}
         </span>
-        <span
-          aria-live="polite"
-          style={{
-            position: 'absolute',
-            width: '1px',
-            height: '1px',
-            padding: 0,
-            margin: '-1px',
-            overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)',
-            whiteSpace: 'nowrap',
-            border: 0,
-          }}
-        >
+        <VisuallyHidden aria-live="polite">
           {failed ? 'Copy failed' : copied ? 'Copied' : ''}
-        </span>
+        </VisuallyHidden>
       </button>
     </div>
   );

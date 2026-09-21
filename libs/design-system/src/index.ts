@@ -75,6 +75,8 @@ export {
   type DescriptionListProps,
   Dialog,
   type DialogProps,
+  Disclosure,
+  type DisclosureProps,
   Divider,
   type DividerProps,
   EmptyState,
@@ -117,4 +119,7 @@ export {
   type TextVariant,
   Tooltip,
   type TooltipProps,
+  VisuallyHidden,
+  type VisuallyHiddenProps,
+  visuallyHiddenStyle,
 } from './components/index.js';

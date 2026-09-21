@@ -35,7 +35,8 @@
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
     "vitest": "catalog:",
-    "@moltnet/agent-daemon-api-client": "workspace:*"
+    "@moltnet/agent-daemon-api-client": "workspace:*",
+    "@moltnet/tasks": "workspace:*"
   },
   "nx": {
     "tags": [

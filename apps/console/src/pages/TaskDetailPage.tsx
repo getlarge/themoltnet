@@ -3,34 +3,17 @@ import {
   listDiaryEntriesOptions,
   listTaskAttemptsOptions,
 } from '@moltnet/api-client/query';
-import {
-  TaskActionPanel,
-  TaskAttemptsTable,
-  TaskDetailHeader,
-  TaskExecutionRecord,
-  TaskInputViewer,
-  TaskRefsList,
-} from '@moltnet/task-ui';
+import { TaskDetailView, type TaskKnowledgeEntry } from '@moltnet/task-ui';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Button,
-  Card,
-  InlineNotice,
-  PageHeader,
-  Stack,
-  Text,
-  useTheme,
-} from '@themoltnet/design-system';
+import { Card, Text, useTheme } from '@themoltnet/design-system';
 import { Link, useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
 import { ManageTaskGrants } from '../components/tasks/ManageTaskGrants.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTeam } from '../team/useTeam.js';
 
 export function TaskDetailPage({ id }: { id: string }) {
   const theme = useTheme();
-  const isMobile = useIsMobile();
   const [, navigate] = useLocation();
   const { selectedTeam, isLoading: isTeamLoading } = useTeam();
   const teamHeaders = selectedTeam
@@ -92,165 +75,77 @@ export function TaskDetailPage({ id }: { id: string }) {
     );
   }
 
-  const attempts = attemptsQuery.data ?? [];
-  const latestAttempt = attempts.at(-1) ?? null;
-  const recordAttempt = task.acceptedAttemptN
-    ? (attempts.find((attempt) => attempt.attemptN === task.acceptedAttemptN) ??
-      latestAttempt)
-    : latestAttempt;
+  const knowledgeEntries: TaskKnowledgeEntry[] = (
+    knowledgeQuery.data?.items ?? []
+  ).map((entry) => ({
+    id: entry.id,
+    title: entry.title,
+    entryType: entry.entryType,
+    createdAt: entry.createdAt,
+    content: entry.content,
+    signed: Boolean(entry.contentSignature),
+    tags: entry.tags,
+  }));
 
   return (
-    <Stack gap={6}>
-      <PageHeader
-        eyebrow="Task Engine"
-        title="Task execution"
-        description="Inspect the durable contract and every authority decision attached to this task."
-        backLink={
-          <Link
-            href="/tasks"
-            style={{ color: theme.color.text.muted, textDecoration: 'none' }}
-          >
-            &larr; Task board
-          </Link>
-        }
-      />
-
-      <TaskDetailHeader
-        task={task}
-        onOpenConsole={(selected) => {
-          if (selected.consoleUrl) window.open(selected.consoleUrl, '_blank');
-        }}
-      />
-
-      {attemptsQuery.isLoading ? (
-        <Card variant="surface" padding="md">
-          <Text color="muted">Loading attempt evidence…</Text>
-        </Card>
-      ) : attemptsQuery.isError ? (
-        <InlineNotice tone="warning" title="Attempt evidence unavailable">
-          <Stack gap={3}>
-            <Text>
-              Claim, runtime, and result state cannot be verified until the
-              attempt history is available.
-            </Text>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void attemptsQuery.refetch()}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              Retry attempt evidence
-            </Button>
-          </Stack>
-        </InlineNotice>
-      ) : (
-        <TaskExecutionRecord
-          task={task}
-          attempt={recordAttempt}
-          knowledge={{
-            count: task.diaryId ? (knowledgeQuery.data?.total ?? null) : 0,
-            unavailable: knowledgeQuery.isError,
-          }}
-          attemptAction={
-            recordAttempt ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  navigate(
-                    `/tasks/${task.id}/attempts/${recordAttempt.attemptN}`,
-                  )
-                }
-              >
-                Inspect attempt
-              </Button>
-            ) : undefined
-          }
-          runtimeAction={
-            recordAttempt?.runtimeProfileId ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/runtime/profiles')}
-              >
-                Open profile
-              </Button>
-            ) : undefined
-          }
-          knowledgeAction={
-            task.diaryId ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/diaries/${task.diaryId}`)}
-              >
-                Open diary
-              </Button>
-            ) : undefined
-          }
-        />
+    <TaskDetailView
+      task={task}
+      attempts={attemptsQuery.data ?? []}
+      attemptsStatus={
+        attemptsQuery.isLoading
+          ? 'loading'
+          : attemptsQuery.isError
+            ? 'error'
+            : 'ready'
+      }
+      knowledge={{
+        entries: knowledgeEntries,
+        total: knowledgeQuery.data?.total ?? null,
+        status: knowledgeQuery.isError
+          ? 'error'
+          : knowledgeQuery.data
+            ? 'ready'
+            : 'loading',
+      }}
+      backLink={
+        <Link
+          href="/tasks"
+          style={{ color: theme.color.text.muted, textDecoration: 'none' }}
+        >
+          &larr; Task board
+        </Link>
+      }
+      renderEntryLink={(entry, children) => (
+        <Link
+          href={`/diaries/${task.diaryId}/entries/${entry.id}`}
+          style={{ color: theme.color.text.DEFAULT }}
+        >
+          {children}
+        </Link>
       )}
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile
-            ? 'minmax(0, 1fr)'
-            : 'minmax(0, 1fr) minmax(260px, 360px)',
-          gap: theme.spacing[5],
-          alignItems: 'start',
-        }}
-      >
-        <Stack gap={5}>
-          <Card variant="surface" padding="md">
-            <TaskInputViewer input={task.input} inputCid={task.inputCid} />
-          </Card>
-
-          <Card variant="surface" padding="md">
-            <Stack gap={3}>
-              <Text variant="h3" style={{ margin: 0 }}>
-                References
-              </Text>
-              <TaskRefsList
-                refs={task.references}
-                onOpenTaskRef={(ref) => {
-                  if (ref.taskId) navigate(`/tasks/${ref.taskId}`);
-                }}
-                onOpenExternalRef={(ref) => {
-                  if (ref.external?.url)
-                    window.open(ref.external.url, '_blank');
-                }}
-              />
-            </Stack>
-          </Card>
-
-          <Card variant="surface" padding="md">
-            <Stack gap={3}>
-              <Text variant="h3" style={{ margin: 0 }}>
-                Attempts
-              </Text>
-              {attemptsQuery.isError ? (
-                <Text color="muted">Attempt history unavailable.</Text>
-              ) : (
-                <TaskAttemptsTable
-                  attempts={attempts}
-                  onSelectAttempt={(attempt) =>
-                    navigate(`/tasks/${task.id}/attempts/${attempt.attemptN}`)
-                  }
-                />
-              )}
-            </Stack>
-          </Card>
-        </Stack>
-
-        <TaskActionPanel task={task} selectedAttempt={latestAttempt} />
-      </div>
-
-      <ManageTaskGrants
-        taskId={task.id}
-        teamId={task.teamId}
-        canManage={selectedTeam?.role === 'owner'}
-      />
-    </Stack>
+      onOpenAttempt={(attemptN) =>
+        navigate(`/tasks/${task.id}/attempts/${attemptN}`)
+      }
+      onOpenRuntimeProfile={() => navigate('/runtime/profiles')}
+      onOpenDiary={(diaryId) => navigate(`/diaries/${diaryId}`)}
+      onOpenConsole={(selected) => {
+        if (selected.consoleUrl) window.open(selected.consoleUrl, '_blank');
+      }}
+      onOpenTaskRef={(ref) => {
+        if (ref.taskId) navigate(`/tasks/${ref.taskId}`);
+      }}
+      onOpenExternalRef={(ref) => {
+        if (ref.external?.url) window.open(ref.external.url, '_blank');
+      }}
+      onRetryAttempts={() => void attemptsQuery.refetch()}
+      onRetryKnowledge={() => void knowledgeQuery.refetch()}
+      footer={
+        <ManageTaskGrants
+          taskId={task.id}
+          teamId={task.teamId}
+          canManage={selectedTeam?.role === 'owner'}
+        />
+      }
+    />
   );
 }

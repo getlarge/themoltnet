@@ -90,8 +90,10 @@ describe('@moltnet/task-ui', () => {
     renderWithTheme(<TaskDetailHeader task={taskFixture} />);
 
     expect(screen.getByText('Correlation ID')).toBeInTheDocument();
-    expect(screen.getAllByText(taskFixture.correlationId!)).toHaveLength(2);
-    expect(screen.getByText('Copy correlation ID')).toBeInTheDocument();
+    expect(screen.getByText(taskFixture.correlationId!)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Copy correlation ID' }),
+    ).toBeInTheDocument();
   });
 
   it('joins adjacent text deltas for readable attempt timelines', () => {
@@ -114,14 +116,17 @@ describe('@moltnet/task-ui', () => {
       <TaskActionPanel task={taskFixture} selectedAttempt={attemptFixture} />,
     );
 
-    expect(screen.getAllByText(`@tasks_get id=${taskFixture.id}`)).toHaveLength(
-      2,
-    );
     expect(
-      screen.getAllByText(
+      screen.getByText(`@tasks_get id=${taskFixture.id}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
         `@tasks_messages_list task_id=${taskFixture.id} attempt_n=1`,
       ),
-    ).toHaveLength(2);
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Copy Inspect task prompt' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Open full console')).toBeInTheDocument();
   });
 });

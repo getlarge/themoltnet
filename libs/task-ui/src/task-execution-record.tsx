@@ -2,6 +2,7 @@ import { RecordTrace, Stack, Text } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 
 import { formatDateTime, humanizeToken } from './format.js';
+import { Identifier } from './identifier.js';
 import type { TaskAttemptSummary, TaskSummary } from './types.js';
 
 export interface TaskKnowledgeState {
@@ -32,7 +33,9 @@ export function TaskExecutionRecord({
   return (
     <Stack gap={3}>
       <Stack gap={1}>
-        <Text variant="h2">Execution record</Text>
+        <Text as="h2" variant="h3">
+          Execution record
+        </Text>
         <Text color="secondary">
           The task contract, claimant, runtime authority, result, and retained
           knowledge remain attached to this record.
@@ -50,7 +53,10 @@ export function TaskExecutionRecord({
             active: !attempt,
             details: [
               { label: 'Task type', value: humanizeToken(task.taskType) },
-              { label: 'Input CID', value: task.inputCid, mono: true },
+              {
+                label: 'Input CID',
+                value: <Identifier value={task.inputCid} />,
+              },
               {
                 label: 'Executor trust',
                 value: humanizeToken(task.requiredExecutorTrustLevel),
@@ -69,8 +75,7 @@ export function TaskExecutionRecord({
                   { label: 'Attempt', value: `#${attempt.attemptN}` },
                   {
                     label: 'Agent',
-                    value: attempt.claimedByAgentId,
-                    mono: true,
+                    value: <Identifier value={attempt.claimedByAgentId} />,
                   },
                   {
                     label: 'Executor',
@@ -91,18 +96,15 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Profile',
-                value: runtimeProfile(attempt),
-                mono: Boolean(attempt?.runtimeProfileId),
+                value: idOr(runtimeProfile(attempt), 'Not recorded'),
               },
               {
                 label: 'Policy snapshot',
-                value: attempt?.policySnapshotHash ?? 'Not recorded',
-                mono: Boolean(attempt?.policySnapshotHash),
+                value: idOr(attempt?.policySnapshotHash, 'Not recorded'),
               },
               {
                 label: 'Runtime ID',
-                value: attempt?.runtimeId ?? 'Not started',
-                mono: Boolean(attempt?.runtimeId),
+                value: idOr(attempt?.runtimeId, 'Not started'),
               },
             ],
             action: runtimeAction,
@@ -116,8 +118,7 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Output CID',
-                value: attempt?.outputCid ?? 'Not reported',
-                mono: Boolean(attempt?.outputCid),
+                value: idOr(attempt?.outputCid, 'Not reported'),
               },
               {
                 label: 'Signature',
@@ -148,8 +149,7 @@ export function TaskExecutionRecord({
             details: [
               {
                 label: 'Diary',
-                value: task.diaryId ?? 'Not configured',
-                mono: Boolean(task.diaryId),
+                value: idOr(task.diaryId, 'Not configured'),
               },
               {
                 label: 'Task entries',
@@ -174,8 +174,12 @@ function runtimeStatus(attempt?: TaskAttemptSummary | null) {
   return 'Recorded';
 }
 
+function idOr(value: string | null | undefined, fallback: string): ReactNode {
+  return value ? <Identifier value={value} /> : fallback;
+}
+
 function runtimeProfile(attempt?: TaskAttemptSummary | null) {
-  if (!attempt?.runtimeProfileId) return 'Not recorded';
+  if (!attempt?.runtimeProfileId) return null;
   return attempt.runtimeProfileRevision
     ? `${attempt.runtimeProfileId}@${attempt.runtimeProfileRevision}`
     : attempt.runtimeProfileId;

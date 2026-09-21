@@ -31,7 +31,7 @@ export function TaskSummaryStrip({
         alignItems: 'center',
       }}
     >
-      <Stack gap={1} style={{ minWidth: 0 }}>
+      <Stack gap={1} shrink>
         <Stack direction="row" align="center" gap={2} wrap>
           <TaskStatusBadge status={task.status} />
           <Text style={{ fontWeight: theme.font.weight.semibold }}>

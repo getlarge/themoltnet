@@ -114,13 +114,7 @@ export function TaskAttemptDetail({ attempt }: TaskAttemptDetailProps) {
 
       {attempt.output ? (
         <>
-          <FreeformArtifactsCard
-            output={
-              attempt.output as Parameters<
-                typeof FreeformArtifactsCard
-              >[0]['output']
-            }
-          />
+          <FreeformArtifactsCard output={attempt.output} />
           <JsonViewer
             label="Output"
             value={attempt.output}

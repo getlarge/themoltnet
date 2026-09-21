@@ -74,6 +74,12 @@ export {
   type TaskDetailHeaderProps,
 } from './task-detail-header.js';
 export {
+  type TaskDetailKnowledge,
+  type TaskDetailLoadState,
+  TaskDetailView,
+  type TaskDetailViewProps,
+} from './task-detail-view.js';
+export {
   TaskExecutionRecord,
   type TaskExecutionRecordProps,
   type TaskKnowledgeState,
@@ -86,6 +92,7 @@ export {
   TaskInputViewer,
   type TaskInputViewerProps,
 } from './task-input-viewer.js';
+export { type TaskKnowledgeEntry } from './task-knowledge-list.js';
 export {
   TaskLaneBoard,
   type TaskLaneBoardProps,
@@ -112,6 +119,10 @@ export {
   TaskMessagesTimeline,
   type TaskMessagesTimelineProps,
 } from './task-messages-timeline.js';
+export {
+  type TaskOutputRenderContext,
+  type TaskOutputRenderer,
+} from './task-output-renderers.js';
 export {
   TaskQueueTable,
   type TaskQueueTableProps,

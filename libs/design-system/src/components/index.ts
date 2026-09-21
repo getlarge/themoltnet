@@ -35,6 +35,7 @@ export {
   type DescriptionListProps,
 } from './description-list.js';
 export { Dialog, type DialogProps } from './dialog.js';
+export { Disclosure, type DisclosureProps } from './disclosure.js';
 export { Divider, type DividerProps } from './divider.js';
 export { EmptyState, type EmptyStateProps } from './empty-state.js';
 export { InlineNotice, type InlineNoticeProps } from './inline-notice.js';
@@ -68,3 +69,8 @@ export {
   type TextVariant,
 } from './text.js';
 export { Tooltip, type TooltipProps } from './tooltip.js';
+export {
+  VisuallyHidden,
+  type VisuallyHiddenProps,
+  visuallyHiddenStyle,
+} from './visually-hidden.js';

@@ -10,6 +10,11 @@ export interface StackProps extends BaseComponentProps {
   align?: React.CSSProperties['alignItems'];
   justify?: React.CSSProperties['justifyContent'];
   wrap?: boolean;
+  /**
+   * Let this stack shrink below its content's width inside a flex parent
+   * (`min-width: 0`), so long values wrap or truncate instead of overflowing.
+   */
+  shrink?: boolean;
 }
 
 export function Stack({
@@ -18,6 +23,7 @@ export function Stack({
   align,
   justify,
   wrap,
+  shrink,
   style,
   children,
   ...rest
@@ -31,6 +37,7 @@ export function Stack({
     alignItems: align,
     justifyContent: justify,
     flexWrap: wrap ? 'wrap' : undefined,
+    minWidth: shrink ? 0 : undefined,
     ...style,
   };
 

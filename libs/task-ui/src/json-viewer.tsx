@@ -1,5 +1,7 @@
 import { CodeBlock, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+
+import { Identifier } from './identifier.js';
 
 export interface JsonViewerProps {
   value: unknown;
@@ -16,6 +18,11 @@ export function JsonViewer({
 }: JsonViewerProps) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(defaultExpanded);
+  // Outputs can hold many 64 KiB artifact bodies; stringify only when shown.
+  const pretty = useMemo(
+    () => (expanded ? JSON.stringify(value, null, 2) : ''),
+    [expanded, value],
+  );
 
   return (
     <Stack gap={2}>
@@ -29,12 +36,8 @@ export function JsonViewer({
             <span />
           )}
           {cid ? (
-            <Text
-              variant="caption"
-              color="muted"
-              style={{ fontFamily: theme.font.family.mono }}
-            >
-              {cid}
+            <Text variant="caption" color="muted" style={{ minWidth: 0 }}>
+              <Identifier value={cid} />
             </Text>
           ) : null}
         </Stack>
@@ -60,7 +63,7 @@ export function JsonViewer({
 
       {expanded ? (
         <CodeBlock language="json" style={{ maxHeight: 420, overflow: 'auto' }}>
-          {JSON.stringify(value, null, 2)}
+          {pretty}
         </CodeBlock>
       ) : null}
     </Stack>
