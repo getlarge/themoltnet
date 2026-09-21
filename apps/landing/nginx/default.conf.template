@@ -21,7 +21,7 @@ server {
     # templating untouched. One literal per product — everything below derives.
     set $cli_version 3.3.0;
     set $agent_cli_version 0.62.0;
-    set $agent_desktop_version 0.4.0;
+    set $agent_desktop_version 0.5.1;
 
     # The served installer's default install version is pinned with it at
     # release time, so this one line controls what `curl | sh` delivers.
