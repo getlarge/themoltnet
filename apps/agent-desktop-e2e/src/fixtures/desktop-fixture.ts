@@ -1,18 +1,19 @@
 /** Production CLI lifecycle with a deterministic catalogue port. */
 import { fileURLToPath } from 'node:url';
-import type { Agent } from '@themoltnet/sdk';
+
 import {
-  runAgentServer,
   captureTeamCredential,
   loadAgentActivation,
+  runAgentServer,
 } from '@themoltnet/agent-daemon/testing';
+import type { Agent } from '@themoltnet/sdk';
 
 const project = {
   id: 'project',
   teamId: 'team',
   name: 'Fixture project',
   description: null,
-  defaultDiaryId: 'diary',
+  defaultDiaryId: '00000000-0000-4000-8000-000000000001',
   archived: false,
 };
 
@@ -78,7 +79,7 @@ process.exitCode = await runAgentServer(args, {
                     id,
                     teamId: 'team',
                     archived: false,
-                    defaultDiaryId: 'diary',
+                    defaultDiaryId: '00000000-0000-4000-8000-000000000001',
                   }),
                 },
                 diaries: {
@@ -95,7 +96,13 @@ process.exitCode = await runAgentServer(args, {
         lastVerified: () => undefined,
         readTeam: async () => ({
           team: { id: 'team', name: 'Fixture team' },
-          diaries: [{ id: 'diary', teamId: 'team', name: 'Fixture diary' }],
+          diaries: [
+            {
+              id: '00000000-0000-4000-8000-000000000001',
+              teamId: 'team',
+              name: 'Fixture diary',
+            },
+          ],
           profiles: [],
           credential: {
             keyId: 'fixture',
