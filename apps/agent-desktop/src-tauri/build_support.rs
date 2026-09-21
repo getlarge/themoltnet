@@ -8,6 +8,19 @@ pub fn resolve_agent_cli_version<'a>(
         .ok_or("embedded Agent CLI version must be a stable semantic version")
 }
 
+pub fn version_at_least(version: &str, minimum: &str) -> bool {
+    fn parse(value: &str) -> Option<(u64, u64, u64)> {
+        let mut pieces = value.split('.');
+        let parsed = (
+            pieces.next()?.parse().ok()?,
+            pieces.next()?.parse().ok()?,
+            pieces.next()?.parse().ok()?,
+        );
+        pieces.next().is_none().then_some(parsed)
+    }
+    matches!((parse(version), parse(minimum)), (Some(version), Some(minimum)) if version >= minimum)
+}
+
 pub fn render_installer(
     template: &str,
     release_signer_pubkey: &str,
@@ -68,6 +81,14 @@ RELEASE_PINNED_VERSION=""
             assert!(resolve_agent_cli_version("0.57.0", Some(invalid)).is_err());
         }
         assert!(resolve_agent_cli_version("01.2.3", None).is_err());
+    }
+
+    #[test]
+    fn version_floor_uses_semantic_components() {
+        assert!(version_at_least("0.62.0", "0.62.0"));
+        assert!(version_at_least("1.0.0", "0.62.0"));
+        assert!(!version_at_least("0.61.9", "0.62.0"));
+        assert!(!version_at_least("invalid", "0.62.0"));
     }
 
     #[test]

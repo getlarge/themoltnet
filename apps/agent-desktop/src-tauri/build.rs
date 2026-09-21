@@ -2,10 +2,11 @@ use std::{env, fs, path::PathBuf};
 
 mod build_support;
 
-use build_support::{render_installer, resolve_agent_cli_version};
+use build_support::{render_installer, resolve_agent_cli_version, version_at_least};
 
 const RELEASE_SIGNER_PUBKEY: &str =
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y";
+const NATIVE_SOCKET_MIN_VERSION: &str = "0.62.0";
 
 fn main() {
     let template_path = PathBuf::from("../../../tools/release/agent-bundle/install.sh");
@@ -20,6 +21,10 @@ fn main() {
     let agent_cli_version =
         resolve_agent_cli_version(default_version.trim(), override_version.as_deref())
             .expect("resolve embedded Agent CLI version");
+    assert!(
+        version_at_least(agent_cli_version, NATIVE_SOCKET_MIN_VERSION),
+        "embedded Agent CLI must support native socket control"
+    );
     println!("cargo:rustc-env=MOLTNET_EMBEDDED_AGENT_CLI_VERSION={agent_cli_version}");
 
     let template = fs::read_to_string(&template_path).expect("read canonical agent installer");
