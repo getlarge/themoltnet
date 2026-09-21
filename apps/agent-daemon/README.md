@@ -15,9 +15,9 @@ from [themolt.net/download](https://themolt.net/download). Opening the app:
 
 1. installs or updates the publisher-verified Agent CLI bundle under
    `~/.local/share/moltnet/agent`;
-2. asks before adding the per-user local HTTPS CA to the login Keychain;
-3. starts a foreground, supervised Agent Server; and
-4. opens Console for OAuth PKCE approval and runtime management.
+2. starts a foreground, supervised Agent Server over a private native socket;
+   and
+3. opens the browser only when OAuth approval is required.
 
 Closing the status window hides it. **Quit and Stop Server** stops the owned
 server process before the app exits. After the server restarts, reconnect Console through OAuth PKCE. The local
@@ -25,7 +25,7 @@ operator, identities, and provider configuration persist.
 
 Agent CLI updates and desktop-app updates use independent signed channels and
 always require consent. Removing the Agent CLI bundle preserves
-`~/.config/moltnet`. Removing the local CA is a separate opt-in action.
+`~/.config/moltnet`.
 
 ### Agent CLI
 

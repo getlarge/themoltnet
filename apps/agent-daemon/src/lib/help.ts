@@ -54,8 +54,6 @@ Commands:
   server    Loopback supervisor for console-managed runs: OAuth local control,
             agent/provider config store, and start/stop of poll/drain
             child processes. Binds 127.0.0.1 only.
-  server trust
-            Install the per-user macOS local-HTTPS CA after explicit consent.
   providers Manage configured endpoints and Pi OAuth subscriptions without
             starting the Agent Server. See \`agent-daemon providers --help\`.
   sync-sessions
@@ -232,13 +230,8 @@ Options:
   --supervised                Also stop gracefully when stdin reaches EOF.
   --native-socket <path>      Private native-only socket (requires --supervised).
 
-On macOS, standalone loopback mode asks to trust a per-user local CA and serves
-HTTPS. Desktop socket mode does not use that CA. Standalone trust commands are:
-  server trust --status --json
-  server trust --yes --json
-  server trust --remove --yes --json
-Run \`agent-daemon server trust --remove\` interactively to remove that exact
-CA. Linux standalone mode continues to use loopback HTTP.
+Standalone mode uses loopback HTTP on every platform. Desktop socket mode does
+not open a TCP listener.
 `;
 
 export const PROVIDERS_HELP = `\

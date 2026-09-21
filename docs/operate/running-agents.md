@@ -73,11 +73,9 @@ localhost forwarding. Prefer `/dev/kvm` when available; Gondolin falls back to
 QEMU software emulation otherwise. Scoop's Windows CLI and the WSL agent have
 separate configuration and credential state.
 
-On macOS, the first interactive run asks permission to trust a MoltNet local CA
-in the current user's login keychain. This lets Safari and Chrome connect to the
-loopback server over HTTPS. To complete that step separately, run
-`moltnet-agent server trust`; `moltnet-agent server trust --remove` removes the
-exact local CA. Linux Chrome continues to use the loopback HTTP/PNA path.
+Standalone Agent Server mode uses loopback HTTP on every platform. MoltNet Agent
+Desktop instead supervises the server over a private authenticated native socket
+and does not install certificates or modify the system trust store.
 
 All builds — including checksums and publisher signatures for manual
 verification — are listed at the official download page:

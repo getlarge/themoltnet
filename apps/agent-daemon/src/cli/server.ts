@@ -1,5 +1,4 @@
 import { chmod } from 'node:fs/promises';
-import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
 import { parseAllowedOrigins } from '@moltnet/loopback-companion';
@@ -30,14 +29,6 @@ import {
   AgentServerStore,
   resolveAgentServerRoot,
 } from '../lib/agent-server/store.js';
-import {
-  ensureLocalTlsMaterial,
-  inspectLocalTlsMaterial,
-  isLocalCaTrusted,
-  isMacos,
-  removeLocalCa,
-  trustLocalCa,
-} from '../lib/agent-server/tls.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
 import { parseLocalOperationalSettings } from '../lib/options.js';
@@ -74,17 +65,9 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     return 0;
   }
 
-  const trustRequested = argv[0] === 'trust';
-  const commandArgs = trustRequested ? argv.slice(1) : argv;
   const envConfig = loadAgentServerEnvConfig();
-  if (trustRequested) {
-    return runTrustCommand(
-      commandArgs,
-      resolveAgentServerRoot({ root: envConfig.root }),
-    );
-  }
   const { values } = parseArgs({
-    args: commandArgs,
+    args: argv,
     options: {
       port: { type: 'string' },
       'allowed-origins': { type: 'string' },
@@ -194,13 +177,9 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             runtimeSettings,
           });
           if (nativeSocket) await validateNativeSocket(nativeSocket);
-          const tls =
-            !nativeSocket && isMacos()
-              ? await ensureTrustedLocalTls(settingsRoot)
-              : undefined;
           const selfOrigin = nativeSocket
             ? undefined
-            : `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
+            : `http://127.0.0.1:${port}`;
           const operatorOAuth = new OperatorOAuth(
             {
               issuer: connection.issuer,
@@ -231,7 +210,6 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             runtimeRegistry,
             allowedOrigins: nativeSocket ? [] : allowedOrigins,
             ...(selfOrigin ? { selfOrigin } : {}),
-            ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),
             defaultApiUrl,
             runtimeSettings,
             ...(envConfig.activeIdentity
@@ -291,138 +269,6 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   } finally {
     await shutdownLogger();
   }
-}
-
-interface TrustStatus {
-  supported: boolean;
-  trusted: boolean;
-  fingerprint: string | null;
-}
-
-export async function runTrustCommand(
-  argv: string[],
-  defaultRoot: string,
-): Promise<number> {
-  try {
-    const { values } = parseArgs({
-      args: argv,
-      options: {
-        root: { type: 'string' },
-        remove: { type: 'boolean' },
-        status: { type: 'boolean' },
-        yes: { type: 'boolean' },
-        json: { type: 'boolean' },
-      },
-    });
-    const root = values.root ?? defaultRoot;
-    const statusRequested = Boolean(values.status);
-    const removeRequested = Boolean(values.remove);
-    const yes = Boolean(values.yes);
-    const json = Boolean(values.json);
-    if (statusRequested && (removeRequested || yes)) {
-      console.error('Usage: moltnet-agent server trust --status [--json]');
-      return 1;
-    }
-    if (!isMacos()) {
-      if (json) {
-        printTrustStatus({
-          supported: false,
-          trusted: false,
-          fingerprint: null,
-        });
-        return 0;
-      }
-      console.error(
-        'Local HTTPS trust setup is currently supported on macOS only.',
-      );
-      return 1;
-    }
-
-    if (statusRequested) {
-      const material = await inspectLocalTlsMaterial(root);
-      const trusted = material !== null && (await isLocalCaTrusted(root));
-      if (json)
-        printTrustStatus({
-          supported: true,
-          trusted,
-          fingerprint: material?.fingerprint ?? null,
-        });
-      else
-        console.log(
-          trusted
-            ? `MoltNet local CA ${material?.fingerprint ?? '(not prepared)'} is trusted.`
-            : `MoltNet local CA ${material?.fingerprint ?? '(not prepared)'} is not trusted.`,
-        );
-      return 0;
-    }
-
-    if (json && !yes) {
-      console.error(
-        'Machine-readable trust changes require --yes after native app consent.',
-      );
-      return 1;
-    }
-
-    if (removeRequested) {
-      await removeLocalCa(root);
-      if (json)
-        printTrustStatus({
-          supported: true,
-          trusted: false,
-          fingerprint: null,
-        });
-      else
-        console.log('Removed the MoltNet local CA from your login keychain.');
-      return 0;
-    }
-
-    const material = await ensureLocalTlsMaterial(root);
-    if (yes) await trustLocalCa(root);
-    else await ensureTrustedLocalTls(root);
-    if (json)
-      printTrustStatus({
-        supported: true,
-        trusted: await isLocalCaTrusted(root),
-        fingerprint: material.fingerprint,
-      });
-    else console.log('MoltNet local HTTPS trust is ready for this macOS user.');
-    return 0;
-  } catch (cause) {
-    console.error(
-      `Agent Server trust command failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-    );
-    return 1;
-  }
-}
-
-function printTrustStatus(status: TrustStatus): void {
-  console.log(JSON.stringify(status));
-}
-
-async function ensureTrustedLocalTls(root: string) {
-  const material = await ensureLocalTlsMaterial(root);
-  if (await isLocalCaTrusted(root)) return material;
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    throw new Error(
-      'Local HTTPS trust is not configured. Run `moltnet-agent server trust` from an interactive terminal.',
-    );
-  }
-  const prompt = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  try {
-    const answer = await prompt.question(
-      `Trust MoltNet's local CA (${material.fingerprint}) in this macOS login keychain? [y/N] `,
-    );
-    if (!/^y(es)?$/i.test(answer.trim())) {
-      throw new Error('Local HTTPS trust was not approved.');
-    }
-  } finally {
-    prompt.close();
-  }
-  await trustLocalCa(root);
-  return material;
 }
 
 function waitForAgentServerShutdown(

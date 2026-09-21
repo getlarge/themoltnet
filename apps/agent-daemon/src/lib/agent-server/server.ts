@@ -182,8 +182,6 @@ export interface BuildAgentServerOptions {
   allowedOrigins: readonly string[];
   /** The Agent Server base URL origin, so the approval page may CORS to itself. */
   selfOrigin?: string;
-  /** TLS credentials for the macOS loopback endpoint. */
-  tls?: { key: string; cert: string };
   /** Default MoltNet API URL for newly created managed agents. */
   defaultApiUrl: string;
   /** Effective settings inherited by every child run. */
@@ -341,10 +339,7 @@ export function buildAgentServer(
   const oauth = options.operatorOAuth;
   let restartRequired = false;
 
-  const fastifyOptions = {
-    bodyLimit: BODY_LIMIT,
-    ...(options.tls ? { https: options.tls } : {}),
-  };
+  const fastifyOptions = { bodyLimit: BODY_LIMIT };
   const app = options.logger
     ? Fastify({ ...fastifyOptions, loggerInstance: options.logger })
     : Fastify(fastifyOptions);
