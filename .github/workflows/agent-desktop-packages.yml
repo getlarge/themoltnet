@@ -6,6 +6,7 @@ on:
       - libs/design-system/**
       - libs/task-ui/**
       - tools/release/agent-desktop/**
+      - .github/actions/setup-workspace/**
       - .github/workflows/agent-desktop-packages.yml
       - .github/workflows/release.yml
       - pnpm-lock.yaml
@@ -37,18 +38,14 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
-      - uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884 # 1.88.0
+          rust: 'true'
       - name: Install packaging and display dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential file libayatana-appindicator3-dev librsvg2-dev libssl-dev libwebkit2gtk-4.1-dev libxdo-dev patchelf libfuse2t64 xvfb dbus-x11
-      - run: pnpm install --frozen-lockfile
       - name: Build unsigned CI packages
         run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle:${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch

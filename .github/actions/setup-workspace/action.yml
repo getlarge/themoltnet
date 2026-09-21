@@ -1,0 +1,55 @@
+name: Setup MoltNet workspace
+description: Install the toolchains required to construct the Nx project graph.
+inputs:
+  install-dependencies:
+    description: Run the frozen pnpm workspace install after toolchain setup.
+    default: 'true'
+  go-cache:
+    description: Enable the setup-go module and build cache.
+    default: 'false'
+  go-cache-dependency-path:
+    description: Optional dependency files used to key the Go cache.
+    default: ''
+  rust:
+    description: Install the Rust version declared in .tool-versions.
+    default: 'false'
+  rust-components:
+    description: Optional comma-separated Rust components.
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .tool-versions
+        cache: pnpm
+    - if: inputs.go-cache-dependency-path == ''
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: .tool-versions
+        cache: ${{ inputs.go-cache }}
+    - if: inputs.go-cache-dependency-path != ''
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: .tool-versions
+        cache: ${{ inputs.go-cache }}
+        cache-dependency-path: ${{ inputs.go-cache-dependency-path }}
+    - name: Verify the pinned Rust toolchain
+      if: inputs.rust == 'true'
+      shell: bash
+      run: |
+        rust_version=$(awk '$1 == "rust" { print $2 }' .tool-versions)
+        [ "$rust_version" = '1.88.0' ] || {
+          echo "The pinned Rust action provides 1.88.0, but .tool-versions declares ${rust_version:-nothing}" >&2
+          exit 1
+        }
+    - if: inputs.rust == 'true' && inputs.rust-components == ''
+      uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
+    - if: inputs.rust == 'true' && inputs.rust-components != ''
+      uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
+      with:
+        components: ${{ inputs.rust-components }}
+    - if: inputs.install-dependencies == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile

@@ -100,21 +100,13 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
-      # The root postinstall constructs the Nx project graph. @nx-go/nx-go
-      # invokes `go list` during that graph construction, before the test runs.
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-          cache-dependency-path: |
+          go-cache: 'true'
+          go-cache-dependency-path: |
             go.work.sum
             apps/moltnet-cli/go.sum
             libs/moltnet-api-client/go.sum
-      - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
   # Documented in packages/agent-daemon-action/README.md under "Releasing this
@@ -506,13 +498,13 @@ jobs:
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@moltnet/agent-desktop"; then
+          if contains "@moltnet/agent-desktop" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .github/actions/setup-workspace; then
             echo "agent-desktop=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent-desktop=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle tools/release/cli tools/package.json apps/agent-daemon/package.json apps/moltnet-cli/.goreleaser.yml .tool-versions .github/workflows/ci.yml .github/workflows/release.yml; then
+          if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle tools/release/cli tools/package.json apps/agent-daemon/package.json apps/moltnet-cli/.goreleaser.yml .tool-versions .github/actions/setup-workspace .github/workflows/ci.yml .github/workflows/release.yml; then
             echo "agent-bundle=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent-bundle=false" >> "$GITHUB_OUTPUT"
@@ -521,7 +513,7 @@ jobs:
           # WSL acceptance covers the daemon, Pi/Gondolin host stack, bundle
           # contract, and the user-facing WSL guidance. CI/release changes
           # also gate it because they can alter the assembled artifact.
-          if contains "@themoltnet/agent-daemon" "@themoltnet/agent-daemon-e2e" "@themoltnet/sandbox-gondolin" "@moltnet/execution-integrations" "@moltnet/pi-extension" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle apps/agent-daemon .github/workflows/ci.yml .github/workflows/release.yml docs/operate/running-agents.md apps/landing/src/pages/DownloadPage.tsx apps/landing/src/pages/GettingStartedPage.tsx; then
+          if contains "@themoltnet/agent-daemon" "@themoltnet/agent-daemon-e2e" "@themoltnet/sandbox-gondolin" "@moltnet/execution-integrations" "@moltnet/pi-extension" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle apps/agent-daemon .github/actions/setup-workspace .github/workflows/ci.yml .github/workflows/release.yml docs/operate/running-agents.md apps/landing/src/pages/DownloadPage.tsx apps/landing/src/pages/GettingStartedPage.tsx; then
             echo "wsl-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "wsl-agent-daemon=false" >> "$GITHUB_OUTPUT"
@@ -626,18 +618,12 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.26'
-      - uses: dtolnay/rust-toolchain@1.88.0
-        if: needs.affected.outputs.agent-desktop == 'true'
-        with:
-          components: rustfmt, clippy
+          go-cache: 'true'
+          install-dependencies: 'false'
+          rust: ${{ needs.affected.outputs.agent-desktop }}
+          rust-components: rustfmt, clippy
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then

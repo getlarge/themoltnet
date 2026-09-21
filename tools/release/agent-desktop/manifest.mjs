@@ -1,6 +1,7 @@
 // Assemble only a complete, format-specific desktop update release.
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import process from 'node:process';
 
 const [directory, version, repository = 'getlarge/themoltnet'] =
   process.argv.slice(2);

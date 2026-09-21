@@ -6,6 +6,6 @@ app=$(find "$bundle/macos" -maxdepth 1 -name '*.app' -print -quit)
 dmg=$(find "$bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)
 [ -d "$app" ] && [ -s "$dmg" ]
 executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
-lipo -verify_arch arm64 "$app/Contents/MacOS/$executable"
+lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
 [ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = 13.0 ]
 hdiutil verify "$dmg"
