@@ -480,6 +480,9 @@ importers:
       '@nx/web':
         specifier: 'catalog:'
         version: 22.7.0(a82f5c4e418e41d9e66635365aa59dd3)
+      '@ory/client-fetch':
+        specifier: 'catalog:'
+        version: 1.22.63
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.59.1

@@ -1,32 +1,27 @@
-name: Deploy Ory Network
+name: Plan Ory Network configuration
+
+# Production Ory is frozen while operational ownership is being migrated.
+# This public workflow deliberately has no apply path and is never triggered by
+# an application deployment. Live apply procedures are maintained privately.
 
 on:
-  workflow_run:
-    workflows: [Deploy API]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: deploy-ory
+  group: plan-ory
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy Ory Config
+  plan:
+    name: Plan Ory configuration
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -35,7 +30,7 @@ jobs:
       - name: Install Ory CLI
         run: bash <(curl -s https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b /usr/local/bin ory
 
-      - name: Deploy to Ory Network
+      - name: Plan Ory Network configuration
         env:
           OIDC_PAIRWISE_SALT: ${{ secrets.OIDC_PAIRWISE_SALT }}
           ORY_ACTION_API_KEY: ${{ secrets.ORY_ACTION_API_KEY }}
@@ -45,4 +40,4 @@ jobs:
           SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET: ${{ secrets.SELFSERVICE_OIDC_GITHUB_CLIENT_SECRET }}
           SMTP_CONNECTION_URI: ${{ secrets.SMTP_CONNECTION_URI }}
           SMTP_FROM_ADDRESS: ${{ secrets.SMTP_FROM_ADDRESS }}
-        run: node --env-file=env.public infra/ory/deploy.mjs --apply
+        run: node --env-file=env.public infra/ory/deploy.mjs
