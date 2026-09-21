@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.5.0...agent-desktop-v0.5.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **agent-desktop:** repair staged CLI release pins ([7b9b5c6](https://github.com/getlarge/themoltnet/commit/7b9b5c6b0d371ce893d4d653b58c669bc1c8ad25))
+* **agent-desktop:** repair staged CLI release pins ([5c296f7](https://github.com/getlarge/themoltnet/commit/5c296f7b6539c18c3aa48c6d0c632500c0d06022))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.4.0...agent-desktop-v0.5.0) (2026-09-21)
 
 
