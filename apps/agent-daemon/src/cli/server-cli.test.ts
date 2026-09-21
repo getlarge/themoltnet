@@ -2,7 +2,9 @@ import { EventEmitter } from 'node:events';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { AgentServerLockError } from '../lib/agent-server/lock.js';
 import {
+  agentServerLockExitCode,
   installSupervisedStdinGuard,
   validateNativeSocketOptions,
 } from './server.js';
@@ -93,5 +95,20 @@ describe('native socket CLI configuration', () => {
         supervised: true,
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('Agent Server lock exit status', () => {
+  it('gives lock contention a stable process classification', () => {
+    expect(
+      agentServerLockExitCode(
+        new AgentServerLockError('held', 'already running'),
+      ),
+    ).toBe(75);
+    expect(
+      agentServerLockExitCode(
+        new AgentServerLockError('failed', 'lock storage failed'),
+      ),
+    ).toBe(1);
   });
 });

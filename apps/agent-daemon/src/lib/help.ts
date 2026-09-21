@@ -229,6 +229,9 @@ Options:
   --warm-retention-sec <n>    Child session/workspace retention. Default: 1800.
   --supervised                Also stop gracefully when stdin reaches EOF.
   --native-socket <path>      Private native-only socket (requires --supervised).
+                              Absolute, at most 100 bytes, with a new socket in
+                              a caller-owned 0700 directory. TCP flags are not
+                              accepted; inherited TCP env settings are ignored.
 
 Standalone mode uses loopback HTTP on every platform. Desktop socket mode does
 not open a TCP listener.

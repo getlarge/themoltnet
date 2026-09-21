@@ -410,6 +410,25 @@ export function buildAgentServer(
       throw error;
     }
   }
+  const nativeVerification = new WeakSet<FastifyRequest>();
+  function requireNativeGrant(request: FastifyRequest): void {
+    if (nativeVerification.has(request)) return;
+    const origin = request.headers.origin;
+    const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
+    if (hasValidNativeGrant(origin, token)) {
+      nativeVerification.add(request);
+      return;
+    }
+    request.log.warn(
+      { stage: 'native-control-authorization', outcome: 'rejected' },
+      'Native control authorization failed',
+    );
+    throw new AgentServerHttpError(
+      401,
+      'native_token_invalid',
+      'Native authorization required',
+    );
+  }
   void app.register(rateLimit, {
     global: true,
     max: options.rateLimitMax ?? RATE_LIMIT_MAX,
@@ -466,12 +485,7 @@ export function buildAgentServer(
       );
     }
     if (origin === NATIVE_CLIENT_ORIGIN) {
-      if (!hasValidNativeGrant(origin, token))
-        throw new AgentServerHttpError(
-          401,
-          'authorization_required',
-          'Native authorization required',
-        );
+      requireNativeGrant(request);
     } else {
       try {
         if (!oauth)
@@ -528,26 +542,11 @@ export function buildAgentServer(
   };
 
   app.after(() => {
-    // Global onRequest rate limiting runs before native authorization, including health.
+    // preParsing is deliberately after the global onRequest rate limiter and
+    // before body parsing and schema validation.
     if (options.nativeOnly) {
-      app.addHook('preHandler', (request, _reply, done) => {
-        const origin = request.headers.origin;
-        const token = request.headers[AGENT_SERVER_TOKEN_HEADER];
-        try {
-          if (hasValidNativeGrant(origin, token)) {
-            done();
-            return;
-          }
-          done(
-            new AgentServerHttpError(
-              401,
-              'authorization_required',
-              'Native authorization required',
-            ),
-          );
-        } catch (error) {
-          done(error as Error);
-        }
+      app.addHook('preParsing', async (request) => {
+        requireNativeGrant(request);
       });
     }
     app.get(

@@ -45,6 +45,11 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 const DEFAULT_PORT = OPERATOR_OAUTH.serverPort;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
 const SHUTDOWN_TIMEOUT_MS = 15_000;
+const LOCK_HELD_EXIT_CODE = 75;
+
+export function agentServerLockExitCode(error: AgentServerLockError): number {
+  return error.code === 'held' ? LOCK_HELD_EXIT_CODE : 1;
+}
 
 export function validateNativeSocketOptions(options: {
   nativeSocket?: string;
@@ -84,8 +89,11 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   const nativeSocketError = validateNativeSocketOptions({
     ...(nativeSocket ? { nativeSocket } : {}),
     ...(values.supervised ? { supervised: true } : {}),
-    port: values.port || envConfig.port,
-    allowedOrigins: values['allowed-origins'] || envConfig.allowedOrigins,
+    // Native mode does not bind TCP. Inherited standalone-mode environment
+    // settings therefore have no effect; only contradictory CLI flags are an
+    // invocation error.
+    port: values.port,
+    allowedOrigins: values['allowed-origins'],
   });
   if (nativeSocketError) {
     console.error(nativeSocketError);
@@ -262,7 +270,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     } catch (cause) {
       if (cause instanceof AgentServerLockError) {
         console.error(cause.message);
-        return 1;
+        return agentServerLockExitCode(cause);
       }
       throw cause;
     }

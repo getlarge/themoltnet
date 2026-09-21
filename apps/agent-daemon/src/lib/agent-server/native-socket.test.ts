@@ -1,5 +1,6 @@
 import {
   chmod,
+  mkdir,
   mkdtemp,
   realpath,
   rm,
@@ -18,17 +19,12 @@ import {
 } from './native-grant-service.js';
 import { validateNativeSocket } from './native-socket.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
-import { cleanupAll, fixture } from './server-test-harness.js';
+import { cleanupAll, fixture, registerCleanup } from './server-test-harness.js';
 
-const directories: string[] = [];
-afterEach(async () => {
-  await cleanupAll();
-  for (const directory of directories.splice(0))
-    await rm(directory, { recursive: true, force: true });
-});
+afterEach(cleanupAll);
 async function directory() {
   const path = await mkdtemp(join(await realpath(tmpdir()), 'mn-'));
-  directories.push(path);
+  registerCleanup(() => rm(path, { recursive: true, force: true }));
   await chmod(path, 0o700);
   return path;
 }
@@ -37,12 +33,13 @@ function get(
   path: string,
   token?: string,
   origin = NATIVE_CLIENT_ORIGIN,
+  requestPath = '/health',
 ): Promise<number | undefined> {
   return new Promise((resolve, reject) => {
     const req = request(
       {
         socketPath: path,
-        path: '/health',
+        path: requestPath,
         headers: {
           host: '127.0.0.1',
           origin,
@@ -70,6 +67,9 @@ describe('private native socket', () => {
     expect(await get(socket, 'native-secret')).toBe(200);
     expect(await get(socket)).toBe(401);
     expect(await get(socket, 'incorrect')).toBe(401);
+    expect(
+      await get(socket, undefined, NATIVE_CLIENT_ORIGIN, '/v1/providers'),
+    ).toBe(401);
     expect(
       await get(socket, 'native-secret', 'https://console.themolt.net'),
     ).toBe(401);
@@ -110,6 +110,25 @@ describe('private native socket', () => {
     await symlink(root, alias);
     await expect(
       validateNativeSocket(join(alias, 'control.sock')),
+    ).rejects.toThrow('contains a symlink');
+  });
+
+  it('refuses a non-directory parent and a symlinked ancestor', async () => {
+    const root = await directory();
+    const file = join(root, 'file');
+    await writeFile(file, 'not a directory');
+    await expect(
+      validateNativeSocket(join(file, 'control.sock')),
+    ).rejects.toThrow('not a directory');
+
+    const realAncestor = join(root, 'real');
+    await mkdir(realAncestor, { mode: 0o700 });
+    const parent = join(realAncestor, 'private');
+    await mkdir(parent, { mode: 0o700 });
+    const alias = join(root, 'alias');
+    await symlink(realAncestor, alias);
+    await expect(
+      validateNativeSocket(join(alias, 'private', 'control.sock')),
     ).rejects.toThrow('contains a symlink');
   });
 
