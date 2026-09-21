@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.62.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.61.0...agent-daemon-v0.62.0) (2026-09-21)
+
+
+### Features
+
+* **agent-desktop:** use authenticated native Unix sockets ([a4048a6](https://github.com/getlarge/themoltnet/commit/a4048a6a74b203aa963039b3846ec5ceb7f5c89f))
+* **console:** move local runtime control to Desktop ([1f934aa](https://github.com/getlarge/themoltnet/commit/1f934aae8b837c88b0d052e0cdfd7a2b84828000))
+* **console:** move local runtime control to Desktop ([9f3c644](https://github.com/getlarge/themoltnet/commit/9f3c644391a1e9b40d6f36c2943a26b5eccd162b))
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden native control enforcement ([bad11d9](https://github.com/getlarge/themoltnet/commit/bad11d970c0528d94d38bac6abb7f4edc1fff1d6))
+* **agent-daemon:** rate limit native socket authorization ([80481ef](https://github.com/getlarge/themoltnet/commit/80481ef4b2f7aab8f5bdc6ed3fc206e0554b041c))
+* **agent-daemon:** reject symlink socket parents ([24d56e3](https://github.com/getlarge/themoltnet/commit/24d56e38f7d1e1ee87301e8f0bc3545b6a39465f))
+* **agent-desktop:** close native socket review gaps ([d77c695](https://github.com/getlarge/themoltnet/commit/d77c695882beb9c5fbb15b491b44c3cc64879ddb))
+* **agent-desktop:** remove local CA trust ([32c5dcf](https://github.com/getlarge/themoltnet/commit/32c5dcfd348e8d52e8fc866205cf7919bc4c0a1e))
+* **agent-desktop:** remove obsolete local-control paths ([2759833](https://github.com/getlarge/themoltnet/commit/2759833ead39bfd65d911fad23bc32946033890a))
+* **console:** finish local runtime cutover cleanup ([20184df](https://github.com/getlarge/themoltnet/commit/20184df590d356908a6ccb7a47cd37d8ae5b37ff))
+
 ## [0.61.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.60.0...agent-daemon-v0.61.0) (2026-09-20)
 
 

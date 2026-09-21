@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/console-v0.19.0...console-v0.20.0) (2026-09-21)
+
+
+### Features
+
+* **console:** move local runtime control to Desktop ([1f934aa](https://github.com/getlarge/themoltnet/commit/1f934aae8b837c88b0d052e0cdfd7a2b84828000))
+* **console:** move local runtime control to Desktop ([9f3c644](https://github.com/getlarge/themoltnet/commit/9f3c644391a1e9b40d6f36c2943a26b5eccd162b))
+
+
+### Bug Fixes
+
+* **console:** finish local runtime cutover cleanup ([20184df](https://github.com/getlarge/themoltnet/commit/20184df590d356908a6ccb7a47cd37d8ae5b37ff))
+
 ## [0.19.0](https://github.com/getlarge/themoltnet/compare/console-v0.18.0...console-v0.19.0) (2026-09-20)
 
 

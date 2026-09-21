@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/landing-v0.14.2...landing-v0.15.0) (2026-09-21)
+
+
+### Features
+
+* **console:** move local runtime control to Desktop ([1f934aa](https://github.com/getlarge/themoltnet/commit/1f934aae8b837c88b0d052e0cdfd7a2b84828000))
+* **landing:** publish Linux Desktop downloads ([13e074b](https://github.com/getlarge/themoltnet/commit/13e074b43a314e0522f1d487caa1b48ba0742ba6))
+
+
+### Bug Fixes
+
+* **console:** finish local runtime cutover cleanup ([20184df](https://github.com/getlarge/themoltnet/commit/20184df590d356908a6ccb7a47cd37d8ae5b37ff))
+* **landing:** publish stable download pins ([aa24f14](https://github.com/getlarge/themoltnet/commit/aa24f1487b04b6c91e2168395aeec92c179ef065))
+* **landing:** publish stable download pins ([7a23abf](https://github.com/getlarge/themoltnet/commit/7a23abfa648c5d62c0a0cee0b48a6c3336d1a76c))
+
 ## [0.14.2](https://github.com/getlarge/themoltnet/compare/landing-v0.14.1...landing-v0.14.2) (2026-09-20)
 
 
