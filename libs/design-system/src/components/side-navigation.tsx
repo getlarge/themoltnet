@@ -1,6 +1,7 @@
-import type { CSSProperties, MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { useInteractive, useTheme } from '../hooks.js';
+import { visuallyHiddenStyle } from './visually-hidden.js';
 
 export interface SideNavigationItem {
   id: string;
@@ -65,7 +66,7 @@ export function SideNavigation({
                     id={labelId}
                     style={
                       collapsed
-                        ? visuallyHidden
+                        ? visuallyHiddenStyle
                         : {
                             color: theme.color.text.muted,
                             fontSize: theme.font.size.xs,
@@ -187,15 +188,3 @@ function SideNavigationLink({
     </a>
   );
 }
-
-const visuallyHidden: CSSProperties = {
-  border: 0,
-  clip: 'rect(0 0 0 0)',
-  height: 1,
-  margin: -1,
-  overflow: 'hidden',
-  padding: 0,
-  position: 'absolute',
-  whiteSpace: 'nowrap',
-  width: 1,
-};

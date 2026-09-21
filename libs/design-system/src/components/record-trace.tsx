@@ -26,17 +26,14 @@ export interface RecordTraceStep {
 export interface RecordTraceProps {
   steps: RecordTraceStep[];
   ariaLabel: string;
-  /** Narrowest a step may be while all steps share one row. */
-  minStepWidth?: string;
 }
 
-export function RecordTrace({
-  steps,
-  ariaLabel,
-  minStepWidth = '10.5rem',
-}: RecordTraceProps) {
+/** Narrowest a step may be while all steps share one row. */
+const MIN_STEP_WIDTH = '10.5rem';
+
+export function RecordTrace({ steps, ariaLabel }: RecordTraceProps) {
   const theme = useTheme();
-  const rowWidth = `(${minStepWidth} * ${steps.length} + ${theme.spacing[3]} * ${Math.max(steps.length - 1, 0)})`;
+  const rowWidth = `(${MIN_STEP_WIDTH} * ${steps.length} + ${theme.spacing[3]} * ${Math.max(steps.length - 1, 0)})`;
 
   return (
     <ol
