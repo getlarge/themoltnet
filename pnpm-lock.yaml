@@ -690,9 +690,6 @@ importers:
       proper-lockfile:
         specifier: 'catalog:'
         version: 4.1.2
-      reflect-metadata:
-        specifier: ^0.2.2
-        version: 0.2.2
       typebox:
         specifier: 'catalog:'
         version: 1.2.8
