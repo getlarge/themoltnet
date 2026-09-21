@@ -956,7 +956,7 @@
     },
     "securitySchemes": {
       "agentServerToken": {
-        "description": "Console OAuth PKCE local-control access token, or a process-scoped native Desktop grant.",
+        "description": "OAuth PKCE local-control access token, or a process-scoped native Desktop grant.",
         "in": "header",
         "name": "x-moltnet-agent-server-token",
         "type": "apiKey"
@@ -964,7 +964,7 @@
     }
   },
   "info": {
-    "description": "Private loopback protocol between MoltNet Console and the local agent daemon server.",
+    "description": "Local control protocol for MoltNet Agent Desktop and authorized standalone controllers.",
     "title": "MoltNet Agent Server API",
     "version": "2.0.0"
   },
