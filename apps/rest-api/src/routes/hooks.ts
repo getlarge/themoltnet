@@ -626,36 +626,55 @@ export async function hookRoutes(fastify: FastifyInstance) {
           // granted_scopes (ory/hydra#3620). Our consent handler stamps the
           // validated scope into the server-owned session instead.
           const scope = extra['moltnet:approved_scope'];
-          if (
-            tokenRequest.grant_types?.join(' ') !== 'authorization_code' ||
-            !Array.isArray(granted) ||
-            (granted.length !== 0 &&
-              (granted.length !== 1 || granted[0] !== scope)) ||
-            extra['moltnet:subject_type'] !== 'human' ||
-            extra['moltnet:identity_id'] !== session.id_token?.subject ||
+          const rejectionReasons = [
+            tokenRequest.grant_types?.join(' ') !== 'authorization_code'
+              ? 'grant_type'
+              : undefined,
+            granted !== undefined &&
+            (!Array.isArray(granted) ||
+              (granted.length !== 0 &&
+                (granted.length !== 1 || granted[0] !== scope)))
+              ? 'granted_scope'
+              : undefined,
+            extra['moltnet:subject_type'] !== 'human'
+              ? 'subject_type'
+              : undefined,
+            extra['moltnet:identity_id'] !== session.id_token?.subject
+              ? 'subject_binding'
+              : undefined,
             typeof extra['moltnet:instance'] !== 'string' ||
-            !/^[0-9a-f-]{36}$/i.test(extra['moltnet:instance']) ||
-            (scope !== LOCAL_CONTROL_SCOPE &&
-              !(nativeClient && scope === PROVISIONING_SCOPE)) ||
-            (scope === PROVISIONING_SCOPE &&
-              (!provisioning ||
-                !delegableScopes?.includes('key:manage') ||
-                provisioning.scopes.some(
-                  (scope) => !delegableScopes.includes(scope),
-                ) ||
-                provisioning.scopes.some(
-                  (value) =>
-                    !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
-                      value,
-                    ),
-                ))) ||
-            (scope === LOCAL_CONTROL_SCOPE &&
-              extra['moltnet:provisioning'] !== undefined)
-          ) {
+            !/^[0-9a-f-]{36}$/i.test(extra['moltnet:instance'])
+              ? 'instance'
+              : undefined,
+            scope !== LOCAL_CONTROL_SCOPE &&
+            !(nativeClient && scope === PROVISIONING_SCOPE)
+              ? 'approved_scope'
+              : undefined,
+            scope === PROVISIONING_SCOPE &&
+            (!provisioning ||
+              !delegableScopes?.includes('key:manage') ||
+              provisioning.scopes.some(
+                (scope) => !delegableScopes.includes(scope),
+              ) ||
+              provisioning.scopes.some(
+                (value) =>
+                  !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
+                    value,
+                  ),
+              ))
+              ? 'provisioning_grant'
+              : undefined,
+            scope === LOCAL_CONTROL_SCOPE &&
+            extra['moltnet:provisioning'] !== undefined
+              ? 'unexpected_provisioning_grant'
+              : undefined,
+          ].filter((reason): reason is string => !!reason);
+          if (rejectionReasons.length > 0) {
             request.log.warn(
               {
                 stage: 'administrative-consent',
                 clientKind: nativeClient ? 'native' : 'console',
+                rejectionReasons,
               },
               'Administrative consent grant rejected',
             );

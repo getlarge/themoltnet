@@ -436,6 +436,7 @@ describe('Hook routes', () => {
       ['moltnet:local-control', 'moltnet:provision'].flatMap((scope) => [
         { scope, granted: [scope] },
         { scope, granted: [] },
+        { scope, granted: undefined },
       ]),
     )(
       'preserves validated $scope consent with hook scopes $granted',
@@ -514,7 +515,6 @@ describe('Hook routes', () => {
       { approved: undefined, granted: ['moltnet:local-control'] },
       { approved: ['moltnet:local-control'], granted: [] },
       { approved: 'diary:manage', granted: [] },
-      { approved: 'moltnet:local-control', granted: undefined },
       {
         approved: 'moltnet:local-control',
         granted: { scope: 'moltnet:local-control' },
