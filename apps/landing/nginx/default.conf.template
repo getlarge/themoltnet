@@ -20,8 +20,8 @@ server {
     # (API_BASE_URL, DOCS_URL), so these nginx runtime variables survive
     # templating untouched. One literal per product — everything below derives.
     set $cli_version 3.5.0;
-    set $agent_cli_version 0.63.1;
-    set $agent_desktop_version 0.6.2;
+    set $agent_cli_version 0.64.0;
+    set $agent_desktop_version 0.7.0;
 
     # The served installer's default install version is pinned with it at
     # release time, so this one line controls what `curl | sh` delivers.
