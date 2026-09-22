@@ -879,9 +879,6 @@
               "binding": {
                 "type": "string"
               },
-              "configPath": {
-                "type": "string"
-              },
               "diaryId": {
                 "type": "string"
               },
@@ -939,8 +936,7 @@
             },
             "required": [
               "projectId",
-              "strategy",
-              "configPath"
+              "strategy"
             ],
             "type": "object"
           },
@@ -2342,6 +2338,7 @@
         ]
       },
       "post": {
+        "description": "projectId (other than null), binding, source and workspaceStrategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.",
         "operationId": "startAgentServerRun",
         "requestBody": {
           "content": {

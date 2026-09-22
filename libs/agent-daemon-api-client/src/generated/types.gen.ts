@@ -163,7 +163,6 @@ export type AgentServerRunRecord = {
   teamId: string;
   workspace?: {
     binding?: string;
-    configPath: string;
     diaryId?: string;
     projectId: string | null;
     source?: string;
