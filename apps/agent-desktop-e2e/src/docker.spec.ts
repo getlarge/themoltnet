@@ -2,10 +2,9 @@ import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { $, browser, expect } from '@wdio/globals';
 
 import { journeyAgent } from './docker-journey.js';
+import { field, lifecycle } from './journey-helpers.js';
 import { enableNativePolling, selectNative } from './native-visibility.js';
 
-const field = (label: string) =>
-  $(`//label[normalize-space()="${label}"]/following-sibling::select`);
 async function click(selector: string) {
   const element = $(selector);
   await browser.execute(
@@ -18,33 +17,29 @@ async function click(selector: string) {
   );
   await element.click();
 }
-async function lifecycle(command: string) {
-  let state: DesktopStatus | undefined;
-  let failure: unknown;
+
+type JourneyAgent = Awaited<ReturnType<typeof journeyAgent>>['agent'];
+
+/**
+ * A failed task ends the wait with its own error; throwing inside the
+ * condition would be retried until the timeout and reported as one.
+ */
+async function waitForTask(agent: JourneyAgent, id: string, label: string) {
+  let failed = false;
+  let last = 'unknown';
   await browser.waitUntil(
     async () => {
-      try {
-        state = await browser.tauri.execute<Promise<DesktopStatus>, [string]>(
-          ({ core }, name) => core.invoke(name) as Promise<DesktopStatus>,
-          command,
-        );
-        return true;
-      } catch (error) {
-        if (
-          String(error).includes(
-            'another desktop lifecycle operation is already in progress',
-          )
-        )
-          return false;
-        failure = error;
-        return true;
-      }
+      last = (await agent.tasks.get(id)).status;
+      failed = last === 'failed';
+      return failed || last === 'completed';
     },
-    { timeout: 20000, interval: 200 },
+    {
+      timeout: 60000,
+      interval: 500,
+      timeoutMsg: `${label} did not complete the real API task (last status: ${last})`,
+    },
   );
-  if (failure)
-    throw failure instanceof Error ? failure : new Error(String(failure));
-  return state;
+  if (failed) throw new Error(`${label} failed task ${id}`);
 }
 
 describe('Personal Desktop journey against Docker services', () => {
@@ -53,14 +48,19 @@ describe('Personal Desktop journey against Docker services', () => {
     if (!root) throw new Error('Use the isolated Docker launcher');
     await enableNativePolling();
     const { agent, journey } = await journeyAgent(root);
+    let serverState = 'unknown';
     await browser.waitUntil(
       async () => {
         const state = await browser.tauri.execute<Promise<DesktopStatus>, []>(
           ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
         );
+        serverState = state.state;
         return state.state === 'running';
       },
-      { timeout: 20000 },
+      {
+        timeout: 20000,
+        timeoutMsg: `The Agent Server did not start (last state: ${serverState})`,
+      },
     );
     try {
       await $('a=Projects').click();
@@ -103,41 +103,17 @@ describe('Personal Desktop journey against Docker services', () => {
       await selectNative(field('Runtime profile'), journey.profileId);
       await click('button=Start run');
       await expect($('button=Stop')).toBeDisplayed();
-      await browser.waitUntil(
-        async () => {
-          const task = await agent.tasks.get(projectTask.id);
-          if (task.status === 'failed')
-            throw new Error('Desktop task failed: ' + task.id);
-          return task.status === 'completed';
-        },
-        {
-          timeout: 60000,
-          interval: 500,
-          timeoutMsg:
-            'Desktop project worker did not complete the real API task',
-        },
-      );
-      expect((await agent.tasks.get(generalTask.id)).status).toBe('queued');
+      await waitForTask(agent, projectTask.id, 'Desktop project worker');
       await click('button=Stop');
       await expect($('button=Stop')).not.toExist({ wait: 20000 });
+      // Checked once the project run has stopped polling: it must never have
+      // claimed General work, which only the General run below may complete.
+      expect((await agent.tasks.get(generalTask.id)).status).toBe('queued');
       await click('button=New run');
       await expect(field('Project')).toHaveValue('');
       await selectNative(field('Runtime profile'), journey.profileId);
       await click('button=Start run');
-      await browser.waitUntil(
-        async () => {
-          const task = await agent.tasks.get(generalTask.id);
-          if (task.status === 'failed')
-            throw new Error('Desktop task failed: ' + task.id);
-          return task.status === 'completed';
-        },
-        {
-          timeout: 60000,
-          interval: 500,
-          timeoutMsg:
-            'Desktop General worker did not complete the real API task',
-        },
-      );
+      await waitForTask(agent, generalTask.id, 'Desktop General worker');
       await click('button=Stop');
       await expect($('button=Stop')).not.toExist({ wait: 20000 });
       await lifecycle('stop_agent_server');
@@ -171,7 +147,10 @@ describe('Personal Desktop journey against Docker services', () => {
       await browser.saveScreenshot('test-results/desktop-docker-failure.png');
       throw error instanceof Error ? error : new Error(String(error));
     } finally {
-      await lifecycle('stop_agent_server');
+      // A failed stop must not replace the error that ended the journey.
+      await lifecycle('stop_agent_server').catch((error: unknown) => {
+        console.error('Cleanup stop failed:', error);
+      });
     }
   });
 });

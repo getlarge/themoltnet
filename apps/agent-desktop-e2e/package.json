@@ -28,8 +28,7 @@
     ],
     "implicitDependencies": [
       "@moltnet/agent-desktop",
-      "@themoltnet/agent-daemon",
-      "@moltnet/rest-api"
+      "@themoltnet/agent-daemon"
     ],
     "targets": {
       "build-native": {

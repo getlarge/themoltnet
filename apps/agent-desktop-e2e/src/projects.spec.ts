@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/webdriverio';
 import { $, browser, expect } from '@wdio/globals';
 
+import { field } from './journey-helpers.js';
 import { catalogue, running, status } from './run-fixtures.js';
 
 const shared = {
@@ -22,8 +23,6 @@ const location = {
   default: true,
   readiness: { ready: true },
 };
-const field = (label: string) =>
-  $(`//label[normalize-space()="${label}"]/following-sibling::select`);
 let start: Awaited<ReturnType<typeof browser.tauri.mock>>;
 
 describe('Desktop Projects journeys', () => {

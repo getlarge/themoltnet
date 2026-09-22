@@ -123,6 +123,18 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
       'MOLTNET_OPERATOR_OAUTH_PUBLIC_URL',
     ])
       delete env[key];
+    // Service URLs reach provisioning only, never the Desktop app itself.
+    const setupEnv = { ...env };
+    for (const key of [
+      'REST_API_URL',
+      'DATABASE_URL',
+      'ORY_HYDRA_PUBLIC_URL',
+      'ORY_HYDRA_ADMIN_URL',
+      'ORY_KETO_PUBLIC_URL',
+      'ORY_KETO_ADMIN_URL',
+      'ORY_KRATOS_ADMIN_URL',
+    ])
+      if (process.env[key] !== undefined) setupEnv[key] = process.env[key];
     for (const script of ['setup.ts', 'desktop-docker-setup.ts']) {
       abort.signal.throwIfAborted();
       child = spawn(
@@ -132,7 +144,7 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
           tsx,
           fileURLToPath(new URL(`./src/fixtures/${script}`, import.meta.url)),
         ],
-        { cwd: projectRoot, env, stdio: 'inherit', detached: true },
+        { cwd: projectRoot, env: setupEnv, stdio: 'inherit', detached: true },
       );
       const code = await new Promise((resolve, reject) => {
         child.once('error', reject);

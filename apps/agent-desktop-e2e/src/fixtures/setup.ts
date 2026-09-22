@@ -1,19 +1,34 @@
 import { randomUUID } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 
-import { createE2EAgentHarness } from '@moltnet/bootstrap';
+import {
+  createE2EAgentHarness,
+  DEFAULT_E2E_REST_API_URL,
+} from '@moltnet/bootstrap';
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { connect } from '@themoltnet/sdk';
 
-import type { DesktopDockerJourney } from './journey.js';
+import { type DesktopDockerJourneySetup, writeJourney } from './journey.js';
 
 const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
 const home = process.env.MOLTNET_HOME;
 if (!root || home !== join(root, 'store'))
   throw new Error('Use the isolated Desktop Docker launcher');
+const restApiUrl = process.env.REST_API_URL ?? DEFAULT_E2E_REST_API_URL;
+// Compose can report the container started before the API answers.
+const deadline = Date.now() + 60_000;
+for (;;) {
+  const healthy = await fetch(new URL('/health', restApiUrl))
+    .then((response) => response.ok)
+    .catch(() => false);
+  if (healthy) break;
+  if (Date.now() > deadline)
+    throw new Error(`REST API at ${restApiUrl} did not become healthy`);
+  await sleep(1000);
+}
 const harness = await createE2EAgentHarness({
-  restApiUrl: process.env.REST_API_URL,
+  restApiUrl,
   databaseUrl: process.env.DATABASE_URL,
   hydraPublicUrl: process.env.ORY_HYDRA_PUBLIC_URL,
   hydraAdminUrl: process.env.ORY_HYDRA_ADMIN_URL,
@@ -52,7 +67,7 @@ try {
     },
     { teamId: owner.personalTeamId },
   );
-  const journey: DesktopDockerJourney = {
+  const journey: DesktopDockerJourneySetup = {
     identity: {
       subjectId: owner.agentId,
       ...owner.keyPair,
@@ -66,9 +81,7 @@ try {
     projectId: project.id,
     profileId: profile.id,
   };
-  writeFileSync(join(root, 'docker-journey.json'), JSON.stringify(journey), {
-    mode: 0o600,
-  });
+  writeJourney(root, journey);
 } finally {
   await harness.teardown();
 }

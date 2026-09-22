@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,23 +14,13 @@ import {
 } from '@themoltnet/sdk';
 import { FileSecretProvider } from '@themoltnet/sdk/node';
 
+import { readJourneySetup, writeJourney } from './journey.js';
+
 const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
 const home = process.env.MOLTNET_HOME;
 if (!root || home !== join(root, 'store'))
   throw new Error('Use the isolated Desktop Docker launcher');
-const journey = JSON.parse(
-  readFileSync(join(root, 'docker-journey.json'), 'utf8'),
-) as {
-  apiUrl: string;
-  teamId: string;
-  identity: {
-    subjectId: string;
-    publicKey: string;
-    privateKey: string;
-    fingerprint: string;
-    agentKey: string;
-  };
-};
+const journey = readJourneySetup(root);
 const settings = new ConnectionSettingsStore(home);
 settings.save({
   apiUrl: journey.apiUrl,
@@ -81,3 +70,6 @@ store.writeProviders({
     models: [{ id: 'desktop-fixture' }],
   },
 });
+// The identity now lives in the isolated store; keep no second copy on disk.
+const { identity: _identity, ...rest } = journey;
+writeJourney(root, rest);

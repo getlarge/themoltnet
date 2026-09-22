@@ -1,5 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 
+import { field } from './journey-helpers.js';
 import {
   catalogue,
   expectNoAxeViolations,
@@ -48,8 +49,6 @@ async function mount() {
 }
 
 // Select labels are associated through their native label elements.
-const field = (label: string) =>
-  $(`//label[normalize-space()="${label}"]/following-sibling::select`);
 
 describe('Run-flow audit regressions', () => {
   beforeEach(mount);
