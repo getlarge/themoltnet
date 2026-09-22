@@ -130,11 +130,6 @@ export interface RunCenterActions {
  */
 export type { ProviderActions } from '@moltnet/task-ui/local-providers';
 
-/**
- * Signing in to an existing LLM subscription, as an alternative to pasting an
- * API key. This is the wider door: a subscription the operator already has is
- * far more reachable than obtaining and handling a key.
- */
 export type ProjectLocation = AgentServerProjectLocation;
 /** The location name addresses the record; the rest is its saved body. */
 export type SaveProjectLocationInput = SaveNativeProjectLocationData['body'] &
@@ -148,6 +143,11 @@ export interface ProjectActions {
   chooseFolder(): Promise<string | null>;
 }
 
+/**
+ * Signing in to an existing LLM subscription, as an alternative to pasting an
+ * API key. This is the wider door: a subscription the operator already has is
+ * far more reachable than obtaining and handling a key.
+ */
 export interface SubscriptionActions {
   startLogin(providerId: string): Promise<AgentServerSubscriptionLogin>;
   loginStatus(providerId: string): Promise<AgentServerSubscriptionLogin>;
