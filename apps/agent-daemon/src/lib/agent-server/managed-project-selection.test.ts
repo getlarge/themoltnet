@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 
+import { MoltNetError } from '@themoltnet/sdk';
 import { readProjectConfig, updateProjectConfig } from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,6 +38,8 @@ async function setup() {
   const project = vi.fn(async () => ({
     id: 'project',
     teamId: 'team',
+    name: 'Project',
+    description: null,
     archived: false,
     defaultDiaryId: 'project-diary',
   }));
@@ -48,11 +51,14 @@ async function setup() {
     binding,
     project,
     diary,
+    store: join(root, 'store'),
     options: {
       root,
       cwd,
       apiUrl: binding.apiUrl,
       client: { projects: { get: project }, diaries: { get: diary } },
+      protectedRoots: [join(root, 'store')],
+      signal: new AbortController().signal,
     },
   };
 }
@@ -104,7 +110,7 @@ describe('managed run project selection', () => {
       root: relative(process.cwd(), f.root),
       spec: { ...spec, projectId: 'project' },
     });
-    expect(result.workspace.configPath).toBe(join(f.root, 'projects.json'));
+    expect(result.selection.configPath).toBe(join(f.root, 'projects.json'));
     expect(result.workspace.source).toBe(f.source);
   });
 
@@ -130,6 +136,8 @@ describe('managed run project selection', () => {
       spec: { ...spec, projectId: null },
     });
     expect(result.workspace.projectId).toBeNull();
+    // The profile's own workspace; no folder was chosen, so none is recorded.
+    expect(result.workspace).not.toHaveProperty('source');
     expect(result.config.bindings).toEqual([]);
     expect(f.project).not.toHaveBeenCalled();
   });
@@ -144,42 +152,58 @@ describe('managed run project selection', () => {
     ).rejects.toThrow(/General/);
   });
 
-  it('rejects inaccessible, archived, or wrong-team projects before launching', async () => {
+  it('separates an unreachable server from a project this team cannot use', async () => {
     const f = await setup();
+    const input = { ...f.options, spec: { ...spec, projectId: 'project' } };
     f.project.mockRejectedValueOnce(new Error('offline'));
-    await expect(
-      resolveManagedProjectSelection({
-        ...f.options,
-        spec: { ...spec, projectId: 'project' },
-      }),
-    ).rejects.toThrow(/project/i);
-    f.project.mockResolvedValue({
-      id: 'project',
-      teamId: 'foreign',
-      archived: false,
-      defaultDiaryId: 'project-diary',
+    await expect(resolveManagedProjectSelection(input)).rejects.toMatchObject({
+      statusCode: 503,
+      code: 'project_check_unavailable',
     });
-    await expect(
-      resolveManagedProjectSelection({
-        ...f.options,
-        spec: { ...spec, projectId: 'project' },
-      }),
-    ).rejects.toThrow(/project/i);
-    f.project.mockResolvedValue({
-      id: 'project',
-      teamId: 'team',
-      archived: true,
-      defaultDiaryId: 'project-diary',
+    f.project.mockRejectedValueOnce(
+      new MoltNetError('Forbidden', { code: 'FORBIDDEN', statusCode: 403 }),
+    );
+    await expect(resolveManagedProjectSelection(input)).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'project_unavailable',
     });
-    await expect(
-      resolveManagedProjectSelection({
-        ...f.options,
-        spec: { ...spec, projectId: 'project' },
-      }),
-    ).rejects.toThrow(/project/i);
+    for (const change of [{ teamId: 'foreign' }, { archived: true }]) {
+      f.project.mockResolvedValueOnce({
+        id: 'project',
+        teamId: 'team',
+        name: 'Project',
+        description: null,
+        archived: false,
+        defaultDiaryId: 'project-diary',
+        ...change,
+      });
+      await expect(resolveManagedProjectSelection(input)).rejects.toMatchObject(
+        { code: 'project_unavailable' },
+      );
+    }
   });
 
-  it('rejects a diary belonging to another team and relative run-only folders', async () => {
+  it('stops a slow check at its deadline instead of outliving the request', async () => {
+    const f = await setup();
+    f.project.mockImplementationOnce(
+      () =>
+        new Promise<never>(() => {
+          // Never settles: only the deadline ends this check.
+        }),
+    );
+    await expect(
+      resolveManagedProjectSelection({
+        ...f.options,
+        signal: AbortSignal.timeout(20),
+        spec: { ...spec, projectId: 'project' },
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 503,
+      code: 'project_check_unavailable',
+    });
+  });
+
+  it('rejects a location diary belonging to another team', async () => {
     const f = await setup();
     f.diary.mockResolvedValue({ id: 'location-diary', teamId: 'foreign' });
     await expect(
@@ -187,12 +211,81 @@ describe('managed run project selection', () => {
         ...f.options,
         spec: { ...spec, projectId: 'project' },
       }),
-    ).rejects.toThrow(/diary/i);
+    ).rejects.toMatchObject({ code: 'diary_unavailable' });
+  });
+
+  it('checks an explicit diary on General work, which browsers may send', async () => {
+    const f = await setup();
+    f.diary.mockResolvedValueOnce({ id: 'foreign-diary', teamId: 'foreign' });
+    await expect(
+      resolveManagedProjectSelection({
+        ...f.options,
+        spec: { ...spec, projectId: null, diaryId: 'foreign-diary' },
+      }),
+    ).rejects.toMatchObject({ code: 'diary_unavailable' });
+
+    const accepted = await resolveManagedProjectSelection({
+      ...f.options,
+      spec: { ...spec, projectId: null, diaryId: 'team-diary' },
+    });
+    expect(accepted.workspace).toMatchObject({
+      projectId: null,
+      diaryId: 'team-diary',
+    });
+    expect(f.project).not.toHaveBeenCalled();
+  });
+
+  it('rejects relative run-only folders', async () => {
+    const f = await setup();
     await expect(
       resolveManagedProjectSelection({
         ...f.options,
         spec: { ...spec, projectId: 'project', source: '../other' },
       }),
     ).rejects.toThrow(/absolute/i);
+  });
+
+  it('explains a missing run-only folder instead of failing on realpath', async () => {
+    const f = await setup();
+    await expect(
+      resolveManagedProjectSelection({
+        ...f.options,
+        spec: { ...spec, projectId: null, source: join(f.root, 'gone') },
+      }),
+    ).rejects.toThrow(/unavailable/i);
+  });
+
+  it('refuses folders inside or containing the configuration store', async () => {
+    const f = await setup();
+    const inside = join(f.store, 'identities');
+    await mkdir(inside, { recursive: true });
+    for (const source of [inside, f.root]) {
+      await expect(
+        resolveManagedProjectSelection({
+          ...f.options,
+          spec: {
+            ...spec,
+            projectId: null,
+            source,
+            workspaceStrategy: 'existing',
+          },
+        }),
+      ).rejects.toThrow(/outside the MoltNet configuration store/);
+    }
+  });
+
+  it('leaves the request untouched and returns resolved ids separately', async () => {
+    const f = await setup();
+    const request = { ...spec, binding: 'Laptop' };
+    const result = await resolveManagedProjectSelection({
+      ...f.options,
+      spec: request,
+    });
+    expect(request).toEqual({ ...spec, binding: 'Laptop' });
+    expect(result.effective).toMatchObject({
+      projectId: 'project',
+      diaryId: 'location-diary',
+      binding: 'Laptop',
+    });
   });
 });

@@ -10,7 +10,7 @@
  */
 import type { ChildProcess } from 'node:child_process';
 import { spawn as nodeSpawn } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   createWriteStream,
   mkdirSync,
@@ -40,14 +40,19 @@ import {
 import {
   applyProjectWorkspacePolicy,
   type EffectiveRunProjectSelection,
+  projectRunArgs,
 } from '../run-project-selection.js';
 import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
 } from './identity.js';
-import { resolveManagedProjectSelection } from './managed-project-selection.js';
+import {
+  requestsProjectSelection,
+  resolveManagedProjectSelection,
+} from './managed-project-selection.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
+import { NATIVE_REQUEST_BUDGET_MS } from './project-target.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
@@ -57,7 +62,7 @@ import type {
   RunSpec,
   RunWorkspace,
 } from './store.js';
-import { AgentServerStoreError } from './store.js';
+import { AgentServerStoreError, PROFILE_DEFAULT_STRATEGY } from './store.js';
 import {
   requireCredentialSnapshot,
   TeamCredentialError,
@@ -159,6 +164,8 @@ export interface RunManagerOptions {
   storeRoot?: string;
   /** Machine-wide bindings stay outside per-connection run state. */
   projectRoot?: string;
+  /** Override used by focused project-check deadline tests. */
+  projectCheckTimeoutMs?: number;
   /** AgentServer-managed refs (`file:` rooted under this agent server store plus env/keyring). */
   secretProviders: SecretProviderRegistry;
   /** Providers used by external configs at their original location. */
@@ -323,22 +330,19 @@ export class RunManager {
       String(runtimeSettings.warmRetentionSec),
       ...target.extraArgs,
       ...(workspace
-        ? [
-            '--config-file',
-            workspace.configPath,
+        ? projectRunArgs({
+            'config-file': workspace.configPath,
             ...(workspace.binding
-              ? ['--binding', workspace.binding]
-              : ['--general']),
-            ...(workspace.strategy === 'profile-default'
-              ? []
-              : [
-                  ...(workspace.source ? ['--source', workspace.source] : []),
-                  '--workspace-strategy',
-                  workspace.strategy,
-                ]),
-            '--state-dir',
-            join(dirname(piDir), 'state'),
-          ]
+              ? { binding: workspace.binding }
+              : { general: true }),
+            ...(workspace.strategy === PROFILE_DEFAULT_STRATEGY
+              ? {}
+              : {
+                  source: workspace.source,
+                  'workspace-strategy': workspace.strategy,
+                }),
+            'state-dir': this.runStateDir(spec.agent, workspace),
+          })
         : []),
     ];
 
@@ -456,44 +460,67 @@ export class RunManager {
     let child: ChildProcess | undefined;
     let logStream: ReturnType<typeof createWriteStream> | undefined;
     let logLimiter: Transform | undefined;
+    // `spec` stays the request; `effective` carries resolved ids to the worker.
+    let workspace: RunWorkspace | undefined;
+    let effective: RunSpec = spec;
+    let selection: EffectiveRunProjectSelection | undefined;
     try {
       const { logPath } = this.store.createRunDir(id);
       const executionDir = join(runDir, 'workspace');
-      mkdirSync(executionDir, { recursive: true, mode: 0o700 });
-      const resolved = await resolveManagedProjectSelection({
-        spec,
-        root: this.options.projectRoot ?? this.store.root,
-        cwd: executionDir,
-        apiUrl: agent.activation.apiUrl ?? agent.config.endpoints.api,
-        client: requireCredentialSnapshot(agent).client,
-      });
-      const workspace = {
-        ...resolved.workspace,
-        configPath: join(runDir, 'projects.json'),
-      };
-      spec = {
-        ...spec,
-        projectId: workspace.projectId,
-        diaryId: workspace.diaryId,
-      };
-      writeFileSync(workspace.configPath, JSON.stringify(resolved.config), {
-        mode: 0o600,
-        flag: 'wx',
-      });
+      // Clients that name no project field keep the pre-selection behaviour:
+      // no workspace wiring, the agent's own cwd and profile state roots.
+      if (requestsProjectSelection(spec)) {
+        mkdirSync(executionDir, { recursive: true, mode: 0o700 });
+        const projectRoot = this.options.projectRoot ?? this.store.root;
+        const resolved = await resolveManagedProjectSelection({
+          spec,
+          root: projectRoot,
+          cwd: executionDir,
+          apiUrl: agent.activation.apiUrl ?? agent.config.endpoints.api,
+          client: requireCredentialSnapshot(agent).client,
+          protectedRoots: [projectRoot, this.store.root, this.store.secretsDir],
+          signal: AbortSignal.any([
+            ...(signal ? [signal] : []),
+            AbortSignal.timeout(
+              this.options.projectCheckTimeoutMs ?? NATIVE_REQUEST_BUDGET_MS,
+            ),
+          ]),
+          logger: {
+            warn: (context, message) => this.log('warn', message, context),
+          },
+        });
+        workspace = {
+          ...resolved.workspace,
+          configPath: join(runDir, 'projects.json'),
+        };
+        effective = resolved.effective;
+        selection = resolved.selection;
+        writeRunSnapshot(workspace.configPath, resolved.config);
+        mkdirSync(this.runStateDir(spec.agent, workspace), {
+          recursive: true,
+          mode: 0o700,
+        });
+      }
       const providers = this.store.readProviders();
-      const executionCwd = workspace.source ?? executionDir;
+      const executionCwd = workspace
+        ? (workspace.source ?? executionDir)
+        : dirname(piDir);
       const runtimeModule = this.options.resolveRuntimeModule
-        ? await this.options.resolveRuntimeModule(spec, agent, executionCwd)
+        ? await this.options.resolveRuntimeModule(
+            effective,
+            agent,
+            executionCwd,
+          )
         : this.options.runtimeRegistry
           ? await this.resolveRuntimeModule(
-              spec,
+              effective,
               agent,
               executionCwd,
-              resolved.selection,
+              selection,
             )
           : undefined;
       const { args, env, cwd } = await this.prepare(
-        spec,
+        effective,
         agent,
         piDir,
         providers,
@@ -556,7 +583,7 @@ export class RunManager {
 
       const record: RunRecord = {
         ...spec,
-        workspace,
+        ...(workspace ? { workspace } : {}),
         id,
         status: 'running',
         pid: child.pid,
@@ -610,6 +637,7 @@ export class RunManager {
       this.store.writeRun(record);
       this.log('info', 'agent server run started', {
         ...runContext(id, spec.agent, child),
+        ...selectionContext(spec, workspace),
         transition: 'running',
       });
       return record;
@@ -626,6 +654,7 @@ export class RunManager {
       rmSync(runDir, { recursive: true, force: true });
       this.log('error', 'agent server run failed to start', {
         ...runContext(id, spec.agent, child),
+        ...selectionContext(spec, workspace),
         transition: 'start_failed',
         ...safeRunError(cause),
       });
@@ -637,7 +666,7 @@ export class RunManager {
     spec: RunSpec,
     activated: ActivatedAgent,
     cwd: string,
-    selection: EffectiveRunProjectSelection,
+    selection?: EffectiveRunProjectSelection,
   ): Promise<string | undefined> {
     const agent = await this.connectAgent(activated, spec.teamId);
     const profiles = await resolveRuntimeProfiles({
@@ -647,6 +676,7 @@ export class RunManager {
       cwd,
     });
     const effectiveProfiles = profiles.map((profile) => {
+      if (!selection) return profile;
       try {
         return applyProjectWorkspacePolicy(profile, selection);
       } catch (error) {
@@ -943,6 +973,20 @@ export class RunManager {
     }
   }
 
+  /**
+   * Stable across runs, so retries and continuations find their execution-plan
+   * cache and task workspaces. Keyed by agent and location, under the store,
+   * never inside the user's folder.
+   */
+  private runStateDir(agent: string, workspace: RunWorkspace): string {
+    return join(
+      this.store.root,
+      'run-state',
+      agent,
+      workspace.binding ? locationSegment(workspace.binding) : 'general',
+    );
+  }
+
   private log(
     level: keyof RunLogger,
     message: string,
@@ -979,6 +1023,39 @@ function createByteLimitTransform(
       callback();
     },
   });
+}
+
+/** Non-secret ids that tie a run's logs to its project selection. */
+function selectionContext(
+  spec: RunSpec,
+  workspace: RunWorkspace | undefined,
+): Record<string, unknown> {
+  return {
+    ...(spec.projectId !== undefined
+      ? { requestedProjectId: spec.projectId }
+      : {}),
+    ...(spec.binding ? { requestedBinding: spec.binding } : {}),
+    ...(workspace
+      ? {
+          projectId: workspace.projectId,
+          ...(workspace.binding ? { binding: workspace.binding } : {}),
+          ...(workspace.diaryId ? { diaryId: workspace.diaryId } : {}),
+          workspaceStrategy: workspace.strategy,
+        }
+      : {}),
+  };
+}
+
+/** Readable when it is a safe path segment; hashed otherwise ("general" stays reserved). */
+function locationSegment(name: string): string {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(name) && name !== 'general'
+    ? `location-${name}`
+    : `location-${createHash('sha256').update(name).digest('hex').slice(0, 16)}`;
+}
+
+/** Created exclusively and owner-only: a run never reuses or widens a snapshot. */
+export function writeRunSnapshot(path: string, config: unknown): void {
+  writeFileSync(path, JSON.stringify(config), { mode: 0o600, flag: 'wx' });
 }
 
 function runContext(

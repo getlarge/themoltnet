@@ -4,6 +4,7 @@ import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
+import { PROFILE_DEFAULT_STRATEGY } from './store.js';
 
 const DateTime = Type.String({ format: 'date-time' });
 const StringList = Type.Array(Type.String());
@@ -229,6 +230,7 @@ const ProjectLocationParamsSchema = Type.Object({
   name: Type.String({ minLength: 1 }),
 });
 
+/** Local project selection on a run request; only the native client may set these. */
 const RunProjectFields = {
   projectId: Type.Optional(
     Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
@@ -239,6 +241,11 @@ const RunProjectFields = {
     AgentServerProjectLocationSchema.properties.strategy,
   ),
 };
+/** Names gated to the native client; derived so a new field is gated automatically. */
+export const NATIVE_RUN_FIELDS = Object.keys(RunProjectFields) as Array<
+  keyof typeof RunProjectFields
+>;
+/** What a run resolved to; the record's top-level fields stay as requested. */
 const RunWorkspaceSchema = Type.Object({
   projectId: Type.Union([Type.String(), Type.Null()]),
   binding: Type.Optional(Type.String()),
@@ -246,9 +253,8 @@ const RunWorkspaceSchema = Type.Object({
   source: Type.Optional(Type.String()),
   strategy: Type.Union([
     AgentServerProjectLocationSchema.properties.strategy,
-    Type.Literal('profile-default'),
+    Type.Literal(PROFILE_DEFAULT_STRATEGY),
   ]),
-  configPath: Type.String(),
 });
 
 export const AgentServerRunRecordSchema = Type.Object(
@@ -631,6 +637,8 @@ export const AgentServerRouteSchemas = {
     operationId: 'startAgentServerRun',
     tags: ['runs'],
     security: localControlSecurity,
+    description:
+      'projectId (other than null), binding, source and workspaceStrategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.',
     body: StartRunSchema,
     response: { 201: schemaRef(AgentServerRunSchema), ...problemResponse },
   },

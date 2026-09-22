@@ -123,6 +123,25 @@ export function projectRunOptionDefs() {
     'workspace-strategy': { type: 'string' },
   } as const;
 }
+type ProjectRunOptionDefs = ReturnType<typeof projectRunOptionDefs>;
+/** Values for the flags `projectRunOptionDefs` parses, keyed by the same names. */
+export type ProjectRunFlags = {
+  [K in keyof ProjectRunOptionDefs]?: ProjectRunOptionDefs[K]['type'] extends 'boolean'
+    ? boolean
+    : string;
+};
+
+/** Serialize for a worker; the inverse of parsing with `projectRunOptionDefs`. */
+export function projectRunArgs(flags: ProjectRunFlags): string[] {
+  return Object.entries(flags).flatMap(([name, value]) =>
+    value === undefined || value === false
+      ? []
+      : value === true
+        ? [`--${name}`]
+        : [`--${name}`, value],
+  );
+}
+
 function strategy(value: string | undefined): WorkspaceStrategy | undefined {
   if (value === undefined) return undefined;
   if (WORKSPACE_STRATEGIES.includes(value as WorkspaceStrategy))

@@ -13,7 +13,6 @@ import { OPERATOR_OAUTH } from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
-  MoltNetError,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
@@ -40,7 +39,6 @@ import {
   buildCatalogue,
   type CatalogueAgentPort,
   type CatalogueDiaryRecord,
-  type CatalogueProject,
 } from './catalogue.js';
 import {
   readCatalogueProject,
@@ -70,7 +68,17 @@ import {
   type OperatorOAuth,
 } from './operator-oauth.js';
 import { LocalProjectBindings, locationEndpoint } from './project-bindings.js';
-import { AGENT_SERVER_SCHEMAS, AgentServerRouteSchemas } from './protocol.js';
+import {
+  checkUnavailable,
+  NATIVE_REQUEST_BUDGET_MS,
+  projectUnavailable,
+  verifyProjectTarget,
+} from './project-target.js';
+import {
+  AGENT_SERVER_SCHEMAS,
+  AgentServerRouteSchemas,
+  NATIVE_RUN_FIELDS,
+} from './protocol.js';
 import {
   AgentServerSubscriptionError,
   type ProviderLoginService,
@@ -87,6 +95,7 @@ import {
   AgentServerStoreError,
   type ProviderModelEntry,
   type ProviderModelModality,
+  type RunRecord,
 } from './store.js';
 import {
   requireCredentialSnapshot,
@@ -817,14 +826,6 @@ async function requireNativeOrigin<T>(
   return resource[0];
 }
 
-/**
- * The whole save, from activation to the write, must finish inside Desktop's
- * 15 s control request timeout (`REQUEST_TIMEOUT` in agent-desktop control.rs).
- * Otherwise Desktop reports a transport failure while the save may still land.
- * The margin covers the config lock wait and the write itself.
- */
-const PROJECT_SAVE_TIMEOUT_MS = 10_000;
-
 type SaveProjectLocationBody = Omit<ProjectBinding, 'name' | 'apiUrl'> & {
   identity: string;
 };
@@ -910,17 +911,17 @@ function registerProjectLocationRoutes(
       const signal = AbortSignal.any([
         requestOperationSignal(request, options.shutdownSignal),
         AbortSignal.timeout(
-          options.projectSaveTimeoutMs ?? PROJECT_SAVE_TIMEOUT_MS,
+          options.projectSaveTimeoutMs ?? NATIVE_REQUEST_BUDGET_MS,
         ),
       ]);
-      await verifyProjectTarget(options, alias, location, request.log, signal);
+      await verifyLocationTarget(options, alias, location, request.log, signal);
       try {
         return await bindings.save(
           { ...location, name, apiUrl: bindings.apiUrl },
           { signal },
         );
       } catch (error) {
-        if (signal.aborted) throw saveTimedOut(error);
+        if (signal.aborted) throw checkUnavailable(error, true);
         throw error;
       }
     },
@@ -940,113 +941,34 @@ function registerProjectLocationRoutes(
 }
 
 /**
- * Confirms one team, project and diary with the identity's own credential.
- * Unlike the catalogue it touches only the target team, and it separates
- * "not visible to this credential" (400) from "could not ask" (503).
+ * A location save checks only its target team: `readTeam` verifies the team
+ * credential and returns its diaries, then the shared check reads the project.
  */
-async function verifyProjectTarget(
+async function verifyLocationTarget(
   options: BuildAgentServerOptions,
   alias: string,
   target: { teamId: string; projectId: string; diaryId?: string },
   logger: FastifyBaseLogger,
   signal: AbortSignal,
 ): Promise<void> {
-  const unavailable = () =>
-    new AgentServerHttpError(
-      400,
-      'project_unavailable',
-      'Verify team access and choose an available project',
-    );
   const agent = await catalogueAgent(options, alias);
-  if (!agent.teamIds.includes(target.teamId)) throw unavailable();
-  let result: {
-    diaries: CatalogueDiaryRecord[];
-    project: CatalogueProject | null;
-  };
-  try {
-    result = await untilAborted(signal, async () => {
-      const team = await agent.readTeam(target.teamId, signal);
-      if (team.team.id !== target.teamId)
-        throw new Error('Team response mismatch');
-      return {
-        diaries: team.diaries,
-        project: await agent.readProject(
-          target.teamId,
-          target.projectId,
-          signal,
-        ),
-      };
-    });
-  } catch (error) {
-    if (!signal.aborted) {
-      if (error instanceof TeamCredentialError) throw error;
-      if (
-        error instanceof MoltNetError &&
-        [401, 403, 404].includes(error.statusCode ?? 0)
-      )
-        throw unavailable();
-    }
-    logger.warn(
-      {
-        ...safeErrorContext(error),
-        teamId: target.teamId,
-        code: signal.aborted
-          ? 'agent_server_project_check_aborted'
-          : 'agent_server_project_check_failed',
+  if (!agent.teamIds.includes(target.teamId)) throw projectUnavailable();
+  let diaries: CatalogueDiaryRecord[] = [];
+  await verifyProjectTarget(
+    {
+      readProject: async (teamId, projectId, readSignal) => {
+        const team = await agent.readTeam(teamId, readSignal);
+        if (team.team.id !== teamId) throw new Error('Team response mismatch');
+        diaries = team.diaries;
+        return agent.readProject(teamId, projectId, readSignal);
       },
-      'AgentServer project check failed',
-    );
-    if (signal.aborted) throw saveTimedOut(error);
-    throw new AgentServerHttpError(
-      503,
-      'project_check_unavailable',
-      'The server could not confirm this project. Retry in a moment.',
-    );
-  }
-  const { project, diaries } = result;
-  if (!project || project.teamId !== target.teamId || project.archived)
-    throw unavailable();
-  if (
-    target.diaryId &&
-    !diaries.some(
-      (diary) => diary.id === target.diaryId && diary.teamId === target.teamId,
-    )
-  )
-    throw new AgentServerHttpError(
-      400,
-      'diary_unavailable',
-      'Choose a diary belonging to this team',
-    );
-}
-
-/**
- * Settles when `work` does or `signal` aborts. The SDK's team and project reads
- * take no signal, so an in-flight GET may finish in the background; the port
- * checks the signal between steps so nothing further starts.
- */
-async function untilAborted<T>(
-  signal: AbortSignal,
-  work: () => Promise<T>,
-): Promise<T> {
-  signal.throwIfAborted();
-  const aborted = new Promise<never>((_, reject) => {
-    signal.addEventListener(
-      'abort',
-      () => {
-        reject(new Error('Project location save was aborted'));
-      },
-      { once: true },
-    );
-  });
-  return Promise.race([work(), aborted]);
-}
-
-function saveTimedOut(cause: unknown): AgentServerHttpError {
-  return new AgentServerHttpError(
-    503,
-    'project_check_unavailable',
-    'The location could not be confirmed in time and was not saved. Retry in a moment.',
-    { cause },
+      readDiary: async (teamId, diaryId) =>
+        diaries.find(
+          (diary) => diary.id === diaryId && diary.teamId === teamId,
+        ) ?? null,
+    },
+    target,
+    { signal, logger },
   );
 }
 
@@ -1198,7 +1120,7 @@ function registerStatusRoute(
     '/v1/status',
     { schema: AgentServerRouteSchemas.status },
     async (request) => {
-      await requireAuthorizedOrigin(request);
+      const origin = await requireAuthorizedOrigin(request);
       const selected = selectedIdentity(store, options.activeIdentity);
       return {
         version: options.version,
@@ -1210,7 +1132,7 @@ function registerStatusRoute(
         identities: identityViews(store),
         ...(selected ? { selectedIdentity: selected } : {}),
         providers: options.providers.list(),
-        runs: await runViews(runs),
+        runs: await runViews(runs, origin),
         runtimeSettings:
           options.runtimeSettings ?? DEFAULT_LOCAL_OPERATIONAL_SETTINGS,
       };
@@ -1443,11 +1365,44 @@ function registerProviderRoutes(
 
 async function runViews(
   runs: RunManager,
+  origin: string,
 ): Promise<Array<Record<string, unknown>>> {
-  return (await runs.listAsync(RUN_HISTORY_LIMIT)).map((record) => ({
-    ...record,
-    active: runs.isActive(record.id),
-  }));
+  return (await runs.listAsync(RUN_HISTORY_LIMIT)).map((record) =>
+    runView(record, runs.isActive(record.id), origin),
+  );
+}
+
+/**
+ * Local folders are native-only, as project locations are: other origins see
+ * the location name and project, never the path. The snapshot path is
+ * daemon-internal for every origin.
+ */
+function runView(
+  record: RunRecord,
+  active: boolean,
+  origin: string,
+): Record<string, unknown> {
+  const native = origin === NATIVE_CLIENT_ORIGIN;
+  const { source, workspace, ...rest } = record;
+  const view: Record<string, unknown> = {
+    ...rest,
+    ...(native && source !== undefined ? { source } : {}),
+    active,
+  };
+  if (workspace) {
+    const {
+      configPath: _configPath,
+      source: resolvedSource,
+      ...shared
+    } = workspace;
+    view.workspace = {
+      ...shared,
+      ...(native && resolvedSource !== undefined
+        ? { source: resolvedSource }
+        : {}),
+    };
+  }
+  return view;
 }
 
 function registerSubscriptionRoutes(
@@ -1506,8 +1461,7 @@ function registerRunRoutes(
     '/v1/runs',
     { schema: AgentServerRouteSchemas.listRuns },
     async (request) => {
-      await requireAuthorizedOrigin(request);
-      return runViews(runs);
+      return runViews(runs, await requireAuthorizedOrigin(request));
     },
   );
   app.post(
@@ -1516,22 +1470,18 @@ function registerRunRoutes(
     async (request, reply) => {
       const origin = await requireAuthorizedOrigin(request);
       const body = requireBody<Record<string, unknown>>(request);
+      // General work (projectId: null) stays open to every authorized origin.
       if (
-        origin !== NATIVE_CLIENT_ORIGIN &&
-        ['projectId', 'binding', 'source', 'workspaceStrategy'].some(
+        NATIVE_RUN_FIELDS.some(
           (key) => body[key] !== undefined && body[key] !== null,
         )
       )
-        throw new AgentServerHttpError(
-          403,
-          'native_required',
-          'Native administration is required for local project selection',
-        );
+        await requireNativeOrigin(async () => origin, request);
       if (request.validationError)
         throw new AgentServerHttpError(
           400,
           'invalid_spec',
-          'Check the run selection fields',
+          `Check the run fields: ${request.validationError.message}`,
         );
       const diaryId = optionalString(body, 'diaryId');
       const record = await runs.start(
@@ -1566,7 +1516,7 @@ function registerRunRoutes(
       );
       return reply
         .code(201)
-        .send({ ...record, active: runs.isActive(record.id) });
+        .send(runView(record, runs.isActive(record.id), origin));
     },
   );
   app.delete(

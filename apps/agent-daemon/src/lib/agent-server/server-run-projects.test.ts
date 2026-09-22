@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
@@ -9,6 +9,7 @@ import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
 } from './native-grant-service.js';
+import { writeRunSnapshot } from './runs.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
@@ -39,8 +40,9 @@ async function setup() {
   nativeGrant.grantNative('run-token');
   const f = await fixture({ nativeGrant });
   activateManaged(f.store);
-  await mkdir(join(f.store.root, 'source'));
-  const source = await realpath(join(f.store.root, 'source'));
+  // A user's folder lives outside the MoltNet store, which workers may not use.
+  const source = await realpath(await mkdtemp(join(tmpdir(), 'run-source-')));
+  registerCleanup(() => rm(source, { recursive: true, force: true }));
   await updateProjectConfig(join(f.store.root, 'projects.json'), (config) => {
     config.bindings.push({
       name: 'Laptop',
@@ -79,7 +81,16 @@ describe('native managed project runs', () => {
     expect(child.options.cwd).toBe(f.source);
     expect(child.options.env.HOME).not.toBe(f.source);
     expect(child.args).toContain('--binding');
-    expect(child.args).toContain('--state-dir');
+    // Stable per agent and location, so retries find their state.
+    const stateDir = child.args[child.args.indexOf('--state-dir') + 1];
+    expect(stateDir).toBe(
+      join(f.store.root, 'run-state', 'course-bot', 'location-Laptop'),
+    );
+    expect((await stat(configPath)).mode & 0o777).toBe(0o600);
+    // The record keeps the request; resolved values live in `workspace`.
+    expect(run).toMatchObject({ projectId: 'project', binding: 'Laptop' });
+    expect(run).not.toHaveProperty('diaryId');
+    expect(run.workspace).not.toHaveProperty('configPath');
     await updateProjectConfig(join(f.store.root, 'projects.json'), (config) => {
       config.bindings[0].strategy = 'none';
       delete config.bindings[0].source;
@@ -101,9 +112,15 @@ describe('native managed project runs', () => {
     expect(response.statusCode, response.body).toBe(201);
     const run = response.json<RunRecord>();
     expect(run.workspace?.projectId).toBeNull();
+    expect(run.workspace).not.toHaveProperty('source');
     expect(f.spawned[0].args).toContain('--general');
-    expect(f.spawned[0].options.cwd).toBe(
+    expect(await realpath(String(f.spawned[0].options.cwd))).toBe(
       await realpath(join(f.store.runDir(run.id), 'workspace')),
+    );
+    const stateDir =
+      f.spawned[0].args[f.spawned[0].args.indexOf('--state-dir') + 1];
+    expect(stateDir).toBe(
+      join(f.store.root, 'run-state', 'course-bot', 'general'),
     );
   });
 
@@ -130,6 +147,76 @@ describe('native managed project runs', () => {
     }
     expect(f.spawned).toHaveLength(0);
   });
+
+  it('keeps pre-selection behaviour when no project field is sent', async () => {
+    const f = await setup();
+    const response = await f.app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: nativeHeaders,
+      payload: spec,
+    });
+    expect(response.statusCode, response.body).toBe(201);
+    expect(response.json()).not.toHaveProperty('workspace');
+    expect(f.spawned[0].args).not.toContain('--config-file');
+    expect(f.spawned[0].args).not.toContain('--state-dir');
+  });
+
+  it('shows browsers the location and project, never local paths', async () => {
+    const f = await setup();
+    await f.app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: nativeHeaders,
+      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+    });
+    const token = await authorize(f.app);
+    const listed = await f.app.inject({
+      method: 'GET',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+    const [run] = listed.json<RunRecord[]>();
+    expect(run.workspace).toMatchObject({
+      projectId: 'project',
+      binding: 'Laptop',
+    });
+    expect(run.workspace).not.toHaveProperty('source');
+    expect(listed.body).not.toContain(f.source);
+    expect(listed.body).not.toContain('projects.json');
+  });
+
+  it('lets browsers start General work', async () => {
+    const f = await setup();
+    const token = await authorize(f.app);
+    const response = await f.app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: { ...spec, projectId: null },
+    });
+    expect(response.statusCode, response.body).toBe(201);
+    expect(response.body).not.toContain('projects.json');
+  });
+});
+
+it('creates each run snapshot exclusively and owner-only', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'run-snapshot-'));
+  registerCleanup(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, 'projects.json');
+  writeRunSnapshot(path, { version: 1, bindings: [] });
+  expect((await stat(path)).mode & 0o777).toBe(0o600);
+  expect(() => writeRunSnapshot(path, { version: 1, bindings: [] })).toThrow(
+    /EEXIST/,
+  );
 });
 
 it('resolves bindings from the machine store while run state uses a connection directory', async () => {
@@ -139,8 +226,8 @@ it('resolves bindings from the machine store while run state uses a connection d
   const f = await fixture({ nativeGrant, projectRoot: root });
   registerCleanup(() => rm(root, { recursive: true, force: true }));
   activateManaged(f.store);
-  const source = join(root, 'source');
-  await mkdir(source);
+  const source = await realpath(await mkdtemp(join(tmpdir(), 'base-source-')));
+  registerCleanup(() => rm(source, { recursive: true, force: true }));
   await updateProjectConfig(join(root, 'projects.json'), (config) => {
     config.bindings.push({
       name: 'Base location',

@@ -652,11 +652,6 @@ describe('agent server providers and runs', () => {
       '60000',
       '--warm-retention-sec',
       '1800',
-      '--config-file',
-      join(store.runDir(run.id), 'projects.json'),
-      '--general',
-      '--state-dir',
-      join(store.runDir(run.id), 'state'),
     ]);
     expect(options.env['MOLTNET_AGENT_KEY']).toBe('test-key-team-1');
     expect(options.env['MOLTNET_AGENT_KEY_REF']).toBeUndefined();

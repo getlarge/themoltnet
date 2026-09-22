@@ -214,12 +214,23 @@ export function assertProviderEnvName(
   return value;
 }
 
+/** The run follows its runtime profile's own workspace mode. */
+export const PROFILE_DEFAULT_STRATEGY = 'profile-default';
+
+/**
+ * What a run actually resolved to. The top-level `RunSpec` fields of a record
+ * stay exactly as requested, so replaying a run replays the request and later
+ * location edits still apply.
+ */
 export interface RunWorkspace {
   projectId: string | null;
+  /** Resolved location name. */
   binding?: string;
   diaryId?: string;
+  /** Only a folder the caller or a location chose; never an internal directory. */
   source?: string;
-  strategy: WorkspaceStrategy | 'profile-default';
+  strategy: WorkspaceStrategy | typeof PROFILE_DEFAULT_STRATEGY;
+  /** Daemon-internal snapshot path; persisted, never returned by the API. */
   configPath: string;
 }
 
