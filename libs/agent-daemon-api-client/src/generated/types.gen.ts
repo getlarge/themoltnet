@@ -255,31 +255,6 @@ export type GetAgentServerHealthResponses = {
 export type GetAgentServerHealthResponse =
   GetAgentServerHealthResponses[keyof GetAgentServerHealthResponses];
 
-export type GetAgentServerOAuthMetadataData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/oauth/metadata';
-};
-
-export type GetAgentServerOAuthMetadataResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    authorizationUrl: string;
-    clientId: string;
-    instance: string;
-    issuer: string;
-    operatorConfigured: boolean;
-    protocolVersion: 2;
-    tokenUrl: string;
-  };
-};
-
-export type GetAgentServerOAuthMetadataResponse =
-  GetAgentServerOAuthMetadataResponses[keyof GetAgentServerOAuthMetadataResponses];
-
 export type ListAgentServerAgentsData = {
   body?: never;
   path?: never;

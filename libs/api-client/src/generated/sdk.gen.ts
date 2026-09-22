@@ -6,12 +6,6 @@ import type {
   AbortTaskAttemptData,
   AbortTaskAttemptErrors,
   AbortTaskAttemptResponses,
-  AcceptOperatorConsentData,
-  AcceptOperatorConsentErrors,
-  AcceptOperatorConsentResponses,
-  AcceptOperatorLoginData,
-  AcceptOperatorLoginErrors,
-  AcceptOperatorLoginResponses,
   AcceptTeamFoundingData,
   AcceptTeamFoundingErrors,
   AcceptTeamFoundingResponses,
@@ -201,9 +195,6 @@ import type {
   GetOAuth2TokenData,
   GetOAuth2TokenErrors,
   GetOAuth2TokenResponses,
-  GetOperatorConsentData,
-  GetOperatorConsentErrors,
-  GetOperatorConsentResponses,
   GetProblemTypeData,
   GetProblemTypeResponses,
   GetProjectData,
@@ -1981,71 +1972,6 @@ export const getLlmsTxt = <ThrowOnError extends boolean = false>(
   (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
     url: '/llms.txt',
     ...options,
-  });
-
-export const getOperatorConsent = <ThrowOnError extends boolean = false>(
-  options: Options<GetOperatorConsentData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetOperatorConsentResponses,
-    GetOperatorConsentErrors,
-    ThrowOnError
-  >({
-    security: [
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/oauth2/consent',
-    ...options,
-  });
-
-export const acceptOperatorConsent = <ThrowOnError extends boolean = false>(
-  options: Options<AcceptOperatorConsentData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    AcceptOperatorConsentResponses,
-    AcceptOperatorConsentErrors,
-    ThrowOnError
-  >({
-    security: [
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/oauth2/consent',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-export const acceptOperatorLogin = <ThrowOnError extends boolean = false>(
-  options: Options<AcceptOperatorLoginData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    AcceptOperatorLoginResponses,
-    AcceptOperatorLoginErrors,
-    ThrowOnError
-  >({
-    security: [
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/oauth2/login',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 export const provisionAgentCredential = <ThrowOnError extends boolean = false>(

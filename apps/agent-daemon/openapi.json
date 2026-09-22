@@ -1264,7 +1264,7 @@
     },
     "securitySchemes": {
       "agentServerToken": {
-        "description": "OAuth PKCE local-control access token, or a process-scoped native Desktop grant.",
+        "description": "Process-scoped native Desktop grant.",
         "in": "header",
         "name": "x-moltnet-agent-server-token",
         "type": "apiKey"
@@ -1295,62 +1295,6 @@
         },
         "tags": [
           "system"
-        ]
-      }
-    },
-    "/oauth/metadata": {
-      "get": {
-        "operationId": "getAgentServerOAuthMetadata",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "authorizationUrl": {
-                      "type": "string"
-                    },
-                    "clientId": {
-                      "type": "string"
-                    },
-                    "instance": {
-                      "format": "uuid",
-                      "type": "string"
-                    },
-                    "issuer": {
-                      "type": "string"
-                    },
-                    "operatorConfigured": {
-                      "type": "boolean"
-                    },
-                    "protocolVersion": {
-                      "enum": [
-                        2
-                      ],
-                      "type": "integer"
-                    },
-                    "tokenUrl": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "protocolVersion",
-                    "instance",
-                    "issuer",
-                    "authorizationUrl",
-                    "tokenUrl",
-                    "clientId",
-                    "operatorConfigured"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "tags": [
-          "operator"
         ]
       }
     },

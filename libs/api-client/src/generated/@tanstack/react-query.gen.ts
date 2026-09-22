@@ -11,8 +11,6 @@ import {
 import { client } from '../client.gen';
 import {
   abortTaskAttempt,
-  acceptOperatorConsent,
-  acceptOperatorLogin,
   acceptTeamFounding,
   acceptTransfer,
   addGroupMember,
@@ -77,7 +75,6 @@ import {
   getLlmsTxt,
   getNetworkInfo,
   getOAuth2Token,
-  getOperatorConsent,
   getProblemType,
   getProject,
   getPublicEntry,
@@ -178,12 +175,6 @@ import type {
   AbortTaskAttemptData,
   AbortTaskAttemptError,
   AbortTaskAttemptResponse,
-  AcceptOperatorConsentData,
-  AcceptOperatorConsentError,
-  AcceptOperatorConsentResponse,
-  AcceptOperatorLoginData,
-  AcceptOperatorLoginError,
-  AcceptOperatorLoginResponse,
   AcceptTeamFoundingData,
   AcceptTeamFoundingError,
   AcceptTeamFoundingResponse,
@@ -373,9 +364,6 @@ import type {
   GetOAuth2TokenData,
   GetOAuth2TokenError,
   GetOAuth2TokenResponse,
-  GetOperatorConsentData,
-  GetOperatorConsentError,
-  GetOperatorConsentResponse,
   GetProblemTypeData,
   GetProjectData,
   GetProjectError,
@@ -2735,79 +2723,6 @@ export const getLlmsTxtOptions = (options?: Options<GetLlmsTxtData>) =>
     },
     queryKey: getLlmsTxtQueryKey(options),
   });
-
-export const getOperatorConsentQueryKey = (
-  options: Options<GetOperatorConsentData>,
-) => createQueryKey('getOperatorConsent', options);
-
-export const getOperatorConsentOptions = (
-  options: Options<GetOperatorConsentData>,
-) =>
-  queryOptions<
-    GetOperatorConsentResponse,
-    GetOperatorConsentError,
-    GetOperatorConsentResponse,
-    ReturnType<typeof getOperatorConsentQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getOperatorConsent({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getOperatorConsentQueryKey(options),
-  });
-
-export const acceptOperatorConsentMutation = (
-  options?: Partial<Options<AcceptOperatorConsentData>>,
-): UseMutationOptions<
-  AcceptOperatorConsentResponse,
-  AcceptOperatorConsentError,
-  Options<AcceptOperatorConsentData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    AcceptOperatorConsentResponse,
-    AcceptOperatorConsentError,
-    Options<AcceptOperatorConsentData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await acceptOperatorConsent({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const acceptOperatorLoginMutation = (
-  options?: Partial<Options<AcceptOperatorLoginData>>,
-): UseMutationOptions<
-  AcceptOperatorLoginResponse,
-  AcceptOperatorLoginError,
-  Options<AcceptOperatorLoginData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    AcceptOperatorLoginResponse,
-    AcceptOperatorLoginError,
-    Options<AcceptOperatorLoginData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await acceptOperatorLogin({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
 
 export const provisionAgentCredentialMutation = (
   options?: Partial<Options<ProvisionAgentCredentialData>>,

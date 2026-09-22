@@ -7,8 +7,6 @@ type OperationName = string
 
 const (
 	AbortTaskAttemptOperation                      OperationName = "AbortTaskAttempt"
-	AcceptOperatorConsentOperation                 OperationName = "AcceptOperatorConsent"
-	AcceptOperatorLoginOperation                   OperationName = "AcceptOperatorLogin"
 	AcceptTeamFoundingOperation                    OperationName = "AcceptTeamFounding"
 	AcceptTransferOperation                        OperationName = "AcceptTransfer"
 	AddGroupMemberOperation                        OperationName = "AddGroupMember"
@@ -73,7 +71,6 @@ const (
 	GetLlmsTxtOperation                            OperationName = "GetLlmsTxt"
 	GetNetworkInfoOperation                        OperationName = "GetNetworkInfo"
 	GetOAuth2TokenOperation                        OperationName = "GetOAuth2Token"
-	GetOperatorConsentOperation                    OperationName = "GetOperatorConsent"
 	GetProblemTypeOperation                        OperationName = "GetProblemType"
 	GetProjectOperation                            OperationName = "GetProject"
 	GetPublicEntryOperation                        OperationName = "GetPublicEntry"

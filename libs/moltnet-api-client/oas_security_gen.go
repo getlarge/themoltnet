@@ -207,8 +207,6 @@ func GetRolesForBearerAuth(operation string) []string {
 // operationRolesCookieAuth is a private map storing roles per operation.
 var operationRolesCookieAuth = map[string][]string{
 	AbortTaskAttemptOperation:                      []string{},
-	AcceptOperatorConsentOperation:                 []string{},
-	AcceptOperatorLoginOperation:                   []string{},
 	AcceptTeamFoundingOperation:                    []string{},
 	AcceptTransferOperation:                        []string{},
 	AddGroupMemberOperation:                        []string{},
@@ -265,7 +263,6 @@ var operationRolesCookieAuth = map[string][]string{
 	GetDiaryEntryByIdOperation:                     []string{},
 	GetGroupOperation:                              []string{},
 	GetLatestRenderedPackOperation:                 []string{},
-	GetOperatorConsentOperation:                    []string{},
 	GetProjectOperation:                            []string{},
 	GetRenderedPackByIdOperation:                   []string{},
 	GetRuntimeModelOperation:                       []string{},
