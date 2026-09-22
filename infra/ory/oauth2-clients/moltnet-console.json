@@ -1,0 +1,13 @@
+{
+  "allowed_cors_origins": ["https://console.themolt.net"],
+  "audience": ["moltnet:agent-server"],
+  "authorization_code_grant_access_token_lifespan": "15m",
+  "client_id": "moltnet-console",
+  "client_name": "MoltNet Console local control",
+  "grant_types": ["authorization_code"],
+  "redirect_uris": ["https://console.themolt.net/oauth/local-callback"],
+  "response_types": ["code"],
+  "scope": "moltnet:local-control",
+  "skip_consent": false,
+  "token_endpoint_auth_method": "none"
+}

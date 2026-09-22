@@ -653,7 +653,7 @@ has completed.
 ## Ory Project Deployment
 
 The Ory project config lives in `infra/ory/project.json` (source of truth). The
-deploy script handles three things:
+deploy script handles four things:
 
 1. **Project config** — substitutes env vars into `project.json` and pushes via
    `ory update project`
@@ -661,14 +661,24 @@ deploy script handles three things:
    `theme_variables_light` via the console normalized API (the Ory CLI ignores
    these fields)
 3. **OPL permissions** — pushes `infra/ory/permissions.ts` via `ory update opl`
+4. **Operator OAuth clients** — creates or updates the stable public PKCE
+   clients from `infra/ory/oauth2-clients/`, then verifies their redirect URIs,
+   scopes, audiences and token lifetimes by reading them back from Ory
 
 ```bash
-# Dry run — writes infra/ory/project.resolved.json, shows theme key counts
+# Dry run — validates project config and operator client definitions
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs
 
-# Apply all (project config + branding + OPL)
+# Apply all (project config + OPL + operator clients + branding)
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply
 ```
+
+The released Desktop uses the administratively registered `moltnet-native`
+client for loopback PKCE callbacks. `moltnet-console` remains registered for the
+browser local-control contract. Both are public clients: they have stable IDs
+and no client secrets. Do not create them manually in the Ory Console; change
+the reviewed JSON definitions and run `deploy.mjs --apply` so production
+configuration stays reproducible.
 
 ### Account Experience (AX)
 
