@@ -348,3 +348,42 @@ it('resolves bindings from the machine store while run state uses a connection d
   expect(response.json<RunRecord>().workspace?.source).toBe(source);
   expect(f.spawned[0].options.env.HOME).toContain(f.store.root);
 });
+
+it('gives browsers complete log lines only', async () => {
+  const nativeGrant = new NativeGrantService();
+  nativeGrant.grantNative('run-token');
+  const f = await fixture({ nativeGrant });
+  activateManaged(f.store);
+  const started = await f.app.inject({
+    method: 'POST',
+    url: '/v1/runs',
+    headers: nativeHeaders,
+    payload: spec,
+  });
+  const run = started.json<RunRecord>();
+  // An unfinished tail can hold half of a path the redactor cannot match.
+  await appendFile(
+    f.store.resolveRunLogPath(run.id),
+    `complete line\npartial ${f.store.root.slice(0, -3)}`,
+  );
+  const token = await authorize(f.app);
+  const browserLogs = await f.app.inject({
+    method: 'GET',
+    url: `/v1/runs/${run.id}/logs/snapshot`,
+    headers: {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+    },
+  });
+  expect(browserLogs.json<{ lines: string[] }>().lines).toContain(
+    'complete line',
+  );
+  expect(browserLogs.body).not.toContain('partial');
+  const nativeLogs = await f.app.inject({
+    method: 'GET',
+    url: `/v1/runs/${run.id}/logs/snapshot`,
+    headers: nativeHeaders,
+  });
+  expect(nativeLogs.body).toContain('partial');
+});

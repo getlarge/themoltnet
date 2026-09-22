@@ -319,4 +319,35 @@ describe('managed run project selection', () => {
       }),
     ).rejects.toThrow(/outside the MoltNet configuration store/);
   });
+
+  it('uses the team default diary for General work without recording it as requested', async () => {
+    const f = await setup();
+    const generalDefaultDiary = vi.fn(async () => 'team-default');
+    const request = { ...spec, projectId: null };
+
+    const result = await resolveManagedProjectSelection({
+      ...f.options,
+      generalDefaultDiary,
+      spec: request,
+    });
+
+    expect(result.workspace.diaryId).toBe('team-default');
+    expect(result.effective.diaryId).toBe('team-default');
+    expect(request).not.toHaveProperty('diaryId');
+    expect(f.diary).toHaveBeenCalledWith('team-default', { teamId: 'team' });
+  });
+
+  it('never looks up a General default when the user chose a diary', async () => {
+    const f = await setup();
+    const generalDefaultDiary = vi.fn(async () => 'team-default');
+
+    const result = await resolveManagedProjectSelection({
+      ...f.options,
+      generalDefaultDiary,
+      spec: { ...spec, projectId: null, diaryId: 'chosen' },
+    });
+
+    expect(result.workspace.diaryId).toBe('chosen');
+    expect(generalDefaultDiary).not.toHaveBeenCalled();
+  });
 });

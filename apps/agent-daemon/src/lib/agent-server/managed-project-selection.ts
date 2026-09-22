@@ -61,6 +61,11 @@ export async function resolveManagedProjectSelection(options: {
   client: ManagedProjectClient;
   /** Directories a worker must never run in or above (store, secrets). */
   protectedRoots: string[];
+  /**
+   * The team default diary for General work when none was requested. Kept out
+   * of the request, so Run again follows the default as it is then.
+   */
+  generalDefaultDiary?: () => Promise<string | undefined>;
   signal: AbortSignal;
   logger?: ProjectCheckLogger;
 }) {
@@ -141,6 +146,9 @@ export async function resolveManagedProjectSelection(options: {
     spec.diaryId ??
     selection.binding?.diaryId ??
     project?.defaultDiaryId ??
+    (selection.projectId === null
+      ? await options.generalDefaultDiary?.()
+      : undefined) ??
     undefined;
   if (diaryId)
     await verifyProjectTarget(

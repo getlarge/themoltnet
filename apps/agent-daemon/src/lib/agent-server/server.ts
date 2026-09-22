@@ -1576,11 +1576,14 @@ function registerRunLogRoute(
       try {
         const state: AgentServerLogReadState = { offset: 0, fragment: '' };
         const { lines, omitted } = await readAgentServerLogDelta(handle, state);
+        const native = origin === NATIVE_CLIENT_ORIGIN;
         return {
           lines: [
             ...(omitted ? ['[older log output omitted]'] : []),
-            ...lines,
-            ...(state.fragment ? [state.fragment] : []),
+            // A cut or unfinished line can hold half a path the redactor
+            // cannot recognise, so browsers get complete lines only.
+            ...(omitted && !native ? lines.slice(1) : lines),
+            ...(state.fragment && native ? [state.fragment] : []),
           ].map(redact),
         };
       } finally {
@@ -1658,7 +1661,9 @@ function registerRunLogRoute(
             readState,
           );
           if (omitted) await writeData('[older log output omitted]');
-          for (const line of lines) await writeData(redact(line));
+          const complete =
+            omitted && origin !== NATIVE_CLIENT_ORIGIN ? lines.slice(1) : lines;
+          for (const line of complete) await writeData(redact(line));
         } finally {
           await handle.close();
         }
@@ -1721,11 +1726,16 @@ function localPathRedactor(
     homedir(),
   ]) {
     if (!path) continue;
-    paths.add(path);
+    const forms = [path];
     try {
-      paths.add(realpathSync.native(path));
+      forms.push(realpathSync.native(path));
     } catch {
       // A folder removed since the run keeps only its recorded form.
+    }
+    for (const form of forms) {
+      paths.add(form);
+      // Structured log lines are JSON: match the escaped spelling too.
+      paths.add(JSON.stringify(form).slice(1, -1));
     }
   }
   // Longest first, so a folder inside the store is not half-replaced.

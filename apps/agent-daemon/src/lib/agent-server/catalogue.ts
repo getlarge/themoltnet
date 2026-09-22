@@ -279,7 +279,8 @@ function projectError(teamId: string, error: unknown): ProjectError {
   };
 }
 
-function resolveDefaultDiary(
+/** The one default-diary rule, shared with General run start. */
+export function resolveDefaultDiary(
   teamId: string,
   diaries: { id: string }[],
   identityDefault: IdentityDefaultBinding,
