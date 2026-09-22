@@ -333,8 +333,8 @@ export class RunManager {
       ...(workspace
         ? projectRunArgs({
             'config-file': workspace.configPath,
-            ...(workspace.binding
-              ? { binding: workspace.binding }
+            ...(workspace.location
+              ? { binding: workspace.location }
               : { general: true }),
             ...(workspace.strategy === PROFILE_DEFAULT_STRATEGY
               ? {}
@@ -1009,7 +1009,7 @@ export class RunManager {
       this.store.root,
       'run-state',
       spec.agent,
-      `${workspace.binding ? locationSegment(workspace.binding) : 'general'}-${scope}`,
+      `${workspace.location ? locationSegment(workspace.location) : 'general'}-${scope}`,
     );
   }
 
@@ -1060,11 +1060,11 @@ function selectionContext(
     ...(spec.projectId !== undefined
       ? { requestedProjectId: spec.projectId }
       : {}),
-    ...(spec.binding ? { requestedBinding: spec.binding } : {}),
+    ...(spec.location ? { requestedLocation: spec.location } : {}),
     ...(workspace
       ? {
           projectId: workspace.projectId,
-          ...(workspace.binding ? { binding: workspace.binding } : {}),
+          ...(workspace.location ? { location: workspace.location } : {}),
           ...(workspace.diaryId ? { diaryId: workspace.diaryId } : {}),
           workspaceStrategy: workspace.strategy,
         }

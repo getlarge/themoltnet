@@ -19,7 +19,11 @@ import { processEnvSnapshot } from '../config.js';
 const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MS = 10_000;
 const GIT_MAX_OUTPUT_BYTES = 64 * 1024;
-export async function validateGitSource(source: string): Promise<void> {
+/** `signal` stops the `git` process; an abort is reported as an abort. */
+export async function validateGitSource(
+  source: string,
+  signal?: AbortSignal,
+): Promise<void> {
   const inherited = processEnvSnapshot();
   try {
     const { stdout } = await execFileAsync(
@@ -38,11 +42,13 @@ export async function validateGitSource(source: string): Promise<void> {
         timeout: GIT_TIMEOUT_MS,
         killSignal: 'SIGKILL',
         maxBuffer: GIT_MAX_OUTPUT_BYTES,
+        ...(signal ? { signal } : {}),
       },
     );
     const top = stdout.trim().split('\n')[0];
     if ((await canonicalDirectory(top)) === source) return;
   } catch (cause) {
+    if (signal?.aborted) throw cause;
     throw new ProjectConfigError(
       'selection',
       `git-worktree source ${source} requires a Git repository root with a committed revision: ${cause instanceof Error ? cause.message : String(cause)}`,
@@ -153,8 +159,17 @@ function strategy(value: string | undefined): WorkspaceStrategy | undefined {
 }
 
 /** Resolve once at worker startup. No credentials, remote calls, hooks or workspace creation. */
+/** Supervisor-only controls; the CLI passes argv values alone. */
+export interface RunProjectSelectionOptions {
+  /** Bounds the `git` readiness check. */
+  signal?: AbortSignal;
+  /** Sees the resolved folder, from the request or a location, before `git` runs in it. */
+  guardSource?: (source: string) => void;
+}
+
 export async function resolveRunProjectSelection(
   args: RunProjectSelectionArgs,
+  options: RunProjectSelectionOptions = {},
 ): Promise<EffectiveRunProjectSelection> {
   const env = processEnvSnapshot();
   const inherited = env.MOLTNET_ACTIVE_IDENTITY === args.agent && !args.general;
@@ -234,8 +249,11 @@ export async function resolveRunProjectSelection(
       `Binding ${binding?.name ?? '(run override)'} in ${configPath}: ${blocker.message}; choose a supported binding`,
     );
   }
+  // Only folders a location or the caller chose; the default is the run's own.
+  if (source && (binding || args.source !== undefined))
+    options.guardSource?.(source);
   if (workspaceStrategy === 'git-worktree' && source) {
-    await validateGitSource(source);
+    await validateGitSource(source, options.signal);
   }
   return {
     configPath,

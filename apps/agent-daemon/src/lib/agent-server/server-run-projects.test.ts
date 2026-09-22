@@ -1,5 +1,5 @@
 import { appendFile, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
 import { readProjectConfig, updateProjectConfig } from '@themoltnet/sdk/node';
@@ -64,13 +64,13 @@ describe('native managed project runs', () => {
       method: 'POST',
       url: '/v1/runs',
       headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+      payload: { ...spec, projectId: 'project', location: 'Laptop' },
     });
     expect(response.statusCode, response.body).toBe(201);
     const run = response.json<RunRecord>();
     expect(run.workspace).toMatchObject({
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
       source: f.source,
       strategy: 'existing',
     });
@@ -90,7 +90,7 @@ describe('native managed project runs', () => {
     );
     expect((await stat(configPath)).mode & 0o777).toBe(0o600);
     // The record keeps the request; resolved values live in `workspace`.
-    expect(run).toMatchObject({ projectId: 'project', binding: 'Laptop' });
+    expect(run).toMatchObject({ projectId: 'project', location: 'Laptop' });
     expect(run).not.toHaveProperty('diaryId');
     expect(run.workspace).not.toHaveProperty('configPath');
     await updateProjectConfig(join(f.store.root, 'projects.json'), (config) => {
@@ -133,9 +133,9 @@ describe('native managed project runs', () => {
     const token = await authorize(f.app);
     for (const selection of [
       { projectId: 'project' },
-      { binding: 'Laptop' },
+      { location: 'Laptop' },
       { source: f.source },
-      { workspaceStrategy: 'existing' },
+      { strategy: 'existing' },
     ]) {
       const response = await f.app.inject({
         method: 'POST',
@@ -172,7 +172,7 @@ describe('native managed project runs', () => {
       method: 'POST',
       url: '/v1/runs',
       headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+      payload: { ...spec, projectId: 'project', location: 'Laptop' },
     });
     const token = await authorize(f.app);
     const listed = await f.app.inject({
@@ -187,7 +187,7 @@ describe('native managed project runs', () => {
     const [run] = listed.json<RunRecord[]>();
     expect(run.workspace).toMatchObject({
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
     });
     expect(run.workspace).not.toHaveProperty('source');
     expect(listed.body).not.toContain(f.source);
@@ -208,7 +208,7 @@ describe('native managed project runs', () => {
           ...spec,
           projectId: null,
           source,
-          workspaceStrategy: 'existing',
+          strategy: 'existing',
         },
       });
       expect(response.statusCode, response.body).toBe(201);
@@ -225,12 +225,12 @@ describe('native managed project runs', () => {
       method: 'POST',
       url: '/v1/runs',
       headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+      payload: { ...spec, projectId: 'project', location: 'Laptop' },
     });
     const run = started.json<RunRecord>();
     await appendFile(
       f.store.resolveRunLogPath(run.id),
-      `${JSON.stringify({ msg: 'worker ready', source: f.source, stateRootDir: join(f.store.root, 'run-state') })}\n`,
+      `${JSON.stringify({ msg: 'worker ready', source: f.source, stateRootDir: join(f.store.root, 'run-state'), cache: join(homedir(), '.cache', 'moltnet') })}\n`,
     );
     const token = await authorize(f.app);
     const browser = {
@@ -247,6 +247,7 @@ describe('native managed project runs', () => {
     expect(logs.body).toContain('worker ready');
     expect(logs.body).not.toContain(f.source);
     expect(logs.body).not.toContain(f.store.root);
+    expect(logs.body).not.toContain(homedir());
     const nativeLogs = await f.app.inject({
       method: 'GET',
       url: `/v1/runs/${run.id}/logs/snapshot`,
@@ -261,7 +262,7 @@ describe('native managed project runs', () => {
     });
     expect(stopped.statusCode).toBe(200);
     expect(stopped.json<RunRecord>().workspace).toMatchObject({
-      binding: 'Laptop',
+      location: 'Laptop',
     });
     expect(stopped.body).not.toContain(f.source);
   });
@@ -341,7 +342,7 @@ it('resolves bindings from the machine store while run state uses a connection d
     method: 'POST',
     url: '/v1/runs',
     headers: nativeHeaders,
-    payload: { ...spec, projectId: 'project', binding: 'Base location' },
+    payload: { ...spec, projectId: 'project', location: 'Base location' },
   });
   expect(response.statusCode, response.body).toBe(201);
   expect(response.json<RunRecord>().workspace?.source).toBe(source);

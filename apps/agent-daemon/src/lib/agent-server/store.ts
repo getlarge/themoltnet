@@ -225,7 +225,7 @@ export const PROFILE_DEFAULT_STRATEGY = 'profile-default';
 export interface RunWorkspace {
   projectId: string | null;
   /** Resolved location name. */
-  binding?: string;
+  location?: string;
   diaryId?: string;
   /** Only a folder the caller or a location chose; never an internal directory. */
   source?: string;
@@ -243,12 +243,13 @@ export interface RunSpec {
    * would follow a run into a different team.
    */
   diaryId?: string;
-  /** Without a binding, omitted and null select General work; never infer from supervisor CWD. */
+  /** Without a location, omitted and null select General work; never infer from supervisor CWD. */
   projectId?: string | null;
-  binding?: string;
+  /** A saved location by name; the worker receives it as `--binding`. */
+  location?: string;
   /** Native-authorized, run-only overrides. */
   source?: string;
-  workspaceStrategy?: WorkspaceStrategy;
+  strategy?: WorkspaceStrategy;
   profiles: string[];
   taskTypes: string[];
   mode: 'poll' | 'drain';

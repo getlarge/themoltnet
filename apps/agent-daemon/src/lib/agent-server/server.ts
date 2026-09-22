@@ -1,5 +1,6 @@
 import { constants as fsConstants, realpathSync } from 'node:fs';
 import { type FileHandle, open } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { StringDecoder } from 'node:string_decoder';
 
 import rateLimit from '@fastify/rate-limit';
@@ -846,7 +847,11 @@ function registerProjectLocationRoutes(
         'locations_unavailable',
         'Project locations need the Desktop connection store',
       );
-    locations ??= new LocalProjectBindings(root, options.defaultApiUrl);
+    locations ??= new LocalProjectBindings(root, options.defaultApiUrl, [
+      root,
+      options.store.root,
+      options.store.secretsDir,
+    ]);
     return locations;
   };
   const requireNativeRequest = async (request: FastifyRequest) => {
@@ -1491,17 +1496,17 @@ function registerRunRoutes(
             : body.projectId !== undefined
               ? { projectId: requireString(body, 'projectId') }
               : {}),
-          ...(body.binding !== undefined
-            ? { binding: requireString(body, 'binding') }
+          ...(body.location !== undefined
+            ? { location: requireString(body, 'location') }
             : {}),
           ...(body.source !== undefined
             ? { source: requireString(body, 'source') }
             : {}),
-          ...(body.workspaceStrategy !== undefined
+          ...(body.strategy !== undefined
             ? {
-                workspaceStrategy: requireString(
+                strategy: requireString(
                   body,
-                  'workspaceStrategy',
+                  'strategy',
                 ) as ProjectBinding['strategy'],
               }
             : {}),
@@ -1698,6 +1703,8 @@ function registerRunLogRoute(
 /**
  * Worker logs name local folders (the chosen source, state and HOME under the
  * store). Non-native origins get them replaced, as `runView` does for records.
+ * The user's home directory is included so any other path under it cannot
+ * reveal the OS account name.
  */
 function localPathRedactor(
   record: RunRecord,
@@ -1711,6 +1718,7 @@ function localPathRedactor(
     record.workspace?.source,
     options.store.root,
     options.connectionSettings?.root,
+    homedir(),
   ]) {
     if (!path) continue;
     paths.add(path);

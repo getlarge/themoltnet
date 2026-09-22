@@ -80,14 +80,14 @@ describe('managed run project selection', () => {
       spec: {
         ...spec,
         projectId: 'project',
-        binding: 'Laptop',
+        location: 'Laptop',
         source: override,
         diaryId: 'run-diary',
       },
     });
     expect(result.workspace).toMatchObject({
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
       source: override,
       strategy: 'existing',
       diaryId: 'run-diary',
@@ -142,12 +142,12 @@ describe('managed run project selection', () => {
     expect(f.project).not.toHaveBeenCalled();
   });
 
-  it('rejects a General run that also names a binding', async () => {
+  it('rejects a General run that also names a location', async () => {
     const f = await setup();
     await expect(
       resolveManagedProjectSelection({
         ...f.options,
-        spec: { ...spec, projectId: null, binding: 'Laptop' },
+        spec: { ...spec, projectId: null, location: 'Laptop' },
       }),
     ).rejects.toThrow(/General/);
   });
@@ -267,7 +267,7 @@ describe('managed run project selection', () => {
             ...spec,
             projectId: null,
             source,
-            workspaceStrategy: 'existing',
+            strategy: 'existing',
           },
         }),
       ).rejects.toThrow(/outside the MoltNet configuration store/);
@@ -284,7 +284,7 @@ describe('managed run project selection', () => {
           ...spec,
           projectId: null,
           source: f.store,
-          workspaceStrategy: 'git-worktree',
+          strategy: 'git-worktree',
         },
       }),
     ).rejects.toThrow(/outside the MoltNet configuration store/);
@@ -292,16 +292,31 @@ describe('managed run project selection', () => {
 
   it('leaves the request untouched and returns resolved ids separately', async () => {
     const f = await setup();
-    const request = { ...spec, binding: 'Laptop' };
+    const request = { ...spec, location: 'Laptop' };
     const result = await resolveManagedProjectSelection({
       ...f.options,
       spec: request,
     });
-    expect(request).toEqual({ ...spec, binding: 'Laptop' });
+    expect(request).toEqual({ ...spec, location: 'Laptop' });
     expect(result.effective).toMatchObject({
       projectId: 'project',
       diaryId: 'location-diary',
-      binding: 'Laptop',
+      location: 'Laptop',
     });
+  });
+
+  it('refuses a location whose saved folder is protected before running git', async () => {
+    const f = await setup();
+    await mkdir(f.store, { recursive: true });
+    await updateProjectConfig(join(f.root, 'projects.json'), (config) => {
+      config.bindings[0].source = f.store;
+      config.bindings[0].strategy = 'git-worktree';
+    });
+    await expect(
+      resolveManagedProjectSelection({
+        ...f.options,
+        spec: { ...spec, projectId: 'project', location: 'Laptop' },
+      }),
+    ).rejects.toThrow(/outside the MoltNet configuration store/);
   });
 });
