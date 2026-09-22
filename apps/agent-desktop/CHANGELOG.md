@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.6.0...agent-desktop-v0.6.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **agent-desktop:** require only a minimum daemon version ([7041249](https://github.com/getlarge/themoltnet/commit/70412494071814cd15096529753903f2a19bed7d))
+* **agent-desktop:** require only a minimum daemon version ([a0641bb](https://github.com/getlarge/themoltnet/commit/a0641bb41da7e616055aca5cbd7d83fb6650a3f9))
+* **desktop:** reuse cached builds for release verification ([27cc6a8](https://github.com/getlarge/themoltnet/commit/27cc6a8a1f450cfb7c1b2e8bf3bf8ad7732ea034))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.5.1...agent-desktop-v0.6.0) (2026-09-22)
 
 

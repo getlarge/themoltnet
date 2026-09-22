@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.5.0](https://github.com/getlarge/themoltnet/compare/cli-v3.4.0...cli-v3.5.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* **agent:** finish CLI and native lifecycle review followups ([17c6b5a](https://github.com/getlarge/themoltnet/commit/17c6b5a3a5c9913c26ae77bbc188a21740bac548))
+* **agent:** finish isolated store review followups ([ac3981f](https://github.com/getlarge/themoltnet/commit/ac3981f9591e70c4da4cce9cb5c28c7300ff559c))
+
 ## [3.4.0](https://github.com/getlarge/themoltnet/compare/cli-v3.3.0...cli-v3.4.0) (2026-09-22)
 
 
