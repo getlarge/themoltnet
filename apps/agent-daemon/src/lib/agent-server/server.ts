@@ -10,7 +10,6 @@ import {
   registerLoopbackSecurity,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
-import { OPERATOR_OAUTH } from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
@@ -64,10 +63,7 @@ import {
   NativeGrantError,
   type NativeGrantService,
 } from './native-grant-service.js';
-import {
-  InvalidOperatorGrantError,
-  type OperatorOAuth,
-} from './operator-oauth.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import { LocalProjectBindings, locationEndpoint } from './project-bindings.js';
 import {
   checkUnavailable,
@@ -109,8 +105,8 @@ import {
  * loopback-companion security profile (#2066): loopback Host enforcement,
  * exact-origin CORS, Fetch-Metadata guards, strict JSON parsing.
  *
- * Control routes require a native process grant or an OAuth token bound to
- * the native operator and this server instance. Origin checks apply to both.
+ * Control routes require the process-scoped native Desktop grant. OAuth is
+ * used only for native operator sign-in and credential provisioning.
  */
 
 export const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
@@ -394,38 +390,6 @@ export function buildAgentServer(
         browserOrigins.has(origin),
     });
   }
-  // Bound browser signature work before attempting asymmetric verification.
-  // A fixed process-wide bucket cannot grow with attacker-chosen origins/IPs;
-  // native process grants retain their independent, inexpensive verification.
-  let verificationWindow = Date.now();
-  let verifications = 0;
-  const browserVerification = new WeakMap<FastifyRequest, Promise<void>>();
-  function verifyBrowser(
-    request: FastifyRequest,
-    token: string,
-  ): Promise<void> {
-    const previous = browserVerification.get(request);
-    if (previous) return previous;
-    if (Date.now() - verificationWindow >= RATE_LIMIT_WINDOW_MS) {
-      verificationWindow = Date.now();
-      verifications = 0;
-    }
-    if (++verifications > RATE_LIMIT_MAX)
-      throw new AgentServerHttpError(
-        429,
-        'rate_limited',
-        'Too many authorization attempts',
-      );
-    if (!oauth)
-      throw new AgentServerHttpError(
-        503,
-        'oauth_unavailable',
-        'Local OAuth is not configured',
-      );
-    const pending = oauth.verifyBrowser(token);
-    browserVerification.set(request, pending);
-    return pending;
-  }
   function hasValidNativeGrant(
     origin: string | undefined,
     token: string | string[] | undefined,
@@ -469,7 +433,7 @@ export function buildAgentServer(
     timeWindow: RATE_LIMIT_WINDOW_MS,
     errorResponseBuilder: () =>
       new AgentServerHttpError(429, 'rate_limited', 'Too many requests'),
-    keyGenerator: async (request) => {
+    keyGenerator: (request) => {
       const origin = request.headers.origin;
       if (!isConfiguredOrigin(origin, options)) return `ip:${request.ip}`;
       // Claiming an origin is free; proving the grant is not. An unauthenticated
@@ -478,22 +442,10 @@ export function buildAgentServer(
       // the token. Verify before choosing the authenticated bucket: arbitrary
       // non-empty values must stay in the bounded pre-auth bucket.
       const presented = request.headers[AGENT_SERVER_TOKEN_HEADER];
-      let authenticated = false;
-      if (typeof presented === 'string' && presented.length > 0) {
-        try {
-          if (origin === NATIVE_CLIENT_ORIGIN)
-            authenticated = hasValidNativeGrant(origin, presented);
-          else {
-            if (!oauth) return `unauth:${origin}:${request.ip}`;
-            await verifyBrowser(request, presented);
-            authenticated = true;
-          }
-        } catch (error) {
-          if (error instanceof AgentServerHttpError && error.statusCode === 429)
-            throw error;
-          if (origin === NATIVE_CLIENT_ORIGIN) throw error;
-        }
-      }
+      const authenticated =
+        typeof presented === 'string' &&
+        presented.length > 0 &&
+        hasValidNativeGrant(origin, presented);
       return authenticated
         ? `origin:${origin}`
         : `unauth:${origin}:${request.ip}`;
@@ -515,63 +467,16 @@ export function buildAgentServer(
       throw new AgentServerHttpError(
         401,
         'authorization_required',
-        'Local control token is required',
+        'Native authorization is required',
       );
     }
-    if (origin === NATIVE_CLIENT_ORIGIN) {
-      requireNativeGrant(request);
-    } else {
-      try {
-        if (!oauth)
-          throw new AgentServerHttpError(
-            503,
-            'oauth_unavailable',
-            'Local OAuth is not configured',
-          );
-        // Consume admission verification once. Later checks on the same SSE
-        // request must revalidate expiry and the current operator.
-        const admission = browserVerification.get(request);
-        browserVerification.delete(request);
-        await (admission ?? oauth.verifyBrowser(token));
-      } catch (error) {
-        if (error instanceof AgentServerHttpError) throw error;
-        const code =
-          error && typeof error === 'object' && 'code' in error
-            ? error.code
-            : undefined;
-        const rejected =
-          error instanceof InvalidOperatorGrantError ||
-          (typeof code === 'string' &&
-            [
-              'ERR_JWT_EXPIRED',
-              'ERR_JWT_CLAIM_VALIDATION_FAILED',
-              'ERR_JWS_SIGNATURE_VERIFICATION_FAILED',
-              'ERR_JWS_INVALID',
-              'ERR_JWT_INVALID',
-              'ERR_JOSE_ALG_NOT_ALLOWED',
-              'ERR_JWKS_NO_MATCHING_KEY',
-            ].includes(code));
-        request.log.warn(
-          {
-            stage: 'local-control-authorization',
-            outcome: rejected ? 'rejected' : 'unavailable',
-            code: typeof code === 'string' ? code : undefined,
-          },
-          'Local control authorization failed',
-        );
-        if (!rejected)
-          throw new AgentServerHttpError(
-            503,
-            'authorization_unavailable',
-            'Local authorization is unavailable. Check Server settings or retry shortly.',
-          );
-        throw new AgentServerHttpError(
-          401,
-          'authorization_required',
-          'Sign in to authorize local control',
-        );
-      }
-    }
+    if (origin !== NATIVE_CLIENT_ORIGIN)
+      throw new AgentServerHttpError(
+        403,
+        'native_required',
+        'Native Desktop authorization required',
+      );
+    requireNativeGrant(request);
     return origin;
   };
 
@@ -627,50 +532,6 @@ export function buildAgentServer(
         }
       },
     );
-    app.get(
-      '/oauth/metadata',
-      {
-        schema: {
-          operationId: 'getAgentServerOAuthMetadata',
-          tags: ['operator'],
-          response: {
-            200: {
-              type: 'object',
-              required: [
-                'protocolVersion',
-                'instance',
-                'issuer',
-                'authorizationUrl',
-                'tokenUrl',
-                'clientId',
-                'operatorConfigured',
-              ],
-              properties: {
-                protocolVersion: {
-                  type: 'integer',
-                  const: OPERATOR_OAUTH.protocolVersion,
-                },
-                instance: { type: 'string', format: 'uuid' },
-                issuer: { type: 'string' },
-                authorizationUrl: { type: 'string' },
-                tokenUrl: { type: 'string' },
-                clientId: { type: 'string' },
-                operatorConfigured: { type: 'boolean' },
-              },
-            },
-          },
-        },
-      },
-      async () => {
-        if (!oauth)
-          throw new AgentServerHttpError(
-            503,
-            'oauth_unavailable',
-            'Local OAuth is not configured',
-          );
-        return oauth.metadata();
-      },
-    );
     app.post(
       '/v1/operator/sign-in',
       {
@@ -696,6 +557,18 @@ export function buildAgentServer(
           requestOperationSignal(request, options.shutdownSignal),
         );
         return { state: 'authorized' };
+      },
+    );
+    app.get(
+      '/v1/native/operator',
+      { schema: { hide: true } },
+      async (request) => {
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        return { operatorConfigured: operator.operatorConfigured() };
       },
     );
     app.post(
@@ -1649,10 +1522,6 @@ function registerRunLogRoute(
         });
       };
       const push = async (): Promise<void> => {
-        // Revalidate before forwarding more output: browser authority expires
-        // normally even when a stream was opened before expiry or removal.
-        if (request.headers.origin !== NATIVE_CLIENT_ORIGIN)
-          await requireAuthorizedOrigin(request);
         const logPath = store.resolveRunLogPath(record.id);
         const handle = await open(
           logPath,

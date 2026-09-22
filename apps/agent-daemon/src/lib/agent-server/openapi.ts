@@ -31,8 +31,7 @@ export function registerAgentServerOpenApi(app: FastifyInstance): void {
             type: 'apiKey',
             in: 'header',
             name: AGENT_SERVER_TOKEN_HEADER,
-            description:
-              'OAuth PKCE local-control access token, or a process-scoped native Desktop grant.',
+            description: 'Process-scoped native Desktop grant.',
           },
         },
       },

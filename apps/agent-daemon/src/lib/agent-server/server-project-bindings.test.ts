@@ -21,9 +21,7 @@ import {
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
-  authorize,
   cleanupAll,
-  CONSOLE_ORIGIN,
   fixture,
   HOST,
   registerCleanup,
@@ -93,28 +91,6 @@ const headers = {
 const LOCATIONS = '/v1/native/project-locations';
 
 describe('native project location administration', () => {
-  it('denies an authorized browser local folder access and writes', async () => {
-    const { app, payload } = await setup();
-    const token = await authorize(app);
-    for (const [method, url] of [
-      ['GET', LOCATIONS],
-      ['PUT', `${LOCATIONS}/Laptop`],
-      ['DELETE', `${LOCATIONS}/Laptop`],
-    ] as const) {
-      const response = await app.inject({
-        method,
-        url,
-        headers: {
-          host: HOST,
-          origin: CONSOLE_ORIGIN,
-          [AGENT_SERVER_TOKEN_HEADER]: token,
-        },
-        ...(method === 'PUT' ? { payload } : {}),
-      });
-      expect(response.statusCode).toBe(403);
-    }
-  });
-
   it('validates the accessible project, persists in the base store, and removes registration only', async () => {
     const { app, store, source, payload, port } = await setup();
     const saved = await app.inject({

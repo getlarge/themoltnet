@@ -18,7 +18,7 @@
     "e2e"
   ],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
       "path": "../../libs/tasks/tsconfig.lib.json"
@@ -94,6 +94,9 @@
     },
     {
       "path": "../../libs/auth/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/design-system/tsconfig.lib.json"
     }
   ]
 }

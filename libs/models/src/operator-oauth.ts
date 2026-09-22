@@ -13,6 +13,5 @@ export const OPERATOR_OAUTH = Object.freeze({
    * agree: a mismatch rejects every approval with an opaque 403.
    */
   nativeClientId: 'moltnet-native',
-  consoleClientId: 'moltnet-console',
   ...parameters,
 });

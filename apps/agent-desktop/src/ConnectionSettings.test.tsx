@@ -21,7 +21,6 @@ const defaults = {
   issuer: 'https://auth.themolt.net',
   publicUrl: 'https://auth.themolt.net',
   nativeClientId: 'moltnet-native',
-  consoleClientId: 'moltnet-console',
 };
 const view: ConnectionSettingsView = {
   defaults,

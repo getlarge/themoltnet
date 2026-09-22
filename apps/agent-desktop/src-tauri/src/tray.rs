@@ -409,7 +409,7 @@ fn start_refresh(app: AppHandle) {
                 next.runtime = read(&app, "/v1/status");
                 if let Some(runtime) = &next.runtime {
                     failures = 0;
-                    next.operator = read(&app, "/oauth/metadata")
+                    next.operator = read(&app, "/v1/native/operator")
                         .and_then(|value| value.get("operatorConfigured").and_then(Value::as_bool));
                     let identity = catalogue_identity(runtime);
                     let old_identity = previous

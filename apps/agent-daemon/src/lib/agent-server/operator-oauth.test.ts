@@ -119,7 +119,6 @@ async function fixture(
     tokenUrl: `${issuer}/oauth2/token`,
     jwksUrl: `${issuer}/.well-known/jwks.json`,
     nativeClientId: 'native',
-    consoleClientId: 'console',
     callbackPort,
   };
   const oauth = new OperatorOAuth(config, root, (url) => {
@@ -153,40 +152,9 @@ describe('native PKCE operator', () => {
     expect(
       JSON.parse(readFileSync(join(f.root, 'operator.json'), 'utf8')),
     ).toEqual({ issuer: f.config.issuer, subject: 'human' });
-    const browser = await f.token();
-    await expect(f.oauth.verifyBrowser(browser)).resolves.toBeUndefined();
-    const now = Math.floor(Date.now() / 1000);
-    await expect(
-      f.oauth.verifyBrowser(await f.token({ iat: now - 1, exp: now + 900 })),
-    ).resolves.toBeUndefined();
-    await expect(
-      f.oauth.verifyBrowser(await f.token({ iat: now - 901, exp: now + 60 })),
-    ).rejects.toThrow();
-    await expect(
-      f.oauth.verifyBrowser(await f.token({ scp: ['diary:write'] })),
-    ).rejects.toThrow();
-    await expect(
-      f.oauth.verifyBrowser(await f.token({ aud: 'other-server' })),
-    ).rejects.toThrow();
-    await expect(
-      f.oauth.verifyBrowser(
-        await f.token({ exp: Math.floor(Date.now() / 1000) - 1 }),
-      ),
-    ).rejects.toThrow();
-    await expect(
-      f.oauth.verifyBrowser(
-        await f.token({
-          sub: 'other-human',
-          ext: {
-            'moltnet:identity_id': 'other-human',
-            'moltnet:subject_type': 'human',
-            'moltnet:instance': f.oauth.instance,
-          },
-        }),
-      ),
-    ).rejects.toThrow();
+    expect(f.oauth.operatorConfigured()).toBe(true);
     const restarted = new OperatorOAuth(f.config, f.root, () => undefined);
-    await expect(restarted.verifyBrowser(browser)).rejects.toThrow();
+    expect(restarted.operatorConfigured()).toBe(true);
   });
   it.each([
     { agentId: 'other-agent' },
@@ -252,7 +220,7 @@ describe('native PKCE operator', () => {
       expect(await settled).toBe(
         subject === 'human' ? 'authorized' : 'rejected',
       );
-      expect(f.oauth.metadata().operatorConfigured).toBe(subject === 'human');
+      expect(f.oauth.operatorConfigured()).toBe(subject === 'human');
       expect(
         JSON.parse(readFileSync(join(f.root, 'operator.json'), 'utf8')),
       ).toMatchObject({ subject });
@@ -284,7 +252,7 @@ describe('native PKCE operator', () => {
       f.oauth[action]();
       release();
       await rejection;
-      expect(f.oauth.metadata().operatorConfigured).toBe(false);
+      expect(f.oauth.operatorConfigured()).toBe(false);
       expect(existsSync(join(f.root, 'operator.json'))).toBe(false);
       expect(f.exchanges()).toBe(1);
     },
@@ -297,6 +265,6 @@ describe('native PKCE operator', () => {
     f.oauth.cancel();
     await rejection;
     expect(f.exchanges()).toBe(0);
-    expect(f.oauth.metadata().operatorConfigured).toBe(false);
+    expect(f.oauth.operatorConfigured()).toBe(false);
   });
 });

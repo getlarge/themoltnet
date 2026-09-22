@@ -172,7 +172,6 @@ export interface AgentServerEnvConfig {
     issuer?: string;
     publicUrl?: string;
     nativeClientId?: string;
-    consoleClientId?: string;
     apiUrl?: string;
   };
 }
@@ -182,14 +181,12 @@ export function loadAgentServerEnvConfig(root?: string): AgentServerEnvConfig {
   const issuer = process.env['MOLTNET_OPERATOR_OAUTH_ISSUER'];
   const publicUrl = process.env['MOLTNET_OPERATOR_OAUTH_PUBLIC_URL'] ?? issuer;
   const nativeClientId = process.env['MOLTNET_NATIVE_OAUTH_CLIENT_ID'];
-  const consoleClientId = process.env['MOLTNET_CONSOLE_OAUTH_CLIENT_ID'];
   const apiUrl = process.env['MOLTNET_OPERATOR_API_URL'];
   return {
     operatorOAuth: {
       ...(issuer ? { issuer } : {}),
       ...(publicUrl ? { publicUrl } : {}),
       ...(nativeClientId ? { nativeClientId } : {}),
-      ...(consoleClientId ? { consoleClientId } : {}),
       ...(apiUrl ? { apiUrl } : {}),
     },
     port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',

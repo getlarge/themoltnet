@@ -1,7 +1,7 @@
 /**
  * Subscription OAuth brokering tests (#2061 slice 4): the login flow runs
  * against an injected fake runner — no real provider traffic — and the
- * HTTP surface is exercised end to end through the paired Agent Server.
+ * HTTP surface is exercised end to end through the authorized Agent Server.
  */
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';

@@ -66,7 +66,7 @@ describe('provisioning grant scope ceiling', () => {
   });
 });
 
-describe('Console consent target validation', () => {
+describe('OAuth consent target validation', () => {
   it('builds approval claims from the Ory request and repeats team permission checks on approval', async () => {
     const mocks = createMockServices();
     const human = {
@@ -134,18 +134,22 @@ describe('Console consent target validation', () => {
       headers: { cookie: 'ory_kratos_session=session' },
     });
     expect(displayed.statusCode).toBe(200);
-    expect(displayed.json()).toMatchObject({
-      operation: 'enroll',
-      teamId: grant.teamId,
-      agentId: grant.agentId,
-      permissions: grant.scopes,
-    });
+    expect(displayed.headers['content-type']).toContain('text/html');
+    expect(displayed.body).toContain('Enroll this agent?');
+    expect(displayed.body).toContain('Agent');
+    expect(displayed.body).toContain('Execute and report task attempts');
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(false);
     const rejected = await app.inject({
       method: 'POST',
       url: '/oauth2/consent',
-      headers: { cookie: 'ory_kratos_session=session' },
-      payload: { challenge: 'challenge', approve: true },
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'challenge',
+        decision: 'allow',
+      }).toString(),
     });
     expect(rejected.statusCode).toBe(403);
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).not.toHaveBeenCalled();
@@ -155,13 +159,23 @@ describe('Console consent target validation', () => {
     const denied = await app.inject({
       method: 'POST',
       url: '/oauth2/consent',
-      headers: { cookie: 'ory_kratos_session=session' },
-      payload: { challenge: 'challenge', approve: false },
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'challenge',
+        decision: 'deny',
+      }).toString(),
     });
-    expect(denied.statusCode).toBe(200);
+    expect(denied.statusCode).toBe(303);
+    expect(denied.headers.location).toBe('https://ory.example/denied');
     expect(app.oauth2Client.rejectOAuth2ConsentRequest).toHaveBeenCalledWith({
       consentChallenge: 'challenge',
-      rejectOAuth2Request: { error: 'access_denied' },
+      rejectOAuth2Request: {
+        error: 'access_denied',
+        error_description: 'The user denied access.',
+      },
     });
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
     const original = await app.oauth2Client.getOAuth2ConsentRequest({
@@ -201,8 +215,14 @@ describe('Console consent target validation', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/oauth2/consent',
-        headers: { cookie: 'ory_kratos_session=session' },
-        payload: { challenge: 'challenge', approve: true },
+        headers: {
+          cookie: 'ory_kratos_session=session',
+          'content-type': 'application/x-www-form-urlencoded',
+        },
+        payload: new URLSearchParams({
+          consent_challenge: 'challenge',
+          decision: 'allow',
+        }).toString(),
       });
       expect(response.statusCode).toBe(403);
     }
@@ -213,10 +233,17 @@ describe('Console consent target validation', () => {
     const approved = await app.inject({
       method: 'POST',
       url: '/oauth2/consent',
-      headers: { cookie: 'ory_kratos_session=session' },
-      payload: { challenge: 'challenge', approve: true },
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'challenge',
+        decision: 'allow',
+      }).toString(),
     });
-    expect(approved.statusCode).toBe(200);
+    expect(approved.statusCode).toBe(303);
+    expect(approved.headers.location).toBe('https://ory.example/approved');
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledWith({
       consentChallenge: 'challenge',
       acceptOAuth2ConsentRequest: {
@@ -236,6 +263,108 @@ describe('Console consent target validation', () => {
         },
       },
     });
+  });
+});
+
+describe('project-wide OAuth consent', () => {
+  it('preserves capped dynamic-client consent and rejects privileged scopes', async () => {
+    const mocks = createMockServices();
+    const human = {
+      subjectType: 'human' as const,
+      humanId: 'cccccccc-0000-4000-8000-000000000003',
+      identityId: 'dddddddd-0000-4000-8000-000000000004',
+      clientId: null,
+      currentTeamId: null,
+      scopes: [...HUMAN_SESSION_SCOPES],
+    };
+    const app = await createTestApp(mocks, human);
+    apps.push(app);
+    app.sessionResolver = {
+      evictIdentity: vi.fn(),
+      resolveSession: vi.fn().mockResolvedValue(human),
+    };
+    const requestUrl = new URL('https://ory.example/oauth2/auth');
+    requestUrl.searchParams.set('response_type', 'code');
+    requestUrl.searchParams.set('code_challenge_method', 'S256');
+    requestUrl.searchParams.set('code_challenge', 'A'.repeat(43));
+    const consent = {
+      challenge: 'dcr-challenge',
+      subject: human.identityId,
+      client: {
+        client_id: 'dcr-client',
+        client_name: 'MCP client',
+        token_endpoint_auth_method: 'none',
+        grant_types: ['authorization_code', 'refresh_token'],
+      },
+      requested_scope: ['openid', 'diary:read'],
+      requested_access_token_audience: ['https://mcp.example/mcp'],
+      request_url: requestUrl.href,
+    };
+    app.oauth2Client.getOAuth2ConsentRequest = vi
+      .fn()
+      .mockResolvedValue(consent);
+    app.oauth2Client.acceptOAuth2ConsentRequest = vi
+      .fn()
+      .mockResolvedValue({ redirect_to: 'https://ory.example/approved' });
+
+    const displayed = await app.inject({
+      url: '/oauth2/consent?consent_challenge=dcr-challenge',
+      headers: { cookie: 'ory_kratos_session=session' },
+    });
+    expect(displayed.statusCode).toBe(200);
+    expect(displayed.headers['content-type']).toContain('text/html');
+    expect(displayed.headers['cache-control']).toContain('no-store');
+    expect(displayed.body).toContain('Allow application access?');
+    expect(displayed.body).toContain('MCP client');
+    expect(displayed.body).toContain('Read diary entries and metadata');
+    expect(displayed.body).toContain('https://mcp.example/mcp');
+    expect(displayed.body).toContain(
+      'name="consent_challenge" value="dcr-challenge"',
+    );
+
+    const approved = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'dcr-challenge',
+        decision: 'allow',
+      }).toString(),
+    });
+    expect(approved.statusCode).toBe(303);
+    expect(approved.headers.location).toBe('https://ory.example/approved');
+    expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledWith({
+      consentChallenge: 'dcr-challenge',
+      acceptOAuth2ConsentRequest: {
+        remember: false,
+        grant_scope: ['openid', 'diary:read'],
+        grant_access_token_audience: ['https://mcp.example/mcp'],
+      },
+    });
+
+    vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue({
+      ...consent,
+      requested_scope: ['key:manage'],
+    });
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'dcr-challenge',
+        decision: 'allow',
+      }).toString(),
+    });
+    expect(rejected.statusCode).toBe(403);
+    expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledTimes(
+      1,
+    );
   });
 });
 

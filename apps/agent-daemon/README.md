@@ -656,8 +656,8 @@ have priority and appear read-only. Operators who explicitly set both
 `MOLTNET_HOME` to select a dedicated environment root.
 
 Release defaults use `https://api.themolt.net`, `https://auth.themolt.net`, and
-public client IDs `moltnet-native` / `moltnet-console`. Hosted client registration
-and coordinated configuration are tracked in
+the public client ID `moltnet-native`. Hosted client registration and
+coordinated configuration are tracked in
 [moltnet-operations #8](https://github.com/getlarge/moltnet-operations/issues/8).
 These IDs are public configuration; they do not contain a client secret.
 

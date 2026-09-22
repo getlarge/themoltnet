@@ -7,24 +7,24 @@ import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   authorize,
   cleanupAll,
-  CONSOLE_ORIGIN,
   fixture,
   HOST,
+  TEST_CLIENT_ORIGIN,
   writeCentralIdentity,
 } from './server-test-harness.js';
 
 afterEach(cleanupAll);
 
 describe('agent server authorization', () => {
-  it('gates /v1 on verified OAuth authorization', async () => {
+  it('gates /v1 on the native process grant', async () => {
     const { app } = await fixture();
 
-    const unpaired = await app.inject({
+    const unauthorized = await app.inject({
       method: 'GET',
       url: '/v1/status',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+      headers: { host: HOST, origin: TEST_CLIENT_ORIGIN },
     });
-    expect(unpaired.statusCode).toBe(401);
+    expect(unauthorized.statusCode).toBe(401);
 
     const token = await authorize(app);
     const status = await app.inject({
@@ -32,7 +32,7 @@ describe('agent server authorization', () => {
       url: '/v1/status',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -51,7 +51,7 @@ describe('agent server authorization', () => {
       url: '/v1/status',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: 'forged',
       },
     });
@@ -69,7 +69,7 @@ describe('agent server authorization', () => {
       url: '/v1/status',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });

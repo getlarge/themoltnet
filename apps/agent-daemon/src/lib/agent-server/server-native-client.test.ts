@@ -5,10 +5,9 @@
  * token and passes it in the child's environment, so no browser ceremony is
  * involved and the native origin must never be reachable through one.
  */
-import { writeFileSync } from 'node:fs';
 import { request } from 'node:http';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   publishAgentServerEndpoint,
@@ -19,32 +18,29 @@ import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
 } from './native-grant-service.js';
-import {
-  InvalidOperatorGrantError,
-  type OperatorOAuth,
-} from './operator-oauth.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
   authorize,
   cleanupAll,
-  CONSOLE_ORIGIN,
   fixture,
   HOST,
+  TEST_CLIENT_ORIGIN,
 } from './server-test-harness.js';
 
 afterEach(cleanupAll);
+const BROWSER_ORIGIN = 'https://console.themolt.net';
 
 describe('native desktop client', () => {
   it('omits browser CORS headers from native-only errors even for configured browser origins', async () => {
     const { app } = await fixture({
       nativeOnly: true,
-      allowedOrigins: [CONSOLE_ORIGIN],
+      allowedOrigins: [BROWSER_ORIGIN],
     });
     const response = await app.inject({
       method: 'GET',
       url: '/v1/native/connection-settings',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+      headers: { host: HOST, origin: BROWSER_ORIGIN },
     });
     expect(response.statusCode).toBe(403);
     expect(response.headers['access-control-allow-origin']).toBeUndefined();
@@ -151,7 +147,7 @@ describe('native desktop client', () => {
       url: '/v1/native/connection-settings',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: BROWSER_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
       payload: {},
@@ -317,7 +313,7 @@ describe('native desktop client', () => {
     expect(authorized.statusCode).toBe(200);
   });
 
-  it('separates authorized Console requests from guesses and enforces their limit', async () => {
+  it('separates authorized native requests from guesses and enforces their limit', async () => {
     const { app } = await fixture({ rateLimitMax: 1 });
     const token = await authorize(app);
     const request = (presented: string) =>
@@ -326,7 +322,7 @@ describe('native desktop client', () => {
         url: '/v1/status',
         headers: {
           host: HOST,
-          origin: CONSOLE_ORIGIN,
+          origin: TEST_CLIENT_ORIGIN,
           [AGENT_SERVER_TOKEN_HEADER]: presented,
         },
       });
@@ -348,13 +344,13 @@ describe('native desktop client', () => {
       url: '/v1/status',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: BROWSER_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
       },
     });
 
     // Assert
-    expect(response.statusCode).toBe(401);
+    expect(response.statusCode).toBe(403);
   });
 
   it('leaves the native origin unauthorized when no token was supplied', async () => {
@@ -375,86 +371,4 @@ describe('native desktop client', () => {
     // Assert
     expect(response.statusCode).toBe(401);
   });
-});
-
-describe('browser admission and stream authorization', () => {
-  it('shares admission verification but revalidates before streaming log content', async () => {
-    const verifyBrowser = vi
-      .fn()
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValue(new InvalidOperatorGrantError('Grant expired'));
-    const { app, store } = await fixture({
-      operatorOAuth: {
-        verifyBrowser,
-        cancel: () => undefined,
-      } as unknown as OperatorOAuth,
-    });
-    const { logPath } = store.createRunDir('expiring-run');
-    store.writeRun({
-      id: 'expiring-run',
-      agent: 'agent',
-      teamId: 'team',
-      profiles: ['profile'],
-      taskTypes: ['freeform'],
-      mode: 'poll',
-      status: 'exited',
-      startedAt: '2026-01-01T00:00:00Z',
-    });
-    writeFileSync(logPath, 'must-not-be-forwarded\n');
-    const address = await app.listen({ host: '127.0.0.1', port: 0 });
-    const result = fetch(`${address}/v1/runs/expiring-run/logs`, {
-      headers: {
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: 'expiring-token',
-      },
-      signal: AbortSignal.timeout(3000),
-    }).then((response) => response.text());
-    await expect(result).rejects.toThrow();
-    expect(verifyBrowser).toHaveBeenCalledTimes(2);
-  });
-
-  it('verifies a normal request once', async () => {
-    const verifyBrowser = vi.fn().mockResolvedValue(undefined);
-    const { app } = await fixture({
-      operatorOAuth: {
-        verifyBrowser,
-        cancel: () => undefined,
-      } as unknown as OperatorOAuth,
-    });
-    const response = await app.inject({
-      url: '/v1/status',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: 'valid',
-      },
-    });
-    expect(response.statusCode).toBe(200);
-    expect(verifyBrowser).toHaveBeenCalledTimes(1);
-  });
-});
-
-it('distinguishes missing OAuth configuration from temporary verification failure', async () => {
-  const missing = await fixture({ operatorOAuth: undefined });
-  const unavailable = await fixture({
-    operatorOAuth: {
-      cancel: () => undefined,
-      verifyBrowser: vi.fn().mockRejectedValue(new Error('JWKS unavailable')),
-    } as unknown as OperatorOAuth,
-  });
-  for (const [app, expected] of [
-    [missing.app, 'oauth_unavailable'],
-    [unavailable.app, 'authorization_unavailable'],
-  ] as const) {
-    const response = await app.inject({
-      url: '/v1/status',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: 'token',
-      },
-    });
-    expect(response.statusCode).toBe(503);
-    expect(response.json()).toMatchObject({ code: expected });
-  }
 });

@@ -677,11 +677,10 @@ npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/dep
 ```
 
 The released Desktop uses the administratively registered `moltnet-native`
-client for loopback PKCE callbacks. `moltnet-console` remains registered for the
-browser local-control contract. Both are public clients: they have stable IDs
-and no client secrets. Do not create them manually in the Ory Console; change
-the reviewed JSON definitions and run `deploy.mjs --apply` so production
-configuration stays reproducible.
+public client for loopback PKCE callbacks. It has a stable ID and no client
+secret. Do not create it manually in the Ory Console; change the reviewed JSON
+definition and run `deploy.mjs --apply` so production configuration stays
+reproducible. The deploy script also removes retired administrative clients.
 
 Full deployment needs both credentials: `ORY_WORKSPACE_API_KEY` for project
 configuration and OPL, and `ORY_PROJECT_API_KEY` for OAuth client

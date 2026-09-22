@@ -17,11 +17,11 @@ import type { FastifyInstance } from 'fastify';
 import { ProviderConfigurationService } from '../provider-configuration.js';
 import { ConnectionSettingsStore } from './connection-settings.js';
 import { type ActivatedAgent } from './identity.js';
-import { NativeGrantService } from './native-grant-service.js';
 import {
-  InvalidOperatorGrantError,
-  type OperatorOAuth,
-} from './operator-oauth.js';
+  NATIVE_CLIENT_ORIGIN,
+  NativeGrantService,
+} from './native-grant-service.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
 import { RuntimeRegistry } from './runtime-registry.js';
@@ -46,7 +46,7 @@ import {
  * modules per file, so each suite gets its own cleanup list.
  */
 
-export const CONSOLE_ORIGIN = 'https://console.themolt.net';
+export const TEST_CLIENT_ORIGIN = NATIVE_CLIENT_ORIGIN;
 export const HOST = '127.0.0.1:17374';
 
 class FakeChild extends EventEmitter {
@@ -79,7 +79,7 @@ export interface Fixture {
   children: FakeChild[];
 }
 
-const browserTokens = new WeakMap<FastifyInstance, string>();
+const nativeTokens = new WeakMap<FastifyInstance, string>();
 const cleanups: (() => Promise<void> | void)[] = [];
 
 /**
@@ -287,15 +287,14 @@ export async function fixture(
     ...(startTimeoutMs === undefined ? {} : { startTimeoutMs }),
     ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
   });
-  const browserToken = randomUUID();
+  const nativeToken = randomUUID();
+  const nativeGrant = options.nativeGrant ?? new NativeGrantService();
+  if (!options.nativeGrant) nativeGrant.grantNative(nativeToken);
   const app = buildAgentServer({
     operatorOAuth: {
       cancel: () => undefined,
       removeOperator: () => undefined,
-      verifyBrowser: async (token: string) => {
-        if (token !== browserToken)
-          throw new InvalidOperatorGrantError('Invalid browser token');
-      },
+      operatorConfigured: () => false,
     } as unknown as OperatorOAuth,
     store,
     secrets,
@@ -308,7 +307,7 @@ export async function fixture(
             projectRoot ?? store.root,
           ),
         }),
-    nativeGrant: options.nativeGrant ?? new NativeGrantService(),
+    nativeGrant,
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }
       : {}),
@@ -327,13 +326,13 @@ export async function fixture(
         ? { fetchImpl: serverOptions.discoverFetch }
         : {}),
     }),
-    allowedOrigins: [CONSOLE_ORIGIN],
+    allowedOrigins: ['https://console.themolt.net'],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
     version: 'test',
     ...serverOptions,
   });
-  browserTokens.set(app, browserToken);
+  nativeTokens.set(app, nativeToken);
   await app.ready();
   cleanups.push(async () => {
     await app.close();
@@ -413,9 +412,9 @@ export function writeCentralIdentity(
   });
 }
 
-/** HTTP route tests inject verified OAuth; cryptographic checks live in operator-oauth tests. */
+/** HTTP route tests inject the process-scoped native grant. */
 export async function authorize(app: FastifyInstance): Promise<string> {
-  const token = browserTokens.get(app);
-  if (!token) throw new Error('Missing browser authorization fixture');
+  const token = nativeTokens.get(app);
+  if (!token) throw new Error('Missing native authorization fixture');
   return token;
 }

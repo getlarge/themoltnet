@@ -583,7 +583,6 @@ describe('loadOperatorOAuthClients', () => {
   it('falls back to the registered production clients when unset', () => {
     expect(loadOperatorOAuthClients({})).toEqual({
       nativeClientId: 'moltnet-native',
-      consoleClientId: 'moltnet-console',
     });
   });
 
@@ -591,18 +590,15 @@ describe('loadOperatorOAuthClients', () => {
     expect(
       loadOperatorOAuthClients({
         MOLTNET_NATIVE_OAUTH_CLIENT_ID: 'native-e2e',
-        MOLTNET_CONSOLE_OAUTH_CLIENT_ID: 'console-e2e',
       }),
     ).toEqual({
       nativeClientId: 'native-e2e',
-      consoleClientId: 'console-e2e',
     });
   });
 
-  it.each([
-    ['MOLTNET_NATIVE_OAUTH_CLIENT_ID'],
-    ['MOLTNET_CONSOLE_OAUTH_CLIENT_ID'],
-  ])('refuses a blank %s instead of rejecting every approval', (name) => {
-    expect(() => loadOperatorOAuthClients({ [name]: '   ' })).toThrow(name);
+  it('refuses a blank native client instead of rejecting every approval', () => {
+    expect(() =>
+      loadOperatorOAuthClients({ MOLTNET_NATIVE_OAUTH_CLIENT_ID: '   ' }),
+    ).toThrow('MOLTNET_NATIVE_OAUTH_CLIENT_ID');
   });
 });

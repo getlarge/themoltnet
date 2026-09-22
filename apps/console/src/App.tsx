@@ -11,10 +11,6 @@ import { EntryDetailPage } from './pages/EntryDetailPage.js';
 import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { KnowledgePage } from './pages/KnowledgePage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
-import {
-  LocalOAuthCallback,
-  OAuthApprovalPage,
-} from './pages/OAuthApprovalPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
 import { PackDetailPage } from './pages/PackDetailPage.js';
 import { PacksPage } from './pages/PacksPage.js';
@@ -32,14 +28,10 @@ import { TeamsPage } from './pages/TeamsPage.js';
 import { legacyProfilesDestination } from './runtime-routes.js';
 
 export function App() {
-  if (window.location.pathname === '/oauth/local-callback')
-    return <LocalOAuthCallback />;
   return (
     <AuthGuard>
       <DashboardLayout>
         <Switch>
-          <Route path="/oauth/login" component={OAuthApprovalPage} />
-          <Route path="/oauth/consent" component={OAuthApprovalPage} />
           <Route path="/" component={OverviewPage} />
           <Route path="/knowledge" component={KnowledgePage} />
           <Route path="/packs" component={PacksPage} />

@@ -149,7 +149,6 @@ function spawnAgentCommand(
     MOLTNET_OPERATOR_OAUTH_PUBLIC_URL:
       process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://localhost:4444',
     MOLTNET_NATIVE_OAUTH_CLIENT_ID: 'moltnet-native-e2e',
-    MOLTNET_CONSOLE_OAUTH_CLIENT_ID: 'moltnet-console-e2e',
     MOLTNET_OPERATOR_API_URL:
       process.env.REST_API_URL ?? 'http://localhost:8080',
   };
@@ -328,13 +327,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   let managedSubjectId: string;
   let runId: string;
 
-  function agentServerClient(origin = NATIVE_ORIGIN, paired = true) {
+  function agentServerClient(origin = NATIVE_ORIGIN, authorized = true) {
     return createClient({
       baseUrl: base,
       credentials: 'omit',
       headers: {
         origin,
-        ...(paired ? { [AGENT_SERVER_TOKEN_HEADER]: token } : {}),
+        ...(authorized ? { [AGENT_SERVER_TOKEN_HEADER]: token } : {}),
       },
     });
   }
@@ -442,11 +441,11 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   it('answers health without authorization and gates the JSON API', async () => {
     expect((await fetch(`${base}/health`)).status).toBe(200);
 
-    const unpaired = await getAgentServerStatus({
+    const unauthorized = await getAgentServerStatus({
       client: agentServerClient(NATIVE_ORIGIN, false),
     });
-    expect(unpaired.response.status).toBe(401);
-    expect(unpaired.error?.code).toBe('authorization_required');
+    expect(unauthorized.response.status).toBe(401);
+    expect(unauthorized.error?.code).toBe('authorization_required');
 
     const foreign = await getAgentServerStatus({
       client: agentServerClient(OTHER_ORIGIN, false),
@@ -476,7 +475,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const crossOrigin = await getAgentServerStatus({
       client: agentServerClient(BROWSER_ORIGIN),
     });
-    expect(crossOrigin.response.status).toBe(401);
+    expect(crossOrigin.response.status).toBe(403);
   });
 
   it('discovers models from OpenAI-compatible and Ollama endpoints, failing closed otherwise', async () => {
@@ -1337,7 +1336,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(await configFilesContaining(agentServerRoot, secretA)).toEqual([]);
     expect(await configFilesContaining(agentServerRoot, secretB)).toEqual([]);
     // Native renewal and predecessor preservation are exercised by the real
-    // Console approval journey. This suite keeps offline run/revocation coverage.
+    // Ory approval journey. This suite keeps offline run/revocation coverage.
     const activeB = await agent.agentKeys.list(
       { agentId: managedSubjectId, status: 'active' },
       { teamId: teamB.id },

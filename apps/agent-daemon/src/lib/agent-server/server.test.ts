@@ -35,10 +35,10 @@ import {
   activateManaged,
   authorize,
   cleanupAll,
-  CONSOLE_ORIGIN,
   fixture,
   HOST,
   registerCleanup,
+  TEST_CLIENT_ORIGIN,
 } from './server-test-harness.js';
 
 afterEach(async () => {
@@ -63,7 +63,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
       payload: {
@@ -101,7 +101,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs/snapshot-run/logs/snapshot',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -110,7 +110,7 @@ describe('agent server providers and runs', () => {
     expect(response.json()).toEqual({ lines: ['first', 'second', 'partial'] });
     const unauthenticated = await app.inject({
       url: '/v1/runs/snapshot-run/logs/snapshot',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+      headers: { host: HOST, origin: TEST_CLIENT_ORIGIN },
     });
     expect(unauthenticated.statusCode).toBe(401);
   });
@@ -215,7 +215,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -248,7 +248,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/status',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -276,7 +276,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/providers/unsafe',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -298,7 +298,7 @@ describe('agent server providers and runs', () => {
     const token = await authorize(app);
     const headers = {
       host: HOST,
-      origin: CONSOLE_ORIGIN,
+      origin: TEST_CLIENT_ORIGIN,
       [AGENT_SERVER_TOKEN_HEADER]: token,
       'content-type': 'application/json',
     };
@@ -372,7 +372,7 @@ describe('agent server providers and runs', () => {
     const token = await authorize(app);
     const headers = {
       host: HOST,
-      origin: CONSOLE_ORIGIN,
+      origin: TEST_CLIENT_ORIGIN,
       [AGENT_SERVER_TOKEN_HEADER]: token,
       'content-type': 'application/json',
     };
@@ -394,7 +394,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/providers/ollama',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -415,7 +415,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/providers/missing',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -431,7 +431,7 @@ describe('agent server providers and runs', () => {
     const token = await authorize(app);
     const headers = {
       host: HOST,
-      origin: CONSOLE_ORIGIN,
+      origin: TEST_CLIENT_ORIGIN,
       [AGENT_SERVER_TOKEN_HEADER]: token,
       'content-type': 'application/json',
     };
@@ -496,7 +496,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -554,7 +554,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
       payload: {
@@ -580,7 +580,7 @@ describe('agent server providers and runs', () => {
     const token = await authorize(app);
     const headers = {
       host: HOST,
-      origin: CONSOLE_ORIGIN,
+      origin: TEST_CLIENT_ORIGIN,
       [AGENT_SERVER_TOKEN_HEADER]: token,
       'content-type': 'application/json',
     };
@@ -686,7 +686,7 @@ describe('agent server providers and runs', () => {
       url: `/v1/runs/${run.id}`,
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -706,7 +706,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/agents',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -729,7 +729,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/agents/pending-bot/reconcile',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -748,7 +748,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/agents',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -771,7 +771,7 @@ describe('agent server providers and runs', () => {
     activateManaged(store, 'team-bound');
     const headers = {
       host: HOST,
-      origin: CONSOLE_ORIGIN,
+      origin: TEST_CLIENT_ORIGIN,
       [AGENT_SERVER_TOKEN_HEADER]: token,
       'content-type': 'application/json',
     };
@@ -837,7 +837,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -886,7 +886,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -930,7 +930,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1052,7 +1052,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1131,7 +1131,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1241,7 +1241,7 @@ describe('agent server providers and runs', () => {
         url: '/v1/runs',
         headers: {
           host: HOST,
-          origin: CONSOLE_ORIGIN,
+          origin: TEST_CLIENT_ORIGIN,
           [AGENT_SERVER_TOKEN_HEADER]: token,
           'content-type': 'application/json',
         },
@@ -1313,7 +1313,7 @@ describe('agent server providers and runs', () => {
           url: '/v1/runs',
           headers: {
             host: HOST,
-            origin: CONSOLE_ORIGIN,
+            origin: TEST_CLIENT_ORIGIN,
             [AGENT_SERVER_TOKEN_HEADER]: token,
             'content-type': 'application/json',
           },
@@ -1346,7 +1346,7 @@ describe('agent server providers and runs', () => {
     const token = await authorize(app);
     const headers = {
       host: HOST,
-      origin: CONSOLE_ORIGIN,
+      origin: TEST_CLIENT_ORIGIN,
       [AGENT_SERVER_TOKEN_HEADER]: token,
       'content-type': 'application/json',
     };
@@ -1412,7 +1412,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1443,7 +1443,7 @@ describe('agent server providers and runs', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1482,7 +1482,7 @@ describe('team and diary travel together', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1547,7 +1547,7 @@ describe('a failed run explains itself', () => {
       url: '/v1/runs',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
         'content-type': 'application/json',
       },
@@ -1578,7 +1578,7 @@ describe('a failed run explains itself', () => {
         url: '/v1/runs',
         headers: {
           host: HOST,
-          origin: CONSOLE_ORIGIN,
+          origin: TEST_CLIENT_ORIGIN,
           [AGENT_SERVER_TOKEN_HEADER]: token,
         },
       });
