@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.146.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.145.0...sdk-v0.146.0) (2026-09-22)
+
+
+### Features
+
+* **agent-daemon:** manage endpoint-scoped local project bindings ([eb53c50](https://github.com/getlarge/themoltnet/commit/eb53c509cd383b2df9f1a67af454f0c7b61af9b5))
+* **desktop:** native project catalogue and local locations ([4ff0345](https://github.com/getlarge/themoltnet/commit/4ff0345c9c9baa7b34ae4aaf6a4b368b67d513a2))
+
+
+### Bug Fixes
+
+* **agent-daemon:** share location readiness and bound project checks ([2edaa37](https://github.com/getlarge/themoltnet/commit/2edaa377024e634e8060a57a78a7dd1ee7b21e3e))
+
 ## [0.145.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.144.0...sdk-v0.145.0) (2026-09-22)
 
 

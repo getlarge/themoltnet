@@ -1,6 +1,6 @@
 [package]
 name = "moltnet-agent-desktop"
-version = "0.6.2"
+version = "0.7.0"
 description = "MoltNet Agent desktop and system-tray application"
 authors = ["MoltNet contributors"]
 default-run = "moltnet-agent-desktop"

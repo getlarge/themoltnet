@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.64.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.63.1...agent-daemon-v0.64.0) (2026-09-22)
+
+
+### Features
+
+* **agent-daemon:** capture project workspace selection before managed runs ([b18cca6](https://github.com/getlarge/themoltnet/commit/b18cca6fa259c4557a19e5fed22c19227fc2ad13))
+* **agent-daemon:** expose native project catalogue and location management ([726fef1](https://github.com/getlarge/themoltnet/commit/726fef1f9427f704c2c970c017f90c8501d16311))
+* **agent-daemon:** manage endpoint-scoped local project bindings ([eb53c50](https://github.com/getlarge/themoltnet/commit/eb53c509cd383b2df9f1a67af454f0c7b61af9b5))
+* **desktop:** bridge native project locations and folder selection ([da96bc7](https://github.com/getlarge/themoltnet/commit/da96bc71d00a7707e582e31a399ffcd312144907))
+* **desktop:** capture project selections for managed runs ([ec14520](https://github.com/getlarge/themoltnet/commit/ec14520a65d66fcba5e4c4fd7c5e5368cec21eb7))
+* **desktop:** forward captured project run selections ([0acaaaf](https://github.com/getlarge/themoltnet/commit/0acaaaf9d001206db927af4226dfff9778f8f6c3))
+* **desktop:** integrate Projects and verify the personal run journey ([c8ea765](https://github.com/getlarge/themoltnet/commit/c8ea765b675901fcab9afedf686203aa89249bf8))
+* **desktop:** integrate Projects with isolated execution journeys ([4a547cf](https://github.com/getlarge/themoltnet/commit/4a547cf068513fc5112075f758483d32f43aff57))
+* **desktop:** native project catalogue and local locations ([4ff0345](https://github.com/getlarge/themoltnet/commit/4ff0345c9c9baa7b34ae4aaf6a4b368b67d513a2))
+
+
+### Bug Fixes
+
+* **agent-daemon:** anchor managed project roots to caller directory ([f38300c](https://github.com/getlarge/themoltnet/commit/f38300c77ea4fb9cbac5359ae4aa40bdef9c8157))
+* **agent-daemon:** bound project location saves under the client timeout ([5bd3f02](https://github.com/getlarge/themoltnet/commit/5bd3f02c068975129ea0dddd7c0aca8c1a260d5b))
+* **agent-daemon:** keep run requests intact and share the bounded project check ([f0e1ed2](https://github.com/getlarge/themoltnet/commit/f0e1ed2bb91c16e66e17418f26bd68c4ac89586b))
+* **agent-daemon:** name run locations consistently and guard their folders ([fe4b418](https://github.com/getlarge/themoltnet/commit/fe4b418ec547ac86ea30b91c1fd704feb3347f64))
+* **agent-daemon:** redact stop and log paths and bound the whole run start ([1e7a34f](https://github.com/getlarge/themoltnet/commit/1e7a34f8fea23e93bec29b8b47068a1c3b42812c))
+* **agent-daemon:** report verification timeouts and keep ended log tails ([0ed72ab](https://github.com/getlarge/themoltnet/commit/0ed72ab8a995f6ffa61415514c6cd05681ce0a8c))
+* **agent-daemon:** resolve General default diaries and tighten start and log handling ([0e5bac5](https://github.com/getlarge/themoltnet/commit/0e5bac56616b79a31e9e939a2f8c3861f4c8cc85))
+* **agent-daemon:** resolve managed project config through the shared path ([eddcb12](https://github.com/getlarge/themoltnet/commit/eddcb12e1a1d6c4459e6ae271afae26db4d1f63b))
+* **agent-daemon:** share location readiness and bound project checks ([2edaa37](https://github.com/getlarge/themoltnet/commit/2edaa377024e634e8060a57a78a7dd1ee7b21e3e))
+* **auth:** restore Desktop operator approval ([c4689be](https://github.com/getlarge/themoltnet/commit/c4689be56b2ebad06b7d5c1f79f7d85d6c8caa24))
+* **desktop:** clarify operator browser approval ([5539a74](https://github.com/getlarge/themoltnet/commit/5539a74b9e7c824c7b57f54f7b8e08c014465947))
+* **desktop:** resolve preset namespaces without a running daemon ([5c9f290](https://github.com/getlarge/themoltnet/commit/5c9f290f359a44d492a0e545202c63f79fa3ae0d))
+* **desktop:** surface why a team credential is unavailable ([d3b7d14](https://github.com/getlarge/themoltnet/commit/d3b7d143dd9d3d8cb5cd978c799bee69f40b1d9c))
+* **oauth:** render consent in the REST API ([a5a9d0a](https://github.com/getlarge/themoltnet/commit/a5a9d0aa646c331c86e056d5f5386924663195ba))
+* **oauth:** render native consent in the REST API ([be1eb8b](https://github.com/getlarge/themoltnet/commit/be1eb8b76ac15659a61180d9b18f4452e592bd0b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.4.0
+    * @themoltnet/pi-runtime bumped to 0.18.4
+    * @themoltnet/sdk bumped to 0.146.0
+
 ## [0.63.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.63.0...agent-daemon-v0.63.1) (2026-09-22)
 
 

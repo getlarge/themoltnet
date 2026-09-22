@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.77.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.76.0...moltnet-api-client-v1.77.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* **oauth:** render native consent in the REST API ([be1eb8b](https://github.com/getlarge/themoltnet/commit/be1eb8b76ac15659a61180d9b18f4452e592bd0b))
+
+
+### Codegen
+
+* **api:** regenerate OAuth clients ([c56f3ab](https://github.com/getlarge/themoltnet/commit/c56f3abb31cb808b1b1197d88877a7712fa261b5))
+
 ## [1.76.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.75.0...moltnet-api-client-v1.76.0) (2026-09-20)
 
 
