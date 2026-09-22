@@ -58,7 +58,7 @@ PATH="$fixture/bin:$PATH" \
 FAKE_AGENT_INSTALLER="$fixture/agent-installer.sh" \
 GITHUB_REPOSITORY=getlarge/themoltnet \
 RUNNER_TEMP="$fixture" \
-  bash "$repo/tools/release/agent-desktop/materialize-published-agent.sh" \
+  bash "$repo/apps/agent-desktop/scripts/materialize-published-agent.sh" \
     0.58.0 "$fixture/materialized/moltnet-agent-linux-x64"
 [ -x "$fixture/materialized/moltnet-agent-linux-x64/bin/moltnet-agent" ]
 [ "$(node -p "require('$fixture/materialized/moltnet-agent-linux-x64/manifest.json').version")" = 0.58.0 ]

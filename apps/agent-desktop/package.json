@@ -133,6 +133,7 @@
           "agentDesktopRenderer",
           "agentDesktopNative",
           "agentDesktopInstaller",
+          "{projectRoot}/scripts/**/*.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
           "{workspaceRoot}/release-please-config.json",
           "{workspaceRoot}/apps/landing/nginx/default.conf.template",
@@ -175,6 +176,7 @@
         "inputs": [
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
+          "{projectRoot}/scripts/**/*.sh",
           "{workspaceRoot}/release-please-config.json",
           "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "{projectRoot}/agent-cli.minimum-version",
