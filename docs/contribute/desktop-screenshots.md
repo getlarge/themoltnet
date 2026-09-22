@@ -7,7 +7,8 @@ commands. They are not mockups, and they are not hand-cropped.
 
 ## Where the assets and the capture live
 
-- Captured PNGs, served at `/screenshots/*.png`, 2× for retina displays:
+- Captured PNGs, served at `/screenshots/*.png`, 2× for retina displays and
+  palette-compressed:
   `docs/public/screenshots/desktop-{projects,run-composer,run-workspace}.png`.
 - Capture spec: `apps/agent-desktop-e2e/src/docs-capture.spec.ts`. It mocks the
   native commands with documentation-friendly data (`research-bot`, the
@@ -27,6 +28,15 @@ native commands are mocked.
 
 ```bash
 pnpm exec nx run @moltnet/agent-desktop-e2e:e2e --configuration=docs-capture
+```
+
+Compress before committing, as the landing screenshots do. Raw captures are
+around 130 KB each and compress to roughly a third with no visible change on
+this dark UI:
+
+```bash
+cd docs/public/screenshots
+for f in *.png; do pngquant --quality=65-90 --speed 1 --force --output "$f" "$f"; done
 ```
 
 Review the three PNGs before committing them. Timestamps in the run detail are
