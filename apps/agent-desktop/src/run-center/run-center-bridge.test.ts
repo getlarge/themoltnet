@@ -83,9 +83,9 @@ describe('native team enrollment bridge', () => {
       taskTypes: ['freeform'],
       mode: 'poll' as const,
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
       source: '/work/override',
-      workspaceStrategy: 'existing' as const,
+      strategy: 'existing' as const,
       diaryId: 'diary',
     };
     await runCenterActions.startRun(input);

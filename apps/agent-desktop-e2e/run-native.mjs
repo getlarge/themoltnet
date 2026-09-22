@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
@@ -14,6 +14,7 @@ import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
+const docker = process.argv.includes('--docker');
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 if (!['darwin', 'linux'].includes(process.platform))
   throw new Error('Native Desktop journeys require macOS or Linux');
@@ -56,7 +57,12 @@ try {
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = import.meta.resolve('tsx');
   const fixture = fileURLToPath(
-    new URL('./src/fixtures/desktop-fixture.ts', import.meta.url),
+    new URL(
+      docker
+        ? '../agent-daemon/src/main.ts'
+        : './src/fixtures/desktop-fixture.ts',
+      import.meta.url,
+    ),
   );
   writeFileSync(
     join(current, 'bin/moltnet-agent'),
@@ -68,7 +74,17 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
   // Inherit only host process essentials; selectors, credentials, XDG paths,
   // and encrypted dotenv values must not escape into this disposable installation.
   const env = Object.fromEntries(
-    ['PATH', 'LANG', 'LC_ALL', 'TERM', 'DISPLAY'].flatMap((key) =>
+    // X11 needs its cookie (xvfb-run -a) and GTK its session bus
+    // (dbus-run-session); HOME is replaced, so neither falls back to ~/.
+    [
+      'PATH',
+      'LANG',
+      'LC_ALL',
+      'TERM',
+      'DISPLAY',
+      'XAUTHORITY',
+      'DBUS_SESSION_BUS_ADDRESS',
+    ].flatMap((key) =>
       process.env[key] === undefined ? [] : [[key, process.env[key]]],
     ),
   );
@@ -98,6 +114,51 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
     env.XDG_RUNTIME_DIR,
   ])
     mkdirSync(path, { recursive: true, mode: 0o700 });
+  if (docker) {
+    env.MOLTNET_DESKTOP_E2E_DOCKER = '1';
+    for (const key of [
+      'MOLTNET_API_URL',
+      'MOLTNET_OPERATOR_API_URL',
+      'MOLTNET_OPERATOR_OAUTH_ISSUER',
+      'MOLTNET_OPERATOR_OAUTH_PUBLIC_URL',
+    ])
+      delete env[key];
+    // Service URLs reach provisioning only, never the Desktop app itself.
+    const setupEnv = { ...env };
+    for (const key of [
+      'REST_API_URL',
+      'DATABASE_URL',
+      'ORY_HYDRA_PUBLIC_URL',
+      'ORY_HYDRA_ADMIN_URL',
+      'ORY_KETO_PUBLIC_URL',
+      'ORY_KETO_ADMIN_URL',
+      'ORY_KRATOS_ADMIN_URL',
+    ])
+      if (process.env[key] !== undefined) setupEnv[key] = process.env[key];
+    for (const script of ['setup.ts', 'desktop-docker-setup.ts']) {
+      abort.signal.throwIfAborted();
+      child = spawn(
+        process.execPath,
+        [
+          '--import',
+          tsx,
+          fileURLToPath(new URL(`./src/fixtures/${script}`, import.meta.url)),
+        ],
+        { cwd: projectRoot, env: setupEnv, stdio: 'inherit', detached: true },
+      );
+      const code = await new Promise((resolve, reject) => {
+        child.once('error', reject);
+        child.once('close', resolve);
+      });
+      terminate('SIGKILL');
+      child = undefined;
+      abort.signal.throwIfAborted();
+      if (code !== 0)
+        throw new Error(
+          `Docker journey provisioning failed in ${script}; see the setup error above`,
+        );
+    }
+  } else delete env.MOLTNET_DESKTOP_E2E_DOCKER;
   // Resolve and compile the real CLI before Desktop's bounded startup probe.
   // A cold TypeScript module graph is fixture preparation, not daemon readiness.
   const prepare = spawn(
@@ -178,5 +239,23 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
       );
     }
   }
-  rmSync(root, { recursive: true, force: true });
+  // The GTK app activates xdg-document-portal, which FUSE-mounts
+  // $XDG_RUNTIME_DIR/doc inside this root; once the portal exits the stale
+  // mount makes removal fail with ENOTCONN.
+  if (process.platform === 'linux')
+    for (const unmount of ['fusermount3', 'fusermount'])
+      if (
+        spawnSync(unmount, ['-uz', join(root, 'home/.runtime/doc')], {
+          stdio: 'ignore',
+        }).status === 0
+      )
+        break;
+  try {
+    rmSync(root, { recursive: true, force: true });
+  } catch (error) {
+    // Leftover scratch must not turn a finished journey red.
+    process.stderr.write(
+      `Could not remove the Desktop e2e root ${root}: ${String(error)}\n`,
+    );
+  }
 }

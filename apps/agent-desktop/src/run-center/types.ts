@@ -72,6 +72,11 @@ export interface RunPreset {
   agent: string;
   teamId: string;
   diaryId: string | null;
+  projectId?: string | null;
+  /** A saved location by name. */
+  location?: string;
+  source?: string;
+  strategy?: StartRunInput['strategy'];
   /** Ordered: primary first, then fallbacks. */
   profileIds: string[];
   taskTypes: string[];
@@ -100,6 +105,7 @@ export interface SavePresetInput extends Omit<
  * shipped Server panel. Nothing here duplicates it.
  */
 export interface RunCenterActions {
+  projects?: ProjectActions;
   signInOperator?: () => Promise<void>;
   cancelOperatorApproval?: () => Promise<void>;
   enrollTeam?: (
@@ -134,10 +140,10 @@ export type SaveProjectLocationInput = SaveNativeProjectLocationData['body'] &
 
 /** Local folder registrations; native code owns the grant and the folder picker. */
 export interface ProjectActions {
-  list(): Promise<ListNativeProjectLocationsResponse>;
-  save(input: SaveProjectLocationInput): Promise<ProjectLocation>;
-  remove(name: string): Promise<void>;
-  chooseFolder(): Promise<string | null>;
+  list: () => Promise<ListNativeProjectLocationsResponse>;
+  save: (input: SaveProjectLocationInput) => Promise<ProjectLocation>;
+  remove: (name: string) => Promise<void>;
+  chooseFolder: () => Promise<string | null>;
 }
 
 /**

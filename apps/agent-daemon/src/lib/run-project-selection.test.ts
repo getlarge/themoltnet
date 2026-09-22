@@ -12,6 +12,7 @@ import {
 import {
   applyProjectWorkspacePolicy,
   resolveRunProjectSelection,
+  validateGitSource,
 } from './run-project-selection.js';
 
 const roots: string[] = [];
@@ -425,5 +426,16 @@ it('leaves incompatible workspace tasks queued without consuming an attempt', as
     );
   } finally {
     await source.close();
+  }
+});
+
+it('reports an aborted Git check as an abort, not as a missing repository', async () => {
+  const dir = await realpath(await mkdtemp(join(tmpdir(), 'git-abort-')));
+  try {
+    await expect(
+      validateGitSource(dir, AbortSignal.abort()),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });

@@ -16,11 +16,19 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { verificationUnavailable } from './credential-health.js';
 import { relativeTime } from './format.js';
+import {
+  projectErrorBlocks,
+  ProjectErrorNotice,
+} from './ProjectErrorNotice.js';
+import { type ProjectContext, workspaceLabel } from './ProjectsView.js';
+import { projectActions } from './run-center-bridge.js';
 import type {
   AgentServerCatalogueProfile,
   DesktopRun,
+  ProjectLocation,
   RunCenterActions,
   RunCenterData,
+  StartRunInput,
 } from './types.js';
 import { useComposerCatalogue } from './useComposerCatalogue.js';
 
@@ -36,6 +44,7 @@ export interface RunComposerProps {
   presetId: string | null;
   now: number;
   onTeams?: () => void;
+  onProjects?: (context: ProjectContext) => void;
   onDone: () => void;
 }
 
@@ -48,6 +57,7 @@ export function RunComposer({
   now,
   onDone,
   onTeams,
+  onProjects,
 }: RunComposerProps) {
   // Everything the composer offers comes from the server: identities from the
   // status surface, teams and profiles from the identity-scoped catalogue.
@@ -70,6 +80,97 @@ export function RunComposer({
       data.catalogue?.defaultTeamId ??
       '',
   );
+  const [locationRevision, setLocationRevision] = useState(0);
+  const projects = actions.projects ?? projectActions;
+  // Run again replays what was requested, never what it resolved to, so a
+  // location's current folder, strategy and diary apply to the new run.
+  const [projectId, setProjectId] = useState(
+    (previousRun ? previousRun.projectId : preset?.projectId) ?? '',
+  );
+  const [locationName, setLocationName] = useState(
+    (previousRun ? previousRun.location : preset?.location) ?? '',
+  );
+  const [source, setSource] = useState(
+    (previousRun ? previousRun.source : preset?.source) ?? '',
+  );
+  const [strategy, setStrategy] = useState<StartRunInput['strategy']>(
+    previousRun ? previousRun.strategy : preset?.strategy,
+  );
+  const [diaryId, setDiaryId] = useState(
+    previousRun?.diaryId ??
+      (preset?.version === 2 ? preset.diaryId : null) ??
+      '',
+  );
+  const [locations, setLocations] = useState<ProjectLocation[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
+  const [folderError, setFolderError] = useState<string | null>(null);
+  const [choosingFolder, setChoosingFolder] = useState(false);
+  const clearProject = () => {
+    setProjectId('');
+    setLocationName('');
+    setSource('');
+    setStrategy(undefined);
+    setDiaryId('');
+  };
+  useEffect(() => {
+    if (!active) return;
+    let current = true;
+    setLocations([]);
+    setLocationsError(null);
+    setLocationsLoading(Boolean(projectId));
+    if (!projectId) return;
+    void projects.list().then(
+      (value) => {
+        if (!current) return;
+        const choices = value.locations.filter(
+          (entry) => entry.teamId === teamId && entry.projectId === projectId,
+        );
+        setLocations(choices);
+        setLocationsLoading(false);
+        setLocationName(
+          (selected) =>
+            selected ||
+            choices.find((entry) => entry.default)?.name ||
+            (choices.length === 1 ? choices[0].name : ''),
+        );
+      },
+      () => {
+        if (current) {
+          setLocationsLoading(false);
+          setLocationsError(
+            'Local locations could not be loaded. Retry before starting.',
+          );
+        }
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [projects, projectId, teamId, active, locationRevision]);
+  const chooseFolder = async () => {
+    setChoosingFolder(true);
+    setFolderError(null);
+    try {
+      const folder = await projects.chooseFolder();
+      if (folder !== null) {
+        setSource(folder);
+        // A folder only needs a strategy switch when none would use it; an
+        // inherited Git worktree must stay isolated.
+        if (effectiveStrategy === 'none') setStrategy('existing');
+      }
+    } catch (error) {
+      setFolderError(
+        typeof error === 'string'
+          ? error
+          : error instanceof Error
+            ? error.message
+            : 'The folder could not be selected. Try again.',
+      );
+    } finally {
+      setChoosingFolder(false);
+    }
+  };
   const [primaryId, setPrimaryId] = useState(
     previousRun?.profiles[0] ?? preset?.profileIds[0] ?? '',
   );
@@ -112,9 +213,34 @@ export function RunComposer({
   );
   const primary = profiles.find((candidate) => candidate.id === primaryId);
   const team = teams.find((candidate) => candidate.teamId === teamId);
-  // Team and diary are one binding; the catalogue resolves the pair or leaves
-  // it null when the operator must choose.
-  const selectedTeamDiary = team?.defaultDiaryId ?? null;
+  const sharedProjects = (catalogue?.projects ?? []).filter(
+    (entry) => entry.teamId === teamId,
+  );
+  const project = sharedProjects.find((entry) => entry.id === projectId);
+  const location = locations.find((entry) => entry.name === locationName);
+  const projectError = catalogue?.projectErrors?.find(
+    (entry) => entry.teamId === teamId,
+  );
+  const selectedTeamDiary =
+    diaryId ||
+    location?.diaryId ||
+    project?.defaultDiaryId ||
+    (!projectId ? team?.defaultDiaryId : null);
+  // Sent as the request: only a diary the user chose. Location, project and
+  // team defaults are resolved by the daemon at start, so Run again picks up
+  // their current values.
+  const requestedDiary = diaryId || null;
+  const effectiveStrategy =
+    strategy ?? location?.strategy ?? primary?.defaultWorkspaceMode ?? 'none';
+  const effectiveSource =
+    effectiveStrategy === 'none' ? null : source || location?.effectiveSource;
+  const projectSelection = {
+    // null is explicit General work, which the daemon resolves and records.
+    projectId: projectId || null,
+    ...(projectId && locationName ? { location: locationName } : {}),
+    ...(source && strategy !== 'none' ? { source } : {}),
+    ...(strategy ? { strategy } : {}),
+  };
 
   const boundElsewhere = Boolean(team && !team.available);
   const verificationFailed = verificationUnavailable(team ? [team] : teams);
@@ -152,6 +278,54 @@ export function RunComposer({
       team?.blockers[0]?.message ?? 'Team access needs verification.',
     );
 
+  if (projectId && projectError?.code === 'forbidden')
+    problems.push(
+      'This team credential cannot list projects. Renew it in Identity and teams, or choose General work.',
+    );
+  else if (
+    projectId &&
+    (projectErrorBlocks(projectError) || (catalogue && !project))
+  )
+    problems.push(
+      'The selected project is unavailable. Retry discovery or choose General work.',
+    );
+  if (projectId && locationsLoading) problems.push('Loading local locations…');
+  if (projectId && locationsError) problems.push(locationsError);
+  if (projectId && !location) problems.push('Choose or add a local location.');
+  if (location && !location.readiness.ready)
+    problems.push(
+      location.readiness.message ??
+        'This location needs attention. Manage its settings before starting.',
+    );
+  if (effectiveStrategy === 'isolated-directory')
+    problems.push(
+      'Isolated directory preparation is unavailable. Choose a supported workspace behavior.',
+    );
+  if (diaryId && team && !team.diaries.some((entry) => entry.id === diaryId))
+    problems.push('The selected diary is unavailable. Choose another diary.');
+  else if (
+    !diaryId &&
+    location?.diaryId &&
+    team &&
+    !team.diaries.some((entry) => entry.id === location.diaryId)
+  )
+    problems.push(
+      "This location's diary is unavailable. Choose a diary or update the location.",
+    );
+  else if (
+    !diaryId &&
+    !location?.diaryId &&
+    project?.defaultDiaryId &&
+    team &&
+    !team.diaries.some((entry) => entry.id === project.defaultDiaryId)
+  )
+    problems.push(
+      "This project's default diary is unavailable. Choose a diary for this run.",
+    );
+  if (effectiveStrategy !== 'none' && !effectiveSource && strategy)
+    problems.push('Choose a folder for this workspace behavior.');
+  if (choosingFolder) problems.push('Finish choosing a folder.');
+
   const canStart = problems.length === 0 && Boolean(primary?.ready);
 
   const start = async () => {
@@ -164,7 +338,8 @@ export function RunComposer({
         profiles: [primaryId, ...fallbackIds],
         taskTypes,
         mode: 'poll',
-        ...(selectedTeamDiary ? { diaryId: selectedTeamDiary } : {}),
+        ...projectSelection,
+        ...(requestedDiary ? { diaryId: requestedDiary } : {}),
       });
       onDone();
     } catch (error) {
@@ -188,7 +363,8 @@ export function RunComposer({
         name: presetName.trim(),
         agent,
         teamId,
-        diaryId: null,
+        diaryId: diaryId || null,
+        ...projectSelection,
         profileIds: [primaryId, ...fallbackIds],
         taskTypes,
       });
@@ -236,6 +412,7 @@ export function RunComposer({
               onChange={(event) => {
                 setAgent(event.target.value);
                 setTeamId('');
+                clearProject();
                 setPrimaryId('');
                 setFallbackIds([]);
               }}
@@ -262,6 +439,7 @@ export function RunComposer({
               value={teamId}
               onChange={(event) => {
                 setTeamId(event.target.value);
+                clearProject();
                 setPrimaryId('');
                 setFallbackIds([]);
               }}
@@ -337,6 +515,117 @@ export function RunComposer({
 
           <Stack gap={3}>
             <Select
+              label="Project"
+              value={projectId}
+              onChange={(event) => {
+                clearProject();
+                setProjectId(event.target.value);
+              }}
+            >
+              <option value="">General work</option>
+              {projectId && !project ? (
+                <option value={projectId}>
+                  Selected project — unavailable
+                </option>
+              ) : null}
+              {sharedProjects.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </Select>
+            {projectError ? (
+              <ProjectErrorNotice
+                error={projectError}
+                onRetry={retry}
+                onTeams={onTeams}
+              />
+            ) : null}
+            {projectId ? (
+              <>
+                <Select
+                  label="Local location"
+                  value={locationName}
+                  onChange={(event) => {
+                    setLocationName(event.target.value);
+                    setSource('');
+                    setStrategy(undefined);
+                    setDiaryId('');
+                  }}
+                >
+                  <option value="">Choose a location</option>
+                  {locationName && !location ? (
+                    <option value={locationName}>
+                      {locationName} — unavailable
+                    </option>
+                  ) : null}
+                  {locations.map((entry) => (
+                    <option key={entry.name} value={entry.name}>
+                      {entry.name}
+                      {entry.default ? ' — default' : ''}
+                      {entry.readiness.ready ? '' : ' — needs attention'}
+                    </option>
+                  ))}
+                </Select>
+                {locationsLoading ? (
+                  <div role="status">
+                    <Text>Loading local locations…</Text>
+                  </div>
+                ) : null}
+                {locationsError ? (
+                  <InlineNotice
+                    tone="error"
+                    title="Local locations unavailable"
+                  >
+                    {locationsError}
+                    <Button
+                      variant="secondary"
+                      onClick={() => setLocationRevision((value) => value + 1)}
+                    >
+                      Retry locations
+                    </Button>
+                  </InlineNotice>
+                ) : null}
+                {location && !location.readiness.ready ? (
+                  <InlineNotice tone="warning" title="Location needs attention">
+                    {location.readiness.message}
+                  </InlineNotice>
+                ) : null}
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    onProjects?.({ identity: agent, teamId, projectId })
+                  }
+                >
+                  Manage local locations
+                </Button>
+              </>
+            ) : (
+              <Text variant="caption" color="secondary">
+                Claims General work for this team. Project tasks stay with their
+                project.
+              </Text>
+            )}
+            <Select
+              label="Run diary"
+              value={diaryId}
+              onChange={(event) => setDiaryId(event.target.value)}
+            >
+              <option value="">Use the selected work's default</option>
+              {diaryId &&
+              !team?.diaries.some((entry) => entry.id === diaryId) ? (
+                <option value={diaryId}>Selected diary — unavailable</option>
+              ) : null}
+              {team?.diaries.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </Select>
+          </Stack>
+          <Divider style={{ margin: 0 }} />
+          <Stack gap={3}>
+            <Select
               label="Runtime profile"
               value={primaryId}
               onChange={(event) => {
@@ -408,6 +697,61 @@ export function RunComposer({
             </span>
           </summary>
           <Stack className="detail-content" gap={4}>
+            <Text weight="semibold">Workspace for this run</Text>
+            <Text variant="caption" color="secondary">
+              These overrides change this run only. Use Save preset or Update
+              preset to keep them in a preset.
+            </Text>
+            <Select
+              label="Workspace behavior"
+              value={strategy ?? ''}
+              onChange={(event) => {
+                const value = event.target.value as StartRunInput['strategy'];
+                setStrategy(value || undefined);
+                if (value === 'none') setSource('');
+              }}
+            >
+              <option value="">Use location or profile default</option>
+              <option value="existing">Work here</option>
+              <option value="git-worktree">
+                Prepare an isolated Git workspace
+              </option>
+              <option value="none">No workspace</option>
+              {strategy === 'isolated-directory' ? (
+                <option value="isolated-directory">
+                  Isolated directory (unavailable)
+                </option>
+              ) : null}
+            </Select>
+            <Input
+              label="Run folder override"
+              value={source}
+              readOnly
+              placeholder="Use the selected location"
+            />
+            <Stack direction="row" gap={2} wrap>
+              <Button
+                variant="secondary"
+                disabled={choosingFolder}
+                onClick={() => void chooseFolder()}
+              >
+                Choose folder for this run
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSource('');
+                  setStrategy(undefined);
+                }}
+              >
+                Reset workspace overrides
+              </Button>
+            </Stack>
+            {folderError ? (
+              <InlineNotice tone="error" title="Folder unavailable">
+                {folderError}
+              </InlineNotice>
+            ) : null}
             <Text variant="caption" color="secondary">
               If the primary profile cannot run — its provider key is missing,
               its runtime kind is not registered — the worker tries these in
@@ -438,6 +782,42 @@ export function RunComposer({
         </InlineNotice>
       ) : null}
 
+      <ControlSurface padding="md" as="section">
+        <Stack gap={3}>
+          <Text as="h2" variant="h4">
+            Effective run settings
+          </Text>
+          <DescriptionList
+            ariaLabel="Effective run settings"
+            items={[
+              {
+                label: 'Project',
+                value: projectId
+                  ? (project?.name ?? projectId)
+                  : 'General work',
+              },
+              {
+                label: 'Diary',
+                value:
+                  team?.diaries.find((entry) => entry.id === selectedTeamDiary)
+                    ?.name ??
+                  selectedTeamDiary ??
+                  'No diary selected',
+              },
+              {
+                label: 'Folder',
+                value:
+                  effectiveSource ??
+                  (effectiveStrategy === 'none'
+                    ? 'No workspace'
+                    : 'Prepared for this run'),
+                mono: true,
+              },
+              { label: 'Workspace', value: workspaceLabel(effectiveStrategy) },
+            ]}
+          />
+        </Stack>
+      </ControlSurface>
       {submitError ? (
         <InlineNotice tone="error" title="The run did not start">
           {submitError}

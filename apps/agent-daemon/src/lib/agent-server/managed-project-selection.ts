@@ -1,5 +1,4 @@
-import { realpathSync } from 'node:fs';
-import { isAbsolute, relative, sep } from 'node:path';
+import { isAbsolute } from 'node:path';
 
 import type { Agent } from '@themoltnet/sdk';
 import {
@@ -15,6 +14,10 @@ import {
   verifyProjectTarget,
   visibleOrNull,
 } from './project-target.js';
+import {
+  isProtectedFolder,
+  PROTECTED_FOLDER_MESSAGE,
+} from './protected-roots.js';
 import {
   PROFILE_DEFAULT_STRATEGY,
   type RunSpec,
@@ -38,9 +41,9 @@ export interface ManagedProjectClient {
 export function requestsProjectSelection(spec: RunSpec): boolean {
   return (
     spec.projectId !== undefined ||
-    spec.binding !== undefined ||
+    spec.location !== undefined ||
     spec.source !== undefined ||
-    spec.workspaceStrategy !== undefined
+    spec.strategy !== undefined
   );
 }
 
@@ -58,6 +61,11 @@ export async function resolveManagedProjectSelection(options: {
   client: ManagedProjectClient;
   /** Directories a worker must never run in or above (store, secrets). */
   protectedRoots: string[];
+  /**
+   * The team default diary for General work when none was requested. Kept out
+   * of the request, so Run again follows the default as it is then.
+   */
+  generalDefaultDiary?: () => Promise<string | undefined>;
   signal: AbortSignal;
   logger?: ProjectCheckLogger;
 }) {
@@ -81,30 +89,35 @@ export async function resolveManagedProjectSelection(options: {
     // Before resolution, which may run `git` in the folder.
     assertOutsideProtected(canonical, options.protectedRoots);
   }
-  if (spec.projectId === null && spec.binding)
+  if (spec.projectId === null && spec.location)
     throw new ProjectConfigError(
       'selection',
-      'General work cannot also name a binding',
+      'General work cannot also name a location',
     );
-  const selection = await resolveRunProjectSelection({
-    agent: spec.agent,
-    cwd,
-    team: spec.teamId,
-    apiUrl,
-    // The file Desktop writes and workers inherit through MOLTNET_HOME.
-    'config-file': getProjectConfigPath({ root }),
-    general: !spec.projectId && !spec.binding,
-    project: spec.projectId ?? undefined,
-    binding: spec.binding,
-    source: spec.source,
-    'workspace-strategy': spec.workspaceStrategy,
-  });
+  const selection = await resolveRunProjectSelection(
+    {
+      agent: spec.agent,
+      cwd,
+      team: spec.teamId,
+      apiUrl,
+      // The file Desktop writes and workers inherit through MOLTNET_HOME.
+      'config-file': getProjectConfigPath({ root }),
+      general: !spec.projectId && !spec.location,
+      project: spec.projectId ?? undefined,
+      binding: spec.location,
+      source: spec.source,
+      'workspace-strategy': spec.strategy,
+    },
+    {
+      signal,
+      // A location's saved folder is only known here; check it before `git`.
+      guardSource: (source) =>
+        assertOutsideProtected(source, options.protectedRoots),
+    },
+  );
   const chosenSource = selection.workspaceExplicit
     ? selection.source
     : undefined;
-  // Location sources are only known after resolution.
-  if (chosenSource)
-    assertOutsideProtected(chosenSource, options.protectedRoots);
   const reader = {
     readProject: (
       teamId: string,
@@ -133,6 +146,9 @@ export async function resolveManagedProjectSelection(options: {
     spec.diaryId ??
     selection.binding?.diaryId ??
     project?.defaultDiaryId ??
+    (selection.projectId === null
+      ? await options.generalDefaultDiary?.()
+      : undefined) ??
     undefined;
   if (diaryId)
     await verifyProjectTarget(
@@ -149,7 +165,7 @@ export async function resolveManagedProjectSelection(options: {
   };
   const workspace: Omit<RunWorkspace, 'configPath'> = {
     projectId: selection.projectId,
-    ...(resolvedBinding ? { binding: resolvedBinding.name } : {}),
+    ...(resolvedBinding ? { location: resolvedBinding.name } : {}),
     ...(diaryId ? { diaryId } : {}),
     ...(chosenSource ? { source: chosenSource } : {}),
     strategy: selection.workspaceExplicit
@@ -169,30 +185,7 @@ export async function resolveManagedProjectSelection(options: {
   };
 }
 
-/** A worker holds agent and provider keys; never point it at the store. */
 function assertOutsideProtected(source: string, roots: string[]): void {
-  for (const root of roots) {
-    const protectedRoot = canonicalOrSelf(root);
-    if (within(source, protectedRoot) || within(protectedRoot, source))
-      throw new ProjectConfigError(
-        'selection',
-        'Choose a folder outside the MoltNet configuration store',
-      );
-  }
-}
-
-function canonicalOrSelf(path: string): string {
-  try {
-    return realpathSync.native(path);
-  } catch {
-    return path;
-  }
-}
-
-function within(child: string, parent: string): boolean {
-  const suffix = relative(parent, child);
-  return (
-    suffix === '' ||
-    (!isAbsolute(suffix) && suffix !== '..' && !suffix.startsWith(`..${sep}`))
-  );
+  if (isProtectedFolder(source, roots))
+    throw new ProjectConfigError('selection', PROTECTED_FOLDER_MESSAGE);
 }

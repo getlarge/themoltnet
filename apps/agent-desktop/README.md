@@ -4,6 +4,20 @@ The macOS and Ubuntu desktop app installs and supervises a compatible signed
 `moltnet-agent` bundle over a private native socket and opens the browser for
 OAuth PKCE approval when needed.
 
+## Projects and runs
+
+Projects lists the shared projects available to an identity and team. Shared
+administration opens Console. On this computer, add named local locations with
+an explicit folder and workspace default. Removing a location removes only its
+registration; its files stay in place.
+
+In Runs, choose a project or General work, then a local location and runtime
+profile. The composer shows the effective diary, folder, and workspace behavior.
+Advanced overrides apply to this run. Save preset or Update preset explicitly
+to retain them in a preset. Starting a run never saves edits automatically.
+Setup navigation preserves the draft, and Run again prefills the captured
+selection before revalidating it. History retains each run's captured workspace.
+
 ## Development
 
 ```bash
@@ -83,7 +97,7 @@ Before the Linux release, record results for both formats:
 ## Acceptance tests
 
 The [Desktop automation harness](../agent-desktop-e2e/README.md) covers Chrome renderer journeys
-and native macOS flows against an isolated fixture daemon. Component and Rust
-tests cover the fast contracts. Signed installation, tray
-behavior, and the personal journey against Docker E2E services require their
-separate acceptance checks.
+and native macOS flows against an isolated fixture daemon, plus the personal
+Desktop journey against Docker E2E services. Component and Rust tests cover the
+fast contracts. Signed installation, native folder dialogs,
+and tray behavior have separate native acceptance checks.

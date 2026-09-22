@@ -1,5 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 
+import { field } from './journey-helpers.js';
 import {
   catalogue,
   expectNoAxeViolations,
@@ -48,8 +49,6 @@ async function mount() {
 }
 
 // Select labels are associated through their native label elements.
-const field = (label: string) =>
-  $(`//label[normalize-space()="${label}"]/following-sibling::select`);
 
 describe('Run-flow audit regressions', () => {
   beforeEach(mount);
@@ -57,7 +56,7 @@ describe('Run-flow audit regressions', () => {
   it('preserves a run draft through setup navigation', async () => {
     await $('a=Saved worker').click();
     await field('Runtime profile').selectByAttribute('value', 'quick');
-    await $('a=Providers').click();
+    await $('a*=Providers').click();
     await $('a=Runs').click();
     await expect(field('Runtime profile')).toHaveValue('quick');
   });
@@ -80,10 +79,12 @@ describe('Run-flow audit regressions', () => {
     await start.update();
     expect(start.mock.calls.map(([args]) => args)).toEqual([
       {
+        // The legacy preset's diary follows the current default, which the
+        // daemon resolves for explicit General work.
         spec: {
           agent: 'first-agent',
           teamId: 'team',
-          diaryId: 'diary',
+          projectId: null,
           profiles: ['quick'],
           taskTypes: ['freeform'],
           mode: 'poll',
@@ -138,7 +139,7 @@ describe('Run-flow audit regressions', () => {
     const focused = await browser.execute(
       () => document.activeElement?.outerHTML,
     );
-    await $('a=Providers').click();
+    await $('a*=Providers').click();
     await $('button=Return to run draft').click();
     expect(
       await browser.execute(() => document.activeElement?.outerHTML),

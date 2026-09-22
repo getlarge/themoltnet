@@ -42,18 +42,24 @@ import {
   type EffectiveRunProjectSelection,
   projectRunArgs,
 } from '../run-project-selection.js';
+import { resolveDefaultDiary } from './catalogue.js';
 import { AgentServerHttpError } from './http-error.js';
 import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
 } from './identity.js';
+import { readIdentityDefaultBinding } from './identity-binding.js';
 import {
   requestsProjectSelection,
   resolveManagedProjectSelection,
 } from './managed-project-selection.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
-import { NATIVE_REQUEST_BUDGET_MS, untilAborted } from './project-target.js';
+import {
+  causedByAbort,
+  NATIVE_REQUEST_BUDGET_MS,
+  untilAborted,
+} from './project-target.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
@@ -333,8 +339,8 @@ export class RunManager {
       ...(workspace
         ? projectRunArgs({
             'config-file': workspace.configPath,
-            ...(workspace.binding
-              ? { binding: workspace.binding }
+            ...(workspace.location
+              ? { binding: workspace.location }
               : { general: true }),
             ...(workspace.strategy === PROFILE_DEFAULT_STRATEGY
               ? {}
@@ -436,14 +442,18 @@ export class RunManager {
       ),
     ]);
     const verify = this.options.verifyActivationImpl ?? verifyTeamActivation;
-    const agent = await verify(
-      this.store,
-      spec.agent,
-      this.options.secretProviders,
-      this.options.externalSecretProviders,
-      undefined,
-      deadline,
-      spec.teamId,
+    // Raced like every other step: the SDK reports an aborted fetch as a
+    // NetworkError, which would otherwise read as a bad team key.
+    const agent = await untilAborted(deadline, () =>
+      verify(
+        this.store,
+        spec.agent,
+        this.options.secretProviders,
+        this.options.externalSecretProviders,
+        undefined,
+        deadline,
+        spec.teamId,
+      ),
     ).catch((cause: unknown) => {
       this.assertStartOpen(signal, deadline, cause);
       if (
@@ -494,6 +504,8 @@ export class RunManager {
           logger: {
             warn: (context, message) => this.log('warn', message, context),
           },
+          generalDefaultDiary: () =>
+            this.generalDefaultDiary(spec, agent, deadline),
         });
         workspace = {
           ...resolved.workspace,
@@ -662,10 +674,15 @@ export class RunManager {
         transition: 'start_failed',
         ...safeRunError(cause),
       });
-      if (deadline.aborted && !signal?.aborted && !this.closing)
-        throw cause instanceof AgentServerHttpError
-          ? cause
-          : startTimedOut(cause);
+      // Only the budget itself becomes start_timeout; a real selection error
+      // that happens to land after it expired keeps its own code.
+      if (
+        !signal?.aborted &&
+        !this.closing &&
+        !(cause instanceof AgentServerHttpError) &&
+        causedByAbort(cause, deadline)
+      )
+        throw startTimedOut(cause);
       throw cause;
     }
   }
@@ -936,7 +953,11 @@ export class RunManager {
         'agent server is shutting down',
       );
     }
-    if (deadline?.aborted) throw startTimedOut(cause);
+    if (
+      deadline?.aborted &&
+      (cause === undefined || causedByAbort(cause, deadline))
+    )
+      throw startTimedOut(cause);
   }
 
   private pruneCompletedRuns(): void {
@@ -988,6 +1009,36 @@ export class RunManager {
   }
 
   /**
+   * Same rule as the catalogue. Best effort: without it the worker resolves its
+   * own diary, as it did before project selection existed.
+   */
+  private async generalDefaultDiary(
+    spec: RunSpec,
+    agent: ActivatedAgent,
+    deadline: AbortSignal,
+  ): Promise<string | undefined> {
+    try {
+      const { items } = await untilAborted(deadline, () =>
+        requireCredentialSnapshot(agent).client.diaries.list(),
+      );
+      return (
+        resolveDefaultDiary(
+          spec.teamId,
+          items.filter((diary) => diary.teamId === spec.teamId),
+          readIdentityDefaultBinding(this.store.identityDir(spec.agent)),
+        ) ?? undefined
+      );
+    } catch (error) {
+      this.log('warn', 'agent server default diary lookup failed', {
+        ...safeRunError(error),
+        agent: spec.agent,
+        teamId: spec.teamId,
+      });
+      return undefined;
+    }
+  }
+
+  /**
    * Stable across runs, so retries and continuations find their execution-plan
    * cache and task workspaces. Keyed by agent and location, under the store,
    * never inside the user's folder.
@@ -1009,7 +1060,7 @@ export class RunManager {
       this.store.root,
       'run-state',
       spec.agent,
-      `${workspace.binding ? locationSegment(workspace.binding) : 'general'}-${scope}`,
+      `${workspace.location ? locationSegment(workspace.location) : 'general'}-${scope}`,
     );
   }
 
@@ -1060,13 +1111,13 @@ function selectionContext(
     ...(spec.projectId !== undefined
       ? { requestedProjectId: spec.projectId }
       : {}),
-    ...(spec.binding ? { requestedBinding: spec.binding } : {}),
+    ...(spec.location ? { requestedLocation: spec.location } : {}),
     ...(workspace
       ? {
           projectId: workspace.projectId,
-          ...(workspace.binding ? { binding: workspace.binding } : {}),
+          ...(workspace.location ? { location: workspace.location } : {}),
           ...(workspace.diaryId ? { diaryId: workspace.diaryId } : {}),
-          workspaceStrategy: workspace.strategy,
+          strategy: workspace.strategy,
         }
       : {}),
   };

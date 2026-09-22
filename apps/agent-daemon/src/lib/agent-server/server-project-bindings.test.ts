@@ -1,4 +1,12 @@
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { MoltNetError } from '@themoltnet/sdk';
@@ -18,6 +26,7 @@ import {
   CONSOLE_ORIGIN,
   fixture,
   HOST,
+  registerCleanup,
 } from './server-test-harness.js';
 
 afterEach(cleanupAll);
@@ -59,8 +68,9 @@ async function setup(options: Parameters<typeof fixture>[0] = {}) {
     catalogueAgentFor: async () => port,
   });
   activateManaged(result.store);
-  const source = join(result.store.root, 'checkout');
-  await mkdir(source);
+  // A user's folder: outside the store, which locations may not use.
+  const source = await realpath(await mkdtemp(join(tmpdir(), 'location-')));
+  registerCleanup(() => rm(source, { recursive: true, force: true }));
   return {
     ...result,
     port,
@@ -299,5 +309,21 @@ describe('native project location administration', () => {
     expect(response.statusCode).toBe(500);
     expect(response.json()).toMatchObject({ code: 'config_invalid' });
     expect(response.body).not.toContain(store.root);
+  });
+
+  it('refuses a folder inside the configuration store before running git', async () => {
+    const { app, payload, store } = await setup();
+    const inside = join(store.root, 'identities');
+    await mkdir(inside, { recursive: true });
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `${LOCATIONS}/Laptop`,
+      headers,
+      payload: { ...payload, source: inside, strategy: 'git-worktree' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'folder_protected' });
   });
 });

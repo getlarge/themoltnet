@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '../bridge.js';
 import { expiryLabel } from './credential-health.js';
 import { duration, pluralize, relativeTime } from './format.js';
+import { workspaceLabel } from './ProjectsView.js';
 import { ProfileChain, TaskTypeRow } from './RunsView.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
 
@@ -41,6 +42,11 @@ export function RunDetail({
 }: RunDetailProps) {
   const [currentCredential, setCurrentCredential] =
     useState<DesktopRun['credential']>();
+  // Names for the captured ids; the ids remain when the catalogue lacks them.
+  const [names, setNames] = useState<{
+    project?: string;
+    diary?: string;
+  }>({});
   useEffect(() => {
     if (!active) return;
     let current = true;
@@ -48,11 +54,19 @@ export function RunDetail({
     const refresh = async () => {
       try {
         const catalogue = await actions.catalogue(run.agent);
-        if (current)
-          setCurrentCredential(
-            catalogue.teams.find((team) => team.teamId === run.teamId)
-              ?.credential,
-          );
+        if (!current) return;
+        const team = catalogue.teams.find(
+          (entry) => entry.teamId === run.teamId,
+        );
+        setCurrentCredential(team?.credential);
+        setNames({
+          project: catalogue.projects.find(
+            (entry) => entry.id === run.workspace?.projectId,
+          )?.name,
+          diary: team?.diaries.find(
+            (entry) => entry.id === run.workspace?.diaryId,
+          )?.name,
+        });
       } catch {
         if (current) setCurrentCredential(undefined);
       }
@@ -63,7 +77,14 @@ export function RunDetail({
       current = false;
       window.clearInterval(timer);
     };
-  }, [actions, run.agent, run.teamId, active]);
+  }, [
+    actions,
+    run.agent,
+    run.teamId,
+    run.workspace?.projectId,
+    run.workspace?.diaryId,
+    active,
+  ]);
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [stopping, setStopping] = useState(false);
@@ -86,6 +107,48 @@ export function RunDetail({
 
   return (
     <Stack gap={6}>
+      {run.workspace ? (
+        <ControlSurface padding="md" as="section">
+          <Stack gap={3}>
+            <Text as="h2" variant="h4">
+              Captured workspace
+            </Text>
+            <Text variant="caption" color="secondary">
+              These settings were captured when the run started. Later location
+              edits apply to subsequent runs.
+            </Text>
+            <DescriptionList
+              items={[
+                {
+                  label: 'Project',
+                  value: run.workspace.projectId
+                    ? (names.project ?? run.workspace.projectId)
+                    : 'General work',
+                },
+                {
+                  label: 'Location',
+                  value: run.workspace.location ?? 'Run only',
+                },
+                {
+                  label: 'Diary',
+                  value: run.workspace.diaryId
+                    ? (names.diary ?? run.workspace.diaryId)
+                    : 'No diary',
+                },
+                {
+                  label: 'Folder',
+                  value: run.workspace.source ?? 'No source folder',
+                  mono: true,
+                },
+                {
+                  label: 'Workspace',
+                  value: workspaceLabel(run.workspace.strategy),
+                },
+              ]}
+            />
+          </Stack>
+        </ControlSurface>
+      ) : null}
       {stopError ? (
         <InlineNotice tone="warning" title="Run could not be stopped">
           Try again or check the Server view.

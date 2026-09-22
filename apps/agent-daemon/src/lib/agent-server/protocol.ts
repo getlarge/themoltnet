@@ -235,11 +235,10 @@ const RunProjectFields = {
   projectId: Type.Optional(
     Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
   ),
-  binding: Type.Optional(Type.String({ minLength: 1 })),
+  /** A saved location by name, as in the project-locations API. */
+  location: Type.Optional(Type.String({ minLength: 1 })),
   source: Type.Optional(Type.String({ minLength: 1 })),
-  workspaceStrategy: Type.Optional(
-    AgentServerProjectLocationSchema.properties.strategy,
-  ),
+  strategy: Type.Optional(AgentServerProjectLocationSchema.properties.strategy),
 };
 /** Names gated to the native client; derived so a new field is gated automatically. */
 export const NATIVE_RUN_FIELDS = Object.keys(RunProjectFields) as Array<
@@ -248,7 +247,7 @@ export const NATIVE_RUN_FIELDS = Object.keys(RunProjectFields) as Array<
 /** What a run resolved to; the record's top-level fields stay as requested. */
 const RunWorkspaceSchema = Type.Object({
   projectId: Type.Union([Type.String(), Type.Null()]),
-  binding: Type.Optional(Type.String()),
+  location: Type.Optional(Type.String()),
   diaryId: Type.Optional(Type.String()),
   source: Type.Optional(Type.String()),
   strategy: Type.Union([
@@ -638,7 +637,7 @@ export const AgentServerRouteSchemas = {
     tags: ['runs'],
     security: localControlSecurity,
     description:
-      'projectId (other than null), binding, source and workspaceStrategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.',
+      'projectId (other than null), location, source and strategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.',
     body: StartRunSchema,
     response: { 201: schemaRef(AgentServerRunSchema), ...problemResponse },
   },

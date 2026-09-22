@@ -742,6 +742,25 @@ impl LifecycleManager {
     }
 }
 
+/// Console for the MoltNet service. Other connections have their own Console
+/// address, which Desktop does not know, so it never sends them to this one.
+const CONSOLE_PROJECTS_URL: &str = "https://console.themolt.net/projects";
+
+/// Whether this Desktop's connection has a Console it can link to.
+pub fn console_available(api_url: &str) -> bool {
+    api_url == crate::preset_scope::API
+}
+
+pub fn open_console(api_url: &str) -> Result<(), String> {
+    if !console_available(api_url) {
+        return Err(
+            "Console links are available for the MoltNet service only. Open your deployment's Console directly."
+                .into(),
+        );
+    }
+    fixed_command(platform_opener(), &[CONSOLE_PROJECTS_URL]).map(|_| ())
+}
+
 pub fn open_logs(directory: &Path) -> Result<(), String> {
     prepare_private_directory(directory)?;
     let path = directory.to_string_lossy().into_owned();
@@ -1055,6 +1074,15 @@ fn is_https_url(url: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn console_link_is_refused_for_other_connections() {
+        // Returns before any opener process starts.
+        assert!(!console_available("https://api.example.test"));
+        let error = open_console("https://api.example.test").unwrap_err();
+        assert!(error.contains("MoltNet service only"));
+        assert!(console_available(crate::preset_scope::API));
+    }
 
     #[test]
     fn startup_failure_identifies_an_existing_server_lock() {

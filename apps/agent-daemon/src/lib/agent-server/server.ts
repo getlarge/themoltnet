@@ -1,5 +1,6 @@
 import { constants as fsConstants, realpathSync } from 'node:fs';
 import { type FileHandle, open } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { StringDecoder } from 'node:string_decoder';
 
 import rateLimit from '@fastify/rate-limit';
@@ -846,7 +847,11 @@ function registerProjectLocationRoutes(
         'locations_unavailable',
         'Project locations need the Desktop connection store',
       );
-    locations ??= new LocalProjectBindings(root, options.defaultApiUrl);
+    locations ??= new LocalProjectBindings(root, options.defaultApiUrl, [
+      root,
+      options.store.root,
+      options.store.secretsDir,
+    ]);
     return locations;
   };
   const requireNativeRequest = async (request: FastifyRequest) => {
@@ -1491,17 +1496,17 @@ function registerRunRoutes(
             : body.projectId !== undefined
               ? { projectId: requireString(body, 'projectId') }
               : {}),
-          ...(body.binding !== undefined
-            ? { binding: requireString(body, 'binding') }
+          ...(body.location !== undefined
+            ? { location: requireString(body, 'location') }
             : {}),
           ...(body.source !== undefined
             ? { source: requireString(body, 'source') }
             : {}),
-          ...(body.workspaceStrategy !== undefined
+          ...(body.strategy !== undefined
             ? {
-                workspaceStrategy: requireString(
+                strategy: requireString(
                   body,
-                  'workspaceStrategy',
+                  'strategy',
                 ) as ProjectBinding['strategy'],
               }
             : {}),
@@ -1571,11 +1576,17 @@ function registerRunLogRoute(
       try {
         const state: AgentServerLogReadState = { offset: 0, fragment: '' };
         const { lines, omitted } = await readAgentServerLogDelta(handle, state);
+        const native = origin === NATIVE_CLIENT_ORIGIN;
         return {
           lines: [
             ...(omitted ? ['[older log output omitted]'] : []),
-            ...lines,
-            ...(state.fragment ? [state.fragment] : []),
+            // A cut or unfinished line can hold half a path the redactor
+            // cannot recognise, so browsers get complete lines only.
+            ...(omitted && !native ? lines.slice(1) : lines),
+            // Once the run has ended the tail is final, so browsers get it too.
+            ...(state.fragment && (native || !runs.isActive(record.id))
+              ? [state.fragment]
+              : []),
           ].map(redact),
         };
       } finally {
@@ -1653,7 +1664,9 @@ function registerRunLogRoute(
             readState,
           );
           if (omitted) await writeData('[older log output omitted]');
-          for (const line of lines) await writeData(redact(line));
+          const complete =
+            omitted && origin !== NATIVE_CLIENT_ORIGIN ? lines.slice(1) : lines;
+          for (const line of complete) await writeData(redact(line));
         } finally {
           await handle.close();
         }
@@ -1698,7 +1711,18 @@ function registerRunLogRoute(
 /**
  * Worker logs name local folders (the chosen source, state and HOME under the
  * store). Non-native origins get them replaced, as `runView` does for records.
+ * The user's home directory is included so any other path under it cannot
+ * reveal the OS account name.
  */
+/**
+ * A service account's home can be `/` or `/root`; replacing it would rewrite
+ * every slash in the log, so only a home with two or more segments counts.
+ */
+function redactableHome(): string | undefined {
+  const home = homedir();
+  return home.split(/[\\/]/u).filter(Boolean).length >= 2 ? home : undefined;
+}
+
 function localPathRedactor(
   record: RunRecord,
   origin: string,
@@ -1711,13 +1735,19 @@ function localPathRedactor(
     record.workspace?.source,
     options.store.root,
     options.connectionSettings?.root,
+    redactableHome(),
   ]) {
     if (!path) continue;
-    paths.add(path);
+    const forms = [path];
     try {
-      paths.add(realpathSync.native(path));
+      forms.push(realpathSync.native(path));
     } catch {
       // A folder removed since the run keeps only its recorded form.
+    }
+    for (const form of forms) {
+      paths.add(form);
+      // Structured log lines are JSON: match the escaped spelling too.
+      paths.add(JSON.stringify(form).slice(1, -1));
     }
   }
   // Longest first, so a folder inside the store is not half-replaced.

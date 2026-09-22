@@ -18,6 +18,10 @@ import {
   validateGitSource,
 } from '../run-project-selection.js';
 import { AgentServerHttpError } from './http-error.js';
+import {
+  isProtectedFolder,
+  PROTECTED_FOLDER_MESSAGE,
+} from './protected-roots.js';
 
 export interface LocationReadiness {
   ready: boolean;
@@ -59,7 +63,12 @@ export class LocalProjectBindings {
   readonly path: string;
   readonly apiUrl: string;
 
-  constructor(root: string, apiUrl: string) {
+  /** `protectedRoots`: store and secrets directories no location may use. */
+  constructor(
+    root: string,
+    apiUrl: string,
+    private readonly protectedRoots: string[] = [],
+  ) {
     this.root = resolveStoreRoot({ root });
     // The same derivation workers use once they inherit MOLTNET_HOME=root.
     this.path = getProjectConfigPath({ root: this.root });
@@ -101,7 +110,7 @@ export class LocalProjectBindings {
         'validation',
         'Select an absolute source folder',
       );
-    const location = await this.describe(input);
+    const location = await this.describe(input, options.signal);
     if (!location.readiness.ready)
       throw new AgentServerHttpError(
         400,
@@ -171,12 +180,19 @@ export class LocalProjectBindings {
 
   private async describe(
     binding: ProjectBinding,
+    signal?: AbortSignal,
   ): Promise<LocalProjectLocation> {
-    const { effectiveSource, readiness } = await this.readiness(binding);
+    const { effectiveSource, readiness } = await this.readiness(
+      binding,
+      signal,
+    );
     return { ...binding, effectiveSource, readiness };
   }
 
-  private async readiness(binding: ProjectBinding): Promise<{
+  private async readiness(
+    binding: ProjectBinding,
+    signal?: AbortSignal,
+  ): Promise<{
     effectiveSource: string | null;
     readiness: LocationReadiness;
   }> {
@@ -202,10 +218,19 @@ export class LocalProjectBindings {
         'The source folder is unavailable. Choose an existing folder.',
       );
     }
+    // Before any readiness check that runs `git` in the folder.
+    if (isProtectedFolder(source, this.protectedRoots))
+      return unavailable(
+        'folder_protected',
+        `${PROTECTED_FOLDER_MESSAGE}.`,
+        source,
+      );
     if (binding.strategy === 'git-worktree') {
       try {
-        await validateGitSource(source);
-      } catch {
+        await validateGitSource(source, signal);
+      } catch (cause) {
+        // An exhausted save budget is not a verdict on the folder.
+        if (signal?.aborted) throw cause;
         return unavailable(
           'git_unavailable',
           'Choose a Git repository root with a committed revision, or choose Work here.',

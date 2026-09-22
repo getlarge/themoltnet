@@ -106,6 +106,7 @@ describe('agent server providers and runs', () => {
       },
     });
     expect(response.statusCode).toBe(200);
+    // This run has ended, so its unfinished tail is final and browsers get it.
     expect(response.json()).toEqual({ lines: ['first', 'second', 'partial'] });
     const unauthenticated = await app.inject({
       url: '/v1/runs/snapshot-run/logs/snapshot',

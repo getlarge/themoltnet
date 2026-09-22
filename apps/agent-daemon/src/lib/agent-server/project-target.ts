@@ -130,12 +130,26 @@ export async function untilAborted<T>(
     signal.addEventListener(
       'abort',
       () => {
-        reject(new Error('Project check was aborted'));
+        // The signal's own reason, so callers can tell an abort from a failure.
+        const reason: unknown = signal.reason;
+        reject(reason instanceof Error ? reason : new Error(String(reason)));
       },
       { once: true },
     );
   });
   return Promise.race([work(), aborted]);
+}
+
+/** True only when `cause` is the abort itself, not a failure seen after it fired. */
+export function causedByAbort(cause: unknown, signal: AbortSignal): boolean {
+  if (!signal.aborted) return false;
+  if (cause === signal.reason) return true;
+  const error = cause as { name?: unknown; cause?: unknown } | null;
+  return (
+    error?.cause === signal.reason ||
+    error?.name === 'AbortError' ||
+    error?.name === 'TimeoutError'
+  );
 }
 
 export function checkUnavailable(

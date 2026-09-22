@@ -114,6 +114,8 @@ export async function fixture(
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;
     startTimeoutMs?: number;
+    /** Replaces credential preflight, e.g. to simulate a slow API. */
+    verifyActivationImpl?: typeof verifyTeamActivation;
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
@@ -133,6 +135,7 @@ export async function fixture(
     baseEnv = { PATH: '/usr/bin' },
     maxLogBytes,
     startTimeoutMs,
+    verifyActivationImpl,
     symlinkImpl,
     resolveRuntimeModule,
     externalSecrets = {},
@@ -273,9 +276,9 @@ export async function fixture(
       scriptPath: '/app/main.js',
     },
     spawnImpl,
-    verifyActivationImpl: realCredentialPreflight
-      ? verifyTeamActivation
-      : verifyActivation,
+    verifyActivationImpl:
+      verifyActivationImpl ??
+      (realCredentialPreflight ? verifyTeamActivation : verifyActivation),
     ...(realCredentialPreflight
       ? { runtimeRegistry: new RuntimeRegistry(store.root) }
       : {}),

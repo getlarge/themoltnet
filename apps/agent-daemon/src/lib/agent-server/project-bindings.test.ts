@@ -226,4 +226,19 @@ describe('native local project locations', () => {
       code: 'ENOENT',
     });
   });
+
+  it('does not report an aborted save as a Git problem', async () => {
+    const { source, bindings } = await fixture();
+    const controller = new AbortController();
+    controller.abort();
+
+    const error = await bindings
+      .save(
+        { ...binding(source), strategy: 'git-worktree' },
+        { signal: controller.signal },
+      )
+      .catch((caught: unknown) => caught);
+
+    expect(error).not.toMatchObject({ code: 'git_unavailable' });
+  });
 });

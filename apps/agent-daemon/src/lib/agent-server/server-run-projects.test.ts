@@ -1,5 +1,5 @@
 import { appendFile, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
 import { readProjectConfig, updateProjectConfig } from '@themoltnet/sdk/node';
@@ -64,13 +64,13 @@ describe('native managed project runs', () => {
       method: 'POST',
       url: '/v1/runs',
       headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+      payload: { ...spec, projectId: 'project', location: 'Laptop' },
     });
     expect(response.statusCode, response.body).toBe(201);
     const run = response.json<RunRecord>();
     expect(run.workspace).toMatchObject({
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
       source: f.source,
       strategy: 'existing',
     });
@@ -90,7 +90,7 @@ describe('native managed project runs', () => {
     );
     expect((await stat(configPath)).mode & 0o777).toBe(0o600);
     // The record keeps the request; resolved values live in `workspace`.
-    expect(run).toMatchObject({ projectId: 'project', binding: 'Laptop' });
+    expect(run).toMatchObject({ projectId: 'project', location: 'Laptop' });
     expect(run).not.toHaveProperty('diaryId');
     expect(run.workspace).not.toHaveProperty('configPath');
     await updateProjectConfig(join(f.store.root, 'projects.json'), (config) => {
@@ -133,9 +133,9 @@ describe('native managed project runs', () => {
     const token = await authorize(f.app);
     for (const selection of [
       { projectId: 'project' },
-      { binding: 'Laptop' },
+      { location: 'Laptop' },
       { source: f.source },
-      { workspaceStrategy: 'existing' },
+      { strategy: 'existing' },
     ]) {
       const response = await f.app.inject({
         method: 'POST',
@@ -172,7 +172,7 @@ describe('native managed project runs', () => {
       method: 'POST',
       url: '/v1/runs',
       headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+      payload: { ...spec, projectId: 'project', location: 'Laptop' },
     });
     const token = await authorize(f.app);
     const listed = await f.app.inject({
@@ -187,7 +187,7 @@ describe('native managed project runs', () => {
     const [run] = listed.json<RunRecord[]>();
     expect(run.workspace).toMatchObject({
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
     });
     expect(run.workspace).not.toHaveProperty('source');
     expect(listed.body).not.toContain(f.source);
@@ -208,7 +208,7 @@ describe('native managed project runs', () => {
           ...spec,
           projectId: null,
           source,
-          workspaceStrategy: 'existing',
+          strategy: 'existing',
         },
       });
       expect(response.statusCode, response.body).toBe(201);
@@ -225,12 +225,12 @@ describe('native managed project runs', () => {
       method: 'POST',
       url: '/v1/runs',
       headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+      payload: { ...spec, projectId: 'project', location: 'Laptop' },
     });
     const run = started.json<RunRecord>();
     await appendFile(
       f.store.resolveRunLogPath(run.id),
-      `${JSON.stringify({ msg: 'worker ready', source: f.source, stateRootDir: join(f.store.root, 'run-state') })}\n`,
+      `${JSON.stringify({ msg: 'worker ready', source: f.source, stateRootDir: join(f.store.root, 'run-state'), cache: join(homedir(), '.cache', 'moltnet') })}\n`,
     );
     const token = await authorize(f.app);
     const browser = {
@@ -247,6 +247,7 @@ describe('native managed project runs', () => {
     expect(logs.body).toContain('worker ready');
     expect(logs.body).not.toContain(f.source);
     expect(logs.body).not.toContain(f.store.root);
+    expect(logs.body).not.toContain(homedir());
     const nativeLogs = await f.app.inject({
       method: 'GET',
       url: `/v1/runs/${run.id}/logs/snapshot`,
@@ -261,7 +262,7 @@ describe('native managed project runs', () => {
     });
     expect(stopped.statusCode).toBe(200);
     expect(stopped.json<RunRecord>().workspace).toMatchObject({
-      binding: 'Laptop',
+      location: 'Laptop',
     });
     expect(stopped.body).not.toContain(f.source);
   });
@@ -341,9 +342,106 @@ it('resolves bindings from the machine store while run state uses a connection d
     method: 'POST',
     url: '/v1/runs',
     headers: nativeHeaders,
-    payload: { ...spec, projectId: 'project', binding: 'Base location' },
+    payload: { ...spec, projectId: 'project', location: 'Base location' },
   });
   expect(response.statusCode, response.body).toBe(201);
   expect(response.json<RunRecord>().workspace?.source).toBe(source);
   expect(f.spawned[0].options.env.HOME).toContain(f.store.root);
+});
+
+it('gives browsers complete log lines only', async () => {
+  const nativeGrant = new NativeGrantService();
+  nativeGrant.grantNative('run-token');
+  const f = await fixture({ nativeGrant });
+  activateManaged(f.store);
+  const started = await f.app.inject({
+    method: 'POST',
+    url: '/v1/runs',
+    headers: nativeHeaders,
+    payload: spec,
+  });
+  const run = started.json<RunRecord>();
+  // An unfinished tail can hold half of a path the redactor cannot match.
+  await appendFile(
+    f.store.resolveRunLogPath(run.id),
+    `complete line\npartial ${f.store.root.slice(0, -3)}`,
+  );
+  const token = await authorize(f.app);
+  const browserLogs = await f.app.inject({
+    method: 'GET',
+    url: `/v1/runs/${run.id}/logs/snapshot`,
+    headers: {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+    },
+  });
+  expect(browserLogs.json<{ lines: string[] }>().lines).toContain(
+    'complete line',
+  );
+  expect(browserLogs.body).not.toContain('partial');
+  const nativeLogs = await f.app.inject({
+    method: 'GET',
+    url: `/v1/runs/${run.id}/logs/snapshot`,
+    headers: nativeHeaders,
+  });
+  expect(nativeLogs.body).toContain('partial');
+
+  // Once the run has ended the unfinished tail is final, often the error.
+  await f.app.inject({
+    method: 'DELETE',
+    url: `/v1/runs/${run.id}`,
+    headers: nativeHeaders,
+  });
+  f.children[0].emit('exit', 0, null);
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
+  const endedLogs = await f.app.inject({
+    method: 'GET',
+    url: `/v1/runs/${run.id}/logs/snapshot`,
+    headers: {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+    },
+  });
+  expect(endedLogs.body).toContain('partial');
+});
+
+it('reports a verification cut short by the start budget as a timeout, not a bad key', async () => {
+  const nativeGrant = new NativeGrantService();
+  nativeGrant.grantNative('run-token');
+  const f = await fixture({
+    nativeGrant,
+    startTimeoutMs: 50,
+    // As the SDK does: an aborted fetch surfaces as a NetworkError.
+    verifyActivationImpl: (
+      _store,
+      _alias,
+      _managed,
+      _external,
+      _connect,
+      signal,
+    ) =>
+      new Promise((_, reject) => {
+        signal?.addEventListener('abort', () => {
+          reject(
+            Object.assign(new Error('fetch failed'), { name: 'NetworkError' }),
+          );
+        });
+      }),
+  });
+  activateManaged(f.store);
+
+  const response = await f.app.inject({
+    method: 'POST',
+    url: '/v1/runs',
+    headers: nativeHeaders,
+    payload: spec,
+  });
+
+  expect(response.statusCode).toBe(503);
+  expect(response.json()).toMatchObject({ code: 'start_timeout' });
+  expect(f.spawned).toHaveLength(0);
 });

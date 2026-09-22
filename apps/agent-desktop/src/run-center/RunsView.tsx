@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { verificationUnavailable } from './credential-health.js';
 import { duration, relativeTime } from './format.js';
 import { findRunPreset } from './preset-matching.js';
+import type { ProjectContext } from './ProjectsView.js';
 import type { RunsRoute } from './RunCenterApp.js';
 import { RunComposer } from './RunComposer.js';
 import { RunDetail } from './RunDetail.js';
@@ -26,6 +27,7 @@ export interface RunsViewProps {
   route: RunsRoute;
   onRoute: (route: RunsRoute) => void;
   onTeams?: () => void;
+  onProjects?: (context: ProjectContext) => void;
 }
 
 export function RunsView({
@@ -36,6 +38,7 @@ export function RunsView({
   route,
   onRoute,
   onTeams,
+  onProjects,
 }: RunsViewProps) {
   if (route.kind === 'compose') {
     return (
@@ -48,6 +51,7 @@ export function RunsView({
         presetId={route.presetId}
         now={now}
         onTeams={onTeams}
+        onProjects={onProjects}
         onDone={() => onRoute({ kind: 'list' })}
       />
     );

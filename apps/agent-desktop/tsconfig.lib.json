@@ -17,13 +17,13 @@
       "path": "../../libs/design-system/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/task-ui/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
       "path": "../../libs/agent-daemon-api-client/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/task-ui/tsconfig.lib.json"
     }
   ]
 }

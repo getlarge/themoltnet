@@ -359,7 +359,7 @@ export const listAgentServerRuns = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * projectId (other than null), binding, source and workspaceStrategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.
+ * projectId (other than null), location, source and strategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.
  */
 export const startAgentServerRun = <ThrowOnError extends boolean = false>(
   options: Options<StartAgentServerRunData, ThrowOnError>,
