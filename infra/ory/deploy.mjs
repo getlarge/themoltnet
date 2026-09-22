@@ -33,6 +33,7 @@ function argumentValue(name) {
 }
 
 const CONSOLE_API = 'https://api.console.ory.sh';
+const ORY_COMMAND_TIMEOUT_MS = 60_000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -68,6 +69,7 @@ function ory(args) {
     cwd: '/tmp',
     env: oryEnv(),
     stdio: 'inherit',
+    timeout: ORY_COMMAND_TIMEOUT_MS,
   });
 }
 
@@ -75,6 +77,8 @@ function oryStdout(args) {
   return execFileSync('ory', args, {
     cwd: '/tmp',
     env: oryEnv(),
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: ORY_COMMAND_TIMEOUT_MS,
   }).toString();
 }
 
@@ -354,6 +358,7 @@ for (const { file, definition } of operatorClients) {
       definition.redirect_uris.join(','),
       '--format',
       'json',
+      '--yes',
     ];
     if (definition.allowed_cors_origins.length > 0) {
       createArgs.push(
@@ -373,6 +378,7 @@ for (const { file, definition } of operatorClients) {
     file,
     '--format',
     'json',
+    '--yes',
   ]);
   const live = JSON.parse(
     oryStdout([
