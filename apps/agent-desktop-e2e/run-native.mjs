@@ -17,6 +17,28 @@ import { fileURLToPath, URL } from 'node:url';
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 if (!['darwin', 'linux'].includes(process.platform))
   throw new Error('Native Desktop journeys require macOS or Linux');
+const abort = new globalThis.AbortController();
+let child;
+const terminate = (signal) => {
+  if (!child?.pid) return;
+  try {
+    process.kill(-child.pid, signal);
+  } catch (error) {
+    if (error.code !== 'ESRCH') throw error;
+  }
+};
+const onInterrupt = () => {
+  process.exitCode = 130;
+  abort.abort();
+  terminate('SIGINT');
+};
+const onTerminate = () => {
+  process.exitCode = 143;
+  abort.abort();
+  terminate('SIGTERM');
+};
+process.once('SIGINT', onInterrupt);
+process.once('SIGTERM', onTerminate);
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'moltnet-desktop-e2e-')));
 try {
   const home = join(root, 'home');
@@ -46,25 +68,19 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
   // Inherit only host process essentials; selectors, credentials, XDG paths,
   // and encrypted dotenv values must not escape into this disposable installation.
   const env = Object.fromEntries(
-    [
-      'PATH',
-      'LANG',
-      'LC_ALL',
-      'TERM',
-      'DISPLAY',
-      'WAYLAND_DISPLAY',
-      'XDG_RUNTIME_DIR',
-      'DBUS_SESSION_BUS_ADDRESS',
-    ].flatMap((key) =>
+    ['PATH', 'LANG', 'LC_ALL', 'TERM', 'DISPLAY'].flatMap((key) =>
       process.env[key] === undefined ? [] : [[key, process.env[key]]],
     ),
   );
   Object.assign(env, {
+    TMPDIR: realpathSync(tmpdir()),
     HOME: home,
     USERPROFILE: home,
     XDG_CONFIG_HOME: join(home, '.config'),
     XDG_CACHE_HOME: join(home, '.cache'),
     XDG_DATA_HOME: join(home, '.local/share'),
+    XDG_RUNTIME_DIR: join(home, '.runtime'),
+    ...(process.platform === 'linux' ? { GDK_BACKEND: 'x11' } : {}),
     MOLTNET_DESKTOP_E2E_FIXTURE_ROOT: root,
     MOLTNET_HOME: join(root, 'store'),
     MOLTNET_AGENT_HOME: join(root, 'agent'),
@@ -74,7 +90,14 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
     MOLTNET_OPERATOR_OAUTH_PUBLIC_URL: 'http://127.0.0.1:1',
     NX_LOAD_DOT_ENV_FILES: 'false',
   });
-  mkdirSync(env.MOLTNET_HOME, { recursive: true });
+  for (const path of [
+    env.MOLTNET_HOME,
+    env.XDG_CONFIG_HOME,
+    env.XDG_CACHE_HOME,
+    env.XDG_DATA_HOME,
+    env.XDG_RUNTIME_DIR,
+  ])
+    mkdirSync(path, { recursive: true, mode: 0o700 });
   // The embedded driver requires a fixed port, not an inherited listener.
   // This probe is not a reservation: a bind conflict must fail the run visibly.
   const portProbe = createServer();
@@ -87,9 +110,11 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
   await new Promise((resolve, reject) =>
     portProbe.close((error) => (error ? reject(error) : resolve())),
   );
-  const child = spawn(
-    process.execPath,
+  abort.signal.throwIfAborted();
+  child = spawn(
+    process.platform === 'linux' ? 'dbus-run-session' : process.execPath,
     [
+      ...(process.platform === 'linux' ? ['--', process.execPath] : []),
       fileURLToPath(
         new URL('../bin/wdio.js', import.meta.resolve('@wdio/cli')),
       ),
@@ -103,24 +128,19 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
       detached: true,
     },
   );
-  const terminate = (signal) => {
-    if (!child.pid) return;
-    try {
-      process.kill(-child.pid, signal);
-    } catch (error) {
-      if (error.code !== 'ESRCH') throw error;
-    }
-  };
-  for (const signal of ['SIGTERM', 'SIGINT'])
-    process.once(signal, () => terminate(signal));
   process.exitCode = await new Promise((resolve, reject) => {
     child.once('error', reject);
-    child.once('close', (code) => resolve(code ?? 1));
+    child.once('close', (code) =>
+      resolve(abort.signal.aborted ? process.exitCode : (code ?? 1)),
+    );
   });
-  // WDIO closes the app on normal completion; reap any remaining members of
-  // this runner-owned process group before removing its configuration.
-  terminate('SIGKILL');
+} catch (error) {
+  if (!abort.signal.aborted) throw error;
 } finally {
+  // Reap the runner-owned process group before removing its configuration.
+  terminate('SIGKILL');
+  process.off('SIGINT', onInterrupt);
+  process.off('SIGTERM', onTerminate);
   if (process.exitCode) {
     const log = join(root, 'store/agent-server/logs/desktop-supervisor.log');
     if (existsSync(log)) {

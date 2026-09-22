@@ -1,21 +1,38 @@
+import { readFileSync } from 'node:fs';
+
 import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { browser, expect } from '@wdio/globals';
 
+const installedVersion = readFileSync(
+  new URL('../../agent-desktop/agent-cli.version', import.meta.url),
+  'utf8',
+).trim();
+
+beforeEach(async () => {
+  await browser.waitUntil(
+    async () => {
+      const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
+        ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
+      );
+      if (status.state === 'stopped') {
+        const started = await browser.tauri.execute<Promise<DesktopStatus>, []>(
+          ({ core }) =>
+            core.invoke('start_agent_server') as Promise<DesktopStatus>,
+        );
+        return started.state === 'running';
+      }
+      return status.state === 'running';
+    },
+    { timeout: 30_000, timeoutMsg: 'Supervised daemon did not become ready' },
+  );
+});
+
 describe('Native Desktop with an isolated installation', () => {
   it('reads the real supervised lifecycle without launching work', async () => {
-    await browser.waitUntil(
-      async () => {
-        const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
-          ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
-        );
-        return status.state === 'running';
-      },
-      { timeout: 30_000, timeoutMsg: 'Supervised daemon did not become ready' },
-    );
     const status = await browser.tauri.execute<Promise<DesktopStatus>, []>(
       ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
     );
-    expect(status.installedVersion).not.toBeNull();
+    expect(status.installedVersion).toBe(installedVersion);
   });
 });
 
@@ -25,7 +42,7 @@ describe('Native Desktop and real fixture daemon', () => {
       ({ core }) => core.invoke('start_agent_server') as Promise<DesktopStatus>,
     );
     expect(started.state).toBe('running');
-    await browser.tauri.execute(({ core }) =>
+    const saved = await browser.tauri.execute(({ core }) =>
       core.invoke('desktop_put_provider', {
         providerId: 'ollama',
         config: {
@@ -34,6 +51,13 @@ describe('Native Desktop and real fixture daemon', () => {
           baseUrl: 'http://127.0.0.1:11434',
           models: [{ id: 'fixture-model' }],
         },
+      }),
+    );
+    expect(saved).toEqual(
+      expect.objectContaining({
+        api: 'openai-completions',
+        baseUrl: 'http://127.0.0.1:11434',
+        models: [expect.objectContaining({ id: 'fixture-model' })],
       }),
     );
     const stopped = await browser.tauri.execute<Promise<DesktopStatus>, []>(
@@ -47,7 +71,7 @@ describe('Native Desktop and real fixture daemon', () => {
     const providers = await browser.tauri.execute(({ core }) =>
       core.invoke('desktop_providers'),
     );
-    expect(JSON.stringify(providers)).toContain('fixture-model');
+    expect(providers).toEqual(expect.objectContaining({ ollama: saved }));
     await browser.tauri.execute(({ core }) => core.invoke('stop_agent_server'));
   });
 });

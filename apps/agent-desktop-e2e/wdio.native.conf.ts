@@ -32,10 +32,9 @@ export const config = {
       '@wdio/tauri-service',
       {
         appBinaryPath:
-          process.env.MOLTNET_DESKTOP_E2E_BINARY ??
-          (process.platform === 'darwin'
+          process.platform === 'darwin'
             ? `${projectRoot}/out-rust/e2e/debug/bundle/macos/MoltNet Agent E2E.app/Contents/MacOS/moltnet-agent-desktop`
-            : `${projectRoot}/out-rust/e2e/debug/moltnet-agent-desktop`),
+            : `${projectRoot}/out-rust/e2e/debug/moltnet-agent-desktop`,
         driverProvider: 'embedded',
         embeddedPort: Number(process.env.MOLTNET_DESKTOP_WEBDRIVER_PORT),
       },

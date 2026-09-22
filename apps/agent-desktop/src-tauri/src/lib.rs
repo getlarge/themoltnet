@@ -1,3 +1,5 @@
+#[cfg(any(test, feature = "desktop-e2e"))]
+mod automation;
 #[path = "../build_support.rs"]
 mod build_support;
 mod control;
@@ -828,18 +830,14 @@ pub fn run() {
         let fixture = std::env::var_os("MOLTNET_DESKTOP_E2E_FIXTURE_ROOT")
             .and_then(|path| std::fs::canonicalize(path).ok())
             .expect("Desktop automation requires an isolated fixture root");
-        for (name, child) in [
-            ("HOME", "home"),
-            ("MOLTNET_HOME", "store"),
-            ("MOLTNET_AGENT_HOME", "agent"),
-        ] {
-            let actual = std::env::var_os(name).and_then(|path| std::fs::canonicalize(path).ok());
-            assert_eq!(
-                actual.as_deref(),
-                Some(fixture.join(child).as_path()),
-                "Desktop automation requires isolated {name}"
-            );
-        }
+        assert!(
+            cfg!(any(target_os = "macos", target_os = "linux")),
+            "Desktop automation supports macOS and Linux only"
+        );
+        automation::validate_fixture(&fixture, &std::env::temp_dir(), |name| {
+            std::env::var_os(name)
+        })
+        .expect("Desktop automation requires isolated platform directories");
     }
     let builder = tauri::Builder::default();
     #[cfg(feature = "desktop-e2e")]
