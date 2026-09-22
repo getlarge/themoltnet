@@ -63,6 +63,7 @@
       "plugin": "@nx/eslint/plugin"
     },
     {
+      "exclude": ["apps/agent-desktop-e2e/**/*"],
       "options": {
         "buildDepsTargetName": "build-deps",
         "buildTargetName": "build",

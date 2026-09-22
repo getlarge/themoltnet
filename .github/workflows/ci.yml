@@ -292,8 +292,14 @@ jobs:
       - name: Test macOS native control and peer credentials
         run: cargo test --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/test-macos
 
+      - name: Compile macOS automation commands
+        run: cargo check --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --features desktop-e2e --target-dir apps/agent-desktop/out-rust/test-macos
+
   desktop-e2e:
     name: Desktop renderer journeys
+    timeout-minutes: 15
+    permissions:
+      contents: read
     needs: affected
     if: needs.affected.outputs.desktop-e2e == 'true'
     runs-on: ubuntu-latest
@@ -656,9 +662,9 @@ jobs:
         with:
           go-cache: 'true'
           install-dependencies: 'false'
-          rust: ${{ needs.affected.outputs.agent-desktop == 'true' || needs.affected.outputs.desktop-e2e == 'true' }}
+          rust: ${{ needs.affected.outputs.agent-desktop == 'true' }}
           rust-components: rustfmt, clippy
-          rust-cache: ${{ needs.affected.outputs.agent-desktop == 'true' || needs.affected.outputs.desktop-e2e == 'true' }}
+          rust-cache: ${{ needs.affected.outputs.agent-desktop == 'true' }}
           rust-cache-key: ci-registry
           rust-cache-targets: 'false'
       - name: Install native build tools
@@ -668,7 +674,7 @@ jobs:
             sudo apt-get install -y cmake ninja-build
           fi
       - name: Install Agent desktop native dependencies
-        if: needs.affected.outputs.agent-desktop == 'true' || needs.affected.outputs.desktop-e2e == 'true'
+        if: needs.affected.outputs.agent-desktop == 'true'
         run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - name: Restore golangci-lint
         id: golangci-lint-cache

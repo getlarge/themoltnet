@@ -1,94 +1,93 @@
 import console from 'node:console';
 import process from 'node:process';
 import assert from 'node:assert/strict';
-import { Buffer } from 'node:buffer';
 import { execFileSync } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
+import { isAbsolute, resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 import { fileURLToPath, URL } from 'node:url';
+
+import {
+  assertReleaseArtifact,
+  assertReleaseArguments,
+  assertReleaseConfig,
+} from './boundary.mjs';
 
 const root = fileURLToPath(
   new URL('../../../apps/agent-desktop', import.meta.url),
 );
-const dependencies = execFileSync(
-  'cargo',
-  [
-    'tree',
-    '--locked',
-    '--manifest-path',
-    `${root}/src-tauri/Cargo.toml`,
-    '--edges',
-    'normal',
-    '--prefix',
-    'none',
-  ],
-  { encoding: 'utf8' },
+const { values, positionals } = parseArgs({
+  options: { 'config-only': { type: 'boolean' }, binary: { type: 'string' } },
+  allowPositionals: true,
+});
+assertReleaseArguments(positionals);
+// Validate every release overlay, including the dynamically supplied updater
+// configuration. Tauri resolves --config paths relative to the Desktop project.
+const configFiles = (await readdir(`${root}/src-tauri`)).filter((file) =>
+  /^tauri(?:\.(?:linux|macos|windows))?\.conf\.json$/.test(file),
 );
-assert(
-  !dependencies.includes('tauri-plugin-wdio'),
-  'Release includes a WebDriver plugin',
+const configs = await Promise.all(
+  configFiles.map((file) => readFile(`${root}/src-tauri/${file}`, 'utf8')),
 );
-const config = JSON.parse(
-  await readFile(`${root}/src-tauri/tauri.conf.json`, 'utf8'),
-);
-assert(config.app?.withGlobalTauri !== true, 'Release enables global Tauri');
-for (const contents of [
-  JSON.stringify(config),
-  ...(await Promise.all(
-    (await readdir(`${root}/src-tauri/capabilities`))
-      .filter((name) => name.endsWith('.json'))
-      .map((name) =>
-        readFile(`${root}/src-tauri/capabilities/${name}`, 'utf8'),
+if (process.env.TAURI_CONFIG) configs.push(process.env.TAURI_CONFIG);
+for (let i = 0; i < positionals.length; i++) {
+  const arg = positionals[i];
+  const config =
+    arg === '--config' || arg === '-c'
+      ? positionals[++i]
+      : arg.startsWith('--config=')
+        ? arg.slice('--config='.length)
+        : undefined;
+  if (config !== undefined)
+    configs.push(
+      config.trimStart().startsWith('{')
+        ? config
+        : await readFile(
+            isAbsolute(config) ? config : resolve(root, config),
+            'utf8',
+          ),
+    );
+}
+for (const config of configs) assertReleaseConfig(JSON.parse(config));
+for (const file of await readdir(`${root}/src-tauri/capabilities`)) {
+  if (file.endsWith('.json'))
+    assertReleaseConfig(
+      JSON.parse(
+        await readFile(`${root}/src-tauri/capabilities/${file}`, 'utf8'),
       ),
-  )),
-]) {
-  assert(
-    !/wdio(?:-webdriver)?:/.test(contents),
-    'Release grants WebDriver permissions',
-  );
+    );
 }
-const bundleScript = await readFile(
-  new URL('./bundle.sh', import.meta.url),
-  'utf8',
-);
-assert(
-  !/--features(?:[=\s])/.test(bundleScript),
-  'Release bundle enables optional features',
-);
-for (const file of await readdir(`${root}/dist/assets`)) {
-  if (!file.endsWith('.js')) continue;
-  const source = await readFile(`${root}/dist/assets/${file}`, 'utf8');
-  for (const marker of [
-    'wdioTauri',
-    '__wdio_mocks__',
-    'desktop-e2e:mount',
-    'desktop_e2e_tab',
-  ]) {
-    assert(!source.includes(marker), `Release renderer includes ${marker}`);
+if (!values['config-only']) {
+  const dependencies = execFileSync(
+    'cargo',
+    [
+      'tree',
+      '--locked',
+      '--manifest-path',
+      `${root}/src-tauri/Cargo.toml`,
+      '--edges',
+      'normal',
+      '--prefix',
+      'none',
+    ],
+    { encoding: 'utf8' },
+  );
+  assert(
+    !dependencies.includes('tauri-plugin-wdio'),
+    'Release includes a WebDriver plugin',
+  );
+  for (const file of await readdir(`${root}/dist/assets`)) {
+    if (file.endsWith('.js'))
+      assertReleaseArtifact(
+        await readFile(`${root}/dist/assets/${file}`),
+        `Release renderer ${file}`,
+      );
   }
+  // The Nx build target restores this binary on a cache hit. Packaging passes
+  // its actual target binary, so checking a second debug build is unnecessary.
+  const binary =
+    values.binary ??
+    `${root}/out-rust/build/release/moltnet-agent-desktop${process.platform === 'win32' ? '.exe' : ''}`;
+  assertReleaseArtifact(await readFile(binary), 'Release native binary');
 }
-// Compile the ordinary native binary as well: a feature-gated key command
-// must disappear from registration and generated IPC dispatch in this build.
-execFileSync(
-  'cargo',
-  [
-    'build',
-    '--locked',
-    '--manifest-path',
-    `${root}/src-tauri/Cargo.toml`,
-    '--target-dir',
-    `${root}/out-rust/test`,
-  ],
-  { stdio: 'inherit' },
-);
-const binary = await readFile(
-  `${root}/out-rust/test/debug/moltnet-agent-desktop${process.platform === 'win32' ? '.exe' : ''}`,
-);
-for (const marker of ['desktop_e2e_tab', '__wdio_mocks__', 'wdio-webdriver']) {
-  assert(
-    !binary.includes(Buffer.from(marker)),
-    `Release native binary includes ${marker}`,
-  );
-}
-console.log(
-  'Release dependency graph, native binary, and renderer exclude Desktop automation.',
-);
+console.log('Release configuration and artifacts exclude Desktop automation.');

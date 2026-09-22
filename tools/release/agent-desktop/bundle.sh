@@ -33,7 +33,9 @@ case "$mode" in
     ;;
   *) echo "Unknown packaging mode: $mode" >&2; exit 1 ;;
 esac
+node tools/release/agent-desktop/verify-boundary.mjs --config-only -- "${args[@]}"
 # Tauri's macOS app/updater names are unversioned. Remove only prior bundle
 # products so stale outputs cannot pass release artifact selection.
 rm -rf "apps/agent-desktop/out-rust/bundle/$target/release/bundle"
 CARGO_TARGET_DIR=../out-rust/bundle pnpm --dir apps/agent-desktop exec tauri build "${args[@]}"
+node tools/release/agent-desktop/verify-boundary.mjs --binary "apps/agent-desktop/out-rust/bundle/$target/release/moltnet-agent-desktop" -- "${args[@]}"
