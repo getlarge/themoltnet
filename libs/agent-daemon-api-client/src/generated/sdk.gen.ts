@@ -25,8 +25,6 @@ import type {
   GetAgentServerCatalogueResponses,
   GetAgentServerHealthData,
   GetAgentServerHealthResponses,
-  GetAgentServerOAuthMetadataData,
-  GetAgentServerOAuthMetadataResponses,
   GetAgentServerRunLogSnapshotData,
   GetAgentServerRunLogSnapshotResponses,
   GetAgentServerStatusData,
@@ -105,17 +103,6 @@ export const getAgentServerHealth = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/health', ...options });
-
-export const getAgentServerOAuthMetadata = <
-  ThrowOnError extends boolean = false,
->(
-  options?: Options<GetAgentServerOAuthMetadataData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetAgentServerOAuthMetadataResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/oauth/metadata', ...options });
 
 export const listAgentServerAgents = <ThrowOnError extends boolean = false>(
   options?: Options<ListAgentServerAgentsData, ThrowOnError>,

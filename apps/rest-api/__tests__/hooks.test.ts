@@ -524,16 +524,10 @@ describe('Hook routes', () => {
         approved: 'moltnet:local-control',
         granted: ['moltnet:local-control', 'diary:manage'],
       },
-      {
-        approved: 'moltnet:provision',
-        granted: [],
-        clientId: 'console-client',
-      },
     ])(
       'rejects invalid administrative scope binding $approved / $granted',
       async ({ approved, granted, clientId = 'native-client' }) => {
         vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
-        vi.stubEnv('MOLTNET_CONSOLE_OAUTH_CLIENT_ID', 'console-client');
         try {
           vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
             client_id: clientId,

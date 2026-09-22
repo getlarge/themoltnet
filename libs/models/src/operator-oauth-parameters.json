@@ -1,7 +1,6 @@
 {
   "approvalTransportGraceSeconds": 30,
   "callbackPort": 17375,
-  "consoleLifetimeSeconds": 900,
   "nativeLifetimeSeconds": 300,
   "serverPort": 17374
 }

@@ -135,8 +135,8 @@ const agentSchemaFile = join(__dirname, 'identity-schema.json');
 const humanSchemaFile = join(__dirname, 'human-identity-schema.json');
 const operatorClientFiles = [
   join(__dirname, 'oauth2-clients/moltnet-native.json'),
-  join(__dirname, 'oauth2-clients/moltnet-console.json'),
 ];
+const retiredOperatorClientIds = ['moltnet-console'];
 
 if (!existsSync(agentSchemaFile))
   fatal(`Agent identity schema not found at ${agentSchemaFile}`);
@@ -175,6 +175,7 @@ if (oauthClientsOnly) {
     fatal('ORY_PROJECT_API_KEY must be set for --oauth-clients-only --apply');
   const clientFailures = [];
   reconcileOperatorClients((message) => clientFailures.push(message));
+  deleteRetiredOperatorClients();
   if (clientFailures.length > 0) {
     fatal(
       `${clientFailures.length} OAuth client verification check(s) failed:\n  - ` +
@@ -370,6 +371,7 @@ if (existsSync(oplFile)) {
 // ---------------------------------------------------------------------------
 
 reconcileOperatorClients(recordFailure);
+deleteRetiredOperatorClients();
 
 // ---------------------------------------------------------------------------
 // 7. Patch OAuth2 fields that `ory update project` silently strips.
@@ -527,6 +529,19 @@ function reconcileOperatorClients(onFailure) {
     log(`  ${id} reconciled and verified.`);
   }
   log('Operator OAuth clients reconciled.\n');
+}
+
+function deleteRetiredOperatorClients() {
+  for (const id of retiredOperatorClientIds) {
+    try {
+      oryClientStdout(['get', 'oauth2-client', id, '--format', 'json']);
+    } catch (error) {
+      if (isOryMissingResource(error)) continue;
+      throw error;
+    }
+    ory(['delete', 'oauth2-client', id, '--yes']);
+    log(`Retired OAuth client deleted: ${id}`);
+  }
 }
 
 log('Patching OAuth2 token_hook + access-token TTL ...');

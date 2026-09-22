@@ -67,7 +67,6 @@ fn launch_environment() -> Result<Map<String, Value>, String> {
         ("issuer", "MOLTNET_OPERATOR_OAUTH_ISSUER"),
         ("publicUrl", "MOLTNET_OPERATOR_OAUTH_PUBLIC_URL"),
         ("nativeClientId", "MOLTNET_NATIVE_OAUTH_CLIENT_ID"),
-        ("consoleClientId", "MOLTNET_CONSOLE_OAUTH_CLIENT_ID"),
         ("apiUrl", "MOLTNET_OPERATOR_API_URL"),
         ("apiUrl", "MOLTNET_API_URL"),
     ] {
@@ -89,15 +88,7 @@ fn validate(value: &Value) -> Result<Map<String, Value>, String> {
         .ok_or("Connection settings must be an object")?;
     let mut result = Map::new();
     for (key, value) in values {
-        if ![
-            "apiUrl",
-            "issuer",
-            "publicUrl",
-            "nativeClientId",
-            "consoleClientId",
-        ]
-        .contains(&key.as_str())
-        {
+        if !["apiUrl", "issuer", "publicUrl", "nativeClientId"].contains(&key.as_str()) {
             return Err(format!("Invalid connection setting: {key}"));
         }
         let text = value

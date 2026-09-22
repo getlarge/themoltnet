@@ -7,6 +7,8 @@ import { createHuman, type TestHuman } from './helpers.js';
 import {
   createTestHarness,
   HYDRA_PUBLIC_URL,
+  KRATOS_PUBLIC_URL,
+  SERVER_BASE_URL,
   type TestHarness,
 } from './setup.js';
 
@@ -14,7 +16,9 @@ const CLIENT_ID = 'moltnet-native-e2e';
 const REDIRECT_URI = 'http://127.0.0.1:17375/oauth/callback';
 
 function rewriteToHost(url: string): string {
-  return url.replace(/^http:\/\/hydra:4444/, HYDRA_PUBLIC_URL);
+  return url
+    .replace(/^http:\/\/hydra:4444/, HYDRA_PUBLIC_URL)
+    .replace(/^http:\/\/kratos:4433/, KRATOS_PUBLIC_URL);
 }
 
 class CookieJar {
@@ -29,18 +33,57 @@ class CookieJar {
     }
   }
 
-  async fetch(url: string): Promise<Response> {
+  async fetch(url: string, init: RequestInit = {}): Promise<Response> {
     const cookie = Array.from(
       this.cookies,
       ([name, value]) => `${name}=${value}`,
     ).join('; ');
-    const response = await fetch(url, {
+    const headers = new Headers(init.headers);
+    if (cookie) headers.set('cookie', cookie);
+    const response = await fetch(rewriteToHost(url), {
+      ...init,
       redirect: 'manual',
-      ...(cookie ? { headers: { cookie } } : {}),
+      headers,
     });
     this.capture(response);
     return response;
   }
+}
+
+interface KratosBrowserFlow {
+  id: string;
+  ui: {
+    action: string;
+    nodes: Array<{ attributes: { name?: string; value?: unknown } }>;
+  };
+}
+
+async function loginBrowser(jar: CookieJar, human: TestHuman): Promise<void> {
+  const start = await jar.fetch(
+    `${KRATOS_PUBLIC_URL}/self-service/login/browser`,
+    { headers: { accept: 'application/json' } },
+  );
+  expect(start.status, await start.clone().text()).toBe(200);
+  const flow = (await start.json()) as KratosBrowserFlow;
+  const csrfToken = flow.ui.nodes.find(
+    (node) => node.attributes.name === 'csrf_token',
+  )?.attributes.value;
+  expect(typeof csrfToken).toBe('string');
+
+  const login = await jar.fetch(flow.ui.action, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      csrf_token: csrfToken,
+      identifier: human.email,
+      password: human.password,
+      method: 'password',
+    }),
+  });
+  expect(login.status, await login.clone().text()).toBe(200);
 }
 
 async function challengeFromRedirects(
@@ -121,7 +164,7 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
     await harness?.teardown();
   });
 
-  async function exchange(
+  async function exchangeDirect(
     scope: string,
     audience: string,
     approved: Record<string, unknown>,
@@ -189,6 +232,95 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
     });
   }
 
+  async function exchangeThroughApprovalRoute() {
+    const jar = new CookieJar();
+    await loginBrowser(jar, human);
+    const verifier = randomBytes(32).toString('base64url');
+    const instance = randomUUID();
+    const auth = new URL(`${HYDRA_PUBLIC_URL}/oauth2/auth`);
+    for (const [key, value] of Object.entries({
+      client_id: CLIENT_ID,
+      response_type: 'code',
+      redirect_uri: REDIRECT_URI,
+      scope: OPERATOR_OAUTH.localControlScope,
+      audience: OPERATOR_OAUTH.localControlAudience,
+      state: randomUUID(),
+      instance,
+      code_challenge_method: 'S256',
+      code_challenge: createHash('sha256').update(verifier).digest('base64url'),
+    }))
+      auth.searchParams.set(key, value);
+
+    const loginChallenge = await challengeFromRedirects(
+      jar,
+      auth.href,
+      'login_challenge',
+    );
+    const login = await harness.hydraAdminOAuth2.acceptOAuth2LoginRequest({
+      loginChallenge,
+      acceptOAuth2LoginRequest: {
+        subject: human.identityId,
+        remember: false,
+      },
+    });
+
+    const consentChallenge = await challengeFromRedirects(
+      jar,
+      login.redirect_to,
+      'consent_challenge',
+    );
+    const approval = await jar.fetch(
+      `${SERVER_BASE_URL}/oauth2/consent?consent_challenge=${encodeURIComponent(consentChallenge)}`,
+    );
+    expect(approval.status, await approval.clone().text()).toBe(200);
+    const approvalHtml = await approval.text();
+    expect(approvalHtml).toContain('Allow local Agent Server control?');
+    expect(approvalHtml).toContain('Control this Agent Server instance');
+    expect(approvalHtml).toContain('The requesting local Agent Server');
+
+    const consent = await jar.fetch(`${SERVER_BASE_URL}/oauth2/consent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        consent_challenge: consentChallenge,
+        decision: 'allow',
+      }),
+    });
+    expect(consent.status, await consent.clone().text()).toBe(303);
+    const consentRedirect = consent.headers.get('location');
+    expect(consentRedirect).toBeTruthy();
+    const code = await codeFromRedirects(jar, consentRedirect!);
+    return {
+      instance,
+      response: await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: CLIENT_ID,
+          redirect_uri: REDIRECT_URI,
+          code,
+          code_verifier: verifier,
+        }),
+      }),
+    };
+  }
+
+  it('issues local-control claims through the MoltNet approval hooks', async () => {
+    const { instance, response } = await exchangeThroughApprovalRoute();
+    expect(response.status, await response.clone().text()).toBe(200);
+    const token = (await response.json()) as { access_token?: string };
+    expect(token.access_token).toBeTruthy();
+    const introspection = await harness.hydraAdminOAuth2.introspectOAuth2Token({
+      token: token.access_token!,
+    });
+    expect(introspection.ext).toMatchObject({
+      'moltnet:identity_id': human.identityId,
+      'moltnet:subject_type': 'human',
+      'moltnet:instance': instance,
+    });
+  });
+
   it.each([
     {
       name: 'local operator sign-in',
@@ -215,7 +347,7 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
   ])(
     'issues the native token for $name',
     async ({ scope, audience, extra }) => {
-      const response = await exchange(scope, audience, extra);
+      const response = await exchangeDirect(scope, audience, extra);
       expect(response.status, await response.clone().text()).toBe(200);
       const token = (await response.json()) as {
         access_token?: string;

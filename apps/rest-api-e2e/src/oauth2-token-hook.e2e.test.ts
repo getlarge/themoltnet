@@ -16,18 +16,20 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 
-import { HUMAN_SESSION_SCOPES } from '@moltnet/auth';
+import { MCP_CLIENT_SCOPES } from '@moltnet/auth';
 import type { OAuth2Api } from '@ory/client-fetch';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createHuman } from './helpers.js';
+import { createAgent, createHuman, type TestHuman } from './helpers.js';
 import {
   createTestHarness,
   HYDRA_PUBLIC_URL,
+  KRATOS_PUBLIC_URL,
+  SERVER_BASE_URL,
   type TestHarness,
 } from './setup.js';
 
-const HUMAN_ACCESS_SCOPES = ['openid', ...HUMAN_SESSION_SCOPES];
+const HUMAN_ACCESS_SCOPES = ['openid', ...MCP_CLIENT_SCOPES];
 const HUMAN_DCR_SCOPES = ['offline_access', ...HUMAN_ACCESS_SCOPES];
 
 // PKCE helpers — RFC 7636. We use S256.
@@ -63,7 +65,9 @@ async function introspect(
  * Admin API or any `Location` header must be rewritten before we follow it.
  */
 function rewriteToHost(url: string): string {
-  return url.replace(/^http:\/\/hydra:4444/, HYDRA_PUBLIC_URL);
+  return url
+    .replace(/^http:\/\/hydra:4444/, HYDRA_PUBLIC_URL)
+    .replace(/^http:\/\/kratos:4433/, KRATOS_PUBLIC_URL);
 }
 
 /**
@@ -108,6 +112,41 @@ async function jarFetch(
   const res = await fetch(url, { ...init, headers, redirect: 'manual' });
   jar.capture(res);
   return res;
+}
+
+interface KratosBrowserFlow {
+  ui: {
+    action: string;
+    nodes: Array<{ attributes: { name?: string; value?: unknown } }>;
+  };
+}
+
+async function loginBrowser(jar: CookieJar, human: TestHuman): Promise<void> {
+  const start = await jarFetch(
+    jar,
+    `${KRATOS_PUBLIC_URL}/self-service/login/browser`,
+    { headers: { accept: 'application/json' } },
+  );
+  expect(start.status, await start.clone().text()).toBe(200);
+  const flow = (await start.json()) as KratosBrowserFlow;
+  const csrfToken = flow.ui.nodes.find(
+    (node) => node.attributes.name === 'csrf_token',
+  )?.attributes.value;
+  expect(typeof csrfToken).toBe('string');
+  const login = await jarFetch(jar, rewriteToHost(flow.ui.action), {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      csrf_token: csrfToken,
+      identifier: human.email,
+      password: human.password,
+      method: 'password',
+    }),
+  });
+  expect(login.status, await login.clone().text()).toBe(200);
 }
 
 describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
@@ -185,6 +224,7 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
     //    via session cookies set on the initial /oauth2/auth call and
     //    required on the post-login_verifier hop.
     const jar = new CookieJar();
+    await loginBrowser(jar, human);
     const { verifier, challenge } = generatePkce();
     const state = randomBytes(8).toString('hex');
 
@@ -221,7 +261,8 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
     }
     expect(loginChallenge).toBeTruthy();
 
-    // 3. Accept the login challenge as the human's Kratos identity.
+    // 3. Ory owns login. Accept through Hydra Admin here because the hosted
+    //    Ory login UI is outside this repository's E2E surface.
     const loginAccept = await harness.hydraAdminOAuth2.acceptOAuth2LoginRequest(
       {
         loginChallenge: loginChallenge as string,
@@ -263,19 +304,41 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
       `consent_challenge not found in redirect chain:\n${consentRedirectChain.join('\n')}`,
     ).toBeTruthy();
 
-    // 5. Accept consent for the requested scopes.
-    const consentAccept =
-      await harness.hydraAdminOAuth2.acceptOAuth2ConsentRequest({
-        consentChallenge: consentChallenge as string,
-        acceptOAuth2ConsentRequest: {
-          grant_scope: HUMAN_ACCESS_SCOPES,
-          remember: false,
-        },
-      });
+    // 5. Review and accept consent through the same provider used in production.
+    const approvalResponse = await jarFetch(
+      jar,
+      `${SERVER_BASE_URL}/oauth2/consent?consent_challenge=${encodeURIComponent(consentChallenge as string)}`,
+    );
+    expect(approvalResponse.status, await approvalResponse.clone().text()).toBe(
+      200,
+    );
+    const approvalHtml = await approvalResponse.text();
+    expect(approvalHtml).toContain('Allow application access?');
+    expect(approvalHtml).toContain('E2E DCR Human Client');
+    expect(approvalHtml).toContain('Read diary entries and metadata');
+    expect(approvalHtml).toContain('Access target');
+    const consentAcceptResponse = await jarFetch(
+      jar,
+      `${SERVER_BASE_URL}/oauth2/consent`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          consent_challenge: consentChallenge as string,
+          decision: 'allow',
+        }),
+      },
+    );
+    expect(
+      consentAcceptResponse.status,
+      await consentAcceptResponse.clone().text(),
+    ).toBe(303);
+    const consentRedirect = consentAcceptResponse.headers.get('location');
+    expect(consentRedirect).toBeTruthy();
 
     // 6. Follow back to Hydra — final redirect to redirect_uri with code.
     let code: string | null = null;
-    let callbackUrl: string | null = rewriteToHost(consentAccept.redirect_to);
+    let callbackUrl: string | null = rewriteToHost(consentRedirect!);
     for (let i = 0; i < 5 && callbackUrl; i++) {
       const res = await jarFetch(jar, callbackUrl);
       const loc = res.headers.get('location');

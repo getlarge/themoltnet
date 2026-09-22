@@ -97,6 +97,23 @@ describe('credential scope configuration', () => {
 });
 
 describe('Ory environment parity', () => {
+  it('routes operator OAuth through the Console approval UI', () => {
+    const project = readJson('../../infra/ory/project.json') as {
+      services: {
+        oauth2: {
+          config: {
+            urls: { login: string; consent: string };
+          };
+        };
+      };
+    };
+
+    expect(project.services.oauth2.config.urls).toMatchObject({
+      login: '${ORY_PROJECT_URL}/login',
+      consent: '${API_BASE_URL}/oauth2/consent',
+    });
+  });
+
   // infra/ory/project.json configures Ory Network; infra/ory/hydra/hydra.yaml
   // configures the local and e2e Hydra. They are separate deployments, not
   // duplicates, so nothing makes them agree on its own.

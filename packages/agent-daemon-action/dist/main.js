@@ -30640,10 +30640,8 @@ Object.freeze({
 	provisioningAudience: "moltnet:provisioning",
 	localControlAudience: "moltnet:agent-server",
 	nativeClientId: "moltnet-native",
-	consoleClientId: "moltnet-console",
 	approvalTransportGraceSeconds: 30,
 	callbackPort: 17375,
-	consoleLifetimeSeconds: 900,
 	nativeLifetimeSeconds: 300,
 	serverPort: 17374
 });

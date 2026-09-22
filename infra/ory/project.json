@@ -493,7 +493,7 @@
           "refresh_token": "720h"
         },
         "urls": {
-          "consent": "${ORY_PROJECT_URL}/consent",
+          "consent": "${API_BASE_URL}/oauth2/consent",
           "error": "${ORY_PROJECT_URL}/error",
           "login": "${ORY_PROJECT_URL}/login",
           "logout": "${ORY_PROJECT_URL}/logout",

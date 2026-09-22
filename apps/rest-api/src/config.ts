@@ -740,8 +740,6 @@ export function loadOperatorOAuthClients(
   const clients = {
     nativeClientId:
       env.MOLTNET_NATIVE_OAUTH_CLIENT_ID ?? OPERATOR_OAUTH.nativeClientId,
-    consoleClientId:
-      env.MOLTNET_CONSOLE_OAUTH_CLIENT_ID ?? OPERATOR_OAUTH.consoleClientId,
   };
   // Consent compares `client_id` against these, so a blank value rejects 100%
   // of approvals with an opaque 403 while the service still reports healthy.
@@ -749,7 +747,6 @@ export function loadOperatorOAuthClients(
   // user's request.
   for (const [name, value] of [
     ['MOLTNET_NATIVE_OAUTH_CLIENT_ID', clients.nativeClientId],
-    ['MOLTNET_CONSOLE_OAUTH_CLIENT_ID', clients.consoleClientId],
   ] as const) {
     if (!value.trim()) throw new Error(`${name} must not be empty`);
   }

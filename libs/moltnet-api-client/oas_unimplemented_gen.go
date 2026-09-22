@@ -24,20 +24,6 @@ func (UnimplementedHandler) AbortTaskAttempt(ctx context.Context, req OptAbortTa
 	return r, ht.ErrNotImplemented
 }
 
-// AcceptOperatorConsent implements acceptOperatorConsent operation.
-//
-// POST /oauth2/consent
-func (UnimplementedHandler) AcceptOperatorConsent(ctx context.Context, req *AcceptOperatorConsentReq) (r AcceptOperatorConsentRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// AcceptOperatorLogin implements acceptOperatorLogin operation.
-//
-// POST /oauth2/login
-func (UnimplementedHandler) AcceptOperatorLogin(ctx context.Context, req *AcceptOperatorLoginReq) (r AcceptOperatorLoginRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // AcceptTeamFounding implements acceptTeamFounding operation.
 //
 // Accept a founding role in a team. Only valid while team is in founding status.
@@ -617,13 +603,6 @@ func (UnimplementedHandler) GetNetworkInfo(ctx context.Context) (r *NetworkInfo,
 //
 // POST /oauth2/token
 func (UnimplementedHandler) GetOAuth2Token(ctx context.Context) (r GetOAuth2TokenRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// GetOperatorConsent implements getOperatorConsent operation.
-//
-// GET /oauth2/consent
-func (UnimplementedHandler) GetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (r GetOperatorConsentRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

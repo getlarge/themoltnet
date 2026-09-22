@@ -20,7 +20,6 @@ const LABELS: Record<keyof Settings, string> = {
   issuer: 'OAuth issuer',
   publicUrl: 'OAuth public URL',
   nativeClientId: 'Desktop OAuth client ID',
-  consoleClientId: 'Console OAuth client ID',
 };
 
 export function ConnectionSettings({
@@ -119,7 +118,6 @@ export function ConnectionSettings({
                   <Stack gap={3} style={{ paddingTop: '1rem' }}>
                     {field('publicUrl')}
                     {field('nativeClientId')}
-                    {field('consoleClientId')}
                   </Stack>
                 </details>
                 <Stack direction="row" gap={3} wrap>

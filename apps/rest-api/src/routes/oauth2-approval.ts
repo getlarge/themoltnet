@@ -12,17 +12,21 @@ import {
   requireAuth,
 } from '@moltnet/auth';
 import { cryptoService, enrollmentProofMessage } from '@moltnet/crypto-service';
-import { OPERATOR_OAUTH, ProblemDetailsSchema } from '@moltnet/models';
+import {
+  DCR_MAX_SCOPES,
+  OPERATOR_OAUTH,
+  ProblemDetailsSchema,
+} from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import { AgentKeyWithSecretSchema } from '../schemas/agent-keys.js';
 import { requestAbortSignal } from '../utils/request-abort-signal.js';
+import { renderConsentPage } from './oauth2-consent-page.js';
 
 export interface ApprovalClients {
   nativeClientId?: string;
-  consoleClientId?: string;
 }
 const PROVISION_AUDIENCE = OPERATOR_OAUTH.provisioningAudience;
 const LOCAL_AUDIENCE = OPERATOR_OAUTH.localControlAudience;
@@ -37,10 +41,6 @@ export async function oauth2ApprovalRoutes(
 ) {
   const server = app.withTypeProvider<TypeBoxTypeProvider>();
   const oauth = options.ory.oauth2;
-  const challenge = Type.Object({
-    challenge: Type.String({ minLength: 1, maxLength: 2048 }),
-  });
-  const redirectResponse = Type.Object({ redirect_to: Type.String() });
   const failures = {
     400: Type.Ref(ProblemDetailsSchema.$id),
     401: Type.Ref(ProblemDetailsSchema.$id),
@@ -168,14 +168,8 @@ export async function oauth2ApprovalRoutes(
         'forbidden',
         'The approval session does not match the authorization request',
       );
-    if (
-      !consent.client?.client_id ||
-      ![
-        options.clients.nativeClientId,
-        options.clients.consoleClientId,
-      ].includes(consent.client.client_id)
-    )
-      throw createProblem('forbidden', 'The OAuth client is not approved');
+    if (!consent.client?.client_id)
+      throw createProblem('forbidden', 'The OAuth client is not valid');
     return { human, consent };
   }
   async function consent(request: FastifyRequest, value: string) {
@@ -194,29 +188,44 @@ export async function oauth2ApprovalRoutes(
     const native =
       !!options.clients.nativeClientId &&
       consent.client?.client_id === options.clients.nativeClientId;
-    const browser =
-      !!options.clients.consoleClientId &&
-      consent.client?.client_id === options.clients.consoleClientId;
     const lifetime =
       consent.client?.authorization_code_grant_access_token_lifespan;
     if (
-      consent.client?.token_endpoint_auth_method !== 'none' ||
-      consent.client.grant_types?.join(' ') !== 'authorization_code' ||
-      (native &&
+      native &&
+      (consent.client?.token_endpoint_auth_method !== 'none' ||
+        consent.client.grant_types?.join(' ') !== 'authorization_code' ||
         ![
           `${OPERATOR_OAUTH.nativeLifetimeSeconds / 60}m`,
           `${OPERATOR_OAUTH.nativeLifetimeSeconds / 60}m0s`,
-        ].includes(lifetime ?? '')) ||
-      (browser &&
-        ![
-          `${OPERATOR_OAUTH.consoleLifetimeSeconds / 60}m`,
-          `${OPERATOR_OAUTH.consoleLifetimeSeconds / 60}m0s`,
         ].includes(lifetime ?? ''))
     )
       throw createProblem(
         'forbidden',
         'The administrative OAuth client policy does not match',
       );
+    if (!native) {
+      const rejectedScopes = scopes.filter(
+        (scope) => !DCR_MAX_SCOPES.includes(scope),
+      );
+      if (
+        !consent.client?.grant_types?.includes('authorization_code') ||
+        rejectedScopes.length > 0
+      )
+        throw createProblem(
+          'forbidden',
+          'The OAuth client requested unsupported access',
+        );
+      return {
+        human,
+        consent,
+        kind: 'dcr' as const,
+        instance: undefined,
+        audience: consent.requested_access_token_audience ?? [],
+        grant: undefined,
+        agent: undefined,
+        team: undefined,
+      };
+    }
     const instance = params.get('instance');
     if (!instance || !/^[0-9a-f-]{36}$/i.test(instance))
       throw createProblem('forbidden', 'A valid server instance is required');
@@ -262,15 +271,16 @@ export async function oauth2ApprovalRoutes(
       return {
         human,
         consent,
+        kind: 'administrative' as const,
         grant,
         instance,
-        audience: PROVISION_AUDIENCE,
+        audience: [PROVISION_AUDIENCE],
         agent: labels.agent.alias ?? grant.agentId,
         team: labels.team.name,
       };
     }
     if (
-      (native || browser) &&
+      native &&
       scopes.length === 1 &&
       scopes[0] === LOCAL_CONTROL_SCOPE &&
       (consent.requested_access_token_audience ?? []).includes(LOCAL_AUDIENCE)
@@ -278,8 +288,9 @@ export async function oauth2ApprovalRoutes(
       return {
         human,
         consent,
+        kind: 'administrative' as const,
         instance,
-        audience: LOCAL_AUDIENCE,
+        audience: [LOCAL_AUDIENCE],
         grant: undefined,
         agent: undefined,
         team: undefined,
@@ -290,145 +301,139 @@ export async function oauth2ApprovalRoutes(
       'The requested client, scope, and audience combination is not allowed',
     );
   }
-  server.post(
-    '/oauth2/login',
-    {
-      config: { auth: policy },
-      schema: {
-        operationId: 'acceptOperatorLogin',
-        tags: ['oauth2'],
-        security: [{ cookieAuth: [] }],
-        body: challenge,
-        response: { 200: redirectResponse, ...failures },
-      },
-    },
-    async (request) => {
-      const human = await humanSession(request);
-      const login = await oryRequest('getOAuth2LoginRequest', () =>
-        oauth.getOAuth2LoginRequest({
-          loginChallenge: request.body.challenge,
-        }),
-      );
-      if (
-        !login.client?.client_id ||
-        ![
-          options.clients.nativeClientId,
-          options.clients.consoleClientId,
-        ].includes(login.client.client_id)
-      )
-        throw createProblem(
-          'forbidden',
-          'The login client is not registered for operator approval',
-        );
-      if (login.subject && login.subject !== human.identityId)
-        throw createProblem(
-          'forbidden',
-          'The login session does not match the request',
-        );
-      return oryRequest('acceptOAuth2LoginRequest', () =>
-        oauth.acceptOAuth2LoginRequest({
-          loginChallenge: request.body.challenge,
-          acceptOAuth2LoginRequest: {
-            subject: human.identityId,
-            remember: false,
-          },
-        }),
-      );
-    },
+  async function approveConsent(
+    value: string,
+    result: Awaited<ReturnType<typeof consent>>,
+  ) {
+    return oryRequest('acceptOAuth2ConsentRequest', () =>
+      oauth.acceptOAuth2ConsentRequest({
+        consentChallenge: value,
+        acceptOAuth2ConsentRequest: {
+          remember: false,
+          grant_scope: result.consent.requested_scope,
+          grant_access_token_audience: result.audience,
+          ...(result.kind === 'administrative'
+            ? {
+                session: {
+                  access_token: {
+                    'moltnet:identity_id': result.human.identityId,
+                    'moltnet:human_id': result.human.humanId,
+                    'moltnet:subject_type': 'human',
+                    'moltnet:instance': result.instance,
+                    'moltnet:approved_scope':
+                      result.consent.requested_scope![0],
+                    ...(result.grant
+                      ? {
+                          'moltnet:provisioning': result.grant,
+                          'moltnet:delegable_scopes':
+                            result.human.scopes.filter((scope) =>
+                              (
+                                AGENT_OAUTH_SCOPES as readonly string[]
+                              ).includes(scope),
+                            ),
+                        }
+                      : {}),
+                  },
+                },
+              }
+            : {}),
+        },
+      }),
+    );
+  }
+  server.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_request, body, done) => done(null, body),
   );
   server.get(
     '/oauth2/consent',
     {
-      config: { auth: policy },
-      schema: {
-        operationId: 'getOperatorConsent',
-        tags: ['oauth2'],
-        security: [{ cookieAuth: [] }],
-        querystring: challenge,
-        response: {
-          200: Type.Object({
-            operation: Type.String(),
-            agent: Type.Optional(Type.String()),
-            team: Type.Optional(Type.String()),
-            agentId: Type.Optional(Type.String()),
-            teamId: Type.Optional(Type.String()),
-            permissions: Type.Array(Type.String()),
-            instance: Type.String(),
-          }),
-          ...failures,
-        },
-      },
+      schema: { hide: true },
     },
-    async (request) => {
-      const result = await consent(request, request.query.challenge);
-      return {
-        operation:
-          result.grant?.operation ??
-          (result.consent.client?.client_id === options.clients.nativeClientId
-            ? 'operator-sign-in'
-            : 'local-control'),
+    async (request, reply) => {
+      const query = request.query as { consent_challenge?: unknown };
+      const value =
+        typeof query.consent_challenge === 'string'
+          ? query.consent_challenge
+          : '';
+      const result = await consent(request, value);
+      if (result.consent.skip === true) {
+        const accepted = await approveConsent(value, result);
+        return reply.code(303).redirect(accepted.redirect_to);
+      }
+      const clientName =
+        result.consent.client?.client_name ??
+        result.consent.client?.client_id ??
+        'An application';
+      const provisioning = result.grant;
+      const localControl = result.kind === 'administrative' && !provisioning;
+      const heading = provisioning
+        ? provisioning.operation === 'enroll'
+          ? 'Enroll this agent?'
+          : 'Replace this team credential?'
+        : localControl
+          ? 'Allow local Agent Server control?'
+          : 'Allow application access?';
+      const summary = provisioning
+        ? provisioning.operation === 'enroll'
+          ? 'Add the agent to this team and issue its approved credential.'
+          : 'Issue a replacement credential for the existing team member.'
+        : localControl
+          ? 'Authorize this application to control the requesting local Agent Server instance.'
+          : 'Review the access this application requested before continuing.';
+      reply
+        .header('content-type', 'text/html; charset=utf-8')
+        .header('cache-control', 'no-store, no-cache, must-revalidate')
+        .header('pragma', 'no-cache');
+      return renderConsentPage({
+        challenge: value,
+        clientName,
+        heading,
+        summary,
         agent: result.agent,
         team: result.team,
-        agentId: result.grant?.agentId,
-        teamId: result.grant?.teamId,
-        permissions: result.grant?.scopes ?? [LOCAL_CONTROL_SCOPE],
-        instance: result.instance,
-      };
+        scopes:
+          result.kind === 'administrative' && provisioning
+            ? provisioning.scopes
+            : (result.consent.requested_scope ?? []),
+        audiences: result.audience,
+        lifetime: provisioning
+          ? 'This one-time approval expires after five minutes.'
+          : localControl
+            ? 'Access expires after fifteen minutes and ends when the Agent Server restarts.'
+            : 'The application receives only the scopes and access targets shown above.',
+      });
     },
   );
   server.post(
     '/oauth2/consent',
     {
       config: { auth: policy },
-      schema: {
-        operationId: 'acceptOperatorConsent',
-        tags: ['oauth2'],
-        security: [{ cookieAuth: [] }],
-        response: { 200: redirectResponse, ...failures },
-        body: Type.Object({ ...challenge.properties, approve: Type.Boolean() }),
-      },
+      schema: { hide: true },
     },
-    async (request) => {
-      if (!request.body.approve) {
-        await consentSession(request, request.body.challenge);
-        return oryRequest('rejectOAuth2ConsentRequest', () =>
+    async (request, reply) => {
+      if (typeof request.body !== 'string')
+        throw createProblem('validation-failed', 'A form decision is required');
+      const form = new URLSearchParams(request.body);
+      const value = form.get('consent_challenge') ?? '';
+      const approve = form.get('decision') === 'allow';
+      if (!approve) {
+        await consentSession(request, value);
+        const rejected = await oryRequest('rejectOAuth2ConsentRequest', () =>
           oauth.rejectOAuth2ConsentRequest({
-            consentChallenge: request.body.challenge,
-            rejectOAuth2Request: { error: 'access_denied' },
+            consentChallenge: value,
+            rejectOAuth2Request: {
+              error: 'access_denied',
+              error_description: 'The user denied access.',
+            },
           }),
         );
+        return reply.code(303).redirect(rejected.redirect_to);
       }
-      const result = await consent(request, request.body.challenge);
-      return oryRequest('acceptOAuth2ConsentRequest', () =>
-        oauth.acceptOAuth2ConsentRequest({
-          consentChallenge: request.body.challenge,
-          acceptOAuth2ConsentRequest: {
-            remember: false,
-            grant_scope: result.consent.requested_scope,
-            grant_access_token_audience: [result.audience],
-            session: {
-              access_token: {
-                'moltnet:identity_id': result.human.identityId,
-                'moltnet:human_id': result.human.humanId,
-                'moltnet:subject_type': 'human',
-                'moltnet:instance': result.instance,
-                'moltnet:approved_scope': result.consent.requested_scope![0],
-                ...(result.grant
-                  ? {
-                      'moltnet:provisioning': result.grant,
-                      'moltnet:delegable_scopes': result.human.scopes.filter(
-                        (scope) =>
-                          (AGENT_OAUTH_SCOPES as readonly string[]).includes(
-                            scope,
-                          ),
-                      ),
-                    }
-                  : {}),
-              },
-            },
-          },
-        }),
-      );
+      const result = await consent(request, value);
+      const accepted = await approveConsent(value, result);
+      return reply.code(303).redirect(accepted.redirect_to);
     },
   );
   const keys = createAgentKeyService({

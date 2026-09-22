@@ -16,14 +16,6 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/abort
 	AbortTaskAttempt(ctx context.Context, req OptAbortTaskAttemptReq, params AbortTaskAttemptParams) (AbortTaskAttemptRes, error)
-	// AcceptOperatorConsent implements acceptOperatorConsent operation.
-	//
-	// POST /oauth2/consent
-	AcceptOperatorConsent(ctx context.Context, req *AcceptOperatorConsentReq) (AcceptOperatorConsentRes, error)
-	// AcceptOperatorLogin implements acceptOperatorLogin operation.
-	//
-	// POST /oauth2/login
-	AcceptOperatorLogin(ctx context.Context, req *AcceptOperatorLoginReq) (AcceptOperatorLoginRes, error)
 	// AcceptTeamFounding implements acceptTeamFounding operation.
 	//
 	// Accept a founding role in a team. Only valid while team is in founding status.
@@ -412,10 +404,6 @@ type Handler interface {
 	//
 	// POST /oauth2/token
 	GetOAuth2Token(ctx context.Context) (GetOAuth2TokenRes, error)
-	// GetOperatorConsent implements getOperatorConsent operation.
-	//
-	// GET /oauth2/consent
-	GetOperatorConsent(ctx context.Context, params GetOperatorConsentParams) (GetOperatorConsentRes, error)
 	// GetProblemType implements getProblemType operation.
 	//
 	// Get details about a specific problem type (RFC 9457).

@@ -15,7 +15,6 @@ export const RELEASE_CONNECTION = {
   issuer: 'https://auth.themolt.net',
   publicUrl: 'https://auth.themolt.net',
   nativeClientId: 'moltnet-native',
-  consoleClientId: 'moltnet-console',
 };
 export type ConnectionSettings = typeof RELEASE_CONNECTION;
 export type ConnectionOverrides = Partial<ConnectionSettings>;

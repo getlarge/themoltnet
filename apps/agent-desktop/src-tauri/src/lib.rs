@@ -352,7 +352,7 @@ async fn desktop_apply_connection_settings(
 #[tauri::command]
 async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
     let body = with_control_connection(&state, move |connection| {
-        control::get(connection, "/oauth/metadata")
+        control::get(connection, "/v1/native/operator")
     })
     .await?;
     let metadata: serde_json::Value = serde_json::from_str(&body)

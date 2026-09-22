@@ -609,11 +609,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
         const nativeClient =
           !!clients.nativeClientId &&
           tokenRequest.client_id === clients.nativeClientId;
-        const consoleClient =
-          !!clients.consoleClientId &&
-          tokenRequest.client_id === clients.consoleClientId;
         let approvedExtra: Record<string, unknown> = {};
-        if (nativeClient || consoleClient) {
+        if (nativeClient) {
           const granted = tokenRequest.granted_scopes;
           const extra = session.extra ?? {};
           const provisioning = readProvisioningGrant(
@@ -673,7 +670,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
             request.log.warn(
               {
                 stage: 'administrative-consent',
-                clientKind: nativeClient ? 'native' : 'console',
+                clientKind: 'native',
                 rejectionReasons,
               },
               'Administrative consent grant rejected',

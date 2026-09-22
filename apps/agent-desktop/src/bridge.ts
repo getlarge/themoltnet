@@ -40,7 +40,6 @@ export interface ConnectionSettings {
   issuer: string;
   publicUrl: string;
   nativeClientId: string;
-  consoleClientId: string;
 }
 export interface ConnectionSettingsView {
   defaults: ConnectionSettings;

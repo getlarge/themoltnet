@@ -17,7 +17,6 @@ export interface OperatorOAuthConfig {
   tokenUrl: string;
   jwksUrl: string;
   nativeClientId: string;
-  consoleClientId: string;
   callbackPort: number;
 }
 export interface NativeProvisioning {
@@ -94,21 +93,13 @@ export class OperatorOAuth {
   cancel() {
     this.pending?.abort();
   }
+  operatorConfigured(): boolean {
+    return this.operator !== null;
+  }
   removeOperator() {
     this.cancel();
     rmSync(join(this.root, 'operator.json'), { force: true });
     this.operator = null;
-  }
-  metadata() {
-    return {
-      protocolVersion: OPERATOR_OAUTH.protocolVersion,
-      instance: this.instance,
-      issuer: this.config.issuer,
-      authorizationUrl: this.config.authorizationUrl,
-      tokenUrl: this.config.tokenUrl,
-      clientId: this.config.consoleClientId,
-      operatorConfigured: !!this.operator,
-    };
   }
   private async verify(token: string, scope: string, clientId: string) {
     const { payload } = await jwtVerify(token, this.keys, {
@@ -121,10 +112,7 @@ export class OperatorOAuth {
       requiredClaims: ['exp', 'iat', 'sub'],
       // Bound effective authorization by age as well as exp. Hydra records iat
       // before issuance completes, so exp - iat can exceed the configured TTL.
-      maxTokenAge:
-        clientId === this.config.nativeClientId
-          ? OPERATOR_OAUTH.nativeLifetimeSeconds
-          : OPERATOR_OAUTH.consoleLifetimeSeconds,
+      maxTokenAge: OPERATOR_OAUTH.nativeLifetimeSeconds,
     });
     const claims = payload.ext as Record<string, unknown> | undefined;
     const scopes =
@@ -146,19 +134,6 @@ export class OperatorOAuth {
       subject: payload.sub!,
       provisioning: claims['moltnet:provisioning'],
     };
-  }
-  async verifyBrowser(token: string) {
-    const operator = await this.verify(
-      token,
-      LOCAL_SCOPE,
-      this.config.consoleClientId,
-    );
-    if (
-      !this.operator ||
-      operator.issuer !== this.operator.issuer ||
-      operator.subject !== this.operator.subject
-    )
-      throw new InvalidOperatorGrantError('Native operator sign-in required');
   }
   async authorize(
     grant?: NativeProvisioning,

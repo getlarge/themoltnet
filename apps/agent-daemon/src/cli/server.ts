@@ -246,7 +246,6 @@ export async function runAgentServer(
               jwksUrl: new URL('/.well-known/jwks.json', connection.publicUrl)
                 .href,
               nativeClientId: connection.nativeClientId,
-              consoleClientId: connection.consoleClientId,
               callbackPort: OPERATOR_OAUTH.callbackPort,
             },
             root,

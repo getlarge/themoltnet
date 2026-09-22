@@ -1,5 +1,5 @@
-import { appendFile, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
-import { homedir, tmpdir } from 'node:os';
+import { mkdtemp, realpath, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
 import { readProjectConfig, updateProjectConfig } from '@themoltnet/sdk/node';
@@ -13,9 +13,7 @@ import { writeRunSnapshot } from './runs.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
-  authorize,
   cleanupAll,
-  CONSOLE_ORIGIN,
   fixture,
   HOST,
   registerCleanup,
@@ -128,30 +126,6 @@ describe('native managed project runs', () => {
     );
   });
 
-  it('denies browser requests for project locations or host folder overrides', async () => {
-    const f = await setup();
-    const token = await authorize(f.app);
-    for (const selection of [
-      { projectId: 'project' },
-      { location: 'Laptop' },
-      { source: f.source },
-      { strategy: 'existing' },
-    ]) {
-      const response = await f.app.inject({
-        method: 'POST',
-        url: '/v1/runs',
-        headers: {
-          host: HOST,
-          origin: CONSOLE_ORIGIN,
-          [AGENT_SERVER_TOKEN_HEADER]: token,
-        },
-        payload: { ...spec, ...selection },
-      });
-      expect(response.statusCode).toBe(403);
-    }
-    expect(f.spawned).toHaveLength(0);
-  });
-
   it('keeps pre-selection behaviour when no project field is sent', async () => {
     const f = await setup();
     const response = await f.app.inject({
@@ -164,34 +138,6 @@ describe('native managed project runs', () => {
     expect(response.json()).not.toHaveProperty('workspace');
     expect(f.spawned[0].args).not.toContain('--config-file');
     expect(f.spawned[0].args).not.toContain('--state-dir');
-  });
-
-  it('shows browsers the location and project, never local paths', async () => {
-    const f = await setup();
-    await f.app.inject({
-      method: 'POST',
-      url: '/v1/runs',
-      headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', location: 'Laptop' },
-    });
-    const token = await authorize(f.app);
-    const listed = await f.app.inject({
-      method: 'GET',
-      url: '/v1/runs',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: token,
-      },
-    });
-    const [run] = listed.json<RunRecord[]>();
-    expect(run.workspace).toMatchObject({
-      projectId: 'project',
-      location: 'Laptop',
-    });
-    expect(run.workspace).not.toHaveProperty('source');
-    expect(listed.body).not.toContain(f.source);
-    expect(listed.body).not.toContain('projects.json');
   });
 
   it('keeps state for the same selection and separates other folders', async () => {
@@ -219,54 +165,6 @@ describe('native managed project runs', () => {
     expect(stateDirs[2]).not.toBe(stateDirs[0]);
   });
 
-  it('redacts local folders from stop responses and logs for browsers', async () => {
-    const f = await setup();
-    const started = await f.app.inject({
-      method: 'POST',
-      url: '/v1/runs',
-      headers: nativeHeaders,
-      payload: { ...spec, projectId: 'project', location: 'Laptop' },
-    });
-    const run = started.json<RunRecord>();
-    await appendFile(
-      f.store.resolveRunLogPath(run.id),
-      `${JSON.stringify({ msg: 'worker ready', source: f.source, stateRootDir: join(f.store.root, 'run-state'), cache: join(homedir(), '.cache', 'moltnet') })}\n`,
-    );
-    const token = await authorize(f.app);
-    const browser = {
-      host: HOST,
-      origin: CONSOLE_ORIGIN,
-      [AGENT_SERVER_TOKEN_HEADER]: token,
-    };
-    const logs = await f.app.inject({
-      method: 'GET',
-      url: `/v1/runs/${run.id}/logs/snapshot`,
-      headers: browser,
-    });
-    expect(logs.statusCode).toBe(200);
-    expect(logs.body).toContain('worker ready');
-    expect(logs.body).not.toContain(f.source);
-    expect(logs.body).not.toContain(f.store.root);
-    expect(logs.body).not.toContain(homedir());
-    const nativeLogs = await f.app.inject({
-      method: 'GET',
-      url: `/v1/runs/${run.id}/logs/snapshot`,
-      headers: nativeHeaders,
-    });
-    expect(nativeLogs.body).toContain(f.source);
-
-    const stopped = await f.app.inject({
-      method: 'DELETE',
-      url: `/v1/runs/${run.id}`,
-      headers: browser,
-    });
-    expect(stopped.statusCode).toBe(200);
-    expect(stopped.json<RunRecord>().workspace).toMatchObject({
-      location: 'Laptop',
-    });
-    expect(stopped.body).not.toContain(f.source);
-  });
-
   it('does not start a run whose preparation outlives the start budget', async () => {
     const nativeGrant = new NativeGrantService();
     nativeGrant.grantNative('run-token');
@@ -288,23 +186,6 @@ describe('native managed project runs', () => {
     expect(response.statusCode).toBe(503);
     expect(response.json()).toMatchObject({ code: 'start_timeout' });
     expect(f.spawned).toHaveLength(0);
-  });
-
-  it('lets browsers start General work', async () => {
-    const f = await setup();
-    const token = await authorize(f.app);
-    const response = await f.app.inject({
-      method: 'POST',
-      url: '/v1/runs',
-      headers: {
-        host: HOST,
-        origin: CONSOLE_ORIGIN,
-        [AGENT_SERVER_TOKEN_HEADER]: token,
-      },
-      payload: { ...spec, projectId: null },
-    });
-    expect(response.statusCode, response.body).toBe(201);
-    expect(response.body).not.toContain('projects.json');
   });
 });
 
@@ -347,66 +228,6 @@ it('resolves bindings from the machine store while run state uses a connection d
   expect(response.statusCode, response.body).toBe(201);
   expect(response.json<RunRecord>().workspace?.source).toBe(source);
   expect(f.spawned[0].options.env.HOME).toContain(f.store.root);
-});
-
-it('gives browsers complete log lines only', async () => {
-  const nativeGrant = new NativeGrantService();
-  nativeGrant.grantNative('run-token');
-  const f = await fixture({ nativeGrant });
-  activateManaged(f.store);
-  const started = await f.app.inject({
-    method: 'POST',
-    url: '/v1/runs',
-    headers: nativeHeaders,
-    payload: spec,
-  });
-  const run = started.json<RunRecord>();
-  // An unfinished tail can hold half of a path the redactor cannot match.
-  await appendFile(
-    f.store.resolveRunLogPath(run.id),
-    `complete line\npartial ${f.store.root.slice(0, -3)}`,
-  );
-  const token = await authorize(f.app);
-  const browserLogs = await f.app.inject({
-    method: 'GET',
-    url: `/v1/runs/${run.id}/logs/snapshot`,
-    headers: {
-      host: HOST,
-      origin: CONSOLE_ORIGIN,
-      [AGENT_SERVER_TOKEN_HEADER]: token,
-    },
-  });
-  expect(browserLogs.json<{ lines: string[] }>().lines).toContain(
-    'complete line',
-  );
-  expect(browserLogs.body).not.toContain('partial');
-  const nativeLogs = await f.app.inject({
-    method: 'GET',
-    url: `/v1/runs/${run.id}/logs/snapshot`,
-    headers: nativeHeaders,
-  });
-  expect(nativeLogs.body).toContain('partial');
-
-  // Once the run has ended the unfinished tail is final, often the error.
-  await f.app.inject({
-    method: 'DELETE',
-    url: `/v1/runs/${run.id}`,
-    headers: nativeHeaders,
-  });
-  f.children[0].emit('exit', 0, null);
-  await new Promise<void>((resolve) => {
-    setImmediate(resolve);
-  });
-  const endedLogs = await f.app.inject({
-    method: 'GET',
-    url: `/v1/runs/${run.id}/logs/snapshot`,
-    headers: {
-      host: HOST,
-      origin: CONSOLE_ORIGIN,
-      [AGENT_SERVER_TOKEN_HEADER]: token,
-    },
-  });
-  expect(endedLogs.body).toContain('partial');
 });
 
 it('reports a verification cut short by the start budget as a timeout, not a bad key', async () => {

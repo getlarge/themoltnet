@@ -30,34 +30,6 @@ func encodeAbortTaskAttemptRequest(
 	return nil
 }
 
-func encodeAcceptOperatorConsentRequest(
-	req *AcceptOperatorConsentReq,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	e := new(jx.Encoder)
-	{
-		req.Encode(e)
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
-func encodeAcceptOperatorLoginRequest(
-	req *AcceptOperatorLoginReq,
-	r *http.Request,
-) error {
-	const contentType = "application/json"
-	e := new(jx.Encoder)
-	{
-		req.Encode(e)
-	}
-	encoded := e.Bytes()
-	ht.SetBody(r, bytes.NewReader(encoded), contentType)
-	return nil
-}
-
 func encodeAcceptTeamFoundingRequest(
 	req *AcceptTeamFoundingReq,
 	r *http.Request,

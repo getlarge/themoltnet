@@ -5,14 +5,6 @@ type AbortTaskAttemptRes interface {
 	abortTaskAttemptRes()
 }
 
-type AcceptOperatorConsentRes interface {
-	acceptOperatorConsentRes()
-}
-
-type AcceptOperatorLoginRes interface {
-	acceptOperatorLoginRes()
-}
-
 type AcceptTeamFoundingRes interface {
 	acceptTeamFoundingRes()
 }
@@ -255,10 +247,6 @@ type GetLegreffierOnboardingStatusRes interface {
 
 type GetOAuth2TokenRes interface {
 	getOAuth2TokenRes()
-}
-
-type GetOperatorConsentRes interface {
-	getOperatorConsentRes()
 }
 
 type GetProjectRes interface {

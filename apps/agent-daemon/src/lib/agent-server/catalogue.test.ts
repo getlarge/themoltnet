@@ -151,7 +151,7 @@ describe('buildCatalogue', () => {
 
   it('ignores an identity default diary belonging to another team', async () => {
     // A stale binding must not pair team B with team A's diary — the exact
-    // drift the paired run spec exists to prevent.
+    // drift the authorized run spec exists to prevent.
     const catalogue = await buildCatalogue({
       agent: port(),
       machine,

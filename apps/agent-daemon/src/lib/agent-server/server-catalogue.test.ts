@@ -3,7 +3,7 @@
  *
  * The route reaches the MoltNet API with agent credentials, so it is both a
  * contract surface and an authorization surface — hence the full-body
- * assertion alongside the paired-origin and scope cases.
+ * assertion alongside the native-authorization and scope cases.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -13,9 +13,9 @@ import {
   activateManaged,
   authorize,
   cleanupAll,
-  CONSOLE_ORIGIN,
   fixture,
   HOST,
+  TEST_CLIENT_ORIGIN,
 } from './server-test-harness.js';
 
 afterEach(cleanupAll);
@@ -99,7 +99,7 @@ describe('run catalogue', () => {
       url: '/v1/catalogue?identity=course-bot',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -158,9 +158,9 @@ describe('run catalogue', () => {
     });
   });
 
-  it('requires a paired client', async () => {
+  it('requires native authorization', async () => {
     // The catalogue reaches the MoltNet API with agent credentials, so it must
-    // not be readable by an unpaired caller.
+    // not be readable by an unauthorized caller.
     const { app, store } = await fixture({
       catalogueAgentFor: () => Promise.resolve(catalogueAgent),
     });
@@ -169,7 +169,7 @@ describe('run catalogue', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/v1/catalogue?identity=course-bot',
-      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+      headers: { host: HOST, origin: TEST_CLIENT_ORIGIN },
     });
 
     expect(response.statusCode).toBe(401);
@@ -188,7 +188,7 @@ describe('run catalogue', () => {
       url: '/v1/catalogue?identity=missing-bot',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -218,7 +218,7 @@ describe('run catalogue', () => {
       url: '/v1/catalogue?identity=course-bot',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
@@ -250,7 +250,7 @@ describe('run catalogue', () => {
       url: '/v1/catalogue',
       headers: {
         host: HOST,
-        origin: CONSOLE_ORIGIN,
+        origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       },
     });
