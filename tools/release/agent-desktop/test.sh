@@ -10,7 +10,8 @@ trap 'rm -rf "$fixture"' EXIT
 mkdir -p \
   "$fixture/apps/agent-desktop/src-tauri" \
   "$fixture/apps/landing/nginx" \
-  "$fixture/apps/landing"
+  "$fixture/apps/landing" \
+  "$fixture/bin"
 
 printf '%s\n' '{"version":"1.2.3"}' > "$fixture/apps/agent-desktop/package.json"
 printf '%s\n' '[package]' 'version = "1.2.3"' > "$fixture/apps/agent-desktop/src-tauri/Cargo.toml"
@@ -27,6 +28,40 @@ printf '%s\n' \
   > "$fixture/apps/landing/nginx/default.conf.template"
 printf '%s\n' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' > "$fixture/apps/landing/fly.toml"
 printf '%s\n' 'rust 1.88.0' > "$fixture/.tool-versions"
+
+cat > "$fixture/bin/gh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+[ "$1 $2 $3" = 'release download agent-daemon-v0.58.0' ]
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --dir ]; then
+    shift
+    cp "$FAKE_AGENT_INSTALLER" "$1/install.sh"
+    exit 0
+  fi
+  shift
+done
+exit 1
+SH
+chmod +x "$fixture/bin/gh"
+cat > "$fixture/agent-installer.sh" <<'SH'
+#!/bin/sh
+set -eu
+target="$MOLTNET_AGENT_HOME/$MOLTNET_AGENT_VERSION"
+mkdir -p "$target/bin"
+printf '#!/bin/sh\nexit 0\n' > "$target/bin/moltnet-agent"
+chmod +x "$target/bin/moltnet-agent"
+printf '{"version":"%s","platform":"linux-x64"}\n' \
+  "$MOLTNET_AGENT_VERSION" > "$target/manifest.json"
+SH
+PATH="$fixture/bin:$PATH" \
+FAKE_AGENT_INSTALLER="$fixture/agent-installer.sh" \
+GITHUB_REPOSITORY=getlarge/themoltnet \
+RUNNER_TEMP="$fixture" \
+  bash "$repo/tools/release/agent-desktop/materialize-published-agent.sh" \
+    0.58.0 "$fixture/materialized/moltnet-agent-linux-x64"
+[ -x "$fixture/materialized/moltnet-agent-linux-x64/bin/moltnet-agent" ]
+[ "$(node -p "require('$fixture/materialized/moltnet-agent-linux-x64/manifest.json').version")" = 0.58.0 ]
 
 validate_release() {
   TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
@@ -158,7 +193,6 @@ TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
 # GitHub's releases/tags endpoint excludes drafts. Exercise the collection
 # lookup used by finalization with a fake gh response so that contract stays
 # testable without creating a release.
-mkdir -p "$fixture/bin"
 cat > "$fixture/bin/gh" <<'SH'
 #!/usr/bin/env bash
 cat "$FAKE_RELEASES"

@@ -2750,6 +2750,12 @@ jobs:
           node tools/release/agent-desktop/release-metadata.mjs \
             dist/agent-desktop "$version" linux "$RUNNER_TEMP/release-metadata-linux.json"
 
+      - name: Materialize selected published Agent Server
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MOLTNET_AGENT_CLI_VERSION: ${{ needs.resolve-publish.outputs.agent-desktop-agent-cli-version }}
+        run: bash tools/release/agent-desktop/materialize-published-agent.sh "$MOLTNET_AGENT_CLI_VERSION"
+
       - name: Smoke-test the signed Linux packages
         run: bash tools/release/agent-desktop/linux-smoke.sh
 
