@@ -182,15 +182,15 @@ export function TeamsView({
           </Button>
         </Stack>
         <Text color="secondary">
-          Approve team access in Console. The credential is saved automatically
-          on this computer.
+          Approve team access in the browser. The credential is saved
+          automatically on this computer.
         </Text>
       </Stack>
       {data.operatorConfigured ? (
         <Stack direction="row" gap={3} align="center">
           <Badge variant="success">Signed in</Badge>
           <Text variant="caption" color="secondary">
-            Local control enabled on this computer
+            Operator signed in on this computer
           </Text>
         </Stack>
       ) : (
@@ -208,7 +208,8 @@ export function TeamsView({
               await actions.refresh?.();
               setFeedback({
                 title: 'Local operator signed in',
-                message: 'You can now connect Console to local agents.',
+                message:
+                  'You can now manage team credentials on this computer.',
                 error: false,
               });
             } catch {
@@ -216,7 +217,7 @@ export function TeamsView({
                 title: cancellationRequested.current
                   ? 'Approval cancelled'
                   : 'Sign-in did not complete',
-                message: 'Try again and approve in Console.',
+                message: 'Try again and approve in the browser.',
                 error: !cancellationRequested.current,
               });
             } finally {
@@ -225,7 +226,7 @@ export function TeamsView({
             }
           }}
         >
-          Sign in for local control
+          Sign in as operator
         </Button>
       )}
       {busy && actions.cancelOperatorApproval ? (
@@ -396,7 +397,7 @@ export function TeamsView({
                 ? 'Waiting for approval…'
                 : mode === 'replace'
                   ? 'Replace team credential'
-                  : 'Approve in Console'}
+                  : 'Approve in browser'}
             </Button>
           </Stack>
         </Stack>

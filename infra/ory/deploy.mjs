@@ -5,8 +5,9 @@
  * 1. Computes identity schema base64 from JSON files
  * 2. Substitutes env vars into project.json → project.resolved.json
  * 3. (--apply) Pushes project config via `ory update project`
- * 4. (--apply) Syncs Account Experience branding via console normalized API
- * 5. (--apply) Pushes OPL permissions via `ory update opl`
+ * 4. (--apply) Pushes OPL permissions via `ory update opl`
+ * 5. (--apply) Reconciles administratively registered OAuth clients
+ * 6. (--apply) Syncs Account Experience branding via console normalized API
  *
  * Usage:
  *   npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs
@@ -103,11 +104,36 @@ if (oplOnly) {
 
 const agentSchemaFile = join(__dirname, 'identity-schema.json');
 const humanSchemaFile = join(__dirname, 'human-identity-schema.json');
+const operatorClientFiles = [
+  join(__dirname, 'oauth2-clients/moltnet-native.json'),
+  join(__dirname, 'oauth2-clients/moltnet-console.json'),
+];
 
 if (!existsSync(agentSchemaFile))
   fatal(`Agent identity schema not found at ${agentSchemaFile}`);
 if (!existsSync(humanSchemaFile))
   fatal(`Human identity schema not found at ${humanSchemaFile}`);
+for (const file of operatorClientFiles) {
+  if (!existsSync(file)) fatal(`OAuth client definition not found at ${file}`);
+}
+
+const operatorClients = operatorClientFiles.map((file) => ({
+  file,
+  definition: JSON.parse(readFileSync(file, 'utf8')),
+}));
+for (const { definition } of operatorClients) {
+  if (
+    typeof definition.client_id !== 'string' ||
+    !definition.client_id ||
+    definition.token_endpoint_auth_method !== 'none' ||
+    definition.grant_types?.join(' ') !== 'authorization_code' ||
+    definition.response_types?.join(' ') !== 'code' ||
+    !Array.isArray(definition.redirect_uris) ||
+    definition.redirect_uris.length !== 1
+  ) {
+    fatal('Operator OAuth clients must be public authorization-code clients');
+  }
+}
 
 const agentSchemaB64 = readFileSync(agentSchemaFile).toString('base64');
 const humanSchemaB64 = readFileSync(humanSchemaFile).toString('base64');
@@ -171,6 +197,9 @@ log(`  HUMAN_SCHEMA:     ${humanSchemaB64.length} bytes (base64)\n`);
 
 if (!apply) {
   log('Dry run — not applying to Ory Network.');
+  log(
+    `Validated OAuth clients: ${operatorClients.map(({ definition }) => definition.client_id).join(', ')}`,
+  );
   log(
     `To apply locally: npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply`,
   );
@@ -280,7 +309,121 @@ if (existsSync(oplFile)) {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Patch OAuth2 fields that `ory update project` silently strips.
+// 6. Reconcile the stable public OAuth clients used by released Desktop.
+//
+// `ory create oauth2-client --file` ignores client_id and generates a random
+// ID. Create missing clients with --id first, then replace the full policy
+// from the reviewed JSON file. Capture CLI output because public clients still
+// receive a registration_access_token which must not enter CI logs.
+// ---------------------------------------------------------------------------
+
+log('Reconciling operator OAuth clients ...');
+for (const { file, definition } of operatorClients) {
+  const id = definition.client_id;
+  try {
+    oryStdout([
+      'get',
+      'oauth2-client',
+      id,
+      '--project',
+      projectId,
+      '--format',
+      'json',
+    ]);
+  } catch {
+    const createArgs = [
+      'create',
+      'oauth2-client',
+      '--project',
+      projectId,
+      '--id',
+      id,
+      '--name',
+      definition.client_name,
+      '--grant-type',
+      definition.grant_types.join(','),
+      '--response-type',
+      definition.response_types.join(','),
+      '--token-endpoint-auth-method',
+      definition.token_endpoint_auth_method,
+      '--scope',
+      definition.scope.split(' ').join(','),
+      '--audience',
+      definition.audience.join(','),
+      '--redirect-uri',
+      definition.redirect_uris.join(','),
+      '--format',
+      'json',
+    ];
+    if (definition.allowed_cors_origins.length > 0) {
+      createArgs.push(
+        '--allowed-cors-origin',
+        definition.allowed_cors_origins.join(','),
+      );
+    }
+    oryStdout(createArgs);
+  }
+  oryStdout([
+    'update',
+    'oauth2-client',
+    id,
+    '--project',
+    projectId,
+    '--file',
+    file,
+    '--format',
+    'json',
+  ]);
+  const live = JSON.parse(
+    oryStdout([
+      'get',
+      'oauth2-client',
+      id,
+      '--project',
+      projectId,
+      '--format',
+      'json',
+    ]),
+  );
+  const exactFields = [
+    'client_id',
+    'client_name',
+    'token_endpoint_auth_method',
+    'scope',
+    'skip_consent',
+  ];
+  for (const field of exactFields) {
+    if (live[field] !== definition[field])
+      recordFailure(
+        `OAuth client ${id}.${field}. Expected ${JSON.stringify(definition[field])}, got ${JSON.stringify(live[field])}.`,
+      );
+  }
+  for (const field of [
+    'allowed_cors_origins',
+    'audience',
+    'grant_types',
+    'redirect_uris',
+    'response_types',
+  ]) {
+    if (
+      JSON.stringify([...(live[field] ?? [])].sort()) !==
+      JSON.stringify([...definition[field]].sort())
+    )
+      recordFailure(
+        `OAuth client ${id}.${field} did not match its definition.`,
+      );
+  }
+  if (
+    durationSeconds(live.authorization_code_grant_access_token_lifespan) !==
+    durationSeconds(definition.authorization_code_grant_access_token_lifespan)
+  )
+    recordFailure(`OAuth client ${id} access-token lifetime did not match.`);
+  log(`  ${id} reconciled and verified.`);
+}
+log('Operator OAuth clients reconciled.\n');
+
+// ---------------------------------------------------------------------------
+// 7. Patch OAuth2 fields that `ory update project` silently strips.
 //
 //    The Ory Network API behind `ory update project` whitelists writes:
 //    it accepts the full project JSON, exits 0, prints "Project updated
@@ -445,7 +588,7 @@ if (verificationFailures.length === 0) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Sync Account Experience branding
+// 8. Sync Account Experience branding
 //    The ory CLI ignores theme_variables_dark/light, so we sync them via
 //    the console normalized API (JSON Patch + base64-encoded theme JSON).
 // ---------------------------------------------------------------------------
@@ -521,7 +664,7 @@ if (darkKeys > 0 || lightKeys > 0) {
 }
 
 // ---------------------------------------------------------------------------
-// 8. Report collected verification failures.
+// 9. Report collected verification failures.
 //
 //    Deliberately last: every write has completed by now, so failing here
 //    cannot leave Ory half-configured. See step 5 for why no check between

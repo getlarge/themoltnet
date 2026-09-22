@@ -1,0 +1,13 @@
+{
+  "allowed_cors_origins": [],
+  "audience": ["moltnet:provisioning", "moltnet:agent-server"],
+  "authorization_code_grant_access_token_lifespan": "5m",
+  "client_id": "moltnet-native",
+  "client_name": "MoltNet Desktop",
+  "grant_types": ["authorization_code"],
+  "redirect_uris": ["http://127.0.0.1:17375/oauth/callback"],
+  "response_types": ["code"],
+  "scope": "moltnet:provision moltnet:local-control",
+  "skip_consent": false,
+  "token_endpoint_auth_method": "none"
+}
