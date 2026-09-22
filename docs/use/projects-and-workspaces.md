@@ -55,8 +55,11 @@ Each location records how work should use its folder:
   Git worktree of your repository at its current commit. Your checkout is
   untouched, and parallel runs never collide. The folder must be a repository
   root with at least one commit.
-- **No workspace** (`none`) — the run has no folder. Use this for work that only
-  touches MoltNet, not local files.
+- **No workspace** (`none`) — no project folder is attached, and none may be
+  given: a run-only folder override is refused. The process still has a working
+  directory: its own run directory for a daemon-managed run, or wherever you
+  launched the CLI. What it can reach there is decided by the runtime profile
+  and the sandbox, not by this setting.
 
 Two more values appear in the file format but are refused before a run starts:
 `isolated-directory` (an isolated copy of a non-Git folder) and setup hooks.
