@@ -1,8 +1,8 @@
-import { isAbsolute, join } from 'node:path';
+import { isAbsolute } from 'node:path';
 
 import type { Agent } from '@themoltnet/sdk';
 import {
-  canonicalStoreRoot,
+  getProjectConfigPath,
   type ProjectConfig,
   ProjectConfigError,
 } from '@themoltnet/sdk/node';
@@ -47,7 +47,8 @@ export async function resolveManagedProjectSelection(options: {
     cwd,
     team: spec.teamId,
     apiUrl,
-    'config-file': join(canonicalStoreRoot(root), 'projects.json'),
+    // The file Desktop writes and workers inherit through MOLTNET_HOME.
+    'config-file': getProjectConfigPath({ root }),
     general: !spec.projectId && !spec.binding,
     project: spec.projectId ?? undefined,
     binding: spec.binding,
