@@ -17,6 +17,8 @@ import type {
   AgentServerRun,
   AgentServerSubscription,
   AgentServerSubscriptionLogin,
+  ProjectActions,
+  ProjectLocation,
   ProviderActions,
   RunCenterActions,
   RunPreset,
@@ -103,6 +105,17 @@ export const subscriptionActions: SubscriptionActions = {
   openSignIn: async (url) => {
     await invoke('desktop_open_sign_in', { url });
   },
+};
+
+/** Project locations. Folder selection and the control grant stay native. */
+export const projectActions: ProjectActions = {
+  list: () => invoke('desktop_project_locations'),
+  save: (input) =>
+    invoke<ProjectLocation>('desktop_save_project_location', { input }),
+  remove: async (name) => {
+    await invoke('desktop_remove_project_location', { name });
+  },
+  chooseFolder: () => invoke<string | null>('desktop_choose_project_folder'),
 };
 
 export function listSubscriptions(): Promise<AgentServerSubscription[]> {

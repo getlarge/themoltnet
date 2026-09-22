@@ -13,6 +13,7 @@ import type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
+  AgentServerProjectLocation,
   AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
@@ -20,6 +21,8 @@ import type {
   AgentServerSubscriptionLogin,
   EnrollAgentServerTeamData,
   EnrollAgentServerTeamResponses,
+  ListNativeProjectLocationsResponse,
+  SaveNativeProjectLocationData,
 } from '@moltnet/agent-daemon-api-client';
 
 import type { DesktopStatus, LifecycleState } from '../bridge.js';
@@ -132,6 +135,19 @@ export type { ProviderActions } from '@moltnet/task-ui/local-providers';
  * API key. This is the wider door: a subscription the operator already has is
  * far more reachable than obtaining and handling a key.
  */
+export type ProjectLocation = AgentServerProjectLocation;
+/** The location name addresses the record; the rest is its saved body. */
+export type SaveProjectLocationInput = SaveNativeProjectLocationData['body'] &
+  SaveNativeProjectLocationData['path'];
+
+/** Local folder registrations; native code owns the grant and the folder picker. */
+export interface ProjectActions {
+  list(): Promise<ListNativeProjectLocationsResponse>;
+  save(input: SaveProjectLocationInput): Promise<ProjectLocation>;
+  remove(name: string): Promise<void>;
+  chooseFolder(): Promise<string | null>;
+}
+
 export interface SubscriptionActions {
   startLogin(providerId: string): Promise<AgentServerSubscriptionLogin>;
   loginStatus(providerId: string): Promise<AgentServerSubscriptionLogin>;

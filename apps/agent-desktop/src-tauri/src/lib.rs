@@ -222,7 +222,7 @@ async fn desktop_project_locations(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
     let body = with_control_connection(&state, |token| {
-        control::get(token, "/v1/native/project-bindings")
+        control::get(token, "/v1/native/project-locations")
     })
     .await?;
     serde_json::from_str(&body)
@@ -234,10 +234,19 @@ async fn desktop_save_project_location(
     state: State<'_, AppState>,
     input: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |token| {
-        control::post(token, "/v1/native/project-bindings", &input.to_string())
-    })
-    .await?;
+    // The name addresses the location; the remaining fields are its body.
+    let mut input = match input {
+        serde_json::Value::Object(fields) => fields,
+        _ => return Err("The project location must be an object".to_string()),
+    };
+    let name = match input.remove("name") {
+        Some(serde_json::Value::String(name)) if !name.trim().is_empty() => name,
+        _ => return Err("The project location needs a name".to_string()),
+    };
+    let path = format!("/v1/native/project-locations/{}", urlencode(&name));
+    let payload = serde_json::Value::Object(input).to_string();
+    let body =
+        with_control_connection(&state, move |token| control::put(token, &path, &payload)).await?;
     serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned an unreadable project location".to_string())
 }
@@ -250,7 +259,7 @@ async fn desktop_remove_project_location(
     with_control_connection(&state, move |token| {
         control::delete(
             token,
-            &format!("/v1/native/project-bindings/{}", urlencode(&name)),
+            &format!("/v1/native/project-locations/{}", urlencode(&name)),
         )
     })
     .await?;
