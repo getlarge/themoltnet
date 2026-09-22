@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.63.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.63.0...agent-daemon-v0.63.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **agent-daemon:** retain shutdown handlers until locks release ([8f274a3](https://github.com/getlarge/themoltnet/commit/8f274a34fed0854de00c2d86b498cdd49cfc629a))
+* **agent:** finish CLI and native lifecycle review followups ([17c6b5a](https://github.com/getlarge/themoltnet/commit/17c6b5a3a5c9913c26ae77bbc188a21740bac548))
+* **agent:** finish isolated store review followups ([ac3981f](https://github.com/getlarge/themoltnet/commit/ac3981f9591e70c4da4cce9cb5c28c7300ff559c))
+
 ## [0.63.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.62.0...agent-daemon-v0.63.0) (2026-09-22)
 
 
