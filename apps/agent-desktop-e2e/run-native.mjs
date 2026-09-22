@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
@@ -239,5 +239,23 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
       );
     }
   }
-  rmSync(root, { recursive: true, force: true });
+  // The GTK app activates xdg-document-portal, which FUSE-mounts
+  // $XDG_RUNTIME_DIR/doc inside this root; once the portal exits the stale
+  // mount makes removal fail with ENOTCONN.
+  if (process.platform === 'linux')
+    for (const unmount of ['fusermount3', 'fusermount'])
+      if (
+        spawnSync(unmount, ['-uz', join(root, 'home/.runtime/doc')], {
+          stdio: 'ignore',
+        }).status === 0
+      )
+        break;
+  try {
+    rmSync(root, { recursive: true, force: true });
+  } catch (error) {
+    // Leftover scratch must not turn a finished journey red.
+    process.stderr.write(
+      `Could not remove the Desktop e2e root ${root}: ${String(error)}\n`,
+    );
+  }
 }
