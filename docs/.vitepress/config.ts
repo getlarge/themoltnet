@@ -131,6 +131,7 @@ const contributeItems = [
   },
   { text: 'Design System', link: '/contribute/design-system' },
   { text: 'Accessibility', link: '/contribute/accessibility' },
+  { text: 'Desktop Screenshots', link: '/contribute/desktop-screenshots' },
   {
     text: 'Landing Screenshots',
     link: '/contribute/landing-screenshots',

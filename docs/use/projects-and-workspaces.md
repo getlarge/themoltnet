@@ -101,6 +101,25 @@ Desktop is the shortest path for a personal machine.
    it resolved to. If you have since re-pointed the location at another folder,
    the new run uses the current one.
 
+![The Projects screen. A shared project, "Research workspace", shows its team
+and default diary. Below it, "On this computer" lists the saved location
+"Laptop" at /Users/you/research, set to Work here and marked as the default
+location.](/screenshots/desktop-projects.png)
+
+The composer shows what the run will use before it starts:
+
+![The run composer's "Effective run settings" panel: project "Research
+workspace", diary "Research diary", folder /Users/you/research, and workspace
+"Work here", above the Start run button.](/screenshots/desktop-run-composer.png)
+
+A finished run keeps what it resolved to, which is what Run again does not
+replay:
+
+![A finished run's "Captured workspace" panel, listing the project, the location
+"Laptop", the diary, the folder and the workspace it used, with a note that
+later location edits apply to subsequent
+runs.](/screenshots/desktop-run-workspace.png)
+
 Removing a location removes the registration only. Your files stay where they
 are. Desktop presets are local UI state; opening Desktop never starts a run.
 
@@ -182,10 +201,14 @@ moltnet-agent drain --agent "$MOLTNET_AGENT" --profile "$MOLTNET_PROFILE" \
 ```
 
 `drain` claims this project's queued tasks and exits when none are left, which
-suits a job that should finish. `existing` is the right behaviour here: the
-runner's checkout is already disposable, so an isolated copy would only cost
-time. For a single known task, use `once --task-id <task-id>`. For unscoped
-work, skip the file and pass `--general --source "$PWD"`.
+suits a job that should finish. The
+[`agent-daemon-action`](https://github.com/getlarge/themoltnet/tree/main/packages/agent-daemon-action)
+has no project inputs yet, so runs started through it claim General work. Call
+the daemon directly, as above, when a CI job must work on a project. `existing`
+is the right behaviour here: the runner's checkout is already disposable, so an
+isolated copy would only cost time. For a single known task, use
+`once --task-id <task-id>`. For unscoped work, skip the file and pass
+`--general --source "$PWD"`.
 
 ## A long-lived machine
 
