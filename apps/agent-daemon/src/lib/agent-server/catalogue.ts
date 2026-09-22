@@ -225,11 +225,23 @@ export async function buildCatalogue(options: {
           };
         }
       } catch (error) {
+        const blocker = credentialBlocker(error);
+        // The catalogue answers 200 either way; without this line an
+        // unavailable team leaves no trace of why.
+        logger?.warn(
+          {
+            ...safeErrorContext(error),
+            teamId,
+            blocker: blocker.code,
+            code: 'agent_server_team_unavailable',
+          },
+          'AgentServer team credential unavailable',
+        );
         const team: CatalogueTeam = {
           teamId,
           teamName: teamId,
           available: false,
-          blockers: [credentialBlocker(error)],
+          blockers: [blocker],
           credential: agent.lastVerified(teamId),
           diaries: [],
           defaultDiaryId: null,

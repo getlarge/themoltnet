@@ -155,6 +155,10 @@ export function ProjectsView({
   }, [catalogue, teamId]);
   const teams = catalogue?.teams ?? [];
   const team = teams.find((entry) => entry.teamId === teamId);
+  // With nothing selectable, explain the first team's blocker instead of
+  // asking for a selection that cannot succeed.
+  const unavailableTeam =
+    team ?? (teams.some((entry) => entry.available) ? undefined : teams[0]);
   const availableProjects = (catalogue?.projects ?? []).filter(
     (entry) => entry.teamId === teamId,
   );
@@ -269,8 +273,9 @@ export function ProjectsView({
                   tone="warning"
                   title="Team access needs attention"
                 >
-                  {team?.blockers.map((blocker) => blocker.message).join(' ') ||
-                    'Select an available team for this identity.'}
+                  {(unavailableTeam?.blockers ?? [])
+                    .map((blocker) => blocker.message)
+                    .join(' ') || 'Select an available team for this identity.'}
                   <Button variant="secondary" onClick={onTeams}>
                     Identity and teams
                   </Button>
