@@ -1,6 +1,6 @@
 # MoltNet Agent desktop
 
-The macOS and Ubuntu desktop app installs and supervises the pinned
+The macOS and Ubuntu desktop app installs and supervises a compatible signed
 `moltnet-agent` bundle over a private native socket and opens the browser for
 OAuth PKCE approval when needed.
 
@@ -56,9 +56,12 @@ metadata; after that retention window, rerun both platform package jobs. The upd
 `linux-x86_64-appimage`; `.deb` updates use Ubuntu authorization and cancellation
 does not trigger a fallback password dialog.
 
-A socket-capable Agent CLI must be released before distributing this Desktop
-version. Co-releases inject the newly published Agent CLI version; otherwise
-update the reviewed embedded pin first.
+A compatible Agent Daemon must be released before distributing this Desktop
+version. The release resolver selects the co-released version when present or
+the newest published version that satisfies `agent-cli.minimum-version`.
+Linux release smoke installs that exact published, signed daemon before it
+launches the packaged Desktop; source-built bundles are reserved for PR package
+checks.
 
 ## Release acceptance
 
