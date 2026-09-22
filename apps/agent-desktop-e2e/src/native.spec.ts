@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -212,7 +212,11 @@ describe('Native managed project execution', () => {
           workspace: { source: string; projectId: string };
         }>,
     );
-    expect(run.workspace).toMatchObject({ projectId: 'project', source });
+    // The daemon records the canonical folder (/var → /private/var on macOS).
+    expect(run.workspace).toMatchObject({
+      projectId: 'project',
+      source: realpathSync(source),
+    });
     await browser.waitUntil(
       async () => {
         const logs = await browser.tauri.execute(
