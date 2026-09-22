@@ -111,7 +111,11 @@ import {
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
 import { resumeVm } from '../vm.js';
-import { isPermanentProviderRequestError } from './provider-error-classification.js';
+import {
+  appendPermanentProviderRequestDiagnostics,
+  isPermanentProviderRequestError,
+  type ProviderFailureContext,
+} from './provider-error-classification.js';
 
 export const GONDOLIN_TOOL_NAMES = [
   'read',
@@ -452,6 +456,11 @@ export interface ExecutePiTaskOptions {
   /** LLM selection. */
   provider: string;
   model: string;
+  /** Context used to enrich terminal permanent provider failures. */
+  providerFailureContext?: Omit<
+    ProviderFailureContext,
+    'runtimeProfileRevision'
+  >;
   /**
    * Runtime-profile reasoning/thinking level. Null/undefined means use Pi's
    * configured default; explicit `off` disables provider thinking where
@@ -2031,6 +2040,16 @@ export async function executePiTask(
       reporterError,
       llmAbort: turnState.llmAbort,
       llmErrorMessage: turnState.llmErrorMessage,
+      providerFailureContext: opts.providerFailureContext
+        ? {
+            ...opts.providerFailureContext,
+            runtimeProfileRevision:
+              typeof claimedTask.claimAuthority?.runtimeProfileRevision ===
+              'number'
+                ? claimedTask.claimAuthority.runtimeProfileRevision
+                : null,
+          }
+        : undefined,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -2521,6 +2540,7 @@ export interface BuildAttemptResultArgs {
   reporterError: { code: string; message: string; retryable?: boolean } | null;
   llmAbort: boolean;
   llmErrorMessage: string | null;
+  providerFailureContext?: ProviderFailureContext;
 }
 
 /**
@@ -2568,6 +2588,18 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
       ? (args.reporterError.retryable ?? false)
       : false;
 
+  const error =
+    errorCode && errorMessage
+      ? appendPermanentProviderRequestDiagnostics(
+          {
+            code: errorCode,
+            message: errorMessage,
+            retryable: errorRetryable,
+          },
+          args.providerFailureContext,
+        )
+      : undefined;
+
   return {
     taskId: args.taskId,
     attemptN: args.attemptN,
@@ -2576,15 +2608,7 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
     outputCid: args.outputCid,
     usage: args.usage,
     durationMs: args.durationMs,
-    ...(errorCode && errorMessage
-      ? {
-          error: {
-            code: errorCode,
-            message: errorMessage,
-            retryable: errorRetryable,
-          },
-        }
-      : {}),
+    ...(error ? { error } : {}),
   };
 }
 

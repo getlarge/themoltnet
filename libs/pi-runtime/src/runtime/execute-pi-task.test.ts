@@ -1433,6 +1433,45 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     });
   });
 
+  it('enriches a terminal permanent provider failure with execution context', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: 'Unsupported parameter: reasoning_effort',
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+    expect(out.error?.message).toContain('Provider/model: openai/gpt-5.');
+    expect(out.error?.message).toContain('Runtime profile: default-coding');
+    expect(out.error?.message).toContain('Pi config source: store.');
+    expect(out.error?.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+  });
+
+  it('preserves transient provider evidence over request-shape wording', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: '500 response: unknown field request_id',
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+    expect(out.error?.message).toBe('500 response: unknown field request_id');
+  });
+
   it('uses a generic provider message when no diagnostic was captured', () => {
     const out = buildAttemptResult({ ...base, llmAbort: true });
     expect(out.error).toEqual({

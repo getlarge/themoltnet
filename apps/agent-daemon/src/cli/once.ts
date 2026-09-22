@@ -404,6 +404,13 @@ export async function runOnce(
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,
+      providerFailureContext: {
+        provider: profile.provider,
+        model: profile.model,
+        runtimeProfileId: profile.id,
+        runtimeProfileName: profile.name,
+        piAgentDirSource: piAgentDir.source,
+      },
       thinkingLevel: profile.thinkingLevel,
       temperature: profile.temperature,
       topP: profile.topP,

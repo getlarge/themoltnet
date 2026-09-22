@@ -1,6 +1,6 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import {
-  isPermanentProviderRequestError,
+  appendPermanentProviderRequestDiagnostics,
   redactRetryTriageSecrets,
 } from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
@@ -11,7 +11,6 @@ import {
   type ClassifiedAttemptFailure,
   classifyAttemptFailure,
   classifyDeterministically,
-  extractPermanentProviderRequestFields,
   type RetryTriage,
 } from './retry-triage.js';
 
@@ -362,38 +361,7 @@ function appendProviderFailureDiagnostics(
   error: NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'],
   context: ProviderFailureContext | undefined,
 ): NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'] {
-  if (
-    !context ||
-    error.code.toLowerCase() !== 'llm_api_error' ||
-    error.retryable !== false ||
-    !isPermanentProviderRequestError(error.message) ||
-    error.message.includes('Provider/model:')
-  ) {
-    return error;
-  }
-
-  const fields = extractPermanentProviderRequestFields(error.message);
-  const revision = context.runtimeProfileRevision ?? 'unknown';
-  const diagnostics =
-    ` Provider/model: ${context.provider}/${context.model}.` +
-    ` Runtime profile: ${context.runtimeProfileName} (${context.runtimeProfileId}),` +
-    ` revision ${revision}.` +
-    ` Pi config source: ${context.piAgentDirSource}.`;
-  const remediation =
-    fields.length > 0
-      ? ` Unsupported request field(s): ${fields.join(', ')}.` +
-        ' Remediation: remove or disable these fields in the active Pi' +
-        ' model/profile configuration, or select a provider/model that' +
-        ' supports them, then retry.'
-      : '';
-
-  return {
-    ...error,
-    message: `${error.message.slice(
-      0,
-      Math.max(0, 4000 - diagnostics.length - remediation.length),
-    )}${diagnostics}${remediation}`,
-  };
+  return appendPermanentProviderRequestDiagnostics(error, context);
 }
 
 async function maybeWriteAnchors(
