@@ -106,8 +106,8 @@ describe('agent server providers and runs', () => {
       },
     });
     expect(response.statusCode).toBe(200);
-    // Browsers get complete lines only; the unfinished tail follows once written.
-    expect(response.json()).toEqual({ lines: ['first', 'second'] });
+    // This run has ended, so its unfinished tail is final and browsers get it.
+    expect(response.json()).toEqual({ lines: ['first', 'second', 'partial'] });
     const unauthenticated = await app.inject({
       url: '/v1/runs/snapshot-run/logs/snapshot',
       headers: { host: HOST, origin: CONSOLE_ORIGIN },

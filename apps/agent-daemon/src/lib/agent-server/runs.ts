@@ -442,14 +442,18 @@ export class RunManager {
       ),
     ]);
     const verify = this.options.verifyActivationImpl ?? verifyTeamActivation;
-    const agent = await verify(
-      this.store,
-      spec.agent,
-      this.options.secretProviders,
-      this.options.externalSecretProviders,
-      undefined,
-      deadline,
-      spec.teamId,
+    // Raced like every other step: the SDK reports an aborted fetch as a
+    // NetworkError, which would otherwise read as a bad team key.
+    const agent = await untilAborted(deadline, () =>
+      verify(
+        this.store,
+        spec.agent,
+        this.options.secretProviders,
+        this.options.externalSecretProviders,
+        undefined,
+        deadline,
+        spec.teamId,
+      ),
     ).catch((cause: unknown) => {
       this.assertStartOpen(signal, deadline, cause);
       if (
@@ -1113,7 +1117,7 @@ function selectionContext(
           projectId: workspace.projectId,
           ...(workspace.location ? { location: workspace.location } : {}),
           ...(workspace.diaryId ? { diaryId: workspace.diaryId } : {}),
-          workspaceStrategy: workspace.strategy,
+          strategy: workspace.strategy,
         }
       : {}),
   };

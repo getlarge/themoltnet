@@ -386,4 +386,62 @@ it('gives browsers complete log lines only', async () => {
     headers: nativeHeaders,
   });
   expect(nativeLogs.body).toContain('partial');
+
+  // Once the run has ended the unfinished tail is final, often the error.
+  await f.app.inject({
+    method: 'DELETE',
+    url: `/v1/runs/${run.id}`,
+    headers: nativeHeaders,
+  });
+  f.children[0].emit('exit', 0, null);
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
+  const endedLogs = await f.app.inject({
+    method: 'GET',
+    url: `/v1/runs/${run.id}/logs/snapshot`,
+    headers: {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+    },
+  });
+  expect(endedLogs.body).toContain('partial');
+});
+
+it('reports a verification cut short by the start budget as a timeout, not a bad key', async () => {
+  const nativeGrant = new NativeGrantService();
+  nativeGrant.grantNative('run-token');
+  const f = await fixture({
+    nativeGrant,
+    startTimeoutMs: 50,
+    // As the SDK does: an aborted fetch surfaces as a NetworkError.
+    verifyActivationImpl: (
+      _store,
+      _alias,
+      _managed,
+      _external,
+      _connect,
+      signal,
+    ) =>
+      new Promise((_, reject) => {
+        signal?.addEventListener('abort', () => {
+          reject(
+            Object.assign(new Error('fetch failed'), { name: 'NetworkError' }),
+          );
+        });
+      }),
+  });
+  activateManaged(f.store);
+
+  const response = await f.app.inject({
+    method: 'POST',
+    url: '/v1/runs',
+    headers: nativeHeaders,
+    payload: spec,
+  });
+
+  expect(response.statusCode).toBe(503);
+  expect(response.json()).toMatchObject({ code: 'start_timeout' });
+  expect(f.spawned).toHaveLength(0);
 });

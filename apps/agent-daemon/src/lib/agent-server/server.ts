@@ -1583,7 +1583,10 @@ function registerRunLogRoute(
             // A cut or unfinished line can hold half a path the redactor
             // cannot recognise, so browsers get complete lines only.
             ...(omitted && !native ? lines.slice(1) : lines),
-            ...(state.fragment && native ? [state.fragment] : []),
+            // Once the run has ended the tail is final, so browsers get it too.
+            ...(state.fragment && (native || !runs.isActive(record.id))
+              ? [state.fragment]
+              : []),
           ].map(redact),
         };
       } finally {
@@ -1711,6 +1714,15 @@ function registerRunLogRoute(
  * The user's home directory is included so any other path under it cannot
  * reveal the OS account name.
  */
+/**
+ * A service account's home can be `/` or `/root`; replacing it would rewrite
+ * every slash in the log, so only a home with two or more segments counts.
+ */
+function redactableHome(): string | undefined {
+  const home = homedir();
+  return home.split(/[\\/]/u).filter(Boolean).length >= 2 ? home : undefined;
+}
+
 function localPathRedactor(
   record: RunRecord,
   origin: string,
@@ -1723,7 +1735,7 @@ function localPathRedactor(
     record.workspace?.source,
     options.store.root,
     options.connectionSettings?.root,
-    homedir(),
+    redactableHome(),
   ]) {
     if (!path) continue;
     const forms = [path];
