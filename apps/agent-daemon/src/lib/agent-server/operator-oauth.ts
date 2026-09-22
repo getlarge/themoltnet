@@ -48,7 +48,7 @@ export class OperatorOAuth {
             : 'xdg-open';
       return new Promise<void>((resolve, reject) => {
         execFile(command, [url], (error) => {
-          if (error) reject(new Error('Could not open Console approval'));
+          if (error) reject(new Error('Could not open browser approval'));
           else resolve();
         });
       });
@@ -243,10 +243,10 @@ export class OperatorOAuth {
             url.searchParams.set(key, value);
           try {
             void Promise.resolve(this.openBrowser(url.href)).catch(() =>
-              reject(new Error('Could not open Console approval')),
+              reject(new Error('Could not open browser approval')),
             );
           } catch {
-            reject(new Error('Could not open Console approval'));
+            reject(new Error('Could not open browser approval'));
           }
         });
       });

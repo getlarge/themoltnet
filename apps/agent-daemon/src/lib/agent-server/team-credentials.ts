@@ -148,7 +148,7 @@ export async function verifyTeamActivation(
       code: 'agent_key_scopes_insufficient',
       message: `This credential lacks ${missing.join(', ')}.`,
       remedy:
-        'Renew through Console approval with the required desktop scopes.',
+        'Renew through browser approval with the required desktop scopes.',
     });
   activated.boundTeamId = teamId;
   return captureTeamCredential(activated, { agentKey, client, metadata });

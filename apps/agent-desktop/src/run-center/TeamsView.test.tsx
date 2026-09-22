@@ -92,7 +92,7 @@ describe('desktop team enrollment', () => {
     show(data, actions);
     await screen.findByText('Research');
     fireEvent.click(
-      screen.getByRole('button', { name: 'Sign in for local control' }),
+      screen.getByRole('button', { name: 'Sign in as operator' }),
     );
     expect(
       await screen.findByRole('status', { name: 'Approval completed' }),
@@ -109,7 +109,7 @@ describe('desktop team enrollment', () => {
     show({ ...data, operatorConfigured: true }, actions);
     expect(await screen.findByText('Signed in')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Sign in for local control' }),
+      screen.queryByRole('button', { name: 'Sign in as operator' }),
     ).not.toBeInTheDocument();
   });
   it('cancels an abandoned sign-in and enables retry after native cancellation', async () => {
@@ -129,7 +129,7 @@ describe('desktop team enrollment', () => {
     show(data, actions);
     await screen.findByText('Research');
     fireEvent.click(
-      screen.getByRole('button', { name: 'Sign in for local control' }),
+      screen.getByRole('button', { name: 'Sign in as operator' }),
     );
     fireEvent.click(
       await screen.findByRole('button', { name: 'Cancel approval' }),
@@ -137,7 +137,7 @@ describe('desktop team enrollment', () => {
     expect(await screen.findByText('Approval cancelled')).toBeInTheDocument();
     expect(cancel).toHaveBeenCalledTimes(1);
     expect(
-      screen.getByRole('button', { name: 'Sign in for local control' }),
+      screen.getByRole('button', { name: 'Sign in as operator' }),
     ).toBeEnabled();
   });
   it('confirms the exact replacement and leaves active runs alone', async () => {
@@ -176,7 +176,7 @@ describe('desktop team enrollment', () => {
     fireEvent.change(screen.getByLabelText('Team ID'), {
       target: { value: 'single-use-sentinel' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Approve in Console' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
     await screen.findByText('Enrollment needs recovery');
     expect(
       screen.getByText(/No credential secret was captured/),
