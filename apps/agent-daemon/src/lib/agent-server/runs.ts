@@ -10,15 +10,16 @@
  */
 import type { ChildProcess } from 'node:child_process';
 import { spawn as nodeSpawn } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   createWriteStream,
   mkdirSync,
   openSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { Transform } from 'node:stream';
 
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
@@ -37,11 +38,22 @@ import {
   type LocalOperationalSettings,
 } from '../options.js';
 import {
+  applyProjectWorkspacePolicy,
+  type EffectiveRunProjectSelection,
+  projectRunArgs,
+} from '../run-project-selection.js';
+import { AgentServerHttpError } from './http-error.js';
+import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
 } from './identity.js';
+import {
+  requestsProjectSelection,
+  resolveManagedProjectSelection,
+} from './managed-project-selection.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
+import { NATIVE_REQUEST_BUDGET_MS, untilAborted } from './project-target.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
@@ -49,8 +61,9 @@ import type {
   RunFailure,
   RunRecord,
   RunSpec,
+  RunWorkspace,
 } from './store.js';
-import { AgentServerStoreError } from './store.js';
+import { AgentServerStoreError, PROFILE_DEFAULT_STRATEGY } from './store.js';
 import {
   requireCredentialSnapshot,
   TeamCredentialError,
@@ -150,6 +163,10 @@ export interface RunManagerOptions {
   store: AgentServerStore;
   /** Logical store identity; connection-scoped state must not select a keyring namespace. */
   storeRoot?: string;
+  /** Machine-wide bindings stay outside per-connection run state. */
+  projectRoot?: string;
+  /** Override used by focused start-deadline tests. */
+  startTimeoutMs?: number;
   /** AgentServer-managed refs (`file:` rooted under this agent server store plus env/keyring). */
   secretProviders: SecretProviderRegistry;
   /** Providers used by external configs at their original location. */
@@ -259,6 +276,7 @@ export class RunManager {
     piDir: string,
     providers: ProvidersState = this.store.readProviders(),
     runtimeModule?: string,
+    workspace?: RunWorkspace,
   ): Promise<{ args: string[]; env: Record<string, string>; cwd: string }> {
     const { activation, config } = agent;
     const homeDir = join(dirname(piDir), 'home');
@@ -312,6 +330,21 @@ export class RunManager {
       '--warm-retention-sec',
       String(runtimeSettings.warmRetentionSec),
       ...target.extraArgs,
+      ...(workspace
+        ? projectRunArgs({
+            'config-file': workspace.configPath,
+            ...(workspace.binding
+              ? { binding: workspace.binding }
+              : { general: true }),
+            ...(workspace.strategy === PROFILE_DEFAULT_STRATEGY
+              ? {}
+              : {
+                  source: workspace.source,
+                  'workspace-strategy': workspace.strategy,
+                }),
+            'state-dir': this.runStateDir(spec, workspace),
+          })
+        : []),
     ];
 
     const snapshot = requireCredentialSnapshot(agent);
@@ -368,10 +401,17 @@ export class RunManager {
       env[provider.envName] = value;
     }
 
-    return { args, env, cwd: target.cwd };
+    return {
+      args,
+      env,
+      cwd:
+        workspace?.source ??
+        (workspace ? join(dirname(piDir), 'workspace') : target.cwd),
+    };
   }
 
   async start(spec: RunSpec, signal?: AbortSignal): Promise<RunRecord> {
+    spec = structuredClone(spec);
     validateRunSpec(spec);
     const releaseStart = this.reserveStart(spec.agent);
     try {
@@ -386,6 +426,15 @@ export class RunManager {
     signal?: AbortSignal,
   ): Promise<RunRecord> {
     this.assertStartOpen(signal);
+    // One budget for everything before spawn, so a start either reports back
+    // before Desktop's request timeout or does not start at all. `signal` still
+    // means shutdown or disconnect; `deadline` adds the budget.
+    const deadline = AbortSignal.any([
+      ...(signal ? [signal] : []),
+      AbortSignal.timeout(
+        this.options.startTimeoutMs ?? NATIVE_REQUEST_BUDGET_MS,
+      ),
+    ]);
     const verify = this.options.verifyActivationImpl ?? verifyTeamActivation;
     const agent = await verify(
       this.store,
@@ -393,9 +442,10 @@ export class RunManager {
       this.options.secretProviders,
       this.options.externalSecretProviders,
       undefined,
-      signal,
+      deadline,
       spec.teamId,
     ).catch((cause: unknown) => {
+      this.assertStartOpen(signal, deadline, cause);
       if (
         cause instanceof TeamCredentialError ||
         cause instanceof AgentServerStoreError
@@ -406,7 +456,7 @@ export class RunManager {
         `Cannot start agent "${spec.agent}" for team "${spec.teamId}": credential verification failed. Check the selected team key and activation.`,
       );
     });
-    this.assertStartOpen(signal);
+    this.assertStartOpen(signal, deadline);
     if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
       throw new AgentServerRunError(
         'invalid_spec',
@@ -416,27 +466,72 @@ export class RunManager {
       );
     }
     const id = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
-    const runDir = this.store.runDir(id);
+    const runDir = resolve(this.store.runDir(id));
     const piDir = join(runDir, 'pi');
-    const providers = this.store.readProviders();
-    const runtimeModule = this.options.resolveRuntimeModule
-      ? await this.options.resolveRuntimeModule(spec, agent, dirname(piDir))
-      : this.options.runtimeRegistry
-        ? await this.resolveRuntimeModule(spec, agent, dirname(piDir))
-        : undefined;
-    const { args, env, cwd } = await this.prepare(
-      spec,
-      agent,
-      piDir,
-      providers,
-      runtimeModule,
-    );
-    this.assertStartOpen(signal);
     let child: ChildProcess | undefined;
     let logStream: ReturnType<typeof createWriteStream> | undefined;
     let logLimiter: Transform | undefined;
+    // `spec` stays the request; `effective` carries resolved ids to the worker.
+    let workspace: RunWorkspace | undefined;
+    let effective: RunSpec = spec;
+    let selection: EffectiveRunProjectSelection | undefined;
     try {
       const { logPath } = this.store.createRunDir(id);
+      const executionDir = join(runDir, 'workspace');
+      // Clients that name no project field keep the pre-selection behaviour:
+      // no workspace wiring, the agent's own cwd and profile state roots.
+      if (requestsProjectSelection(spec)) {
+        mkdirSync(executionDir, { recursive: true, mode: 0o700 });
+        const projectRoot = this.options.projectRoot ?? this.store.root;
+        const resolved = await resolveManagedProjectSelection({
+          spec,
+          root: projectRoot,
+          cwd: executionDir,
+          apiUrl: agent.activation.apiUrl ?? agent.config.endpoints.api,
+          client: requireCredentialSnapshot(agent).client,
+          protectedRoots: [projectRoot, this.store.root, this.store.secretsDir],
+          signal: deadline,
+          logger: {
+            warn: (context, message) => this.log('warn', message, context),
+          },
+        });
+        workspace = {
+          ...resolved.workspace,
+          configPath: join(runDir, 'projects.json'),
+        };
+        effective = resolved.effective;
+        selection = resolved.selection;
+        writeRunSnapshot(workspace.configPath, resolved.config);
+        mkdirSync(this.runStateDir(spec, workspace), {
+          recursive: true,
+          mode: 0o700,
+        });
+      }
+      const providers = this.store.readProviders();
+      const executionCwd = workspace
+        ? (workspace.source ?? executionDir)
+        : dirname(piDir);
+      const runtimeModule = await untilAborted(deadline, async () =>
+        this.options.resolveRuntimeModule
+          ? this.options.resolveRuntimeModule(effective, agent, executionCwd)
+          : this.options.runtimeRegistry
+            ? this.resolveRuntimeModule(
+                effective,
+                agent,
+                executionCwd,
+                selection,
+              )
+            : undefined,
+      );
+      const { args, env, cwd } = await this.prepare(
+        effective,
+        agent,
+        piDir,
+        providers,
+        runtimeModule,
+        workspace,
+      );
+      this.assertStartOpen(signal, deadline);
       for (const dir of [
         env.HOME,
         env.XDG_CACHE_HOME,
@@ -475,7 +570,7 @@ export class RunManager {
         child?.kill('SIGKILL');
       });
       const spawnImpl = this.options.spawnImpl ?? nodeSpawn;
-      this.assertStartOpen(signal);
+      this.assertStartOpen(signal, deadline);
       child = spawnImpl(
         entry.execPath,
         [...entry.execArgv, entry.scriptPath, ...args],
@@ -492,6 +587,7 @@ export class RunManager {
 
       const record: RunRecord = {
         ...spec,
+        ...(workspace ? { workspace } : {}),
         id,
         status: 'running',
         pid: child.pid,
@@ -545,6 +641,7 @@ export class RunManager {
       this.store.writeRun(record);
       this.log('info', 'agent server run started', {
         ...runContext(id, spec.agent, child),
+        ...selectionContext(spec, workspace),
         transition: 'running',
       });
       return record;
@@ -561,9 +658,14 @@ export class RunManager {
       rmSync(runDir, { recursive: true, force: true });
       this.log('error', 'agent server run failed to start', {
         ...runContext(id, spec.agent, child),
+        ...selectionContext(spec, workspace),
         transition: 'start_failed',
         ...safeRunError(cause),
       });
+      if (deadline.aborted && !signal?.aborted && !this.closing)
+        throw cause instanceof AgentServerHttpError
+          ? cause
+          : startTimedOut(cause);
       throw cause;
     }
   }
@@ -572,6 +674,7 @@ export class RunManager {
     spec: RunSpec,
     activated: ActivatedAgent,
     cwd: string,
+    selection?: EffectiveRunProjectSelection,
   ): Promise<string | undefined> {
     const agent = await this.connectAgent(activated, spec.teamId);
     const profiles = await resolveRuntimeProfiles({
@@ -580,7 +683,22 @@ export class RunManager {
       teamId: spec.teamId,
       cwd,
     });
-    const kinds = [...new Set(profiles.map((profile) => profile.runtimeKind))];
+    const effectiveProfiles = profiles.map((profile) => {
+      if (!selection) return profile;
+      try {
+        return applyProjectWorkspacePolicy(profile, selection);
+      } catch (error) {
+        throw new AgentServerRunError(
+          'invalid_spec',
+          error instanceof Error
+            ? error.message
+            : 'This profile does not support the selected workspace strategy',
+        );
+      }
+    });
+    const kinds = [
+      ...new Set(effectiveProfiles.map((profile) => profile.runtimeKind)),
+    ];
     if (kinds.length !== 1) {
       throw new AgentServerRunError(
         'invalid_spec',
@@ -806,13 +924,19 @@ export class RunManager {
     };
   }
 
-  private assertStartOpen(signal?: AbortSignal): void {
+  /** Shutdown or disconnect wins; otherwise an expired budget is a retryable 503. */
+  private assertStartOpen(
+    signal?: AbortSignal,
+    deadline?: AbortSignal,
+    cause?: unknown,
+  ): void {
     if (this.closing || signal?.aborted) {
       throw new AgentServerRunError(
         'invalid_spec',
         'agent server is shutting down',
       );
     }
+    if (deadline?.aborted) throw startTimedOut(cause);
   }
 
   private pruneCompletedRuns(): void {
@@ -863,6 +987,32 @@ export class RunManager {
     }
   }
 
+  /**
+   * Stable across runs, so retries and continuations find their execution-plan
+   * cache and task workspaces. Keyed by agent and location, under the store,
+   * never inside the user's folder.
+   */
+  private runStateDir(spec: RunSpec, workspace: RunWorkspace): string {
+    // Scoped by team, project and folder too: a plan or worktree made from one
+    // repository must never be picked up by a run over another.
+    const scope = createHash('sha256')
+      .update(
+        JSON.stringify([
+          spec.teamId,
+          workspace.projectId,
+          workspace.source ?? null,
+        ]),
+      )
+      .digest('hex')
+      .slice(0, 12);
+    return join(
+      this.store.root,
+      'run-state',
+      spec.agent,
+      `${workspace.binding ? locationSegment(workspace.binding) : 'general'}-${scope}`,
+    );
+  }
+
   private log(
     level: keyof RunLogger,
     message: string,
@@ -899,6 +1049,48 @@ function createByteLimitTransform(
       callback();
     },
   });
+}
+
+/** Non-secret ids that tie a run's logs to its project selection. */
+function selectionContext(
+  spec: RunSpec,
+  workspace: RunWorkspace | undefined,
+): Record<string, unknown> {
+  return {
+    ...(spec.projectId !== undefined
+      ? { requestedProjectId: spec.projectId }
+      : {}),
+    ...(spec.binding ? { requestedBinding: spec.binding } : {}),
+    ...(workspace
+      ? {
+          projectId: workspace.projectId,
+          ...(workspace.binding ? { binding: workspace.binding } : {}),
+          ...(workspace.diaryId ? { diaryId: workspace.diaryId } : {}),
+          workspaceStrategy: workspace.strategy,
+        }
+      : {}),
+  };
+}
+
+/** Readable when it is a safe path segment; hashed otherwise. */
+function locationSegment(name: string): string {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(name)
+    ? `location-${name}`
+    : `location-${createHash('sha256').update(name).digest('hex').slice(0, 16)}`;
+}
+
+function startTimedOut(cause: unknown): AgentServerHttpError {
+  return new AgentServerHttpError(
+    503,
+    'start_timeout',
+    'The run could not be prepared in time, so it was not started. Retry in a moment.',
+    { cause },
+  );
+}
+
+/** Created exclusively and owner-only: a run never reuses or widens a snapshot. */
+export function writeRunSnapshot(path: string, config: unknown): void {
+  writeFileSync(path, JSON.stringify(config), { mode: 0o600, flag: 'wx' });
 }
 
 function runContext(

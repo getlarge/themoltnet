@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -168,6 +168,88 @@ describe('Native project locations', () => {
       core.invoke('desktop_remove_project_location', { name: 'Laptop' }),
     );
     expect((await stat(source)).isDirectory()).toBe(true);
+    await lifecycle('stop_agent_server');
+  });
+});
+
+describe('Native managed project execution', () => {
+  it('launches a captured location through the real daemon and isolated worker', async () => {
+    const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
+    if (!root) throw new Error('Missing isolated fixture root');
+    const source = join(root, 'run-checkout');
+    await mkdir(source);
+    await lifecycle('start_agent_server');
+    await browser.tauri.execute(
+      ({ core }, input) =>
+        core.invoke('desktop_save_project_location', { input }),
+      {
+        identity: 'desktop-fixture',
+        name: 'Run location',
+        teamId: 'team',
+        projectId: 'project',
+        source,
+        strategy: 'existing',
+        default: true,
+      },
+    );
+    const run = await browser.tauri.execute<
+      Promise<{ id: string; workspace: { source: string; projectId: string } }>,
+      []
+    >(
+      ({ core }) =>
+        core.invoke('desktop_start_run', {
+          spec: {
+            agent: 'desktop-fixture',
+            teamId: 'team',
+            projectId: 'project',
+            binding: 'Run location',
+            profiles: ['fixture-profile'],
+            taskTypes: ['freeform'],
+            mode: 'poll',
+          },
+        }) as Promise<{
+          id: string;
+          workspace: { source: string; projectId: string };
+        }>,
+    );
+    // The daemon records the canonical folder (/var → /private/var on macOS).
+    expect(run.workspace).toMatchObject({
+      projectId: 'project',
+      source: realpathSync(source),
+    });
+    await browser.waitUntil(
+      async () => {
+        const logs = await browser.tauri.execute(
+          ({ core }, runId) => core.invoke('desktop_run_logs', { runId }),
+          run.id,
+        );
+        return JSON.stringify(logs).includes('fixture-worker-ready');
+      },
+      { timeout: 15_000 },
+    );
+    const workerLog = await browser.tauri.execute<
+      Promise<{ lines: string[] }>,
+      [string]
+    >(
+      ({ core }, runId) =>
+        core.invoke('desktop_run_logs', { runId }) as Promise<{
+          lines: string[];
+        }>,
+      run.id,
+    );
+    const readyLine = workerLog.lines.find((line) =>
+      line.includes('fixture-worker-ready'),
+    );
+    expect(readyLine).toBeDefined();
+    expect(JSON.parse(readyLine ?? '{}')).toMatchObject({
+      projectId: 'project',
+      source,
+      strategy: 'existing',
+    });
+    await browser.tauri.execute(
+      ({ core }, runId) => core.invoke('desktop_stop_run', { runId }),
+      run.id,
+    );
     await lifecycle('stop_agent_server');
   });
 });

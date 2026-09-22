@@ -74,6 +74,25 @@ describe('native team enrollment bridge', () => {
     expect(localStorage.length).toBe(0);
   });
 
+  it('passes project selection and run-only overrides through the native bridge', async () => {
+    vi.mocked(invoke).mockResolvedValue({ id: 'run' });
+    const input = {
+      agent: 'agent',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll' as const,
+      projectId: 'project',
+      binding: 'Laptop',
+      source: '/work/override',
+      workspaceStrategy: 'existing' as const,
+      diaryId: 'diary',
+    };
+    await runCenterActions.startRun(input);
+    expect(invoke).toHaveBeenCalledWith('desktop_start_run', { spec: input });
+    expect(localStorage.length).toBe(0);
+  });
+
   it('starts native operator sign-in without carrying a browser token', async () => {
     vi.mocked(invoke).mockResolvedValue(undefined);
     await runCenterActions.signInOperator!();

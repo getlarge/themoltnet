@@ -720,6 +720,10 @@
           "agent": {
             "type": "string"
           },
+          "binding": {
+            "minLength": 1,
+            "type": "string"
+          },
           "credential": {
             "properties": {
               "expiresAt": {
@@ -814,6 +818,21 @@
             },
             "type": "array"
           },
+          "projectId": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "minLength": 1,
+            "type": "string"
+          },
           "startedAt": {
             "format": "date-time",
             "type": "string"
@@ -854,6 +873,100 @@
           },
           "teamId": {
             "type": "string"
+          },
+          "workspace": {
+            "properties": {
+              "binding": {
+                "type": "string"
+              },
+              "diaryId": {
+                "type": "string"
+              },
+              "projectId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "source": {
+                "type": "string"
+              },
+              "strategy": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "existing"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "git-worktree"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "isolated-directory"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  {
+                    "enum": [
+                      "profile-default"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "projectId",
+              "strategy"
+            ],
+            "type": "object"
+          },
+          "workspaceStrategy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "existing"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "git-worktree"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "isolated-directory"
+                ],
+                "type": "string"
+              }
+            ]
           }
         },
         "required": [
@@ -2225,6 +2338,7 @@
         ]
       },
       "post": {
+        "description": "projectId (other than null), binding, source and workspaceStrategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.",
         "operationId": "startAgentServerRun",
         "requestBody": {
           "content": {
@@ -2232,6 +2346,10 @@
               "schema": {
                 "properties": {
                   "agent": {
+                    "type": "string"
+                  },
+                  "binding": {
+                    "minLength": 1,
                     "type": "string"
                   },
                   "diaryId": {
@@ -2258,6 +2376,21 @@
                       "type": "string"
                     },
                     "type": "array"
+                  },
+                  "projectId": {
+                    "anyOf": [
+                      {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "source": {
+                    "minLength": 1,
+                    "type": "string"
                   },
                   "taskTypes": {
                     "items": {
@@ -2322,6 +2455,34 @@
                   },
                   "teamId": {
                     "type": "string"
+                  },
+                  "workspaceStrategy": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "existing"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "git-worktree"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "isolated-directory"
+                        ],
+                        "type": "string"
+                      }
+                    ]
                   }
                 },
                 "required": [

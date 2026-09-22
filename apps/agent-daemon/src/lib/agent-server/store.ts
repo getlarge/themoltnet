@@ -34,6 +34,7 @@ import {
   IDENTITY_ALIAS_PATTERN,
   type MoltNetConfig,
 } from '@themoltnet/sdk';
+import type { WorkspaceStrategy } from '@themoltnet/sdk/node';
 
 import type { CredentialMetadata } from './team-credentials.js';
 
@@ -213,6 +214,26 @@ export function assertProviderEnvName(
   return value;
 }
 
+/** The run follows its runtime profile's own workspace mode. */
+export const PROFILE_DEFAULT_STRATEGY = 'profile-default';
+
+/**
+ * What a run actually resolved to. The top-level `RunSpec` fields of a record
+ * stay exactly as requested, so replaying a run replays the request and later
+ * location edits still apply.
+ */
+export interface RunWorkspace {
+  projectId: string | null;
+  /** Resolved location name. */
+  binding?: string;
+  diaryId?: string;
+  /** Only a folder the caller or a location chose; never an internal directory. */
+  source?: string;
+  strategy: WorkspaceStrategy | typeof PROFILE_DEFAULT_STRATEGY;
+  /** Daemon-internal snapshot path; persisted, never returned by the API. */
+  configPath: string;
+}
+
 export interface RunSpec {
   agent: string;
   teamId: string;
@@ -222,6 +243,12 @@ export interface RunSpec {
    * would follow a run into a different team.
    */
   diaryId?: string;
+  /** Without a binding, omitted and null select General work; never infer from supervisor CWD. */
+  projectId?: string | null;
+  binding?: string;
+  /** Native-authorized, run-only overrides. */
+  source?: string;
+  workspaceStrategy?: WorkspaceStrategy;
   profiles: string[];
   taskTypes: string[];
   mode: 'poll' | 'drain';
@@ -234,6 +261,7 @@ export interface RunFailure {
 }
 
 export interface RunRecord extends RunSpec {
+  workspace?: RunWorkspace;
   id: string;
   status: 'running' | 'exited' | 'stopped' | 'failed';
   /** Present only on a failed run. */

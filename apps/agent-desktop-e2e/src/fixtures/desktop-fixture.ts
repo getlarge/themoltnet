@@ -1,12 +1,19 @@
 /** Production CLI lifecycle with a deterministic catalogue port. */
-import { runAgentServer } from '@themoltnet/agent-daemon/testing';
+import { fileURLToPath } from 'node:url';
+
+import {
+  captureTeamCredential,
+  loadAgentActivation,
+  runAgentServer,
+} from '@themoltnet/agent-daemon/testing';
+import type { Agent } from '@themoltnet/sdk';
 
 const project = {
   id: 'project',
   teamId: 'team',
   name: 'Fixture project',
   description: null,
-  defaultDiaryId: 'diary',
+  defaultDiaryId: '00000000-0000-4000-8000-000000000001',
   archived: false,
 };
 
@@ -38,12 +45,64 @@ process.exitCode = await runAgentServer(args, {
       });
     }
     return {
+      runOptions: {
+        entrypoint: {
+          execPath: process.execPath,
+          execArgv: ['--import', import.meta.resolve('tsx')],
+          scriptPath: fileURLToPath(
+            new URL('./desktop-worker.ts', import.meta.url),
+          ),
+        },
+        verifyActivationImpl: async (
+          selectedStore,
+          alias,
+          _managed,
+          _external,
+          _connect,
+          _signal,
+          teamId,
+        ) => {
+          if (alias !== 'desktop-fixture' || teamId !== 'team')
+            throw new Error('Unknown fixture identity/team');
+          return captureTeamCredential(
+            await loadAgentActivation(selectedStore, alias),
+            {
+              agentKey: 'fixture-only-agent-key',
+              metadata: {
+                keyId: 'fixture',
+                verifiedAt: '2026-09-20T12:00:00Z',
+                scopes: ['team:read'],
+              },
+              client: {
+                projects: {
+                  get: async (id: string) => ({
+                    id,
+                    teamId: 'team',
+                    archived: false,
+                    defaultDiaryId: '00000000-0000-4000-8000-000000000001',
+                  }),
+                },
+                diaries: {
+                  get: async (id: string) => ({ id, teamId: 'team' }),
+                },
+              } as unknown as Agent,
+            },
+          );
+        },
+        resolveRuntimeModule: async () => undefined,
+      },
       catalogueAgentFor: async () => ({
         teamIds: ['team'],
         lastVerified: () => undefined,
         readTeam: async () => ({
           team: { id: 'team', name: 'Fixture team' },
-          diaries: [{ id: 'diary', teamId: 'team', name: 'Fixture diary' }],
+          diaries: [
+            {
+              id: '00000000-0000-4000-8000-000000000001',
+              teamId: 'team',
+              name: 'Fixture diary',
+            },
+          ],
           profiles: [],
           credential: {
             keyId: 'fixture',

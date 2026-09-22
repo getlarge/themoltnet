@@ -4,6 +4,7 @@ import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
+import { PROFILE_DEFAULT_STRATEGY } from './store.js';
 
 const DateTime = Type.String({ format: 'date-time' });
 const StringList = Type.Array(Type.String());
@@ -229,8 +230,37 @@ const ProjectLocationParamsSchema = Type.Object({
   name: Type.String({ minLength: 1 }),
 });
 
+/** Local project selection on a run request; only the native client may set these. */
+const RunProjectFields = {
+  projectId: Type.Optional(
+    Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
+  ),
+  binding: Type.Optional(Type.String({ minLength: 1 })),
+  source: Type.Optional(Type.String({ minLength: 1 })),
+  workspaceStrategy: Type.Optional(
+    AgentServerProjectLocationSchema.properties.strategy,
+  ),
+};
+/** Names gated to the native client; derived so a new field is gated automatically. */
+export const NATIVE_RUN_FIELDS = Object.keys(RunProjectFields) as Array<
+  keyof typeof RunProjectFields
+>;
+/** What a run resolved to; the record's top-level fields stay as requested. */
+const RunWorkspaceSchema = Type.Object({
+  projectId: Type.Union([Type.String(), Type.Null()]),
+  binding: Type.Optional(Type.String()),
+  diaryId: Type.Optional(Type.String()),
+  source: Type.Optional(Type.String()),
+  strategy: Type.Union([
+    AgentServerProjectLocationSchema.properties.strategy,
+    Type.Literal(PROFILE_DEFAULT_STRATEGY),
+  ]),
+});
+
 export const AgentServerRunRecordSchema = Type.Object(
   {
+    ...RunProjectFields,
+    workspace: Type.Optional(RunWorkspaceSchema),
     id: Type.String(),
     agent: Type.String(),
     teamId: Type.String(),
@@ -354,6 +384,7 @@ export const DiscoverModelsSchema = Type.Object(
 );
 
 export const StartRunSchema = Type.Object({
+  ...RunProjectFields,
   agent: Type.String(),
   teamId: Type.String(),
   /** Paired with `teamId`; never inherited from the supervisor. */
@@ -606,6 +637,8 @@ export const AgentServerRouteSchemas = {
     operationId: 'startAgentServerRun',
     tags: ['runs'],
     security: localControlSecurity,
+    description:
+      'projectId (other than null), binding, source and workspaceStrategy are native-only: other origins receive 403 native_required. A request naming none of them runs without project workspace wiring. The record keeps these fields as requested; resolved values are in `workspace`.',
     body: StartRunSchema,
     response: { 201: schemaRef(AgentServerRunSchema), ...problemResponse },
   },

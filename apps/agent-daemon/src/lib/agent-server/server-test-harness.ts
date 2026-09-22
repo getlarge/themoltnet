@@ -103,6 +103,7 @@ export async function cleanupAll(): Promise<void> {
 export async function fixture(
   options: {
     connectionState?: boolean;
+    projectRoot?: string;
     rateLimitMax?: number;
     projectSaveTimeoutMs?: number;
     /** Build without a connection store, as a bare supervisor would. */
@@ -112,6 +113,7 @@ export async function fixture(
     operatorOAuth?: OperatorOAuth;
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;
+    startTimeoutMs?: number;
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
@@ -127,8 +129,10 @@ export async function fixture(
   } = {},
 ): Promise<Fixture> {
   const {
+    projectRoot,
     baseEnv = { PATH: '/usr/bin' },
     maxLogBytes,
+    startTimeoutMs,
     symlinkImpl,
     resolveRuntimeModule,
     externalSecrets = {},
@@ -241,7 +245,17 @@ export async function fixture(
             verifiedAt: new Date().toISOString(),
             scopes: [],
           },
-          client: {} as Awaited<ReturnType<typeof connect>>,
+          client: {
+            projects: {
+              get: async (id: string) => ({
+                id,
+                teamId,
+                archived: false,
+                defaultDiaryId: null,
+              }),
+            },
+            diaries: { get: async (id: string) => ({ id, teamId }) },
+          } as unknown as Awaited<ReturnType<typeof connect>>,
         },
       ),
     );
@@ -249,6 +263,7 @@ export async function fixture(
   const runs = new RunManager({
     store,
     storeRoot,
+    projectRoot,
     secretProviders,
     externalSecretProviders,
     baseEnv,
@@ -266,6 +281,7 @@ export async function fixture(
       : {}),
     ...(symlinkImpl ? { symlinkImpl } : {}),
     ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
+    ...(startTimeoutMs === undefined ? {} : { startTimeoutMs }),
     ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
   });
   const browserToken = randomUUID();
@@ -284,7 +300,11 @@ export async function fixture(
     externalSecretProviders,
     ...(withoutConnectionSettings
       ? {}
-      : { connectionSettings: new ConnectionSettingsStore(store.root) }),
+      : {
+          connectionSettings: new ConnectionSettingsStore(
+            projectRoot ?? store.root,
+          ),
+        }),
     nativeGrant: options.nativeGrant ?? new NativeGrantService(),
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }

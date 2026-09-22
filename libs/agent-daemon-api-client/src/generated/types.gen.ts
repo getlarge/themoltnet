@@ -137,6 +137,7 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
+  binding?: string;
   credential?: {
     expiresAt?: string | null;
     keyId: string;
@@ -154,10 +155,29 @@ export type AgentServerRunRecord = {
   mode: 'poll' | 'drain';
   pid?: number;
   profiles: Array<string>;
+  projectId?: string | null;
+  source?: string;
   startedAt: string;
   status: 'running' | 'exited' | 'stopped' | 'failed';
   taskTypes: Array<string>;
   teamId: string;
+  workspace?: {
+    binding?: string;
+    diaryId?: string;
+    projectId: string | null;
+    source?: string;
+    strategy:
+      | 'none'
+      | 'existing'
+      | 'git-worktree'
+      | 'isolated-directory'
+      | 'profile-default';
+  };
+  workspaceStrategy?:
+    | 'none'
+    | 'existing'
+    | 'git-worktree'
+    | 'isolated-directory';
 };
 
 export type AgentServerStatus = {
@@ -745,9 +765,12 @@ export type ListAgentServerRunsResponse =
 export type StartAgentServerRunData = {
   body: {
     agent: string;
+    binding?: string;
     diaryId?: string;
     mode: 'poll' | 'drain';
     profiles: Array<string>;
+    projectId?: string | null;
+    source?: string;
     taskTypes: Array<
       | 'assess_brief'
       | 'curate_pack'
@@ -760,6 +783,11 @@ export type StartAgentServerRunData = {
       | 'run_eval'
     >;
     teamId: string;
+    workspaceStrategy?:
+      | 'none'
+      | 'existing'
+      | 'git-worktree'
+      | 'isolated-directory';
   };
   path?: never;
   query?: never;

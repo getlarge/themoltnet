@@ -23,6 +23,7 @@ import type {
   EnrollAgentServerTeamResponses,
   ListNativeProjectLocationsResponse,
   SaveNativeProjectLocationData,
+  StartAgentServerRunData,
 } from '@moltnet/agent-daemon-api-client';
 
 import type { DesktopStatus, LifecycleState } from '../bridge.js';
@@ -79,14 +80,10 @@ export interface RunPreset {
 }
 
 /** What the composer sends to start a run. Mirrors the server's start body. */
-export interface StartRunInput {
-  agent: string;
-  teamId: string;
-  diaryId?: string;
-  profiles: string[];
-  taskTypes: string[];
-  mode: RunMode;
-}
+export type StartRunInput = Omit<
+  NonNullable<StartAgentServerRunData['body']>,
+  'mode' | 'taskTypes'
+> & { mode: RunMode; taskTypes: string[] };
 
 export interface SavePresetInput extends Omit<
   RunPreset,
