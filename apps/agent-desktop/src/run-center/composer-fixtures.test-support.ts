@@ -14,6 +14,8 @@ export const running: DesktopStatus = {
 };
 export const catalogue: AgentServerCatalogue = {
   defaultTeamId: 'team',
+  projects: [],
+  projectErrors: [],
   teams: [
     {
       teamId: 'team',
