@@ -144,6 +144,7 @@ export const runCenterActions: RunCenterActions = {
       ? presets.find((preset) => preset.id === input.id)
       : undefined;
     const preset: RunPreset = {
+      version: 2,
       id: existing?.id ?? crypto.randomUUID(),
       name: input.name,
       agent: input.agent,

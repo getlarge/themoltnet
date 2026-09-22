@@ -10,7 +10,9 @@ import {
 } from '@themoltnet/design-system';
 import { useState } from 'react';
 
+import { verificationUnavailable } from './credential-health.js';
 import { duration, relativeTime } from './format.js';
+import { findRunPreset } from './preset-matching.js';
 import type { RunsRoute } from './RunCenterApp.js';
 import { RunComposer } from './RunComposer.js';
 import { RunDetail } from './RunDetail.js';
@@ -55,12 +57,17 @@ export function RunsView({
     if (run) {
       return (
         <RunDetail
+          active={active}
           run={run}
           actions={actions}
           now={now}
           onBack={() => onRoute({ kind: 'list' })}
           onRunAgain={() =>
-            onRoute({ kind: 'compose', presetId: null, previousRun: run })
+            onRoute({
+              kind: 'compose',
+              presetId: findRunPreset(data.presets, run)?.id ?? null,
+              previousRun: run,
+            })
           }
         />
       );
@@ -89,8 +96,8 @@ function RunsList({
   const [stopError, setStopError] = useState(false);
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
-  const verificationUnavailable = data.catalogue?.teams.some((team) =>
-    team.blockers.some((blocker) => blocker.code === 'agent_key_unavailable'),
+  const verificationFailed = verificationUnavailable(
+    data.catalogue?.teams ?? [],
   );
   const serverReady = ['running', 'update_available'].includes(
     data.server.state,
@@ -154,7 +161,7 @@ function RunsList({
           <Text>Loading teams and profiles…</Text>
         </div>
       ) : null}
-      {serverReady && (data.catalogueError || verificationUnavailable) ? (
+      {serverReady && (data.catalogueError || verificationFailed) ? (
         <InlineNotice tone="error" title="Catalogue unavailable">
           {data.catalogueError ??
             'Some team resources could not be verified. Check connectivity and retry.'}
@@ -172,7 +179,7 @@ function RunsList({
         </InlineNotice>
       ) : null}
       {serverReady &&
-      !verificationUnavailable &&
+      !verificationFailed &&
       data.catalogue &&
       data.catalogue.teams.length > 0 &&
       !data.catalogue.teams.some((team) => team.available) ? (
@@ -222,7 +229,7 @@ function RunsList({
                   onRunAgain={() =>
                     onRoute({
                       kind: 'compose',
-                      presetId: null,
+                      presetId: findRunPreset(data.presets, run)?.id ?? null,
                       previousRun: run,
                     })
                   }

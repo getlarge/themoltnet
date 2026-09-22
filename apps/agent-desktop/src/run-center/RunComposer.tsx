@@ -14,15 +14,15 @@ import {
 } from '@themoltnet/design-system';
 import { useEffect, useMemo, useState } from 'react';
 
+import { verificationUnavailable } from './credential-health.js';
 import { relativeTime } from './format.js';
 import type {
-  AgentServerCatalogue,
   AgentServerCatalogueProfile,
   DesktopRun,
   RunCenterActions,
   RunCenterData,
-  RunPreset,
 } from './types.js';
+import { useComposerCatalogue } from './useComposerCatalogue.js';
 
 /** The daemon's own task-type registry; no server round trip needed. */
 const TASK_TYPE_OPTIONS = Object.keys(BUILT_IN_TASK_TYPES).sort();
@@ -52,18 +52,10 @@ export function RunComposer({
   // Everything the composer offers comes from the server: identities from the
   // status surface, teams and profiles from the identity-scoped catalogue.
   const agents = data.status?.agents ?? [];
-  const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(
-    data.catalogue,
-  );
-  const teams = catalogue?.teams ?? [];
   const taskTypeOptions = TASK_TYPE_OPTIONS;
-
-  const [savedPreset, setSavedPreset] = useState<RunPreset | null>(null);
+  const [savedPresetId, setSavedPresetId] = useState(presetId);
   const preset =
-    savedPreset ??
-    (presetId
-      ? (data.presets.find((candidate) => candidate.id === presetId) ?? null)
-      : null);
+    data.presets.find((candidate) => candidate.id === savedPresetId) ?? null;
 
   const [agent, setAgent] = useState(
     previousRun?.agent ??
@@ -91,41 +83,23 @@ export function RunComposer({
     (previousRun?.profiles.length ?? preset?.profileIds.length ?? 0) > 1,
   );
   const [presetName, setPresetName] = useState(preset?.name ?? '');
-  const [catalogueError, setCatalogueError] = useState<string | null>(null);
-  const [catalogueLoading, setCatalogueLoading] = useState(true);
-  const [retry, setRetry] = useState(0);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const {
+    catalogue,
+    loading: catalogueLoading,
+    error: catalogueError,
+    retry,
+  } = useComposerCatalogue(data, actions, agent, active);
+  const teams = catalogue?.teams ?? [];
   useEffect(() => {
-    if (!active) return;
-    let current = true;
-    setCatalogue(null);
-    setCatalogueError(null);
-    setCatalogueLoading(Boolean(agent));
-    if (!agent) return;
-    void actions.catalogue(agent).then(
-      (value) => {
-        if (!current) return;
-        setCatalogue(value);
-        setCatalogueLoading(false);
-        setTeamId((selected) => selected || value.defaultTeamId || '');
-      },
-      () => {
-        if (current) {
-          setCatalogueLoading(false);
-          setCatalogueError(
-            'The catalogue could not be loaded. Try again to verify teams and profiles.',
-          );
-        }
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [actions, agent, active, retry]);
+    if (catalogue)
+      setTeamId((selected) => selected || catalogue.defaultTeamId || '');
+  }, [catalogue]);
   const profiles = useMemo(
     () =>
       (catalogue?.profiles ?? []).filter(
@@ -143,9 +117,7 @@ export function RunComposer({
   const selectedTeamDiary = team?.defaultDiaryId ?? null;
 
   const boundElsewhere = Boolean(team && !team.available);
-  const verificationUnavailable = (team ? [team] : teams).some((entry) =>
-    entry.blockers.some((blocker) => blocker.code === 'agent_key_unavailable'),
-  );
+  const verificationFailed = verificationUnavailable(team ? [team] : teams);
 
   const availableFallbacks = useMemo(
     () =>
@@ -209,19 +181,21 @@ export function RunComposer({
   const save = async () => {
     setSaving(true);
     setSaveMessage(null);
+    setSaveFailed(false);
     try {
       const saved = await actions.savePreset({
         id: preset?.id ?? null,
         name: presetName.trim(),
         agent,
         teamId,
-        diaryId: selectedTeamDiary,
+        diaryId: null,
         profileIds: [primaryId, ...fallbackIds],
         taskTypes,
       });
-      setSavedPreset(saved);
+      setSavedPresetId(saved.id);
       setSaveMessage('Preset saved.');
     } catch (error) {
+      setSaveFailed(true);
       setSaveMessage(
         error instanceof Error
           ? error.message
@@ -261,6 +235,7 @@ export function RunComposer({
               value={agent}
               onChange={(event) => {
                 setAgent(event.target.value);
+                setTeamId('');
                 setPrimaryId('');
                 setFallbackIds([]);
               }}
@@ -297,6 +272,11 @@ export function RunComposer({
               }
             >
               <option value="">Choose a team</option>
+              {teamId && !team ? (
+                <option value={teamId} disabled>
+                  {teamId} — unavailable
+                </option>
+              ) : null}
               {teams.map((candidate) => (
                 <option key={candidate.teamId} value={candidate.teamId}>
                   {candidate.teamName}
@@ -313,10 +293,7 @@ export function RunComposer({
           {catalogueError ? (
             <InlineNotice tone="error" title="Catalogue unavailable">
               {catalogueError}
-              <Button
-                variant="secondary"
-                onClick={() => setRetry((value) => value + 1)}
-              >
+              <Button variant="secondary" onClick={retry}>
                 Retry catalogue
               </Button>
             </InlineNotice>
@@ -335,20 +312,17 @@ export function RunComposer({
             <InlineNotice
               tone="warning"
               title={
-                verificationUnavailable
+                verificationFailed
                   ? 'Team access could not be verified'
                   : 'Team access needs attention'
               }
             >
               {team?.blockers.map((blocker) => blocker.message).join(' ') ||
-                (verificationUnavailable
+                (verificationFailed
                   ? 'Check connectivity and retry team verification.'
                   : 'Enroll this identity into a team before starting a run.')}
-              {verificationUnavailable ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => setRetry((value) => value + 1)}
-                >
+              {verificationFailed ? (
+                <Button variant="secondary" onClick={retry}>
                   Retry catalogue
                 </Button>
               ) : (
@@ -490,9 +464,9 @@ export function RunComposer({
             {preset ? 'Update preset' : 'Save preset'}
           </Button>
           {saveMessage ? (
-            <div role="status">
-              <Text variant="caption">{saveMessage}</Text>
-            </div>
+            <InlineNotice tone={saveFailed ? 'error' : 'success'}>
+              {saveMessage}
+            </InlineNotice>
           ) : null}
         </Stack>
       </ControlSurface>
@@ -520,7 +494,23 @@ export function RunComposer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => void actions.deletePreset(preset.id).then(onDone)}
+              disabled={saving}
+              onClick={() => {
+                setSaving(true);
+                setSaveMessage(null);
+                void actions
+                  .deletePreset(preset.id)
+                  .then(onDone)
+                  .catch((error: unknown) => {
+                    setSaveFailed(true);
+                    setSaveMessage(
+                      error instanceof Error
+                        ? error.message
+                        : 'The preset could not be deleted.',
+                    );
+                  })
+                  .finally(() => setSaving(false));
+              }}
             >
               Delete preset
             </Button>

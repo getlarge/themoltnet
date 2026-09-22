@@ -30,7 +30,7 @@ function fixture(stopRun: RunCenterActions['stopRun']) {
     catalogue: null,
   };
   const actions: RunCenterActions = {
-    catalogue: vi.fn().mockResolvedValue(null),
+    catalogue: vi.fn().mockResolvedValue({ teams: [] }),
     startRun: vi.fn(),
     stopRun,
     savePreset: vi.fn(),
@@ -178,4 +178,49 @@ it('offers catalogue retry when upstream team verification cannot complete', () 
   expect(
     screen.queryByRole('button', { name: 'Identity and teams' }),
   ).toBeNull();
+});
+
+it('keeps a matching preset selected when repeating an attributed run', () => {
+  const { data, actions } = fixture(vi.fn());
+  const onRoute = vi.fn();
+  const previous = {
+    ...run,
+    status: 'stopped' as const,
+    active: false,
+    diaryId: 'new-default',
+  };
+  render(
+    <MoltThemeProvider mode="dark">
+      <RunsView
+        data={{
+          ...data,
+          runs: [previous],
+          presets: [
+            {
+              id: 'saved',
+              name: 'Worker',
+              agent: run.agent,
+              teamId: run.teamId,
+              diaryId: null,
+              version: 2,
+              profileIds: run.profiles,
+              taskTypes: run.taskTypes,
+              createdAt: run.startedAt,
+              lastUsedAt: null,
+            },
+          ],
+        }}
+        actions={actions}
+        now={0}
+        route={{ kind: 'detail', runId: run.id }}
+        onRoute={onRoute}
+      />
+    </MoltThemeProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Run again' }));
+  expect(onRoute).toHaveBeenCalledWith({
+    kind: 'compose',
+    presetId: 'saved',
+    previousRun: previous,
+  });
 });

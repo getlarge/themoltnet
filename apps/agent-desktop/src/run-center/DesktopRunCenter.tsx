@@ -5,6 +5,7 @@ import { InlineNotice } from '@themoltnet/design-system';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { desktopBridge, INITIAL_STATUS } from '../bridge.js';
+import { findRunPreset } from './preset-matching.js';
 import { listPresets, runCenterActions } from './run-center-bridge.js';
 import { RunCenterApp } from './RunCenterApp.js';
 import type {
@@ -13,6 +14,7 @@ import type {
   RunCenterActions,
   RunPreset,
 } from './types.js';
+import { CATALOGUE_ERROR } from './useComposerCatalogue.js';
 
 /** Native IPC owns all server access; this renderer receives public state only. */
 export function DesktopRunCenter() {
@@ -20,6 +22,13 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
+  const [catalogueIdentity, setCatalogueIdentity] = useState<string | null>(
+    null,
+  );
+  const catalogueSnapshot = useRef<{
+    identity: string | null;
+    value: AgentServerCatalogue | null;
+  }>({ identity: null, value: null });
   const [catalogueLoading, setCatalogueLoading] = useState(false);
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
   const [presets, setPresets] = useState<RunPreset[]>([]);
@@ -75,24 +84,33 @@ export function DesktopRunCenter() {
         failures.current = 0;
         setError(null);
         const identity =
-          snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName;
-        if (refreshCatalogue || Date.now() - lastCatalogue.current > 60_000) {
-          setCatalogueLoading(true);
+          snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName ?? null;
+        const changedIdentity = catalogueSnapshot.current.identity !== identity;
+        if (
+          refreshCatalogue ||
+          changedIdentity ||
+          Date.now() - lastCatalogue.current > 60_000
+        ) {
+          setCatalogueIdentity(identity);
+          if (changedIdentity) {
+            catalogueSnapshot.current = { identity, value: null };
+            setCatalogue(null);
+          }
+          if (refreshCatalogue || !catalogueSnapshot.current.value)
+            setCatalogueLoading(true);
           try {
             const next = identity
               ? await runCenterActions.catalogue(identity)
               : null;
             if (currentEpoch === epoch.current) {
+              catalogueSnapshot.current = { identity, value: next };
               setCatalogue(next);
               setCatalogueError(null);
               lastCatalogue.current = Date.now();
             }
           } catch {
             if (currentEpoch === epoch.current) {
-              setCatalogue(null);
-              setCatalogueError(
-                'Teams and profiles could not be loaded. Retry to verify access.',
-              );
+              setCatalogueError(CATALOGUE_ERROR);
             }
           } finally {
             if (currentEpoch === epoch.current) setCatalogueLoading(false);
@@ -150,6 +168,8 @@ export function DesktopRunCenter() {
     epoch.current++;
     if (!['running', 'update_available'].includes(server.state)) {
       setStatus(null);
+      catalogueSnapshot.current = { identity: null, value: null };
+      setCatalogueIdentity(null);
       setOperatorConfigured(false);
       setCatalogue(null);
       setCatalogueLoading(false);
@@ -197,12 +217,16 @@ export function DesktopRunCenter() {
       },
       savePreset: async (input) => {
         const saved = await runCenterActions.savePreset(input);
-        setPresets(await listPresets());
+        // A successful write cannot become a failed save through a second read.
+        setPresets((current) => [
+          ...current.filter((preset) => preset.id !== saved.id),
+          saved,
+        ]);
         return saved;
       },
       deletePreset: async (id) => {
         await runCenterActions.deletePreset(id);
-        setPresets(await listPresets());
+        setPresets((current) => current.filter((preset) => preset.id !== id));
       },
     }),
     [refresh],
@@ -227,6 +251,7 @@ export function DesktopRunCenter() {
           server,
           status,
           catalogue,
+          catalogueIdentity,
           catalogueLoading,
           catalogueError,
           presets,
@@ -234,17 +259,7 @@ export function DesktopRunCenter() {
           subscriptions: status?.subscriptions ?? [],
           runs: (status?.runs ?? []).map((run) => ({
             ...run,
-            presetName:
-              presets.find(
-                (preset) =>
-                  preset.agent === run.agent &&
-                  preset.teamId === run.teamId &&
-                  (preset.diaryId ?? null) === (run.diaryId ?? null) &&
-                  JSON.stringify(preset.profileIds) ===
-                    JSON.stringify(run.profiles) &&
-                  JSON.stringify([...preset.taskTypes].sort()) ===
-                    JSON.stringify([...run.taskTypes].sort()),
-              )?.name ?? null,
+            presetName: findRunPreset(presets, run)?.name ?? null,
             teamName:
               catalogue?.teams.find((team) => team.teamId === run.teamId)
                 ?.teamName ?? null,

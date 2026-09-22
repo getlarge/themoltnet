@@ -16,6 +16,7 @@ import { ProfileChain, TaskTypeRow } from './RunsView.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
 
 export interface RunDetailProps {
+  active?: boolean;
   run: DesktopRun;
   actions: RunCenterActions;
   now: number;
@@ -31,6 +32,7 @@ const STATUS_BADGE = {
 };
 
 export function RunDetail({
+  active = true,
   run,
   actions,
   now,
@@ -40,27 +42,28 @@ export function RunDetail({
   const [currentCredential, setCurrentCredential] =
     useState<DesktopRun['credential']>();
   useEffect(() => {
-    let active = true;
+    if (!active) return;
+    let current = true;
     setCurrentCredential(undefined);
     const refresh = async () => {
       try {
         const catalogue = await actions.catalogue(run.agent);
-        if (active)
+        if (current)
           setCurrentCredential(
             catalogue.teams.find((team) => team.teamId === run.teamId)
               ?.credential,
           );
       } catch {
-        if (active) setCurrentCredential(undefined);
+        if (current) setCurrentCredential(undefined);
       }
     };
     void refresh();
     const timer = window.setInterval(() => void refresh(), 30000);
     return () => {
-      active = false;
+      current = false;
       window.clearInterval(timer);
     };
-  }, [actions, run.agent, run.teamId]);
+  }, [actions, run.agent, run.teamId, active]);
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [stopping, setStopping] = useState(false);
@@ -68,9 +71,10 @@ export function RunDetail({
   const logRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
+    if (!active) return;
     setLines([]);
     return actions.subscribeRunLogs(run.id, setLines);
-  }, [actions, run.id]);
+  }, [actions, run.id, active]);
 
   useEffect(() => {
     if (follow && logRef.current)

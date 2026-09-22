@@ -61,6 +61,8 @@ export interface DesktopRun extends AgentServerRun {
  * never auto-starts and that nothing but this app reads.
  */
 export interface RunPreset {
+  /** Version 2 stores explicit choices; null diary uses current defaults. */
+  version?: 2;
   id: string;
   name: string;
   agent: string;
@@ -146,6 +148,7 @@ export interface RunCenterData {
   runs: DesktopRun[];
   presets: RunPreset[];
   catalogue: AgentServerCatalogue | null;
+  catalogueIdentity?: string | null;
   catalogueLoading?: boolean;
   catalogueError?: string | null;
   providers: Record<string, AgentServerProvider>;
