@@ -671,6 +671,9 @@ npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/dep
 
 # Apply all (project config + OPL + operator clients + branding)
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --apply
+
+# Reconcile and verify only the operator OAuth clients
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs --oauth-clients-only --apply
 ```
 
 The released Desktop uses the administratively registered `moltnet-native`
@@ -679,6 +682,12 @@ browser local-control contract. Both are public clients: they have stable IDs
 and no client secrets. Do not create them manually in the Ory Console; change
 the reviewed JSON definitions and run `deploy.mjs --apply` so production
 configuration stays reproducible.
+
+Full deployment needs both credentials: `ORY_WORKSPACE_API_KEY` for project
+configuration and OPL, and `ORY_PROJECT_API_KEY` for OAuth client
+administration. The deploy script keeps those authentication paths separate
+because the client commands are scoped by the project key itself and therefore
+omit `--project`.
 
 ### Account Experience (AX)
 

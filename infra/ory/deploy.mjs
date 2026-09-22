@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const apply = process.argv.includes('--apply');
 const oplOnly = process.argv.includes('--opl-only');
+const oauthClientsOnly = process.argv.includes('--oauth-clients-only');
 
 function argumentValue(name) {
   const index = process.argv.indexOf(name);
@@ -64,6 +65,15 @@ function oryEnv() {
   return environ;
 }
 
+function oryClientEnv() {
+  // OAuth client administration is scoped by ORY_PROJECT_API_KEY itself.
+  // Supplying the workspace key makes the CLI fall back to browser login when
+  // that key cannot administer clients, which wedges non-interactive CI.
+  const environ = { ...process.env };
+  delete environ.ORY_WORKSPACE_API_KEY;
+  return environ;
+}
+
 function ory(args) {
   execFileSync('ory', args, {
     cwd: '/tmp',
@@ -80,6 +90,21 @@ function oryStdout(args) {
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: ORY_COMMAND_TIMEOUT_MS,
   }).toString();
+}
+
+function oryClientStdout(args) {
+  return execFileSync('ory', args, {
+    cwd: '/tmp',
+    env: oryClientEnv(),
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: ORY_COMMAND_TIMEOUT_MS,
+  }).toString();
+}
+
+function isOryMissingResource(error) {
+  if (!error || typeof error !== 'object' || !('stderr' in error)) return false;
+  const stderr = Buffer.from(error.stderr ?? '').toString();
+  return stderr.includes('"error": "Unable to locate the resource"');
 }
 
 if (oplOnly) {
@@ -137,6 +162,27 @@ for (const { definition } of operatorClients) {
   ) {
     fatal('Operator OAuth clients must be public authorization-code clients');
   }
+}
+
+if (oauthClientsOnly) {
+  if (!apply) {
+    log(
+      `Dry run — validated OAuth clients: ${operatorClients.map(({ definition }) => definition.client_id).join(', ')}`,
+    );
+    process.exit(0);
+  }
+  if (!env('ORY_PROJECT_API_KEY'))
+    fatal('ORY_PROJECT_API_KEY must be set for --oauth-clients-only --apply');
+  const clientFailures = [];
+  reconcileOperatorClients((message) => clientFailures.push(message));
+  if (clientFailures.length > 0) {
+    fatal(
+      `${clientFailures.length} OAuth client verification check(s) failed:\n  - ` +
+        clientFailures.join('\n  - '),
+    );
+  }
+  log('Done.');
+  process.exit(0);
 }
 
 const agentSchemaB64 = readFileSync(agentSchemaFile).toString('base64');
@@ -216,9 +262,11 @@ if (!apply) {
 
 const projectId = env('ORY_PROJECT_ID');
 const apiKey = env('ORY_WORKSPACE_API_KEY');
+const projectApiKey = env('ORY_PROJECT_API_KEY');
 
 if (!projectId) fatal('ORY_PROJECT_ID must be set for --apply');
 if (!apiKey) fatal('ORY_WORKSPACE_API_KEY must be set for --apply');
+if (!projectApiKey) fatal('ORY_PROJECT_API_KEY must be set for --apply');
 
 // ---------------------------------------------------------------------------
 // 4. Validate the resolved config BEFORE mutating anything in Ory.
@@ -321,112 +369,7 @@ if (existsSync(oplFile)) {
 // receive a registration_access_token which must not enter CI logs.
 // ---------------------------------------------------------------------------
 
-log('Reconciling operator OAuth clients ...');
-for (const { file, definition } of operatorClients) {
-  const id = definition.client_id;
-  try {
-    oryStdout([
-      'get',
-      'oauth2-client',
-      id,
-      '--project',
-      projectId,
-      '--format',
-      'json',
-    ]);
-  } catch {
-    const createArgs = [
-      'create',
-      'oauth2-client',
-      '--project',
-      projectId,
-      '--id',
-      id,
-      '--name',
-      definition.client_name,
-      '--grant-type',
-      definition.grant_types.join(','),
-      '--response-type',
-      definition.response_types.join(','),
-      '--token-endpoint-auth-method',
-      definition.token_endpoint_auth_method,
-      '--scope',
-      definition.scope.split(' ').join(','),
-      '--audience',
-      definition.audience.join(','),
-      '--redirect-uri',
-      definition.redirect_uris.join(','),
-      '--format',
-      'json',
-      '--yes',
-    ];
-    if (definition.allowed_cors_origins.length > 0) {
-      createArgs.push(
-        '--allowed-cors-origin',
-        definition.allowed_cors_origins.join(','),
-      );
-    }
-    oryStdout(createArgs);
-  }
-  oryStdout([
-    'update',
-    'oauth2-client',
-    id,
-    '--project',
-    projectId,
-    '--file',
-    file,
-    '--format',
-    'json',
-    '--yes',
-  ]);
-  const live = JSON.parse(
-    oryStdout([
-      'get',
-      'oauth2-client',
-      id,
-      '--project',
-      projectId,
-      '--format',
-      'json',
-    ]),
-  );
-  const exactFields = [
-    'client_id',
-    'client_name',
-    'token_endpoint_auth_method',
-    'scope',
-    'skip_consent',
-  ];
-  for (const field of exactFields) {
-    if (live[field] !== definition[field])
-      recordFailure(
-        `OAuth client ${id}.${field}. Expected ${JSON.stringify(definition[field])}, got ${JSON.stringify(live[field])}.`,
-      );
-  }
-  for (const field of [
-    'allowed_cors_origins',
-    'audience',
-    'grant_types',
-    'redirect_uris',
-    'response_types',
-  ]) {
-    if (
-      JSON.stringify([...(live[field] ?? [])].sort()) !==
-      JSON.stringify([...definition[field]].sort())
-    )
-      recordFailure(
-        `OAuth client ${id}.${field} did not match its definition.`,
-      );
-  }
-  if (
-    durationSeconds(live.authorization_code_grant_access_token_lifespan) !==
-    durationSeconds(definition.authorization_code_grant_access_token_lifespan)
-  )
-    recordFailure(`OAuth client ${id} access-token lifetime did not match.`);
-  log(`  ${id} reconciled and verified.`);
-}
-log('Operator OAuth clients reconciled.\n');
+reconcileOperatorClients(recordFailure);
 
 // ---------------------------------------------------------------------------
 // 7. Patch OAuth2 fields that `ory update project` silently strips.
@@ -496,6 +439,94 @@ function durationSeconds(value) {
   // Reject partially-parsed input (e.g. "24hxyz") rather than silently
   // accepting the prefix.
   return matched === value.trim().length ? total : Number.NaN;
+}
+
+function reconcileOperatorClients(onFailure) {
+  log('Reconciling operator OAuth clients ...');
+  for (const { file, definition } of operatorClients) {
+    const id = definition.client_id;
+    try {
+      oryClientStdout(['get', 'oauth2-client', id, '--format', 'json']);
+    } catch (error) {
+      if (!isOryMissingResource(error)) throw error;
+      const createArgs = [
+        'create',
+        'oauth2-client',
+        '--id',
+        id,
+        '--name',
+        definition.client_name,
+        '--grant-type',
+        definition.grant_types.join(','),
+        '--response-type',
+        definition.response_types.join(','),
+        '--token-endpoint-auth-method',
+        definition.token_endpoint_auth_method,
+        '--scope',
+        definition.scope.split(' ').join(','),
+        '--audience',
+        definition.audience.join(','),
+        '--redirect-uri',
+        definition.redirect_uris.join(','),
+        '--format',
+        'json',
+        '--yes',
+      ];
+      if (definition.allowed_cors_origins.length > 0) {
+        createArgs.push(
+          '--allowed-cors-origin',
+          definition.allowed_cors_origins.join(','),
+        );
+      }
+      oryClientStdout(createArgs);
+    }
+    oryClientStdout([
+      'update',
+      'oauth2-client',
+      id,
+      '--file',
+      file,
+      '--format',
+      'json',
+      '--yes',
+    ]);
+    const live = JSON.parse(
+      oryClientStdout(['get', 'oauth2-client', id, '--format', 'json']),
+    );
+    const exactFields = [
+      'client_id',
+      'client_name',
+      'token_endpoint_auth_method',
+      'scope',
+      'skip_consent',
+    ];
+    for (const field of exactFields) {
+      if (live[field] !== definition[field])
+        onFailure(
+          `OAuth client ${id}.${field}. Expected ${JSON.stringify(definition[field])}, got ${JSON.stringify(live[field])}.`,
+        );
+    }
+    for (const field of [
+      'allowed_cors_origins',
+      'audience',
+      'grant_types',
+      'redirect_uris',
+      'response_types',
+    ]) {
+      if (
+        JSON.stringify([...(live[field] ?? [])].sort()) !==
+        JSON.stringify([...definition[field]].sort())
+      )
+        onFailure(`OAuth client ${id}.${field} did not match its definition.`);
+    }
+    if (
+      durationSeconds(live.authorization_code_grant_access_token_lifespan) !==
+      durationSeconds(definition.authorization_code_grant_access_token_lifespan)
+    )
+      onFailure(`OAuth client ${id} access-token lifetime did not match.`);
+    log(`  ${id} reconciled and verified.`);
+  }
+  log('Operator OAuth clients reconciled.\n');
 }
 
 log('Patching OAuth2 token_hook + access-token TTL ...');
