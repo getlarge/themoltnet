@@ -83,6 +83,8 @@ export const desktopBridge = {
   checkForUpdates: () => invoke<DesktopStatus>('check_for_agent_updates'),
   installUpdate: () => invoke<DesktopStatus>('install_agent_update'),
   openConsole: () => invoke<void>('open_console'),
+  /** False on staging, e2e and self-hosted connections, which Desktop cannot link. */
+  consoleAvailable: () => invoke<boolean>('desktop_console_available'),
   openLogs: () => invoke<void>('open_logs'),
   remove: () => invoke<DesktopStatus>('remove_agent_bundle'),
   checkDesktopUpdate: () =>

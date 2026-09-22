@@ -312,6 +312,16 @@ export function RunComposer({
     problems.push(
       "This location's diary is unavailable. Choose a diary or update the location.",
     );
+  else if (
+    !diaryId &&
+    !location?.diaryId &&
+    project?.defaultDiaryId &&
+    team &&
+    !team.diaries.some((entry) => entry.id === project.defaultDiaryId)
+  )
+    problems.push(
+      "This project's default diary is unavailable. Choose a diary for this run.",
+    );
   if (effectiveStrategy !== 'none' && !effectiveSource && strategy)
     problems.push('Choose a folder for this workspace behavior.');
   if (choosingFolder) problems.push('Finish choosing a folder.');

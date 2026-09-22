@@ -87,6 +87,22 @@ export function ProjectsView({
   const [revision, setRevision] = useState(0);
   const [editing, setEditing] = useState<ProjectLocation | null | undefined>();
   const [removing, setRemoving] = useState<string | null>(null);
+  // Hidden until known: a Console link that can only fail is noise.
+  const [consoleAvailable, setConsoleAvailable] = useState(false);
+  useEffect(() => {
+    let current = true;
+    desktopBridge.consoleAvailable().then(
+      (available) => {
+        if (current) setConsoleAvailable(available);
+      },
+      () => {
+        if (current) setConsoleAvailable(false);
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, []);
   const serverReady = ['running', 'update_available'].includes(
     data.server.state,
   );
@@ -292,18 +308,23 @@ export function ProjectsView({
                 !availableProjects.length ? (
                 <InlineNotice tone="info" title="No shared projects">
                   Create a project in Console, then refresh discovery.
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      void desktopBridge
-                        .openConsole()
-                        .catch((error: unknown) =>
-                          setFeedback({ tone: 'error', text: message(error) }),
-                        );
-                    }}
-                  >
-                    Open Console
-                  </Button>
+                  {consoleAvailable ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        void desktopBridge
+                          .openConsole()
+                          .catch((error: unknown) =>
+                            setFeedback({
+                              tone: 'error',
+                              text: message(error),
+                            }),
+                          );
+                      }}
+                    >
+                      Open Console
+                    </Button>
+                  ) : null}
                   <Button variant="ghost" onClick={refresh}>
                     Refresh projects
                   </Button>
@@ -373,18 +394,24 @@ export function ProjectsView({
                   local registrations can still be removed.
                 </Text>
               )}
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  void desktopBridge
-                    .openConsole()
-                    .catch((error: unknown) =>
-                      setFeedback({ tone: 'error', text: message(error) }),
-                    );
-                }}
-              >
-                Manage in Console
-              </Button>
+              {consoleAvailable ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    void desktopBridge
+                      .openConsole()
+                      .catch((error: unknown) =>
+                        setFeedback({ tone: 'error', text: message(error) }),
+                      );
+                  }}
+                >
+                  Manage in Console
+                </Button>
+              ) : (
+                <Text color="secondary">
+                  Manage this project in your deployment&apos;s Console.
+                </Text>
+              )}
             </Stack>
           </ControlSurface>
           <ControlSurface padding="md" as="section">

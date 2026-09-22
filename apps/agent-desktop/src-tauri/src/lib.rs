@@ -697,6 +697,16 @@ async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
+async fn desktop_console_available(state: State<'_, AppState>) -> Result<bool, String> {
+    let scope = state.preset_scope.clone()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(lifecycle::console_available(&scope.effective_api()?))
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 async fn open_console(state: State<'_, AppState>) -> Result<(), String> {
     let scope = state.preset_scope.clone()?;
     tauri::async_runtime::spawn_blocking(move || lifecycle::open_console(&scope.effective_api()?))
@@ -970,6 +980,7 @@ pub fn run() {
             check_for_agent_updates,
             install_agent_update,
             open_console,
+            desktop_console_available,
             open_logs,
             remove_agent_bundle,
             check_for_desktop_update,

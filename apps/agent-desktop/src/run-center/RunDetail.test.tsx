@@ -115,3 +115,57 @@ it('suspends catalogue refresh and logs when hidden and resumes when visible', a
   expect(actions.subscribeRunLogs).toHaveBeenCalledTimes(2);
   vi.useRealTimers();
 });
+
+describe('captured workspace panel', () => {
+  const actions = (): RunCenterActions => ({
+    catalogue: vi.fn().mockResolvedValue({
+      teams: [
+        {
+          teamId: 'team',
+          diaries: [{ id: 'diary', name: 'Research diary' }],
+          credential,
+        },
+      ],
+      projects: [{ id: 'project', teamId: 'team', name: 'Research project' }],
+    }),
+    startRun: vi.fn(),
+    stopRun: vi.fn(),
+    savePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    subscribeRunLogs: vi.fn().mockReturnValue(() => {}),
+  });
+  const renderRun = (value: DesktopRun) =>
+    render(
+      <MoltThemeProvider mode="dark">
+        <RunDetail
+          run={value}
+          actions={actions()}
+          now={0}
+          onBack={() => {}}
+          onRunAgain={() => {}}
+        />
+      </MoltThemeProvider>,
+    );
+
+  it('shows what the run resolved to, with catalogue names', async () => {
+    renderRun({
+      ...run,
+      workspace: {
+        projectId: 'project',
+        location: 'Laptop',
+        diaryId: 'diary',
+        source: '/Users/me/checkout',
+        strategy: 'existing',
+      },
+    });
+    expect(await screen.findByText('Research project')).toBeInTheDocument();
+    expect(await screen.findByText('Research diary')).toBeInTheDocument();
+    expect(screen.getByText('Laptop')).toBeInTheDocument();
+    expect(screen.getByText('/Users/me/checkout')).toBeInTheDocument();
+  });
+
+  it('omits the panel for a run started without project selection', () => {
+    renderRun(run);
+    expect(screen.queryByText('Captured workspace')).not.toBeInTheDocument();
+  });
+});
