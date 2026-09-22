@@ -221,7 +221,6 @@ describe('Desktop Projects journeys', () => {
             source: '/work/captured',
             strategy: 'existing',
             diaryId: 'diary',
-            configPath: '/run/projects.json',
           },
         },
       ],

@@ -78,24 +78,20 @@ export function RunComposer({
   );
   const [locationRevision, setLocationRevision] = useState(0);
   const projects = actions.projects ?? projectActions;
+  // Run again replays what was requested, never what it resolved to, so a
+  // location's current folder, strategy and diary apply to the new run.
   const [projectId, setProjectId] = useState(
-    previousRun?.workspace?.projectId ?? preset?.projectId ?? '',
+    (previousRun ? previousRun.projectId : preset?.projectId) ?? '',
   );
   const [binding, setBinding] = useState(
-    previousRun?.workspace?.binding ?? preset?.binding ?? '',
+    (previousRun ? previousRun.binding : preset?.binding) ?? '',
   );
   const [source, setSource] = useState(
-    previousRun?.workspace?.strategy === 'profile-default'
-      ? ''
-      : (previousRun?.workspace?.source ?? preset?.source ?? ''),
+    (previousRun ? previousRun.source : preset?.source) ?? '',
   );
   const [workspaceStrategy, setWorkspaceStrategy] = useState<
     StartRunInput['workspaceStrategy']
-  >(
-    previousRun?.workspace?.strategy === 'profile-default'
-      ? undefined
-      : (previousRun?.workspace?.strategy ?? preset?.workspaceStrategy),
-  );
+  >(previousRun ? previousRun.workspaceStrategy : preset?.workspaceStrategy);
   const [diaryId, setDiaryId] = useState(
     previousRun?.diaryId ??
       (preset?.version === 2 ? preset.diaryId : null) ??
@@ -225,6 +221,10 @@ export function RunComposer({
     location?.diaryId ||
     project?.defaultDiaryId ||
     (!projectId ? team?.defaultDiaryId : null);
+  // Sent as the request: only a diary the user chose, or the team default for
+  // General work. Location and project defaults are resolved by the daemon at
+  // start, so Run again picks up their current values.
+  const requestedDiary = diaryId || (!projectId ? team?.defaultDiaryId : null);
   const effectiveStrategy =
     workspaceStrategy ??
     location?.strategy ??
@@ -307,7 +307,7 @@ export function RunComposer({
         taskTypes,
         mode: 'poll',
         ...projectSelection,
-        ...(selectedTeamDiary ? { diaryId: selectedTeamDiary } : {}),
+        ...(requestedDiary ? { diaryId: requestedDiary } : {}),
       });
       onDone();
     } catch (error) {

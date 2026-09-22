@@ -181,3 +181,93 @@ describe('run draft and preset operations', () => {
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
   });
 });
+
+describe('run again', () => {
+  it('replays the request rather than the workspace it resolved to', async () => {
+    const previous = {
+      ...status.runs[0],
+      agent: 'first-agent',
+      diaryId: undefined,
+      projectId: 'project',
+      binding: 'Laptop',
+      workspace: {
+        projectId: 'project',
+        binding: 'Laptop',
+        diaryId: 'location-diary',
+        source: '/Users/me/old-checkout',
+        strategy: 'git-worktree' as const,
+      },
+    };
+    const withProject = {
+      ...catalogue,
+      projects: [
+        {
+          id: 'project',
+          teamId: 'team',
+          name: 'Research project',
+          description: null,
+          defaultDiaryId: null,
+          archived: false,
+        },
+      ],
+    };
+    // The location has moved on since the previous run.
+    const laptop = {
+      name: 'Laptop',
+      apiUrl: 'https://api.example',
+      teamId: 'team',
+      projectId: 'project',
+      diaryId: 'location-diary',
+      source: '/Users/me/new-checkout',
+      effectiveSource: '/Users/me/new-checkout',
+      strategy: 'existing' as const,
+      readiness: { ready: true },
+    };
+    const data: RunCenterData = {
+      server: running,
+      status,
+      catalogue: withProject,
+      runs: [previous],
+      presets: [],
+      providers: {},
+      subscriptions: [],
+    };
+    const actions: RunCenterActions = {
+      catalogue: vi.fn().mockResolvedValue(withProject),
+      refresh: vi.fn().mockResolvedValue(undefined),
+      startRun: vi.fn().mockResolvedValue(status.runs[0]),
+      stopRun: vi.fn(),
+      savePreset: vi.fn().mockResolvedValue(preset),
+      deletePreset: vi.fn().mockResolvedValue(undefined),
+      subscribeRunLogs: () => () => {},
+      projects: {
+        list: vi.fn().mockResolvedValue({ locations: [laptop] }),
+        save: vi.fn(),
+        remove: vi.fn(),
+        chooseFolder: vi.fn(),
+      },
+    };
+    render(
+      <MoltThemeProvider mode="dark">
+        <RunComposer
+          data={data}
+          actions={actions}
+          presetId={null}
+          previousRun={previous}
+          now={0}
+          onDone={vi.fn()}
+        />
+      </MoltThemeProvider>,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
+    await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
+    const input = vi.mocked(actions.startRun).mock.calls[0][0];
+    expect(input).toMatchObject({ projectId: 'project', binding: 'Laptop' });
+    expect(input).not.toHaveProperty('source');
+    expect(input).not.toHaveProperty('workspaceStrategy');
+    expect(input).not.toHaveProperty('diaryId');
+  });
+});
