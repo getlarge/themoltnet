@@ -76,9 +76,7 @@ jobs:
           AGENT_DESKTOP_VERSION="${AGENT_DESKTOP_VERSION:-$(latest agent-desktop)}"
           test -n "$CLI_VERSION" -o -n "$AGENT_CLI_VERSION" -o -n "$AGENT_DESKTOP_VERSION"
           CLI_VERSION="$CLI_VERSION" AGENT_CLI_VERSION="$AGENT_CLI_VERSION" AGENT_DESKTOP_VERSION="$AGENT_DESKTOP_VERSION" bash tools/release/propose-download-pin.sh
-          if git diff --quiet -- \
-            apps/landing/nginx/default.conf.template \
-            apps/agent-desktop/agent-cli.version; then
+          if git diff --quiet -- apps/landing/nginx/default.conf.template; then
             echo changed=false >> "$GITHUB_OUTPUT"
           else
             echo changed=true >> "$GITHUB_OUTPUT"
@@ -101,9 +99,7 @@ jobs:
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add \
-            apps/landing/nginx/default.conf.template \
-            apps/agent-desktop/agent-cli.version
+          git add apps/landing/nginx/default.conf.template
           git commit -m "$title"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')

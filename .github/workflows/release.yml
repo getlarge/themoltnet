@@ -275,6 +275,7 @@ jobs:
       agent-daemon-tag: ${{ steps.resolve.outputs.agent-daemon-tag }}
       agent-desktop: ${{ steps.resolve.outputs.agent-desktop }}
       agent-desktop-tag: ${{ steps.resolve.outputs.agent-desktop-tag }}
+      agent-desktop-agent-cli-version: ${{ steps.desktop-agent-cli.outputs.version }}
       docker-has-releases: ${{ steps.resolve-docker.outputs.has-releases }}
       docker-matrix: ${{ steps.resolve-docker.outputs.matrix }}
     steps:
@@ -477,6 +478,26 @@ jobs:
             tag=$(find_draft_tag "dspy-adapters")
             [ -n "$tag" ] && echo "dspy-adapters-version=$(version_from_tag "$tag" "dspy-adapters")" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Resolve Agent CLI version for Desktop
+        id: desktop-agent-cli
+        if: ${{ steps.resolve.outputs.agent-desktop == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENT_DAEMON_TAG: ${{ steps.resolve.outputs.agent-daemon-tag }}
+        run: |
+          tag="$AGENT_DAEMON_TAG"
+          if [ -z "$tag" ]; then
+            tag=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft \
+              --jq '[.[] | select(.isDraft | not) | .tagName | select(startswith("agent-daemon-v"))][0] // empty')
+          fi
+          version=${tag#agent-daemon-v}
+          [[ "$tag" == agent-daemon-v* && "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "::error::No stable Agent CLI release is available for Desktop packaging"
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Desktop will package Agent CLI $version"
 
       - name: Resolve released Docker projects
         id: resolve-docker
@@ -2575,7 +2596,7 @@ jobs:
           NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
-          AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+          MOLTNET_AGENT_CLI_VERSION: ${{ needs.resolve-publish.outputs.agent-desktop-agent-cli-version }}
         run: bash tools/release/agent-desktop/validate.sh . --release mac-os
 
       - name: Import Developer ID identity
@@ -2609,7 +2630,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
-          AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+          MOLTNET_AGENT_CLI_VERSION: ${{ needs.resolve-publish.outputs.agent-desktop-agent-cli-version }}
         run: |
           umask 077
           trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
@@ -2623,9 +2644,6 @@ jobs:
               throw new Error("effective Tauri updater key was not substituted");
             }
           '
-          if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
-            export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
-          fi
           pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=mac-os -- release
 
       - name: Remove signing identity
@@ -2715,14 +2733,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
-          AGENT_CLI_RELEASE_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+          MOLTNET_AGENT_CLI_VERSION: ${{ needs.resolve-publish.outputs.agent-desktop-agent-cli-version }}
           APPIMAGE_EXTRACT_AND_RUN: '1'
         run: |
           bash tools/release/agent-desktop/validate.sh . --release linux
           export TAURI_CONFIG=$(jq -cn --arg key "$TAURI_UPDATER_PUBLIC_KEY" '{plugins:{updater:{pubkey:$key}}}')
-          if [ -n "$AGENT_CLI_RELEASE_TAG" ]; then
-            export MOLTNET_AGENT_CLI_VERSION="${AGENT_CLI_RELEASE_TAG#agent-daemon-v}"
-          fi
           pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux -- release
 
       - name: Verify and materialize Linux assets

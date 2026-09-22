@@ -45,7 +45,7 @@ test -n "$payload"
 test -x "$payload/bin/moltnet-agent"
 mkdir -p "$(dirname "$agent")"
 ln -s "$(pwd)/$payload/bin/moltnet-agent" "$agent"
-printf '{"version":"%s"}\n' "$(cat apps/agent-desktop/agent-cli.version)" \
+printf '{"version":"%s"}\n' "$(cat apps/agent-desktop/agent-cli.minimum-version)" \
   > "$home/.local/share/moltnet/agent/current/manifest.json"
 
 if [ "$(uname -s)" = Linux ] && command -v setsid >/dev/null 2>&1; then

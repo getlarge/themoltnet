@@ -8,8 +8,7 @@ package_json="$root/apps/agent-desktop/package.json"
 cargo_toml="$root/apps/agent-desktop/src-tauri/Cargo.toml"
 tauri_config="$root/apps/agent-desktop/src-tauri/tauri.conf.json"
 build_rs="$root/apps/agent-desktop/src-tauri/build.rs"
-agent_cli_pin="$root/apps/agent-desktop/agent-cli.version"
-landing_template="$root/apps/landing/nginx/default.conf.template"
+agent_cli_minimum_file="$root/apps/agent-desktop/agent-cli.minimum-version"
 landing_fly="$root/apps/landing/fly.toml"
 
 valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
@@ -33,39 +32,26 @@ cargo_version=$(sed -nE 's/^version = "([0-9]+\.[0-9]+\.[0-9]+)"$/\1/p' "$cargo_
   exit 1
 }
 
-embedded_agent_cli_version=$(tr -d '\n' < "$agent_cli_pin")
-[ -n "$embedded_agent_cli_version" ] || {
-  echo "embedded Agent CLI release pin is empty or invalid" >&2
+minimum_agent_cli_version=$(tr -d '\n' < "$agent_cli_minimum_file")
+[ -n "$minimum_agent_cli_version" ] || {
+  echo "minimum Agent CLI version is empty or invalid" >&2
   exit 1
 }
-valid_version "$embedded_agent_cli_version" || {
-  echo "embedded Agent CLI release pin is not canonical" >&2
+valid_version "$minimum_agent_cli_version" || {
+  echo "minimum Agent CLI version is not canonical" >&2
   exit 1
 }
-public_agent_cli_version=$(sed -nE 's/^    set \$agent_cli_version ([0-9]+\.[0-9]+\.[0-9]+);/\1/p' "$landing_template")
-[ -n "$public_agent_cli_version" ] && valid_version "$public_agent_cli_version" || {
-  echo "public Agent CLI release pin is empty or invalid" >&2
-  exit 1
-}
-version_at_least "$embedded_agent_cli_version" "$public_agent_cli_version" || {
-  echo "embedded Agent CLI release pin must not trail the public Agent CLI pin" >&2
-  exit 1
-}
-if [ -n "${AGENT_CLI_RELEASE_TAG:-}" ]; then
-  case "$AGENT_CLI_RELEASE_TAG" in
-    agent-daemon-v*) agent_cli_release_version=${AGENT_CLI_RELEASE_TAG#agent-daemon-v} ;;
-    *) echo "invalid Agent CLI release tag: $AGENT_CLI_RELEASE_TAG" >&2; exit 1 ;;
-  esac
-  valid_version "$agent_cli_release_version" || {
-    echo "invalid Agent CLI release version: $agent_cli_release_version" >&2
+if [ -n "${MOLTNET_AGENT_CLI_VERSION:-}" ]; then
+  valid_version "$MOLTNET_AGENT_CLI_VERSION" || {
+    echo "selected Agent CLI version is not canonical: $MOLTNET_AGENT_CLI_VERSION" >&2
     exit 1
   }
-  [ "$agent_cli_release_version" = "$embedded_agent_cli_version" ] || {
-    echo "Agent CLI release tag must match the embedded Agent CLI pin" >&2
+  version_at_least "$MOLTNET_AGENT_CLI_VERSION" "$minimum_agent_cli_version" || {
+    echo "selected Agent CLI version $MOLTNET_AGENT_CLI_VERSION is below the Desktop minimum $minimum_agent_cli_version" >&2
     exit 1
   }
-elif [ "${2:-}" = "--release" ] && [ "$embedded_agent_cli_version" != "$public_agent_cli_version" ]; then
-  echo "an ahead embedded Agent CLI pin requires its coordinated release tag" >&2
+elif [ "${2:-}" = "--release" ]; then
+  echo "MOLTNET_AGENT_CLI_VERSION is required for release packaging" >&2
   exit 1
 fi
 

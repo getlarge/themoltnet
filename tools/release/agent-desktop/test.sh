@@ -15,7 +15,7 @@ mkdir -p \
 printf '%s\n' '{"version":"1.2.3"}' > "$fixture/apps/agent-desktop/package.json"
 printf '%s\n' '[package]' 'version = "1.2.3"' > "$fixture/apps/agent-desktop/src-tauri/Cargo.toml"
 printf '%s\n' '{"version":"1.2.3"}' > "$fixture/apps/agent-desktop/src-tauri/tauri.conf.json"
-printf '%s\n' '0.57.0' > "$fixture/apps/agent-desktop/agent-cli.version"
+printf '%s\n' '0.57.0' > "$fixture/apps/agent-desktop/agent-cli.minimum-version"
 printf '%s\n' \
   'const RELEASE_SIGNER_PUBKEY: &str =' \
   '    "ssh-ed25519 AAAATEST";' \
@@ -36,12 +36,12 @@ validate_release() {
     NOTARY_KEY='notary-key' \
     NOTARY_ISSUER_ID='issuer' \
     NOTARY_KEY_ID='key-id' \
-    AGENT_CLI_RELEASE_TAG="${1:-}" \
+    MOLTNET_AGENT_CLI_VERSION="${1:-}" \
     bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release
 }
 
 bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
-validate_release 'agent-daemon-v0.57.0'
+validate_release '0.57.0'
 
 if TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
@@ -49,32 +49,27 @@ if TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   APPLE_CERT_PASSWORD='password' \
   NOTARY_KEY='notary-key' \
   NOTARY_ISSUER_ID='issuer' \
+  MOLTNET_AGENT_CLI_VERSION='0.57.0' \
   bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release 2>/dev/null; then
   echo 'release validation accepted incomplete notarization credentials' >&2
   exit 1
 fi
 
-printf '%s\n' '0.56.2' > "$fixture/apps/agent-desktop/agent-cli.version"
-if bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" 2>/dev/null; then
-  echo 'validation accepted a desktop Agent CLI pin behind the public pin' >&2
+printf '%s\n' '0.58.0' > "$fixture/apps/agent-desktop/agent-cli.minimum-version"
+if validate_release '0.57.0' 2>/dev/null; then
+  echo 'release validation accepted an Agent CLI version below the minimum' >&2
   exit 1
 fi
-
-printf '%s\n' '0.58.0' > "$fixture/apps/agent-desktop/agent-cli.version"
 bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
 if validate_release 2>/dev/null; then
-  echo 'release validation accepted an ahead Agent CLI pin without its release tag' >&2
+  echo 'release validation accepted no selected Agent CLI version' >&2
   exit 1
 fi
-validate_release 'agent-daemon-v0.58.0'
-if validate_release 'agent-daemon-v0.59.0' 2>/dev/null; then
-  echo 'release validation accepted a tag that differs from the embedded Agent CLI pin' >&2
-  exit 1
-fi
-printf '%s\n' '0.57.0' > "$fixture/apps/agent-desktop/agent-cli.version"
+validate_release '0.58.0'
+validate_release '0.59.0'
+printf '%s\n' '0.57.0' > "$fixture/apps/agent-desktop/agent-cli.minimum-version"
 
 TEMPLATE="$fixture/apps/landing/nginx/default.conf.template" \
-AGENT_CLI_PIN_FILE="$fixture/apps/agent-desktop/agent-cli.version" \
 CLI_VERSION=2.5.0 \
 AGENT_CLI_VERSION=0.58.0 \
 AGENT_DESKTOP_VERSION=1.3.0 \
@@ -83,20 +78,18 @@ bash "$repo/tools/release/propose-download-pin.sh"
 grep -q '^    set \$cli_version 2\.5\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
 grep -q '^    set \$agent_cli_version 0\.58\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
 grep -q '^    set \$agent_desktop_version 1\.3\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
-[ "$(cat "$fixture/apps/agent-desktop/agent-cli.version")" = '0.58.0' ]
+[ "$(cat "$fixture/apps/agent-desktop/agent-cli.minimum-version")" = '0.57.0' ]
 
 if TEMPLATE="$fixture/apps/landing/nginx/default.conf.template" \
-  AGENT_CLI_PIN_FILE="$fixture/apps/agent-desktop/agent-cli.version" \
   AGENT_CLI_VERSION=0.57.0 \
   bash "$repo/tools/release/propose-download-pin.sh" 2>/dev/null; then
   echo 'pin updater accepted an Agent CLI downgrade' >&2
   exit 1
 fi
 grep -q '^    set \$agent_cli_version 0\.58\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
-[ "$(cat "$fixture/apps/agent-desktop/agent-cli.version")" = '0.58.0' ]
+[ "$(cat "$fixture/apps/agent-desktop/agent-cli.minimum-version")" = '0.57.0' ]
 
 if TEMPLATE="$fixture/apps/landing/nginx/default.conf.template" \
-  AGENT_CLI_PIN_FILE="$fixture/apps/agent-desktop/agent-cli.version" \
   AGENT_CLI_VERSION=01.2.3 \
   bash "$repo/tools/release/propose-download-pin.sh" 2>/dev/null; then
   echo 'pin updater accepted a noncanonical version' >&2
@@ -107,7 +100,6 @@ node - <<'NODE'
 const fs = require('node:fs');
 const config = require('./release-please-config.json');
 const files = config.packages['apps/agent-desktop']['extra-files'];
-const desktopPackage = require('./apps/agent-desktop/package.json');
 const expected = new Map([
   ['src-tauri/tauri.conf.json', '$.version'],
   ['src-tauri/Cargo.toml', '$.package.version'],
@@ -122,12 +114,6 @@ for (const file of files) {
 if (expected.size) {
   throw new Error(`missing desktop release version updaters: ${[...expected.keys()]}`);
 }
-if (!desktopPackage.nx.targets['release:validate'].inputs.includes(
-  '{workspaceRoot}/apps/landing/nginx/default.conf.template',
-)) {
-  throw new Error('desktop release validation must track the public Agent CLI pin');
-}
-
 const tauriConfigPath = 'apps/agent-desktop/src-tauri/tauri.conf.json';
 const tauriConfig = fs.readFileSync(tauriConfigPath, 'utf8');
 const releasePleaseLayout = `${JSON.stringify(JSON.parse(tauriConfig), null, 2)}\n`;
@@ -166,6 +152,7 @@ NODE
 # Linux signing does not require Apple material; all update formats are required.
 TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
+  MOLTNET_AGENT_CLI_VERSION='0.57.0' \
   bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release linux
 
 # GitHub's releases/tags endpoint excludes drafts. Exercise the collection

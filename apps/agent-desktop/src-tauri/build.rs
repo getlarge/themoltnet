@@ -6,24 +6,24 @@ use build_support::{render_installer, resolve_agent_cli_version, version_at_leas
 
 const RELEASE_SIGNER_PUBKEY: &str =
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y";
-const NATIVE_SOCKET_MIN_VERSION: &str = "0.62.0";
-
 fn main() {
     let template_path = PathBuf::from("../../../tools/release/agent-bundle/install.sh");
-    let pin_path = PathBuf::from("../agent-cli.version");
+    let minimum_path = PathBuf::from("../agent-cli.minimum-version");
     println!("cargo:rerun-if-changed={}", template_path.display());
-    println!("cargo:rerun-if-changed={}", pin_path.display());
+    println!("cargo:rerun-if-changed={}", minimum_path.display());
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=MOLTNET_AGENT_CLI_VERSION");
 
-    let default_version = fs::read_to_string(&pin_path).expect("read Agent CLI version pin");
+    let minimum_version =
+        fs::read_to_string(&minimum_path).expect("read minimum Agent CLI version");
     let override_version = env::var("MOLTNET_AGENT_CLI_VERSION").ok();
     let agent_cli_version =
-        resolve_agent_cli_version(default_version.trim(), override_version.as_deref())
+        resolve_agent_cli_version(minimum_version.trim(), override_version.as_deref())
             .expect("resolve embedded Agent CLI version");
     assert!(
-        version_at_least(agent_cli_version, NATIVE_SOCKET_MIN_VERSION),
-        "embedded Agent CLI version {agent_cli_version} is below native socket minimum {NATIVE_SOCKET_MIN_VERSION}; update apps/agent-desktop/agent-cli.version"
+        version_at_least(agent_cli_version, minimum_version.trim()),
+        "embedded Agent CLI version {agent_cli_version} is below the Desktop minimum {}; update MOLTNET_AGENT_CLI_VERSION or apps/agent-desktop/agent-cli.minimum-version",
+        minimum_version.trim()
     );
     println!("cargo:rustc-env=MOLTNET_EMBEDDED_AGENT_CLI_VERSION={agent_cli_version}");
 
