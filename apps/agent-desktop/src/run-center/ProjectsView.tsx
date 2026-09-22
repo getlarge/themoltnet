@@ -12,9 +12,10 @@ import {
 import { useEffect, useState } from 'react';
 
 import { desktopBridge } from '../bridge.js';
-import type { ProjectActions, ProjectLocation } from './types.js';
 import type {
   AgentServerCatalogue,
+  ProjectActions,
+  ProjectLocation,
   RunCenterActions,
   RunCenterData,
 } from './types.js';

@@ -16,12 +16,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { verificationUnavailable } from './credential-health.js';
 import { relativeTime } from './format.js';
-import { projectActions } from './run-center-bridge.js';
-import type { ProjectLocation } from './types.js';
 import { type ProjectContext, workspaceLabel } from './ProjectsView.js';
+import { projectActions } from './run-center-bridge.js';
 import type {
   AgentServerCatalogueProfile,
   DesktopRun,
+  ProjectLocation,
   RunCenterActions,
   RunCenterData,
   StartRunInput,

@@ -37,10 +37,13 @@ import {
 
 import { ServerPanel } from '../App.js';
 import { desktopBridge } from '../bridge.js';
-import { projectActions } from './run-center-bridge.js';
 import { type ProjectContext, ProjectsView } from './ProjectsView.js';
 import { ProvidersView } from './ProvidersView.js';
-import { providerActions, subscriptionActions } from './run-center-bridge.js';
+import {
+  projectActions,
+  providerActions,
+  subscriptionActions,
+} from './run-center-bridge.js';
 import { RunsView } from './RunsView.js';
 import { TeamsView } from './TeamsView.js';
 import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
