@@ -4,7 +4,7 @@ import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { browser, expect } from '@wdio/globals';
 
 const installedVersion = readFileSync(
-  new URL('../../agent-desktop/agent-cli.version', import.meta.url),
+  new URL('../../agent-desktop/agent-cli.minimum-version', import.meta.url),
   'utf8',
 ).trim();
 

@@ -43,7 +43,7 @@
         "{projectRoot}/src-tauri/src/**/*.rs",
         "{projectRoot}/src-tauri/build.rs",
         "{projectRoot}/src-tauri/build_support.rs",
-        "{projectRoot}/agent-cli.version",
+        "{projectRoot}/agent-cli.minimum-version",
         "{projectRoot}/src-tauri/Cargo.toml",
         "{projectRoot}/src-tauri/Cargo.lock",
         "{projectRoot}/src-tauri/tauri.conf.json",
@@ -177,7 +177,7 @@
           "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
           "{workspaceRoot}/release-please-config.json",
           "{workspaceRoot}/apps/landing/nginx/default.conf.template",
-          "{projectRoot}/agent-cli.version",
+          "{projectRoot}/agent-cli.minimum-version",
           "{projectRoot}/src-tauri/build.rs",
           "{projectRoot}/src-tauri/Cargo.toml",
           "{projectRoot}/src-tauri/tauri.conf.json"
@@ -233,7 +233,6 @@
         "inputs": [
           "agentDesktopNative",
           "agentDesktopInstaller",
-          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "{workspaceRoot}/apps/landing/fly.toml",
           "{workspaceRoot}/tools/release/agent-desktop/validate.sh"
         ],

@@ -45,13 +45,13 @@ try {
   mkdirSync(home, { mode: 0o700 });
   const current = join(root, 'agent/current');
   mkdirSync(join(current, 'bin'), { recursive: true });
-  // Match the embedded installer pin so startup never replaces the local CLI.
+  // Match the embedded development default so startup keeps the local CLI.
   const version = readFileSync(
-    new URL('../agent-desktop/agent-cli.version', import.meta.url),
+    new URL('../agent-desktop/agent-cli.minimum-version', import.meta.url),
     'utf8',
   ).trim();
   if (!/^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(version))
-    throw new Error('Invalid Desktop agent version pin');
+    throw new Error('Invalid Desktop minimum agent version');
   writeFileSync(join(current, 'manifest.json'), JSON.stringify({ version }));
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = import.meta.resolve('tsx');
