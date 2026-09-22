@@ -513,6 +513,10 @@ active identity, and execs the target binary with the correct environment.
 
 ### Project activation
 
+[Projects and Workspaces](../use/projects-and-workspaces.md) explains the model
+and the personal, CI, and long-lived machine journeys. This section is the exact
+command and file contract.
+
 Projects are shared team resources. Team members can discover them; team
 managers create, update, and archive them in Console or through the CLI and SDK.
 A project's team never changes. Its optional default diary belongs to that team.

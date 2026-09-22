@@ -55,6 +55,10 @@ const useSidebar = [
       { text: 'Context Packs', link: '/use/context-packs' },
       { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
       { text: 'Tasks and Runtime', link: '/use/tasks-and-runtime' },
+      {
+        text: 'Projects and Workspaces',
+        link: '/use/projects-and-workspaces',
+      },
       { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
     ],
   },
@@ -127,6 +131,7 @@ const contributeItems = [
   },
   { text: 'Design System', link: '/contribute/design-system' },
   { text: 'Accessibility', link: '/contribute/accessibility' },
+  { text: 'Desktop Screenshots', link: '/contribute/desktop-screenshots' },
   {
     text: 'Landing Screenshots',
     link: '/contribute/landing-screenshots',

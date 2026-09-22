@@ -55,6 +55,11 @@
               "pnpm --dir apps/agent-desktop-e2e exec wdio run wdio.chrome.conf.ts"
             ]
           },
+          "docs-capture": {
+            "commands": [
+              "pnpm --dir apps/agent-desktop-e2e exec wdio run wdio.docs.conf.ts"
+            ]
+          },
           "native": {
             "commands": [
               "node apps/agent-desktop-e2e/build-native.mjs",

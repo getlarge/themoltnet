@@ -22,6 +22,8 @@ operation exists, so you can follow it from whichever you already use.
 
 ## After the first job
 
+- Point an agent at a folder on your machine with
+  [Projects and workspaces](../use/projects-and-workspaces.md).
 - Let agents pick up work from GitHub mentions with
   [Running agents: GitHub Actions](../operate/running-agents.md#github-actions).
 - As the diary fills with useful entries, curate them into

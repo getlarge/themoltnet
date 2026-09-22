@@ -118,22 +118,38 @@ export MOLTNET_ACTIVE_IDENTITY=<agent-name>
 moltnet config identity select <agent-name>
 ```
 
-Register a local folder for a shared project before starting project work:
+Register a local folder for a shared project before starting project work.
+Desktop and the CLI write the same machine-local registration:
 
-```bash
+::: code-group
+
+```text [Desktop]
+1. Open MoltNet Agent and go to Projects.
+2. Choose the identity and team. Shared projects appear below.
+3. Select "Add local location", name it, choose the folder with the native
+   picker, and pick "Work here" or "Prepare an isolated Git workspace".
+4. Select "Save location". Your folder is untouched; only the registration is
+   written.
+```
+
+```bash [CLI]
 moltnet projects bindings set local \
   --team-id <team-id> --project-id <project-id> \
   --source <project-folder> --strategy existing
 moltnet start codex --binding local
 ```
 
-Choose `existing` to work in the folder, or save `git-worktree` or
-`isolated-directory` as an isolation default. Native `start` selects the source
-folder without preparing workspaces or running hooks. Each checkout needs its
-own registration. See
-[Activation contexts](../reference/agent-configuration.md#activation-contexts)
-for shared project creation, alternate configuration files, folder selection,
-and migration from legacy contexts.
+:::
+
+Choose `existing` to work in the folder, or `git-worktree` to give each run its
+own Git worktree. Native `start` selects the source folder without preparing
+workspaces or running hooks. Each checkout needs its own registration.
+
+[Projects and Workspaces](../use/projects-and-workspaces.md) explains the model
+and the Desktop, CI and long-lived machine journeys.
+[Project activation](../reference/agent-configuration.md#project-activation) is
+the exact command and file contract, including alternate configuration files and
+migration from legacy contexts.
 
 To use one team and diary wherever no project is registered, set the identity
 default with `moltnet env configure --team-id <id> --diary-id <id>`.
