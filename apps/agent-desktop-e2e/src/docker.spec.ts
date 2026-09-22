@@ -27,18 +27,22 @@ type JourneyAgent = Awaited<ReturnType<typeof journeyAgent>>['agent'];
 async function waitForTask(agent: JourneyAgent, id: string, label: string) {
   let failed = false;
   let last = 'unknown';
-  await browser.waitUntil(
-    async () => {
-      last = (await agent.tasks.get(id)).status;
-      failed = last === 'failed';
-      return failed || last === 'completed';
-    },
-    {
-      timeout: 60000,
-      interval: 500,
-      timeoutMsg: `${label} did not complete the real API task (last status: ${last})`,
-    },
-  );
+  // The message is built after the wait: a timeoutMsg literal would capture
+  // the status before the first poll.
+  await browser
+    .waitUntil(
+      async () => {
+        last = (await agent.tasks.get(id)).status;
+        failed = last === 'failed';
+        return failed || last === 'completed';
+      },
+      { timeout: 60000, interval: 500 },
+    )
+    .catch(() => {
+      throw new Error(
+        `${label} did not complete the real API task (last status: ${last})`,
+      );
+    });
   if (failed) throw new Error(`${label} failed task ${id}`);
 }
 
@@ -49,19 +53,23 @@ describe('Personal Desktop journey against Docker services', () => {
     await enableNativePolling();
     const { agent, journey } = await journeyAgent(root);
     let serverState = 'unknown';
-    await browser.waitUntil(
-      async () => {
-        const state = await browser.tauri.execute<Promise<DesktopStatus>, []>(
-          ({ core }) => core.invoke('desktop_status') as Promise<DesktopStatus>,
+    await browser
+      .waitUntil(
+        async () => {
+          const state = await browser.tauri.execute<Promise<DesktopStatus>, []>(
+            ({ core }) =>
+              core.invoke('desktop_status') as Promise<DesktopStatus>,
+          );
+          serverState = state.state;
+          return state.state === 'running';
+        },
+        { timeout: 20000 },
+      )
+      .catch(() => {
+        throw new Error(
+          `The Agent Server did not start (last state: ${serverState})`,
         );
-        serverState = state.state;
-        return state.state === 'running';
-      },
-      {
-        timeout: 20000,
-        timeoutMsg: `The Agent Server did not start (last state: ${serverState})`,
-      },
-    );
+      });
     try {
       await $('a=Projects').click();
       await expect($('h2=Shared with the team')).toBeDisplayed();

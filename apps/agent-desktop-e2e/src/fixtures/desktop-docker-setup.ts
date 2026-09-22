@@ -1,17 +1,12 @@
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
   AgentServerStore,
-  attachExternalAgent,
   ConnectionSettingsStore,
   RuntimeRegistry,
 } from '@themoltnet/agent-daemon/testing';
-import {
-  agentKeyKey,
-  identitySeedKey,
-  SecretProviderRegistry,
-} from '@themoltnet/sdk';
+import { agentKeyKey, identitySeedKey } from '@themoltnet/sdk';
 import { FileSecretProvider } from '@themoltnet/sdk/node';
 
 import { readJourneySetup, writeJourney } from './journey.js';
@@ -48,16 +43,19 @@ store.writeAgentConfig('desktop-personal', {
   },
   endpoints: { api: journey.apiUrl, mcp: `${journey.apiUrl}/mcp` },
 });
-await attachExternalAgent(
-  store,
-  new SecretProviderRegistry().register(secrets),
-  {
-    name: 'desktop-personal',
-    configDir: dirname(store.agentPath('desktop-personal')),
-    apiUrl: journey.apiUrl,
-    teamId: journey.teamId,
-  },
-);
+// Managed, as Desktop's own identities are: its references resolve through
+// the store's secrets, where the keys were just written. An external
+// activation would need MOLTNET_SECRET_ROOT, which Desktop never sets. The
+// daemon still verifies this identity against whoami before every use.
+store.writeActivation({
+  source: 'managed',
+  alias: 'desktop-personal',
+  subjectId: journey.identity.subjectId,
+  publicKey: journey.identity.publicKey,
+  fingerprint: journey.identity.fingerprint,
+  createdAt: new Date().toISOString(),
+  apiUrl: journey.apiUrl,
+});
 await new RuntimeRegistry(store.root).register(
   'desktop_e2e',
   fileURLToPath(new URL('./runtime.mjs', import.meta.url)),

@@ -195,9 +195,12 @@ describe('Desktop Projects journeys', () => {
         projectId: 'project',
         location: 'Laptop',
         source: '/work/new',
-        strategy: 'existing',
       },
     });
+    // The folder overrides the source only; the location's strategy applies.
+    expect(
+      (start.mock.calls[0]?.[0] as { spec: Record<string, unknown> }).spec,
+    ).not.toHaveProperty('strategy');
     expect(
       await browser.execute(() =>
         localStorage.getItem('moltnet.run-presets.v1'),
