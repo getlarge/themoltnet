@@ -113,6 +113,7 @@ export async function fixture(
     operatorOAuth?: OperatorOAuth;
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;
+    startTimeoutMs?: number;
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;
@@ -131,6 +132,7 @@ export async function fixture(
     projectRoot,
     baseEnv = { PATH: '/usr/bin' },
     maxLogBytes,
+    startTimeoutMs,
     symlinkImpl,
     resolveRuntimeModule,
     externalSecrets = {},
@@ -279,6 +281,7 @@ export async function fixture(
       : {}),
     ...(symlinkImpl ? { symlinkImpl } : {}),
     ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
+    ...(startTimeoutMs === undefined ? {} : { startTimeoutMs }),
     ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
   });
   const browserToken = randomUUID();

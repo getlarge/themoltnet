@@ -1,4 +1,4 @@
-import { mkdtemp, realpath, rm, stat } from 'node:fs/promises';
+import { appendFile, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 
@@ -83,8 +83,10 @@ describe('native managed project runs', () => {
     expect(child.args).toContain('--binding');
     // Stable per agent and location, so retries find their state.
     const stateDir = child.args[child.args.indexOf('--state-dir') + 1];
-    expect(stateDir).toBe(
-      join(f.store.root, 'run-state', 'course-bot', 'location-Laptop'),
+    expect(stateDir).toMatch(
+      new RegExp(
+        `^${join(f.store.root, 'run-state', 'course-bot', 'location-Laptop-')}[0-9a-f]{12}$`,
+      ),
     );
     expect((await stat(configPath)).mode & 0o777).toBe(0o600);
     // The record keeps the request; resolved values live in `workspace`.
@@ -119,8 +121,10 @@ describe('native managed project runs', () => {
     );
     const stateDir =
       f.spawned[0].args[f.spawned[0].args.indexOf('--state-dir') + 1];
-    expect(stateDir).toBe(
-      join(f.store.root, 'run-state', 'course-bot', 'general'),
+    expect(stateDir).toMatch(
+      new RegExp(
+        `^${join(f.store.root, 'run-state', 'course-bot', 'general-')}[0-9a-f]{12}$`,
+      ),
     );
   });
 
@@ -188,6 +192,101 @@ describe('native managed project runs', () => {
     expect(run.workspace).not.toHaveProperty('source');
     expect(listed.body).not.toContain(f.source);
     expect(listed.body).not.toContain('projects.json');
+  });
+
+  it('keeps state for the same selection and separates other folders', async () => {
+    const f = await setup();
+    const other = await realpath(await mkdtemp(join(tmpdir(), 'run-other-')));
+    registerCleanup(() => rm(other, { recursive: true, force: true }));
+    const stateDirs: string[] = [];
+    for (const source of [f.source, f.source, other]) {
+      const response = await f.app.inject({
+        method: 'POST',
+        url: '/v1/runs',
+        headers: nativeHeaders,
+        payload: {
+          ...spec,
+          projectId: null,
+          source,
+          workspaceStrategy: 'existing',
+        },
+      });
+      expect(response.statusCode, response.body).toBe(201);
+      const args = f.spawned.at(-1)!.args;
+      stateDirs.push(args[args.indexOf('--state-dir') + 1]);
+    }
+    expect(stateDirs[0]).toBe(stateDirs[1]);
+    expect(stateDirs[2]).not.toBe(stateDirs[0]);
+  });
+
+  it('redacts local folders from stop responses and logs for browsers', async () => {
+    const f = await setup();
+    const started = await f.app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: nativeHeaders,
+      payload: { ...spec, projectId: 'project', binding: 'Laptop' },
+    });
+    const run = started.json<RunRecord>();
+    await appendFile(
+      f.store.resolveRunLogPath(run.id),
+      `${JSON.stringify({ msg: 'worker ready', source: f.source, stateRootDir: join(f.store.root, 'run-state') })}\n`,
+    );
+    const token = await authorize(f.app);
+    const browser = {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+    };
+    const logs = await f.app.inject({
+      method: 'GET',
+      url: `/v1/runs/${run.id}/logs/snapshot`,
+      headers: browser,
+    });
+    expect(logs.statusCode).toBe(200);
+    expect(logs.body).toContain('worker ready');
+    expect(logs.body).not.toContain(f.source);
+    expect(logs.body).not.toContain(f.store.root);
+    const nativeLogs = await f.app.inject({
+      method: 'GET',
+      url: `/v1/runs/${run.id}/logs/snapshot`,
+      headers: nativeHeaders,
+    });
+    expect(nativeLogs.body).toContain(f.source);
+
+    const stopped = await f.app.inject({
+      method: 'DELETE',
+      url: `/v1/runs/${run.id}`,
+      headers: browser,
+    });
+    expect(stopped.statusCode).toBe(200);
+    expect(stopped.json<RunRecord>().workspace).toMatchObject({
+      binding: 'Laptop',
+    });
+    expect(stopped.body).not.toContain(f.source);
+  });
+
+  it('does not start a run whose preparation outlives the start budget', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('run-token');
+    const f = await fixture({
+      nativeGrant,
+      startTimeoutMs: 50,
+      resolveRuntimeModule: () =>
+        new Promise<never>(() => {
+          // Never settles: only the start budget ends preparation.
+        }),
+    });
+    activateManaged(f.store);
+    const response = await f.app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: nativeHeaders,
+      payload: spec,
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ code: 'start_timeout' });
+    expect(f.spawned).toHaveLength(0);
   });
 
   it('lets browsers start General work', async () => {

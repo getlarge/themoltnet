@@ -274,6 +274,22 @@ describe('managed run project selection', () => {
     }
   });
 
+  it('refuses a protected folder before running git in it', async () => {
+    const f = await setup();
+    await mkdir(f.store, { recursive: true });
+    await expect(
+      resolveManagedProjectSelection({
+        ...f.options,
+        spec: {
+          ...spec,
+          projectId: null,
+          source: f.store,
+          workspaceStrategy: 'git-worktree',
+        },
+      }),
+    ).rejects.toThrow(/outside the MoltNet configuration store/);
+  });
+
   it('leaves the request untouched and returns resolved ids separately', async () => {
     const f = await setup();
     const request = { ...spec, binding: 'Laptop' };

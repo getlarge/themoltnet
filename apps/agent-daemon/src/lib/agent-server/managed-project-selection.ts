@@ -68,8 +68,9 @@ export async function resolveManagedProjectSelection(options: {
         'selection',
         'Select an absolute source folder',
       );
+    let canonical: string;
     try {
-      await canonicalDirectory(spec.source);
+      canonical = await canonicalDirectory(spec.source);
     } catch (cause) {
       throw new ProjectConfigError(
         'selection',
@@ -77,6 +78,8 @@ export async function resolveManagedProjectSelection(options: {
         { cause },
       );
     }
+    // Before resolution, which may run `git` in the folder.
+    assertOutsideProtected(canonical, options.protectedRoots);
   }
   if (spec.projectId === null && spec.binding)
     throw new ProjectConfigError(
@@ -99,6 +102,7 @@ export async function resolveManagedProjectSelection(options: {
   const chosenSource = selection.workspaceExplicit
     ? selection.source
     : undefined;
+  // Location sources are only known after resolution.
   if (chosenSource)
     assertOutsideProtected(chosenSource, options.protectedRoots);
   const reader = {

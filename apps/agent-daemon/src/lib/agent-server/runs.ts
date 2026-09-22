@@ -42,6 +42,7 @@ import {
   type EffectiveRunProjectSelection,
   projectRunArgs,
 } from '../run-project-selection.js';
+import { AgentServerHttpError } from './http-error.js';
 import {
   type ActivatedAgent,
   AgentServerIdentityError,
@@ -52,7 +53,7 @@ import {
   resolveManagedProjectSelection,
 } from './managed-project-selection.js';
 import { linkPiAuth, writeStorePiConfig } from './pi-store-config.js';
-import { NATIVE_REQUEST_BUDGET_MS } from './project-target.js';
+import { NATIVE_REQUEST_BUDGET_MS, untilAborted } from './project-target.js';
 import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
@@ -164,8 +165,8 @@ export interface RunManagerOptions {
   storeRoot?: string;
   /** Machine-wide bindings stay outside per-connection run state. */
   projectRoot?: string;
-  /** Override used by focused project-check deadline tests. */
-  projectCheckTimeoutMs?: number;
+  /** Override used by focused start-deadline tests. */
+  startTimeoutMs?: number;
   /** AgentServer-managed refs (`file:` rooted under this agent server store plus env/keyring). */
   secretProviders: SecretProviderRegistry;
   /** Providers used by external configs at their original location. */
@@ -341,7 +342,7 @@ export class RunManager {
                   source: workspace.source,
                   'workspace-strategy': workspace.strategy,
                 }),
-            'state-dir': this.runStateDir(spec.agent, workspace),
+            'state-dir': this.runStateDir(spec, workspace),
           })
         : []),
     ];
@@ -425,6 +426,15 @@ export class RunManager {
     signal?: AbortSignal,
   ): Promise<RunRecord> {
     this.assertStartOpen(signal);
+    // One budget for everything before spawn, so a start either reports back
+    // before Desktop's request timeout or does not start at all. `signal` still
+    // means shutdown or disconnect; `deadline` adds the budget.
+    const deadline = AbortSignal.any([
+      ...(signal ? [signal] : []),
+      AbortSignal.timeout(
+        this.options.startTimeoutMs ?? NATIVE_REQUEST_BUDGET_MS,
+      ),
+    ]);
     const verify = this.options.verifyActivationImpl ?? verifyTeamActivation;
     const agent = await verify(
       this.store,
@@ -432,9 +442,10 @@ export class RunManager {
       this.options.secretProviders,
       this.options.externalSecretProviders,
       undefined,
-      signal,
+      deadline,
       spec.teamId,
     ).catch((cause: unknown) => {
+      this.assertStartOpen(signal, deadline, cause);
       if (
         cause instanceof TeamCredentialError ||
         cause instanceof AgentServerStoreError
@@ -445,7 +456,7 @@ export class RunManager {
         `Cannot start agent "${spec.agent}" for team "${spec.teamId}": credential verification failed. Check the selected team key and activation.`,
       );
     });
-    this.assertStartOpen(signal);
+    this.assertStartOpen(signal, deadline);
     if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
       throw new AgentServerRunError(
         'invalid_spec',
@@ -479,12 +490,7 @@ export class RunManager {
           apiUrl: agent.activation.apiUrl ?? agent.config.endpoints.api,
           client: requireCredentialSnapshot(agent).client,
           protectedRoots: [projectRoot, this.store.root, this.store.secretsDir],
-          signal: AbortSignal.any([
-            ...(signal ? [signal] : []),
-            AbortSignal.timeout(
-              this.options.projectCheckTimeoutMs ?? NATIVE_REQUEST_BUDGET_MS,
-            ),
-          ]),
+          signal: deadline,
           logger: {
             warn: (context, message) => this.log('warn', message, context),
           },
@@ -496,7 +502,7 @@ export class RunManager {
         effective = resolved.effective;
         selection = resolved.selection;
         writeRunSnapshot(workspace.configPath, resolved.config);
-        mkdirSync(this.runStateDir(spec.agent, workspace), {
+        mkdirSync(this.runStateDir(spec, workspace), {
           recursive: true,
           mode: 0o700,
         });
@@ -505,20 +511,18 @@ export class RunManager {
       const executionCwd = workspace
         ? (workspace.source ?? executionDir)
         : dirname(piDir);
-      const runtimeModule = this.options.resolveRuntimeModule
-        ? await this.options.resolveRuntimeModule(
-            effective,
-            agent,
-            executionCwd,
-          )
-        : this.options.runtimeRegistry
-          ? await this.resolveRuntimeModule(
-              effective,
-              agent,
-              executionCwd,
-              selection,
-            )
-          : undefined;
+      const runtimeModule = await untilAborted(deadline, async () =>
+        this.options.resolveRuntimeModule
+          ? this.options.resolveRuntimeModule(effective, agent, executionCwd)
+          : this.options.runtimeRegistry
+            ? this.resolveRuntimeModule(
+                effective,
+                agent,
+                executionCwd,
+                selection,
+              )
+            : undefined,
+      );
       const { args, env, cwd } = await this.prepare(
         effective,
         agent,
@@ -527,7 +531,7 @@ export class RunManager {
         runtimeModule,
         workspace,
       );
-      this.assertStartOpen(signal);
+      this.assertStartOpen(signal, deadline);
       for (const dir of [
         env.HOME,
         env.XDG_CACHE_HOME,
@@ -566,7 +570,7 @@ export class RunManager {
         child?.kill('SIGKILL');
       });
       const spawnImpl = this.options.spawnImpl ?? nodeSpawn;
-      this.assertStartOpen(signal);
+      this.assertStartOpen(signal, deadline);
       child = spawnImpl(
         entry.execPath,
         [...entry.execArgv, entry.scriptPath, ...args],
@@ -658,6 +662,10 @@ export class RunManager {
         transition: 'start_failed',
         ...safeRunError(cause),
       });
+      if (deadline.aborted && !signal?.aborted && !this.closing)
+        throw cause instanceof AgentServerHttpError
+          ? cause
+          : startTimedOut(cause);
       throw cause;
     }
   }
@@ -916,13 +924,19 @@ export class RunManager {
     };
   }
 
-  private assertStartOpen(signal?: AbortSignal): void {
+  /** Shutdown or disconnect wins; otherwise an expired budget is a retryable 503. */
+  private assertStartOpen(
+    signal?: AbortSignal,
+    deadline?: AbortSignal,
+    cause?: unknown,
+  ): void {
     if (this.closing || signal?.aborted) {
       throw new AgentServerRunError(
         'invalid_spec',
         'agent server is shutting down',
       );
     }
+    if (deadline?.aborted) throw startTimedOut(cause);
   }
 
   private pruneCompletedRuns(): void {
@@ -978,12 +992,24 @@ export class RunManager {
    * cache and task workspaces. Keyed by agent and location, under the store,
    * never inside the user's folder.
    */
-  private runStateDir(agent: string, workspace: RunWorkspace): string {
+  private runStateDir(spec: RunSpec, workspace: RunWorkspace): string {
+    // Scoped by team, project and folder too: a plan or worktree made from one
+    // repository must never be picked up by a run over another.
+    const scope = createHash('sha256')
+      .update(
+        JSON.stringify([
+          spec.teamId,
+          workspace.projectId,
+          workspace.source ?? null,
+        ]),
+      )
+      .digest('hex')
+      .slice(0, 12);
     return join(
       this.store.root,
       'run-state',
-      agent,
-      workspace.binding ? locationSegment(workspace.binding) : 'general',
+      spec.agent,
+      `${workspace.binding ? locationSegment(workspace.binding) : 'general'}-${scope}`,
     );
   }
 
@@ -1046,11 +1072,20 @@ function selectionContext(
   };
 }
 
-/** Readable when it is a safe path segment; hashed otherwise ("general" stays reserved). */
+/** Readable when it is a safe path segment; hashed otherwise. */
 function locationSegment(name: string): string {
-  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(name) && name !== 'general'
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u.test(name)
     ? `location-${name}`
     : `location-${createHash('sha256').update(name).digest('hex').slice(0, 16)}`;
+}
+
+function startTimedOut(cause: unknown): AgentServerHttpError {
+  return new AgentServerHttpError(
+    503,
+    'start_timeout',
+    'The run could not be prepared in time, so it was not started. Retry in a moment.',
+    { cause },
+  );
 }
 
 /** Created exclusively and owner-only: a run never reuses or widens a snapshot. */

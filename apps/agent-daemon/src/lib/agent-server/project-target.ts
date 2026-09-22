@@ -146,7 +146,7 @@ export function checkUnavailable(
     503,
     'project_check_unavailable',
     timedOut
-      ? 'The project could not be confirmed in time, so nothing was changed. Retry in a moment.'
+      ? 'The request could not be completed in time, so nothing was changed. Retry in a moment.'
       : 'The server could not confirm this project. Retry in a moment.',
     { cause },
   );

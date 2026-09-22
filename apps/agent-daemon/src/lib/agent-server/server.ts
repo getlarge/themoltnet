@@ -1,4 +1,4 @@
-import { constants as fsConstants } from 'node:fs';
+import { constants as fsConstants, realpathSync } from 'node:fs';
 import { type FileHandle, open } from 'node:fs/promises';
 import { StringDecoder } from 'node:string_decoder';
 
@@ -1523,9 +1523,10 @@ function registerRunRoutes(
     '/v1/runs/:runId',
     { schema: AgentServerRouteSchemas.stopRun },
     async (request) => {
-      await requireAuthorizedOrigin(request);
+      const origin = await requireAuthorizedOrigin(request);
       const { runId } = request.params as { runId: string };
-      return runs.stop(runId);
+      const record = runs.stop(runId);
+      return runView(record, runs.isActive(record.id), origin);
     },
   );
   registerRunLogRoute(app, options, requireAuthorizedOrigin);
@@ -1559,9 +1560,10 @@ function registerRunLogRoute(
       },
     },
     async (request) => {
-      await requireAuthorizedOrigin(request);
+      const origin = await requireAuthorizedOrigin(request);
       const { runId } = request.params as { runId: string };
       const record = runs.status(runId);
+      const redact = localPathRedactor(record, origin, options);
       const handle = await open(
         store.resolveRunLogPath(record.id),
         fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
@@ -1574,7 +1576,7 @@ function registerRunLogRoute(
             ...(omitted ? ['[older log output omitted]'] : []),
             ...lines,
             ...(state.fragment ? [state.fragment] : []),
-          ],
+          ].map(redact),
         };
       } finally {
         await handle.close();
@@ -1586,9 +1588,10 @@ function registerRunLogRoute(
     '/v1/runs/:runId/logs',
     { schema: AgentServerRouteSchemas.streamRunLogs },
     async (request, reply) => {
-      await requireAuthorizedOrigin(request);
+      const origin = await requireAuthorizedOrigin(request);
       const { runId } = request.params as { runId: string };
       const record = runs.status(runId);
+      const redact = localPathRedactor(record, origin, options);
       store.resolveRunLogPath(record.id);
       if (openStreams >= MAX_LOG_STREAMS) {
         throw new AgentServerHttpError(
@@ -1650,7 +1653,7 @@ function registerRunLogRoute(
             readState,
           );
           if (omitted) await writeData('[older log output omitted]');
-          for (const line of lines) await writeData(line);
+          for (const line of lines) await writeData(redact(line));
         } finally {
           await handle.close();
         }
@@ -1690,6 +1693,37 @@ function registerRunLogRoute(
       return reply;
     },
   );
+}
+
+/**
+ * Worker logs name local folders (the chosen source, state and HOME under the
+ * store). Non-native origins get them replaced, as `runView` does for records.
+ */
+function localPathRedactor(
+  record: RunRecord,
+  origin: string,
+  options: BuildAgentServerOptions,
+): (line: string) => string {
+  if (origin === NATIVE_CLIENT_ORIGIN) return (line) => line;
+  const paths = new Set<string>();
+  for (const path of [
+    record.source,
+    record.workspace?.source,
+    options.store.root,
+    options.connectionSettings?.root,
+  ]) {
+    if (!path) continue;
+    paths.add(path);
+    try {
+      paths.add(realpathSync.native(path));
+    } catch {
+      // A folder removed since the run keeps only its recorded form.
+    }
+  }
+  // Longest first, so a folder inside the store is not half-replaced.
+  const ordered = [...paths].sort((a, b) => b.length - a.length);
+  return (line) =>
+    ordered.reduce((text, path) => text.split(path).join('<local path>'), line);
 }
 
 function corsHeadersFor(
