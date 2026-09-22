@@ -213,4 +213,17 @@ describe('native local project locations', () => {
     }
     expect(error).toMatchObject({ code: 'endpoint_unsupported' });
   });
+
+  it('writes nothing once the save is aborted', async () => {
+    const { root, source, bindings } = await fixture();
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      bindings.save(binding(source), { signal: controller.signal }),
+    ).rejects.toThrow();
+    await expect(stat(join(root, 'projects.json'))).rejects.toMatchObject({
+      code: 'ENOENT',
+    });
+  });
 });

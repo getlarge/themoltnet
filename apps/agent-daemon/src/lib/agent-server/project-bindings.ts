@@ -67,7 +67,7 @@ export class LocalProjectBindings {
   }
 
   async list(): Promise<LocalProjectLocation[]> {
-    const config = await readProjectConfig(this.path);
+    const config = await stored(() => readProjectConfig(this.path));
     const bindings = config.bindings.filter(
       (binding) => normalizeProjectEndpoint(binding.apiUrl) === this.apiUrl,
     );
@@ -83,7 +83,11 @@ export class LocalProjectBindings {
     return locations;
   }
 
-  async save(value: ProjectBinding): Promise<LocalProjectLocation> {
+  /** Once `signal` aborts, nothing is written, not even after the lock is taken. */
+  async save(
+    value: ProjectBinding,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<LocalProjectLocation> {
     const input = structuredClone(value);
     validateProjectConfig({ version: 1, bindings: [input] });
     if (locationEndpoint(input.apiUrl) !== this.apiUrl)
@@ -109,7 +113,9 @@ export class LocalProjectBindings {
       apiUrl: this.apiUrl,
       ...(location.effectiveSource ? { source: location.effectiveSource } : {}),
     };
-    await updateProjectConfig(this.path, (config) => {
+    options.signal?.throwIfAborted();
+    await this.update((config) => {
+      options.signal?.throwIfAborted();
       const index = config.bindings.findIndex(
         (entry) => entry.name === binding.name,
       );
@@ -143,7 +149,7 @@ export class LocalProjectBindings {
   }
 
   async remove(name: string): Promise<void> {
-    await updateProjectConfig(this.path, (config) => {
+    await this.update((config) => {
       const index = config.bindings.findIndex(
         (entry) =>
           entry.name === name &&
@@ -157,6 +163,10 @@ export class LocalProjectBindings {
         );
       config.bindings.splice(index, 1);
     });
+  }
+
+  private update(mutate: Parameters<typeof updateProjectConfig>[1]) {
+    return stored(() => updateProjectConfig(this.path, mutate));
   }
 
   private async describe(
@@ -204,6 +214,25 @@ export class LocalProjectBindings {
       }
     }
     return { effectiveSource: source, readiness: { ready: true } };
+  }
+}
+
+/**
+ * A stored file that fails validation is server-side state, not a bad request.
+ * The detail names a local path, so it goes to the logs via `cause`.
+ */
+async function stored<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (error instanceof ProjectConfigError && error.kind === 'validation')
+      throw new AgentServerHttpError(
+        500,
+        'config_invalid',
+        'The project locations file is invalid. Repair or remove it, then retry.',
+        { cause: error },
+      );
+    throw error;
   }
 }
 

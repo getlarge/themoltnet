@@ -1,4 +1,4 @@
-import { mkdir, stat } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { MoltNetError } from '@themoltnet/sdk';
@@ -49,11 +49,12 @@ function catalogueAgent() {
     ),
   } satisfies CatalogueAgentPort;
 }
-async function setup() {
+async function setup(options: Parameters<typeof fixture>[0] = {}) {
   const nativeGrant = new NativeGrantService();
   nativeGrant.grantNative('binding-token');
   const port = catalogueAgent();
   const result = await fixture({
+    ...options,
     nativeGrant,
     catalogueAgentFor: async () => port,
   });
@@ -119,7 +120,9 @@ describe('native project location administration', () => {
       readiness: { ready: true },
     });
     // Only the target team is consulted; the other indexed team is untouched.
-    expect(port.readTeam.mock.calls).toEqual([['team']]);
+    expect(port.readTeam.mock.calls).toEqual([
+      ['team', expect.any(AbortSignal)],
+    ]);
     expect(port.readProjects).not.toHaveBeenCalled();
     const stored = await readProjectConfig(join(store.root, 'projects.json'));
     expect(stored.bindings).toHaveLength(1);
@@ -233,5 +236,68 @@ describe('native project location administration', () => {
     });
     expect(forbidden.statusCode).toBe(400);
     expect(forbidden.json()).toMatchObject({ code: 'project_unavailable' });
+  });
+
+  it('stops a slow check at the save deadline, before Desktop gives up, and writes nothing', async () => {
+    const { app, payload, port, store } = await setup({
+      projectSaveTimeoutMs: 50,
+    });
+    let received: AbortSignal | undefined;
+    port.readProject.mockImplementationOnce(
+      (_teamId: string, _projectId: string, signal?: AbortSignal) => {
+        received = signal;
+        return new Promise<never>(() => {
+          // Never settles: only the save deadline ends this check.
+        });
+      },
+    );
+
+    const response = await app.inject({
+      method: 'PUT',
+      url: `${LOCATIONS}/Laptop`,
+      headers,
+      payload,
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({
+      code: 'project_check_unavailable',
+    });
+    expect(received?.aborted).toBe(true);
+    await expect(stat(join(store.root, 'projects.json'))).rejects.toMatchObject(
+      { code: 'ENOENT' },
+    );
+  });
+
+  it('refuses location administration without the connection store', async () => {
+    const { app } = await setup({ withoutConnectionSettings: true });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: LOCATIONS,
+      headers,
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ code: 'locations_unavailable' });
+  });
+
+  it('reports an invalid stored file as a server fault without its path', async () => {
+    const { app, store } = await setup();
+    await writeFile(
+      join(store.root, 'projects.json'),
+      JSON.stringify({ version: 1, bindings: [{ name: 1 }] }),
+      { mode: 0o600 },
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: LOCATIONS,
+      headers,
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toMatchObject({ code: 'config_invalid' });
+    expect(response.body).not.toContain(store.root);
   });
 });

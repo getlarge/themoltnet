@@ -3,7 +3,7 @@ import { type Agent, MoltNetError } from '@themoltnet/sdk';
 import type { CatalogueProject, CatalogueProjectPage } from './catalogue.js';
 
 const PAGE_SIZE = 100;
-/** Discovery runs on every catalogue poll; beyond this the composer shows a truncation notice. */
+/** Discovery runs on every catalogue poll; beyond this `projectErrors` reports `truncated`. */
 export const MAX_PROJECT_PAGES = 10;
 
 export class ProjectPaginationError extends Error {

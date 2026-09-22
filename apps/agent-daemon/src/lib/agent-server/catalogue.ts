@@ -111,8 +111,13 @@ export interface CatalogueAgentPort {
   readProject(
     teamId: string,
     projectId: string,
+    signal?: AbortSignal,
   ): Promise<CatalogueProject | null>;
-  readTeam(teamId: string): Promise<{
+  /** `signal` stops credential verification and any later step once aborted. */
+  readTeam(
+    teamId: string,
+    signal?: AbortSignal,
+  ): Promise<{
     team: CatalogueTeamRecord;
     diaries: CatalogueDiaryRecord[];
     profiles: CatalogueProfileRecord[];

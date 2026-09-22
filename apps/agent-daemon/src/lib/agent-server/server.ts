@@ -217,6 +217,8 @@ export interface BuildAgentServerOptions {
   shutdownSignal?: AbortSignal;
   /** Override used by focused rate-limit tests. */
   rateLimitMax?: number;
+  /** Override used by focused project-location deadline tests. */
+  projectSaveTimeoutMs?: number;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
 }
@@ -815,8 +817,13 @@ async function requireNativeOrigin<T>(
   return resource[0];
 }
 
-/** Bounds a save's server round trips; discovery for other teams is never on this path. */
-const PROJECT_CHECK_TIMEOUT_MS = 15_000;
+/**
+ * The whole save, from activation to the write, must finish inside Desktop's
+ * 15 s control request timeout (`REQUEST_TIMEOUT` in agent-desktop control.rs).
+ * Otherwise Desktop reports a transport failure while the save may still land.
+ * The margin covers the config lock wait and the write itself.
+ */
+const PROJECT_SAVE_TIMEOUT_MS = 10_000;
 
 type SaveProjectLocationBody = Omit<ProjectBinding, 'name' | 'apiUrl'> & {
   identity: string;
@@ -898,8 +905,24 @@ function registerProjectLocationRoutes(
           'endpoint_mismatch',
           'Choose an identity for the current server endpoint',
         );
-      await verifyProjectTarget(options, alias, location, request.log);
-      return bindings.save({ ...location, name, apiUrl: bindings.apiUrl });
+      // One budget for the whole save; a disconnected client also stops it,
+      // so nothing is written after Desktop has reported a failure.
+      const signal = AbortSignal.any([
+        requestOperationSignal(request, options.shutdownSignal),
+        AbortSignal.timeout(
+          options.projectSaveTimeoutMs ?? PROJECT_SAVE_TIMEOUT_MS,
+        ),
+      ]);
+      await verifyProjectTarget(options, alias, location, request.log, signal);
+      try {
+        return await bindings.save(
+          { ...location, name, apiUrl: bindings.apiUrl },
+          { signal },
+        );
+      } catch (error) {
+        if (signal.aborted) throw saveTimedOut(error);
+        throw error;
+      }
     },
   );
   app.delete(
@@ -926,6 +949,7 @@ async function verifyProjectTarget(
   alias: string,
   target: { teamId: string; projectId: string; diaryId?: string },
   logger: FastifyBaseLogger,
+  signal: AbortSignal,
 ): Promise<void> {
   const unavailable = () =>
     new AgentServerHttpError(
@@ -940,30 +964,39 @@ async function verifyProjectTarget(
     project: CatalogueProject | null;
   };
   try {
-    result = await beforeDeadline(PROJECT_CHECK_TIMEOUT_MS, async () => {
-      const team = await agent.readTeam(target.teamId);
+    result = await untilAborted(signal, async () => {
+      const team = await agent.readTeam(target.teamId, signal);
       if (team.team.id !== target.teamId)
         throw new Error('Team response mismatch');
       return {
         diaries: team.diaries,
-        project: await agent.readProject(target.teamId, target.projectId),
+        project: await agent.readProject(
+          target.teamId,
+          target.projectId,
+          signal,
+        ),
       };
     });
   } catch (error) {
-    if (error instanceof TeamCredentialError) throw error;
-    if (
-      error instanceof MoltNetError &&
-      [401, 403, 404].includes(error.statusCode ?? 0)
-    )
-      throw unavailable();
+    if (!signal.aborted) {
+      if (error instanceof TeamCredentialError) throw error;
+      if (
+        error instanceof MoltNetError &&
+        [401, 403, 404].includes(error.statusCode ?? 0)
+      )
+        throw unavailable();
+    }
     logger.warn(
       {
         ...safeErrorContext(error),
         teamId: target.teamId,
-        code: 'agent_server_project_check_failed',
+        code: signal.aborted
+          ? 'agent_server_project_check_aborted'
+          : 'agent_server_project_check_failed',
       },
       'AgentServer project check failed',
     );
+    if (signal.aborted) throw saveTimedOut(error);
     throw new AgentServerHttpError(
       503,
       'project_check_unavailable',
@@ -986,21 +1019,35 @@ async function verifyProjectTarget(
     );
 }
 
-async function beforeDeadline<T>(
-  ms: number,
+/**
+ * Settles when `work` does or `signal` aborts. The SDK's team and project reads
+ * take no signal, so an in-flight GET may finish in the background; the port
+ * checks the signal between steps so nothing further starts.
+ */
+async function untilAborted<T>(
+  signal: AbortSignal,
   work: () => Promise<T>,
 ): Promise<T> {
-  const timeout = AbortSignal.timeout(ms);
-  const expired = new Promise<never>((_, reject) => {
-    timeout.addEventListener(
+  signal.throwIfAborted();
+  const aborted = new Promise<never>((_, reject) => {
+    signal.addEventListener(
       'abort',
       () => {
-        reject(new Error(`Project check exceeded ${ms} ms`));
+        reject(new Error('Project location save was aborted'));
       },
       { once: true },
     );
   });
-  return Promise.race([work(), expired]);
+  return Promise.race([work(), aborted]);
+}
+
+function saveTimedOut(cause: unknown): AgentServerHttpError {
+  return new AgentServerHttpError(
+    503,
+    'project_check_unavailable',
+    'The location could not be confirmed in time and was not saved. Retry in a moment.',
+    { cause },
+  );
 }
 
 async function catalogueAgent(
@@ -1073,16 +1120,19 @@ async function defaultCatalogueAgent(
     teamIds: Object.keys(config.agent_key_refs ?? {}),
     lastVerified: (teamId) =>
       requireActivation(options.store, alias).credentialHealth?.[teamId],
-    readTeam: async (teamId) => {
+    readTeam: async (teamId, signal) => {
       const activated = await verifyTeamActivation(
         options.store,
         alias,
         options.secretProviders,
         options.externalSecretProviders,
         undefined,
-        options.shutdownSignal,
+        signal && options.shutdownSignal
+          ? AbortSignal.any([signal, options.shutdownSignal])
+          : (signal ?? options.shutdownSignal),
         teamId,
       );
+      signal?.throwIfAborted();
       const { client, metadata } = requireCredentialSnapshot(activated);
       const [team, diaries, profiles] = await Promise.all([
         client.teams.get(teamId),
@@ -1099,8 +1149,14 @@ async function defaultCatalogueAgent(
     },
     readProjects: async (teamId) =>
       readCatalogueProjects(verifiedClient(teamId).projects, teamId),
-    readProject: async (teamId, projectId) =>
-      readCatalogueProject(verifiedClient(teamId).projects, teamId, projectId),
+    readProject: async (teamId, projectId, signal) => {
+      signal?.throwIfAborted();
+      return readCatalogueProject(
+        verifiedClient(teamId).projects,
+        teamId,
+        projectId,
+      );
+    },
   };
 }
 
