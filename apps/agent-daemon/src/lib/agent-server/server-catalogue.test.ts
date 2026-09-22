@@ -61,16 +61,20 @@ describe('run catalogue', () => {
     teamIds: [TEAM],
     lastVerified: () => credential,
     readProjects: () =>
-      Promise.resolve([
-        {
-          id: '8939be63-d0b5-4a9c-8c27-cc1a4e161eb4',
-          teamId: TEAM,
-          name: 'Research',
-          description: null,
-          defaultDiaryId: null,
-          archived: false,
-        },
-      ]),
+      Promise.resolve({
+        items: [
+          {
+            id: '8939be63-d0b5-4a9c-8c27-cc1a4e161eb4',
+            teamId: TEAM,
+            name: 'Research',
+            description: null,
+            defaultDiaryId: null,
+            archived: false,
+          },
+        ],
+        truncated: false,
+      }),
+    readProject: () => Promise.resolve(null),
     readTeam: async () => ({
       team: (await data.listTeams())[0],
       diaries: await data.listDiaries(),

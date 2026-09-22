@@ -13,11 +13,11 @@ import { OPERATOR_OAUTH } from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
+  MoltNetError,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
   type FileSecretProvider,
-  normalizeProjectEndpoint,
   type ProjectBinding,
   ProjectConfigError,
 } from '@themoltnet/sdk/node';
@@ -36,10 +36,19 @@ import {
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
-import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
-import { readCatalogueProjects } from './catalogue-project-reader.js';
+import {
+  buildCatalogue,
+  type CatalogueAgentPort,
+  type CatalogueDiaryRecord,
+  type CatalogueProject,
+} from './catalogue.js';
+import {
+  readCatalogueProject,
+  readCatalogueProjects,
+} from './catalogue-project-reader.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
+import { AgentServerHttpError } from './http-error.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
@@ -60,7 +69,7 @@ import {
   InvalidOperatorGrantError,
   type OperatorOAuth,
 } from './operator-oauth.js';
-import { LocalProjectBindings } from './project-bindings.js';
+import { LocalProjectBindings, locationEndpoint } from './project-bindings.js';
 import { AGENT_SERVER_SCHEMAS, AgentServerRouteSchemas } from './protocol.js';
 import {
   AgentServerSubscriptionError,
@@ -210,17 +219,6 @@ export interface BuildAgentServerOptions {
   rateLimitMax?: number;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
-}
-
-class AgentServerHttpError extends Error {
-  override name = 'AgentServerHttpError';
-  constructor(
-    readonly statusCode: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
 }
 
 function requireBody<T extends object>(request: FastifyRequest): T {
@@ -582,34 +580,26 @@ export function buildAgentServer(
       '/v1/native/connection-settings',
       { schema: { hide: true } },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !options.connectionSettings
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        return options.connectionSettings.view();
+        const settings = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          options.connectionSettings,
+        );
+        return settings.view();
       },
     );
     app.post(
       '/v1/native/connection-settings',
       { schema: { hide: true } },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !options.connectionSettings
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
+        const store = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          options.connectionSettings,
+        );
         try {
           const settings = options.runs.prepareServerRestart(() =>
-            options.connectionSettings!.save(request.body),
+            store.save(request.body),
           );
           oauth?.cancel();
           restartRequired = true;
@@ -684,16 +674,12 @@ export function buildAgentServer(
         },
       },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !oauth
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        await oauth.authorize(
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        await operator.authorize(
           undefined,
           requestOperationSignal(request, options.shutdownSignal),
         );
@@ -717,16 +703,12 @@ export function buildAgentServer(
         },
       },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !oauth
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        oauth.cancel();
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        operator.cancel();
         return { state: 'cancelled' };
       },
     );
@@ -747,16 +729,12 @@ export function buildAgentServer(
         },
       },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !oauth
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        oauth.removeOperator();
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        operator.removeOperator();
         return { state: 'removed' };
       },
     );
@@ -806,23 +784,65 @@ export function buildAgentServer(
 
 type AuthorizedOriginGuard = (request: FastifyRequest) => Promise<string>;
 
+/**
+ * The one native-only gate: a verified Desktop grant, never browser authority.
+ * A native-only `resource` that is not configured is refused the same way and
+ * returned narrowed otherwise.
+ */
+async function requireNativeOrigin(
+  authorize: AuthorizedOriginGuard,
+  request: FastifyRequest,
+): Promise<void>;
+async function requireNativeOrigin<T>(
+  authorize: AuthorizedOriginGuard,
+  request: FastifyRequest,
+  resource: T | undefined,
+): Promise<T>;
+async function requireNativeOrigin<T>(
+  authorize: AuthorizedOriginGuard,
+  request: FastifyRequest,
+  ...resource: [T | undefined] | []
+): Promise<T | void> {
+  if (
+    (await authorize(request)) !== NATIVE_CLIENT_ORIGIN ||
+    (resource.length > 0 && resource[0] === undefined)
+  )
+    throw new AgentServerHttpError(
+      403,
+      'native_required',
+      'Native administration required',
+    );
+  return resource[0];
+}
+
+/** Bounds a save's server round trips; discovery for other teams is never on this path. */
+const PROJECT_CHECK_TIMEOUT_MS = 15_000;
+
+type SaveProjectLocationBody = Omit<ProjectBinding, 'name' | 'apiUrl'> & {
+  identity: string;
+};
+
 function registerProjectLocationRoutes(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
   authorize: AuthorizedOriginGuard,
 ): void {
-  const getLocations = () =>
-    new LocalProjectBindings(
-      options.connectionSettings?.root ?? options.store.root,
-      options.defaultApiUrl,
-    );
-  const requireNative = async (request: FastifyRequest) => {
-    if ((await authorize(request)) !== NATIVE_CLIENT_ORIGIN)
+  let locations: LocalProjectBindings | undefined;
+  const getLocations = () => {
+    const root = options.connectionSettings?.root;
+    // Workers inherit MOLTNET_HOME from the same base store; a per-connection
+    // root here would write a file no worker reads.
+    if (!root)
       throw new AgentServerHttpError(
-        403,
-        'native_required',
-        'Native administration required',
+        503,
+        'locations_unavailable',
+        'Project locations need the Desktop connection store',
       );
+    locations ??= new LocalProjectBindings(root, options.defaultApiUrl);
+    return locations;
+  };
+  const requireNativeRequest = async (request: FastifyRequest) => {
+    await requireNativeOrigin(authorize, request);
     if (request.validationError)
       throw new AgentServerHttpError(
         400,
@@ -831,87 +851,181 @@ function registerProjectLocationRoutes(
       );
   };
   app.get(
-    '/v1/native/project-bindings',
+    '/v1/native/project-locations',
     { schema: AgentServerRouteSchemas.listProjectLocations },
     async (request) => {
-      await requireNative(request);
+      await requireNativeRequest(request);
       return { locations: await getLocations().list() };
     },
   );
-  app.post(
-    '/v1/native/project-bindings',
+  const saveFields = new Set(
+    Object.keys(AgentServerRouteSchemas.saveProjectLocation.body.properties),
+  );
+  app.put(
+    '/v1/native/project-locations/:name',
     {
       schema: AgentServerRouteSchemas.saveProjectLocation,
       attachValidation: true,
+      // Ajv strips unknown fields before the handler runs; refuse them here so
+      // a caller sending hooks learns they were not saved.
+      preValidation: async (request) => {
+        await requireNativeOrigin(authorize, request);
+        const body = request.body;
+        if (
+          body &&
+          typeof body === 'object' &&
+          Object.keys(body).some((key) => !saveFields.has(key))
+        )
+          throw new AgentServerHttpError(
+            400,
+            'invalid_location',
+            'Check the project location fields',
+          );
+      },
     },
     async (request) => {
-      await requireNative(request);
-      const locations = getLocations();
-      const { identity, ...binding } = requireBody<
-        Omit<ProjectBinding, 'apiUrl' | 'hooks'> & { identity: string }
-      >(request);
+      await requireNativeRequest(request);
+      const bindings = getLocations();
+      const { name } = request.params as { name: string };
+      const { identity, ...location } =
+        requireBody<SaveProjectLocationBody>(request);
       const alias = identity.trim();
+      requireActivation(options.store, alias);
       const { config } = await loadAgentActivation(options.store, alias);
-      if (normalizeProjectEndpoint(config.endpoints.api) !== locations.apiUrl)
+      if (locationEndpoint(config.endpoints.api) !== bindings.apiUrl)
         throw new AgentServerHttpError(
           400,
           'endpoint_mismatch',
           'Choose an identity for the current server endpoint',
         );
-      const catalogue = await readIdentityCatalogue(options, alias);
-      const team = catalogue.teams.find(
-        (entry) => entry.teamId === binding.teamId && entry.available,
-      );
-      const project = catalogue.projects.find(
-        (entry) =>
-          entry.id === binding.projectId && entry.teamId === binding.teamId,
-      );
-      if (!team || !project)
-        throw new AgentServerHttpError(
-          400,
-          'project_unavailable',
-          'Verify team access and choose an available project',
-        );
-      if (
-        binding.diaryId &&
-        !team.diaries.some((diary) => diary.id === binding.diaryId)
-      )
-        throw new AgentServerHttpError(
-          400,
-          'diary_unavailable',
-          'Choose a diary belonging to this team',
-        );
-      return locations.save({ ...binding, apiUrl: locations.apiUrl });
+      await verifyProjectTarget(options, alias, location, request.log);
+      return bindings.save({ ...location, name, apiUrl: bindings.apiUrl });
     },
   );
   app.delete(
-    '/v1/native/project-bindings/:name',
+    '/v1/native/project-locations/:name',
     {
       schema: AgentServerRouteSchemas.removeProjectLocation,
       attachValidation: true,
     },
     async (request) => {
-      await requireNative(request);
+      await requireNativeRequest(request);
       await getLocations().remove((request.params as { name: string }).name);
       return { removed: true };
     },
   );
 }
 
+/**
+ * Confirms one team, project and diary with the identity's own credential.
+ * Unlike the catalogue it touches only the target team, and it separates
+ * "not visible to this credential" (400) from "could not ask" (503).
+ */
+async function verifyProjectTarget(
+  options: BuildAgentServerOptions,
+  alias: string,
+  target: { teamId: string; projectId: string; diaryId?: string },
+  logger: FastifyBaseLogger,
+): Promise<void> {
+  const unavailable = () =>
+    new AgentServerHttpError(
+      400,
+      'project_unavailable',
+      'Verify team access and choose an available project',
+    );
+  const agent = await catalogueAgent(options, alias);
+  if (!agent.teamIds.includes(target.teamId)) throw unavailable();
+  let result: {
+    diaries: CatalogueDiaryRecord[];
+    project: CatalogueProject | null;
+  };
+  try {
+    result = await beforeDeadline(PROJECT_CHECK_TIMEOUT_MS, async () => {
+      const team = await agent.readTeam(target.teamId);
+      if (team.team.id !== target.teamId)
+        throw new Error('Team response mismatch');
+      return {
+        diaries: team.diaries,
+        project: await agent.readProject(target.teamId, target.projectId),
+      };
+    });
+  } catch (error) {
+    if (error instanceof TeamCredentialError) throw error;
+    if (
+      error instanceof MoltNetError &&
+      [401, 403, 404].includes(error.statusCode ?? 0)
+    )
+      throw unavailable();
+    logger.warn(
+      {
+        ...safeErrorContext(error),
+        teamId: target.teamId,
+        code: 'agent_server_project_check_failed',
+      },
+      'AgentServer project check failed',
+    );
+    throw new AgentServerHttpError(
+      503,
+      'project_check_unavailable',
+      'The server could not confirm this project. Retry in a moment.',
+    );
+  }
+  const { project, diaries } = result;
+  if (!project || project.teamId !== target.teamId || project.archived)
+    throw unavailable();
+  if (
+    target.diaryId &&
+    !diaries.some(
+      (diary) => diary.id === target.diaryId && diary.teamId === target.teamId,
+    )
+  )
+    throw new AgentServerHttpError(
+      400,
+      'diary_unavailable',
+      'Choose a diary belonging to this team',
+    );
+}
+
+async function beforeDeadline<T>(
+  ms: number,
+  work: () => Promise<T>,
+): Promise<T> {
+  const timeout = AbortSignal.timeout(ms);
+  const expired = new Promise<never>((_, reject) => {
+    timeout.addEventListener(
+      'abort',
+      () => {
+        reject(new Error(`Project check exceeded ${ms} ms`));
+      },
+      { once: true },
+    );
+  });
+  return Promise.race([work(), expired]);
+}
+
+async function catalogueAgent(
+  options: BuildAgentServerOptions,
+  alias: string,
+): Promise<CatalogueAgentPort> {
+  return options.catalogueAgentFor
+    ? options.catalogueAgentFor(alias)
+    : defaultCatalogueAgent(options, alias);
+}
+
 async function readIdentityCatalogue(
   options: BuildAgentServerOptions,
   alias: string,
+  logger: FastifyBaseLogger,
 ) {
+  // Throws a typed not-found when the alias is not activated here.
   requireActivation(options.store, alias);
-  const agent = await (options.catalogueAgentFor
-    ? options.catalogueAgentFor(alias)
-    : defaultCatalogueAgent(options, alias));
   return buildCatalogue({
-    agent,
+    agent: await catalogueAgent(options, alias),
     machine: machineCapabilities(options),
     identityDefault: readIdentityDefaultBinding(
       options.store.identityDir(alias),
     ),
+    logger,
   });
 }
 
@@ -934,7 +1048,7 @@ function registerCatalogueRoute(
         );
       }
       const alias = identity.trim();
-      return readIdentityCatalogue(options, alias);
+      return readIdentityCatalogue(options, alias, request.log);
     },
   );
 }
@@ -949,6 +1063,12 @@ async function defaultCatalogueAgent(
     string,
     ReturnType<typeof requireCredentialSnapshot>['client']
   >();
+  const verifiedClient = (teamId: string) => {
+    const client = clients.get(teamId);
+    if (!client)
+      throw new Error('Team must be verified before project discovery');
+    return client;
+  };
   return {
     teamIds: Object.keys(config.agent_key_refs ?? {}),
     lastVerified: (teamId) =>
@@ -977,12 +1097,10 @@ async function defaultCatalogueAgent(
         credential: metadata,
       };
     },
-    readProjects: async (teamId) => {
-      const client = clients.get(teamId);
-      if (!client)
-        throw new Error('Team must be verified before project discovery');
-      return readCatalogueProjects(client.projects, teamId);
-    },
+    readProjects: async (teamId) =>
+      readCatalogueProjects(verifiedClient(teamId).projects, teamId),
+    readProject: async (teamId, projectId) =>
+      readCatalogueProject(verifiedClient(teamId).projects, teamId, projectId),
   };
 }
 
@@ -1561,12 +1679,28 @@ function normalizeAgentServerError(error: unknown): {
   code: string;
   message: string;
 } {
-  if (error instanceof ProjectConfigError)
+  if (error instanceof ProjectConfigError) {
+    if (error.kind === 'version')
+      return {
+        statusCode: 409,
+        code: 'config_version',
+        message:
+          'The project locations file was written by a newer MoltNet. Update this app.',
+      };
+    if (error.kind === 'io')
+      // Detail can include local paths; it is logged, not returned.
+      return {
+        statusCode: 500,
+        code: 'config_unavailable',
+        message:
+          'The project locations file could not be read or written. Check its ownership and permissions.',
+      };
     return {
       statusCode: 400,
       code: 'invalid_location',
       message: error.message,
     };
+  }
   if (error instanceof TeamCredentialError)
     return {
       statusCode: 400,

@@ -1,6 +1,8 @@
+import { MoltNetError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import { ProjectPaginationError } from './catalogue-project-reader.js';
 
 const project = {
   id: 'project-a',
@@ -25,24 +27,30 @@ function agent() {
         scopes: ['team:read'],
       },
     })),
-    readProjects: vi.fn(async () => [project]),
-  };
+    readProjects: vi.fn(async () => ({ items: [project], truncated: false })),
+    readProject: vi.fn(async () => project),
+  } satisfies CatalogueAgentPort;
 }
 const machine = {
   providerEnv: new Map<string, boolean>(),
   runtimeKinds: new Set<string>(),
 };
-const catalogue = (port: CatalogueAgentPort) =>
-  buildCatalogue({ agent: port, machine, identityDefault: {} });
+const catalogue = (
+  port: CatalogueAgentPort,
+  logger?: { warn: ReturnType<typeof vi.fn> },
+) => buildCatalogue({ agent: port, machine, identityDefault: {}, logger });
 
 describe('project catalogue', () => {
   it('lists accessible active projects only from the verified team', async () => {
     const port = agent();
-    port.readProjects.mockResolvedValue([
-      project,
-      { ...project, id: 'foreign', teamId: 'team-b' },
-      { ...project, id: 'archived', archived: true },
-    ]);
+    port.readProjects.mockResolvedValue({
+      items: [
+        project,
+        { ...project, id: 'foreign', teamId: 'team-b' },
+        { ...project, id: 'archived', archived: true },
+      ],
+      truncated: false,
+    });
 
     const result = await catalogue(port);
 
@@ -51,11 +59,12 @@ describe('project catalogue', () => {
     expect(port.readProjects).toHaveBeenCalledWith('team-a');
   });
 
-  it('keeps verified team access when project discovery fails', async () => {
+  it('keeps verified team access when project discovery fails, and logs why', async () => {
     const port = agent();
     port.readProjects.mockRejectedValue(new Error('Upstream unavailable'));
+    const logger = { warn: vi.fn() };
 
-    const result = await catalogue(port);
+    const result = await catalogue(port, logger);
 
     expect(result.teams[0]?.available).toBe(true);
     expect(result.teams[0]?.blockers).toEqual([]);
@@ -63,8 +72,45 @@ describe('project catalogue', () => {
     expect(result.projectErrors).toEqual([
       {
         teamId: 'team-a',
+        code: 'unreachable',
         message: 'Projects could not be loaded. Retry project discovery.',
       },
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: 'team-a',
+        code: 'agent_server_project_discovery_failed',
+      }),
+      expect.any(String),
+    );
+  });
+
+  it.each([
+    [
+      new MoltNetError('Forbidden', { code: 'FORBIDDEN', statusCode: 403 }),
+      'forbidden',
+    ],
+    [new ProjectPaginationError('bad offset'), 'invalid_response'],
+  ])('classifies %s as %s', async (error, code) => {
+    const port = agent();
+    port.readProjects.mockRejectedValue(error);
+
+    const result = await catalogue(port);
+
+    expect(result.projectErrors).toEqual([
+      expect.objectContaining({ teamId: 'team-a', code }),
+    ]);
+  });
+
+  it('reports a truncated project list without hiding the projects read', async () => {
+    const port = agent();
+    port.readProjects.mockResolvedValue({ items: [project], truncated: true });
+
+    const result = await catalogue(port);
+
+    expect(result.projects).toEqual([project]);
+    expect(result.projectErrors).toEqual([
+      expect.objectContaining({ teamId: 'team-a', code: 'truncated' }),
     ]);
   });
 

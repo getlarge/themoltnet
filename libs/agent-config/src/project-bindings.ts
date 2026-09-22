@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { getConfigDir } from './config.js';
 import { withConfigLock } from './config-lock.js';
 import { assertProjectConfigOwner } from './project-config-owner.js';
+import type { StoreRootOptions } from './store-root.js';
 import { writeFileAtomic } from './write-file-atomic.js';
 
 export class ProjectConfigError extends Error {
@@ -71,8 +72,9 @@ export interface ProjectSelectionOptions {
   overrides?: Partial<Pick<ProjectBinding, 'source' | 'strategy' | 'diaryId'>>;
 }
 
-export function getProjectConfigPath(): string {
-  return join(getConfigDir(), 'projects.json');
+/** The one place that names the file; a supervisor passes the store it hands its workers. */
+export function getProjectConfigPath(options?: StoreRootOptions): string {
+  return join(getConfigDir(options), 'projects.json');
 }
 
 function validateUnicode(value: unknown, ancestors = new Set<object>()): void {

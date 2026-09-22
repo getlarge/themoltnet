@@ -1,6 +1,15 @@
 /** Production CLI lifecycle with a deterministic catalogue port. */
 import { runAgentServer } from '@themoltnet/agent-daemon/testing';
 
+const project = {
+  id: 'project',
+  teamId: 'team',
+  name: 'Fixture project',
+  description: null,
+  defaultDiaryId: 'diary',
+  archived: false,
+};
+
 const [command, ...args] = process.argv.slice(2);
 if (command !== 'server') throw new Error('Expected the server command');
 process.exitCode = await runAgentServer(args, {
@@ -42,16 +51,9 @@ process.exitCode = await runAgentServer(args, {
             scopes: ['team:read'],
           },
         }),
-        readProjects: async () => [
-          {
-            id: 'project',
-            teamId: 'team',
-            name: 'Fixture project',
-            description: null,
-            defaultDiaryId: 'diary',
-            archived: false,
-          },
-        ],
+        readProjects: async () => ({ items: [project], truncated: false }),
+        readProject: async (_teamId, projectId) =>
+          projectId === project.id ? project : null,
       }),
     };
   },

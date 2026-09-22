@@ -130,4 +130,87 @@ describe('native local project locations', () => {
       (await readProjectConfig(join(root, 'projects.json'))).bindings,
     ).toEqual([original]);
   });
+
+  it('reports stored command hooks as unavailable', async () => {
+    const { root, source, bindings } = await fixture();
+    await updateProjectConfig(join(root, 'projects.json'), (config) => {
+      config.bindings.push({
+        ...binding(source),
+        hooks: {
+          afterCreate: { command: 'echo', args: [], timeoutMs: 1000 },
+        },
+      });
+    });
+
+    expect((await bindings.list())[0]?.readiness).toMatchObject({
+      ready: false,
+      code: 'hooks_unavailable',
+    });
+  });
+
+  it('treats an empty hooks object as ready, as worker startup does', async () => {
+    const { root, source, bindings } = await fixture();
+    await updateProjectConfig(join(root, 'projects.json'), (config) => {
+      config.bindings.push({ ...binding(source), hooks: {} });
+    });
+
+    expect((await bindings.list())[0]?.readiness).toEqual({ ready: true });
+    await expect(bindings.save(binding(source))).resolves.toMatchObject({
+      readiness: { ready: true },
+    });
+  });
+
+  it('refuses a Git worktree location over a plain folder', async () => {
+    const { root, source, bindings } = await fixture();
+    const worktree = { ...binding(source), strategy: 'git-worktree' as const };
+
+    await expect(bindings.save(worktree)).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'git_unavailable',
+    });
+    await updateProjectConfig(join(root, 'projects.json'), (config) => {
+      config.bindings.push(worktree);
+    });
+    expect((await bindings.list())[0]?.readiness).toMatchObject({
+      ready: false,
+      code: 'git_unavailable',
+    });
+  });
+
+  it("keeps another project's default when setting this project's default", async () => {
+    const { root, source, bindings } = await fixture();
+    await bindings.save({
+      ...binding(source, 'Other'),
+      projectId: 'other-project',
+      default: true,
+    });
+    await bindings.save({ ...binding(source, 'Mine'), default: true });
+
+    const stored = await readProjectConfig(join(root, 'projects.json'));
+    expect(
+      stored.bindings.map(({ name, default: isDefault }) => [name, isDefault]),
+    ).toEqual([
+      ['Other', true],
+      ['Mine', true],
+    ]);
+  });
+
+  it('reports an unknown name as not found', async () => {
+    const { bindings } = await fixture();
+
+    await expect(bindings.remove('Missing')).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'location_not_found',
+    });
+  });
+
+  it('rejects an unsupported server endpoint with a coded error', () => {
+    let error: unknown;
+    try {
+      new LocalProjectBindings(tmpdir(), 'http://lan.example:8080');
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toMatchObject({ code: 'endpoint_unsupported' });
+  });
 });

@@ -12,8 +12,11 @@
  * them: the CLI's context store refuses one without the other, and a diary
  * that drifts from its team means entries land in the wrong place.
  */
-import type { Agent } from '@themoltnet/sdk';
+import { type Agent, MoltNetError } from '@themoltnet/sdk';
+import type { FastifyBaseLogger } from 'fastify';
 
+import { safeErrorContext } from '../safe-error-context.js';
+import { ProjectPaginationError } from './catalogue-project-reader.js';
 import {
   deriveProfileReadiness,
   type MachineCapabilities,
@@ -43,6 +46,28 @@ export type CatalogueProject = Pick<
   SdkProject,
   'id' | 'teamId' | 'name' | 'description' | 'defaultDiaryId' | 'archived'
 >;
+
+export interface CatalogueProjectPage {
+  items: CatalogueProject[];
+  /** More projects exist than one discovery pass reads. */
+  truncated: boolean;
+}
+
+/**
+ * Coarse and additive: `forbidden` needs access changes, `unreachable` is worth
+ * a retry, `invalid_response` is a server fault, `truncated` is informational.
+ */
+export type ProjectErrorCode =
+  | 'forbidden'
+  | 'unreachable'
+  | 'invalid_response'
+  | 'truncated';
+
+export interface ProjectError {
+  teamId: string;
+  code: ProjectErrorCode;
+  message: string;
+}
 
 export type CatalogueTeamRecord = Pick<SdkTeam, 'id' | 'name'>;
 export type CatalogueDiaryRecord = Pick<SdkDiary, 'id' | 'name' | 'teamId'>;
@@ -81,7 +106,12 @@ export interface CatalogueAgentPort {
   teamIds: string[];
   lastVerified(teamId: string): CredentialMetadata | undefined;
   /** Called only after readTeam verifies this team's credential. */
-  readProjects(teamId: string): Promise<CatalogueProject[]>;
+  readProjects(teamId: string): Promise<CatalogueProjectPage>;
+  /** Called only after readTeam verifies this team's credential; null when not visible. */
+  readProject(
+    teamId: string,
+    projectId: string,
+  ): Promise<CatalogueProject | null>;
   readTeam(teamId: string): Promise<{
     team: CatalogueTeamRecord;
     diaries: CatalogueDiaryRecord[];
@@ -115,7 +145,7 @@ export interface Catalogue {
   defaultTeamId: string | null;
   profiles: CatalogueProfile[];
   projects: CatalogueProject[];
-  projectErrors: { teamId: string; message: string }[];
+  projectErrors: ProjectError[];
 }
 
 /** The identity-wide binding from `<agentDir>/env`, when it has one. */
@@ -128,8 +158,9 @@ export async function buildCatalogue(options: {
   agent: CatalogueAgentPort;
   machine: MachineCapabilities;
   identityDefault: IdentityDefaultBinding;
+  logger?: Pick<FastifyBaseLogger, 'warn'>;
 }): Promise<Catalogue> {
-  const { agent, machine, identityDefault } = options;
+  const { agent, machine, identityDefault, logger } = options;
   const entries = await Promise.all(
     agent.teamIds.map(async (teamId) => {
       try {
@@ -155,24 +186,37 @@ export async function buildCatalogue(options: {
             ...deriveProfileReadiness(profile, machine),
           }));
         try {
-          const projects = (await agent.readProjects(teamId)).filter(
+          const page = await agent.readProjects(teamId);
+          const projects = page.items.filter(
             (project) => project.teamId === teamId && !project.archived,
           );
-          return { team, profiles, projects, projectErrors: [] };
-        } catch {
+          const projectErrors: ProjectError[] = page.truncated
+            ? [
+                {
+                  teamId,
+                  code: 'truncated',
+                  message:
+                    'Only the first projects are listed. Archive unused projects to see the rest.',
+                },
+              ]
+            : [];
+          return { team, profiles, projects, projectErrors };
+        } catch (error) {
           // Project discovery does not invalidate the credential just verified
           // above. General work and team/profile recovery remain available.
+          logger?.warn(
+            {
+              ...safeErrorContext(error),
+              teamId,
+              code: 'agent_server_project_discovery_failed',
+            },
+            'AgentServer project discovery failed',
+          );
           return {
             team,
             profiles,
             projects: [],
-            projectErrors: [
-              {
-                teamId,
-                message:
-                  'Projects could not be loaded. Retry project discovery.',
-              },
-            ],
+            projectErrors: [projectError(teamId, error)],
           };
         }
       } catch (error) {
@@ -203,6 +247,30 @@ export async function buildCatalogue(options: {
     profiles,
     projects: entries.flatMap((entry) => entry.projects),
     projectErrors: entries.flatMap((entry) => entry.projectErrors),
+  };
+}
+
+function projectError(teamId: string, error: unknown): ProjectError {
+  if (
+    error instanceof MoltNetError &&
+    (error.statusCode === 401 || error.statusCode === 403)
+  )
+    return {
+      teamId,
+      code: 'forbidden',
+      message:
+        'This team credential cannot list projects. Renew it with project access.',
+    };
+  if (error instanceof ProjectPaginationError)
+    return {
+      teamId,
+      code: 'invalid_response',
+      message: 'The server returned an unreadable project list.',
+    };
+  return {
+    teamId,
+    code: 'unreachable',
+    message: 'Projects could not be loaded. Retry project discovery.',
   };
 }
 

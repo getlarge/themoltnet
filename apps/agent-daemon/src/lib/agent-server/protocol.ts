@@ -166,7 +166,15 @@ export const AgentServerCatalogueSchema = Type.Object(
       ]),
     ),
     projectErrors: Type.Array(
-      Type.Object({ teamId: Type.String(), message: Type.String() }),
+      Type.Object({
+        teamId: Type.String(),
+        code: Type.Union(
+          ['forbidden', 'unreachable', 'invalid_response', 'truncated'].map(
+            (value) => Type.Literal(value),
+          ),
+        ),
+        message: Type.String(),
+      }),
     ),
   },
   { $id: 'AgentServerCatalogue' },
@@ -201,18 +209,25 @@ export const AgentServerProjectLocationSchema = Type.Object(
   { $id: 'AgentServerProjectLocation' },
 );
 
-const SaveProjectLocationSchema = Type.Intersect([
-  Type.Pick(AgentServerProjectLocationSchema, [
-    'name',
-    'teamId',
-    'projectId',
-    'diaryId',
-    'source',
-    'strategy',
-    'default',
-  ]),
-  Type.Object({ identity: Type.String({ minLength: 1 }) }),
-]);
+/** Closed: hooks and other stored fields are never writable over this route. */
+const SaveProjectLocationSchema = Type.Object(
+  {
+    identity: Type.String({ minLength: 1 }),
+    teamId: Type.String({ minLength: 1 }),
+    projectId: Type.String({ minLength: 1 }),
+    diaryId: Type.Optional(Type.String({ minLength: 1 })),
+    source: Type.Optional(Type.String({ minLength: 1 })),
+    strategy: Type.Union(
+      ['none', 'existing', 'git-worktree'].map((value) => Type.Literal(value)),
+    ),
+    default: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+const ProjectLocationParamsSchema = Type.Object({
+  name: Type.String({ minLength: 1 }),
+});
 
 export const AgentServerRunRecordSchema = Type.Object(
   {
@@ -401,6 +416,9 @@ export const AgentServerRouteSchemas = {
     operationId: 'saveNativeProjectLocation',
     tags: ['native-projects'],
     security: localControlSecurity,
+    description:
+      'Creates or replaces the named location. Requires the Desktop native grant.',
+    params: ProjectLocationParamsSchema,
     body: SaveProjectLocationSchema,
     response: {
       200: schemaRef(AgentServerProjectLocationSchema),
@@ -411,7 +429,9 @@ export const AgentServerRouteSchemas = {
     operationId: 'removeNativeProjectLocation',
     tags: ['native-projects'],
     security: localControlSecurity,
-    params: Type.Object({ name: Type.String({ minLength: 1 }) }),
+    description:
+      'Removes the registration only; the folder is left untouched. Requires the Desktop native grant.',
+    params: ProjectLocationParamsSchema,
     response: {
       200: Type.Object({ removed: Type.Boolean() }),
       ...problemResponse,
