@@ -115,10 +115,15 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
       delete env[key];
     for (const script of ['setup.ts', 'desktop-docker-setup.ts']) {
       abort.signal.throwIfAborted();
-      child = spawn(process.execPath, [
-        '--import', tsx,
-        fileURLToPath(new URL(`./src/fixtures/${script}`, import.meta.url)),
-      ], { cwd: projectRoot, env, stdio: 'inherit', detached: true });
+      child = spawn(
+        process.execPath,
+        [
+          '--import',
+          tsx,
+          fileURLToPath(new URL(`./src/fixtures/${script}`, import.meta.url)),
+        ],
+        { cwd: projectRoot, env, stdio: 'inherit', detached: true },
+      );
       const code = await new Promise((resolve, reject) => {
         child.once('error', reject);
         child.once('close', resolve);
@@ -126,7 +131,10 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
       terminate('SIGKILL');
       child = undefined;
       abort.signal.throwIfAborted();
-      if (code !== 0) throw new Error(`Docker journey provisioning failed in ${script}; see the setup error above`);
+      if (code !== 0)
+        throw new Error(
+          `Docker journey provisioning failed in ${script}; see the setup error above`,
+        );
     }
   } else delete env.MOLTNET_DESKTOP_E2E_DOCKER;
   // Resolve and compile the real CLI before Desktop's bounded startup probe.
