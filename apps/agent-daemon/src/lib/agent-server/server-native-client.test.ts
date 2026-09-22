@@ -114,8 +114,6 @@ describe('native desktop client', () => {
     const { app } = await fixture({
       nativeGrant,
       nativeOnly: true,
-      allowedOrigins: [],
-      selfOrigin: undefined,
     });
 
     const response = await app.inject({
