@@ -97,7 +97,9 @@ export function RunComposer({
       : (previousRun?.workspace?.strategy ?? preset?.workspaceStrategy),
   );
   const [diaryId, setDiaryId] = useState(
-    previousRun?.diaryId ?? (preset?.version === 2 ? preset.diaryId : null) ?? '',
+    previousRun?.diaryId ??
+      (preset?.version === 2 ? preset.diaryId : null) ??
+      '',
   );
   const [locations, setLocations] = useState<ProjectLocation[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
@@ -506,10 +508,7 @@ export function RunComposer({
                 title="Project discovery unavailable"
               >
                 {projectError.message}
-                <Button
-                  variant="secondary"
-                  onClick={retry}
-                >
+                <Button variant="secondary" onClick={retry}>
                   Retry projects
                 </Button>
               </InlineNotice>

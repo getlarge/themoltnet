@@ -262,61 +262,70 @@ describe('Native managed project execution', () => {
 
 // Rendered acceptance uses the actual WebKit window and native bridge, including
 // the stopped-daemon recovery state. Tray behavior remains a separate OS check.
-(process.platform === 'darwin' ? describe : describe.skip)('Native window accessibility', () => {
-  for (const [width, height] of WINDOW_SIZES) {
-    it(`supports keyboard recovery and scrolling at ${width}×${height}`, async () => {
-      await browser.setWindowSize(width, height);
-      await $('a=Saved worker').click();
-      await expect($('button=Retry catalogue')).toBeDisplayed();
-      // The native app has one webview; axe must not open a browser tab.
-      await expectNoAxeViolations(true);
-      const name = $(
-        '//label[normalize-space()="Preset name"]/following-sibling::input',
-      );
-      await browser.execute(
-        (element) => {
-          (element as unknown as HTMLElement).scrollIntoView({
-            block: 'center',
-            behavior: 'instant',
-          });
-        },
-        await name.getElement(),
-      );
-      await name.click();
-      await browser.tauri.execute(({ core }) => core.invoke('desktop_e2e_tab'));
-      await expect($('button=Delete preset')).toBeFocused();
-      await browser.waitUntil(
-        async () =>
-          browser.execute(() => {
-            // Background WebKit pauses animation time. Capture the actual
-            // focus state's final style without depending on foreground policy.
-            document.getAnimations().forEach((animation) => animation.finish());
-            const focused = document.activeElement;
-            return Boolean(
-              focused &&
-              // Both themes draw the same four-pixel outer ring.
-              getComputedStyle(focused).boxShadow.includes('4px'),
-            );
-          }),
-        {
-          timeout: 2000,
-          timeoutMsg: 'Keyboard focus must have a visible ring',
-        },
-      );
-      await expect($('button=Start run')).toBeDisabled();
-      expect(
+(process.platform === 'darwin' ? describe : describe.skip)(
+  'Native window accessibility',
+  () => {
+    for (const [width, height] of WINDOW_SIZES) {
+      it(`supports keyboard recovery and scrolling at ${width}×${height}`, async () => {
+        await browser.setWindowSize(width, height);
+        await $('a=Saved worker').click();
+        await expect($('button=Retry catalogue')).toBeDisplayed();
+        // The native app has one webview; axe must not open a browser tab.
+        await expectNoAxeViolations(true);
+        const name = $(
+          '//label[normalize-space()="Preset name"]/following-sibling::input',
+        );
         await browser.execute(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      ).toBe(true);
-      await browser.saveScreenshot(`test-results/desktop-native-${width}.png`);
-      await $('a=Providers').click();
-      await $('button=Return to run draft').click();
-      await expect($('button=Delete preset')).toBeFocused();
-      await $('button=Cancel').click();
-    });
-  }
-});
+          (element) => {
+            (element as unknown as HTMLElement).scrollIntoView({
+              block: 'center',
+              behavior: 'instant',
+            });
+          },
+          await name.getElement(),
+        );
+        await name.click();
+        await browser.tauri.execute(({ core }) =>
+          core.invoke('desktop_e2e_tab'),
+        );
+        await expect($('button=Delete preset')).toBeFocused();
+        await browser.waitUntil(
+          async () =>
+            browser.execute(() => {
+              // Background WebKit pauses animation time. Capture the actual
+              // focus state's final style without depending on foreground policy.
+              document
+                .getAnimations()
+                .forEach((animation) => animation.finish());
+              const focused = document.activeElement;
+              return Boolean(
+                focused &&
+                // Both themes draw the same four-pixel outer ring.
+                getComputedStyle(focused).boxShadow.includes('4px'),
+              );
+            }),
+          {
+            timeout: 2000,
+            timeoutMsg: 'Keyboard focus must have a visible ring',
+          },
+        );
+        await expect($('button=Start run')).toBeDisabled();
+        expect(
+          await browser.execute(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        ).toBe(true);
+        await browser.saveScreenshot(
+          `test-results/desktop-native-${width}.png`,
+        );
+        await $('a=Providers').click();
+        await $('button=Return to run draft').click();
+        await expect($('button=Delete preset')).toBeFocused();
+        await $('button=Cancel').click();
+      });
+    }
+  },
+);
 
 describe('Native Projects screen', () => {
   afterEach(async function () {
@@ -356,10 +365,7 @@ describe('Native Projects screen', () => {
         }),
       ]),
     });
-    for (const [width, height] of [
-      [820, 720],
-      [640, 560],
-    ]) {
+    for (const [width, height] of WINDOW_SIZES) {
       await browser.setWindowSize(width, height);
       await browser.execute(() => {
         for (const animation of document.getAnimations()) {
@@ -367,19 +373,7 @@ describe('Native Projects screen', () => {
             animation.finish();
         }
       });
-      const audit = await new AxeBuilder({ client: browser })
-        .setLegacyMode()
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-        .analyze();
-      expect(
-        audit.violations.map(({ id, nodes }) => ({
-          id,
-          nodes: nodes.map(({ target, failureSummary }) => ({
-            target,
-            failureSummary,
-          })),
-        })),
-      ).toEqual([]);
+      await expectNoAxeViolations(true);
       expect(
         await browser.execute(
           () => document.documentElement.scrollWidth <= window.innerWidth,
