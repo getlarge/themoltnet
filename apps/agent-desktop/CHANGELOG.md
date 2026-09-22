@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.2](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.6.1...agent-desktop-v0.6.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* **agent-desktop:** own published daemon release helper ([3a17812](https://github.com/getlarge/themoltnet/commit/3a1781236d158c429eb2a2922daa40d477417560))
+* **agent-desktop:** own published daemon release helper ([c2e49fe](https://github.com/getlarge/themoltnet/commit/c2e49fe1bf8d377594de4aeace9566aae1d18906))
+* **agent-desktop:** record published daemon release contract ([2bf8107](https://github.com/getlarge/themoltnet/commit/2bf810744771729c60719fcf9034724d59169388))
+* **agent-desktop:** record published daemon release contract ([8c894c3](https://github.com/getlarge/themoltnet/commit/8c894c3c9c9ee0ad9375f6b724b4f68cb9a3f474))
+
 ## [0.6.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.6.0...agent-desktop-v0.6.1) (2026-09-22)
 
 
