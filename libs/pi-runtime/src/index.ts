@@ -43,7 +43,9 @@ export {
 export {
   appendPermanentProviderRequestDiagnostics,
   extractPermanentProviderRequestFields,
+  getPermanentProviderRequestDiagnostics,
   isPermanentProviderRequestError,
+  type PermanentProviderRequestDiagnostics,
   type ProviderFailureContext,
 } from './runtime/provider-error-classification.js';
 export {

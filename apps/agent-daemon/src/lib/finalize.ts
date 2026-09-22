@@ -1,12 +1,12 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import {
   appendPermanentProviderRequestDiagnostics,
+  type ProviderFailureContext,
   redactRetryTriageSecrets,
 } from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
-import type { PiAgentDirSource } from './pi-agent-dir.js';
 import {
   type ClassifiedAttemptFailure,
   classifyAttemptFailure,
@@ -35,15 +35,6 @@ export interface CorrelationAnchorInput {
 export type WriteCorrelationAnchors = (
   input: CorrelationAnchorInput,
 ) => Promise<void>;
-
-export interface ProviderFailureContext {
-  provider: string;
-  model: string;
-  runtimeProfileId: string;
-  runtimeProfileName: string;
-  runtimeProfileRevision: number | null;
-  piAgentDirSource: PiAgentDirSource;
-}
 
 export interface FinalizeContext {
   /**

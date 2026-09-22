@@ -106,11 +106,6 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /\bmax (?:turn|bash)/i,
 ];
 
-const PERMANENT_REQUEST_FIELD_PATTERNS = [
-  /\b(?:unsupported|unrecognized|unknown|invalid)\s+(?:request\s+)?(?:parameter|argument|field)\s*:?\s*["'`]?([A-Za-z][\w.-]*)/gi,
-  /\b(?:parameter|argument|field)\s+["'`]?([A-Za-z][\w.-]*)["'`]?(?:[^\n]{0,120})\b(?:is\s+)?not\s+supported\b/gi,
-];
-
 export async function classifyAttemptFailure(
   input: RetryTriageInput & { triage?: RetryTriage },
 ): Promise<ClassifiedAttemptFailure> {
@@ -244,20 +239,6 @@ export function classifyDeterministically(
   if (RETRYABLE_CODES.has(code)) return 'retryable';
   if (error.retryable === true) return 'retryable';
   return 'ambiguous';
-}
-
-/** Extract request fields named by a permanent provider request error. */
-export function extractPermanentProviderRequestFields(
-  message: string | null | undefined,
-): string[] {
-  if (!message || !message.trim()) return [];
-  const fields = new Set<string>();
-  for (const pattern of PERMANENT_REQUEST_FIELD_PATTERNS) {
-    for (const match of message.matchAll(pattern)) {
-      if (match[1]) fields.add(match[1]);
-    }
-  }
-  return [...fields];
 }
 
 function appendTriageReason(
