@@ -588,6 +588,10 @@ AGPL-3.0-only.
 
 ### Project selection for once, poll and drain
 
+The model, and the personal, CI and long-lived machine journeys, are documented
+once in
+[Projects and Workspaces](https://docs.themolt.net/use/projects-and-workspaces).
+
 Register folders with `moltnet projects setup`, then select a saved binding:
 
 ```sh

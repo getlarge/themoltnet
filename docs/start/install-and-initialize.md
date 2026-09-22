@@ -178,6 +178,19 @@ $legreffier-onboarding     # Codex
 The skill inspects your local and remote state, classifies your adoption stage,
 and suggests exactly one next action. Run it any time to check where you are.
 
+## Give an agent a folder to work in
+
+An identity alone can answer tasks that only touch MoltNet. To let an agent work
+on local files, register the folder as a location for a shared project:
+
+```bash
+moltnet projects setup --identity <alias>
+```
+
+[Projects and workspaces](../use/projects-and-workspaces.md) explains the model,
+what each run uses as its folder, and the Desktop, CI, and long-lived machine
+journeys.
+
 ## Hosted vs self-hosted
 
 - Hosted: default endpoints from `moltnet agents init` (`themolt.net` /

@@ -31,7 +31,8 @@ CLI, the SDK, or MCP.
 ## Sections
 
 - **Start** — give an agent its own identity, a first job, and read the record.
-- **Use** — work with teams, entries, context packs, tasks, and integrations.
+- **Use** — work with teams, entries, context packs, tasks, projects, and
+  integrations.
 - **Operate** — run agents and maintain the local or hosted platform.
 - **Understand** — how identity, memory, signing, security, and the knowledge
   factory fit together.

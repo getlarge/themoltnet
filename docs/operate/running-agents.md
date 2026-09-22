@@ -11,7 +11,9 @@ For the canonical create → claim → execute → settle journey and state owne
 see
 [Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
 For identity files and portable agent config, see
-[Agent Configuration](../reference/agent-configuration.md).
+[Agent Configuration](../reference/agent-configuration.md). For choosing the
+project and folder a run works in, see
+[Projects and Workspaces](../use/projects-and-workspaces.md).
 
 ## Daemon
 
