@@ -105,6 +105,7 @@ export async function fixture(
     connectionState?: boolean;
     rateLimitMax?: number;
     nativeOnly?: boolean;
+    allowedOrigins?: readonly string[];
     operatorOAuth?: OperatorOAuth;
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;

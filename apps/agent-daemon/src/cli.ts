@@ -22,12 +22,19 @@ export async function runAgentDaemonCli(options: {
   runtime: DaemonRuntimeAdapter;
   argv?: string[];
 }): Promise<number> {
+  const [subcommand, ...rest] = options.argv ?? process.argv.slice(2);
+  const help =
+    subcommand === '--help' ||
+    subcommand === '-h' ||
+    (['poll', 'drain', 'once', 'server', 'providers', 'sync-sessions'].includes(
+      subcommand ?? '',
+    ) &&
+      isHelpFlag(rest));
   const notice = legacyStoreNotice();
-  if (notice && !isHelpFlag(options.argv ?? process.argv.slice(2))) {
+  if (notice && !help) {
     console.error(notice);
     markLegacyStoreNoticeShown();
   }
-  const [subcommand, ...rest] = options.argv ?? process.argv.slice(2);
   if (
     ['poll', 'drain'].includes(subcommand ?? '') &&
     !isWorkspaceInvocation()

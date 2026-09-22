@@ -205,7 +205,9 @@ Example:
     --state idle`;
 
 export function isHelpFlag(args: readonly string[]): boolean {
-  return args.includes('--help') || args.includes('-h');
+  const separator = args.indexOf('--');
+  const flags = separator === -1 ? args : args.slice(0, separator);
+  return flags.includes('--help') || flags.includes('-h');
 }
 
 export const AGENT_SERVER_HELP = `\
