@@ -283,6 +283,13 @@ const oauth2Config = projectForPatch.services?.oauth2?.config;
 const tokenHook = oauth2Config?.oauth2?.token_hook;
 const accessTokenTtl = oauth2Config?.ttl?.access_token;
 const discoveryTokenUrl = oauth2Config?.webfinger?.oidc_discovery?.token_url;
+const consentUrl = oauth2Config?.urls?.consent;
+
+if (consentUrl !== `${process.env.API_BASE_URL}/oauth2/consent`) {
+  fatal(
+    'services.oauth2.config.urls.consent must point to the REST consent page.',
+  );
+}
 
 if (!discoveryTokenUrl) {
   fatal(
@@ -545,6 +552,7 @@ function deleteRetiredOperatorClients() {
 }
 
 log('Patching OAuth2 token_hook + access-token TTL ...');
+log(`  Consent: ${consentUrl}`);
 log(`  TTL:    access_token=${accessTokenTtl}`);
 log(`  Token:  advertised token_url=${discoveryTokenUrl}`);
 log(`  URL:    ${tokenHook.url}`);
@@ -558,6 +566,7 @@ if (tokenHook.auth?.config?.value) {
 }
 
 const patchAdds = [
+  `/urls/consent="${consentUrl}"`,
   `/ttl/access_token="${accessTokenTtl}"`,
   `/webfinger/oidc_discovery/token_url="${discoveryTokenUrl}"`,
   `/oauth2/token_hook/url="${tokenHook.url}"`,
@@ -605,6 +614,13 @@ const liveJson = oryStdout([
   'json',
 ]);
 const liveConfig = JSON.parse(liveJson);
+
+if (liveConfig?.urls?.consent !== consentUrl) {
+  recordFailure(
+    `consent URL. Expected ${consentUrl}, got ` +
+      `${liveConfig?.urls?.consent ?? '<missing>'}.`,
+  );
+}
 
 const liveUrl = liveConfig?.oauth2?.token_hook?.url;
 if (liveUrl !== tokenHook.url) {
