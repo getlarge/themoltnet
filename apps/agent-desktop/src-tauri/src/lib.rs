@@ -697,8 +697,9 @@ async fn install_agent_update(app: AppHandle) -> Result<DesktopStatus, String> {
 }
 
 #[tauri::command]
-async fn open_console() -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(lifecycle::open_console)
+async fn open_console(state: State<'_, AppState>) -> Result<(), String> {
+    let scope = state.preset_scope.clone()?;
+    tauri::async_runtime::spawn_blocking(move || lifecycle::open_console(&scope.effective_api()?))
         .await
         .map_err(|_| "Could not open Console".to_string())?
 }

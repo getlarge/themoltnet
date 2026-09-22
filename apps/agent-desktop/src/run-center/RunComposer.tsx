@@ -16,6 +16,10 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { verificationUnavailable } from './credential-health.js';
 import { relativeTime } from './format.js';
+import {
+  projectErrorBlocks,
+  ProjectErrorNotice,
+} from './ProjectErrorNotice.js';
 import { type ProjectContext, workspaceLabel } from './ProjectsView.js';
 import { projectActions } from './run-center-bridge.js';
 import type {
@@ -151,7 +155,9 @@ export function RunComposer({
       const folder = await projects.chooseFolder();
       if (folder !== null) {
         setSource(folder);
-        if (!strategy || strategy === 'none') setStrategy('existing');
+        // A folder only needs a strategy switch when none would use it; an
+        // inherited Git worktree must stay isolated.
+        if (effectiveStrategy === 'none') setStrategy('existing');
       }
     } catch (error) {
       setFolderError(
@@ -220,18 +226,18 @@ export function RunComposer({
     location?.diaryId ||
     project?.defaultDiaryId ||
     (!projectId ? team?.defaultDiaryId : null);
-  // Sent as the request: only a diary the user chose, or the team default for
-  // General work. Location and project defaults are resolved by the daemon at
-  // start, so Run again picks up their current values.
-  const requestedDiary = diaryId || (!projectId ? team?.defaultDiaryId : null);
+  // Sent as the request: only a diary the user chose. Location, project and
+  // team defaults are resolved by the daemon at start, so Run again picks up
+  // their current values.
+  const requestedDiary = diaryId || null;
   const effectiveStrategy =
     strategy ?? location?.strategy ?? primary?.defaultWorkspaceMode ?? 'none';
   const effectiveSource =
     effectiveStrategy === 'none' ? null : source || location?.effectiveSource;
   const projectSelection = {
-    ...(projectId
-      ? { projectId, ...(locationName ? { location: locationName } : {}) }
-      : {}),
+    // null is explicit General work, which the daemon resolves and records.
+    projectId: projectId || null,
+    ...(projectId && locationName ? { location: locationName } : {}),
     ...(source && strategy !== 'none' ? { source } : {}),
     ...(strategy ? { strategy } : {}),
   };
@@ -272,7 +278,14 @@ export function RunComposer({
       team?.blockers[0]?.message ?? 'Team access needs verification.',
     );
 
-  if (projectId && (projectError || (catalogue && !project)))
+  if (projectId && projectError?.code === 'forbidden')
+    problems.push(
+      'This team credential cannot list projects. Renew it in Identity and teams, or choose General work.',
+    );
+  else if (
+    projectId &&
+    (projectErrorBlocks(projectError) || (catalogue && !project))
+  )
     problems.push(
       'The selected project is unavailable. Retry discovery or choose General work.',
     );
@@ -290,6 +303,17 @@ export function RunComposer({
     );
   if (diaryId && team && !team.diaries.some((entry) => entry.id === diaryId))
     problems.push('The selected diary is unavailable. Choose another diary.');
+  else if (
+    !diaryId &&
+    location?.diaryId &&
+    team &&
+    !team.diaries.some((entry) => entry.id === location.diaryId)
+  )
+    problems.push(
+      "This location's diary is unavailable. Choose a diary or update the location.",
+    );
+  if (effectiveStrategy !== 'none' && !effectiveSource && strategy)
+    problems.push('Choose a folder for this workspace behavior.');
   if (choosingFolder) problems.push('Finish choosing a folder.');
 
   const canStart = problems.length === 0 && Boolean(primary?.ready);
@@ -501,15 +525,11 @@ export function RunComposer({
               ))}
             </Select>
             {projectError ? (
-              <InlineNotice
-                tone="warning"
-                title="Project discovery unavailable"
-              >
-                {projectError.message}
-                <Button variant="secondary" onClick={retry}>
-                  Retry projects
-                </Button>
-              </InlineNotice>
+              <ProjectErrorNotice
+                error={projectError}
+                onRetry={retry}
+                onTeams={onTeams}
+              />
             ) : null}
             {projectId ? (
               <>

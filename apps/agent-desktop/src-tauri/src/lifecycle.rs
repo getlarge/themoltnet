@@ -742,8 +742,18 @@ impl LifecycleManager {
     }
 }
 
-pub fn open_console() -> Result<(), String> {
-    fixed_command(platform_opener(), &["https://console.themolt.net/projects"]).map(|_| ())
+/// Console for the MoltNet service. Other connections have their own Console
+/// address, which Desktop does not know, so it never sends them to this one.
+const CONSOLE_PROJECTS_URL: &str = "https://console.themolt.net/projects";
+
+pub fn open_console(api_url: &str) -> Result<(), String> {
+    if api_url != crate::preset_scope::API {
+        return Err(
+            "Console links are available for the MoltNet service only. Open your deployment's Console directly."
+                .into(),
+        );
+    }
+    fixed_command(platform_opener(), &[CONSOLE_PROJECTS_URL]).map(|_| ())
 }
 
 pub fn open_logs(directory: &Path) -> Result<(), String> {
@@ -1058,6 +1068,13 @@ fn is_https_url(url: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn console_link_is_refused_for_other_connections() {
+        // Returns before any opener process starts.
+        let error = open_console("https://api.example.test").unwrap_err();
+        assert!(error.contains("MoltNet service only"));
+    }
+
     use super::*;
 
     #[test]

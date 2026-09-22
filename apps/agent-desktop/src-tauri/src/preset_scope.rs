@@ -10,7 +10,7 @@ use std::{
 
 use crate::store_root::{is_default_store, resolve_store_path};
 
-const API: &str = "https://api.themolt.net";
+pub const API: &str = "https://api.themolt.net";
 const ISSUER: &str = "https://auth.themolt.net";
 
 #[derive(Clone)]
@@ -21,34 +21,33 @@ pub struct PresetScope {
 
 impl PresetScope {
     pub fn resolve(&self) -> Result<String, String> {
-        let mut environment = Map::new();
-        for (key, variable) in [
-            ("issuer", "MOLTNET_OPERATOR_OAUTH_ISSUER"),
-            ("publicUrl", "MOLTNET_OPERATOR_OAUTH_PUBLIC_URL"),
-            ("nativeClientId", "MOLTNET_NATIVE_OAUTH_CLIENT_ID"),
-            ("consoleClientId", "MOLTNET_CONSOLE_OAUTH_CLIENT_ID"),
-            ("apiUrl", "MOLTNET_OPERATOR_API_URL"),
-            ("apiUrl", "MOLTNET_API_URL"),
-        ] {
-            if let Some(raw) = std::env::var_os(variable) {
-                let text = raw
-                    .into_string()
-                    .map_err(|_| format!("Invalid {variable}"))?;
-                if !text.is_empty() {
-                    environment.insert(key.into(), Value::String(text));
-                }
-            }
+        self.resolve_with_environment(&Value::Object(launch_environment()?))
+    }
+
+    /// The API this Desktop talks to: launch environment over saved settings.
+    pub fn effective_api(&self) -> Result<String, String> {
+        let overrides = self.overrides()?;
+        let mut settings = validate(&overrides)?;
+        settings.extend(validate(&Value::Object(launch_environment()?))?);
+        Ok(settings
+            .get("apiUrl")
+            .and_then(Value::as_str)
+            .unwrap_or(API)
+            .trim_end_matches('/')
+            .to_owned())
+    }
+
+    fn overrides(&self) -> Result<Value, String> {
+        match fs::read(self.root.join("connection-settings.json")) {
+            Ok(bytes) => serde_json::from_slice(&bytes)
+                .map_err(|e| format!("Invalid connection settings: {e}")),
+            Err(e) if e.kind() == ErrorKind::NotFound => Ok(serde_json::json!({})),
+            Err(e) => Err(e.to_string()),
         }
-        self.resolve_with_environment(&Value::Object(environment))
     }
 
     fn resolve_with_environment(&self, environment: &Value) -> Result<String, String> {
-        let overrides = match fs::read(self.root.join("connection-settings.json")) {
-            Ok(bytes) => serde_json::from_slice(&bytes)
-                .map_err(|e| format!("Invalid connection settings: {e}"))?,
-            Err(e) if e.kind() == ErrorKind::NotFound => serde_json::json!({}),
-            Err(e) => return Err(e.to_string()),
-        };
+        let overrides = self.overrides()?;
         let root = resolve_store_path(Some(&self.root), None, &self.home, &self.home)?;
         let effective = connection_root(&root, &overrides, environment)?;
         if is_default_store(&effective, &self.home) {
@@ -59,6 +58,29 @@ impl PresetScope {
             .map(str::to_owned)
             .ok_or("Invalid preset storage path".into())
     }
+}
+
+/// Connection overrides from the launch environment, as the daemon reads them.
+fn launch_environment() -> Result<Map<String, Value>, String> {
+    let mut environment = Map::new();
+    for (key, variable) in [
+        ("issuer", "MOLTNET_OPERATOR_OAUTH_ISSUER"),
+        ("publicUrl", "MOLTNET_OPERATOR_OAUTH_PUBLIC_URL"),
+        ("nativeClientId", "MOLTNET_NATIVE_OAUTH_CLIENT_ID"),
+        ("consoleClientId", "MOLTNET_CONSOLE_OAUTH_CLIENT_ID"),
+        ("apiUrl", "MOLTNET_OPERATOR_API_URL"),
+        ("apiUrl", "MOLTNET_API_URL"),
+    ] {
+        if let Some(raw) = std::env::var_os(variable) {
+            let text = raw
+                .into_string()
+                .map_err(|_| format!("Invalid {variable}"))?;
+            if !text.is_empty() {
+                environment.insert(key.into(), Value::String(text));
+            }
+        }
+    }
+    Ok(environment)
 }
 
 fn validate(value: &Value) -> Result<Map<String, Value>, String> {

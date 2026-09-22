@@ -31,9 +31,11 @@ describe('captured run credential', () => {
   it('checks the viewed identity and warns about replacement without changing or stopping the run', async () => {
     const actions: RunCenterActions = {
       catalogue: vi.fn().mockResolvedValue({
+        projects: [],
         teams: [
           {
             teamId: 'team',
+            diaries: [],
             credential: {
               ...credential,
               keyId: 'replacement',
@@ -80,7 +82,7 @@ it('suspends catalogue refresh and logs when hidden and resumes when visible', a
   vi.useFakeTimers();
   const unsubscribe = vi.fn();
   const actions: RunCenterActions = {
-    catalogue: vi.fn().mockResolvedValue({ teams: [] }),
+    catalogue: vi.fn().mockResolvedValue({ teams: [], projects: [] }),
     startRun: vi.fn(),
     stopRun: vi.fn(),
     savePreset: vi.fn(),

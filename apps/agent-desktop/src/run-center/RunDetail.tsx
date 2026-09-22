@@ -42,6 +42,11 @@ export function RunDetail({
 }: RunDetailProps) {
   const [currentCredential, setCurrentCredential] =
     useState<DesktopRun['credential']>();
+  // Names for the captured ids; the ids remain when the catalogue lacks them.
+  const [names, setNames] = useState<{
+    project?: string;
+    diary?: string;
+  }>({});
   useEffect(() => {
     if (!active) return;
     let current = true;
@@ -49,11 +54,19 @@ export function RunDetail({
     const refresh = async () => {
       try {
         const catalogue = await actions.catalogue(run.agent);
-        if (current)
-          setCurrentCredential(
-            catalogue.teams.find((team) => team.teamId === run.teamId)
-              ?.credential,
-          );
+        if (!current) return;
+        const team = catalogue.teams.find(
+          (entry) => entry.teamId === run.teamId,
+        );
+        setCurrentCredential(team?.credential);
+        setNames({
+          project: catalogue.projects.find(
+            (entry) => entry.id === run.workspace?.projectId,
+          )?.name,
+          diary: team?.diaries.find(
+            (entry) => entry.id === run.workspace?.diaryId,
+          )?.name,
+        });
       } catch {
         if (current) setCurrentCredential(undefined);
       }
@@ -64,7 +77,14 @@ export function RunDetail({
       current = false;
       window.clearInterval(timer);
     };
-  }, [actions, run.agent, run.teamId, active]);
+  }, [
+    actions,
+    run.agent,
+    run.teamId,
+    run.workspace?.projectId,
+    run.workspace?.diaryId,
+    active,
+  ]);
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [stopping, setStopping] = useState(false);
@@ -101,13 +121,20 @@ export function RunDetail({
               items={[
                 {
                   label: 'Project',
-                  value: run.workspace.projectId ?? 'General work',
+                  value: run.workspace.projectId
+                    ? (names.project ?? run.workspace.projectId)
+                    : 'General work',
                 },
                 {
                   label: 'Location',
                   value: run.workspace.location ?? 'Run only',
                 },
-                { label: 'Diary', value: run.workspace.diaryId ?? 'No diary' },
+                {
+                  label: 'Diary',
+                  value: run.workspace.diaryId
+                    ? (names.diary ?? run.workspace.diaryId)
+                    : 'No diary',
+                },
                 {
                   label: 'Folder',
                   value: run.workspace.source ?? 'No source folder',

@@ -12,6 +12,10 @@ import {
 import { useEffect, useState } from 'react';
 
 import { desktopBridge } from '../bridge.js';
+import {
+  projectErrorBlocks,
+  ProjectErrorNotice,
+} from './ProjectErrorNotice.js';
 import type {
   AgentServerCatalogue,
   ProjectActions,
@@ -76,7 +80,10 @@ export function ProjectsView({
   const [locationsLoading, setLocationsLoading] = useState(true);
   const [catalogueError, setCatalogueError] = useState<string | null>(null);
   const [locationsError, setLocationsError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: 'info' | 'error';
+    text: string;
+  } | null>(null);
   const [revision, setRevision] = useState(0);
   const [editing, setEditing] = useState<ProjectLocation | null | undefined>();
   const [removing, setRemoving] = useState<string | null>(null);
@@ -165,9 +172,14 @@ export function ProjectsView({
     try {
       await projects.remove(name);
       setLocations((current) => current.filter((entry) => entry.name !== name));
-      setFeedback('Location removed. Its folder is unchanged.');
+      // An open form for this location would otherwise re-create it on save.
+      setEditing((current) => (current?.name === name ? undefined : current));
+      setFeedback({
+        tone: 'info',
+        text: 'Location removed. Its folder is unchanged.',
+      });
     } catch (error) {
-      setFeedback(message(error));
+      setFeedback({ tone: 'error', text: message(error) });
     } finally {
       setRemoving(null);
     }
@@ -265,16 +277,14 @@ export function ProjectsView({
                 </InlineNotice>
               ) : null}
               {projectError ? (
-                <InlineNotice
-                  tone="error"
-                  title="Project discovery unavailable"
-                >
-                  {projectError.message}
-                  <Button variant="secondary" onClick={refresh}>
-                    Retry discovery
-                  </Button>
-                </InlineNotice>
-              ) : team?.available && !availableProjects.length ? (
+                <ProjectErrorNotice
+                  error={projectError}
+                  onRetry={refresh}
+                  onTeams={onTeams}
+                />
+              ) : null}
+              {projectErrorBlocks(projectError) ? null : team?.available &&
+                !availableProjects.length ? (
                 <InlineNotice tone="info" title="No shared projects">
                   Create a project in Console, then refresh discovery.
                   <Button
@@ -282,7 +292,9 @@ export function ProjectsView({
                     onClick={() => {
                       void desktopBridge
                         .openConsole()
-                        .catch((error: unknown) => setFeedback(message(error)));
+                        .catch((error: unknown) =>
+                          setFeedback({ tone: 'error', text: message(error) }),
+                        );
                     }}
                   >
                     Open Console
@@ -318,9 +330,9 @@ export function ProjectsView({
         </Stack>
       </ControlSurface>
       {feedback ? (
-        <div role="status">
-          <InlineNotice tone="info" title="Local locations">
-            {feedback}
+        <div role={feedback.tone === 'error' ? 'alert' : 'status'}>
+          <InlineNotice tone={feedback.tone} title="Local locations">
+            {feedback.text}
           </InlineNotice>
         </div>
       ) : null}
@@ -361,7 +373,9 @@ export function ProjectsView({
                 onClick={() => {
                   void desktopBridge
                     .openConsole()
-                    .catch((error: unknown) => setFeedback(message(error)));
+                    .catch((error: unknown) =>
+                      setFeedback({ tone: 'error', text: message(error) }),
+                    );
                 }}
               >
                 Manage in Console
@@ -498,9 +512,10 @@ export function ProjectsView({
                       saved,
                     ]);
                     setEditing(undefined);
-                    setFeedback(
-                      'Location saved. Existing runs keep their captured selection.',
-                    );
+                    setFeedback({
+                      tone: 'info',
+                      text: 'Location saved. Existing runs keep their captured selection.',
+                    });
                   }}
                 />
               ) : null}
