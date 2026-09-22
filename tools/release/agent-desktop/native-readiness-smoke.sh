@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Launch a packaged Desktop against the Agent CLI built from the same revision
-# and require its managed native-socket server to become ready.
+# Launch a packaged Desktop against the supplied Agent Daemon bundle and
+# require its managed native-socket server to become ready.
 set -euo pipefail
 
 label=$1
@@ -8,7 +8,6 @@ shift
 home=$(mktemp -d "${TMPDIR:-/tmp}/moltnet-desktop-native-smoke.XXXXXX")
 output="${TMPDIR:-/tmp}/moltnet-desktop-smoke-$label.log"
 supervisor="$home/.config/moltnet/agent-server/logs/desktop-supervisor.log"
-agent="$home/.local/share/moltnet/agent/current/bin/moltnet-agent"
 payload=$(find dist/agent-bundle -mindepth 1 -maxdepth 1 \
   -type d -name 'moltnet-agent-*' -print -quit)
 pid=
@@ -43,10 +42,8 @@ trap cleanup EXIT
 
 test -n "$payload"
 test -x "$payload/bin/moltnet-agent"
-mkdir -p "$(dirname "$agent")"
-ln -s "$(pwd)/$payload/bin/moltnet-agent" "$agent"
-printf '{"version":"%s"}\n' "$(cat apps/agent-desktop/agent-cli.minimum-version)" \
-  > "$home/.local/share/moltnet/agent/current/manifest.json"
+mkdir -p "$home/.local/share/moltnet/agent"
+ln -s "$(pwd)/$payload" "$home/.local/share/moltnet/agent/current"
 
 if [ "$(uname -s)" = Linux ] && command -v setsid >/dev/null 2>&1; then
   process_group=true
