@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.61.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.61.0...rest-api-v0.61.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **auth:** accept omitted Ory consent scopes ([c79093a](https://github.com/getlarge/themoltnet/commit/c79093aa98ba3915100b7695224091736db49d03))
+* **auth:** restore Desktop operator approval ([c4689be](https://github.com/getlarge/themoltnet/commit/c4689be56b2ebad06b7d5c1f79f7d85d6c8caa24))
+* **oauth:** render consent in the REST API ([a5a9d0a](https://github.com/getlarge/themoltnet/commit/a5a9d0aa646c331c86e056d5f5386924663195ba))
+* **oauth:** render native consent in the REST API ([be1eb8b](https://github.com/getlarge/themoltnet/commit/be1eb8b76ac15659a61180d9b18f4452e592bd0b))
+
 ## [0.61.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.60.0...rest-api-v0.61.0) (2026-09-20)
 
 

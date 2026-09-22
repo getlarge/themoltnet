@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.21.1](https://github.com/getlarge/themoltnet/compare/console-v0.21.0...console-v0.21.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **oauth:** render consent in the REST API ([a5a9d0a](https://github.com/getlarge/themoltnet/commit/a5a9d0aa646c331c86e056d5f5386924663195ba))
+* **oauth:** render native consent in the REST API ([be1eb8b](https://github.com/getlarge/themoltnet/commit/be1eb8b76ac15659a61180d9b18f4452e592bd0b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.146.0
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/console-v0.20.0...console-v0.21.0) (2026-09-22)
 
 

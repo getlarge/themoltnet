@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.3](https://github.com/getlarge/themoltnet/compare/landing-v0.15.2...landing-v0.15.3) (2026-09-22)
+
+
+### Bug Fixes
+
+* **landing:** publish stable download pins ([7b4b34a](https://github.com/getlarge/themoltnet/commit/7b4b34ab0e1d9074fda195ff3ae823faef1d72e4))
+* **landing:** publish stable download pins ([5dc39ac](https://github.com/getlarge/themoltnet/commit/5dc39ac8d5c7bdab8dd34979cf0fe749ab51bcad))
+
 ## [0.15.2](https://github.com/getlarge/themoltnet/compare/landing-v0.15.1...landing-v0.15.2) (2026-09-22)
 
 

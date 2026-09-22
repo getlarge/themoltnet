@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.6.2...agent-desktop-v0.7.0) (2026-09-22)
+
+
+### Features
+
+* **desktop:** capture project selections for managed runs ([ec14520](https://github.com/getlarge/themoltnet/commit/ec14520a65d66fcba5e4c4fd7c5e5368cec21eb7))
+* **desktop:** forward captured project run selections ([0acaaaf](https://github.com/getlarge/themoltnet/commit/0acaaaf9d001206db927af4226dfff9778f8f6c3))
+* **desktop:** integrate Projects and verify the personal run journey ([c8ea765](https://github.com/getlarge/themoltnet/commit/c8ea765b675901fcab9afedf686203aa89249bf8))
+* **desktop:** integrate Projects with isolated execution journeys ([4a547cf](https://github.com/getlarge/themoltnet/commit/4a547cf068513fc5112075f758483d32f43aff57))
+* **desktop:** native project catalogue and local locations ([4ff0345](https://github.com/getlarge/themoltnet/commit/4ff0345c9c9baa7b34ae4aaf6a4b368b67d513a2))
+
+
+### Bug Fixes
+
+* **auth:** restore Desktop operator approval ([c4689be](https://github.com/getlarge/themoltnet/commit/c4689be56b2ebad06b7d5c1f79f7d85d6c8caa24))
+* **desktop:** address project locations by name over PUT ([0c9e2ad](https://github.com/getlarge/themoltnet/commit/0c9e2ad71b6c0ba602a2b21413bf7dcae0bc6da5))
+* **desktop:** check project default diaries and hide unavailable Console links ([7d1f30d](https://github.com/getlarge/themoltnet/commit/7d1f30d07491ec0e3c6bb77c32d6891af9d27aa0))
+* **desktop:** clarify operator browser approval ([5539a74](https://github.com/getlarge/themoltnet/commit/5539a74b9e7c824c7b57f54f7b8e08c014465947))
+* **desktop:** follow run location naming and repair desktop journeys ([8ced971](https://github.com/getlarge/themoltnet/commit/8ced971feff7a175a7261d163ce4f8fbf76ba970))
+* **desktop:** honour project error codes, request-based presets and connection-aware Console ([b817a23](https://github.com/getlarge/themoltnet/commit/b817a2307227433450ccbdb3182ad5cb9f9c50d6))
+* **desktop:** replay the requested selection on Run again ([fe30aca](https://github.com/getlarge/themoltnet/commit/fe30aca49d8c6602fae32a9d815fa60997d8d284))
+* **desktop:** surface why a team credential is unavailable ([d3b7d14](https://github.com/getlarge/themoltnet/commit/d3b7d143dd9d3d8cb5cd978c799bee69f40b1d9c))
+* **oauth:** render consent in the REST API ([a5a9d0a](https://github.com/getlarge/themoltnet/commit/a5a9d0aa646c331c86e056d5f5386924663195ba))
+* **oauth:** render native consent in the REST API ([be1eb8b](https://github.com/getlarge/themoltnet/commit/be1eb8b76ac15659a61180d9b18f4452e592bd0b))
+
 ## [0.6.2](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.6.1...agent-desktop-v0.6.2) (2026-09-22)
 
 
