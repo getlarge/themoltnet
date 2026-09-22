@@ -104,6 +104,9 @@ export async function fixture(
   options: {
     connectionState?: boolean;
     rateLimitMax?: number;
+    projectSaveTimeoutMs?: number;
+    /** Build without a connection store, as a bare supervisor would. */
+    withoutConnectionSettings?: boolean;
     nativeOnly?: boolean;
     allowedOrigins?: readonly string[];
     operatorOAuth?: OperatorOAuth;
@@ -131,6 +134,7 @@ export async function fixture(
     externalSecrets = {},
     realCredentialPreflight = false,
     connectionState = false,
+    withoutConnectionSettings = false,
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
@@ -278,7 +282,9 @@ export async function fixture(
     secrets,
     secretProviders,
     externalSecretProviders,
-    connectionSettings: new ConnectionSettingsStore(store.root),
+    ...(withoutConnectionSettings
+      ? {}
+      : { connectionSettings: new ConnectionSettingsStore(store.root) }),
     nativeGrant: options.nativeGrant ?? new NativeGrantService(),
     ...(options.catalogueAgentFor
       ? { catalogueAgentFor: options.catalogueAgentFor }

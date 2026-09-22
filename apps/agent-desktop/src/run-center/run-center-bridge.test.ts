@@ -1,7 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { listPresets, runCenterActions } from './run-center-bridge.js';
+import {
+  listPresets,
+  projectActions,
+  runCenterActions,
+} from './run-center-bridge.js';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -74,5 +78,32 @@ describe('native team enrollment bridge', () => {
     vi.mocked(invoke).mockResolvedValue(undefined);
     await runCenterActions.signInOperator!();
     expect(invoke).toHaveBeenCalledWith('desktop_operator_sign_in');
+  });
+});
+
+describe('native project location bridge', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('routes each action to its registered native command', async () => {
+    vi.mocked(invoke).mockResolvedValue(undefined);
+    const input = {
+      name: 'Laptop',
+      identity: 'agent',
+      teamId: 'team',
+      projectId: 'project',
+      strategy: 'existing' as const,
+    };
+
+    await projectActions.list();
+    await projectActions.save(input);
+    await projectActions.remove('Laptop');
+    await projectActions.chooseFolder();
+
+    expect(vi.mocked(invoke).mock.calls).toEqual([
+      ['desktop_project_locations'],
+      ['desktop_save_project_location', { input }],
+      ['desktop_remove_project_location', { name: 'Laptop' }],
+      ['desktop_choose_project_folder'],
+    ]);
   });
 });

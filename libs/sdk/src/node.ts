@@ -247,3 +247,14 @@ export {
   WORKSPACE_STRATEGIES,
   type WorkspaceStrategy,
 } from '@moltnet/agent-config';
+/**
+ * @internal Supervisor plumbing for the agent daemon, which must share this
+ * package's `ProjectConfigError` class rather than bundle its own copy. Not a
+ * supported SDK API: signatures follow the Go CLI grammar and may change in
+ * any release.
+ */
+export {
+  normalizeProjectEndpoint,
+  updateProjectConfig,
+  validateProjectConfig,
+} from '@moltnet/agent-config';

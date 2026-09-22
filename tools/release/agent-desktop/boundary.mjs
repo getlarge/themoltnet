@@ -29,7 +29,7 @@ export function assertReleaseArtifact(contents, name) {
     'wdioTauri',
     'wdio-webdriver',
     '__wdio_mocks__',
-    'desktop-e2e:mount',
+    'desktop_e2e_tab',
   ]) {
     assert(
       !contents.includes(Buffer.from(marker)),

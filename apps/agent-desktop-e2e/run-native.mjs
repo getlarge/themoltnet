@@ -56,7 +56,7 @@ try {
   const shellQuote = (value) => "'" + value.replaceAll("'", "'\"'\"'") + "'";
   const tsx = import.meta.resolve('tsx');
   const fixture = fileURLToPath(
-    new URL('../agent-daemon/src/main.ts', import.meta.url),
+    new URL('./src/fixtures/desktop-fixture.ts', import.meta.url),
   );
   writeFileSync(
     join(current, 'bin/moltnet-agent'),
@@ -98,6 +98,32 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
     env.XDG_RUNTIME_DIR,
   ])
     mkdirSync(path, { recursive: true, mode: 0o700 });
+  // Resolve and compile the real CLI before Desktop's bounded startup probe.
+  // A cold TypeScript module graph is fixture preparation, not daemon readiness.
+  const prepare = spawn(
+    process.execPath,
+    [
+      '--import',
+      tsx,
+      fileURLToPath(new URL('../agent-daemon/src/main.ts', import.meta.url)),
+      '--help',
+    ],
+    {
+      cwd: projectRoot,
+      env,
+      stdio: 'ignore',
+      signal: abort.signal,
+      timeout: 60_000,
+    },
+  );
+  await new Promise((resolve, reject) => {
+    prepare.once('error', reject);
+    prepare.once('close', (code) =>
+      code === 0
+        ? resolve()
+        : reject(new Error('Fixture CLI preparation failed')),
+    );
+  });
   // The embedded driver requires a fixed port, not an inherited listener.
   // This probe is not a reservation: a bind conflict must fail the run visibly.
   const portProbe = createServer();

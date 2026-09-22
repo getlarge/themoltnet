@@ -13,6 +13,7 @@ import type {
   AgentServerCatalogue,
   AgentServerCatalogueProfile,
   AgentServerCatalogueTeam,
+  AgentServerProjectLocation,
   AgentServerProvider,
   AgentServerRun,
   AgentServerStatus,
@@ -20,6 +21,8 @@ import type {
   AgentServerSubscriptionLogin,
   EnrollAgentServerTeamData,
   EnrollAgentServerTeamResponses,
+  ListNativeProjectLocationsResponse,
+  SaveNativeProjectLocationData,
 } from '@moltnet/agent-daemon-api-client';
 
 import type { DesktopStatus, LifecycleState } from '../bridge.js';
@@ -61,6 +64,8 @@ export interface DesktopRun extends AgentServerRun {
  * never auto-starts and that nothing but this app reads.
  */
 export interface RunPreset {
+  /** Version 2 stores explicit choices; null diary uses current defaults. */
+  version?: 2;
   id: string;
   name: string;
   agent: string;
@@ -109,7 +114,7 @@ export interface RunCenterActions {
   catalogue: (identity: string) => Promise<AgentServerCatalogue>;
   startRun: (input: StartRunInput) => Promise<AgentServerRun>;
   stopRun: (runId: string) => Promise<void>;
-  savePreset: (input: SavePresetInput) => Promise<void>;
+  savePreset: (input: SavePresetInput) => Promise<RunPreset>;
   deletePreset: (presetId: string) => Promise<void>;
   /** Follows a bounded run log tail. Returns an unsubscribe function. */
   subscribeRunLogs: (
@@ -124,6 +129,19 @@ export interface RunCenterActions {
  * that writes secrets deserves its own, small contract.
  */
 export type { ProviderActions } from '@moltnet/task-ui/local-providers';
+
+export type ProjectLocation = AgentServerProjectLocation;
+/** The location name addresses the record; the rest is its saved body. */
+export type SaveProjectLocationInput = SaveNativeProjectLocationData['body'] &
+  SaveNativeProjectLocationData['path'];
+
+/** Local folder registrations; native code owns the grant and the folder picker. */
+export interface ProjectActions {
+  list(): Promise<ListNativeProjectLocationsResponse>;
+  save(input: SaveProjectLocationInput): Promise<ProjectLocation>;
+  remove(name: string): Promise<void>;
+  chooseFolder(): Promise<string | null>;
+}
 
 /**
  * Signing in to an existing LLM subscription, as an alternative to pasting an
@@ -146,6 +164,9 @@ export interface RunCenterData {
   runs: DesktopRun[];
   presets: RunPreset[];
   catalogue: AgentServerCatalogue | null;
+  catalogueIdentity?: string | null;
+  catalogueLoading?: boolean;
+  catalogueError?: string | null;
   providers: Record<string, AgentServerProvider>;
   subscriptions: AgentServerSubscription[];
 }

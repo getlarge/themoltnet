@@ -30,7 +30,7 @@ function fixture(stopRun: RunCenterActions['stopRun']) {
     catalogue: null,
   };
   const actions: RunCenterActions = {
-    catalogue: vi.fn().mockResolvedValue(null),
+    catalogue: vi.fn().mockResolvedValue({ teams: [] }),
     startRun: vi.fn(),
     stopRun,
     savePreset: vi.fn(),
@@ -79,5 +79,156 @@ describe('stopping a run from the list', () => {
     await screen.findByRole('button', { name: 'Stop' });
     expect(actions.stopRun).toHaveBeenCalledWith('run');
     expect(screen.queryByText('Run could not be stopped')).toBeNull();
+  });
+});
+
+describe('catalogue state in the Runs overview', () => {
+  it.each([
+    {
+      catalogueLoading: true,
+      catalogueError: null,
+      message: 'Loading teams and profiles…',
+    },
+    {
+      catalogueLoading: false,
+      catalogueError: 'Catalogue request failed',
+      message: 'Catalogue unavailable',
+    },
+  ])('distinguishes $message from enrollment', (state) => {
+    const { data, actions } = fixture(vi.fn());
+    actions.refresh = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MoltThemeProvider mode="dark">
+        <RunsView
+          data={{ ...data, ...state }}
+          actions={actions}
+          now={0}
+          route={{ kind: 'list' }}
+          onRoute={() => {}}
+        />
+      </MoltThemeProvider>,
+    );
+    expect(screen.queryByText('Team enrollment required')).toBeNull();
+    expect(screen.getByText(state.message)).toBeInTheDocument();
+    if (state.catalogueError) {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry catalogue' }));
+      expect(actions.refresh).toHaveBeenCalledOnce();
+    }
+  });
+
+  it('describes an empty catalogue without claiming a credential failure', () => {
+    const { data, actions } = fixture(vi.fn());
+    render(
+      <MoltThemeProvider mode="dark">
+        <RunsView
+          data={{
+            ...data,
+            catalogue: {
+              projects: [],
+              projectErrors: [],
+              defaultTeamId: null,
+              teams: [],
+              profiles: [],
+            },
+          }}
+          actions={actions}
+          now={0}
+          route={{ kind: 'list' }}
+          onRoute={() => {}}
+        />
+      </MoltThemeProvider>,
+    );
+    expect(screen.getByText('No teams found')).toBeInTheDocument();
+    expect(screen.queryByText('Team enrollment required')).toBeNull();
+  });
+});
+
+it('offers catalogue retry when upstream team verification cannot complete', () => {
+  const { data, actions } = fixture(vi.fn());
+  render(
+    <MoltThemeProvider mode="dark">
+      <RunsView
+        data={{
+          ...data,
+          catalogue: {
+            projects: [],
+            projectErrors: [],
+            defaultTeamId: null,
+            profiles: [],
+            teams: [
+              {
+                teamId: 'team',
+                teamName: 'Research',
+                available: false,
+                diaries: [],
+                defaultDiaryId: null,
+                blockers: [
+                  {
+                    code: 'agent_key_unavailable',
+                    message: 'Resources unavailable',
+                    remedy: 'Check connectivity',
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+        actions={actions}
+        now={0}
+        route={{ kind: 'list' }}
+        onRoute={() => {}}
+      />
+    </MoltThemeProvider>,
+  );
+  expect(
+    screen.getByRole('button', { name: 'Retry catalogue' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Identity and teams' }),
+  ).toBeNull();
+});
+
+it('keeps a matching preset selected when repeating an attributed run', () => {
+  const { data, actions } = fixture(vi.fn());
+  const onRoute = vi.fn();
+  const previous = {
+    ...run,
+    status: 'stopped' as const,
+    active: false,
+    diaryId: 'new-default',
+  };
+  render(
+    <MoltThemeProvider mode="dark">
+      <RunsView
+        data={{
+          ...data,
+          runs: [previous],
+          presets: [
+            {
+              id: 'saved',
+              name: 'Worker',
+              agent: run.agent,
+              teamId: run.teamId,
+              diaryId: null,
+              version: 2,
+              profileIds: run.profiles,
+              taskTypes: run.taskTypes,
+              createdAt: run.startedAt,
+              lastUsedAt: null,
+            },
+          ],
+        }}
+        actions={actions}
+        now={0}
+        route={{ kind: 'detail', runId: run.id }}
+        onRoute={onRoute}
+      />
+    </MoltThemeProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Run again' }));
+  expect(onRoute).toHaveBeenCalledWith({
+    kind: 'compose',
+    presetId: 'saved',
+    previousRun: previous,
   });
 });

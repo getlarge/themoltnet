@@ -43,6 +43,7 @@ export { withConfigLock } from './config-lock.js';
 export {
   canonicalDirectory,
   getProjectConfigPath,
+  normalizeProjectEndpoint,
   type ProjectBinding,
   type ProjectConfig,
   ProjectConfigError,

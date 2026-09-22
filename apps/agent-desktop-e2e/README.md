@@ -12,3 +12,18 @@ the host's Desktop build dependencies and a graphical session. The test build
 refuses to start without the runner's isolated roots and has no updater plugin.
 
 Linux native journeys use an isolated D-Bus session and X11 display. Platform data and runtime directories belong to the temporary fixture. On macOS, changing HOME does not isolate Keychain: native fixtures must use file-backed credentials and must not write operator Keychain items.
+Native layout checks exercise the default and minimum window sizes. Axe uses
+single-window mode; the macOS test build supplies an AppKit Tab command for
+WebKit focus navigation. Foreground animation, tray behavior, and signed
+installation remain separate native acceptance checks.
+
+At the run-flow layer (#2394), CI runs the Chrome journeys and compiles the
+native automation feature on macOS. Executing the native journeys in CI begins
+with #2397; native checks for this layer are run locally. Both WDIO configurations
+capture failed-test screenshots under `test-results/`.
+
+Run again repeats explicit identity, team, profile and task-type selections.
+The team diary is a default and is resolved again; saved presets use a null diary
+to follow that default. A matching saved preset stays associated with the draft.
+Project-location tests inject a deterministic catalogue into production CLI startup.
+The CLI still owns grants, connection settings, locks, socket binding, and shutdown.

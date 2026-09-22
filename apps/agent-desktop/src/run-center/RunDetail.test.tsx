@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -42,6 +42,8 @@ describe('captured run credential', () => {
           },
         ],
         profiles: [],
+        projects: [],
+        projectErrors: [],
         defaultTeamId: 'team',
       }),
       startRun: vi.fn(),
@@ -72,4 +74,42 @@ describe('captured run credential', () => {
     await screen.findByText('Run could not be stopped');
     expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled();
   });
+});
+
+it('suspends catalogue refresh and logs when hidden and resumes when visible', async () => {
+  vi.useFakeTimers();
+  const unsubscribe = vi.fn();
+  const actions: RunCenterActions = {
+    catalogue: vi.fn().mockResolvedValue({ teams: [] }),
+    startRun: vi.fn(),
+    stopRun: vi.fn(),
+    savePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    subscribeRunLogs: vi.fn().mockReturnValue(unsubscribe),
+  };
+  const renderDetail = (active: boolean) => (
+    <MoltThemeProvider mode="dark">
+      <RunDetail
+        active={active}
+        run={run}
+        actions={actions}
+        now={0}
+        onBack={() => {}}
+        onRunAgain={() => {}}
+      />
+    </MoltThemeProvider>
+  );
+  const view = render(renderDetail(true));
+  expect(actions.subscribeRunLogs).toHaveBeenCalledTimes(1);
+  view.rerender(renderDetail(false));
+  expect(unsubscribe).toHaveBeenCalledTimes(1);
+  const previousCalls = vi.mocked(actions.catalogue).mock.calls.length;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(31000);
+  });
+  view.rerender(renderDetail(false));
+  expect(actions.catalogue).toHaveBeenCalledTimes(previousCalls);
+  view.rerender(renderDetail(true));
+  expect(actions.subscribeRunLogs).toHaveBeenCalledTimes(2);
+  vi.useRealTimers();
 });

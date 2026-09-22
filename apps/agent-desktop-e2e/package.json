@@ -16,7 +16,9 @@
     "webdriverio": "catalog:",
     "tsx": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "@axe-core/webdriverio": "catalog:",
+    "@themoltnet/agent-daemon": "workspace:*"
   },
   "nx": {
     "projectType": "application",

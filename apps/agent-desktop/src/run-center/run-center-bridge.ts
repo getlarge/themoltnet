@@ -17,6 +17,8 @@ import type {
   AgentServerRun,
   AgentServerSubscription,
   AgentServerSubscriptionLogin,
+  ProjectActions,
+  ProjectLocation,
   ProviderActions,
   RunCenterActions,
   RunPreset,
@@ -58,7 +60,9 @@ function writePresets(key: string, presets: RunPreset[]): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(presets));
   } catch {
-    // Non-fatal: the run still starts, the preset just is not remembered.
+    throw new Error(
+      'The preset could not be saved. Check available storage and try again.',
+    );
   }
 }
 
@@ -103,6 +107,17 @@ export const subscriptionActions: SubscriptionActions = {
   },
 };
 
+/** Project locations. Folder selection and the control grant stay native. */
+export const projectActions: ProjectActions = {
+  list: () => invoke('desktop_project_locations'),
+  save: (input) =>
+    invoke<ProjectLocation>('desktop_save_project_location', { input }),
+  remove: async (name) => {
+    await invoke('desktop_remove_project_location', { name });
+  },
+  chooseFolder: () => invoke<string | null>('desktop_choose_project_folder'),
+};
+
 export function listSubscriptions(): Promise<AgentServerSubscription[]> {
   return invoke<AgentServerSubscription[]>('desktop_subscriptions');
 }
@@ -142,6 +157,7 @@ export const runCenterActions: RunCenterActions = {
       ? presets.find((preset) => preset.id === input.id)
       : undefined;
     const preset: RunPreset = {
+      version: 2,
       id: existing?.id ?? crypto.randomUUID(),
       name: input.name,
       agent: input.agent,
@@ -158,6 +174,7 @@ export const runCenterActions: RunCenterActions = {
         ? presets.map((entry) => (entry.id === preset.id ? preset : entry))
         : [...presets, preset],
     );
+    return preset;
   },
 
   deletePreset: async (presetId) => {

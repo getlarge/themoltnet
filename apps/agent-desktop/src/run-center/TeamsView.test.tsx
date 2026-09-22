@@ -56,9 +56,13 @@ function fixture() {
     presets: [],
   };
   const actions: RunCenterActions = {
-    catalogue: vi
-      .fn()
-      .mockResolvedValue({ teams: [team], profiles: [], defaultTeamId: null }),
+    catalogue: vi.fn().mockResolvedValue({
+      teams: [team],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    }),
     enrollTeam: vi.fn().mockResolvedValue({
       state: 'persisted',
       teamId: 'team-a',
@@ -204,6 +208,8 @@ describe('desktop team enrollment', () => {
         },
       ],
       profiles: [],
+      projects: [],
+      projectErrors: [],
       defaultTeamId: 'team-a',
     });
     fireEvent.click(

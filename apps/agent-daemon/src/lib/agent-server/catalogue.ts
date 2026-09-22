@@ -12,8 +12,11 @@
  * them: the CLI's context store refuses one without the other, and a diary
  * that drifts from its team means entries land in the wrong place.
  */
-import type { Agent } from '@themoltnet/sdk';
+import { type Agent, MoltNetError } from '@themoltnet/sdk';
+import type { FastifyBaseLogger } from 'fastify';
 
+import { safeErrorContext } from '../safe-error-context.js';
+import { ProjectPaginationError } from './catalogue-project-reader.js';
 import {
   deriveProfileReadiness,
   type MachineCapabilities,
@@ -37,6 +40,34 @@ type ListItems<T> =
 type SdkTeam = ListItems<ReturnType<Agent['teams']['list']>>;
 type SdkDiary = ListItems<ReturnType<Agent['diaries']['list']>>;
 type SdkProfile = ListItems<ReturnType<Agent['runtimeProfiles']['list']>>;
+type SdkProject = ListItems<ReturnType<Agent['projects']['list']>>;
+
+export type CatalogueProject = Pick<
+  SdkProject,
+  'id' | 'teamId' | 'name' | 'description' | 'defaultDiaryId' | 'archived'
+>;
+
+export interface CatalogueProjectPage {
+  items: CatalogueProject[];
+  /** More projects exist than one discovery pass reads. */
+  truncated: boolean;
+}
+
+/**
+ * Coarse and additive: `forbidden` needs access changes, `unreachable` is worth
+ * a retry, `invalid_response` is a server fault, `truncated` is informational.
+ */
+export type ProjectErrorCode =
+  | 'forbidden'
+  | 'unreachable'
+  | 'invalid_response'
+  | 'truncated';
+
+export interface ProjectError {
+  teamId: string;
+  code: ProjectErrorCode;
+  message: string;
+}
 
 export type CatalogueTeamRecord = Pick<SdkTeam, 'id' | 'name'>;
 export type CatalogueDiaryRecord = Pick<SdkDiary, 'id' | 'name' | 'teamId'>;
@@ -74,7 +105,19 @@ export interface CatalogueAgentPort {
   /** Local indexed slots, not a cross-team API query. */
   teamIds: string[];
   lastVerified(teamId: string): CredentialMetadata | undefined;
-  readTeam(teamId: string): Promise<{
+  /** Called only after readTeam verifies this team's credential. */
+  readProjects(teamId: string): Promise<CatalogueProjectPage>;
+  /** Called only after readTeam verifies this team's credential; null when not visible. */
+  readProject(
+    teamId: string,
+    projectId: string,
+    signal?: AbortSignal,
+  ): Promise<CatalogueProject | null>;
+  /** `signal` stops credential verification and any later step once aborted. */
+  readTeam(
+    teamId: string,
+    signal?: AbortSignal,
+  ): Promise<{
     team: CatalogueTeamRecord;
     diaries: CatalogueDiaryRecord[];
     profiles: CatalogueProfileRecord[];
@@ -106,6 +149,8 @@ export interface Catalogue {
   teams: CatalogueTeam[];
   defaultTeamId: string | null;
   profiles: CatalogueProfile[];
+  projects: CatalogueProject[];
+  projectErrors: ProjectError[];
 }
 
 /** The identity-wide binding from `<agentDir>/env`, when it has one. */
@@ -118,8 +163,9 @@ export async function buildCatalogue(options: {
   agent: CatalogueAgentPort;
   machine: MachineCapabilities;
   identityDefault: IdentityDefaultBinding;
+  logger?: Pick<FastifyBaseLogger, 'warn'>;
 }): Promise<Catalogue> {
-  const { agent, machine, identityDefault } = options;
+  const { agent, machine, identityDefault, logger } = options;
   const entries = await Promise.all(
     agent.teamIds.map(async (teamId) => {
       try {
@@ -144,7 +190,40 @@ export async function buildCatalogue(options: {
             ...profile,
             ...deriveProfileReadiness(profile, machine),
           }));
-        return { team, profiles };
+        try {
+          const page = await agent.readProjects(teamId);
+          const projects = page.items.filter(
+            (project) => project.teamId === teamId && !project.archived,
+          );
+          const projectErrors: ProjectError[] = page.truncated
+            ? [
+                {
+                  teamId,
+                  code: 'truncated',
+                  message:
+                    'Only the first projects are listed. Archive unused projects to see the rest.',
+                },
+              ]
+            : [];
+          return { team, profiles, projects, projectErrors };
+        } catch (error) {
+          // Project discovery does not invalidate the credential just verified
+          // above. General work and team/profile recovery remain available.
+          logger?.warn(
+            {
+              ...safeErrorContext(error),
+              teamId,
+              code: 'agent_server_project_discovery_failed',
+            },
+            'AgentServer project discovery failed',
+          );
+          return {
+            team,
+            profiles,
+            projects: [],
+            projectErrors: [projectError(teamId, error)],
+          };
+        }
       } catch (error) {
         const team: CatalogueTeam = {
           teamId,
@@ -155,7 +234,7 @@ export async function buildCatalogue(options: {
           diaries: [],
           defaultDiaryId: null,
         };
-        return { team, profiles: [] };
+        return { team, profiles: [], projects: [], projectErrors: [] };
       }
     }),
   );
@@ -167,7 +246,37 @@ export async function buildCatalogue(options: {
     null;
   const profiles = entries.flatMap((entry) => entry.profiles);
 
-  return { teams, defaultTeamId, profiles };
+  return {
+    teams,
+    defaultTeamId,
+    profiles,
+    projects: entries.flatMap((entry) => entry.projects),
+    projectErrors: entries.flatMap((entry) => entry.projectErrors),
+  };
+}
+
+function projectError(teamId: string, error: unknown): ProjectError {
+  if (
+    error instanceof MoltNetError &&
+    (error.statusCode === 401 || error.statusCode === 403)
+  )
+    return {
+      teamId,
+      code: 'forbidden',
+      message:
+        'This team credential cannot list projects. Renew it with project access.',
+    };
+  if (error instanceof ProjectPaginationError)
+    return {
+      teamId,
+      code: 'invalid_response',
+      message: 'The server returned an unreadable project list.',
+    };
+  return {
+    teamId,
+    code: 'unreachable',
+    message: 'Projects could not be loaded. Retry project discovery.',
+  };
 }
 
 function resolveDefaultDiary(

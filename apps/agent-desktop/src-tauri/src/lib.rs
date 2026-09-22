@@ -3,6 +3,8 @@ mod automation;
 #[path = "../build_support.rs"]
 mod build_support;
 mod control;
+#[cfg(all(feature = "desktop-e2e", target_os = "macos"))]
+mod e2e_keyboard;
 mod lifecycle;
 mod linux_setup;
 mod native_socket;
@@ -213,6 +215,79 @@ async fn desktop_catalogue(
     .await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned an unreadable catalogue: {error}"))
+}
+
+#[tauri::command]
+async fn desktop_project_locations(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_connection(&state, |token| {
+        control::get(token, "/v1/native/project-locations")
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned unreadable project locations".to_string())
+}
+
+#[tauri::command]
+async fn desktop_save_project_location(
+    state: State<'_, AppState>,
+    input: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    // The name addresses the location; the remaining fields are its body.
+    let mut input = match input {
+        serde_json::Value::Object(fields) => fields,
+        _ => return Err("The project location must be an object".to_string()),
+    };
+    let name = match input.remove("name") {
+        Some(serde_json::Value::String(name)) if !name.trim().is_empty() => name,
+        _ => return Err("The project location needs a name".to_string()),
+    };
+    let path = format!("/v1/native/project-locations/{}", urlencode(&name));
+    let payload = serde_json::Value::Object(input).to_string();
+    let body =
+        with_control_connection(&state, move |token| control::put(token, &path, &payload)).await?;
+    serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned an unreadable project location".to_string())
+}
+
+#[tauri::command]
+async fn desktop_remove_project_location(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<(), String> {
+    with_control_connection(&state, move |token| {
+        control::delete(
+            token,
+            &format!("/v1/native/project-locations/{}", urlencode(&name)),
+        )
+    })
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn desktop_choose_project_folder(app: AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("Choose project folder")
+            .blocking_pick_folder()
+            .map(|file| {
+                let path = file.into_path().map_err(|error| error.to_string())?;
+                let path = path.canonicalize().map_err(|error| error.to_string())?;
+                if !path.is_dir() {
+                    return Err("Choose a folder".to_string());
+                }
+                path.into_os_string()
+                    .into_string()
+                    .map_err(|_| "The folder path must contain valid Unicode".to_string())
+            })
+            .transpose()
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -847,12 +922,19 @@ pub fn run() {
     #[cfg(not(feature = "desktop-e2e"))]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     let app = builder
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
+            #[cfg(all(feature = "desktop-e2e", target_os = "macos"))]
+            e2e_keyboard::desktop_e2e_tab,
             desktop_status,
             desktop_linux_setup,
             desktop_repair_linux_setup,
             desktop_catalogue,
+            desktop_project_locations,
+            desktop_save_project_location,
+            desktop_remove_project_location,
+            desktop_choose_project_folder,
             desktop_control_status,
             desktop_enroll_team,
             desktop_operator_sign_in,

@@ -47,6 +47,9 @@ import type {
   ListAgentServerSubscriptionsData,
   ListAgentServerSubscriptionsErrors,
   ListAgentServerSubscriptionsResponses,
+  ListNativeProjectLocationsData,
+  ListNativeProjectLocationsErrors,
+  ListNativeProjectLocationsResponses,
   PutAgentServerProviderData,
   PutAgentServerProviderErrors,
   PutAgentServerProviderResponses,
@@ -55,6 +58,12 @@ import type {
   ReconcileAgentServerAgentResponses,
   RemoveAgentServerOperatorData,
   RemoveAgentServerOperatorResponses,
+  RemoveNativeProjectLocationData,
+  RemoveNativeProjectLocationErrors,
+  RemoveNativeProjectLocationResponses,
+  SaveNativeProjectLocationData,
+  SaveNativeProjectLocationErrors,
+  SaveNativeProjectLocationResponses,
   SignInAgentServerOperatorData,
   SignInAgentServerOperatorResponses,
   StartAgentServerRunData,
@@ -183,6 +192,62 @@ export const getAgentServerCatalogue = <ThrowOnError extends boolean = false>(
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/catalogue',
     ...options,
+  });
+
+/**
+ * Requires the Desktop native grant; browser authorization is insufficient.
+ */
+export const listNativeProjectLocations = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ListNativeProjectLocationsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListNativeProjectLocationsResponses,
+    ListNativeProjectLocationsErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-locations',
+    ...options,
+  });
+
+/**
+ * Removes the registration only; the folder is left untouched. Requires the Desktop native grant.
+ */
+export const removeNativeProjectLocation = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<RemoveNativeProjectLocationData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RemoveNativeProjectLocationResponses,
+    RemoveNativeProjectLocationErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-locations/{name}',
+    ...options,
+  });
+
+/**
+ * Creates or replaces the named location. Requires the Desktop native grant.
+ */
+export const saveNativeProjectLocation = <ThrowOnError extends boolean = false>(
+  options: Options<SaveNativeProjectLocationData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    SaveNativeProjectLocationResponses,
+    SaveNativeProjectLocationErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-locations/{name}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 export const removeAgentServerOperator = <ThrowOnError extends boolean = false>(

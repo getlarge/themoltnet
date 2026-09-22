@@ -10,13 +10,16 @@ import {
 } from '@themoltnet/design-system';
 import { useState } from 'react';
 
+import { verificationUnavailable } from './credential-health.js';
 import { duration, relativeTime } from './format.js';
+import { findRunPreset } from './preset-matching.js';
 import type { RunsRoute } from './RunCenterApp.js';
 import { RunComposer } from './RunComposer.js';
 import { RunDetail } from './RunDetail.js';
 import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
 
 export interface RunsViewProps {
+  active?: boolean;
   data: RunCenterData;
   actions: RunCenterActions;
   now: number;
@@ -26,6 +29,7 @@ export interface RunsViewProps {
 }
 
 export function RunsView({
+  active = true,
   data,
   actions,
   now,
@@ -36,7 +40,9 @@ export function RunsView({
   if (route.kind === 'compose') {
     return (
       <RunComposer
-        key={route.presetId ?? 'new'}
+        key={route.previousRun?.id ?? route.presetId ?? 'new'}
+        active={active}
+        previousRun={route.previousRun}
         data={data}
         actions={actions}
         presetId={route.presetId}
@@ -51,11 +57,18 @@ export function RunsView({
     if (run) {
       return (
         <RunDetail
+          active={active}
           run={run}
           actions={actions}
           now={now}
           onBack={() => onRoute({ kind: 'list' })}
-          onRunAgain={() => onRoute({ kind: 'compose', presetId: null })}
+          onRunAgain={() =>
+            onRoute({
+              kind: 'compose',
+              presetId: findRunPreset(data.presets, run)?.id ?? null,
+              previousRun: run,
+            })
+          }
         />
       );
     }
@@ -83,6 +96,9 @@ function RunsList({
   const [stopError, setStopError] = useState(false);
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
+  const verificationFailed = verificationUnavailable(
+    data.catalogue?.teams ?? [],
+  );
   const serverReady = ['running', 'update_available'].includes(
     data.server.state,
   );
@@ -140,9 +156,35 @@ function RunsList({
         </InlineNotice>
       ) : null}
 
-      {serverReady && !data.catalogue?.teams.some((team) => team.available) ? (
-        <InlineNotice tone="warning" title="Team enrollment required">
-          Enroll an identity before starting a run.{' '}
+      {serverReady && data.catalogueLoading ? (
+        <div role="status">
+          <Text>Loading teams and profiles…</Text>
+        </div>
+      ) : null}
+      {serverReady && (data.catalogueError || verificationFailed) ? (
+        <InlineNotice tone="error" title="Catalogue unavailable">
+          {data.catalogueError ??
+            'Some team resources could not be verified. Check connectivity and retry.'}
+          <Button variant="secondary" onClick={() => void actions.refresh?.()}>
+            Retry catalogue
+          </Button>
+        </InlineNotice>
+      ) : null}
+      {serverReady && data.catalogue?.teams.length === 0 ? (
+        <InlineNotice tone="info" title="No teams found">
+          This identity has no teams in this environment.
+          <Button variant="ghost" onClick={onTeams}>
+            Identity and teams
+          </Button>
+        </InlineNotice>
+      ) : null}
+      {serverReady &&
+      !verificationFailed &&
+      data.catalogue &&
+      data.catalogue.teams.length > 0 &&
+      !data.catalogue.teams.some((team) => team.available) ? (
+        <InlineNotice tone="warning" title="Team access needs attention">
+          Verify a team credential before starting a run.
           <Button variant="ghost" onClick={onTeams}>
             Identity and teams
           </Button>
@@ -185,7 +227,11 @@ function RunsList({
                   now={now}
                   onOpen={() => onRoute({ kind: 'detail', runId: run.id })}
                   onRunAgain={() =>
-                    onRoute({ kind: 'compose', presetId: null })
+                    onRoute({
+                      kind: 'compose',
+                      presetId: findRunPreset(data.presets, run)?.id ?? null,
+                      previousRun: run,
+                    })
                   }
                 />
               </div>

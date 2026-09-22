@@ -13,9 +13,14 @@ import { OPERATOR_OAUTH } from '@moltnet/models';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
+  MoltNetError,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { type FileSecretProvider } from '@themoltnet/sdk/node';
+import {
+  type FileSecretProvider,
+  type ProjectBinding,
+  ProjectConfigError,
+} from '@themoltnet/sdk/node';
 import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
@@ -31,9 +36,19 @@ import {
   type ProviderConfigurationService,
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
-import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import {
+  buildCatalogue,
+  type CatalogueAgentPort,
+  type CatalogueDiaryRecord,
+  type CatalogueProject,
+} from './catalogue.js';
+import {
+  readCatalogueProject,
+  readCatalogueProjects,
+} from './catalogue-project-reader.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
 import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
+import { AgentServerHttpError } from './http-error.js';
 import {
   AgentServerIdentityError,
   attachExternalAgent,
@@ -54,6 +69,7 @@ import {
   InvalidOperatorGrantError,
   type OperatorOAuth,
 } from './operator-oauth.js';
+import { LocalProjectBindings, locationEndpoint } from './project-bindings.js';
 import { AGENT_SERVER_SCHEMAS, AgentServerRouteSchemas } from './protocol.js';
 import {
   AgentServerSubscriptionError,
@@ -201,19 +217,10 @@ export interface BuildAgentServerOptions {
   shutdownSignal?: AbortSignal;
   /** Override used by focused rate-limit tests. */
   rateLimitMax?: number;
+  /** Override used by focused project-location deadline tests. */
+  projectSaveTimeoutMs?: number;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
-}
-
-class AgentServerHttpError extends Error {
-  override name = 'AgentServerHttpError';
-  constructor(
-    readonly statusCode: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
 }
 
 function requireBody<T extends object>(request: FastifyRequest): T {
@@ -575,34 +582,26 @@ export function buildAgentServer(
       '/v1/native/connection-settings',
       { schema: { hide: true } },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !options.connectionSettings
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        return options.connectionSettings.view();
+        const settings = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          options.connectionSettings,
+        );
+        return settings.view();
       },
     );
     app.post(
       '/v1/native/connection-settings',
       { schema: { hide: true } },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !options.connectionSettings
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
+        const store = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          options.connectionSettings,
+        );
         try {
           const settings = options.runs.prepareServerRestart(() =>
-            options.connectionSettings!.save(request.body),
+            store.save(request.body),
           );
           oauth?.cancel();
           restartRequired = true;
@@ -677,16 +676,12 @@ export function buildAgentServer(
         },
       },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !oauth
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        await oauth.authorize(
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        await operator.authorize(
           undefined,
           requestOperationSignal(request, options.shutdownSignal),
         );
@@ -710,16 +705,12 @@ export function buildAgentServer(
         },
       },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !oauth
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        oauth.cancel();
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        operator.cancel();
         return { state: 'cancelled' };
       },
     );
@@ -740,16 +731,12 @@ export function buildAgentServer(
         },
       },
       async (request) => {
-        if (
-          (await requireAuthorizedOrigin(request)) !== NATIVE_CLIENT_ORIGIN ||
-          !oauth
-        )
-          throw new AgentServerHttpError(
-            403,
-            'native_required',
-            'Native administration required',
-          );
-        oauth.removeOperator();
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        operator.removeOperator();
         return { state: 'removed' };
       },
     );
@@ -759,6 +746,7 @@ export function buildAgentServer(
     registerSubscriptionRoutes(app, options, requireAuthorizedOrigin);
     registerRunRoutes(app, options, requireAuthorizedOrigin);
     registerCatalogueRoute(app, options, requireAuthorizedOrigin);
+    registerProjectLocationRoutes(app, options, requireAuthorizedOrigin);
   });
   app.addHook('preClose', async () => {
     options.operatorOAuth?.cancel();
@@ -798,6 +786,296 @@ export function buildAgentServer(
 
 type AuthorizedOriginGuard = (request: FastifyRequest) => Promise<string>;
 
+/**
+ * The one native-only gate: a verified Desktop grant, never browser authority.
+ * A native-only `resource` that is not configured is refused the same way and
+ * returned narrowed otherwise.
+ */
+async function requireNativeOrigin(
+  authorize: AuthorizedOriginGuard,
+  request: FastifyRequest,
+): Promise<void>;
+async function requireNativeOrigin<T>(
+  authorize: AuthorizedOriginGuard,
+  request: FastifyRequest,
+  resource: T | undefined,
+): Promise<T>;
+async function requireNativeOrigin<T>(
+  authorize: AuthorizedOriginGuard,
+  request: FastifyRequest,
+  ...resource: [T | undefined] | []
+): Promise<T | void> {
+  if (
+    (await authorize(request)) !== NATIVE_CLIENT_ORIGIN ||
+    (resource.length > 0 && resource[0] === undefined)
+  )
+    throw new AgentServerHttpError(
+      403,
+      'native_required',
+      'Native administration required',
+    );
+  return resource[0];
+}
+
+/**
+ * The whole save, from activation to the write, must finish inside Desktop's
+ * 15 s control request timeout (`REQUEST_TIMEOUT` in agent-desktop control.rs).
+ * Otherwise Desktop reports a transport failure while the save may still land.
+ * The margin covers the config lock wait and the write itself.
+ */
+const PROJECT_SAVE_TIMEOUT_MS = 10_000;
+
+type SaveProjectLocationBody = Omit<ProjectBinding, 'name' | 'apiUrl'> & {
+  identity: string;
+};
+
+function registerProjectLocationRoutes(
+  app: FastifyInstance,
+  options: BuildAgentServerOptions,
+  authorize: AuthorizedOriginGuard,
+): void {
+  let locations: LocalProjectBindings | undefined;
+  const getLocations = () => {
+    const root = options.connectionSettings?.root;
+    // Workers inherit MOLTNET_HOME from the same base store; a per-connection
+    // root here would write a file no worker reads.
+    if (!root)
+      throw new AgentServerHttpError(
+        503,
+        'locations_unavailable',
+        'Project locations need the Desktop connection store',
+      );
+    locations ??= new LocalProjectBindings(root, options.defaultApiUrl);
+    return locations;
+  };
+  const requireNativeRequest = async (request: FastifyRequest) => {
+    await requireNativeOrigin(authorize, request);
+    if (request.validationError)
+      throw new AgentServerHttpError(
+        400,
+        'invalid_location',
+        'Check the project location fields',
+      );
+  };
+  app.get(
+    '/v1/native/project-locations',
+    { schema: AgentServerRouteSchemas.listProjectLocations },
+    async (request) => {
+      await requireNativeRequest(request);
+      return { locations: await getLocations().list() };
+    },
+  );
+  const saveFields = new Set(
+    Object.keys(AgentServerRouteSchemas.saveProjectLocation.body.properties),
+  );
+  app.put(
+    '/v1/native/project-locations/:name',
+    {
+      schema: AgentServerRouteSchemas.saveProjectLocation,
+      attachValidation: true,
+      // Ajv strips unknown fields before the handler runs; refuse them here so
+      // a caller sending hooks learns they were not saved.
+      preValidation: async (request) => {
+        await requireNativeOrigin(authorize, request);
+        const body = request.body;
+        if (
+          body &&
+          typeof body === 'object' &&
+          Object.keys(body).some((key) => !saveFields.has(key))
+        )
+          throw new AgentServerHttpError(
+            400,
+            'invalid_location',
+            'Check the project location fields',
+          );
+      },
+    },
+    async (request) => {
+      await requireNativeRequest(request);
+      const bindings = getLocations();
+      const { name } = request.params as { name: string };
+      const { identity, ...location } =
+        requireBody<SaveProjectLocationBody>(request);
+      const alias = identity.trim();
+      requireActivation(options.store, alias);
+      const { config } = await loadAgentActivation(options.store, alias);
+      if (locationEndpoint(config.endpoints.api) !== bindings.apiUrl)
+        throw new AgentServerHttpError(
+          400,
+          'endpoint_mismatch',
+          'Choose an identity for the current server endpoint',
+        );
+      // One budget for the whole save; a disconnected client also stops it,
+      // so nothing is written after Desktop has reported a failure.
+      const signal = AbortSignal.any([
+        requestOperationSignal(request, options.shutdownSignal),
+        AbortSignal.timeout(
+          options.projectSaveTimeoutMs ?? PROJECT_SAVE_TIMEOUT_MS,
+        ),
+      ]);
+      await verifyProjectTarget(options, alias, location, request.log, signal);
+      try {
+        return await bindings.save(
+          { ...location, name, apiUrl: bindings.apiUrl },
+          { signal },
+        );
+      } catch (error) {
+        if (signal.aborted) throw saveTimedOut(error);
+        throw error;
+      }
+    },
+  );
+  app.delete(
+    '/v1/native/project-locations/:name',
+    {
+      schema: AgentServerRouteSchemas.removeProjectLocation,
+      attachValidation: true,
+    },
+    async (request) => {
+      await requireNativeRequest(request);
+      await getLocations().remove((request.params as { name: string }).name);
+      return { removed: true };
+    },
+  );
+}
+
+/**
+ * Confirms one team, project and diary with the identity's own credential.
+ * Unlike the catalogue it touches only the target team, and it separates
+ * "not visible to this credential" (400) from "could not ask" (503).
+ */
+async function verifyProjectTarget(
+  options: BuildAgentServerOptions,
+  alias: string,
+  target: { teamId: string; projectId: string; diaryId?: string },
+  logger: FastifyBaseLogger,
+  signal: AbortSignal,
+): Promise<void> {
+  const unavailable = () =>
+    new AgentServerHttpError(
+      400,
+      'project_unavailable',
+      'Verify team access and choose an available project',
+    );
+  const agent = await catalogueAgent(options, alias);
+  if (!agent.teamIds.includes(target.teamId)) throw unavailable();
+  let result: {
+    diaries: CatalogueDiaryRecord[];
+    project: CatalogueProject | null;
+  };
+  try {
+    result = await untilAborted(signal, async () => {
+      const team = await agent.readTeam(target.teamId, signal);
+      if (team.team.id !== target.teamId)
+        throw new Error('Team response mismatch');
+      return {
+        diaries: team.diaries,
+        project: await agent.readProject(
+          target.teamId,
+          target.projectId,
+          signal,
+        ),
+      };
+    });
+  } catch (error) {
+    if (!signal.aborted) {
+      if (error instanceof TeamCredentialError) throw error;
+      if (
+        error instanceof MoltNetError &&
+        [401, 403, 404].includes(error.statusCode ?? 0)
+      )
+        throw unavailable();
+    }
+    logger.warn(
+      {
+        ...safeErrorContext(error),
+        teamId: target.teamId,
+        code: signal.aborted
+          ? 'agent_server_project_check_aborted'
+          : 'agent_server_project_check_failed',
+      },
+      'AgentServer project check failed',
+    );
+    if (signal.aborted) throw saveTimedOut(error);
+    throw new AgentServerHttpError(
+      503,
+      'project_check_unavailable',
+      'The server could not confirm this project. Retry in a moment.',
+    );
+  }
+  const { project, diaries } = result;
+  if (!project || project.teamId !== target.teamId || project.archived)
+    throw unavailable();
+  if (
+    target.diaryId &&
+    !diaries.some(
+      (diary) => diary.id === target.diaryId && diary.teamId === target.teamId,
+    )
+  )
+    throw new AgentServerHttpError(
+      400,
+      'diary_unavailable',
+      'Choose a diary belonging to this team',
+    );
+}
+
+/**
+ * Settles when `work` does or `signal` aborts. The SDK's team and project reads
+ * take no signal, so an in-flight GET may finish in the background; the port
+ * checks the signal between steps so nothing further starts.
+ */
+async function untilAborted<T>(
+  signal: AbortSignal,
+  work: () => Promise<T>,
+): Promise<T> {
+  signal.throwIfAborted();
+  const aborted = new Promise<never>((_, reject) => {
+    signal.addEventListener(
+      'abort',
+      () => {
+        reject(new Error('Project location save was aborted'));
+      },
+      { once: true },
+    );
+  });
+  return Promise.race([work(), aborted]);
+}
+
+function saveTimedOut(cause: unknown): AgentServerHttpError {
+  return new AgentServerHttpError(
+    503,
+    'project_check_unavailable',
+    'The location could not be confirmed in time and was not saved. Retry in a moment.',
+    { cause },
+  );
+}
+
+async function catalogueAgent(
+  options: BuildAgentServerOptions,
+  alias: string,
+): Promise<CatalogueAgentPort> {
+  return options.catalogueAgentFor
+    ? options.catalogueAgentFor(alias)
+    : defaultCatalogueAgent(options, alias);
+}
+
+async function readIdentityCatalogue(
+  options: BuildAgentServerOptions,
+  alias: string,
+  logger: FastifyBaseLogger,
+) {
+  // Throws a typed not-found when the alias is not activated here.
+  requireActivation(options.store, alias);
+  return buildCatalogue({
+    agent: await catalogueAgent(options, alias),
+    machine: machineCapabilities(options),
+    identityDefault: readIdentityDefaultBinding(
+      options.store.identityDir(alias),
+    ),
+    logger,
+  });
+}
+
 function registerCatalogueRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
@@ -817,18 +1095,7 @@ function registerCatalogueRoute(
         );
       }
       const alias = identity.trim();
-      // Throws a typed not-found when the alias is not activated here.
-      requireActivation(options.store, alias);
-      const agent = await (options.catalogueAgentFor
-        ? options.catalogueAgentFor(alias)
-        : defaultCatalogueAgent(options, alias));
-      return buildCatalogue({
-        agent,
-        machine: machineCapabilities(options),
-        identityDefault: readIdentityDefaultBinding(
-          options.store.identityDir(alias),
-        ),
-      });
+      return readIdentityCatalogue(options, alias, request.log);
     },
   );
 }
@@ -839,32 +1106,56 @@ async function defaultCatalogueAgent(
   alias: string,
 ): Promise<CatalogueAgentPort> {
   const { config } = await loadAgentActivation(options.store, alias);
+  const clients = new Map<
+    string,
+    ReturnType<typeof requireCredentialSnapshot>['client']
+  >();
+  const verifiedClient = (teamId: string) => {
+    const client = clients.get(teamId);
+    if (!client)
+      throw new Error('Team must be verified before project discovery');
+    return client;
+  };
   return {
     teamIds: Object.keys(config.agent_key_refs ?? {}),
     lastVerified: (teamId) =>
       requireActivation(options.store, alias).credentialHealth?.[teamId],
-    readTeam: async (teamId) => {
+    readTeam: async (teamId, signal) => {
       const activated = await verifyTeamActivation(
         options.store,
         alias,
         options.secretProviders,
         options.externalSecretProviders,
         undefined,
-        options.shutdownSignal,
+        signal && options.shutdownSignal
+          ? AbortSignal.any([signal, options.shutdownSignal])
+          : (signal ?? options.shutdownSignal),
         teamId,
       );
+      signal?.throwIfAborted();
       const { client, metadata } = requireCredentialSnapshot(activated);
       const [team, diaries, profiles] = await Promise.all([
         client.teams.get(teamId),
         client.diaries.list(),
         client.runtimeProfiles.list({ teamId }),
       ]);
+      clients.set(teamId, client);
       return {
         team,
         diaries: diaries.items,
         profiles: profiles.items,
         credential: metadata,
       };
+    },
+    readProjects: async (teamId) =>
+      readCatalogueProjects(verifiedClient(teamId).projects, teamId),
+    readProject: async (teamId, projectId, signal) => {
+      signal?.throwIfAborted();
+      return readCatalogueProject(
+        verifiedClient(teamId).projects,
+        teamId,
+        projectId,
+      );
     },
   };
 }
@@ -1444,6 +1735,28 @@ function normalizeAgentServerError(error: unknown): {
   code: string;
   message: string;
 } {
+  if (error instanceof ProjectConfigError) {
+    if (error.kind === 'version')
+      return {
+        statusCode: 409,
+        code: 'config_version',
+        message:
+          'The project locations file was written by a newer MoltNet. Update this app.',
+      };
+    if (error.kind === 'io')
+      // Detail can include local paths; it is logged, not returned.
+      return {
+        statusCode: 500,
+        code: 'config_unavailable',
+        message:
+          'The project locations file could not be read or written. Check its ownership and permissions.',
+      };
+    return {
+      statusCode: 400,
+      code: 'invalid_location',
+      message: error.message,
+    };
+  }
   if (error instanceof TeamCredentialError)
     return {
       statusCode: 400,

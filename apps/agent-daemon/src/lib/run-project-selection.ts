@@ -19,7 +19,7 @@ import { processEnvSnapshot } from '../config.js';
 const execFileAsync = promisify(execFile);
 const GIT_TIMEOUT_MS = 10_000;
 const GIT_MAX_OUTPUT_BYTES = 64 * 1024;
-async function validateGitSource(source: string): Promise<void> {
+export async function validateGitSource(source: string): Promise<void> {
   const inherited = processEnvSnapshot();
   try {
     const { stdout } = await execFileAsync(
@@ -53,6 +53,38 @@ async function validateGitSource(source: string): Promise<void> {
     'selection',
     `git-worktree source ${source} must be the Git repository root, not a subdirectory`,
   );
+}
+
+export interface PreparationBlocker {
+  code: 'unsupported_strategy' | 'hooks_unavailable';
+  message: string;
+}
+
+/** Hooks that would run commands; an empty `hooks: {}` prepares nothing. */
+export function hasPreparationHooks(hooks: ProjectBinding['hooks']): boolean {
+  return Boolean(hooks?.afterCreate || hooks?.beforeRun);
+}
+
+/**
+ * The one rule for whether this runtime can prepare a location. Worker
+ * selection, workspace policy and Desktop readiness all call it, so a location
+ * Desktop shows as ready is one a worker can start.
+ */
+export function preparationBlocker(
+  strategy: WorkspaceStrategy,
+  hooks: ProjectBinding['hooks'],
+): PreparationBlocker | null {
+  if (strategy === 'isolated-directory')
+    return {
+      code: 'unsupported_strategy',
+      message: 'this runtime does not support isolated-directory preparation',
+    };
+  if (hasPreparationHooks(hooks))
+    return {
+      code: 'hooks_unavailable',
+      message: 'this runtime does not support project setup hooks',
+    };
+  return null;
 }
 
 export interface RunProjectSelectionArgs {
@@ -176,14 +208,11 @@ export async function resolveRunProjectSelection(
   if (workspaceStrategy !== 'none' && !source) {
     source = await canonicalDirectory(resolve(args.cwd, args.source ?? '.'));
   }
-  if (
-    workspaceStrategy === 'isolated-directory' ||
-    binding?.hooks?.afterCreate ||
-    binding?.hooks?.beforeRun
-  ) {
+  const blocker = preparationBlocker(workspaceStrategy, binding?.hooks);
+  if (blocker) {
     throw new ProjectConfigError(
       'selection',
-      `Binding ${binding?.name ?? '(run override)'} in ${configPath}: this runtime does not support isolated-directory preparation or setup hooks; choose a supported binding`,
+      `Binding ${binding?.name ?? '(run override)'} in ${configPath}: ${blocker.message}; choose a supported binding`,
     );
   }
   if (workspaceStrategy === 'git-worktree' && source) {
@@ -216,17 +245,11 @@ export function applyProjectWorkspacePolicy(
   selection: EffectiveRunProjectSelection,
 ): ResolvedRuntimeProfile {
   if (!selection.workspaceExplicit) return profile;
-  if (selection.strategy === 'isolated-directory') {
-    throw new Error(
-      'This runtime does not yet support isolated-directory preparation',
-    );
-  }
-  if (
-    selection.binding?.hooks?.afterCreate ||
-    selection.binding?.hooks?.beforeRun
-  ) {
-    throw new Error('This runtime does not yet support project setup hooks');
-  }
+  const blocker = preparationBlocker(
+    selection.strategy,
+    selection.binding?.hooks,
+  );
+  if (blocker) throw new Error(`Workspace preparation: ${blocker.message}`);
   const mode =
     selection.strategy === 'existing'
       ? 'shared_mount'

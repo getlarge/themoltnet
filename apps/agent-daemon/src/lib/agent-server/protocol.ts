@@ -1,3 +1,4 @@
+import { ProjectResponseSchema } from '@moltnet/models';
 import { RuntimeProfile } from '@moltnet/runtime-profiles';
 import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
@@ -154,6 +155,27 @@ export const AgentServerCatalogueSchema = Type.Object(
     teams: Type.Array(schemaRef(AgentServerCatalogueTeamSchema)),
     defaultTeamId: Type.Union([Type.String(), Type.Null()]),
     profiles: Type.Array(schemaRef(AgentServerCatalogueProfileSchema)),
+    projects: Type.Array(
+      Type.Pick(ProjectResponseSchema, [
+        'id',
+        'teamId',
+        'name',
+        'description',
+        'defaultDiaryId',
+        'archived',
+      ]),
+    ),
+    projectErrors: Type.Array(
+      Type.Object({
+        teamId: Type.String(),
+        code: Type.Union(
+          ['forbidden', 'unreachable', 'invalid_response', 'truncated'].map(
+            (value) => Type.Literal(value),
+          ),
+        ),
+        message: Type.String(),
+      }),
+    ),
   },
   { $id: 'AgentServerCatalogue' },
 );
@@ -161,6 +183,50 @@ export const AgentServerCatalogueSchema = Type.Object(
 export const CatalogueQuerySchema = Type.Object({
   /** Local alias of the identity whose teams and profiles are listed. */
   identity: Type.String({ minLength: 1 }),
+});
+
+export const AgentServerProjectLocationSchema = Type.Object(
+  {
+    name: Type.String({ minLength: 1 }),
+    apiUrl: Type.String(),
+    teamId: Type.String({ minLength: 1 }),
+    projectId: Type.String({ minLength: 1 }),
+    diaryId: Type.Optional(Type.String({ minLength: 1 })),
+    source: Type.Optional(Type.String({ minLength: 1 })),
+    strategy: Type.Union(
+      ['none', 'existing', 'git-worktree', 'isolated-directory'].map((value) =>
+        Type.Literal(value),
+      ),
+    ),
+    default: Type.Optional(Type.Boolean()),
+    effectiveSource: Type.Union([Type.String(), Type.Null()]),
+    readiness: Type.Object({
+      ready: Type.Boolean(),
+      code: Type.Optional(Type.String()),
+      message: Type.Optional(Type.String()),
+    }),
+  },
+  { $id: 'AgentServerProjectLocation' },
+);
+
+/** Closed: hooks and other stored fields are never writable over this route. */
+const SaveProjectLocationSchema = Type.Object(
+  {
+    identity: Type.String({ minLength: 1 }),
+    teamId: Type.String({ minLength: 1 }),
+    projectId: Type.String({ minLength: 1 }),
+    diaryId: Type.Optional(Type.String({ minLength: 1 })),
+    source: Type.Optional(Type.String({ minLength: 1 })),
+    strategy: Type.Union(
+      ['none', 'existing', 'git-worktree'].map((value) => Type.Literal(value)),
+    ),
+    default: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+const ProjectLocationParamsSchema = Type.Object({
+  name: Type.String({ minLength: 1 }),
 });
 
 export const AgentServerRunRecordSchema = Type.Object(
@@ -308,6 +374,7 @@ export const LogStreamSchema = Type.String({
 });
 
 export const AGENT_SERVER_SCHEMAS = [
+  AgentServerProjectLocationSchema,
   AgentServerHealthSchema,
   AgentServerProblemSchema,
   AgentServerAgentSchema,
@@ -332,6 +399,44 @@ const localControlSecurity = [{ agentServerToken: [] }] as const;
 const problemResponse = { default: schemaRef(AgentServerProblemSchema) };
 
 export const AgentServerRouteSchemas = {
+  listProjectLocations: {
+    operationId: 'listNativeProjectLocations',
+    tags: ['native-projects'],
+    security: localControlSecurity,
+    description:
+      'Requires the Desktop native grant; browser authorization is insufficient.',
+    response: {
+      200: Type.Object({
+        locations: Type.Array(schemaRef(AgentServerProjectLocationSchema)),
+      }),
+      ...problemResponse,
+    },
+  },
+  saveProjectLocation: {
+    operationId: 'saveNativeProjectLocation',
+    tags: ['native-projects'],
+    security: localControlSecurity,
+    description:
+      'Creates or replaces the named location. Requires the Desktop native grant.',
+    params: ProjectLocationParamsSchema,
+    body: SaveProjectLocationSchema,
+    response: {
+      200: schemaRef(AgentServerProjectLocationSchema),
+      ...problemResponse,
+    },
+  },
+  removeProjectLocation: {
+    operationId: 'removeNativeProjectLocation',
+    tags: ['native-projects'],
+    security: localControlSecurity,
+    description:
+      'Removes the registration only; the folder is left untouched. Requires the Desktop native grant.',
+    params: ProjectLocationParamsSchema,
+    response: {
+      200: Type.Object({ removed: Type.Boolean() }),
+      ...problemResponse,
+    },
+  },
   health: {
     operationId: 'getAgentServerHealth',
     tags: ['system'],

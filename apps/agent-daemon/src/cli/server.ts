@@ -26,7 +26,10 @@ import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
 import { RuntimeRegistry } from '../lib/agent-server/runtime-registry.js';
 import { createAgentServerSecretProviders } from '../lib/agent-server/secret-providers.js';
-import { buildAgentServer } from '../lib/agent-server/server.js';
+import {
+  buildAgentServer,
+  type BuildAgentServerOptions,
+} from '../lib/agent-server/server.js';
 import { AgentServerStore } from '../lib/agent-server/store.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -86,7 +89,17 @@ export function nativeSocketValidationOptions(input: {
   };
 }
 
-export async function runAgentServer(argv: string[]): Promise<number> {
+export interface AgentServerPorts {
+  /** Supply application ports while retaining production ownership and lifecycle. */
+  configure?: (
+    store: AgentServerStore,
+  ) => Pick<BuildAgentServerOptions, 'catalogueAgentFor'>;
+}
+
+export async function runAgentServer(
+  argv: string[],
+  ports: AgentServerPorts = {},
+): Promise<number> {
   if (isHelpFlag(argv)) {
     console.log(AGENT_SERVER_HELP);
     return 0;
@@ -227,6 +240,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             root,
           );
           const app = buildAgentServer({
+            ...ports.configure?.(store),
             operatorOAuth,
             nativeOnly: Boolean(nativeSocket),
             connectionSettings,

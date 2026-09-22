@@ -18,3 +18,11 @@ export function expiryLabel(expiresAt: string | null | undefined): string {
     return 'Expiry unknown';
   return `Expires ${new Date(expiresAt).toLocaleString()}`;
 }
+
+export function verificationUnavailable(
+  teams: readonly AgentServerCatalogueTeam[],
+): boolean {
+  return teams.some((team) =>
+    team.blockers.some((blocker) => blocker.code === 'agent_key_unavailable'),
+  );
+}
