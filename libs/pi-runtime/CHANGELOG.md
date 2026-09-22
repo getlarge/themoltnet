@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.18.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.2...pi-runtime-v0.18.3) (2026-09-22)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.3.0
+    * @themoltnet/os-keyring bumped to 0.4.0
+    * @themoltnet/sdk bumped to 0.145.0
+
 ## [0.18.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.1...pi-runtime-v0.18.2) (2026-09-20)
 
 

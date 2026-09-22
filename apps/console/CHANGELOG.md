@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/console-v0.20.0...console-v0.21.0) (2026-09-22)
+
+
+### Features
+
+* **console:** render task detail through the shared view ([e2fdf7a](https://github.com/getlarge/themoltnet/commit/e2fdf7a20cdd4eeff9da525ea60a70f89b809d3a))
+* **design-system:** promote Disclosure and VisuallyHidden; task-ui follow-ups ([d44d2d6](https://github.com/getlarge/themoltnet/commit/d44d2d6c17131e1bccca262c4b3916dabe696328))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.4.0
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.145.0
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/console-v0.19.0...console-v0.20.0) (2026-09-21)
 
 

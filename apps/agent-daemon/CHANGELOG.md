@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.63.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.62.0...agent-daemon-v0.63.0) (2026-09-22)
+
+
+### Features
+
+* **agent-daemon:** discover isolated server endpoints per store ([fa6d7d9](https://github.com/getlarge/themoltnet/commit/fa6d7d9b15adcfc4d2f3cba66fee28c32533ad5e))
+* **agent-daemon:** propagate isolated stores into managed workers ([106e552](https://github.com/getlarge/themoltnet/commit/106e55280c117b8dbaf56ea2bffbf99ea130ca02))
+* **local-runtime:** isolate daemon and Desktop store consumers ([833930a](https://github.com/getlarge/themoltnet/commit/833930ad384a7f9ed2ea837aff566dbb54858a09))
+
+
+### Bug Fixes
+
+* **agent-desktop:** verify native server readiness ([27f2035](https://github.com/getlarge/themoltnet/commit/27f20355d9c51397dfc079593ce6a08459fd0f8a))
+* **agent-desktop:** verify native server readiness ([8e09e34](https://github.com/getlarge/themoltnet/commit/8e09e3468542587198535a359966972c26d763d8))
+* **agent:** decouple isolated startup from default directory health ([d059922](https://github.com/getlarge/themoltnet/commit/d05992256d0a99012350e9c459807ca6e5922678))
+* **agent:** preserve store boundaries during recovery and startup ([47556bd](https://github.com/getlarge/themoltnet/commit/47556bd509f7548f4d4796d022277b7362d0be56))
+* **desktop:** adapt store isolation to native socket control ([c1d6448](https://github.com/getlarge/themoltnet/commit/c1d6448f2e12902dc50c0fb86f998fe3307fee40))
+* **desktop:** stabilize native package checks ([bdf9bf8](https://github.com/getlarge/themoltnet/commit/bdf9bf894d1538bfe1435ad89aa85bc674bfa216))
+* **desktop:** validate discovery and gate isolated daemon support ([1786ddf](https://github.com/getlarge/themoltnet/commit/1786ddfe8b9a4325d92f1850155677d6a81b1ce8))
+* **store:** address consumer isolation review findings ([c0b02be](https://github.com/getlarge/themoltnet/commit/c0b02bed8520d3ccdf2307c22f7c0e885f53f053))
+* **store:** preserve default keyring identity across worker homes ([84c7736](https://github.com/getlarge/themoltnet/commit/84c773639fd6351bcd4125e8235822d56b9a7ce4))
+* **store:** preserve worker namespaces and retire obsolete local control ([ba747cb](https://github.com/getlarge/themoltnet/commit/ba747cbd08ee821b31c10ec22ab15a1dfeccbed0))
+* **tooling:** isolate development launchers and document store upgrades ([1e64acb](https://github.com/getlarge/themoltnet/commit/1e64acb83434728930a8f471f2acda6557464053))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.3.0
+    * @themoltnet/os-keyring bumped to 0.4.0
+    * @themoltnet/pi-runtime bumped to 0.18.3
+    * @themoltnet/sdk bumped to 0.145.0
+
 ## [0.62.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.61.0...agent-daemon-v0.62.0) (2026-09-21)
 
 
