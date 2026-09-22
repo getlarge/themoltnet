@@ -142,11 +142,9 @@ export const runCenterActions: RunCenterActions = {
         ...(input.projectId !== undefined
           ? { projectId: input.projectId }
           : {}),
-        ...(input.binding !== undefined ? { binding: input.binding } : {}),
+        ...(input.location !== undefined ? { location: input.location } : {}),
         ...(input.source !== undefined ? { source: input.source } : {}),
-        ...(input.workspaceStrategy !== undefined
-          ? { workspaceStrategy: input.workspaceStrategy }
-          : {}),
+        ...(input.strategy !== undefined ? { strategy: input.strategy } : {}),
         ...(input.diaryId ? { diaryId: input.diaryId } : {}),
         profiles: input.profiles,
         taskTypes: input.taskTypes,
@@ -172,11 +170,9 @@ export const runCenterActions: RunCenterActions = {
       teamId: input.teamId,
       diaryId: input.diaryId,
       ...(input.projectId !== undefined ? { projectId: input.projectId } : {}),
-      ...(input.binding ? { binding: input.binding } : {}),
+      ...(input.location ? { location: input.location } : {}),
       ...(input.source ? { source: input.source } : {}),
-      ...(input.workspaceStrategy
-        ? { workspaceStrategy: input.workspaceStrategy }
-        : {}),
+      ...(input.strategy ? { strategy: input.strategy } : {}),
       profileIds: input.profileIds,
       taskTypes: input.taskTypes,
       createdAt: existing?.createdAt ?? new Date().toISOString(),

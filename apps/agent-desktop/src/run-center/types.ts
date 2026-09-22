@@ -73,9 +73,10 @@ export interface RunPreset {
   teamId: string;
   diaryId: string | null;
   projectId?: string | null;
-  binding?: string;
+  /** A saved location by name. */
+  location?: string;
   source?: string;
-  workspaceStrategy?: StartRunInput['workspaceStrategy'];
+  strategy?: StartRunInput['strategy'];
   /** Ordered: primary first, then fallbacks. */
   profileIds: string[];
   taskTypes: string[];

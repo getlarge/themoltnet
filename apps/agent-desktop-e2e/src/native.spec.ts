@@ -208,7 +208,7 @@ describe('Native managed project execution', () => {
             agent: 'desktop-fixture',
             teamId: 'team',
             projectId: 'project',
-            binding: 'Run location',
+            location: 'Run location',
             profiles: ['fixture-profile'],
             taskTypes: ['freeform'],
             mode: 'poll',
@@ -318,7 +318,8 @@ describe('Native managed project execution', () => {
         await browser.saveScreenshot(
           `test-results/desktop-native-${width}.png`,
         );
-        await $('a=Providers').click();
+        // Partial text: the link carries a badge when provider keys are missing.
+        await $('a*=Providers').click();
         await $('button=Return to run draft').click();
         await expect($('button=Delete preset')).toBeFocused();
         await $('button=Cancel').click();

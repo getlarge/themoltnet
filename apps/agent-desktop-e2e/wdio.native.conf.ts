@@ -44,6 +44,8 @@ export const config = {
             : `${projectRoot}/out-rust/e2e/debug/moltnet-agent-desktop`,
         driverProvider: 'embedded',
         embeddedPort: Number(process.env.MOLTNET_DESKTOP_WEBDRIVER_PORT),
+        // A startup panic is otherwise reported only as an exit code.
+        captureBackendLogs: true,
       },
     ],
   ],

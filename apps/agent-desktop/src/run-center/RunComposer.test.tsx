@@ -189,10 +189,10 @@ describe('run again', () => {
       agent: 'first-agent',
       diaryId: undefined,
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
       workspace: {
         projectId: 'project',
-        binding: 'Laptop',
+        location: 'Laptop',
         diaryId: 'location-diary',
         source: '/Users/me/old-checkout',
         strategy: 'git-worktree' as const,
@@ -265,9 +265,9 @@ describe('run again', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
     await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
     const input = vi.mocked(actions.startRun).mock.calls[0][0];
-    expect(input).toMatchObject({ projectId: 'project', binding: 'Laptop' });
+    expect(input).toMatchObject({ projectId: 'project', location: 'Laptop' });
     expect(input).not.toHaveProperty('source');
-    expect(input).not.toHaveProperty('workspaceStrategy');
+    expect(input).not.toHaveProperty('strategy');
     expect(input).not.toHaveProperty('diaryId');
   });
 });

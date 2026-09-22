@@ -91,6 +91,7 @@ describe('Desktop Projects journeys', () => {
     await expect(field('Project')).toHaveValue('project');
     await $('button=Start run').click();
     await start.update();
+    // No diary was chosen: the daemon applies the location's at start.
     expect(start.mock.calls[0]?.[0]).toEqual({
       spec: {
         agent: 'first-agent',
@@ -98,9 +99,8 @@ describe('Desktop Projects journeys', () => {
         profiles: ['careful'],
         taskTypes: ['freeform'],
         mode: 'poll',
-        diaryId: 'diary',
         projectId: 'project',
-        binding: 'Laptop',
+        location: 'Laptop',
       },
     });
   });
@@ -180,7 +180,7 @@ describe('Desktop Projects journeys', () => {
     );
     expect((JSON.parse(saved ?? '[]') as unknown[])[0]).toMatchObject({
       projectId: 'project',
-      binding: 'Laptop',
+      location: 'Laptop',
     });
     await $('summary*=Advanced').click();
     await $('button=Choose folder for this run').click();
@@ -194,9 +194,9 @@ describe('Desktop Projects journeys', () => {
     expect(start.mock.calls[0]?.[0]).toMatchObject({
       spec: {
         projectId: 'project',
-        binding: 'Laptop',
+        location: 'Laptop',
         source: '/work/new',
-        workspaceStrategy: 'existing',
+        strategy: 'existing',
       },
     });
     expect(
@@ -206,7 +206,7 @@ describe('Desktop Projects journeys', () => {
     ).toBe(saved);
   });
 
-  it('revalidates a repeated project run while preserving its captured folder and strategy', async () => {
+  it('replays a repeated project run from its request, not its captured folder', async () => {
     const calls = await browser.tauri.mock('desktop_control_status');
     await calls.update();
     const previousCalls = calls.mock.calls.length;
@@ -215,9 +215,12 @@ describe('Desktop Projects journeys', () => {
       runs: [
         {
           ...status.runs[0],
+          // Requested: the location by name. Resolved: its folder back then.
+          projectId: 'project',
+          location: 'Laptop',
           workspace: {
             projectId: 'project',
-            binding: 'Laptop',
+            location: 'Laptop',
             source: '/work/captured',
             strategy: 'existing',
             diaryId: 'diary',
@@ -236,20 +239,23 @@ describe('Desktop Projects journeys', () => {
     await $('button=Run again').click();
     await expect(field('Project')).toHaveValue('project');
     await expect(field('Local location')).toHaveValue('Laptop');
+    // The location's current folder applies, not the one captured last time.
     await expect($('body')).toHaveText(
+      expect.stringContaining('/work/research'),
+    );
+    await expect($('body')).not.toHaveText(
       expect.stringContaining('/work/captured'),
     );
     await $('button=Start run').click();
     await start.update();
-    expect(start.mock.calls[0]?.[0]).toMatchObject({
-      spec: {
-        agent: 'previous-agent',
-        projectId: 'project',
-        binding: 'Laptop',
-        source: '/work/captured',
-        workspaceStrategy: 'existing',
-      },
+    const spec = start.mock.calls[0]?.[0] as { spec: Record<string, unknown> };
+    expect(spec.spec).toMatchObject({
+      agent: 'previous-agent',
+      projectId: 'project',
+      location: 'Laptop',
     });
+    expect(spec.spec).not.toHaveProperty('source');
+    expect(spec.spec).not.toHaveProperty('strategy');
   });
 
   for (const [width, height] of [

@@ -83,15 +83,15 @@ export function RunComposer({
   const [projectId, setProjectId] = useState(
     (previousRun ? previousRun.projectId : preset?.projectId) ?? '',
   );
-  const [binding, setBinding] = useState(
-    (previousRun ? previousRun.binding : preset?.binding) ?? '',
+  const [locationName, setLocationName] = useState(
+    (previousRun ? previousRun.location : preset?.location) ?? '',
   );
   const [source, setSource] = useState(
     (previousRun ? previousRun.source : preset?.source) ?? '',
   );
-  const [workspaceStrategy, setWorkspaceStrategy] = useState<
-    StartRunInput['workspaceStrategy']
-  >(previousRun ? previousRun.workspaceStrategy : preset?.workspaceStrategy);
+  const [strategy, setStrategy] = useState<StartRunInput['strategy']>(
+    previousRun ? previousRun.strategy : preset?.strategy,
+  );
   const [diaryId, setDiaryId] = useState(
     previousRun?.diaryId ??
       (preset?.version === 2 ? preset.diaryId : null) ??
@@ -104,9 +104,9 @@ export function RunComposer({
   const [choosingFolder, setChoosingFolder] = useState(false);
   const clearProject = () => {
     setProjectId('');
-    setBinding('');
+    setLocationName('');
     setSource('');
-    setWorkspaceStrategy(undefined);
+    setStrategy(undefined);
     setDiaryId('');
   };
   useEffect(() => {
@@ -124,7 +124,7 @@ export function RunComposer({
         );
         setLocations(choices);
         setLocationsLoading(false);
-        setBinding(
+        setLocationName(
           (selected) =>
             selected ||
             choices.find((entry) => entry.default)?.name ||
@@ -151,8 +151,7 @@ export function RunComposer({
       const folder = await projects.chooseFolder();
       if (folder !== null) {
         setSource(folder);
-        if (!workspaceStrategy || workspaceStrategy === 'none')
-          setWorkspaceStrategy('existing');
+        if (!strategy || strategy === 'none') setStrategy('existing');
       }
     } catch (error) {
       setFolderError(
@@ -212,7 +211,7 @@ export function RunComposer({
     (entry) => entry.teamId === teamId,
   );
   const project = sharedProjects.find((entry) => entry.id === projectId);
-  const location = locations.find((entry) => entry.name === binding);
+  const location = locations.find((entry) => entry.name === locationName);
   const projectError = catalogue?.projectErrors?.find(
     (entry) => entry.teamId === teamId,
   );
@@ -226,16 +225,15 @@ export function RunComposer({
   // start, so Run again picks up their current values.
   const requestedDiary = diaryId || (!projectId ? team?.defaultDiaryId : null);
   const effectiveStrategy =
-    workspaceStrategy ??
-    location?.strategy ??
-    primary?.defaultWorkspaceMode ??
-    'none';
+    strategy ?? location?.strategy ?? primary?.defaultWorkspaceMode ?? 'none';
   const effectiveSource =
     effectiveStrategy === 'none' ? null : source || location?.effectiveSource;
   const projectSelection = {
-    ...(projectId ? { projectId, ...(binding ? { binding } : {}) } : {}),
-    ...(source && workspaceStrategy !== 'none' ? { source } : {}),
-    ...(workspaceStrategy ? { workspaceStrategy } : {}),
+    ...(projectId
+      ? { projectId, ...(locationName ? { location: locationName } : {}) }
+      : {}),
+    ...(source && strategy !== 'none' ? { source } : {}),
+    ...(strategy ? { strategy } : {}),
   };
 
   const boundElsewhere = Boolean(team && !team.available);
@@ -517,17 +515,19 @@ export function RunComposer({
               <>
                 <Select
                   label="Local location"
-                  value={binding}
+                  value={locationName}
                   onChange={(event) => {
-                    setBinding(event.target.value);
+                    setLocationName(event.target.value);
                     setSource('');
-                    setWorkspaceStrategy(undefined);
+                    setStrategy(undefined);
                     setDiaryId('');
                   }}
                 >
                   <option value="">Choose a location</option>
-                  {binding && !location ? (
-                    <option value={binding}>{binding} — unavailable</option>
+                  {locationName && !location ? (
+                    <option value={locationName}>
+                      {locationName} — unavailable
+                    </option>
                   ) : null}
                   {locations.map((entry) => (
                     <option key={entry.name} value={entry.name}>
@@ -674,11 +674,10 @@ export function RunComposer({
             </Text>
             <Select
               label="Workspace behavior"
-              value={workspaceStrategy ?? ''}
+              value={strategy ?? ''}
               onChange={(event) => {
-                const value = event.target
-                  .value as StartRunInput['workspaceStrategy'];
-                setWorkspaceStrategy(value || undefined);
+                const value = event.target.value as StartRunInput['strategy'];
+                setStrategy(value || undefined);
                 if (value === 'none') setSource('');
               }}
             >
@@ -688,7 +687,7 @@ export function RunComposer({
                 Prepare an isolated Git workspace
               </option>
               <option value="none">No workspace</option>
-              {workspaceStrategy === 'isolated-directory' ? (
+              {strategy === 'isolated-directory' ? (
                 <option value="isolated-directory">
                   Isolated directory (unavailable)
                 </option>
@@ -712,7 +711,7 @@ export function RunComposer({
                 variant="ghost"
                 onClick={() => {
                   setSource('');
-                  setWorkspaceStrategy(undefined);
+                  setStrategy(undefined);
                 }}
               >
                 Reset workspace overrides

@@ -57,7 +57,7 @@ describe('Run-flow audit regressions', () => {
   it('preserves a run draft through setup navigation', async () => {
     await $('a=Saved worker').click();
     await field('Runtime profile').selectByAttribute('value', 'quick');
-    await $('a=Providers').click();
+    await $('a*=Providers').click();
     await $('a=Runs').click();
     await expect(field('Runtime profile')).toHaveValue('quick');
   });
@@ -138,7 +138,7 @@ describe('Run-flow audit regressions', () => {
     const focused = await browser.execute(
       () => document.activeElement?.outerHTML,
     );
-    await $('a=Providers').click();
+    await $('a*=Providers').click();
     await $('button=Return to run draft').click();
     expect(
       await browser.execute(() => document.activeElement?.outerHTML),

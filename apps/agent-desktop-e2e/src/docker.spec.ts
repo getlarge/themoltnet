@@ -145,7 +145,7 @@ describe('Personal Desktop journey against Docker services', () => {
       const state = await browser.tauri.execute<
         Promise<{
           runs: {
-            workspace?: { projectId: string | null; binding?: string };
+            workspace?: { projectId: string | null; location?: string };
             active: boolean;
           }[];
         }>,
@@ -154,7 +154,7 @@ describe('Personal Desktop journey against Docker services', () => {
         ({ core }) =>
           core.invoke('desktop_control_status') as Promise<{
             runs: {
-              workspace?: { projectId: string | null; binding?: string };
+              workspace?: { projectId: string | null; location?: string };
               active: boolean;
             }[];
           }>,

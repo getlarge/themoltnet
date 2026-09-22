@@ -74,7 +74,17 @@ exec ${[process.execPath, '--import', tsx, fixture].map(shellQuote).join(' ')} "
   // Inherit only host process essentials; selectors, credentials, XDG paths,
   // and encrypted dotenv values must not escape into this disposable installation.
   const env = Object.fromEntries(
-    ['PATH', 'LANG', 'LC_ALL', 'TERM', 'DISPLAY'].flatMap((key) =>
+    // X11 needs its cookie (xvfb-run -a) and GTK its session bus
+    // (dbus-run-session); HOME is replaced, so neither falls back to ~/.
+    [
+      'PATH',
+      'LANG',
+      'LC_ALL',
+      'TERM',
+      'DISPLAY',
+      'XAUTHORITY',
+      'DBUS_SESSION_BUS_ADDRESS',
+    ].flatMap((key) =>
       process.env[key] === undefined ? [] : [[key, process.env[key]]],
     ),
   );

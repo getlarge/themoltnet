@@ -105,7 +105,7 @@ export function RunDetail({
                 },
                 {
                   label: 'Location',
-                  value: run.workspace.binding ?? 'Run only',
+                  value: run.workspace.location ?? 'Run only',
                 },
                 { label: 'Diary', value: run.workspace.diaryId ?? 'No diary' },
                 {
