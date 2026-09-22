@@ -114,8 +114,6 @@
         ],
         "inputs": [
           "agentDesktopRendererProduction",
-          "agentDesktopNative",
-          "agentDesktopInstaller",
           "^production",
           "sharedGlobals"
         ],
@@ -124,10 +122,6 @@
           "commands": [
             {
               "command": "tsc -b apps/agent-desktop/tsconfig.lib.json --emitDeclarationOnly",
-              "forwardAllArgs": false
-            },
-            {
-              "command": "cargo check --manifest-path apps/agent-desktop/src-tauri/Cargo.toml --locked --target-dir apps/agent-desktop/out-rust/check",
               "forwardAllArgs": false
             }
           ]
@@ -204,15 +198,14 @@
           "agentDesktopNative",
           "agentDesktopInstaller",
           "^production",
-          "sharedGlobals"
+          "sharedGlobals",
+          {
+            "env": "TAURI_CONFIG"
+          }
         ],
         "options": {
           "parallel": false,
           "commands": [
-            {
-              "command": "vite build --config apps/agent-desktop/vite.config.ts",
-              "forwardAllArgs": false
-            },
             {
               "command": "CARGO_TARGET_DIR=../out-rust/build pnpm --dir apps/agent-desktop exec tauri build --no-bundle",
               "forwardAllArgs": false
@@ -284,7 +277,38 @@
         "options": {
           "command": "node apps/agent-desktop/scripts/test-store-root.mjs"
         }
+      },
+      "verify-release": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "node tools/release/agent-desktop/verify-boundary.mjs"
+        },
+        "inputs": [
+          "agentDesktopRendererProduction",
+          "agentDesktopNative",
+          "agentDesktopPackaging",
+          "^production",
+          "sharedGlobals",
+          {
+            "env": "TAURI_CONFIG"
+          }
+        ],
+        "outputs": []
       }
+    }
+  },
+  "exports": {
+    "./main": {
+      "import": "./src/main.tsx",
+      "types": "./src/main.tsx"
+    },
+    "./bridge": {
+      "import": "./src/bridge.ts",
+      "types": "./src/bridge.ts"
     }
   }
 }

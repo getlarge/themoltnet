@@ -32,8 +32,9 @@ without human intervention.`,
 	)
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		if _, present := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT"); present {
+		if _, present := os.LookupEnv("MOLTNET_AGENT_SERVER_ROOT"); present && !isHelpOrCompletion(cmd) && os.Getenv("MOLTNET_LEGACY_STORE_NOTICE_SHOWN") != "1" {
 			fmt.Fprintln(cmd.ErrOrStderr(), "MOLTNET_AGENT_SERVER_ROOT is deprecated; use MOLTNET_HOME. Both select the entire store; no data is migrated.")
+			os.Setenv("MOLTNET_LEGACY_STORE_NOTICE_SHOWN", "1")
 		}
 		if shouldAnnouncePendingMigration(cmd) {
 			// A local file read, so it runs inline rather than racing command
@@ -143,4 +144,14 @@ func shouldAnnouncePendingMigration(cmd *cobra.Command) bool {
 func isTerminalWriter(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	return ok && term.IsTerminal(int(f.Fd()))
+}
+
+func isHelpOrCompletion(cmd *cobra.Command) bool {
+	for current := cmd; current != nil; current = current.Parent() {
+		switch current.Name() {
+		case "help", "completion", "__complete", "__completeNoDesc":
+			return true
+		}
+	}
+	return false
 }

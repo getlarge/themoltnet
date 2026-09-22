@@ -1433,8 +1433,9 @@ function isConfiguredOrigin(
   return (
     typeof origin === 'string' &&
     (origin === NATIVE_CLIENT_ORIGIN ||
-      options.allowedOrigins.includes(origin) ||
-      origin === options.selfOrigin)
+      (!options.nativeOnly &&
+        (options.allowedOrigins.includes(origin) ||
+          origin === options.selfOrigin)))
   );
 }
 

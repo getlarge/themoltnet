@@ -6,10 +6,14 @@ import { runPoll } from './cli/poll.js';
 import { runProviders } from './cli/providers.js';
 import { runAgentServer } from './cli/server.js';
 import { runSyncSessions } from './cli/sync-sessions.js';
-import { legacyStoreNotice, loadAgentServerEnvConfig } from './config.js';
+import {
+  legacyStoreNotice,
+  loadAgentServerEnvConfig,
+  markLegacyStoreNoticeShown,
+} from './config.js';
 import { RuntimeRegistry } from './lib/agent-server/runtime-registry.js';
 import { resolveAgentServerRoot } from './lib/agent-server/store.js';
-import { ROOT_USAGE } from './lib/help.js';
+import { isHelpFlag, ROOT_USAGE } from './lib/help.js';
 import { checkDaemonUpdate } from './lib/update.js';
 import type { DaemonRuntimeAdapter } from './runtime.js';
 import { DAEMON_VERSION } from './version.js';
@@ -18,9 +22,19 @@ export async function runAgentDaemonCli(options: {
   runtime: DaemonRuntimeAdapter;
   argv?: string[];
 }): Promise<number> {
-  const notice = legacyStoreNotice();
-  if (notice) console.error(notice);
   const [subcommand, ...rest] = options.argv ?? process.argv.slice(2);
+  const help =
+    subcommand === '--help' ||
+    subcommand === '-h' ||
+    (['poll', 'drain', 'once', 'server', 'providers', 'sync-sessions'].includes(
+      subcommand ?? '',
+    ) &&
+      isHelpFlag(rest));
+  const notice = legacyStoreNotice();
+  if (notice && !help) {
+    console.error(notice);
+    markLegacyStoreNoticeShown();
+  }
   if (
     ['poll', 'drain'].includes(subcommand ?? '') &&
     !isWorkspaceInvocation()

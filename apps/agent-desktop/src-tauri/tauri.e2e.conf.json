@@ -1,0 +1,29 @@
+{
+  "app": {
+    "security": {
+      "capabilities": [
+        "main-window",
+        {
+          "identifier": "desktop-e2e",
+          "permissions": ["wdio:default", "wdio-webdriver:default"],
+          "windows": ["main"]
+        }
+      ]
+    },
+    "withGlobalTauri": true
+  },
+  "build": {
+    "beforeBuildCommand": "pnpm --dir ../agent-desktop-e2e exec vite build --mode native-e2e",
+    "frontendDist": "../../agent-desktop-e2e/dist"
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false
+  },
+  "identifier": "net.themolt.agent.e2e",
+  "plugins": {
+    "updater": {
+      "active": false
+    }
+  },
+  "productName": "MoltNet Agent E2E"
+}

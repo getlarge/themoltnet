@@ -256,6 +256,9 @@
     },
     {
       "path": "apps/agent-desktop"
+    },
+    {
+      "path": "./apps/agent-desktop-e2e"
     }
   ]
 }

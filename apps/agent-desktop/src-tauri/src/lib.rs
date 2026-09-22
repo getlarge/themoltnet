@@ -1,3 +1,5 @@
+#[cfg(any(test, feature = "desktop-e2e"))]
+mod automation;
 #[path = "../build_support.rs"]
 mod build_support;
 mod control;
@@ -823,8 +825,28 @@ async fn desktop_repair_linux_setup(
 }
 
 pub fn run() {
-    let app = tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
+    #[cfg(feature = "desktop-e2e")]
+    {
+        let fixture = std::env::var_os("MOLTNET_DESKTOP_E2E_FIXTURE_ROOT")
+            .and_then(|path| std::fs::canonicalize(path).ok())
+            .expect("Desktop automation requires an isolated fixture root");
+        assert!(
+            cfg!(any(target_os = "macos", target_os = "linux")),
+            "Desktop automation supports macOS and Linux only"
+        );
+        automation::validate_fixture(&fixture, &std::env::temp_dir(), |name| {
+            std::env::var_os(name)
+        })
+        .expect("Desktop automation requires isolated platform directories");
+    }
+    let builder = tauri::Builder::default();
+    #[cfg(feature = "desktop-e2e")]
+    let builder = builder
+        .plugin(tauri_plugin_wdio::init())
+        .plugin(tauri_plugin_wdio_webdriver::init());
+    #[cfg(not(feature = "desktop-e2e"))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let app = builder
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             desktop_status,

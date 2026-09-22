@@ -22,32 +22,47 @@ async function lockInChild(root: string): Promise<ChildProcess> {
     '../../../test-fixtures/agent-server-lock-child.ts',
   );
   const child = spawn(process.execPath, ['--import', 'tsx', fixture, root], {
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   children.push(child);
   await new Promise<void>((resolvePromise, reject) => {
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr = (stderr + chunk.toString('utf8')).slice(-8192);
+    });
+    const finish = (error?: Error) => {
+      clearTimeout(timer);
+      child.off('error', onError);
+      child.off('exit', onExit);
+      child.off('message', onMessage);
+      if (error) reject(error);
+      else resolvePromise();
+    };
+    const onError = (error: Error) => finish(error);
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) =>
+      finish(
+        new Error(`child lock fixture exited: ${code ?? signal}; ${stderr}`),
+      );
+    const onMessage = (message: unknown) => {
+      if (message === 'locked') finish();
+    };
     const timer = setTimeout(
-      () => reject(new Error('child lock fixture did not become ready')),
+      () =>
+        finish(new Error(`child lock fixture did not become ready; ${stderr}`)),
       15_000,
     );
-    child.once('error', reject);
-    child.once('exit', (code) =>
-      reject(new Error(`child lock fixture exited early with ${code}`)),
-    );
-    child.stdout?.once('data', (chunk: Buffer) => {
-      if (!chunk.toString('utf8').includes('locked')) return;
-      clearTimeout(timer);
-      resolvePromise();
-    });
+    child.once('error', onError);
+    child.once('exit', onExit);
+    child.on('message', onMessage);
   });
   return child;
 }
 
 async function stopChild(child: ChildProcess): Promise<void> {
   if (child.exitCode !== null) return;
-  child.kill('SIGTERM');
   await new Promise<void>((resolvePromise) => {
     child.once('exit', () => resolvePromise());
+    child.kill('SIGTERM');
   });
 }
 

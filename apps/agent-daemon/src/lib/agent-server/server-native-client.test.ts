@@ -36,6 +36,19 @@ import {
 afterEach(cleanupAll);
 
 describe('native desktop client', () => {
+  it('omits browser CORS headers from native-only errors even for configured browser origins', async () => {
+    const { app } = await fixture({
+      nativeOnly: true,
+      allowedOrigins: [CONSOLE_ORIGIN],
+    });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/native/connection-settings',
+      headers: { host: HOST, origin: CONSOLE_ORIGIN },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
   it('runs two roots on separate endpoints while enforcing each singleton and native grant', async () => {
     const firstGrant = new NativeGrantService();
     const secondGrant = new NativeGrantService();

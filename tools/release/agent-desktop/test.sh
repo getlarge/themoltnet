@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+node --test tools/release/agent-desktop/boundary.test.mjs
+
 repo=$(pwd)
 fixture=$(mktemp -d "${TMPDIR:-/tmp}/moltnet-agent-desktop-release.XXXXXX")
 trap 'rm -rf "$fixture"' EXIT

@@ -1,0 +1,69 @@
+{
+  "name": "@moltnet/agent-desktop-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@wdio/cli": "catalog:",
+    "@wdio/globals": "catalog:",
+    "@wdio/local-runner": "catalog:",
+    "@wdio/mocha-framework": "catalog:",
+    "@wdio/spec-reporter": "catalog:",
+    "@wdio/tauri-plugin": "catalog:",
+    "@wdio/tauri-service": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "webdriverio": "catalog:",
+    "tsx": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:e2e",
+      "scope:agent",
+      "platform:desktop"
+    ],
+    "implicitDependencies": [
+      "@moltnet/agent-desktop",
+      "@themoltnet/agent-daemon"
+    ],
+    "targets": {
+      "build-native": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node apps/agent-desktop-e2e/build-native.mjs"
+        }
+      },
+      "e2e": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "parallelism": false,
+        "options": {
+          "commands": [
+            "pnpm --dir apps/agent-desktop-e2e exec wdio run wdio.chrome.conf.ts"
+          ],
+          "parallel": false
+        },
+        "configurations": {
+          "chrome": {
+            "commands": [
+              "pnpm --dir apps/agent-desktop-e2e exec wdio run wdio.chrome.conf.ts"
+            ]
+          },
+          "native": {
+            "commands": [
+              "node apps/agent-desktop-e2e/build-native.mjs",
+              "node apps/agent-desktop-e2e/run-native.mjs"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@moltnet/agent-desktop": "workspace:*"
+  }
+}

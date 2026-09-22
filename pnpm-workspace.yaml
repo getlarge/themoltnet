@@ -16,7 +16,9 @@ minimumReleaseAgeExclude:
 allowBuilds:
   '@github/keytar': true
   cpu-features: false
+  edgedriver: false
   esbuild: true
+  geckodriver: false
   node-hid: true
   onnxruntime-node: true
   protobufjs: false
@@ -165,3 +167,11 @@ catalog:
   ws: '^8.21.0'
   yaml: '^2.8.4'
   zod: '^4.3.6'
+  '@wdio/cli': '^9.31.9'
+  '@wdio/globals': '^9.0.0'
+  '@wdio/local-runner': '^9.0.0'
+  '@wdio/mocha-framework': '^9.0.0'
+  '@wdio/spec-reporter': '^9.0.0'
+  '@wdio/tauri-plugin': '^1.4.0'
+  '@wdio/tauri-service': '^1.4.0'
+  webdriverio: '^9.0.0'
