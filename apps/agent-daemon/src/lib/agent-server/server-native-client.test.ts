@@ -107,6 +107,27 @@ describe('native desktop client', () => {
     });
     expect(response.headers['access-control-allow-origin']).toBe(address);
   });
+
+  it('starts native-only without configuring a browser origin', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app } = await fixture({
+      nativeGrant,
+      nativeOnly: true,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: NATIVE_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
   it('restricts connection settings to native administration and requires restart after saving', async () => {
     const nativeGrant = new NativeGrantService();
     nativeGrant.grantNative('settings-token');

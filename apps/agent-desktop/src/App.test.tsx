@@ -20,6 +20,7 @@ vi.mock('./bridge.js', () => ({
     logs: [],
   },
   desktopBridge: {
+    appVersion: vi.fn().mockResolvedValue('0.5.1'),
     linuxSetup: vi.fn().mockResolvedValue({ linux: false }),
     status: vi.fn(),
     install: vi.fn(),
@@ -116,7 +117,9 @@ describe('MoltNet Agent desktop renderer', () => {
     renderApp();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Check app update' }),
+      await screen.findByRole('button', {
+        name: 'Check Desktop app updates',
+      }),
     );
 
     expect(await screen.findByText('App update status')).toBeVisible();

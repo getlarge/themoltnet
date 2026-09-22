@@ -180,9 +180,10 @@ mod tests {
     #[test]
     fn environment_aliases_agree_or_fail() {
         let cwd = fs::canonicalize(std::env::temp_dir()).unwrap();
+        let expected_cwd = normalize_windows_path(cwd.clone());
         assert_eq!(
             resolve_environment_store_root(None, Some(Path::new("legacy")), &cwd, &cwd).unwrap(),
-            cwd.join("legacy")
+            expected_cwd.join("legacy")
         );
         assert_eq!(
             resolve_environment_store_root(
@@ -192,7 +193,7 @@ mod tests {
                 &cwd
             )
             .unwrap(),
-            cwd.join("same")
+            expected_cwd.join("same")
         );
         assert!(resolve_environment_store_root(
             Some(Path::new("first")),

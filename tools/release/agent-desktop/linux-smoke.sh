@@ -29,10 +29,6 @@ for format in deb appimage; do
     chmod +x "$executable"
     check_libraries "$executable"
   fi
-  config=$(mktemp -d)
-  result=0
-  XDG_CONFIG_HOME="$config" xvfb-run -a dbus-run-session -- timeout 15s "$executable" > "/tmp/moltnet-desktop-smoke-$format.log" 2>&1 || result=$?
-  rm -rf "$config"
-  # A healthy window stays open until timeout. Immediate crashes are failures.
-  [ "$result" = 124 ] || { cat "/tmp/moltnet-desktop-smoke-$format.log"; exit 1; }
+  bash tools/release/agent-desktop/native-readiness-smoke.sh \
+    "$format" xvfb-run -a dbus-run-session -- "$executable"
 done

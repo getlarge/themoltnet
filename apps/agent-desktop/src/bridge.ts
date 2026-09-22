@@ -1,3 +1,4 @@
+import { getVersion } from '@tauri-apps/api/app';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
@@ -66,6 +67,7 @@ export interface LinuxSetupStatus {
 export type LinuxRepair = 'install_dependencies' | 'enable_kvm';
 
 export const desktopBridge = {
+  appVersion: () => getVersion(),
   linuxSetup: () => invoke<LinuxSetupStatus>('desktop_linux_setup'),
   repairLinuxSetup: (repair: LinuxRepair) =>
     invoke<LinuxSetupStatus>('desktop_repair_linux_setup', { repair }),
