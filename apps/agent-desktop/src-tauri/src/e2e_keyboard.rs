@@ -13,7 +13,7 @@ pub async fn desktop_e2e_tab(app: AppHandle) -> Result<(), String> {
     window.show().map_err(|e| e.to_string())?;
     window.set_focus().map_err(|e| e.to_string())?;
     let title = window.title().map_err(|e| e.to_string())?;
-    let (sender, mut receiver) = tauri::async_runtime::channel(1);
+    let (sender, receiver) = std::sync::mpsc::channel();
     app.run_on_main_thread(move || {
         let result: Result<(), String> = (|| {
             let main = MainThreadMarker::new().ok_or("Expected AppKit main thread")?;
@@ -33,10 +33,13 @@ pub async fn desktop_e2e_tab(app: AppHandle) -> Result<(), String> {
             }
             Ok(())
         })();
-        let _ = sender.blocking_send(result);
+        let _ = sender.send(result);
     }).map_err(|e| e.to_string())?;
-    receiver
-        .recv()
-        .await
-        .ok_or("Native key dispatch did not complete")?
+    tauri::async_runtime::spawn_blocking(move || {
+        receiver
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .map_err(|_| "Native Tab dispatch did not complete within 5 seconds".to_string())?
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }

@@ -1,10 +1,9 @@
 import { readFileSync } from 'node:fs';
 
-import AxeBuilder from '@axe-core/webdriverio';
 import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { $, browser, expect } from '@wdio/globals';
 
-import { preset } from './run-fixtures.js';
+import { expectNoAxeViolations, preset, WINDOW_SIZES } from './run-fixtures.js';
 
 // Native refresh and explicit operations intentionally share a nonblocking lock.
 // Retry only a rejected operation that has not acquired the lock or mutated state.
@@ -134,25 +133,13 @@ describe('Native Desktop and real fixture daemon', () => {
 // Rendered acceptance uses the actual WebKit window and native bridge, including
 // the stopped-daemon recovery state. Tray behavior remains a separate OS check.
 describe('Native window accessibility', () => {
-  for (const [width, height] of [
-    [820, 720],
-    [640, 560],
-  ]) {
+  for (const [width, height] of WINDOW_SIZES) {
     it(`supports keyboard recovery and scrolling at ${width}×${height}`, async () => {
       await browser.setWindowSize(width, height);
       await $('a=Saved worker').click();
       await expect($('button=Retry catalogue')).toBeDisplayed();
       // The native app has one webview; axe must not open a browser tab.
-      const audit = await new AxeBuilder({ client: browser })
-        .setLegacyMode()
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-        .analyze();
-      expect(
-        audit.violations.map(({ id, nodes }) => ({
-          id,
-          targets: nodes.map((node) => node.target),
-        })),
-      ).toEqual([]);
+      await expectNoAxeViolations(true);
       const name = $(
         '//label[normalize-space()="Preset name"]/following-sibling::input',
       );
@@ -177,7 +164,8 @@ describe('Native window accessibility', () => {
             const focused = document.activeElement;
             return Boolean(
               focused &&
-              getComputedStyle(focused).boxShadow.includes('rgb(0, 212, 200)'),
+              // Both themes draw the same four-pixel outer ring.
+              getComputedStyle(focused).boxShadow.includes('4px'),
             );
           }),
         {
@@ -191,7 +179,7 @@ describe('Native window accessibility', () => {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
-      await browser.saveScreenshot(`/private/tmp/desktop-native-${width}.png`);
+      await browser.saveScreenshot(`test-results/desktop-native-${width}.png`);
       await $('a=Providers').click();
       await $('button=Return to run draft').click();
       await expect($('button=Delete preset')).toBeFocused();

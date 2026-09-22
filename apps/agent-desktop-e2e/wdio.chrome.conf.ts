@@ -3,9 +3,12 @@ import { fileURLToPath } from 'node:url';
 
 import { createServer } from 'vite';
 
+import { captureFailure } from './src/failure-artifacts.js';
+
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export const config = {
+  afterTest: captureFailure,
   onPrepare() {
     mkdirSync('test-results', { recursive: true });
   },

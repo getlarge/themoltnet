@@ -47,7 +47,7 @@ test('checks feature-exclusive native markers as well as renderer hooks', () => 
     'MOLTNET_DESKTOP_E2E_FIXTURE_ROOT',
     'wdio-webdriver',
     '__wdio_mocks__',
-    'desktop-e2e:mount',
+    'desktop_e2e_tab',
   ]) {
     assert.throws(() =>
       assertReleaseArtifact(Buffer.from(`prefix ${marker} suffix`), 'fixture'),

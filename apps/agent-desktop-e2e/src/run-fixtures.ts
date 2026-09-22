@@ -1,9 +1,11 @@
+import AxeBuilder from '@axe-core/webdriverio';
 import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import type {
   AgentServerCatalogue,
   AgentServerStatus,
   RunPreset,
 } from '@moltnet/agent-desktop/run-types';
+import { browser, expect } from '@wdio/globals';
 
 export const running: DesktopStatus = {
   state: 'running',
@@ -87,3 +89,28 @@ export const preset: RunPreset = {
   createdAt: '2026-09-01T00:00:00Z',
   lastUsedAt: null,
 };
+
+export const WINDOW_SIZES = [
+  [820, 720],
+  [640, 560],
+] as const;
+export const PRESETS_KEY = 'moltnet.run-presets.v1';
+export function readSavedPresets(): Promise<RunPreset[]> {
+  return browser.execute(
+    (key) => JSON.parse(localStorage.getItem(key) ?? '[]') as RunPreset[],
+    PRESETS_KEY,
+  );
+}
+export async function expectNoAxeViolations(native = false): Promise<void> {
+  const builder = new AxeBuilder({ client: browser });
+  if (native) builder.setLegacyMode();
+  const audit = await builder
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(
+    audit.violations.map(({ id, nodes }) => ({
+      id,
+      targets: nodes.map((node) => node.target),
+    })),
+  ).toEqual([]);
+}

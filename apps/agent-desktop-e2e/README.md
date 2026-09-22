@@ -16,3 +16,12 @@ Native layout checks exercise the default and minimum window sizes. Axe uses
 single-window mode; the macOS test build supplies an AppKit Tab command for
 WebKit focus navigation. Foreground animation, tray behavior, and signed
 installation remain separate native acceptance checks.
+
+At the run-flow layer (#2394), CI runs the Chrome journeys and compiles the
+native automation feature on macOS. Executing the native journeys in CI begins
+with #2397; native checks for this layer are run locally. Both WDIO configurations
+capture failed-test screenshots under `test-results/`.
+
+Run again repeats explicit identity, team, profile and task-type selections.
+The team diary is a default and is resolved again; saved presets use a null diary
+to follow that default. A matching saved preset stays associated with the draft.

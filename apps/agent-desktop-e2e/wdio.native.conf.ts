@@ -2,6 +2,8 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { captureFailure } from './src/failure-artifacts.js';
+
 const projectRoot = fileURLToPath(new URL('../agent-desktop', import.meta.url));
 const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
 if (
@@ -14,6 +16,7 @@ if (
 }
 
 export const config = {
+  afterTest: captureFailure,
   onPrepare() {
     mkdirSync('test-results', { recursive: true });
   },

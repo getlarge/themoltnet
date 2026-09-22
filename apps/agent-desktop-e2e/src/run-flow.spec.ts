@@ -1,8 +1,15 @@
-import AxeBuilder from '@axe-core/webdriverio';
-import type { RunPreset } from '@moltnet/agent-desktop/run-types';
 import { $, browser, expect } from '@wdio/globals';
 
-import { catalogue, preset, running, status } from './run-fixtures.js';
+import {
+  catalogue,
+  expectNoAxeViolations,
+  preset,
+  PRESETS_KEY,
+  readSavedPresets,
+  running,
+  status,
+  WINDOW_SIZES,
+} from './run-fixtures.js';
 
 let generation = 0;
 let start: Awaited<ReturnType<typeof browser.tauri.mock>>;
@@ -27,11 +34,15 @@ async function mount() {
   }
   start = await browser.tauri.mock('desktop_start_run');
   await start.mockResolvedValue(status.runs[0]);
-  await browser.execute((saved) => {
-    localStorage.clear();
-    localStorage.setItem('moltnet.run-presets.v1', JSON.stringify([saved]));
-    window.dispatchEvent(new Event('desktop-e2e:mount'));
-  }, preset);
+  await browser.execute(
+    (saved, key) => {
+      localStorage.clear();
+      localStorage.setItem(key, JSON.stringify([saved]));
+      window.dispatchEvent(new Event('desktop-e2e:mount'));
+    },
+    preset,
+    PRESETS_KEY,
+  );
   await expect($('button=New run')).toBeEnabled();
   return start;
 }
@@ -64,12 +75,7 @@ describe('Run-flow audit regressions', () => {
     await $('a=Saved worker').click();
     await field('Runtime profile').selectByAttribute('value', 'quick');
     await $('button=Start run').click();
-    const saved = await browser.execute(
-      () =>
-        JSON.parse(
-          localStorage.getItem('moltnet.run-presets.v1') ?? '[]',
-        ) as RunPreset[],
-    );
+    const saved = await readSavedPresets();
     expect(saved).toEqual([preset]);
     await start.update();
     expect(start.mock.calls.map(([args]) => args)).toEqual([
@@ -92,12 +98,7 @@ describe('Run-flow audit regressions', () => {
     await $('button=Update preset').click();
     await start.update();
     expect(start.mock.calls).toHaveLength(0);
-    const saved = await browser.execute(
-      () =>
-        JSON.parse(
-          localStorage.getItem('moltnet.run-presets.v1') ?? '[]',
-        ) as RunPreset[],
-    );
+    const saved = await readSavedPresets();
     expect(saved[0].profileIds).toEqual(['quick']);
   });
 
@@ -106,6 +107,9 @@ describe('Run-flow audit regressions', () => {
     await failed.mockImplementation(() => {
       throw new Error('Catalogue unavailable');
     });
+    await browser.execute(() =>
+      document.dispatchEvent(new Event('visibilitychange')),
+    );
     await $('button=New run').click();
     await expect($('button=Retry catalogue')).toBeDisplayed();
     await expect($('button=Enroll or renew team access')).not.toExist();
@@ -149,29 +153,18 @@ describe('Run-flow audit regressions', () => {
       };
     });
     await $('button=Update preset').click();
-    await expect($('[role="status"]')).toHaveText(
+    await expect($('[role="alert"]')).toHaveText(
       expect.stringContaining('could not be saved'),
     );
     await start.update();
     expect(start.mock.calls).toHaveLength(0);
   });
-  for (const [width, height] of [
-    [820, 720],
-    [640, 560],
-  ]) {
+  for (const [width, height] of WINDOW_SIZES) {
     it(`keeps the composer accessible and scrollable at ${width}×${height}`, async () => {
       await browser.setWindowSize(width, height);
       await $('a=Saved worker').click();
       await expect(field('Runtime profile')).toHaveValue('careful');
-      const audit = await new AxeBuilder({ client: browser })
-        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-        .analyze();
-      expect(
-        audit.violations.map(({ id, nodes }) => ({
-          id,
-          targets: nodes.map((node) => node.target),
-        })),
-      ).toEqual([]);
+      await expectNoAxeViolations();
       await $('button=Start run').scrollIntoView();
       await expect($('button=Start run')).toBeClickable();
       expect(
@@ -202,6 +195,9 @@ describe('Run-flow audit regressions', () => {
         ],
       })),
     });
+    await browser.execute(() =>
+      document.dispatchEvent(new Event('visibilitychange')),
+    );
     await $('button=New run').click();
     await expect($('button=Retry catalogue')).toBeDisplayed();
     await expect($('button=Enroll or renew team access')).not.toExist();
@@ -233,12 +229,7 @@ describe('Run-flow audit regressions', () => {
     await expect($('button=Update preset')).toBeDisplayed();
     await field('Runtime profile').selectByAttribute('value', 'quick');
     await $('button=Update preset').click();
-    const saved = await browser.execute(
-      () =>
-        JSON.parse(
-          localStorage.getItem('moltnet.run-presets.v1') ?? '[]',
-        ) as RunPreset[],
-    );
+    const saved = await readSavedPresets();
     expect(saved).toHaveLength(2);
     expect(
       saved.find((entry) => entry.name === 'New worker')?.profileIds,
