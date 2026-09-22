@@ -1,6 +1,6 @@
 {
   "apps/agent-daemon": "0.63.1",
-  "apps/agent-desktop": "0.6.1",
+  "apps/agent-desktop": "0.6.2",
   "apps/console": "0.21.0",
   "apps/landing": "0.15.2",
   "apps/mcp-host": "0.1.0",
