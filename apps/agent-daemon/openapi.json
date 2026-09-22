@@ -77,6 +77,34 @@
           "projectErrors": {
             "items": {
               "properties": {
+                "code": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "forbidden"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "unreachable"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "invalid_response"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "truncated"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
                 "message": {
                   "type": "string"
                 },
@@ -86,6 +114,7 @@
               },
               "required": [
                 "teamId",
+                "code",
                 "message"
               ],
               "type": "object"
@@ -1616,7 +1645,7 @@
         ]
       }
     },
-    "/v1/native/project-bindings": {
+    "/v1/native/project-locations": {
       "get": {
         "description": "Requires the Desktop native grant; browser authorization is insufficient.",
         "operationId": "listNativeProjectLocations",
@@ -1661,127 +1690,11 @@
         "tags": [
           "native-projects"
         ]
-      },
-      "post": {
-        "operationId": "saveNativeProjectLocation",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "allOf": [
-                  {
-                    "properties": {
-                      "default": {
-                        "type": "boolean"
-                      },
-                      "diaryId": {
-                        "minLength": 1,
-                        "type": "string"
-                      },
-                      "name": {
-                        "minLength": 1,
-                        "type": "string"
-                      },
-                      "projectId": {
-                        "minLength": 1,
-                        "type": "string"
-                      },
-                      "source": {
-                        "minLength": 1,
-                        "type": "string"
-                      },
-                      "strategy": {
-                        "anyOf": [
-                          {
-                            "enum": [
-                              "none"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "existing"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "git-worktree"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "isolated-directory"
-                            ],
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "teamId": {
-                        "minLength": 1,
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "teamId",
-                      "projectId",
-                      "strategy"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "properties": {
-                      "identity": {
-                        "minLength": 1,
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "identity"
-                    ],
-                    "type": "object"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentServerProjectLocation"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AgentServerProblem"
-                }
-              }
-            },
-            "description": "Default Response"
-          }
-        },
-        "security": [
-          {
-            "agentServerToken": []
-          }
-        ],
-        "tags": [
-          "native-projects"
-        ]
       }
     },
-    "/v1/native/project-bindings/{name}": {
+    "/v1/native/project-locations/{name}": {
       "delete": {
+        "description": "Removes the registration only; the folder is left untouched. Requires the Desktop native grant.",
         "operationId": "removeNativeProjectLocation",
         "parameters": [
           {
@@ -1808,6 +1721,115 @@
                     "removed"
                   ],
                   "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "native-projects"
+        ]
+      },
+      "put": {
+        "description": "Creates or replaces the named location. Requires the Desktop native grant.",
+        "operationId": "saveNativeProjectLocation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "default": {
+                    "type": "boolean"
+                  },
+                  "diaryId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "identity": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "source": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "strategy": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "none"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "existing"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "git-worktree"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "teamId": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "identity",
+                  "teamId",
+                  "projectId",
+                  "strategy"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProjectLocation"
                 }
               }
             },

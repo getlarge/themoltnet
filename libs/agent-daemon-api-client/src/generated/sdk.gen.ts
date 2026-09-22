@@ -208,27 +208,13 @@ export const listNativeProjectLocations = <
     ThrowOnError
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
-    url: '/v1/native/project-bindings',
+    url: '/v1/native/project-locations',
     ...options,
   });
 
-export const saveNativeProjectLocation = <ThrowOnError extends boolean = false>(
-  options?: Options<SaveNativeProjectLocationData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    SaveNativeProjectLocationResponses,
-    SaveNativeProjectLocationErrors,
-    ThrowOnError
-  >({
-    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
-    url: '/v1/native/project-bindings',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
+/**
+ * Removes the registration only; the folder is left untouched. Requires the Desktop native grant.
+ */
 export const removeNativeProjectLocation = <
   ThrowOnError extends boolean = false,
 >(
@@ -240,8 +226,28 @@ export const removeNativeProjectLocation = <
     ThrowOnError
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
-    url: '/v1/native/project-bindings/{name}',
+    url: '/v1/native/project-locations/{name}',
     ...options,
+  });
+
+/**
+ * Creates or replaces the named location. Requires the Desktop native grant.
+ */
+export const saveNativeProjectLocation = <ThrowOnError extends boolean = false>(
+  options: Options<SaveNativeProjectLocationData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    SaveNativeProjectLocationResponses,
+    SaveNativeProjectLocationErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/native/project-locations/{name}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 export const removeAgentServerOperator = <ThrowOnError extends boolean = false>(
