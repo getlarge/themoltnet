@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/os-keyring-v0.3.0...os-keyring-v0.4.0) (2026-09-22)
+
+
+### Features
+
+* **config:** shared store root and isolated keyring namespaces ([044f2f2](https://github.com/getlarge/themoltnet/commit/044f2f2aba32a310043210df40d498b926289065))
+* **sdk:** isolate native keyring services by selected store ([0bdc544](https://github.com/getlarge/themoltnet/commit/0bdc5442388294c602a7332b053f90f6fd77fb5a))
+
+
+### Bug Fixes
+
+* **store:** stabilize canonical roots and lazy keyring namespaces ([52427c3](https://github.com/getlarge/themoltnet/commit/52427c3be2577200fa2020b56bb9e84a8a0f28aa))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/os-keyring-v0.2.0...os-keyring-v0.3.0) (2026-08-31)
 
 

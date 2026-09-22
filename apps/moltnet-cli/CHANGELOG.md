@@ -1,5 +1,33 @@
 # Changelog
 
+## [3.4.0](https://github.com/getlarge/themoltnet/compare/cli-v3.3.0...cli-v3.4.0) (2026-09-22)
+
+
+### Features
+
+* **cli:** preserve selected stores across subprocess launches ([4e2f8d3](https://github.com/getlarge/themoltnet/commit/4e2f8d3bc72152ca4cf3181483affa9f119b83c4))
+* **cli:** scope store paths and keyring service to MoltNet home ([402c400](https://github.com/getlarge/themoltnet/commit/402c4003ba8fd88bf195a754ff752bdbb247d337))
+* **config:** shared store root and isolated keyring namespaces ([044f2f2](https://github.com/getlarge/themoltnet/commit/044f2f2aba32a310043210df40d498b926289065))
+* **local-runtime:** isolate daemon and Desktop store consumers ([833930a](https://github.com/getlarge/themoltnet/commit/833930ad384a7f9ed2ea837aff566dbb54858a09))
+
+
+### Bug Fixes
+
+* **agent:** decouple isolated startup from default directory health ([d059922](https://github.com/getlarge/themoltnet/commit/d05992256d0a99012350e9c459807ca6e5922678))
+* **agent:** preserve store boundaries during recovery and startup ([47556bd](https://github.com/getlarge/themoltnet/commit/47556bd509f7548f4d4796d022277b7362d0be56))
+* **ci:** route store conformance through affected native targets ([18083ec](https://github.com/getlarge/themoltnet/commit/18083ec73c81759a82a13b59b911b2d8aa99d0bf))
+* **cli:** bound credential alias checks to identity documents ([9b422f5](https://github.com/getlarge/themoltnet/commit/9b422f562eb770bd434108a3d20e9e856adcc9bf))
+* **cli:** protect connection environment parent directories ([3d33449](https://github.com/getlarge/themoltnet/commit/3d33449762f61a451fc1fe0ba9179085980d23b2))
+* **config:** align native path conformance across platforms ([89cdc7f](https://github.com/getlarge/themoltnet/commit/89cdc7f276acc00bd9aad94607d074912d24a66e))
+* **config:** preserve default paths and mount identities ([6f78b1d](https://github.com/getlarge/themoltnet/commit/6f78b1d3777733a0ce55bb3b43b927c35c30cfbb))
+* **config:** preserve lexical default store paths ([f85140b](https://github.com/getlarge/themoltnet/commit/f85140b57480a61ad33ac6a5bd8c91a9459570c6))
+* **desktop:** validate discovery and gate isolated daemon support ([1786ddf](https://github.com/getlarge/themoltnet/commit/1786ddfe8b9a4325d92f1850155677d6a81b1ce8))
+* **store:** address consumer isolation review findings ([c0b02be](https://github.com/getlarge/themoltnet/commit/c0b02bed8520d3ccdf2307c22f7c0e885f53f053))
+* **store:** preserve default keyring identity across worker homes ([84c7736](https://github.com/getlarge/themoltnet/commit/84c773639fd6351bcd4125e8235822d56b9a7ce4))
+* **store:** preserve worker namespaces and retire obsolete local control ([ba747cb](https://github.com/getlarge/themoltnet/commit/ba747cbd08ee821b31c10ec22ab15a1dfeccbed0))
+* **store:** stabilize canonical roots and lazy keyring namespaces ([52427c3](https://github.com/getlarge/themoltnet/commit/52427c3be2577200fa2020b56bb9e84a8a0f28aa))
+* **tooling:** isolate development launchers and document store upgrades ([1e64acb](https://github.com/getlarge/themoltnet/commit/1e64acb83434728930a8f471f2acda6557464053))
+
 ## [3.3.0](https://github.com/getlarge/themoltnet/compare/cli-v3.2.0...cli-v3.3.0) (2026-09-20)
 
 

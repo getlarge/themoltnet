@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.2](https://github.com/getlarge/themoltnet/compare/landing-v0.15.1...landing-v0.15.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* **landing:** publish stable download pins ([0651659](https://github.com/getlarge/themoltnet/commit/0651659fbb4c2bf74a6f4c950ac41867f1029244))
+* **landing:** publish stable download pins ([957ced9](https://github.com/getlarge/themoltnet/commit/957ced9c2f0f8038bf1c47f9688530658f19ade1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.4.0
+
 ## [0.15.1](https://github.com/getlarge/themoltnet/compare/landing-v0.15.0...landing-v0.15.1) (2026-09-21)
 
 

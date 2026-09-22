@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.145.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.144.0...sdk-v0.145.0) (2026-09-22)
+
+
+### Features
+
+* **config:** shared store root and isolated keyring namespaces ([044f2f2](https://github.com/getlarge/themoltnet/commit/044f2f2aba32a310043210df40d498b926289065))
+* **local-runtime:** isolate daemon and Desktop store consumers ([833930a](https://github.com/getlarge/themoltnet/commit/833930ad384a7f9ed2ea837aff566dbb54858a09))
+* **sdk:** isolate native keyring services by selected store ([0bdc544](https://github.com/getlarge/themoltnet/commit/0bdc5442388294c602a7332b053f90f6fd77fb5a))
+
+
+### Bug Fixes
+
+* **agent:** preserve store boundaries during recovery and startup ([47556bd](https://github.com/getlarge/themoltnet/commit/47556bd509f7548f4d4796d022277b7362d0be56))
+* **config:** align native path conformance across platforms ([89cdc7f](https://github.com/getlarge/themoltnet/commit/89cdc7f276acc00bd9aad94607d074912d24a66e))
+* **store:** address consumer isolation review findings ([c0b02be](https://github.com/getlarge/themoltnet/commit/c0b02bed8520d3ccdf2307c22f7c0e885f53f053))
+* **store:** preserve default keyring identity across worker homes ([84c7736](https://github.com/getlarge/themoltnet/commit/84c773639fd6351bcd4125e8235822d56b9a7ce4))
+* **store:** preserve worker namespaces and retire obsolete local control ([ba747cb](https://github.com/getlarge/themoltnet/commit/ba747cbd08ee821b31c10ec22ab15a1dfeccbed0))
+* **store:** stabilize canonical roots and lazy keyring namespaces ([52427c3](https://github.com/getlarge/themoltnet/commit/52427c3be2577200fa2020b56bb9e84a8a0f28aa))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/os-keyring bumped to 0.4.0
+  * peerDependencies
+    * @themoltnet/os-keyring bumped to 0.4.0
+
 ## [0.144.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.143.0...sdk-v0.144.0) (2026-09-20)
 
 

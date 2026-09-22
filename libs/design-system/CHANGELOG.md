@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.3.0...design-system-v1.4.0) (2026-09-22)
+
+
+### Features
+
+* **design-system:** add Disclosure, VisuallyHidden and Stack shrink ([648b76c](https://github.com/getlarge/themoltnet/commit/648b76c49adaf67e6698723acbcac9301f9bdde9))
+* **design-system:** keep record traces in one row or one column ([73f655e](https://github.com/getlarge/themoltnet/commit/73f655ef72c6ad7ae7951a56cd07653d1ff8f1ac))
+* **design-system:** promote Disclosure and VisuallyHidden; task-ui follow-ups ([d44d2d6](https://github.com/getlarge/themoltnet/commit/d44d2d6c17131e1bccca262c4b3916dabe696328))
+
 ## [1.3.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.2.0...design-system-v1.3.0) (2026-09-20)
 
 
