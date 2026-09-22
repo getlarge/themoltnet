@@ -1,5 +1,8 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
-import { redactRetryTriageSecrets } from '@themoltnet/pi-runtime';
+import {
+  isPermanentProviderRequestError,
+  redactRetryTriageSecrets,
+} from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
@@ -351,7 +354,6 @@ async function prepareAttemptFailure(
     error: appendProviderFailureDiagnostics(
       classified.error,
       ctx.providerFailureContext,
-      classified.source,
     ),
   };
 }
@@ -359,13 +361,12 @@ async function prepareAttemptFailure(
 function appendProviderFailureDiagnostics(
   error: NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'],
   context: ProviderFailureContext | undefined,
-  source: ClassifiedAttemptFailure['source'],
 ): NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'] {
   if (
     !context ||
     error.code.toLowerCase() !== 'llm_api_error' ||
     error.retryable !== false ||
-    (source !== 'explicit' && source !== 'deterministic') ||
+    !isPermanentProviderRequestError(error.message) ||
     error.message.includes('Provider/model:')
   ) {
     return error;

@@ -403,6 +403,72 @@ describe('finalizeTask', () => {
     expect(error.message).toBe('429: invalid parameter temperature');
   });
 
+  it('adds actionable diagnostics when the permanent provider failure exhausts the final attempt', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: 'Unsupported parameter: reasoning_effort',
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 1,
+      } as unknown as Task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
+    expect(error.message).toContain('Provider/model: openai/gpt-5.');
+    expect(error.message).toContain('Runtime profile: default-coding');
+    expect(error.message).toContain('Pi config source: store.');
+    expect(error.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+  });
+
+  it('does not add permanent-request diagnostics to an exhausted transient failure', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: '500 response: unknown field request_id',
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 1,
+      } as unknown as Task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
+    expect(error.message).toBe('500 response: unknown field request_id');
+    expect(error.message).not.toContain('Unsupported request field(s):');
+  });
+
   it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
