@@ -72,7 +72,7 @@ describe('private native socket', () => {
     ).toBe(401);
     expect(
       await get(socket, 'native-secret', 'https://console.themolt.net'),
-    ).toBe(401);
+    ).toBe(403);
   });
 
   it('limits rejected native requests without spending the valid grant budget', async () => {
