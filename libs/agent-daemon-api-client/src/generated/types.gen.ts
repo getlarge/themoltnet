@@ -137,7 +137,6 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
-  binding?: string;
   credential?: {
     expiresAt?: string | null;
     keyId: string;
@@ -152,6 +151,7 @@ export type AgentServerRunRecord = {
     code: string;
     message: string;
   };
+  location?: string;
   mode: 'poll' | 'drain';
   pid?: number;
   profiles: Array<string>;
@@ -159,11 +159,12 @@ export type AgentServerRunRecord = {
   source?: string;
   startedAt: string;
   status: 'running' | 'exited' | 'stopped' | 'failed';
+  strategy?: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
   taskTypes: Array<string>;
   teamId: string;
   workspace?: {
-    binding?: string;
     diaryId?: string;
+    location?: string;
     projectId: string | null;
     source?: string;
     strategy:
@@ -173,11 +174,6 @@ export type AgentServerRunRecord = {
       | 'isolated-directory'
       | 'profile-default';
   };
-  workspaceStrategy?:
-    | 'none'
-    | 'existing'
-    | 'git-worktree'
-    | 'isolated-directory';
 };
 
 export type AgentServerStatus = {
@@ -765,12 +761,13 @@ export type ListAgentServerRunsResponse =
 export type StartAgentServerRunData = {
   body: {
     agent: string;
-    binding?: string;
     diaryId?: string;
+    location?: string;
     mode: 'poll' | 'drain';
     profiles: Array<string>;
     projectId?: string | null;
     source?: string;
+    strategy?: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
     taskTypes: Array<
       | 'assess_brief'
       | 'curate_pack'
@@ -783,11 +780,6 @@ export type StartAgentServerRunData = {
       | 'run_eval'
     >;
     teamId: string;
-    workspaceStrategy?:
-      | 'none'
-      | 'existing'
-      | 'git-worktree'
-      | 'isolated-directory';
   };
   path?: never;
   query?: never;
