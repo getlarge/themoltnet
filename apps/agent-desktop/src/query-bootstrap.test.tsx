@@ -11,11 +11,13 @@ import { tauriWindowFocus } from './window-focus.js';
 
 const listeners = new Set<(focused: boolean) => void>();
 const isFocused = vi.fn<() => Promise<boolean>>();
+let listenThrows = false;
 
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
     isFocused,
     onFocusChanged: (handler: (event: { payload: boolean }) => void) => {
+      if (listenThrows) throw new Error('plugin:event|listen not available');
       const wrapped = (focused: boolean) => handler({ payload: focused });
       listeners.add(wrapped);
       return Promise.resolve(() => listeners.delete(wrapped));
@@ -31,6 +33,7 @@ describe('native focus tracking', () => {
   beforeEach(() => {
     listeners.clear();
     isFocused.mockReset().mockResolvedValue(true);
+    listenThrows = false;
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: () => 'hidden',
@@ -48,8 +51,10 @@ describe('native focus tracking', () => {
 
   it('reports focus from the window while the WebView claims hidden', async () => {
     installWindowFocusTracking(tauriWindowFocus());
-    await vi.waitFor(() => expect(isFocused).toHaveBeenCalled());
-    expect(focusManager.isFocused()).toBe(true);
+    // `visibilityState` stays 'hidden' here, so this passing means the focus
+    // state came from the window rather than the browser heuristic.
+    await vi.waitFor(() => expect(focusManager.isFocused()).toBe(true));
+    expect(isFocused).toHaveBeenCalled();
   });
 
   it('tracks later focus changes', async () => {
@@ -59,6 +64,16 @@ describe('native focus tracking', () => {
     expect(focusManager.isFocused()).toBe(false);
     emitFocus(true);
     expect(focusManager.isFocused()).toBe(true);
+  });
+
+  it('starts and assumes focus without a Tauri host', async () => {
+    // The journey suite runs this renderer under plain Chrome, where the IPC
+    // bridge answers `invoke` commands but not window or event APIs. Startup
+    // must survive that, or no journey can mount the app at all.
+    isFocused.mockRejectedValue(new Error('window.getCurrent not available'));
+    listenThrows = true;
+    expect(() => installWindowFocusTracking(tauriWindowFocus())).not.toThrow();
+    await vi.waitFor(() => expect(focusManager.isFocused()).toBe(true));
   });
 
   it('assumes focus when the capability to read it is missing', async () => {
