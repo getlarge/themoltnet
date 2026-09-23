@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.8.0...agent-desktop-v0.8.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **desktop:** stabilize operator and project locations ([29ec67d](https://github.com/getlarge/themoltnet/commit/29ec67d68a45feae3fc665227b89c4bd40102a28))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.7.0...agent-desktop-v0.8.0) (2026-09-23)
 
 
