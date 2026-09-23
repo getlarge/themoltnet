@@ -8,7 +8,6 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useState } from 'react';
 
 import { verificationUnavailable } from './credential-health.js';
 import { duration, relativeTime } from './format.js';
@@ -19,6 +18,7 @@ import { RunComposer } from './RunComposer.js';
 import { RunDetail } from './RunDetail.js';
 import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
 import { useCatalogue } from './useCatalogue.js';
+import { type RunStopControl, useStopRun } from './useStopRun.js';
 
 export interface RunsViewProps {
   active?: boolean;
@@ -41,6 +41,10 @@ export function RunsView({
   onTeams,
   onProjects,
 }: RunsViewProps) {
+  const stopControl = useStopRun(
+    actions,
+    data.runs.filter((run) => run.status === 'running').map((run) => run.id),
+  );
   if (route.kind === 'compose') {
     return (
       <RunComposer
@@ -74,6 +78,7 @@ export function RunsView({
               previousRun: run,
             })
           }
+          stopControl={stopControl}
         />
       );
     }
@@ -85,6 +90,7 @@ export function RunsView({
       now={now}
       onRoute={onRoute}
       onTeams={onTeams}
+      stopControl={stopControl}
     />
   );
 }
@@ -95,10 +101,9 @@ function RunsList({
   now,
   onRoute,
   onTeams,
-}: Omit<RunsViewProps, 'route'>) {
+  stopControl,
+}: Omit<RunsViewProps, 'route'> & { stopControl: RunStopControl }) {
   const theme = useTheme();
-  const [stopping, setStopping] = useState<string | null>(null);
-  const [stopError, setStopError] = useState(false);
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
   const serverReady = ['running', 'update_available'].includes(
@@ -118,20 +123,6 @@ function RunsList({
     { read: actions.catalogue },
   );
   const verificationFailed = verificationUnavailable(catalogue?.teams ?? []);
-
-  const stop = async (runId: string) => {
-    setStopping(runId);
-    setStopError(false);
-    try {
-      await actions.stopRun(runId);
-    } catch {
-      // Without this the spinner clears and the run keeps polling, so the
-      // failure is invisible. RunDetail surfaces the same notice.
-      setStopError(true);
-    } finally {
-      setStopping(null);
-    }
-  };
 
   return (
     <Stack gap={6}>
@@ -159,7 +150,7 @@ function RunsList({
         </Button>
       </Stack>
 
-      {stopError ? (
+      {stopControl.errors.size ? (
         <InlineNotice tone="warning" title="Run could not be stopped">
           Try again or check the Server view.
         </InlineNotice>
@@ -215,8 +206,8 @@ function RunsList({
                 key={run.id}
                 run={run}
                 now={now}
-                stopping={stopping === run.id}
-                onStop={() => void stop(run.id)}
+                stopping={stopControl.pending.has(run.id)}
+                onStop={() => stopControl.stop(run.id)}
                 onOpen={() => onRoute({ kind: 'detail', runId: run.id })}
               />
             ))}
