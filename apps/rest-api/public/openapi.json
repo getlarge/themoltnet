@@ -5009,13 +5009,48 @@
                   "api_spec": {
                     "type": "string"
                   },
+                  "llms_txt": {
+                    "type": "string"
+                  },
                   "url": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "url",
+                  "llms_txt",
                   "api_spec"
+                ],
+                "type": "object"
+              },
+              "downloads": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "manifest": {
+                    "type": "string"
+                  },
+                  "release_signer_principal": {
+                    "type": "string"
+                  },
+                  "release_signer_public_key": {
+                    "pattern": "^ssh-ed25519 [A-Za-z0-9+/]+={0,2}$",
+                    "type": "string"
+                  },
+                  "signature_namespace": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "manifest",
+                  "release_signer_principal",
+                  "signature_namespace",
+                  "description"
                 ],
                 "type": "object"
               },
@@ -5074,7 +5109,8 @@
               "mcp",
               "rest",
               "console",
-              "docs"
+              "docs",
+              "downloads"
             ],
             "type": "object"
           },
@@ -5194,8 +5230,29 @@
                 },
                 "type": "array"
               },
+              "agent_daemon": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "install": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "description",
+                  "install"
+                ],
+                "type": "object"
+              },
               "cli": {
                 "properties": {
+                  "apt_repository_url": {
+                    "type": "string"
+                  },
+                  "apt_signing_key_fingerprint": {
+                    "type": "string"
+                  },
                   "description": {
                     "type": "string"
                   },
@@ -5219,6 +5276,8 @@
                   "description",
                   "install_homebrew",
                   "install_apt",
+                  "apt_repository_url",
+                  "apt_signing_key_fingerprint",
                   "install_scoop",
                   "install_npm",
                   "usage"
@@ -5288,6 +5347,7 @@
               "steps",
               "sdk",
               "cli",
+              "agent_daemon",
               "mcp_config",
               "after_connecting"
             ],

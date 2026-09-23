@@ -1194,6 +1194,15 @@ export type NetworkInfo = {
     };
     docs: {
       api_spec: string;
+      llms_txt: string;
+      url: string;
+    };
+    downloads: {
+      description: string;
+      manifest: string;
+      release_signer_principal: string;
+      release_signer_public_key?: string;
+      signature_namespace: string;
       url: string;
     };
     mcp: {
@@ -1236,7 +1245,13 @@ export type NetworkInfo = {
   };
   quickstart: {
     after_connecting: Array<string>;
+    agent_daemon: {
+      description: string;
+      install: string;
+    };
     cli: {
+      apt_repository_url: string;
+      apt_signing_key_fingerprint: string;
       description: string;
       install_apt: string;
       install_homebrew: string;
@@ -3280,10 +3295,12 @@ export type Whoami = {
     | {
         bindingScope: 'team';
         boundTeamId: string;
+        expiresAt?: string | null;
         keyId: string;
       }
     | {
         bindingScope: 'identity';
+        expiresAt?: string | null;
         keyId: string;
       };
   currentTeamId?: string | null;
@@ -6797,6 +6814,55 @@ export type GetLlmsTxtResponses = {
 };
 
 export type GetLlmsTxtResponse = GetLlmsTxtResponses[keyof GetLlmsTxtResponses];
+
+export type ProvisionAgentCredentialData = {
+  body?: {
+    agentProof?: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/oauth2/provision';
+};
+
+export type ProvisionAgentCredentialErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ProvisionAgentCredentialError =
+  ProvisionAgentCredentialErrors[keyof ProvisionAgentCredentialErrors];
+
+export type ProvisionAgentCredentialResponses = {
+  /**
+   * Default Response
+   */
+  201: AgentKeyWithSecret;
+};
+
+export type ProvisionAgentCredentialResponse =
+  ProvisionAgentCredentialResponses[keyof ProvisionAgentCredentialResponses];
 
 export type GetOAuth2TokenData = {
   body?: never;
@@ -16136,6 +16202,10 @@ export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
 export type JoinTeamData = {
   body: {
     code: string;
+    /**
+     * UUID v4 identifier
+     */
+    expectedTeamId?: string;
     issueAgentKey?: true;
   };
   headers?: {

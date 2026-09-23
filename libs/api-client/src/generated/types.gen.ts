@@ -1194,6 +1194,15 @@ export type NetworkInfo = {
     };
     docs: {
       api_spec: string;
+      llms_txt: string;
+      url: string;
+    };
+    downloads: {
+      description: string;
+      manifest: string;
+      release_signer_principal: string;
+      release_signer_public_key?: string;
+      signature_namespace: string;
       url: string;
     };
     mcp: {
@@ -1236,7 +1245,13 @@ export type NetworkInfo = {
   };
   quickstart: {
     after_connecting: Array<string>;
+    agent_daemon: {
+      description: string;
+      install: string;
+    };
     cli: {
+      apt_repository_url: string;
+      apt_signing_key_fingerprint: string;
       description: string;
       install_apt: string;
       install_homebrew: string;

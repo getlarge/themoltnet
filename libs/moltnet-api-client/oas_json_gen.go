@@ -72395,6 +72395,10 @@ func (s *NetworkInfoEndpoints) encodeFields(e *jx.Encoder) {
 		s.Docs.Encode(e)
 	}
 	{
+		e.FieldStart("downloads")
+		s.Downloads.Encode(e)
+	}
+	{
 		e.FieldStart("mcp")
 		s.Mcp.Encode(e)
 	}
@@ -72404,11 +72408,12 @@ func (s *NetworkInfoEndpoints) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfNetworkInfoEndpoints = [4]string{
+var jsonFieldsNameOfNetworkInfoEndpoints = [5]string{
 	0: "console",
 	1: "docs",
-	2: "mcp",
-	3: "rest",
+	2: "downloads",
+	3: "mcp",
+	4: "rest",
 }
 
 // Decode decodes NetworkInfoEndpoints from json.
@@ -72440,8 +72445,18 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"docs\"")
 			}
-		case "mcp":
+		case "downloads":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Downloads.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"downloads\"")
+			}
+		case "mcp":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Mcp.Decode(d); err != nil {
 					return err
@@ -72451,7 +72466,7 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"mcp\"")
 			}
 		case "rest":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Rest.Decode(d); err != nil {
 					return err
@@ -72470,7 +72485,7 @@ func (s *NetworkInfoEndpoints) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -72660,14 +72675,19 @@ func (s *NetworkInfoEndpointsDocs) encodeFields(e *jx.Encoder) {
 		e.Str(s.APISpec)
 	}
 	{
+		e.FieldStart("llms_txt")
+		e.Str(s.LlmsTxt)
+	}
+	{
 		e.FieldStart("url")
 		e.Str(s.URL)
 	}
 }
 
-var jsonFieldsNameOfNetworkInfoEndpointsDocs = [2]string{
+var jsonFieldsNameOfNetworkInfoEndpointsDocs = [3]string{
 	0: "api_spec",
-	1: "url",
+	1: "llms_txt",
+	2: "url",
 }
 
 // Decode decodes NetworkInfoEndpointsDocs from json.
@@ -72691,8 +72711,20 @@ func (s *NetworkInfoEndpointsDocs) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"api_spec\"")
 			}
-		case "url":
+		case "llms_txt":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.LlmsTxt = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"llms_txt\"")
+			}
+		case "url":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.URL = string(v)
@@ -72713,7 +72745,7 @@ func (s *NetworkInfoEndpointsDocs) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -72755,6 +72787,187 @@ func (s *NetworkInfoEndpointsDocs) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *NetworkInfoEndpointsDocs) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *NetworkInfoEndpointsDownloads) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *NetworkInfoEndpointsDownloads) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("description")
+		e.Str(s.Description)
+	}
+	{
+		e.FieldStart("manifest")
+		e.Str(s.Manifest)
+	}
+	{
+		e.FieldStart("release_signer_principal")
+		e.Str(s.ReleaseSignerPrincipal)
+	}
+	{
+		if s.ReleaseSignerPublicKey.Set {
+			e.FieldStart("release_signer_public_key")
+			s.ReleaseSignerPublicKey.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("signature_namespace")
+		e.Str(s.SignatureNamespace)
+	}
+	{
+		e.FieldStart("url")
+		e.Str(s.URL)
+	}
+}
+
+var jsonFieldsNameOfNetworkInfoEndpointsDownloads = [6]string{
+	0: "description",
+	1: "manifest",
+	2: "release_signer_principal",
+	3: "release_signer_public_key",
+	4: "signature_namespace",
+	5: "url",
+}
+
+// Decode decodes NetworkInfoEndpointsDownloads from json.
+func (s *NetworkInfoEndpointsDownloads) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode NetworkInfoEndpointsDownloads to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "description":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Description = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "manifest":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Manifest = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"manifest\"")
+			}
+		case "release_signer_principal":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.ReleaseSignerPrincipal = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"release_signer_principal\"")
+			}
+		case "release_signer_public_key":
+			if err := func() error {
+				s.ReleaseSignerPublicKey.Reset()
+				if err := s.ReleaseSignerPublicKey.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"release_signer_public_key\"")
+			}
+		case "signature_namespace":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.SignatureNamespace = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signature_namespace\"")
+			}
+		case "url":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.URL = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"url\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode NetworkInfoEndpointsDownloads")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00110111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfNetworkInfoEndpointsDownloads) {
+					name = jsonFieldsNameOfNetworkInfoEndpointsDownloads[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *NetworkInfoEndpointsDownloads) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NetworkInfoEndpointsDownloads) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -73770,6 +73983,10 @@ func (s *NetworkInfoQuickstart) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		e.FieldStart("agent_daemon")
+		s.AgentDaemon.Encode(e)
+	}
+	{
 		e.FieldStart("cli")
 		s.Cli.Encode(e)
 	}
@@ -73791,12 +74008,13 @@ func (s *NetworkInfoQuickstart) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfNetworkInfoQuickstart = [5]string{
+var jsonFieldsNameOfNetworkInfoQuickstart = [6]string{
 	0: "after_connecting",
-	1: "cli",
-	2: "mcp_config",
-	3: "sdk",
-	4: "steps",
+	1: "agent_daemon",
+	2: "cli",
+	3: "mcp_config",
+	4: "sdk",
+	5: "steps",
 }
 
 // Decode decodes NetworkInfoQuickstart from json.
@@ -73828,8 +74046,18 @@ func (s *NetworkInfoQuickstart) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"after_connecting\"")
 			}
-		case "cli":
+		case "agent_daemon":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.AgentDaemon.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agent_daemon\"")
+			}
+		case "cli":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.Cli.Decode(d); err != nil {
 					return err
@@ -73839,7 +74067,7 @@ func (s *NetworkInfoQuickstart) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"cli\"")
 			}
 		case "mcp_config":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.McpConfig.Decode(d); err != nil {
 					return err
@@ -73849,7 +74077,7 @@ func (s *NetworkInfoQuickstart) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"mcp_config\"")
 			}
 		case "sdk":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.Sdk.Decode(d); err != nil {
 					return err
@@ -73859,7 +74087,7 @@ func (s *NetworkInfoQuickstart) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sdk\"")
 			}
 		case "steps":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				s.Steps = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -73888,7 +74116,7 @@ func (s *NetworkInfoQuickstart) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00011111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -73935,6 +74163,119 @@ func (s *NetworkInfoQuickstart) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *NetworkInfoQuickstartAgentDaemon) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *NetworkInfoQuickstartAgentDaemon) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("description")
+		e.Str(s.Description)
+	}
+	{
+		e.FieldStart("install")
+		e.Str(s.Install)
+	}
+}
+
+var jsonFieldsNameOfNetworkInfoQuickstartAgentDaemon = [2]string{
+	0: "description",
+	1: "install",
+}
+
+// Decode decodes NetworkInfoQuickstartAgentDaemon from json.
+func (s *NetworkInfoQuickstartAgentDaemon) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode NetworkInfoQuickstartAgentDaemon to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "description":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Description = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "install":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Install = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"install\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode NetworkInfoQuickstartAgentDaemon")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfNetworkInfoQuickstartAgentDaemon) {
+					name = jsonFieldsNameOfNetworkInfoQuickstartAgentDaemon[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *NetworkInfoQuickstartAgentDaemon) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NetworkInfoQuickstartAgentDaemon) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *NetworkInfoQuickstartCli) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -73943,6 +74284,14 @@ func (s *NetworkInfoQuickstartCli) Encode(e *jx.Encoder) {
 
 // encodeFields encodes fields.
 func (s *NetworkInfoQuickstartCli) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("apt_repository_url")
+		e.Str(s.AptRepositoryURL)
+	}
+	{
+		e.FieldStart("apt_signing_key_fingerprint")
+		e.Str(s.AptSigningKeyFingerprint)
+	}
 	{
 		e.FieldStart("description")
 		e.Str(s.Description)
@@ -73969,13 +74318,15 @@ func (s *NetworkInfoQuickstartCli) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfNetworkInfoQuickstartCli = [6]string{
-	0: "description",
-	1: "install_apt",
-	2: "install_homebrew",
-	3: "install_npm",
-	4: "install_scoop",
-	5: "usage",
+var jsonFieldsNameOfNetworkInfoQuickstartCli = [8]string{
+	0: "apt_repository_url",
+	1: "apt_signing_key_fingerprint",
+	2: "description",
+	3: "install_apt",
+	4: "install_homebrew",
+	5: "install_npm",
+	6: "install_scoop",
+	7: "usage",
 }
 
 // Decode decodes NetworkInfoQuickstartCli from json.
@@ -73987,8 +74338,32 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "description":
+		case "apt_repository_url":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.AptRepositoryURL = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"apt_repository_url\"")
+			}
+		case "apt_signing_key_fingerprint":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.AptSigningKeyFingerprint = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"apt_signing_key_fingerprint\"")
+			}
+		case "description":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Description = string(v)
@@ -74000,7 +74375,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "install_apt":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallApt = string(v)
@@ -74012,7 +74387,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"install_apt\"")
 			}
 		case "install_homebrew":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallHomebrew = string(v)
@@ -74024,7 +74399,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"install_homebrew\"")
 			}
 		case "install_npm":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallNpm = string(v)
@@ -74036,7 +74411,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"install_npm\"")
 			}
 		case "install_scoop":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallScoop = string(v)
@@ -74048,7 +74423,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"install_scoop\"")
 			}
 		case "usage":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Usage = string(v)
@@ -74069,7 +74444,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

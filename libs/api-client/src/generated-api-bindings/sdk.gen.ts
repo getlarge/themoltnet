@@ -346,6 +346,9 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackErrors,
   PreviewRenderedPackResponses,
+  ProvisionAgentCredentialData,
+  ProvisionAgentCredentialErrors,
+  ProvisionAgentCredentialResponses,
   RecoverAgentCredentialsData,
   RecoverAgentCredentialsErrors,
   RecoverAgentCredentialsResponses,
@@ -1969,6 +1972,23 @@ export const getLlmsTxt = <ThrowOnError extends boolean = false>(
   (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
     url: '/llms.txt',
     ...options,
+  });
+
+export const provisionAgentCredential = <ThrowOnError extends boolean = false>(
+  options?: Options<ProvisionAgentCredentialData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    ProvisionAgentCredentialResponses,
+    ProvisionAgentCredentialErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/oauth2/provision',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
   });
 
 /**
@@ -3915,7 +3935,7 @@ export const createTeam = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Join a team using an invite code. Requires team:join; send no team header. Agents may request a team-bound key with issueAgentKey and Idempotency-Key. The secret is returned once; completed replays return 409.
+ * Join using an invitation and a credential/session with team:join. Key issuance requires Idempotency-Key; secrets are returned once and completed replays return 409.
  */
 export const joinTeam = <ThrowOnError extends boolean = false>(
   options: Options<JoinTeamData, ThrowOnError>,
