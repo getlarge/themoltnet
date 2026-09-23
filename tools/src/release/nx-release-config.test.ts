@@ -23,8 +23,13 @@ const desktopReleaseWorkflow = readFileSync(
 );
 const desktopJob = (name: string) => {
   const start = desktopReleaseWorkflow.indexOf(`\n  ${name}:\n`);
-  const end = desktopReleaseWorkflow.indexOf('\n  publish:\n', start + 1);
-  return desktopReleaseWorkflow.slice(start, end > start ? end : undefined);
+  const next = desktopReleaseWorkflow
+    .slice(start + 1)
+    .search(/\n {2}[a-z-]+:\n/);
+  return desktopReleaseWorkflow.slice(
+    start,
+    next === -1 ? undefined : start + 1 + next,
+  );
 };
 const ciWorkflow = readFileSync(
   new URL('../../../.github/workflows/ci.yml', import.meta.url),
@@ -283,17 +288,24 @@ describe('Nx release configuration', () => {
   });
 
   it('builds the draft revision and touches GitHub Releases only to publish', () => {
+    const resolveJob = desktopJob('resolve');
     const packageJob = desktopJob('package');
-    const publishJob = desktopReleaseWorkflow.slice(
-      desktopReleaseWorkflow.indexOf('\n  publish:\n'),
-    );
+    const publishJob = desktopJob('publish');
 
-    expect(packageJob).toContain('ref: ${{ needs.prepare.outputs.revision }}');
+    // A failure inside a pipeline must fail the step (bash -e lacks pipefail).
+    expect(desktopReleaseWorkflow).toMatch(
+      /\ndefaults:\n {2}run:\n(?: {4}#.*\n)* {4}shell: bash\n/,
+    );
+    // Drafts are invisible to read-only tokens, so resolution needs write.
+    expect(resolveJob).toContain('contents: write');
+    expect(resolveJob).toContain("grep -Eq '^revision=[0-9a-f]{40}$'");
+    expect(resolveJob).not.toMatch(/gh release (upload|edit)|pnpm|stage-agent/);
+    expect(desktopJob('stage-daemon')).not.toMatch(/contents: write|GH_TOKEN/);
+    expect(packageJob).toContain('ref: ${{ needs.resolve.outputs.revision }}');
     expect(packageJob).not.toMatch(/gh release|GH_TOKEN|contents: write/);
-    expect(desktopJob('prepare')).not.toMatch(/gh release (upload|edit)/);
     expect(publishJob).toContain('contents: write');
     expect(publishJob).toContain(
-      'REVISION: ${{ needs.prepare.outputs.revision }}',
+      'REVISION: ${{ needs.resolve.outputs.revision }}',
     );
     expect(workflow).toContain(
       'uses: ./.github/workflows/agent-desktop-release.yml',
