@@ -15,7 +15,13 @@ import {
 let generation = 0;
 let start: Awaited<ReturnType<typeof browser.tauri.mock>>;
 
-async function mount() {
+async function mount(
+  shape?: (
+    mock: (
+      command: string,
+    ) => Promise<Awaited<ReturnType<typeof browser.tauri.mock>>>,
+  ) => Promise<void>,
+) {
   await browser.tauri.restoreAllMocks();
   const url = new URL(await browser.getUrl());
   url.hash = '';
@@ -35,6 +41,9 @@ async function mount() {
   }
   start = await browser.tauri.mock('desktop_start_run');
   await start.mockResolvedValue(status.runs[0]);
+  // The catalogue is cached per identity, so a mock swapped after mount is not
+  // re-read. Shape it here, before the first load.
+  await shape?.((command) => browser.tauri.mock(command));
   await browser.execute(
     (saved, key) => {
       localStorage.clear();
@@ -104,16 +113,17 @@ describe('Run-flow audit regressions', () => {
   });
 
   it('offers catalogue retry without directing an API failure to enrollment', async () => {
-    const failed = await browser.tauri.mock('desktop_catalogue');
-    await failed.mockImplementation(() => {
-      throw new Error('Catalogue unavailable');
+    let failed!: Awaited<ReturnType<typeof browser.tauri.mock>>;
+    await mount(async (mock) => {
+      failed = await mock('desktop_catalogue');
+      await failed.mockImplementation(() => {
+        throw new Error('Catalogue unavailable');
+      });
     });
-    await browser.execute(() =>
-      document.dispatchEvent(new Event('visibilitychange')),
-    );
     await $('button=New run').click();
     await expect($('button=Retry catalogue')).toBeDisplayed();
     await expect($('button=Enroll or renew team access')).not.toExist();
+    // Retry invalidates the shared entry, so the recovered mock is read.
     await failed.mockResolvedValue(catalogue);
     await $('button=Retry catalogue').click();
     await expect(field('Team')).toHaveValue('team');
@@ -179,26 +189,25 @@ describe('Run-flow audit regressions', () => {
     });
   }
   it('offers verification retry when the upstream team catalogue is unavailable', async () => {
-    await (
-      await browser.tauri.mock('desktop_catalogue')
-    ).mockResolvedValue({
-      ...catalogue,
-      defaultTeamId: null,
-      teams: catalogue.teams.map((team) => ({
-        ...team,
-        available: false,
-        blockers: [
-          {
-            code: 'agent_key_unavailable',
-            message: 'Team resources could not be read.',
-            remedy: 'Check connectivity and retry.',
-          },
-        ],
-      })),
+    await mount(async (mock) => {
+      await (
+        await mock('desktop_catalogue')
+      ).mockResolvedValue({
+        ...catalogue,
+        defaultTeamId: null,
+        teams: catalogue.teams.map((team) => ({
+          ...team,
+          available: false,
+          blockers: [
+            {
+              code: 'agent_key_unavailable',
+              message: 'Team resources could not be read.',
+              remedy: 'Check connectivity and retry.',
+            },
+          ],
+        })),
+      });
     });
-    await browser.execute(() =>
-      document.dispatchEvent(new Event('visibilitychange')),
-    );
     await $('button=New run').click();
     await expect($('button=Retry catalogue')).toBeDisplayed();
     await expect($('button=Enroll or renew team access')).not.toExist();
