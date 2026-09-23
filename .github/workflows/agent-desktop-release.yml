@@ -33,15 +33,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: release-please draft to build (agent-desktop-vX.Y.Z). Empty builds the dispatched ref.
+        description: 'Desktop release to build, e.g. agent-desktop-v0.8.0. Leave empty for a test build of the selected branch.'
         type: string
         default: ''
       agent-cli-version:
-        description: Published Agent Daemon version the Desktop pins
+        description: 'Agent Daemon to bundle, e.g. 0.65.0. Leave empty for the latest published release.'
         type: string
-        required: true
+        default: ''
       publish:
-        description: Publish the draft named by `tag`
+        description: 'Publish the release (needs a tag). Unchecked = test build only, nothing is published.'
         type: boolean
         default: false
 
@@ -69,6 +69,7 @@ jobs:
     outputs:
       revision: ${{ steps.revision.outputs.revision }}
       version: ${{ steps.revision.outputs.version }}
+      agent-cli-version: ${{ steps.daemon.outputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -91,8 +92,28 @@ jobs:
           grep -Eq '^version=(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' <<< "$resolved"
           printf '%s\n' "$resolved" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve Agent Daemon version
+        id: daemon
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED: ${{ inputs.agent-cli-version }}
+        run: |
+          version=$REQUESTED
+          if [ -z "$version" ]; then
+            tag=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft \
+              --jq '[.[] | select(.isDraft | not) | .tagName | select(startswith("agent-daemon-v"))][0] // empty')
+            version=${tag#agent-daemon-v}
+          fi
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "::error::No valid Agent Daemon version to bundle: '${version}'"
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Desktop will bundle Agent Daemon $version"
+
   stage-daemon:
     name: Verify pinned Agent Daemon
+    needs: resolve
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -108,7 +129,7 @@ jobs:
 
       - name: Verify the pinned Agent Daemon
         env:
-          AGENT_CLI_VERSION: ${{ inputs.agent-cli-version }}
+          AGENT_CLI_VERSION: ${{ needs.resolve.outputs.agent-cli-version }}
           SOURCE: ${{ inputs.agent-bundle-artifact != '' && format('{0}/agent-bundle', runner.temp) || '' }}
         run: |
           bash tools/release/agent-desktop/stage-agent.sh \
@@ -134,7 +155,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 75
     env:
-      MOLTNET_AGENT_CLI_VERSION: ${{ inputs.agent-cli-version }}
+      MOLTNET_AGENT_CLI_VERSION: ${{ needs.resolve.outputs.agent-cli-version }}
       TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
       # The Linux smoke runs the AppImage on a runner without FUSE.
       APPIMAGE_EXTRACT_AND_RUN: '1'
