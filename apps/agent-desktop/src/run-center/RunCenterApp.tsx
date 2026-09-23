@@ -189,16 +189,16 @@ export function RunCenterApp({
       ) : undefined,
     },
     {
-      id: 'projects',
-      label: 'Projects',
-      href: '#projects',
-      current: screen === 'projects',
-    },
-    {
       id: 'teams',
       label: 'Identity and teams',
       href: '#teams',
       current: screen === 'teams',
+    },
+    {
+      id: 'projects',
+      label: 'Projects',
+      href: '#projects',
+      current: screen === 'projects',
     },
     {
       id: 'providers',

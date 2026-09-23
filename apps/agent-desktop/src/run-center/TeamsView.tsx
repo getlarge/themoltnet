@@ -255,7 +255,14 @@ export function TeamsView({
         </Text>
       </Stack>
       {data.operatorConfigured ? (
-        <Badge variant="success">Signed in</Badge>
+        <Stack direction="row" gap={2} align="center" wrap>
+          <Badge variant="success">Signed in</Badge>
+          {data.operatorEmail ? (
+            <Text variant="caption" color="secondary">
+              {data.operatorEmail}
+            </Text>
+          ) : null}
+        </Stack>
       ) : null}
       {identity ? (
         <Stack direction="row" gap={3} align="center" wrap>

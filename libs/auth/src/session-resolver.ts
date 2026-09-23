@@ -207,11 +207,20 @@ export function createSessionResolver(
           }
 
           metrics.recordUpstreamRequest('kratos.session', 'success');
+          const traits = identity.traits as
+            | { email?: unknown }
+            | null
+            | undefined;
+          const email =
+            typeof traits?.email === 'string' && traits.email.trim()
+              ? traits.email.trim()
+              : undefined;
           return {
             context: {
               subjectType: 'human',
               identityId: identity.id,
               humanId,
+              ...(email ? { email } : {}),
               clientId: null,
               scopes,
               currentTeamId: null,

@@ -568,7 +568,10 @@ export function buildAgentServer(
           request,
           oauth,
         );
-        return { operatorConfigured: operator.operatorConfigured() };
+        return {
+          operatorConfigured: operator.operatorConfigured(),
+          email: operator.operatorEmail() ?? null,
+        };
       },
     );
     app.get(

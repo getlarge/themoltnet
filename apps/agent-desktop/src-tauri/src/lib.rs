@@ -350,17 +350,22 @@ async fn desktop_apply_connection_settings(
 }
 
 #[tauri::command]
-async fn desktop_operator_configured(state: State<'_, AppState>) -> Result<bool, String> {
+async fn desktop_operator_configured(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
     let body = with_control_connection(&state, move |connection| {
         control::get(connection, "/v1/native/operator")
     })
     .await?;
     let metadata: serde_json::Value = serde_json::from_str(&body)
         .map_err(|_| "The Agent Server returned unreadable operator metadata".to_string())?;
-    Ok(metadata
-        .get("operatorConfigured")
-        .and_then(|value| value.as_bool())
-        .unwrap_or(false))
+    Ok(serde_json::json!({
+        "operatorConfigured": metadata
+            .get("operatorConfigured")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false),
+        "email": metadata.get("email").cloned().unwrap_or(serde_json::Value::Null),
+    }))
 }
 
 #[tauri::command]

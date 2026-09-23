@@ -57,6 +57,7 @@ describe('createSessionResolver', () => {
       subjectType: 'human',
       identityId: VALID_IDENTITY_ID,
       humanId: VALID_HUMAN_ID,
+      email: 'test@example.com',
       clientId: null,
       scopes: [...HUMAN_SESSION_SCOPES],
       currentTeamId: null,

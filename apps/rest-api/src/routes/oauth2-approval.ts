@@ -359,6 +359,9 @@ export async function oauth2ApprovalRoutes(
                     'moltnet:human_id': result.human.humanId,
                     'moltnet:subject_type': 'human',
                     'moltnet:instance': result.instance,
+                    ...(result.human.email
+                      ? { 'moltnet:operator_email': result.human.email }
+                      : {}),
                     'moltnet:approved_scope':
                       result.consent.requested_scope![0],
                     ...(teams ? { 'moltnet:operator_teams': teams } : {}),
