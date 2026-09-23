@@ -148,6 +148,8 @@ export type SaveProjectLocationInput = SaveNativeProjectLocationData['body'] &
 /** Local folder registrations; native code owns the grant and the folder picker. */
 export interface ProjectActions {
   list: () => Promise<ListNativeProjectLocationsResponse>;
+  /** Drop the shared Desktop snapshot before retrying a native read. */
+  invalidate?: () => void;
   save: (input: SaveProjectLocationInput) => Promise<ProjectLocation>;
   remove: (name: string) => Promise<void>;
   chooseFolder: () => Promise<string | null>;
@@ -169,6 +171,7 @@ export interface SubscriptionActions {
 /** Everything the shell renders. */
 export interface RunCenterData {
   operatorConfigured?: boolean;
+  operatorEmail?: string | null;
   server: DesktopStatus;
   status: AgentServerStatus | null;
   runs: DesktopRun[];

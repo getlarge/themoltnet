@@ -6,7 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { desktopBridge, INITIAL_STATUS } from '../bridge.js';
 import { findRunPreset } from './preset-matching.js';
-import { listPresets, runCenterActions } from './run-center-bridge.js';
+import {
+  listPresets,
+  projectActions,
+  runCenterActions,
+} from './run-center-bridge.js';
 import { RunCenterApp } from './RunCenterApp.js';
 import type {
   AgentServerCatalogue,
@@ -21,6 +25,10 @@ export function DesktopRunCenter() {
   const [server, setServer] = useState(INITIAL_STATUS);
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
+  const [operatorEmail, setOperatorEmail] = useState<string | null>(null);
+  const projectLocations = useRef<{
+    promise: Promise<Awaited<ReturnType<typeof projectActions.list>>> | null;
+  }>({ promise: null });
   const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
   const [catalogueIdentity, setCatalogueIdentity] = useState<string | null>(
     null,
@@ -76,11 +84,15 @@ export function DesktopRunCenter() {
         );
         if (currentEpoch !== epoch.current) return;
         setStatus(snapshot);
-        const configured = await invoke<boolean>(
-          'desktop_operator_configured',
-        ).catch(() => null);
+        const operator = await invoke<{
+          operatorConfigured?: boolean;
+          email?: string | null;
+        }>('desktop_operator_configured').catch(() => null);
         if (currentEpoch !== epoch.current) return;
-        if (configured !== null) setOperatorConfigured(configured);
+        if (operator !== null) {
+          setOperatorConfigured(operator.operatorConfigured === true);
+          setOperatorEmail(operator.email ?? null);
+        }
         failures.current = 0;
         setError(null);
         const identity =
@@ -167,10 +179,12 @@ export function DesktopRunCenter() {
   useEffect(() => {
     epoch.current++;
     if (!['running', 'update_available'].includes(server.state)) {
+      projectLocations.current.promise = null;
       setStatus(null);
       catalogueSnapshot.current = { identity: null, value: null };
       setCatalogueIdentity(null);
       setOperatorConfigured(false);
+      setOperatorEmail(null);
       setCatalogue(null);
       setCatalogueLoading(false);
       setCatalogueError(null);
@@ -202,6 +216,34 @@ export function DesktopRunCenter() {
       document.removeEventListener('visibilitychange', visible);
     };
   }, [server.state, refresh]);
+  const projects = useMemo(
+    () => ({
+      ...projectActions,
+      invalidate: () => undefined,
+      list: () => {
+        if (!projectLocations.current.promise) {
+          projectLocations.current.promise = projectActions.list().then(
+            (value) => {
+              projectLocations.current.promise = null;
+              return value;
+            },
+            (error) => {
+              projectLocations.current.promise = null;
+              throw error;
+            },
+          );
+        }
+        return projectLocations.current.promise;
+      },
+      save: async (...args: Parameters<typeof projectActions.save>) => {
+        return projectActions.save(...args);
+      },
+      remove: async (...args: Parameters<typeof projectActions.remove>) => {
+        await projectActions.remove(...args);
+      },
+    }),
+    [],
+  );
   const actions = useMemo<RunCenterActions>(
     () => ({
       ...runCenterActions,
@@ -231,6 +273,10 @@ export function DesktopRunCenter() {
     }),
     [refresh],
   );
+  const renderedActions = useMemo(
+    () => ({ ...actions, projects }),
+    [actions, projects],
+  );
   return (
     <>
       {presetError && <InlineNotice tone="error">{presetError}</InlineNotice>}
@@ -248,6 +294,7 @@ export function DesktopRunCenter() {
         now={now}
         data={{
           operatorConfigured,
+          operatorEmail,
           server,
           status,
           catalogue,
@@ -265,7 +312,7 @@ export function DesktopRunCenter() {
                 ?.teamName ?? null,
           })),
         }}
-        actions={actions}
+        actions={renderedActions}
       />
     </>
   );

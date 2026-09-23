@@ -92,6 +92,15 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
+  it('shows the signed-in operator email', () => {
+    const { data, actions } = fixture();
+    show(
+      { ...data, operatorConfigured: true, operatorEmail: 'owner@example.com' },
+      actions,
+    );
+    expect(screen.getByText('owner@example.com')).toBeInTheDocument();
+  });
+
   it('creates a first agent with a team invite code', async () => {
     const { data, actions } = fixture();
     data.status = { ...data.status!, agents: [], selectedIdentity: undefined };

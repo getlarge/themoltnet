@@ -580,10 +580,40 @@ export function RunComposer({
                     {locationsError}
                     <Button
                       variant="secondary"
-                      onClick={() => setLocationRevision((value) => value + 1)}
+                      onClick={() => {
+                        projects.invalidate?.();
+                        setLocationRevision((value) => value + 1);
+                      }}
                     >
                       Retry locations
                     </Button>
+                  </InlineNotice>
+                ) : null}
+                {!locationsLoading &&
+                !locationsError &&
+                locations.length === 0 ? (
+                  <InlineNotice tone="info" title="No local location yet">
+                    Add a local location for this project before starting a run,
+                    or refresh the list if you just saved one.
+                    <Stack direction="row" gap={2} wrap>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          projects.invalidate?.();
+                          setLocationRevision((value) => value + 1);
+                        }}
+                      >
+                        Refresh locations
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() =>
+                          onProjects?.({ identity: agent, teamId, projectId })
+                        }
+                      >
+                        Add local location
+                      </Button>
+                    </Stack>
                   </InlineNotice>
                 ) : null}
                 {location && !location.readiness.ready ? (

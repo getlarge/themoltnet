@@ -56,6 +56,7 @@ export class OperatorOAuth {
   private operator: {
     issuer: string;
     subject: string;
+    email?: string;
     teams: OperatorTeam[];
   } | null;
   constructor(
@@ -112,6 +113,10 @@ export class OperatorOAuth {
       this.operator = {
         issuer: value.issuer,
         subject: value.subject,
+        email:
+          'email' in value && typeof value.email === 'string'
+            ? value.email
+            : undefined,
         teams: 'teams' in value ? readOperatorTeams(value.teams) : [],
       };
     } catch (error) {
@@ -124,6 +129,9 @@ export class OperatorOAuth {
   }
   operatorConfigured(): boolean {
     return this.operator !== null;
+  }
+  operatorEmail(): string | undefined {
+    return this.operator?.email;
   }
   listTeams(): OperatorTeam[] {
     return this.operator?.teams ?? [];
@@ -164,6 +172,10 @@ export class OperatorOAuth {
     return {
       issuer: payload.iss!,
       subject: payload.sub!,
+      email:
+        typeof claims['moltnet:operator_email'] === 'string'
+          ? claims['moltnet:operator_email']
+          : undefined,
       provisioning: claims['moltnet:provisioning'],
       teams: readOperatorTeams(claims['moltnet:operator_teams']),
     };
@@ -316,6 +328,7 @@ export class OperatorOAuth {
             JSON.stringify({
               issuer: operator.issuer,
               subject: operator.subject,
+              ...(operator.email ? { email: operator.email } : {}),
               teams: grant ? [] : operator.teams,
             }),
             { mode: 0o600, flag: 'wx' },
@@ -340,10 +353,14 @@ export class OperatorOAuth {
         this.operator = {
           issuer: operator.issuer,
           subject: operator.subject,
+          ...(operator.email ? { email: operator.email } : {}),
           teams: grant ? [] : operator.teams,
         };
-      } else if (!grant) {
-        this.operator.teams = operator.teams;
+      } else if (!grant || operator.email) {
+        if (operator.email) this.operator.email = operator.email;
+        if (!grant) {
+          this.operator.teams = operator.teams;
+        }
         writeFileSync(
           join(this.root, 'operator.json'),
           JSON.stringify(this.operator),

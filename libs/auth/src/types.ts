@@ -43,6 +43,8 @@ export interface AgentAuthContext extends BaseAuthContext {
 }
 
 export interface HumanAuthContext extends BaseAuthContext {
+  /** Email from the authenticated Kratos identity, when available. */
+  email?: string;
   provisioning?: ProvisioningGrant;
   delegableScopes?: string[];
   /** Subject type — determines Keto namespace for permission checks. */
