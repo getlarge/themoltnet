@@ -133,6 +133,7 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
     const client = {
       client_id: CLIENT_ID,
       client_name: 'MoltNet Desktop E2E',
+      access_token_strategy: 'jwt',
       grant_types: ['authorization_code'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
@@ -355,6 +356,18 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
       };
       expect(token.access_token).toBeTruthy();
       expect(token.refresh_token).toBeUndefined();
+      const segments = token.access_token!.split('.');
+      expect(segments).toHaveLength(3);
+      const payload = JSON.parse(
+        Buffer.from(segments[1], 'base64url').toString('utf8'),
+      ) as Record<string, unknown>;
+      expect(payload.client_id).toBe(CLIENT_ID);
+      expect(payload.aud).toContain(audience);
+      expect(payload.ext).toMatchObject({
+        'moltnet:identity_id': human.identityId,
+        'moltnet:subject_type': 'human',
+        ...extra,
+      });
       const introspection =
         await harness.hydraAdminOAuth2.introspectOAuth2Token({
           token: token.access_token!,

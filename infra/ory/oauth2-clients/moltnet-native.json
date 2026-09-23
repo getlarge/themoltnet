@@ -1,4 +1,5 @@
 {
+  "access_token_strategy": "jwt",
   "allowed_cors_origins": [],
   "audience": ["moltnet:provisioning", "moltnet:agent-server"],
   "authorization_code_grant_access_token_lifespan": "5m",
