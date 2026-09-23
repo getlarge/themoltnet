@@ -521,43 +521,6 @@ This happens when `dist/` is cleaned (e.g. switching branches, manual cleanup) b
 
 - For scaffolding tasks (creating apps, libs, project structure, setup), ALWAYS invoke the `nx-generate` skill FIRST before exploring or calling MCP tools
 
-### `@nx/js:library` — always pass `--skipTsConfig`
-
-Without it the generator writes a `paths` alias into the root `tsconfig.json`, which this repo forbids (see "TypeScript Configuration Rules"). Verified empirically: the same generator run with and without the flag differs only in that injection.
-
-```bash
-pnpm exec nx g @nx/js:library \
-  --directory=libs/<name> --importPath=@moltnet/<name> \
-  --bundler=none --unitTestRunner=vitest \
-  --skipTsConfig --useProjectJson=false --no-interactive
-```
-
-- `--bundler=none` — no `build` target, which is the group-1 contract (see "Build cache contract").
-- `--useProjectJson=false` — inline `nx` config in `package.json`, matching every existing lib. The default emits a `project.json` and **no `package.json` at all**, so the workspace gets no `exports` entry and source-direct resolution breaks.
-- After generating, add the single `libs/<name>` entry to the root `tsconfig.json` `references` by hand, then let `nx sync` wire the per-project references.
-
-Generator defaults that still diverge from repo convention, fix by hand: it emits `src/lib/<name>.ts` with a colocated `.spec.ts` (repo uses `src/` plus a `__tests__/` directory) and `vitest.config.mts` (repo uses `vitest.config.ts`).
-
-### A stray `package.json` blocks every Nx task
-
-Any directory containing a `package.json` that is **not** listed in `pnpm-workspace.yaml` is picked up by Nx as a project but has no synced tsconfig. `nx sync` then empties the root `tsconfig.json` `references` array and still reports "workspace out of sync" afterwards — which blocks **every** `nx run` / `run-many`, including targets on projects you never touched.
-
-If Nx suddenly fails workspace-wide with a sync error, look for untracked or unlisted directories containing a `package.json` before debugging the target itself. Either add them to `pnpm-workspace.yaml` or `.nxignore` them.
-
-### Worktrees
-
-Each `git worktree` is a separate checkout with **no `node_modules`** — run `pnpm install` in it before any `nx` or `vitest` invocation. Nx and generators act on the working directory they are launched from, so confirm you are in the intended worktree first: a generator run from the wrong one leaves new project files and a modified root `tsconfig.json` on whatever branch that worktree has checked out.
-
-**Delegating a generator to a subagent is the sharp edge here.** A subagent inherits the _session's_ working directory, not the worktree its parent is logically working in. Agent harnesses commonly reset the shell's cwd between tool calls, so a parent that prefixes every command with `cd <worktree>` has never actually moved the session cwd — and the subagent resolves the repo root to the **primary** worktree, typically checked out on `main`.
-
-When delegating any `nx g`, scaffold, or `pnpm install` while working in a worktree:
-
-- state the **absolute worktree path** in the subagent prompt and require it to `cd` there before anything else;
-- have it print `git rev-parse --show-toplevel` and `git rev-parse --abbrev-ref HEAD` as its first step, and abort if either is unexpected;
-- afterwards, run `git status` in the **primary** worktree, not only in the one you believe you are in. Contamination is silent, lands on `main`, and shows up as untracked project directories plus modified `tsconfig.json` / `pnpm-lock.yaml`.
-
-Recovery, as long as nothing was committed: `mv` the generated project into the intended worktree, then `git checkout -- tsconfig.json pnpm-lock.yaml` in the primary worktree and re-run `pnpm install` in the correct one.
-
 ## When to use nx_docs
 
 - USE for: advanced config options, unfamiliar flags, migration guides, plugin configuration, edge cases
