@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MemoryCacheStore } from '../src/cache/memory.js';
+import type { CacheStore } from '../src/cache/types.js';
 import { entryFromExpiresIn } from '../src/cache/types.js';
 import type { TokenExchangeMetrics } from '../src/metrics.js';
 import {
@@ -174,6 +175,110 @@ describe('createSingleFlightCache', () => {
     await expect(a).rejects.toThrow('boom');
     await expect(b).rejects.toThrow('boom');
     expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares a loaded value and reuses it locally when the store write fails', async () => {
+    // Arrange
+    const writeError = new Error('write timed out');
+    const store: CacheStore<string> = {
+      get: vi.fn(async () => null),
+      set: vi.fn(async () => {
+        throw writeError;
+      }),
+      delete: vi.fn(async () => {}),
+      deleteByPrefix: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    const onStoreError = vi.fn();
+    cache = createSingleFlightCache({
+      store,
+      metrics,
+      source: 'test',
+      now: () => clock,
+      onStoreError,
+    });
+    let release!: (value: { value: string; expiresAt: number }) => void;
+    const pending = new Promise<{ value: string; expiresAt: number }>(
+      (resolve) => {
+        release = resolve;
+      },
+    );
+    const load = vi.fn(() => pending);
+
+    // Act
+    const a = cache.resolve('k', load);
+    const b = cache.resolve('k', load);
+    release(entryFromExpiresIn('shared', 60, 10, clock));
+    const [first, second] = await Promise.all([a, b]);
+    const local = await cache.resolve('k', load);
+
+    // Assert
+    expect(first.value).toBe('shared');
+    expect(second.value).toBe('shared');
+    expect(second.origin).toBe('single_flight');
+    expect(local.origin).toBe('hit');
+    expect(local.remainingSeconds).toBe(50);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(store.set).toHaveBeenCalledTimes(1);
+    expect(onStoreError).toHaveBeenCalledOnce();
+    expect(onStoreError).toHaveBeenCalledWith('set', writeError);
+
+    clock += 50_000;
+    await cache.resolve('k', load);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('continues loading when deletion of an expired entry fails', async () => {
+    // Arrange
+    const deleteError = new Error('delete timed out');
+    const store: CacheStore<string> = {
+      get: vi.fn(async () => ({ value: 'expired', expiresAt: clock - 1 })),
+      set: vi.fn(async () => {}),
+      delete: vi.fn(async () => {
+        throw deleteError;
+      }),
+      deleteByPrefix: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    const onStoreError = vi.fn();
+    cache = createSingleFlightCache({
+      store,
+      now: () => clock,
+      onStoreError,
+    });
+    const load = vi.fn(async () => entryFromExpiresIn('fresh', 60, 0, clock));
+
+    // Act
+    const result = await cache.resolve('k', load);
+
+    // Assert
+    expect(result.value).toBe('fresh');
+    expect(load).toHaveBeenCalledOnce();
+    expect(onStoreError).toHaveBeenCalledWith('delete', deleteError);
+  });
+
+  it('evicts a failed-write fallback when a client prefix is invalidated', async () => {
+    // Arrange
+    const store: CacheStore<string> = {
+      get: vi.fn(async () => null),
+      set: vi.fn(async () => {
+        throw new Error('write timed out');
+      }),
+      delete: vi.fn(async () => {}),
+      deleteByPrefix: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    cache = createSingleFlightCache({ store, now: () => clock });
+    const load = vi.fn(async () => entryFromExpiresIn('token', 60, 0, clock));
+    await cache.resolve('client|grant', load);
+
+    // Act
+    await cache.invalidatePrefix('client|');
+    await cache.resolve('client|grant', load);
+
+    // Assert
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(store.deleteByPrefix).toHaveBeenCalledWith('client|');
   });
 
   it('invalidate forces the next call to reload', async () => {

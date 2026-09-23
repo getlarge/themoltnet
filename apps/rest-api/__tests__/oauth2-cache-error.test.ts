@@ -138,4 +138,88 @@ describe('POST /oauth2/token when Redis fails', () => {
       ]),
     );
   });
+
+  it('shares one minted token across concurrent requests when the cache write fails', async () => {
+    // Arrange
+    vi.mocked(redis.set).mockRejectedValue(new Error('Command timed out'));
+    let releaseFetch!: (response: Response) => void;
+    const pendingFetch = new Promise<Response>((resolve) => {
+      releaseFetch = resolve;
+    });
+    fetchMock.mockReturnValueOnce(pendingFetch);
+
+    // Act
+    const firstRequest = requestToken();
+    const secondRequest = requestToken();
+    await vi.waitFor(() => expect(redis.get).toHaveBeenCalledTimes(2));
+    releaseFetch(
+      new Response(
+        JSON.stringify({
+          access_token: 'shared-token',
+          token_type: 'bearer',
+          expires_in: 3600,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const [first, second] = await Promise.all([firstRequest, secondRequest]);
+    const next = await requestToken();
+
+    // Assert
+    expect(first.statusCode).toBe(200);
+    expect(second.statusCode).toBe(200);
+    expect(next.statusCode).toBe(200);
+    expect(first.json().access_token).toBe('shared-token');
+    expect(second.json().access_token).toBe('shared-token');
+    expect(next.json().access_token).toBe('shared-token');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(redis.set).toHaveBeenCalledTimes(2);
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          cacheOperation: 'set',
+          failureKind: 'oauth2_grant_cache_unavailable',
+          upstreamMinted: true,
+        }),
+      ]),
+    );
+  });
+
+  it('mints after an expired cache entry cannot be deleted', async () => {
+    // Arrange
+    vi.mocked(redis.get).mockResolvedValue(
+      JSON.stringify({
+        value: { status: 200, body: { access_token: 'expired' }, headers: {} },
+        expiresAt: Date.now() - 1,
+      }),
+    );
+    vi.mocked(redis.del).mockRejectedValue(new Error('Command timed out'));
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          access_token: 'fresh-token',
+          token_type: 'bearer',
+          expires_in: 3600,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+
+    // Act
+    const response = await requestToken();
+
+    // Assert
+    expect(response.statusCode).toBe(200);
+    expect(response.json().access_token).toBe('fresh-token');
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(redis.del).toHaveBeenCalledTimes(2);
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          cacheOperation: 'delete',
+          failureKind: 'oauth2_grant_cache_unavailable',
+        }),
+      ]),
+    );
+  });
 });

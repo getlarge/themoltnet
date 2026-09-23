@@ -18,6 +18,8 @@ export interface Resolved<T> {
 export interface SingleFlightCacheOptions<T> {
   store?: CacheStore<T>;
   metrics?: TokenExchangeMetrics;
+  /** Reports a cache write or expired-entry cleanup failure without losing a loaded value. */
+  onStoreError?: (operation: 'set' | 'delete', error: unknown) => void;
   /** Tags every metric so callers stay distinguishable. */
   source?: string;
   /** Injectable clock for tests. */
@@ -54,11 +56,33 @@ export function createSingleFlightCache<T>(
   const source = options.source ?? 'unknown';
   const now = options.now ?? Date.now;
   const inFlight = new Map<string, Promise<Resolved<T>>>();
+  // Only grants whose shared-store write failed live here. The memory store
+  // bounds cardinality; the expiry check below bounds how long one is served.
+  const localFallback = new MemoryCacheStore<T>();
+
+  function reportStoreError(operation: 'set' | 'delete', error: unknown): void {
+    try {
+      options.onStoreError?.(operation, error);
+    } catch {
+      // Reporting must not turn a usable loaded grant into a failed request.
+    }
+  }
 
   async function resolve(
     key: string,
     load: () => Promise<LoadResult<T>>,
   ): Promise<Resolved<T>> {
+    const local = await localFallback.get(key);
+    if (local) {
+      if (local.expiresAt > now()) {
+        const remainingSeconds = Math.floor((local.expiresAt - now()) / 1000);
+        metrics.recordCacheAccess(source, 'hit');
+        metrics.recordServedTtl(source, remainingSeconds);
+        return { value: local.value, origin: 'hit', remainingSeconds };
+      }
+      await localFallback.delete(key);
+    }
+
     const cached = await store.get(key);
     if (cached && cached.expiresAt > now()) {
       const remainingSeconds = Math.floor((cached.expiresAt - now()) / 1000);
@@ -66,7 +90,15 @@ export function createSingleFlightCache<T>(
       metrics.recordServedTtl(source, remainingSeconds);
       return { value: cached.value, origin: 'hit', remainingSeconds };
     }
-    if (cached) await store.delete(key);
+    if (cached) {
+      // An expired entry is unusable regardless of whether its cleanup works.
+      // Redis already has a native TTL; a failed delete must not block minting.
+      try {
+        await store.delete(key);
+      } catch (error) {
+        reportStoreError('delete', error);
+      }
+    }
 
     const existing = inFlight.get(key);
     if (existing) {
@@ -84,10 +116,17 @@ export function createSingleFlightCache<T>(
         // token endpoint again on the next attempt.
         return { value: result.value, origin: 'load', remainingSeconds: null };
       }
-      await store.set(key, {
+      const entry = {
         value: result.value,
         expiresAt: result.expiresAt,
-      });
+      };
+      try {
+        await store.set(key, entry);
+      } catch (error) {
+        await localFallback.set(key, entry);
+        reportStoreError('set', error);
+        return { value: result.value, origin: 'load', remainingSeconds: null };
+      }
       return {
         value: result.value,
         origin: 'load',
@@ -110,10 +149,17 @@ export function createSingleFlightCache<T>(
 
   return {
     resolve,
-    invalidate: (key) => store.delete(key),
-    invalidatePrefix: (prefix) => store.deleteByPrefix(prefix),
+    invalidate: async (key) => {
+      await localFallback.delete(key);
+      await store.delete(key);
+    },
+    invalidatePrefix: async (prefix) => {
+      await localFallback.deleteByPrefix(prefix);
+      await store.deleteByPrefix(prefix);
+    },
     close: async () => {
       inFlight.clear();
+      await localFallback.close();
       await store.close();
     },
   };

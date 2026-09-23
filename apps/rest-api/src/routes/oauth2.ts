@@ -227,6 +227,17 @@ export const oauth2GrantCachePlugin = fp(
         : undefined,
       metrics,
       source: 'rest-proxy',
+      onStoreError: (cacheOperation, err) => {
+        fastify.log.error(
+          {
+            err,
+            cacheOperation,
+            failureKind: 'oauth2_grant_cache_unavailable',
+            upstreamMinted: cacheOperation === 'set',
+          },
+          'OAuth2 grant cache command failed',
+        );
+      },
     });
 
     fastify.log.info(
@@ -315,9 +326,6 @@ export async function oauth2Routes(
       );
 
       let resolved: Awaited<ReturnType<GrantCache['resolve']>>;
-      let upstreamGrant:
-        | Awaited<ReturnType<GrantCache['resolve']>>['value']
-        | null = null;
       try {
         resolved = await grantCache.resolve(cacheKey, async () => {
           const upstreamHeaders: Record<string, string> = {
@@ -377,7 +385,6 @@ export async function oauth2Routes(
           }
 
           const value = { status, body: grant, headers: passthroughHeaders };
-          upstreamGrant = value;
 
           // Omitting expiresAt tells the cache not to store this. Errors are
           // never cached, and neither is any grant outside the policy.
@@ -399,27 +406,15 @@ export async function oauth2Routes(
             cacheOperation: error.operation,
             failureKind: 'oauth2_grant_cache_unavailable',
             grantType: policy ? grantType : 'other',
-            upstreamMinted: error.operation === 'set',
+            upstreamMinted: false,
           },
           'OAuth2 grant cache command failed',
         );
 
-        // A successful Hydra response has already incurred a billed token.
-        // If only the cache write failed, return that token to its caller.
-        // A failed read never calls Hydra: retrying clients cannot mint a
-        // stream of uncached tokens while Redis remains unavailable.
-        if (error.operation === 'set' && upstreamGrant) {
-          resolved = {
-            value: upstreamGrant,
-            origin: 'load',
-            remainingSeconds: null,
-          };
-        } else {
-          return reply.status(503).header('retry-after', '5').send({
-            error: 'temporarily_unavailable',
-            error_description: 'Token service temporarily unavailable',
-          });
-        }
+        return reply.status(503).header('retry-after', '5').send({
+          error: 'temporarily_unavailable',
+          error_description: 'Token service temporarily unavailable',
+        });
       }
 
       for (const [name, value] of Object.entries(resolved.value.headers)) {
