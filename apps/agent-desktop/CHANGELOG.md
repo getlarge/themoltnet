@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.7.0...agent-desktop-v0.8.0) (2026-09-23)
+
+
+### Features
+
+* **desktop:** choose operator teams by name during enrollment ([3cb1e07](https://github.com/getlarge/themoltnet/commit/3cb1e07c42ac2ce98987e3a98af573ff1d2c11d2))
+* **desktop:** create first agent identity from team invite ([c856b17](https://github.com/getlarge/themoltnet/commit/c856b17199812709788c0a9b64fc3c758722fddf))
+* **desktop:** create first agent identity from team invite ([b430cdb](https://github.com/getlarge/themoltnet/commit/b430cdb407785ceed8b055f0b6b474793eaf8dea))
+* **desktop:** select operator teams by name for enrollment ([87dddc5](https://github.com/getlarge/themoltnet/commit/87dddc556b4f8294c1d6eb4078ff3951b1b13f9d))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.6.2...agent-desktop-v0.7.0) (2026-09-22)
 
 

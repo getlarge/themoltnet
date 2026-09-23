@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.62.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.61.1...rest-api-v0.62.0) (2026-09-23)
+
+
+### Features
+
+* **desktop:** choose operator teams by name during enrollment ([3cb1e07](https://github.com/getlarge/themoltnet/commit/3cb1e07c42ac2ce98987e3a98af573ff1d2c11d2))
+* **desktop:** select operator teams by name for enrollment ([87dddc5](https://github.com/getlarge/themoltnet/commit/87dddc556b4f8294c1d6eb4078ff3951b1b13f9d))
+* **rest-api:** serve release signer key and install metadata in discovery ([9c7ace3](https://github.com/getlarge/themoltnet/commit/9c7ace3b0ff6ebe7f598678da33b75341624c3af)), closes [#2437](https://github.com/getlarge/themoltnet/issues/2437)
+
+
+### Bug Fixes
+
+* **oauth:** permit consent redirect chain ([d9f218f](https://github.com/getlarge/themoltnet/commit/d9f218fb4d1de231e377163188a0637e07bfd5d4))
+* **ory:** route consent to REST API ([ec0ee40](https://github.com/getlarge/themoltnet/commit/ec0ee402417d6f185b5e01600846dd4b2ff1ad3d))
+
 ## [0.61.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.61.0...rest-api-v0.61.1) (2026-09-22)
 
 

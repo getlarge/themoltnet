@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.65.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.64.0...agent-daemon-v0.65.0) (2026-09-23)
+
+
+### Features
+
+* **desktop:** choose operator teams by name during enrollment ([3cb1e07](https://github.com/getlarge/themoltnet/commit/3cb1e07c42ac2ce98987e3a98af573ff1d2c11d2))
+* **desktop:** select operator teams by name for enrollment ([87dddc5](https://github.com/getlarge/themoltnet/commit/87dddc556b4f8294c1d6eb4078ff3951b1b13f9d))
+
 ## [0.64.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.63.1...agent-daemon-v0.64.0) (2026-09-22)
 
 
