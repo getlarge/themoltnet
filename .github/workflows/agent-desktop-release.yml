@@ -1,0 +1,269 @@
+# Signed MoltNet Agent desktop release.
+#
+# prepare  resolves the revision to build and verifies the pinned Agent Daemon.
+# package  builds, signs and verifies each platform. It never talks to GitHub
+#          Releases: its only output is a workflow artifact.
+# publish  uploads the complete file set to the release-please draft once,
+#          checks GitHub's server-side digests, then un-drafts it.
+#
+# release.yml calls this after a desktop release is cut. Run it by hand
+# without `publish` to exercise the whole signed build on any ref.
+name: Agent desktop release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: release-please draft to build (agent-desktop-vX.Y.Z)
+        type: string
+        required: true
+      agent-cli-version:
+        description: Agent Daemon version the Desktop pins
+        type: string
+        required: true
+      agent-bundle-artifact:
+        description: Artifact holding the linux-x64 daemon signed in the calling run; empty downloads the published release
+        type: string
+        default: ''
+      publish:
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: release-please draft to build (agent-desktop-vX.Y.Z). Empty builds the dispatched ref.
+        type: string
+        default: ''
+      agent-cli-version:
+        description: Published Agent Daemon version the Desktop pins
+        type: string
+        required: true
+      publish:
+        description: Publish the draft named by `tag`
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  NX_LOAD_DOT_ENV_FILES: 'false'
+
+jobs:
+  prepare:
+    name: Resolve revision and Agent Daemon
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      revision: ${{ steps.revision.outputs.revision }}
+      version: ${{ steps.revision.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Resolve release revision
+        id: revision
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          if [ "$PUBLISH" = true ] && [ -z "$RELEASE_TAG" ]; then
+            echo "::error::publishing requires a release-please draft tag"
+            exit 1
+          fi
+          bash tools/release/agent-desktop/resolve-revision.sh | tee -a "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@v8
+        if: ${{ inputs.agent-bundle-artifact != '' }}
+        with:
+          name: ${{ inputs.agent-bundle-artifact }}
+          path: ${{ runner.temp }}/agent-bundle
+
+      - name: Verify the pinned Agent Daemon
+        env:
+          AGENT_CLI_VERSION: ${{ inputs.agent-cli-version }}
+          SOURCE: ${{ inputs.agent-bundle-artifact != '' && format('{0}/agent-bundle', runner.temp) || '' }}
+        run: |
+          bash tools/release/agent-desktop/stage-agent.sh \
+            "$AGENT_CLI_VERSION" "$RUNNER_TEMP/desktop-agent" ${SOURCE:+"$SOURCE"}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: agent-desktop-daemon
+          path: ${{ runner.temp }}/desktop-agent
+          if-no-files-found: error
+          retention-days: 1
+
+  package:
+    name: Package ${{ matrix.platform }}
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - platform: mac-os
+            runner: macos-14
+          - platform: linux
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    env:
+      MOLTNET_AGENT_CLI_VERSION: ${{ inputs.agent-cli-version }}
+      TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+      # The Linux smoke runs the AppImage on a runner without FUSE.
+      APPIMAGE_EXTRACT_AND_RUN: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.revision }}
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-workspace
+        with:
+          rust: 'true'
+
+      - name: Refuse incomplete signing material
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: bash tools/release/agent-desktop/validate.sh . --release ${{ matrix.platform }}
+
+      - name: Import Developer ID identity
+        if: ${{ matrix.platform == 'mac-os' }}
+        id: certificate
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          umask 077
+          keychain="$RUNNER_TEMP/agent-desktop.keychain-db"
+          password=$(openssl rand -hex 16)
+          trap 'rm -f "$RUNNER_TEMP/cert.p12"' EXIT
+          printf '%s' "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -v -p codesigning "$keychain" | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          [ -n "$identity" ] || { echo "Developer ID Application identity is missing" >&2; exit 1; }
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed macOS app and updater
+        if: ${{ matrix.platform == 'mac-os' }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ steps.certificate.outputs.identity }}
+          APPLE_API_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
+          APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/notary.p8
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          umask 077
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
+          printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
+          export TAURI_CONFIG=$(jq -cn --arg key "$TAURI_UPDATER_PUBLIC_KEY" '{plugins:{updater:{pubkey:$key}}}')
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=mac-os -- release
+
+      - name: Remove signing identity
+        if: ${{ always() && matrix.platform == 'mac-os' }}
+        run: |
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security delete-keychain "$RUNNER_TEMP/agent-desktop.keychain-db" 2>/dev/null || true
+
+      - name: Notarize and staple DMG
+        if: ${{ matrix.platform == 'mac-os' }}
+        env:
+          APPLE_API_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
+          APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/notary.p8
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          umask 077
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
+          printf '%s' "$NOTARY_KEY" > "$APPLE_API_KEY_PATH"
+          source tools/release/agent-desktop/find-one.sh
+          dmg=$(find_one apps/agent-desktop/out-rust/bundle/aarch64-apple-darwin/release/bundle/dmg "*_${VERSION}_*.dmg")
+          xcrun notarytool submit "$dmg" \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait \
+            --timeout 45m
+          xcrun stapler staple "$dmg"
+
+      - name: Install Linux packaging dependencies
+        if: ${{ matrix.platform == 'linux' }}
+        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
+
+      - name: Build signed deb and AppImage
+        if: ${{ matrix.platform == 'linux' }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          export TAURI_CONFIG=$(jq -cn --arg key "$TAURI_UPDATER_PUBLIC_KEY" '{plugins:{updater:{pubkey:$key}}}')
+          pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=linux -- release
+
+      - name: Verify updater signatures and name release files
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: bash tools/release/agent-desktop/materialize.sh ${{ matrix.platform }} "$VERSION" "$TAURI_UPDATER_PUBLIC_KEY"
+
+      - uses: actions/download-artifact@v8
+        if: ${{ matrix.platform == 'linux' }}
+        with:
+          name: agent-desktop-daemon
+          path: ${{ runner.temp }}/desktop-agent
+
+      - name: Smoke-test the signed Linux packages
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          mkdir -p dist/agent-bundle
+          tar -xzf "$RUNNER_TEMP/desktop-agent/moltnet-agent-linux-x64.tar.gz" -C dist/agent-bundle
+          bash tools/release/agent-desktop/linux-smoke.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: agent-desktop-package-${{ matrix.platform }}
+          path: dist/agent-desktop
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish ${{ inputs.tag }}
+    needs: [prepare, package]
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: agent-desktop-publish-${{ inputs.tag }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/release
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: agent-desktop-package-*
+          path: dist/agent-desktop
+          merge-multiple: true
+
+      - name: Upload, verify and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          REVISION: ${{ needs.prepare.outputs.revision }}
+        run: bash tools/release/agent-desktop/publish.sh dist/agent-desktop
