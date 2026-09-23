@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 import { catalogueQuery, runCenterKeys } from './queries.js';
 import type { AgentServerCatalogue } from './types.js';
@@ -44,16 +45,17 @@ export function useCatalogue(
     ...catalogueQuery(identity, read),
     refetchInterval: poll && active ? 60_000 : false,
   });
+  const retry = useCallback(() => {
+    void client.invalidateQueries({
+      queryKey: runCenterKeys.catalogue(identity),
+    });
+  }, [client, identity]);
   return {
     catalogue: query.data ?? null,
     // `isPending` covers "no data yet"; a refetch must not flip the view back
     // into a loading state once something has been shown.
     loading: Boolean(identity) && query.isPending,
     error: query.isError ? CATALOGUE_ERROR : null,
-    retry: () => {
-      void client.invalidateQueries({
-        queryKey: runCenterKeys.catalogue(identity),
-      });
-    },
+    retry,
   };
 }

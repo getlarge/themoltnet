@@ -36,6 +36,24 @@ describe('useCatalogue', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('keeps retry stable across status renders and changes it with the identity', async () => {
+    vi.mocked(runCenterActions.catalogue).mockResolvedValue(catalogue);
+    const { result, rerender } = renderHook(
+      ({ identity }: { identity: string }) => useCatalogue(identity),
+      {
+        wrapper: createTestWrapper(),
+        initialProps: { identity: 'agent-a' },
+      },
+    );
+    const retry = result.current.retry;
+    await waitFor(() => expect(result.current.catalogue).toEqual(catalogue));
+    rerender({ identity: 'agent-a' });
+    expect(result.current.retry).toBe(retry);
+
+    rerender({ identity: 'agent-b' });
+    expect(result.current.retry).not.toBe(retry);
+  });
+
   it('stays out of the loading state while refreshing in the background', async () => {
     vi.mocked(runCenterActions.catalogue).mockResolvedValue(catalogue);
     const { result } = renderHook(() => useCatalogue('agent-a'), {
