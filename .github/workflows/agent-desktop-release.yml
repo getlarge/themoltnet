@@ -1,10 +1,12 @@
 # Signed MoltNet Agent desktop release.
 #
-# prepare  resolves the revision to build and verifies the pinned Agent Daemon.
-# package  builds, signs and verifies each platform. It never talks to GitHub
-#          Releases: its only output is a workflow artifact.
-# publish  uploads the complete file set to the release-please draft once,
-#          checks GitHub's server-side digests, then un-drafts it.
+# resolve       reads the draft revision (write-scoped token: drafts are
+#               invisible to read-only tokens).
+# stage-daemon  verifies the pinned Agent Daemon.
+# package       builds, signs and verifies each platform. It never talks to
+#               GitHub Releases: its only output is a workflow artifact.
+# publish       uploads the complete file set to the release-please draft
+#               once, checks GitHub's server-side digests, then un-drafts it.
 #
 # release.yml calls this after a desktop release is cut. Run it by hand
 # without `publish` to exercise the whole signed build on any ref.
@@ -31,15 +33,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: release-please draft to build (agent-desktop-vX.Y.Z). Empty builds the dispatched ref.
+        description: 'Desktop release to build, e.g. agent-desktop-v0.8.0. Leave empty for a test build of the selected branch.'
         type: string
         default: ''
       agent-cli-version:
-        description: Published Agent Daemon version the Desktop pins
+        description: 'Agent Daemon to bundle, e.g. 0.65.0. Leave empty for the latest published release.'
         type: string
-        required: true
+        default: ''
       publish:
-        description: Publish the draft named by `tag`
+        description: 'Publish the release (needs a tag). Unchecked = test build only, nothing is published.'
         type: boolean
         default: false
 
@@ -49,14 +51,25 @@ permissions:
 env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
+defaults:
+  run:
+    # GitHub's implicit shell is `bash -e` without pipefail; a failure inside
+    # a pipeline must fail the step.
+    shell: bash
+
 jobs:
-  prepare:
-    name: Resolve revision and Agent Daemon
+  resolve:
+    name: Resolve release revision
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
+    # Draft releases are only visible to a token with write access. This job
+    # only reads the GitHub API; it runs no dependency or release code.
+    permissions:
+      contents: write
     outputs:
       revision: ${{ steps.revision.outputs.revision }}
       version: ${{ steps.revision.outputs.version }}
+      agent-cli-version: ${{ steps.daemon.outputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -73,7 +86,40 @@ jobs:
             echo "::error::publishing requires a release-please draft tag"
             exit 1
           fi
-          bash tools/release/agent-desktop/resolve-revision.sh | tee -a "$GITHUB_OUTPUT"
+          resolved=$(bash tools/release/agent-desktop/resolve-revision.sh)
+          printf '%s\n' "$resolved"
+          grep -Eq '^revision=[0-9a-f]{40}$' <<< "$resolved"
+          grep -Eq '^version=(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' <<< "$resolved"
+          printf '%s\n' "$resolved" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Agent Daemon version
+        id: daemon
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED: ${{ inputs.agent-cli-version }}
+        run: |
+          version=$REQUESTED
+          if [ -z "$version" ]; then
+            tag=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft \
+              --jq '[.[] | select(.isDraft | not) | .tagName | select(startswith("agent-daemon-v"))][0] // empty')
+            version=${tag#agent-daemon-v}
+          fi
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "::error::No valid Agent Daemon version to bundle: '${version}'"
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Desktop will bundle Agent Daemon $version"
+
+  stage-daemon:
+    name: Verify pinned Agent Daemon
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v8
         if: ${{ inputs.agent-bundle-artifact != '' }}
@@ -83,7 +129,7 @@ jobs:
 
       - name: Verify the pinned Agent Daemon
         env:
-          AGENT_CLI_VERSION: ${{ inputs.agent-cli-version }}
+          AGENT_CLI_VERSION: ${{ needs.resolve.outputs.agent-cli-version }}
           SOURCE: ${{ inputs.agent-bundle-artifact != '' && format('{0}/agent-bundle', runner.temp) || '' }}
         run: |
           bash tools/release/agent-desktop/stage-agent.sh \
@@ -98,7 +144,7 @@ jobs:
 
   package:
     name: Package ${{ matrix.platform }}
-    needs: prepare
+    needs: [resolve, stage-daemon]
     strategy:
       matrix:
         include:
@@ -109,14 +155,14 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 75
     env:
-      MOLTNET_AGENT_CLI_VERSION: ${{ inputs.agent-cli-version }}
+      MOLTNET_AGENT_CLI_VERSION: ${{ needs.resolve.outputs.agent-cli-version }}
       TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
       # The Linux smoke runs the AppImage on a runner without FUSE.
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.prepare.outputs.revision }}
+          ref: ${{ needs.resolve.outputs.revision }}
           persist-credentials: false
 
       - uses: ./.github/actions/setup-workspace
@@ -185,7 +231,7 @@ jobs:
           APPLE_API_KEY: ${{ secrets.NOTARY_KEY_ID }}
           APPLE_API_KEY_PATH: ${{ runner.temp }}/notary.p8
           NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
-          VERSION: ${{ needs.prepare.outputs.version }}
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
           umask 077
           trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
@@ -215,7 +261,7 @@ jobs:
 
       - name: Verify updater signatures and name release files
         env:
-          VERSION: ${{ needs.prepare.outputs.version }}
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: bash tools/release/agent-desktop/materialize.sh ${{ matrix.platform }} "$VERSION" "$TAURI_UPDATER_PUBLIC_KEY"
 
       - uses: actions/download-artifact@v8
@@ -240,7 +286,7 @@ jobs:
 
   publish:
     name: Publish ${{ inputs.tag }}
-    needs: [prepare, package]
+    needs: [resolve, package]
     if: ${{ inputs.publish }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -265,5 +311,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ inputs.tag }}
-          REVISION: ${{ needs.prepare.outputs.revision }}
+          REVISION: ${{ needs.resolve.outputs.revision }}
         run: bash tools/release/agent-desktop/publish.sh dist/agent-desktop
