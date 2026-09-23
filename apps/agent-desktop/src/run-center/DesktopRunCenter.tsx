@@ -27,7 +27,6 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [operatorEmail, setOperatorEmail] = useState<string | null>(null);
-  const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
   const client = useQueryClient();
