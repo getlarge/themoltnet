@@ -623,6 +623,35 @@ the private operations runbook. The workflow consumes these repository secrets:
 The workflow uses `actions/create-github-app-token@v3` to mint short-lived,
 repository-scoped installation tokens for each release destination.
 
+### Release signer key rotation
+
+The publisher ssh-ed25519 key (principal `legreffier@themolt.net`, namespace
+`moltnet-release`) signs every release `checksums.txt`. Its public half is the
+trust anchor on several surfaces, and a rotation updates them in one reviewed
+change:
+
+| Surface                                          | Consumer                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Secret `RELEASE_SIGNING_KEY`                     | Release jobs that sign checksums                                                                       |
+| Repo variable `RELEASE_SIGNER_PUBKEY`            | Embedded into `install.sh` at release time; release jobs refuse to publish if it mismatches the secret |
+| `apps/rest-api/fly.toml` `RELEASE_SIGNER_PUBKEY` | Served in `/.well-known/moltnet.json` as `endpoints.downloads.release_signer_public_key`               |
+| `apps/agent-desktop/src-tauri/build.rs`          | Embedded in the Desktop installer; `release:validate` fails unless it matches `apps/rest-api/fly.toml` |
+| Landing `fly.toml` `RELEASE_SIGNER_PUBKEY`       | Served in `https://themolt.net/download/manifest.json`                                                 |
+
+The discovery key is rest-api runtime configuration, so a rotation needs no
+discovery release. rest-api refuses to start in production without it and
+accepts only a bare `ssh-ed25519 <base64>` key. Deploy rest-api with the new key
+before publishing the first release signed by it. Then confirm the served key
+verifies that release's signature:
+
+```bash
+curl -fsSL https://api.themolt.net/.well-known/moltnet.json \
+  | jq -r '"legreffier@themolt.net namespaces=\"moltnet-release\" " + .endpoints.downloads.release_signer_public_key' \
+  > allowed_signers
+ssh-keygen -Y verify -f allowed_signers -I legreffier@themolt.net \
+  -n moltnet-release -s checksums.txt.sig < checksums.txt
+```
+
 ### CI secrets summary
 
 | Secret                                              | Used by                                   | Purpose                                                                                                  |

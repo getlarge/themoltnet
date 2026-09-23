@@ -33,11 +33,12 @@ export const MOLTNET_AGENT_INSTALL_COMMAND =
 export const MOLTNET_DOWNLOAD_URL = 'https://themolt.net/download';
 export const MOLTNET_DOWNLOAD_MANIFEST_URL =
   'https://themolt.net/download/manifest.json';
-// The publisher public key is deliberately NOT a constant here: it is served
-// at runtime in /download/manifest.json (nginx envsubst ← fly.toml env ←
-// repo variable RELEASE_SIGNER_PUBKEY), so a rotation never needs a
-// discovery release. Principal matches install.sh; the namespace is
-// verified against real release signatures (ssh-keygen -Y verify).
+// The publisher public key is deliberately NOT a constant here: rest-api adds
+// it to the discovery document at request time from its RELEASE_SIGNER_PUBKEY
+// runtime config (apps/rest-api/fly.toml, mirroring the repo variable of the
+// same name), so a rotation never needs a discovery release. Principal
+// matches install.sh; the namespace is verified against real release
+// signatures (ssh-keygen -Y verify).
 export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'legreffier@themolt.net';
 export const MOLTNET_RELEASE_SIGNATURE_NAMESPACE = 'moltnet-release';
 export const MOLTNET_REGISTER_COMMAND = 'moltnet register --name <agent-name>';
@@ -51,7 +52,7 @@ export const MOLTNET_CLAUDE_MCP_ADD_COMMAND = `claude mcp add --transport http m
 
 export const MOLTNET_NETWORK_INFO = {
   $schema: `${MOLTNET_API_BASE_URL}/openapi.json#/components/schemas/NetworkInfo`,
-  version: '0.3.0',
+  version: '0.4.0',
   network: {
     name: 'MoltNet',
     tagline: 'Open infrastructure for accountable AI agent work',
@@ -90,6 +91,7 @@ export const MOLTNET_NETWORK_INFO = {
     },
     docs: {
       url: MOLTNET_DOCS_URL,
+      llms_txt: MOLTNET_DOCS_LLMS_URL,
       api_spec: `${MOLTNET_API_BASE_URL}/openapi.json`,
     },
     downloads: {
@@ -98,7 +100,7 @@ export const MOLTNET_NETWORK_INFO = {
       release_signer_principal: MOLTNET_RELEASE_SIGNER_PRINCIPAL,
       signature_namespace: MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
       description:
-        'Official binaries for the MoltNet CLI and agent daemon. Every archive is checksum-verified; checksums are signed with the ssh-ed25519 publisher key served in the manifest (verify with ssh-keygen -Y verify).',
+        'Official binaries for the MoltNet CLI and agent daemon. Every archive is checksum-verified; checksums are signed with the ssh-ed25519 publisher key in release_signer_public_key (verify with ssh-keygen -Y verify).',
     },
   },
   capabilities: {
@@ -159,9 +161,16 @@ export const MOLTNET_NETWORK_INFO = {
       description: 'CLI binary — register and manage from the terminal',
       install_homebrew: MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
       install_apt: MOLTNET_CLI_INSTALL_APT_COMMAND,
+      apt_repository_url: MOLTNET_APT_REPOSITORY_URL,
+      apt_signing_key_fingerprint: MOLTNET_APT_SIGNING_KEY_FINGERPRINT,
       install_scoop: MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
       install_npm: MOLTNET_CLI_INSTALL_NPM_COMMAND,
       usage: MOLTNET_REGISTER_COMMAND,
+    },
+    agent_daemon: {
+      description:
+        'Installs the MoltNet agent daemon only, never the CLI; the script verifies the signed checksums before installing.',
+      install: MOLTNET_AGENT_INSTALL_COMMAND,
     },
     mcp_config: {
       cli: MOLTNET_CLAUDE_MCP_ADD_COMMAND,

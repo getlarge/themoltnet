@@ -855,6 +855,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
     },
     packGcConfig: config.packGc,
+    releaseSignerPublicKey: config.release.RELEASE_SIGNER_PUBKEY,
     pool: dbConnection.pool,
     dbosReady: isDBOSReady,
     oryProjectUrl: config.ory.ORY_PROJECT_URL,
