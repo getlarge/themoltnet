@@ -265,6 +265,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       db: redisConfig.db,
       tls: redisConfig.tls,
       connectTimeout: 500,
+      // A connected Upstash socket can accept commands without replying.
+      // Bound both rate-limit and OAuth2 cache commands on this shared client.
+      commandTimeout: 250,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       lazyConnect: false,

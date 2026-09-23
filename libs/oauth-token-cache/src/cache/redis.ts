@@ -26,6 +26,36 @@ export interface RedisCacheStoreOptions {
   keyPrefix?: string;
 }
 
+export type RedisCacheOperation = 'get' | 'set' | 'delete' | 'scan';
+
+/** Identifies cache transport failures without exposing grant keys or secrets. */
+export class RedisCacheStoreError extends Error {
+  constructor(
+    public readonly operation: RedisCacheOperation,
+    cause: unknown,
+  ) {
+    super(`OAuth2 Redis cache ${operation} failed after two attempts`, {
+      cause,
+    });
+    this.name = 'RedisCacheStoreError';
+  }
+}
+
+async function runRedisCommand<T>(
+  operation: RedisCacheOperation,
+  command: () => Promise<T>,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await command();
+    } catch (cause) {
+      lastError = cause;
+    }
+  }
+  throw new RedisCacheStoreError(operation, lastError);
+}
+
 const DEFAULT_PREFIX = 'moltnet:oauth-token:';
 
 /**
@@ -46,7 +76,9 @@ export function createRedisCacheStore<T>(
 
   return {
     async get(key) {
-      const raw = await client.get(namespaced(key));
+      const raw = await runRedisCommand('get', () =>
+        client.get(namespaced(key)),
+      );
       if (raw === null) return null;
       try {
         return JSON.parse(raw) as CacheEntry<T>;
@@ -62,11 +94,13 @@ export function createRedisCacheStore<T>(
       // entry is still written so behaviour matches the memory store; the
       // cache layer discards it on read.
       const ttlMs = Math.max(1, entry.expiresAt - Date.now());
-      await client.set(namespaced(key), JSON.stringify(entry), 'PX', ttlMs);
+      await runRedisCommand('set', () =>
+        client.set(namespaced(key), JSON.stringify(entry), 'PX', ttlMs),
+      );
     },
 
     async delete(key) {
-      await client.del(namespaced(key));
+      await runRedisCommand('delete', () => client.del(namespaced(key)));
     },
 
     async deleteByPrefix(keyPrefix) {
@@ -74,15 +108,19 @@ export function createRedisCacheStore<T>(
       // credential-rotation path where latency is fine but a stall is not.
       let cursor = '0';
       do {
-        const [next, found] = await client.scan(
-          cursor,
-          'MATCH',
-          `${namespaced(keyPrefix)}*`,
-          'COUNT',
-          100,
+        const [next, found] = await runRedisCommand('scan', () =>
+          client.scan(
+            cursor,
+            'MATCH',
+            `${namespaced(keyPrefix)}*`,
+            'COUNT',
+            100,
+          ),
         );
         cursor = next;
-        for (const key of found) await client.del(key);
+        for (const key of found) {
+          await runRedisCommand('delete', () => client.del(key));
+        }
       } while (cursor !== '0');
     },
 

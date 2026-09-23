@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createRedisCacheStore,
+  RedisCacheStoreError,
   type RedisLikeClient,
 } from '../src/cache/redis.js';
 import type { CacheEntry, CacheStore } from '../src/cache/types.js';
@@ -91,6 +92,37 @@ describe('createRedisCacheStore', () => {
   it('treats an unknown key as a miss', async () => {
     // Act + Assert
     expect(await store.get('nope')).toBeNull();
+  });
+
+  it('retries a failed cache read once before giving up', async () => {
+    // Arrange
+    vi.mocked(client.get)
+      .mockRejectedValueOnce(new Error('temporary Redis failure'))
+      .mockResolvedValueOnce(null);
+
+    // Act
+    const result = await store.get('k');
+
+    // Assert
+    expect(result).toBeNull();
+    expect(client.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('identifies a persistent read failure without calling the loader', async () => {
+    // Arrange
+    const cause = new Error('Command timed out');
+    vi.mocked(client.get).mockRejectedValue(cause);
+    const cache = createSingleFlightCache<string>({ store });
+    const load = vi.fn(async () => ({ value: 'paid-token' }));
+
+    // Act + Assert
+    await expect(cache.resolve('k', load)).rejects.toMatchObject({
+      name: RedisCacheStoreError.name,
+      operation: 'get',
+      cause,
+    });
+    expect(client.get).toHaveBeenCalledTimes(2);
+    expect(load).not.toHaveBeenCalled();
   });
 
   it('treats a malformed entry as a miss rather than throwing', async () => {
