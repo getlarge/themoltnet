@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.78.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.77.0...moltnet-api-client-v1.78.0) (2026-09-23)
+
+
+### Codegen
+
+* **api-client:** regenerate clients for discovery document fields ([e10948b](https://github.com/getlarge/themoltnet/commit/e10948beb33f35aff9c404521e229dba7f29eee3)), closes [#2437](https://github.com/getlarge/themoltnet/issues/2437)
+* remove the landing app from the monorepo ([7a44c44](https://github.com/getlarge/themoltnet/commit/7a44c44f1768c167cef479359761e1635f904082))
+
 ## [1.77.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.76.0...moltnet-api-client-v1.77.0) (2026-09-22)
 
 
