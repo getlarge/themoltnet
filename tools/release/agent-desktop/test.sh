@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-node --test tools/release/agent-desktop/boundary.test.mjs
+node --test \
+  tools/release/agent-desktop/boundary.test.mjs \
+  tools/release/agent-desktop/release-contract.test.mjs
 
 repo=$(pwd)
 fixture=$(mktemp -d "${TMPDIR:-/tmp}/moltnet-agent-desktop-release.XXXXXX")
@@ -9,8 +11,7 @@ trap 'rm -rf "$fixture"' EXIT
 
 mkdir -p \
   "$fixture/apps/agent-desktop/src-tauri" \
-  "$fixture/apps/rest-api" \
-  "$fixture/bin"
+  "$fixture/apps/rest-api"
 
 printf '%s\n' '{"version":"1.2.3"}' > "$fixture/apps/agent-desktop/package.json"
 printf '%s\n' '[package]' 'version = "1.2.3"' > "$fixture/apps/agent-desktop/src-tauri/Cargo.toml"
@@ -22,40 +23,6 @@ printf '%s\n' \
   > "$fixture/apps/agent-desktop/src-tauri/build.rs"
 printf '%s\n' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' > "$fixture/apps/rest-api/fly.toml"
 printf '%s\n' 'rust 1.88.0' > "$fixture/.tool-versions"
-
-cat > "$fixture/bin/gh" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-[ "$1 $2 $3" = 'release download agent-daemon-v0.58.0' ]
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = --dir ]; then
-    shift
-    cp "$FAKE_AGENT_INSTALLER" "$1/install.sh"
-    exit 0
-  fi
-  shift
-done
-exit 1
-SH
-chmod +x "$fixture/bin/gh"
-cat > "$fixture/agent-installer.sh" <<'SH'
-#!/bin/sh
-set -eu
-target="$MOLTNET_AGENT_HOME/$MOLTNET_AGENT_VERSION"
-mkdir -p "$target/bin"
-printf '#!/bin/sh\nexit 0\n' > "$target/bin/moltnet-agent"
-chmod +x "$target/bin/moltnet-agent"
-printf '{"version":"%s","platform":"linux-x64"}\n' \
-  "$MOLTNET_AGENT_VERSION" > "$target/manifest.json"
-SH
-PATH="$fixture/bin:$PATH" \
-FAKE_AGENT_INSTALLER="$fixture/agent-installer.sh" \
-GITHUB_REPOSITORY=getlarge/themoltnet \
-RUNNER_TEMP="$fixture" \
-  bash "$repo/apps/agent-desktop/scripts/materialize-published-agent.sh" \
-    0.58.0 "$fixture/materialized/moltnet-agent-linux-x64"
-[ -x "$fixture/materialized/moltnet-agent-linux-x64/bin/moltnet-agent" ]
-[ "$(node -p "require('$fixture/materialized/moltnet-agent-linux-x64/manifest.json').version")" = 0.58.0 ]
 
 validate_release() {
   TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
@@ -150,145 +117,6 @@ TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   MOLTNET_AGENT_CLI_VERSION='0.57.0' \
   bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture" --release linux
 
-# GitHub's releases/tags endpoint excludes drafts. Exercise the collection
-# lookup used by finalization with a fake gh response so that contract stays
-# testable without creating a release.
-cat > "$fixture/bin/gh" <<'SH'
-#!/usr/bin/env bash
-cat "$FAKE_RELEASES"
-SH
-chmod +x "$fixture/bin/gh"
-printf '%s\n' \
-  '[{"tag_name":"agent-desktop-v1.2.3","draft":true,"assets":[]}]' \
-  > "$fixture/releases.json"
-PATH="$fixture/bin:$PATH" \
-  GITHUB_REPOSITORY=getlarge/themoltnet \
-  RELEASE_TAG=agent-desktop-v1.2.3 \
-  FAKE_RELEASES="$fixture/releases.json" \
-  bash "$repo/tools/release/agent-desktop/fetch-release.sh" "$fixture/draft.json"
-[ "$(jq -r .tag_name "$fixture/draft.json")" = agent-desktop-v1.2.3 ]
-printf '%s\n' \
-  '[{"tag_name":"agent-desktop-v1.2.3","draft":false,"assets":[]}]' \
-  > "$fixture/releases.json"
-if PATH="$fixture/bin:$PATH" \
-  GITHUB_REPOSITORY=getlarge/themoltnet \
-  RELEASE_TAG=agent-desktop-v1.2.3 \
-  FAKE_RELEASES="$fixture/releases.json" \
-  bash "$repo/tools/release/agent-desktop/fetch-release.sh" "$fixture/draft.json" 2>/dev/null; then
-  echo 'draft lookup accepted a published release' >&2
-  exit 1
-fi
-
-mkdir -p "$fixture/assets" "$fixture/metadata" "$fixture/output"
-node --input-type=module - "$fixture/assets" <<'NODE'
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import {
-  DESKTOP_PLATFORMS,
-  desktopAssetName,
-} from './tools/release/agent-desktop/release-contract.mjs';
-
-const directory = process.argv[2];
-for (const { artifacts } of Object.values(DESKTOP_PLATFORMS)) {
-  for (const { suffix, updater } of artifacts) {
-    const path = join(directory, desktopAssetName('1.2.3', suffix));
-    writeFileSync(path, 'artifact');
-    if (updater) writeFileSync(`${path}.sig`, 'signature');
-  }
-}
-NODE
-node tools/release/agent-desktop/release-metadata.mjs \
-  "$fixture/assets" 1.2.3 mac-os "$fixture/metadata/release-metadata-mac-os.json"
-node tools/release/agent-desktop/release-metadata.mjs \
-  "$fixture/assets" 1.2.3 linux "$fixture/metadata/release-metadata-linux.json"
-node - "$fixture/metadata" "$fixture/published.json" <<'NODE'
-const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
-const [directory, output] = process.argv.slice(2);
-const assets = fs.readdirSync(directory)
-  .filter((name) => name.startsWith('release-metadata-'))
-  .flatMap((name) => require(path.join(directory, name)).assets)
-  .map((asset) => ({
-    name: asset.name,
-    size: asset.size,
-    digest: `sha256:${asset.sha256}`,
-    state: 'uploaded',
-  }));
-fs.writeFileSync(output, JSON.stringify({ assets }));
-NODE
-cp "$fixture/published.json" "$fixture/published-good.json"
-node tools/release/agent-desktop/verify-published-assets.mjs \
-  "$fixture/metadata" "$fixture/published.json" 1.2.3
-node tools/release/agent-desktop/manifest.mjs \
-  "$fixture/metadata" "$fixture/output/latest.json" 1.2.3
-[ ! -e "$fixture/metadata/latest.json" ]
-node tools/release/agent-desktop/verify-published-assets.mjs \
-  "$fixture/metadata" "$fixture/published.json" 1.2.3 \
-  "$fixture/output/latest.json" optional
-node - "$fixture/published.json" "$fixture/output/latest.json" <<'NODE'
-const crypto = require('node:crypto');
-const fs = require('node:fs');
-const [publishedPath, manifestPath] = process.argv.slice(2);
-const published = require(publishedPath);
-const bytes = fs.readFileSync(manifestPath);
-published.assets.push({
-  name: 'latest.json',
-  size: bytes.length,
-  digest: `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`,
-  state: 'uploaded',
-});
-fs.writeFileSync(publishedPath, JSON.stringify(published));
-NODE
-node tools/release/agent-desktop/verify-published-assets.mjs \
-  "$fixture/metadata" "$fixture/published.json" 1.2.3 \
-  "$fixture/output/latest.json" required
-node - "$fixture/output/latest.json" <<'NODE'
-const manifest = require(process.argv[2]);
-const targets = Object.keys(manifest.platforms).sort();
-if (JSON.stringify(targets) !== JSON.stringify(['darwin-aarch64', 'linux-x86_64-appimage', 'linux-x86_64-deb'])) {
-  throw new Error('Updater must select the installed package format');
-}
-NODE
-cp "$fixture/published-good.json" "$fixture/published.json"
-node - "$fixture/published.json" <<'NODE'
-const fs = require('node:fs');
-const path = process.argv[2];
-const published = require(path);
-const appImage = published.assets.find((asset) => asset.name.endsWith('.AppImage'));
-if (!appImage) throw new Error('AppImage fixture is missing');
-appImage.digest = `sha256:${'0'.repeat(64)}`;
-fs.writeFileSync(path, JSON.stringify(published));
-NODE
-if node tools/release/agent-desktop/verify-published-assets.mjs \
-  "$fixture/metadata" "$fixture/published.json" 1.2.3 2>/dev/null; then
-  echo 'published asset verification accepted a changed digest' >&2
-  exit 1
-fi
-
-for failure in missing size extra digest; do
-  cp "$fixture/published-good.json" "$fixture/published-$failure.json"
-  node - "$fixture/published-$failure.json" "$failure" <<'NODE'
-const fs = require('node:fs');
-const [path, failure] = process.argv.slice(2);
-const published = require(path);
-if (failure === 'missing') published.assets.shift();
-if (failure === 'size') published.assets[0].size += 1;
-if (failure === 'extra') published.assets.push({ name: 'unexpected.bin', size: 1, digest: `sha256:${'0'.repeat(64)}`, state: 'uploaded' });
-if (failure === 'digest') published.assets[0].digest = null;
-fs.writeFileSync(path, JSON.stringify(published));
-NODE
-  if node tools/release/agent-desktop/verify-published-assets.mjs \
-    "$fixture/metadata" "$fixture/published-$failure.json" 1.2.3 \
-    2>"$fixture/$failure.err"; then
-    echo "published asset verification accepted a $failure release" >&2
-    exit 1
-  fi
-done
-grep -q 'missing .*; extra' "$fixture/missing.err"
-grep -q 'expected .*found' "$fixture/size.err"
-grep -q 'expected .*found none.*Rerunning finalization is safe' "$fixture/digest.err"
-
 # Exercise the exact selector shared by notarization and materialization.
 source "$repo/tools/release/agent-desktop/find-one.sh"
 for platform in mac-os linux; do
@@ -323,17 +151,122 @@ for platform in mac-os linux; do
   fi
 done
 
-node - "$fixture/metadata/release-metadata-linux.json" <<'NODE'
-const fs = require('node:fs');
-const path = process.argv[2];
-const metadata = require(path);
-metadata.assets = metadata.assets.filter((asset) => !asset.name.endsWith('.deb'));
-fs.writeFileSync(path, JSON.stringify(metadata));
+# Publish against a fake GitHub: the draft must still target the packaged
+# revision, GitHub's asynchronous digest processing is waited out, and only a
+# fully verified upload is un-drafted.
+publish_fake="$fixture/publish"
+mkdir -p "$publish_fake/bin" "$publish_fake/assets" "$publish_fake/uploaded"
+node --input-type=module - "$publish_fake/assets" <<'NODE'
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { expectedAssetNames } from './tools/release/agent-desktop/release-contract.mjs';
+for (const name of expectedAssetNames('1.2.3')) {
+  writeFileSync(join(process.argv[2], name), `bytes-of-${name}`);
+}
 NODE
-if node tools/release/agent-desktop/manifest.mjs \
-  "$fixture/metadata" "$fixture/output/latest.json" 1.2.3 2>/dev/null; then
-  echo 'manifest accepted an incomplete Linux release' >&2
+cat > "$publish_fake/bin/gh" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+state=$FAKE_GH_STATE
+case "$*" in
+  'release view agent-desktop-v1.2.3 --repo getlarge/themoltnet --json isDraft,targetCommitish')
+    printf '{"isDraft":true,"targetCommitish":"%s"}\n' "$FAKE_TARGET" ;;
+  'api repos/getlarge/themoltnet/commits/agent-desktop-v1.2.3 --jq .sha')
+    printf '%s\n' "$FAKE_TARGET" ;;
+  "api repos/getlarge/themoltnet/compare/$FAKE_TARGET...main --jq .status")
+    echo ahead ;;
+  "api repos/getlarge/themoltnet/contents/apps/agent-desktop/package.json?ref=$FAKE_TARGET -H Accept: application/vnd.github.raw")
+    echo '{"version":"1.2.3"}' ;;
+  'release upload agent-desktop-v1.2.3 '*)
+    shift 3
+    while [ "$1" != --repo ]; do cp "$1" "$state/uploaded/"; shift; done ;;
+  'release view agent-desktop-v1.2.3 --repo getlarge/themoltnet --json databaseId --jq .databaseId')
+    echo 42 ;;
+  'api --paginate repos/getlarge/themoltnet/releases/42/assets?per_page=100')
+    polls=$(( $(cat "$state/polls" 2>/dev/null || echo 0) + 1 ))
+    echo "$polls" > "$state/polls"
+    node - "$state/uploaded" "$polls" <<'NODE'
+const { createHash } = require('node:crypto');
+const fs = require('node:fs');
+const [directory, polls] = process.argv.slice(2);
+console.log(JSON.stringify(fs.readdirSync(directory).map((name, index) => {
+  const bytes = fs.readFileSync(`${directory}/${name}`);
+  const processing = polls === '1' && index === 0;
+  return {
+    name,
+    size: bytes.length,
+    state: 'uploaded',
+    digest: processing ? null : `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+  };
+})));
+NODE
+    ;;
+  'release edit agent-desktop-v1.2.3 --repo getlarge/themoltnet --draft=false')
+    touch "$state/published" ;;
+  *) echo "unexpected gh call: $*" >&2; exit 1 ;;
+esac
+SH
+chmod +x "$publish_fake/bin/gh"
+publish() {
+  PATH="$publish_fake/bin:$PATH" \
+    FAKE_GH_STATE="$publish_fake" \
+    FAKE_TARGET="$(printf 'a%.0s' {1..40})" \
+    GITHUB_REPOSITORY=getlarge/themoltnet \
+    RELEASE_TAG=agent-desktop-v1.2.3 \
+    RUNNER_TEMP="$publish_fake" \
+    PUBLISH_POLL_SECONDS=0 \
+    REVISION="$1" \
+    bash "$repo/tools/release/agent-desktop/publish.sh" "$publish_fake/assets"
+}
+if publish "$(printf 'b%.0s' {1..40})" 2>/dev/null; then
+  echo 'publish accepted a draft that moved to another revision' >&2
   exit 1
+fi
+[ ! -e "$publish_fake/published" ] && [ -z "$(ls "$publish_fake/uploaded")" ]
+publish "$(printf 'a%.0s' {1..40})" >/dev/null 2>&1
+[ -e "$publish_fake/published" ]
+[ "$(cat "$publish_fake/polls")" = 2 ]
+[ -s "$publish_fake/uploaded/latest.json" ]
+
+# Stage a Desktop's pinned daemon through the real installer. The installer
+# only accepts an archive for the host platform, so this runs on linux-x64.
+if [ "$(uname -sm)" = 'Linux x86_64' ]; then
+  signer="$fixture/signer"
+  daemon="$fixture/daemon"
+  payload="$daemon/moltnet-agent-linux-x64"
+  archive="$daemon/moltnet-agent-linux-x64.tar.gz"
+  mkdir -p "$signer/apps/rest-api" "$payload/bin"
+  ssh-keygen -q -t ed25519 -N '' -C release -f "$signer/key"
+  ssh-keygen -q -t ed25519 -N '' -C other -f "$signer/other"
+  printf '  RELEASE_SIGNER_PUBKEY = "%s"\n' "$(cut -d' ' -f1-2 "$signer/key.pub")" \
+    > "$signer/apps/rest-api/fly.toml"
+  printf '#!/bin/sh\nexit 0\n' > "$payload/bin/moltnet-agent"
+  chmod +x "$payload/bin/moltnet-agent"
+  printf '{"version":"0.58.0","platform":"linux-x64"}\n' > "$payload/manifest.json"
+  tar -czf "$archive" -C "$daemon" moltnet-agent-linux-x64
+  (cd "$daemon" && sha256sum moltnet-agent-linux-x64.tar.gz > moltnet-agent-linux-x64.tar.gz.sha256)
+  stage() {
+    RELEASE_SIGNER_ROOT="$signer" \
+      bash "$repo/tools/release/agent-desktop/stage-agent.sh" "$1" "$fixture/staged-$1" "$daemon"
+  }
+
+  ssh-keygen -q -Y sign -f "$signer/key" -n moltnet-release "$archive.sha256"
+  stage 0.58.0
+  cmp "$archive" "$fixture/staged-0.58.0/moltnet-agent-linux-x64.tar.gz"
+  if stage 0.59.0 2>/dev/null; then
+    echo 'daemon staging accepted a payload for a different version' >&2
+    exit 1
+  fi
+
+  rm "$archive.sha256.sig"
+  ssh-keygen -q -Y sign -f "$signer/other" -n moltnet-release "$archive.sha256"
+  rm -rf "$fixture/staged-0.58.0"
+  if stage 0.58.0 2>/dev/null; then
+    echo 'daemon staging accepted a payload signed by another key' >&2
+    exit 1
+  fi
+else
+  echo 'skipping Agent Daemon staging test: the installer only stages the host platform (linux-x64)'
 fi
 
 echo 'agent desktop release contract tests passed'

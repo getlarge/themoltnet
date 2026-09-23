@@ -14,10 +14,18 @@ const workflow = readFileSync(
   new URL('../../../.github/workflows/release.yml', import.meta.url),
   'utf8',
 );
-const desktopReleaseJob = workflow.slice(
-  workflow.indexOf('  release-agent-desktop-mac-os:'),
-  workflow.indexOf('  propose-cli-go-mod-sync:'),
+const desktopReleaseWorkflow = readFileSync(
+  new URL(
+    '../../../.github/workflows/agent-desktop-release.yml',
+    import.meta.url,
+  ),
+  'utf8',
 );
+const desktopJob = (name: string) => {
+  const start = desktopReleaseWorkflow.indexOf(`\n  ${name}:\n`);
+  const end = desktopReleaseWorkflow.indexOf('\n  publish:\n', start + 1);
+  return desktopReleaseWorkflow.slice(start, end > start ? end : undefined);
+};
 const ciWorkflow = readFileSync(
   new URL('../../../.github/workflows/ci.yml', import.meta.url),
   'utf8',
@@ -216,7 +224,7 @@ describe('Nx release configuration', () => {
     (platform) => {
       const target = agentDesktopPackage.nx.targets['tauri:bundle'];
       expect(target.options.command).toContain('bundle.sh host');
-      expect(desktopReleaseJob).toContain(
+      expect(desktopReleaseWorkflow).toContain(
         `tauri:bundle --configuration=${platform} -- release`,
       );
       const bundler = readFileSync(
@@ -250,10 +258,14 @@ describe('Nx release configuration', () => {
   });
 
   it('notarizes and staples the outer desktop DMG before validation', () => {
-    const submit = desktopReleaseJob.indexOf('xcrun notarytool submit "$dmg"');
-    const staple = desktopReleaseJob.indexOf('xcrun stapler staple "$dmg"');
-    const materialize = desktopReleaseJob.indexOf(
-      'bash tools/release/agent-desktop/materialize.sh mac-os',
+    const submit = desktopReleaseWorkflow.indexOf(
+      'xcrun notarytool submit "$dmg"',
+    );
+    const staple = desktopReleaseWorkflow.indexOf(
+      'xcrun stapler staple "$dmg"',
+    );
+    const materialize = desktopReleaseWorkflow.indexOf(
+      'bash tools/release/agent-desktop/materialize.sh ${{ matrix.platform }}',
     );
     const materializeScript = readFileSync(
       join(workspaceRoot, 'tools/release/agent-desktop/materialize.sh'),
@@ -261,53 +273,32 @@ describe('Nx release configuration', () => {
     );
 
     expect(submit).toBeGreaterThan(-1);
-    expect(desktopReleaseJob).toContain('--key "$APPLE_API_KEY_PATH"');
-    expect(desktopReleaseJob).toContain('--key-id "$APPLE_API_KEY"');
-    expect(desktopReleaseJob).toContain('--issuer "$APPLE_API_ISSUER"');
-    expect(desktopReleaseJob).toContain('--timeout 45m');
+    expect(desktopReleaseWorkflow).toContain('--key "$APPLE_API_KEY_PATH"');
+    expect(desktopReleaseWorkflow).toContain('--key-id "$APPLE_API_KEY"');
+    expect(desktopReleaseWorkflow).toContain('--issuer "$APPLE_API_ISSUER"');
+    expect(desktopReleaseWorkflow).toContain('--timeout 45m');
     expect(staple).toBeGreaterThan(submit);
     expect(materialize).toBeGreaterThan(staple);
     expect(materializeScript).toContain('xcrun stapler validate "$dmg"');
   });
 
-  it('binds a desktop release to one reviewed main revision', () => {
-    const releaseScripts = [
-      'checkout-release.sh',
-      'upload.sh',
-      'verify-release-revision.sh',
-      'fetch-release.sh',
-    ]
-      .map((file) =>
-        readFileSync(
-          join(workspaceRoot, 'tools/release/agent-desktop', file),
-          'utf8',
-        ),
-      )
-      .join('\n');
-    expect(desktopReleaseJob).toContain(
-      'bash tools/release/agent-desktop/checkout-release.sh',
+  it('builds the draft revision and touches GitHub Releases only to publish', () => {
+    const packageJob = desktopJob('package');
+    const publishJob = desktopReleaseWorkflow.slice(
+      desktopReleaseWorkflow.indexOf('\n  publish:\n'),
     );
-    expect(desktopReleaseJob).toContain(
-      'bash tools/release/agent-desktop/upload.sh',
+
+    expect(packageJob).toContain('ref: ${{ needs.prepare.outputs.revision }}');
+    expect(packageJob).not.toMatch(/gh release|GH_TOKEN|contents: write/);
+    expect(desktopJob('prepare')).not.toMatch(/gh release (upload|edit)/);
+    expect(publishJob).toContain('contents: write');
+    expect(publishJob).toContain(
+      'REVISION: ${{ needs.prepare.outputs.revision }}',
     );
-    expect(releaseScripts).toContain(
-      'git merge-base --is-ancestor "$revision" origin/main',
+    expect(workflow).toContain(
+      'uses: ./.github/workflows/agent-desktop-release.yml',
     );
-    expect(releaseScripts).toContain(
-      'tag_revision=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RELEASE_TAG}" --jq .sha)',
-    );
-    expect(releaseScripts).toContain('[ "$tag_revision" = "$revision" ]');
-    expect(releaseScripts).toContain('if [ "$target" != "$revision" ]');
-    expect(releaseScripts.match(/verify-release-revision\.sh/g)).toHaveLength(
-      2,
-    );
-    expect(
-      desktopReleaseJob.match(/verify-release-revision\.sh/g),
-    ).toHaveLength(1);
-    expect(releaseScripts).toContain(
-      'gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100"',
-    );
-    expect(desktopReleaseJob).not.toContain('releases/tags/${RELEASE_TAG}');
+    expect(workflow).toContain('name: signed-agent-bundle-linux-x64');
   });
 
   it('can republish failed Docker releases from their existing drafts', () => {

@@ -1,49 +1,23 @@
-// Assemble only a complete release from metadata produced by verified platform jobs.
+// Write the updater manifest for a complete, signed desktop release directory.
 import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import process from 'node:process';
 
-import {
-  DESKTOP_PLATFORMS,
-  desktopAssetName,
-  loadReleaseMetadata,
-} from './release-contract.mjs';
+import { MANIFEST_NAME, buildManifest } from './release-contract.mjs';
 
-const [directory, output, version, repository = 'getlarge/themoltnet'] =
-  process.argv.slice(2);
-if (
-  !directory ||
-  !output ||
-  !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version ?? '')
-) {
+const [directory, version, repository] = process.argv.slice(2);
+if (!directory || !version || !repository) {
   throw new Error(
-    'Usage: manifest.mjs <metadata-directory> <output> <version> [repository]',
+    'Usage: manifest.mjs <assets-directory> <version> <owner/repo>',
   );
 }
-const platforms = {};
-const metadata = loadReleaseMetadata(directory, version);
-for (const { target, suffix } of Object.values(DESKTOP_PLATFORMS).flatMap(
-  ({ updaterTargets }) => updaterTargets,
-)) {
-  const name = desktopAssetName(version, suffix);
-  const asset = metadata.find((candidate) => candidate.name === name);
-  if (!asset || asset.size <= 0 || !/^[a-f0-9]{64}$/.test(asset.sha256 ?? ''))
-    throw new Error(`Missing verified metadata: ${name}`);
-  if (!asset.signature) throw new Error(`Missing signature: ${name}`);
-  platforms[target] = {
-    signature: asset.signature,
-    url: `https://github.com/${repository}/releases/download/agent-desktop-v${version}/${name}`,
-  };
-}
+const manifest = buildManifest(
+  directory,
+  version,
+  repository,
+  new Date().toISOString(),
+);
 writeFileSync(
-  output,
-  `${JSON.stringify(
-    {
-      version,
-      notes: 'Signed MoltNet Agent desktop update',
-      pub_date: new Date().toISOString(),
-      platforms,
-    },
-    null,
-    2,
-  )}\n`,
+  join(directory, MANIFEST_NAME),
+  `${JSON.stringify(manifest, null, 2)}\n`,
 );
